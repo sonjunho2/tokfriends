@@ -1,0 +1,1232 @@
+{
+  "generatedAt": "2025-10-29T05:37:06.394Z",
+  "project": "tokfriends-admin-web",
+  "base": {
+    "envVar": "NEXT_PUBLIC_API_BASE_URL",
+    "fallback": "https://tok-friends-api.onrender.com",
+    "withCredentials": true,
+    "timeoutMs": 8000
+  },
+  "totals": {
+    "httpCallCount": 64,
+    "axiosCalls": 63,
+    "fetchCalls": 1
+  },
+  "httpCalls": [
+    {
+      "id": "admin-web/src/components/recent-reports.tsx:50:27",
+      "file": "admin-web/src/components/recent-reports.tsx",
+      "position": {
+        "line": 50,
+        "column": 27
+      },
+      "context": "RecentReports > (anonymous) > run",
+      "client": "fetch",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "dynamic",
+        "raw": "url",
+        "normalized": null,
+        "canonical": null
+      },
+      "options": {
+        "credentials": "include"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:106:10",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 106,
+        "column": 10
+      },
+      "context": "postJson",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "dynamic",
+        "raw": "url",
+        "normalized": null,
+        "canonical": null
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:115:10",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 115,
+        "column": 10
+      },
+      "context": "postForm",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "dynamic",
+        "raw": "url",
+        "normalized": null,
+        "canonical": null
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:135:21",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 135,
+        "column": 21
+      },
+      "context": "getDashboardMetrics",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/metrics/dashboard",
+        "normalized": "/metrics/dashboard",
+        "canonical": "/metrics/dashboard"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:157:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 157,
+        "column": 26
+      },
+      "context": "loginWithPhone",
+      "client": "axios-helper",
+      "helper": "postForm",
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/auth/login/phone",
+        "normalized": "/auth/login/phone",
+        "canonical": "/auth/login/phone"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:162:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 162,
+        "column": 26
+      },
+      "context": "checkHealth",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/health",
+        "normalized": "/health",
+        "canonical": "/health"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:231:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 231,
+        "column": 26
+      },
+      "context": "searchUsers",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/users/search",
+        "normalized": "/users/search",
+        "canonical": "/users/search"
+      },
+      "config": {
+        "hasParams": false,
+        "hasData": false
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:236:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 236,
+        "column": 26
+      },
+      "context": "getUserById",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "template",
+        "raw": "`/users/${userId}`",
+        "normalized": "/users/{userId}",
+        "canonical": "/users/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:243:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 243,
+        "column": 26
+      },
+      "context": "updateUserProfile",
+      "client": "axios",
+      "helper": null,
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/users/${userId}`",
+        "normalized": "/users/{userId}",
+        "canonical": "/users/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:270:10",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 270,
+        "column": 10
+      },
+      "context": "submitUserReport",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/community/report",
+        "normalized": "/community/report",
+        "canonical": "/community/report"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:274:10",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 274,
+        "column": 10
+      },
+      "context": "submitUserBlock",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/community/block",
+        "normalized": "/community/block",
+        "canonical": "/community/block"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:309:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 309,
+        "column": 26
+      },
+      "context": "listTopics",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/topics",
+        "normalized": "/topics",
+        "canonical": "/topics"
+      },
+      "config": {
+        "hasParams": false,
+        "hasData": false
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:314:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 314,
+        "column": 26
+      },
+      "context": "listTopicPosts",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "template",
+        "raw": "`/topics/${topicId}/posts`",
+        "normalized": "/topics/{topicId}/posts",
+        "canonical": "/topics/{}/posts"
+      },
+      "config": {
+        "hasParams": false,
+        "hasData": false
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:319:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 319,
+        "column": 26
+      },
+      "context": "listPosts",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/posts",
+        "normalized": "/posts",
+        "canonical": "/posts"
+      },
+      "config": {
+        "hasParams": false,
+        "hasData": false
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:324:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 324,
+        "column": 26
+      },
+      "context": "updatePost",
+      "client": "axios",
+      "helper": null,
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/posts/${postId}`",
+        "normalized": "/posts/{postId}",
+        "canonical": "/posts/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:331:9",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 331,
+        "column": 9
+      },
+      "context": "deletePost",
+      "client": "axios",
+      "helper": null,
+      "method": "DELETE",
+      "url": {
+        "type": "template",
+        "raw": "`/posts/${postId}`",
+        "normalized": "/posts/{postId}",
+        "canonical": "/posts/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:369:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 369,
+        "column": 26
+      },
+      "context": "getAnnouncements",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/announcements",
+        "normalized": "/announcements",
+        "canonical": "/announcements"
+      },
+      "config": {
+        "hasParams": false,
+        "hasData": false
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:374:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 374,
+        "column": 26
+      },
+      "context": "getActiveAnnouncements",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/announcements/active",
+        "normalized": "/announcements/active",
+        "canonical": "/announcements/active"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:379:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 379,
+        "column": 26
+      },
+      "context": "createAnnouncement",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/announcements",
+        "normalized": "/announcements",
+        "canonical": "/announcements"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:386:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 386,
+        "column": 26
+      },
+      "context": "updateAnnouncement",
+      "client": "axios",
+      "helper": null,
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/announcements/${announcementId}`",
+        "normalized": "/announcements/{announcementId}",
+        "canonical": "/announcements/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:409:28",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 409,
+        "column": 28
+      },
+      "context": "getGifts",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/gifts",
+        "normalized": "/gifts",
+        "canonical": "/gifts"
+      },
+      "config": {
+        "hasParams": false,
+        "hasData": false
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:420:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 420,
+        "column": 26
+      },
+      "context": "createGift",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/gifts",
+        "normalized": "/gifts",
+        "canonical": "/gifts"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:427:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 427,
+        "column": 26
+      },
+      "context": "updateGift",
+      "client": "axios",
+      "helper": null,
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/gifts/${giftId}`",
+        "normalized": "/gifts/{giftId}",
+        "canonical": "/gifts/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:434:9",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 434,
+        "column": 9
+      },
+      "context": "deleteGift",
+      "client": "axios",
+      "helper": null,
+      "method": "DELETE",
+      "url": {
+        "type": "template",
+        "raw": "`/gifts/${giftId}`",
+        "normalized": "/gifts/{giftId}",
+        "canonical": "/gifts/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:484:28",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 484,
+        "column": 28
+      },
+      "context": "getLegalDocument",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "template",
+        "raw": "`/legal-documents/${slug}`",
+        "normalized": "/legal-documents/{slug}",
+        "canonical": "/legal-documents/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:533:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 533,
+        "column": 26
+      },
+      "context": "saveLegalDocument",
+      "client": "axios",
+      "helper": null,
+      "method": "PUT",
+      "url": {
+        "type": "template",
+        "raw": "`/legal-documents/${slug}`",
+        "normalized": "/legal-documents/{slug}",
+        "canonical": "/legal-documents/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:596:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 596,
+        "column": 26
+      },
+      "context": "getPhoneOtpLogs",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/verifications/phone/otp-logs",
+        "normalized": "/verifications/phone/otp-logs",
+        "canonical": "/verifications/phone/otp-logs"
+      },
+      "config": {
+        "hasParams": false,
+        "hasData": false
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:601:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 601,
+        "column": 26
+      },
+      "context": "getPendingPhoneVerifications",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/verifications/phone/pending",
+        "normalized": "/verifications/phone/pending",
+        "canonical": "/verifications/phone/pending"
+      },
+      "config": {
+        "hasParams": false,
+        "hasData": false
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:606:10",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 606,
+        "column": 10
+      },
+      "context": "resendPhoneOtp",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "template",
+        "raw": "`/verifications/phone/${verificationId}/resend`",
+        "normalized": "/verifications/phone/{verificationId}/resend",
+        "canonical": "/verifications/phone/{}/resend"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:610:10",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 610,
+        "column": 10
+      },
+      "context": "approvePhoneVerification",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "template",
+        "raw": "`/verifications/phone/${verificationId}/approve`",
+        "normalized": "/verifications/phone/{verificationId}/approve",
+        "canonical": "/verifications/phone/{}/approve"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:614:10",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 614,
+        "column": 10
+      },
+      "context": "expirePhoneVerificationSession",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "template",
+        "raw": "`/verifications/phone/${verificationId}/expire`",
+        "normalized": "/verifications/phone/{verificationId}/expire",
+        "canonical": "/verifications/phone/{}/expire"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:618:10",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 618,
+        "column": 10
+      },
+      "context": "completePhoneVerificationProfile",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/verifications/phone/manual-complete",
+        "normalized": "/verifications/phone/manual-complete",
+        "canonical": "/verifications/phone/manual-complete"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:661:28",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 661,
+        "column": 28
+      },
+      "context": "getPointProducts",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/store/point-products",
+        "normalized": "/store/point-products",
+        "canonical": "/store/point-products"
+      },
+      "config": {
+        "hasParams": false,
+        "hasData": false
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:669:40",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 669,
+        "column": 40
+      },
+      "context": "getPointProducts",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/gifts",
+        "normalized": "/gifts",
+        "canonical": "/gifts"
+      },
+      "config": {
+        "hasParams": false,
+        "hasData": false
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:686:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 686,
+        "column": 26
+      },
+      "context": "createPointProduct",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/store/point-products",
+        "normalized": "/store/point-products",
+        "canonical": "/store/point-products"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:693:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 693,
+        "column": 26
+      },
+      "context": "updatePointProduct",
+      "client": "axios",
+      "helper": null,
+      "method": "PUT",
+      "url": {
+        "type": "template",
+        "raw": "`/store/point-products/${productId}`",
+        "normalized": "/store/point-products/{productId}",
+        "canonical": "/store/point-products/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:700:9",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 700,
+        "column": 9
+      },
+      "context": "deletePointProduct",
+      "client": "axios",
+      "helper": null,
+      "method": "DELETE",
+      "url": {
+        "type": "template",
+        "raw": "`/store/point-products/${productId}`",
+        "normalized": "/store/point-products/{productId}",
+        "canonical": "/store/point-products/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:704:9",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 704,
+        "column": 9
+      },
+      "context": "syncPointProductOrder",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/store/point-products/reorder",
+        "normalized": "/store/point-products/reorder",
+        "canonical": "/store/point-products/reorder"
+      },
+      "config": {
+        "hasParams": false,
+        "hasData": false
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:888:28",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 888,
+        "column": 28
+      },
+      "context": "getMatchControlPanelSnapshot",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/matches/control-panel",
+        "normalized": "/matches/control-panel",
+        "canonical": "/matches/control-panel"
+      },
+      "config": {
+        "hasParams": false,
+        "hasData": false
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:906:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 906,
+        "column": 26
+      },
+      "context": "updateMatchPreset",
+      "client": "axios",
+      "helper": null,
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/matches/presets/${presetId}`",
+        "normalized": "/matches/presets/{presetId}",
+        "canonical": "/matches/presets/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:911:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 911,
+        "column": 26
+      },
+      "context": "activateMatchPreset",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "template",
+        "raw": "`/matches/presets/${presetId}/activate`",
+        "normalized": "/matches/presets/{presetId}/activate",
+        "canonical": "/matches/presets/{}/activate"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:916:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 916,
+        "column": 26
+      },
+      "context": "duplicateMatchPreset",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "template",
+        "raw": "`/matches/presets/${presetId}/duplicate`",
+        "normalized": "/matches/presets/{presetId}/duplicate",
+        "canonical": "/matches/presets/{}/duplicate"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:928:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 928,
+        "column": 26
+      },
+      "context": "createMatchQuickFilter",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/matches/quick-filters",
+        "normalized": "/matches/quick-filters",
+        "canonical": "/matches/quick-filters"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:948:9",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 948,
+        "column": 9
+      },
+      "context": "deleteMatchQuickFilter",
+      "client": "axios",
+      "helper": null,
+      "method": "DELETE",
+      "url": {
+        "type": "template",
+        "raw": "`/matches/quick-filters/${filterId}`",
+        "normalized": "/matches/quick-filters/{filterId}",
+        "canonical": "/matches/quick-filters/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:960:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 960,
+        "column": 26
+      },
+      "context": "updateMatchRecommendationPool",
+      "client": "axios",
+      "helper": null,
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/matches/recommendation-pools/${poolId}`",
+        "normalized": "/matches/recommendation-pools/{poolId}",
+        "canonical": "/matches/recommendation-pools/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:972:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 972,
+        "column": 26
+      },
+      "context": "saveMatchHeatMemo",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/matches/heat-map/memo",
+        "normalized": "/matches/heat-map/memo",
+        "canonical": "/matches/heat-map/memo"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1083:28",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 1083,
+        "column": 28
+      },
+      "context": "getChatSafetySnapshot",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/chats/control-panel",
+        "normalized": "/chats/control-panel",
+        "canonical": "/chats/control-panel"
+      },
+      "config": {
+        "hasParams": false,
+        "hasData": false
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1101:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 1101,
+        "column": 26
+      },
+      "context": "updateChatRoom",
+      "client": "axios",
+      "helper": null,
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/chats/rooms/${roomId}`",
+        "normalized": "/chats/rooms/{roomId}",
+        "canonical": "/chats/rooms/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1106:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 1106,
+        "column": 26
+      },
+      "context": "resolveChatReport",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "template",
+        "raw": "`/chats/reports/${reportId}/resolve`",
+        "normalized": "/chats/reports/{reportId}/resolve",
+        "canonical": "/chats/reports/{}/resolve"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1111:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 1111,
+        "column": 26
+      },
+      "context": "updateChatPolicyRule",
+      "client": "axios",
+      "helper": null,
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/chats/policy-rules/${ruleId}`",
+        "normalized": "/chats/policy-rules/{ruleId}",
+        "canonical": "/chats/policy-rules/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1116:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 1116,
+        "column": 26
+      },
+      "context": "saveChatSafetyMemo",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/chats/control-panel/memo",
+        "normalized": "/chats/control-panel/memo",
+        "canonical": "/chats/control-panel/memo"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1201:28",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 1201,
+        "column": 28
+      },
+      "context": "getAnalyticsOverview",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/analytics/overview",
+        "normalized": "/analytics/overview",
+        "canonical": "/analytics/overview"
+      },
+      "config": {
+        "hasParams": false,
+        "hasData": false
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1212:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 1212,
+        "column": 26
+      },
+      "context": "updateAnalyticsMetric",
+      "client": "axios",
+      "helper": null,
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/analytics/metrics/${metricId}`",
+        "normalized": "/analytics/metrics/{metricId}",
+        "canonical": "/analytics/metrics/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1217:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 1217,
+        "column": 26
+      },
+      "context": "createAnalyticsMetric",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/analytics/metrics",
+        "normalized": "/analytics/metrics",
+        "canonical": "/analytics/metrics"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1222:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 1222,
+        "column": 26
+      },
+      "context": "updateAnalyticsReportJob",
+      "client": "axios",
+      "helper": null,
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/analytics/report-jobs/${jobId}`",
+        "normalized": "/analytics/report-jobs/{jobId}",
+        "canonical": "/analytics/report-jobs/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1227:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 1227,
+        "column": 26
+      },
+      "context": "toggleAnalyticsReportJob",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "template",
+        "raw": "`/analytics/report-jobs/${jobId}/${active ? 'activate' : 'deactivate'}`",
+        "normalized": "/analytics/report-jobs/{jobId}/{active-activate-deactivate-}",
+        "canonical": "/analytics/report-jobs/{}/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1232:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 1232,
+        "column": 26
+      },
+      "context": "createAnalyticsExport",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/analytics/exports",
+        "normalized": "/analytics/exports",
+        "canonical": "/analytics/exports"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1325:28",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 1325,
+        "column": 28
+      },
+      "context": "getAdminSettingsSnapshot",
+      "client": "axios",
+      "helper": null,
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/admin/settings/snapshot",
+        "normalized": "/admin/settings/snapshot",
+        "canonical": "/admin/settings/snapshot"
+      },
+      "config": {
+        "hasParams": false,
+        "hasData": false
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1337:28",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 1337,
+        "column": 28
+      },
+      "context": "createAdminTeamMember",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/admin/settings/team",
+        "normalized": "/admin/settings/team",
+        "canonical": "/admin/settings/team"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1356:28",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 1356,
+        "column": 28
+      },
+      "context": "updateAdminTeamMember",
+      "client": "axios",
+      "helper": null,
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/admin/settings/team/${memberId}`",
+        "normalized": "/admin/settings/team/{memberId}",
+        "canonical": "/admin/settings/team/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1374:11",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 1374,
+        "column": 11
+      },
+      "context": "deleteAdminTeamMember",
+      "client": "axios",
+      "helper": null,
+      "method": "DELETE",
+      "url": {
+        "type": "template",
+        "raw": "`/admin/settings/team/${memberId}`",
+        "normalized": "/admin/settings/team/{memberId}",
+        "canonical": "/admin/settings/team/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1384:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 1384,
+        "column": 26
+      },
+      "context": "updateAdminFeatureFlag",
+      "client": "axios",
+      "helper": null,
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/admin/settings/feature-flags/${flagId}`",
+        "normalized": "/admin/settings/feature-flags/{flagId}",
+        "canonical": "/admin/settings/feature-flags/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1389:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 1389,
+        "column": 26
+      },
+      "context": "updateAdminIntegrationSetting",
+      "client": "axios",
+      "helper": null,
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/admin/settings/integrations/${settingId}`",
+        "normalized": "/admin/settings/integrations/{settingId}",
+        "canonical": "/admin/settings/integrations/{}"
+      }
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1394:26",
+      "file": "admin-web/src/lib/api.ts",
+      "position": {
+        "line": 1394,
+        "column": 26
+      },
+      "context": "saveAdminAuditMemo",
+      "client": "axios",
+      "helper": null,
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/admin/settings/audit-log",
+        "normalized": "/admin/settings/audit-log",
+        "canonical": "/admin/settings/audit-log"
+      }
+    }
+  ]
+}

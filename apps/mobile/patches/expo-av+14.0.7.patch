@@ -1,0 +1,29 @@
+diff --git a/node_modules/expo-av/android/CMakeLists.txt b/node_modules/expo-av/android/CMakeLists.txt
+index 0000000000000000000000000000000000000000..1111111111111111111111111111111111111111 100644
+--- a/node_modules/expo-av/android/CMakeLists.txt
++++ b/node_modules/expo-av/android/CMakeLists.txt
+@@ -36,6 +36,16 @@
+ 
+ find_package(fbjni REQUIRED CONFIG)
+ 
++# Determine the proper React Native JNI target.
++set(REACT_NATIVE_JNI_TARGET ReactAndroid::reactnativejni)
++if(NOT TARGET ReactAndroid::reactnativejni)
++        if(TARGET ReactAndroid::reactnative)
++                set(REACT_NATIVE_JNI_TARGET ReactAndroid::reactnative)
++        else()
++                message(FATAL_ERROR "Failed to locate a React Native JNI target. Expected ReactAndroid::reactnativejni or ReactAndroid::reactnative to be exported.")
++        endif()
++endif()
++
+ # linking
+ 
+ target_link_libraries(
+@@ -43,6 +53,6 @@
+         ${LOG_LIB}
+         fbjni::fbjni
+         ReactAndroid::jsi
+-        ReactAndroid::reactnativejni
++        ${REACT_NATIVE_JNI_TARGET}
+         android
+ )

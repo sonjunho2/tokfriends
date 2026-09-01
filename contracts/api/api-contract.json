@@ -1,0 +1,2649 @@
+{
+  "metadata": {
+    "generatedAt": "2025-10-29T04:54:19.786361Z",
+    "endpointCount": 57,
+    "authentication": {
+      "default": "bearer",
+      "publicEndpoints": [
+        "/",
+        "/health",
+        "/auth/signup/email",
+        "/auth/login/email",
+        "/auth/apple",
+        "/auth/phone/request-otp",
+        "/auth/phone/verify",
+        "/auth/phone/complete-profile",
+        "/store/point-products",
+        "/gifts",
+        "/legal-documents/{slug}"
+      ]
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuthUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "email"
+          },
+          "displayName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "provider": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pointsBalance": {
+            "type": "integer"
+          },
+          "profile": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": true
+          }
+        }
+      },
+      "AuthEmailSignupRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "dob",
+          "gender"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "dob": {
+            "type": "string"
+          },
+          "gender": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthEmailLoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthEmailResponse": {
+        "type": "object",
+        "required": [
+          "user",
+          "token",
+          "access_token"
+        ],
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/AuthUser"
+          },
+          "token": {
+            "type": "string"
+          },
+          "access_token": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthPhoneRequestOtp": {
+        "type": "object",
+        "required": [
+          "phone",
+          "countryCode"
+        ],
+        "properties": {
+          "phone": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthPhoneRequestOtpResponse": {
+        "type": "object",
+        "required": [
+          "requestId",
+          "expiresIn"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "expiresIn": {
+            "type": "integer"
+          },
+          "debugCode": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthPhoneVerifyRequest": {
+        "type": "object",
+        "required": [
+          "requestId",
+          "phone",
+          "code"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthPhoneVerifyResponseSuccess": {
+        "type": "object",
+        "required": [
+          "token",
+          "user"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/AuthUser"
+          }
+        }
+      },
+      "AuthPhoneVerifyResponsePending": {
+        "type": "object",
+        "required": [
+          "needsProfile",
+          "verificationId"
+        ],
+        "properties": {
+          "needsProfile": {
+            "type": "boolean"
+          },
+          "verificationId": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthCompletePhoneProfileRequest": {
+        "type": "object",
+        "required": [
+          "phone",
+          "verificationId",
+          "nickname",
+          "birthYear",
+          "gender"
+        ],
+        "properties": {
+          "phone": {
+            "type": "string"
+          },
+          "verificationId": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "birthYear": {
+            "type": "integer"
+          },
+          "gender": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "headline": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "avatarUri": {
+            "type": "string"
+          }
+        }
+      },
+      "UserSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "displayName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "provider": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pointsBalance": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "profile": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": true
+          },
+          "counts": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": true
+          }
+        }
+      },
+      "UsersMeResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserSummary"
+          }
+        }
+      },
+      "UsersUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "region1": {
+            "type": "string"
+          },
+          "region2": {
+            "type": "string"
+          },
+          "interests": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "marketingOptIn": {
+            "oneOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "headline": {
+            "type": "string"
+          },
+          "avatarUri": {
+            "type": "string"
+          }
+        }
+      },
+      "UsersSearchResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      },
+      "AdminUsersListResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "totalPages": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      },
+      "AdminUserDetailResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "AdminUserProfileUpdate": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "AdminUserStatusUpdate": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminUserNote": {
+        "type": "object",
+        "required": [
+          "note"
+        ],
+        "properties": {
+          "note": {
+            "type": "string"
+          },
+          "authorId": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminUserAction": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "performedBy": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "CreatePostRequest": {
+        "type": "object",
+        "required": [
+          "topicId",
+          "content"
+        ],
+        "properties": {
+          "topicId": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "Post": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "topicId": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        }
+      },
+      "PaginatedPosts": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Post"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Topic": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "postsCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "DiscoverUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gender": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dob": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "region1": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "region2": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "FriendshipRequest": {
+        "type": "object",
+        "required": [
+          "requesterId",
+          "addresseeId"
+        ],
+        "properties": {
+          "requesterId": {
+            "type": "string"
+          },
+          "addresseeId": {
+            "type": "string"
+          }
+        }
+      },
+      "Friendship": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "requesterId": {
+            "type": "string"
+          },
+          "addresseeId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "ChatMessageRequest": {
+        "type": "object",
+        "required": [
+          "chatId",
+          "senderId",
+          "content"
+        ],
+        "properties": {
+          "chatId": {
+            "type": "string"
+          },
+          "senderId": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "ChatRoomRequest": {
+        "type": "object",
+        "required": [
+          "userAId",
+          "userBId"
+        ],
+        "properties": {
+          "userAId": {
+            "type": "string"
+          },
+          "userBId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          }
+        }
+      },
+      "ChatDirectRequest": {
+        "type": "object",
+        "required": [
+          "targetUserId"
+        ],
+        "properties": {
+          "targetUserId": {
+            "type": "string"
+          }
+        }
+      },
+      "PointProduct": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "productId": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "priceText": {
+            "type": "string"
+          },
+          "points": {
+            "type": "integer"
+          },
+          "recommended": {
+            "type": "boolean"
+          },
+          "currency": {
+            "type": "string"
+          }
+        }
+      },
+      "ConfirmPurchaseRequest": {
+        "type": "object",
+        "required": [
+          "productId",
+          "transactionId",
+          "receipt",
+          "platform"
+        ],
+        "properties": {
+          "productId": {
+            "type": "string"
+          },
+          "transactionId": {
+            "type": "string"
+          },
+          "receipt": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          }
+        }
+      },
+      "ConfirmPurchaseResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "balance": {
+            "type": "integer"
+          }
+        }
+      },
+      "GiftItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "priceCents": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          }
+        }
+      },
+      "LegalDocument": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "Announcement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "endsAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "AnnouncementCreate": {
+        "type": "object",
+        "required": [
+          "title",
+          "body"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "startsAt": {
+            "type": "string"
+          },
+          "endsAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "AnnouncementUpdate": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "startsAt": {
+            "type": "string"
+          },
+          "endsAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ReportItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "MetricsSummary": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "integer"
+          },
+          "posts": {
+            "type": "integer"
+          },
+          "chats": {
+            "type": "integer"
+          },
+          "reports": {
+            "type": "integer"
+          },
+          "activeAnnouncements": {
+            "type": "integer"
+          },
+          "bannedWords": {
+            "type": "integer"
+          },
+          "activeSubscriptions": {
+            "type": "integer"
+          }
+        }
+      },
+      "MetricsDashboard": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "CommunityReport": {
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "targetUserId": {
+            "type": "string"
+          },
+          "postId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "CommunityBlock": {
+        "type": "object",
+        "required": [
+          "blockedUserId"
+        ],
+        "properties": {
+          "blockedUserId": {
+            "type": "string"
+          }
+        }
+      },
+      "TranslateRequest": {
+        "type": "object",
+        "required": [
+          "text",
+          "source",
+          "target"
+        ],
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          }
+        }
+      },
+      "TranslateResponse": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "components": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      },
+      "AdminSetRoleRequest": {
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "properties": {
+          "role": {
+            "type": "string"
+          }
+        }
+      },
+      "RefundRequest": {
+        "type": "object",
+        "required": [
+          "userId",
+          "platform",
+          "productId",
+          "receiptId"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "productId": {
+            "type": "string"
+          },
+          "receiptId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "Refund": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    }
+  },
+  "endpoints": [
+    {
+      "path": "/",
+      "method": "GET",
+      "summary": "Redirect to docs",
+      "tags": [
+        "root"
+      ],
+      "public": true,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "302": {
+          "description": "Redirect to /docs"
+        }
+      }
+    },
+    {
+      "path": "/health",
+      "method": "GET",
+      "summary": "Health check",
+      "tags": [
+        "health"
+      ],
+      "public": true,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Service health",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HealthResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/auth/signup/email",
+      "method": "POST",
+      "summary": "Email signup",
+      "tags": [
+        "auth"
+      ],
+      "public": true,
+      "aliases": [
+        "/auth/signup",
+        "/auth/register",
+        "/auth/users/signup",
+        "/auth/users/register"
+      ],
+      "requestSchema": {
+        "$ref": "#/components/schemas/AuthEmailSignupRequest"
+      },
+      "responses": {
+        "201": {
+          "description": "User created",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthEmailResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid input"
+        }
+      }
+    },
+    {
+      "path": "/auth/login/email",
+      "method": "POST",
+      "summary": "Email login",
+      "tags": [
+        "auth"
+      ],
+      "public": true,
+      "aliases": [
+        "/auth/login"
+      ],
+      "requestSchema": {
+        "$ref": "#/components/schemas/AuthEmailLoginRequest"
+      },
+      "responses": {
+        "200": {
+          "description": "Login success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthEmailResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Invalid credentials"
+        }
+      }
+    },
+    {
+      "path": "/auth/apple",
+      "method": "POST",
+      "summary": "Apple login",
+      "tags": [
+        "auth"
+      ],
+      "public": true,
+      "aliases": [],
+      "requestSchema": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "idToken": {
+            "type": "string"
+          },
+          "authorizationCode": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "responses": {
+        "400": {
+          "description": "Not implemented"
+        }
+      }
+    },
+    {
+      "path": "/auth/phone/request-otp",
+      "method": "POST",
+      "summary": "Request phone OTP",
+      "tags": [
+        "auth"
+      ],
+      "public": true,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/AuthPhoneRequestOtp"
+      },
+      "responses": {
+        "200": {
+          "description": "OTP issued",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthPhoneRequestOtpResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid phone"
+        }
+      }
+    },
+    {
+      "path": "/auth/phone/verify",
+      "method": "POST",
+      "summary": "Verify phone OTP",
+      "tags": [
+        "auth"
+      ],
+      "public": true,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/AuthPhoneVerifyRequest"
+      },
+      "responses": {
+        "200": {
+          "description": "Verification result",
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/AuthPhoneVerifyResponseSuccess"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AuthPhoneVerifyResponsePending"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request"
+        },
+        "401": {
+          "description": "Incorrect code"
+        }
+      }
+    },
+    {
+      "path": "/auth/phone/complete-profile",
+      "method": "POST",
+      "summary": "Complete phone profile",
+      "tags": [
+        "auth"
+      ],
+      "public": true,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/AuthCompletePhoneProfileRequest"
+      },
+      "responses": {
+        "200": {
+          "description": "Account issued",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthPhoneVerifyResponseSuccess"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid verification"
+        },
+        "409": {
+          "description": "Already registered"
+        }
+      }
+    },
+    {
+      "path": "/users/me",
+      "method": "GET",
+      "summary": "Get current user",
+      "tags": [
+        "users"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Current profile",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsersMeResponse"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Not found"
+        }
+      }
+    },
+    {
+      "path": "/users/search",
+      "method": "GET",
+      "summary": "Search users",
+      "tags": [
+        "users"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Matches",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsersSearchResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/users/{id}",
+      "method": "PATCH",
+      "summary": "Update profile",
+      "tags": [
+        "users"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/UsersUpdateRequest"
+      },
+      "responses": {
+        "200": {
+          "description": "Updated profile",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsersMeResponse"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Forbidden"
+        },
+        "404": {
+          "description": "Not found"
+        }
+      }
+    },
+    {
+      "path": "/users/{id}",
+      "method": "GET",
+      "summary": "Get user",
+      "tags": [
+        "users"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "User detail",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsersMeResponse"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Not found"
+        }
+      }
+    },
+    {
+      "path": "/admin/users",
+      "method": "GET",
+      "summary": "Admin list users",
+      "tags": [
+        "admin/users"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Paginated",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminUsersListResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/admin/users/{id}",
+      "method": "GET",
+      "summary": "Admin user detail",
+      "tags": [
+        "admin/users"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Detail",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminUserDetailResponse"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Not found"
+        }
+      }
+    },
+    {
+      "path": "/admin/users/{id}",
+      "method": "PATCH",
+      "summary": "Admin update user",
+      "tags": [
+        "admin/users"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/AdminUserProfileUpdate"
+      },
+      "responses": {
+        "200": {
+          "description": "Updated",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminUserDetailResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/admin/users/{id}/status",
+      "method": "PATCH",
+      "summary": "Admin update status",
+      "tags": [
+        "admin/users"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/AdminUserStatusUpdate"
+      },
+      "responses": {
+        "200": {
+          "description": "Status updated"
+        }
+      }
+    },
+    {
+      "path": "/admin/users/{id}/notes",
+      "method": "POST",
+      "summary": "Admin add note",
+      "tags": [
+        "admin/users"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/AdminUserNote"
+      },
+      "responses": {
+        "200": {
+          "description": "Note added"
+        },
+        "400": {
+          "description": "Missing note"
+        }
+      }
+    },
+    {
+      "path": "/admin/users/{id}/actions/resend-verification",
+      "method": "POST",
+      "summary": "Log resend verification",
+      "tags": [
+        "admin/users"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/AdminUserAction"
+      },
+      "responses": {
+        "200": {
+          "description": "Logged"
+        }
+      }
+    },
+    {
+      "path": "/admin/users/{id}/actions/password-reset",
+      "method": "POST",
+      "summary": "Log password reset",
+      "tags": [
+        "admin/users"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/AdminUserAction"
+      },
+      "responses": {
+        "200": {
+          "description": "Logged"
+        }
+      }
+    },
+    {
+      "path": "/admin/users/{id}/actions/escalate",
+      "method": "POST",
+      "summary": "Log escalate",
+      "tags": [
+        "admin/users"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/AdminUserAction"
+      },
+      "responses": {
+        "200": {
+          "description": "Logged"
+        }
+      }
+    },
+    {
+      "path": "/posts",
+      "method": "POST",
+      "summary": "Create post",
+      "tags": [
+        "posts"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/CreatePostRequest"
+      },
+      "responses": {
+        "201": {
+          "description": "Created",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Post"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/posts",
+      "method": "GET",
+      "summary": "List posts",
+      "tags": [
+        "posts"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "List",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaginatedPosts"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/topics/{id}/posts",
+      "method": "GET",
+      "summary": "Posts by topic",
+      "tags": [
+        "posts"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "List",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaginatedPosts"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/topics",
+      "method": "GET",
+      "summary": "List topics",
+      "tags": [
+        "topics"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Topics",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Topic"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/discover",
+      "method": "GET",
+      "summary": "Discover users",
+      "tags": [
+        "discover"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Matches",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/DiscoverUser"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/friendships",
+      "method": "POST",
+      "summary": "Send friend request",
+      "tags": [
+        "friendships"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/FriendshipRequest"
+      },
+      "responses": {
+        "200": {
+          "description": "Created",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/Friendship"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/friendships/{id}/accept",
+      "method": "POST",
+      "summary": "Accept friend",
+      "tags": [
+        "friendships"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Accepted",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/Friendship"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/friendships/{id}/decline",
+      "method": "POST",
+      "summary": "Decline friend",
+      "tags": [
+        "friendships"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Declined",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/Friendship"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/friendships/{id}/cancel",
+      "method": "POST",
+      "summary": "Cancel friend",
+      "tags": [
+        "friendships"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Cancelled",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/Friendship"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/friendships",
+      "method": "GET",
+      "summary": "List friend requests",
+      "tags": [
+        "friendships"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Requests",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Friendship"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/chats",
+      "method": "GET",
+      "summary": "List chats",
+      "tags": [
+        "chats"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Chats",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/chats/message",
+      "method": "POST",
+      "summary": "Send message",
+      "tags": [
+        "chats"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/ChatMessageRequest"
+      },
+      "responses": {
+        "200": {
+          "description": "Message",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/chats/rooms",
+      "method": "POST",
+      "summary": "Create chat room",
+      "tags": [
+        "chats"
+      ],
+      "public": false,
+      "aliases": [
+        "/chats/chat/rooms",
+        "/chats/chats/rooms",
+        "/chats/conversations"
+      ],
+      "requestSchema": {
+        "$ref": "#/components/schemas/ChatRoomRequest"
+      },
+      "responses": {
+        "200": {
+          "description": "Room",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "userAId": {
+                    "type": "string"
+                  },
+                  "userBId": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/chats/direct",
+      "method": "POST",
+      "summary": "Ensure direct chat",
+      "tags": [
+        "chats"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/ChatDirectRequest"
+      },
+      "responses": {
+        "200": {
+          "description": "Direct room",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "participants": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid target"
+        },
+        "404": {
+          "description": "Target not found"
+        }
+      }
+    },
+    {
+      "path": "/store/point-products",
+      "method": "GET",
+      "summary": "List point products",
+      "tags": [
+        "store"
+      ],
+      "public": true,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Products",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/PointProduct"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/store/purchases/confirm",
+      "method": "POST",
+      "summary": "Confirm purchase",
+      "tags": [
+        "store"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/ConfirmPurchaseRequest"
+      },
+      "responses": {
+        "200": {
+          "description": "Balance",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmPurchaseResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid"
+        },
+        "409": {
+          "description": "Duplicate"
+        }
+      }
+    },
+    {
+      "path": "/gifts",
+      "method": "GET",
+      "summary": "List gifts",
+      "tags": [
+        "gifts"
+      ],
+      "public": true,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Gifts",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/GiftItem"
+                    }
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/GiftItem"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/legal-documents/{slug}",
+      "method": "GET",
+      "summary": "Get legal document",
+      "tags": [
+        "legal"
+      ],
+      "public": true,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Document",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LegalDocument"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Not found"
+        }
+      }
+    },
+    {
+      "path": "/admin/announcements",
+      "method": "GET",
+      "summary": "Admin list announcements",
+      "tags": [
+        "admin/announcements"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Announcements",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Announcement"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/admin/announcements",
+      "method": "POST",
+      "summary": "Create announcement",
+      "tags": [
+        "admin/announcements"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/AnnouncementCreate"
+      },
+      "responses": {
+        "201": {
+          "description": "Created",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/Announcement"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/admin/announcements/{id}",
+      "method": "PATCH",
+      "summary": "Update announcement",
+      "tags": [
+        "admin/announcements"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/AnnouncementUpdate"
+      },
+      "responses": {
+        "200": {
+          "description": "Updated",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/Announcement"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/admin/announcements/{id}",
+      "method": "DELETE",
+      "summary": "Delete announcement",
+      "tags": [
+        "admin/announcements"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Deleted",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/announcements/active",
+      "method": "GET",
+      "summary": "Active announcements",
+      "tags": [
+        "announcements"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Active",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Announcement"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/announcements",
+      "method": "GET",
+      "summary": "List announcements",
+      "tags": [
+        "announcements"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Announcements",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Announcement"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/admin/reports",
+      "method": "GET",
+      "summary": "Admin list reports",
+      "tags": [
+        "admin/reports"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Reports",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ReportItem"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/admin/reports/recent",
+      "method": "GET",
+      "summary": "Recent reports",
+      "tags": [
+        "admin/reports"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Recent",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ReportItem"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/metrics",
+      "method": "GET",
+      "summary": "Metrics summary",
+      "tags": [
+        "metrics"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Summary",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/MetricsSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/metrics/dashboard",
+      "method": "GET",
+      "summary": "Metrics dashboard",
+      "tags": [
+        "metrics"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Dashboard",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/MetricsDashboard"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/community/report",
+      "method": "POST",
+      "summary": "Report content",
+      "tags": [
+        "community"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/CommunityReport"
+      },
+      "responses": {
+        "200": {
+          "description": "Reported",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "id": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/community/block",
+      "method": "POST",
+      "summary": "Block user",
+      "tags": [
+        "community"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/CommunityBlock"
+      },
+      "responses": {
+        "200": {
+          "description": "Blocked",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "id": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/translate",
+      "method": "POST",
+      "summary": "Translate text",
+      "tags": [
+        "translate"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/TranslateRequest"
+      },
+      "responses": {
+        "200": {
+          "description": "Translated",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranslateResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/icebreakers",
+      "method": "GET",
+      "summary": "Get icebreakers",
+      "tags": [
+        "icebreakers"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Prompts",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/admin/users/{id}/role",
+      "method": "PATCH",
+      "summary": "Set user role",
+      "tags": [
+        "admin"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/AdminSetRoleRequest"
+      },
+      "responses": {
+        "200": {
+          "description": "Role updated",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/admin/refunds",
+      "method": "GET",
+      "summary": "List refunds",
+      "tags": [
+        "admin"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Refunds",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Refund"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/admin/refunds",
+      "method": "POST",
+      "summary": "Create refund",
+      "tags": [
+        "admin"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": {
+        "$ref": "#/components/schemas/RefundRequest"
+      },
+      "responses": {
+        "201": {
+          "description": "Created",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Refund"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/admin/refunds/{id}/approve",
+      "method": "PATCH",
+      "summary": "Approve refund",
+      "tags": [
+        "admin"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Approved",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Refund"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/admin/refunds/{id}/deny",
+      "method": "PATCH",
+      "summary": "Deny refund",
+      "tags": [
+        "admin"
+      ],
+      "public": false,
+      "aliases": [],
+      "requestSchema": null,
+      "responses": {
+        "200": {
+          "description": "Denied",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Refund"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

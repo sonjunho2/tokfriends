@@ -1,0 +1,844 @@
+{
+  "generatedAt": "2025-10-29T05:37:06.398Z",
+  "totals": {
+    "httpCalls": 64,
+    "matched": 16,
+    "missing": 41,
+    "methodMismatch": 4,
+    "unknown": 3
+  },
+  "details": [
+    {
+      "id": "admin-web/src/components/recent-reports.tsx:50:27",
+      "file": "admin-web/src/components/recent-reports.tsx",
+      "method": "GET",
+      "url": {
+        "type": "dynamic",
+        "raw": "url",
+        "normalized": null,
+        "canonical": null
+      },
+      "status": "unknown",
+      "note": "Dynamic or missing URL cannot be cross-checked."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:106:10",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "dynamic",
+        "raw": "url",
+        "normalized": null,
+        "canonical": null
+      },
+      "status": "unknown",
+      "note": "Dynamic or missing URL cannot be cross-checked."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:115:10",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "dynamic",
+        "raw": "url",
+        "normalized": null,
+        "canonical": null
+      },
+      "status": "unknown",
+      "note": "Dynamic or missing URL cannot be cross-checked."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:135:21",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/metrics/dashboard",
+        "normalized": "/metrics/dashboard",
+        "canonical": "/metrics/dashboard"
+      },
+      "status": "matched",
+      "note": null
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:157:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/auth/login/phone",
+        "normalized": "/auth/login/phone",
+        "canonical": "/auth/login/phone"
+      },
+      "status": "missing",
+      "note": "Path /auth/login/phone not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:162:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/health",
+        "normalized": "/health",
+        "canonical": "/health"
+      },
+      "status": "matched",
+      "note": null
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:231:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/users/search",
+        "normalized": "/users/search",
+        "canonical": "/users/search"
+      },
+      "status": "matched",
+      "note": null
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:236:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "template",
+        "raw": "`/users/${userId}`",
+        "normalized": "/users/{userId}",
+        "canonical": "/users/{}"
+      },
+      "status": "matched",
+      "note": null
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:243:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/users/${userId}`",
+        "normalized": "/users/{userId}",
+        "canonical": "/users/{}"
+      },
+      "status": "matched",
+      "note": null
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:270:10",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/community/report",
+        "normalized": "/community/report",
+        "canonical": "/community/report"
+      },
+      "status": "matched",
+      "note": null
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:274:10",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/community/block",
+        "normalized": "/community/block",
+        "canonical": "/community/block"
+      },
+      "status": "matched",
+      "note": null
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:309:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/topics",
+        "normalized": "/topics",
+        "canonical": "/topics"
+      },
+      "status": "matched",
+      "note": null
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:314:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "template",
+        "raw": "`/topics/${topicId}/posts`",
+        "normalized": "/topics/{topicId}/posts",
+        "canonical": "/topics/{}/posts"
+      },
+      "status": "matched",
+      "note": null
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:319:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/posts",
+        "normalized": "/posts",
+        "canonical": "/posts"
+      },
+      "status": "matched",
+      "note": null
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:324:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/posts/${postId}`",
+        "normalized": "/posts/{postId}",
+        "canonical": "/posts/{}"
+      },
+      "status": "missing",
+      "note": "Path /posts/{postId} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:331:9",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "DELETE",
+      "url": {
+        "type": "template",
+        "raw": "`/posts/${postId}`",
+        "normalized": "/posts/{postId}",
+        "canonical": "/posts/{}"
+      },
+      "status": "missing",
+      "note": "Path /posts/{postId} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:369:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/announcements",
+        "normalized": "/announcements",
+        "canonical": "/announcements"
+      },
+      "status": "matched",
+      "note": null
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:374:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/announcements/active",
+        "normalized": "/announcements/active",
+        "canonical": "/announcements/active"
+      },
+      "status": "matched",
+      "note": null
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:379:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/announcements",
+        "normalized": "/announcements",
+        "canonical": "/announcements"
+      },
+      "status": "method-mismatch",
+      "note": "Method POST not defined for path /announcements."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:386:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/announcements/${announcementId}`",
+        "normalized": "/announcements/{announcementId}",
+        "canonical": "/announcements/{}"
+      },
+      "status": "missing",
+      "note": "Path /announcements/{announcementId} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:409:28",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/gifts",
+        "normalized": "/gifts",
+        "canonical": "/gifts"
+      },
+      "status": "matched",
+      "note": null
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:420:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/gifts",
+        "normalized": "/gifts",
+        "canonical": "/gifts"
+      },
+      "status": "method-mismatch",
+      "note": "Method POST not defined for path /gifts."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:427:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/gifts/${giftId}`",
+        "normalized": "/gifts/{giftId}",
+        "canonical": "/gifts/{}"
+      },
+      "status": "missing",
+      "note": "Path /gifts/{giftId} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:434:9",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "DELETE",
+      "url": {
+        "type": "template",
+        "raw": "`/gifts/${giftId}`",
+        "normalized": "/gifts/{giftId}",
+        "canonical": "/gifts/{}"
+      },
+      "status": "missing",
+      "note": "Path /gifts/{giftId} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:484:28",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "template",
+        "raw": "`/legal-documents/${slug}`",
+        "normalized": "/legal-documents/{slug}",
+        "canonical": "/legal-documents/{}"
+      },
+      "status": "matched",
+      "note": null
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:533:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "PUT",
+      "url": {
+        "type": "template",
+        "raw": "`/legal-documents/${slug}`",
+        "normalized": "/legal-documents/{slug}",
+        "canonical": "/legal-documents/{}"
+      },
+      "status": "method-mismatch",
+      "note": "Method PUT not defined for path /legal-documents/{slug}."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:596:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/verifications/phone/otp-logs",
+        "normalized": "/verifications/phone/otp-logs",
+        "canonical": "/verifications/phone/otp-logs"
+      },
+      "status": "missing",
+      "note": "Path /verifications/phone/otp-logs not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:601:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/verifications/phone/pending",
+        "normalized": "/verifications/phone/pending",
+        "canonical": "/verifications/phone/pending"
+      },
+      "status": "missing",
+      "note": "Path /verifications/phone/pending not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:606:10",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "template",
+        "raw": "`/verifications/phone/${verificationId}/resend`",
+        "normalized": "/verifications/phone/{verificationId}/resend",
+        "canonical": "/verifications/phone/{}/resend"
+      },
+      "status": "missing",
+      "note": "Path /verifications/phone/{verificationId}/resend not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:610:10",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "template",
+        "raw": "`/verifications/phone/${verificationId}/approve`",
+        "normalized": "/verifications/phone/{verificationId}/approve",
+        "canonical": "/verifications/phone/{}/approve"
+      },
+      "status": "missing",
+      "note": "Path /verifications/phone/{verificationId}/approve not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:614:10",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "template",
+        "raw": "`/verifications/phone/${verificationId}/expire`",
+        "normalized": "/verifications/phone/{verificationId}/expire",
+        "canonical": "/verifications/phone/{}/expire"
+      },
+      "status": "missing",
+      "note": "Path /verifications/phone/{verificationId}/expire not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:618:10",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/verifications/phone/manual-complete",
+        "normalized": "/verifications/phone/manual-complete",
+        "canonical": "/verifications/phone/manual-complete"
+      },
+      "status": "missing",
+      "note": "Path /verifications/phone/manual-complete not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:661:28",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/store/point-products",
+        "normalized": "/store/point-products",
+        "canonical": "/store/point-products"
+      },
+      "status": "matched",
+      "note": null
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:669:40",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/gifts",
+        "normalized": "/gifts",
+        "canonical": "/gifts"
+      },
+      "status": "matched",
+      "note": null
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:686:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/store/point-products",
+        "normalized": "/store/point-products",
+        "canonical": "/store/point-products"
+      },
+      "status": "method-mismatch",
+      "note": "Method POST not defined for path /store/point-products."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:693:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "PUT",
+      "url": {
+        "type": "template",
+        "raw": "`/store/point-products/${productId}`",
+        "normalized": "/store/point-products/{productId}",
+        "canonical": "/store/point-products/{}"
+      },
+      "status": "missing",
+      "note": "Path /store/point-products/{productId} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:700:9",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "DELETE",
+      "url": {
+        "type": "template",
+        "raw": "`/store/point-products/${productId}`",
+        "normalized": "/store/point-products/{productId}",
+        "canonical": "/store/point-products/{}"
+      },
+      "status": "missing",
+      "note": "Path /store/point-products/{productId} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:704:9",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/store/point-products/reorder",
+        "normalized": "/store/point-products/reorder",
+        "canonical": "/store/point-products/reorder"
+      },
+      "status": "missing",
+      "note": "Path /store/point-products/reorder not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:888:28",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/matches/control-panel",
+        "normalized": "/matches/control-panel",
+        "canonical": "/matches/control-panel"
+      },
+      "status": "missing",
+      "note": "Path /matches/control-panel not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:906:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/matches/presets/${presetId}`",
+        "normalized": "/matches/presets/{presetId}",
+        "canonical": "/matches/presets/{}"
+      },
+      "status": "missing",
+      "note": "Path /matches/presets/{presetId} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:911:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "template",
+        "raw": "`/matches/presets/${presetId}/activate`",
+        "normalized": "/matches/presets/{presetId}/activate",
+        "canonical": "/matches/presets/{}/activate"
+      },
+      "status": "missing",
+      "note": "Path /matches/presets/{presetId}/activate not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:916:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "template",
+        "raw": "`/matches/presets/${presetId}/duplicate`",
+        "normalized": "/matches/presets/{presetId}/duplicate",
+        "canonical": "/matches/presets/{}/duplicate"
+      },
+      "status": "missing",
+      "note": "Path /matches/presets/{presetId}/duplicate not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:928:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/matches/quick-filters",
+        "normalized": "/matches/quick-filters",
+        "canonical": "/matches/quick-filters"
+      },
+      "status": "missing",
+      "note": "Path /matches/quick-filters not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:948:9",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "DELETE",
+      "url": {
+        "type": "template",
+        "raw": "`/matches/quick-filters/${filterId}`",
+        "normalized": "/matches/quick-filters/{filterId}",
+        "canonical": "/matches/quick-filters/{}"
+      },
+      "status": "missing",
+      "note": "Path /matches/quick-filters/{filterId} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:960:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/matches/recommendation-pools/${poolId}`",
+        "normalized": "/matches/recommendation-pools/{poolId}",
+        "canonical": "/matches/recommendation-pools/{}"
+      },
+      "status": "missing",
+      "note": "Path /matches/recommendation-pools/{poolId} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:972:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/matches/heat-map/memo",
+        "normalized": "/matches/heat-map/memo",
+        "canonical": "/matches/heat-map/memo"
+      },
+      "status": "missing",
+      "note": "Path /matches/heat-map/memo not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1083:28",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/chats/control-panel",
+        "normalized": "/chats/control-panel",
+        "canonical": "/chats/control-panel"
+      },
+      "status": "missing",
+      "note": "Path /chats/control-panel not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1101:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/chats/rooms/${roomId}`",
+        "normalized": "/chats/rooms/{roomId}",
+        "canonical": "/chats/rooms/{}"
+      },
+      "status": "missing",
+      "note": "Path /chats/rooms/{roomId} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1106:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "template",
+        "raw": "`/chats/reports/${reportId}/resolve`",
+        "normalized": "/chats/reports/{reportId}/resolve",
+        "canonical": "/chats/reports/{}/resolve"
+      },
+      "status": "missing",
+      "note": "Path /chats/reports/{reportId}/resolve not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1111:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/chats/policy-rules/${ruleId}`",
+        "normalized": "/chats/policy-rules/{ruleId}",
+        "canonical": "/chats/policy-rules/{}"
+      },
+      "status": "missing",
+      "note": "Path /chats/policy-rules/{ruleId} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1116:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/chats/control-panel/memo",
+        "normalized": "/chats/control-panel/memo",
+        "canonical": "/chats/control-panel/memo"
+      },
+      "status": "missing",
+      "note": "Path /chats/control-panel/memo not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1201:28",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/analytics/overview",
+        "normalized": "/analytics/overview",
+        "canonical": "/analytics/overview"
+      },
+      "status": "missing",
+      "note": "Path /analytics/overview not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1212:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/analytics/metrics/${metricId}`",
+        "normalized": "/analytics/metrics/{metricId}",
+        "canonical": "/analytics/metrics/{}"
+      },
+      "status": "missing",
+      "note": "Path /analytics/metrics/{metricId} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1217:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/analytics/metrics",
+        "normalized": "/analytics/metrics",
+        "canonical": "/analytics/metrics"
+      },
+      "status": "missing",
+      "note": "Path /analytics/metrics not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1222:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/analytics/report-jobs/${jobId}`",
+        "normalized": "/analytics/report-jobs/{jobId}",
+        "canonical": "/analytics/report-jobs/{}"
+      },
+      "status": "missing",
+      "note": "Path /analytics/report-jobs/{jobId} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1227:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "template",
+        "raw": "`/analytics/report-jobs/${jobId}/${active ? 'activate' : 'deactivate'}`",
+        "normalized": "/analytics/report-jobs/{jobId}/{active-activate-deactivate-}",
+        "canonical": "/analytics/report-jobs/{}/{}"
+      },
+      "status": "missing",
+      "note": "Path /analytics/report-jobs/{jobId}/{active-activate-deactivate-} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1232:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/analytics/exports",
+        "normalized": "/analytics/exports",
+        "canonical": "/analytics/exports"
+      },
+      "status": "missing",
+      "note": "Path /analytics/exports not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1325:28",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "GET",
+      "url": {
+        "type": "static",
+        "raw": "/admin/settings/snapshot",
+        "normalized": "/admin/settings/snapshot",
+        "canonical": "/admin/settings/snapshot"
+      },
+      "status": "missing",
+      "note": "Path /admin/settings/snapshot not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1337:28",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/admin/settings/team",
+        "normalized": "/admin/settings/team",
+        "canonical": "/admin/settings/team"
+      },
+      "status": "missing",
+      "note": "Path /admin/settings/team not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1356:28",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/admin/settings/team/${memberId}`",
+        "normalized": "/admin/settings/team/{memberId}",
+        "canonical": "/admin/settings/team/{}"
+      },
+      "status": "missing",
+      "note": "Path /admin/settings/team/{memberId} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1374:11",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "DELETE",
+      "url": {
+        "type": "template",
+        "raw": "`/admin/settings/team/${memberId}`",
+        "normalized": "/admin/settings/team/{memberId}",
+        "canonical": "/admin/settings/team/{}"
+      },
+      "status": "missing",
+      "note": "Path /admin/settings/team/{memberId} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1384:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/admin/settings/feature-flags/${flagId}`",
+        "normalized": "/admin/settings/feature-flags/{flagId}",
+        "canonical": "/admin/settings/feature-flags/{}"
+      },
+      "status": "missing",
+      "note": "Path /admin/settings/feature-flags/{flagId} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1389:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "PATCH",
+      "url": {
+        "type": "template",
+        "raw": "`/admin/settings/integrations/${settingId}`",
+        "normalized": "/admin/settings/integrations/{settingId}",
+        "canonical": "/admin/settings/integrations/{}"
+      },
+      "status": "missing",
+      "note": "Path /admin/settings/integrations/{settingId} not found in OpenAPI."
+    },
+    {
+      "id": "admin-web/src/lib/api.ts:1394:26",
+      "file": "admin-web/src/lib/api.ts",
+      "method": "POST",
+      "url": {
+        "type": "static",
+        "raw": "/admin/settings/audit-log",
+        "normalized": "/admin/settings/audit-log",
+        "canonical": "/admin/settings/audit-log"
+      },
+      "status": "missing",
+      "note": "Path /admin/settings/audit-log not found in OpenAPI."
+    }
+  ]
+}

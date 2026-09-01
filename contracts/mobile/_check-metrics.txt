@@ -1,0 +1,1 @@
+POST /auth/otp/request : ok (unauthenticated)

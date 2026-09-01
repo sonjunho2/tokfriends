@@ -1,0 +1,7 @@
+POST https://api.tokfriends.app/auth/login/email
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "hunter2example"
+}

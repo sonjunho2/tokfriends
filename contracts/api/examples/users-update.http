@@ -1,0 +1,10 @@
+PATCH https://api.tokfriends.app/users/USER_ID
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "displayName": "새로운 닉네임",
+  "bio": "안녕하세요!",
+  "interests": ["travel", "music"],
+  "marketingOptIn": true
+}

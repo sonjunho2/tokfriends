@@ -1,0 +1,16 @@
+# GitHub 웹에서 render.yaml 파일을 열어 연필 아이콘을 클릭한 후, 아래 내용으로 전체 교체 후 커밋
+services:
+  - type: web
+    name: tokfriends-admin-web
+    env: node
+    plan: free
+    region: oregon
+    rootDir: admin-web
+    buildCommand: npm install && npm run build
+    startCommand: npm run start -- -p $PORT
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NEXT_PUBLIC_API_BASE_URL
+        value: https://tokfriends-api.onrender.com

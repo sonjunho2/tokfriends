@@ -1,0 +1,1535 @@
+{
+  "generatedAt": "2025-10-29T05:20:56.218Z",
+  "baseUrls": [
+    "https://tok-friends-api.onrender.com",
+    "https://manage.tokfriends.app"
+  ],
+  "authHeaderRatio": 0.6233766233766234,
+  "env": {
+    "envFiles": {
+      ".env.example": {
+        "EXPO_PUBLIC_TOK_API_BASE": "https://tok-friends-api.onrender.com",
+        "EXPO_PUBLIC_TOK_WS_BASE": "wss://tok-friends-api.onrender.com",
+        "EXPO_PUBLIC_TOK_JWT_STORAGE_KEY": "tokfriends.jwt"
+      }
+    },
+    "apiBaseUrl": [
+      "https://tok-friends-api.onrender.com"
+    ],
+    "android": {
+      "manifest": "<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\" xmlns:tools=\"http://schemas.android.com/tools\">\n  <uses-permission android:name=\"android.permission.INTERNET\"/>\n  <uses-permission android:name=\"android.permission.MODIFY_AUDIO_SETTINGS\"/>\n  <uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"/>\n  <uses-permission android:name=\"android.permission.RECORD_AUDIO\"/>\n  <uses-permission android:name=\"android.permission.SYSTEM_ALERT_WINDOW\"/>\n  <uses-permission android:name=\"android.permission.VIBRATE\"/>\n  <uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"/>\n  <queries>\n    <intent>\n      <action android:name=\"android.intent.action.VIEW\"/>\n      <category android:name=\"android.intent.category.BROWSABLE\"/>\n      <data android:scheme=\"https\"/>\n    </intent>\n  </queries>\n  <application android:name=\".MainApplication\" android:label=\"@string/app_name\" android:icon=\"@mipmap/ic_launcher\" android:roundIcon=\"@mipmap/ic_launcher_round\" android:allowBackup=\"true\" android:theme=\"@style/AppTheme\" android:supportsRtl=\"true\">\n    <meta-data android:name=\"expo.modules.updates.ENABLED\" android:value=\"false\"/>\n    <meta-data android:name=\"expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH\" android:value=\"ALWAYS\"/>\n    <meta-data android:name=\"expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS\" android:value=\"0\"/>\n    <activity android:name=\".MainActivity\" android:configChanges=\"keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode\" android:launchMode=\"singleTask\" android:windowSoftInputMode=\"adjustResize\" android:theme=\"@style/Theme.App.SplashScreen\" android:exported=\"true\">\n      <intent-filter>\n        <action android:name=\"android.intent.action.MAIN\"/>\n        <category android:name=\"android.intent.category.LAUNCHER\"/>\n      </intent-filter>\n    </activity>\n  </application>\n</manifest>",
+      "cleartextTraffic": false
+    }
+  },
+  "stats": {
+    "totalCalls": 77,
+    "uniqueSignatures": 62
+  },
+  "calls": [
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 69,
+        "column": 29,
+        "index": 2032
+      },
+      "functionName": "tryPostJsonSequential",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "{p}",
+      "displayPath": "{p}",
+      "args": [
+        "p",
+        "body",
+        "{ headers: { 'Content-Type': 'application/json' } }"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.post(p, body, { headers: { 'Content-Type': 'application/json' } })"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 88,
+        "column": 29,
+        "index": 2643
+      },
+      "functionName": "tryPostFormSequential",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "{p}",
+      "displayPath": "{p}",
+      "args": [
+        "p",
+        "form",
+        "{ headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.post(p, form, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 101,
+        "column": 23,
+        "index": 3060
+      },
+      "functionName": "anonymous@client.js:100",
+      "client": "axios",
+      "method": "GET",
+      "rawPath": "{url}",
+      "displayPath": "{url}",
+      "args": [
+        "url",
+        "config"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.get(url, config)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 106,
+        "column": 23,
+        "index": 3193
+      },
+      "functionName": "anonymous@client.js:105",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "{url}",
+      "displayPath": "{url}",
+      "args": [
+        "url",
+        "data",
+        "config"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.post(url, data, config)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 111,
+        "column": 23,
+        "index": 3332
+      },
+      "functionName": "anonymous@client.js:110",
+      "client": "axios",
+      "method": "PUT",
+      "rawPath": "{url}",
+      "displayPath": "{url}",
+      "args": [
+        "url",
+        "data",
+        "config"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.put(url, data, config)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 116,
+        "column": 23,
+        "index": 3472
+      },
+      "functionName": "anonymous@client.js:115",
+      "client": "axios",
+      "method": "PATCH",
+      "rawPath": "{url}",
+      "displayPath": "{url}",
+      "args": [
+        "url",
+        "data",
+        "config"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.patch(url, data, config)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 121,
+        "column": 23,
+        "index": 3609
+      },
+      "functionName": "anonymous@client.js:120",
+      "client": "axios",
+      "method": "DELETE",
+      "rawPath": "{url}",
+      "displayPath": "{url}",
+      "args": [
+        "url",
+        "config"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.delete(url, config)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 126,
+        "column": 33,
+        "index": 3742
+      },
+      "functionName": "anonymous@client.js:125",
+      "client": "axios",
+      "method": "GET",
+      "rawPath": "/health",
+      "displayPath": "/health",
+      "args": [
+        "'/health'"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.get('/health')"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 136,
+        "column": 29,
+        "index": 4026
+      },
+      "functionName": "anonymous@client.js:130",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/login/email",
+      "displayPath": "/auth/login/email",
+      "args": [
+        "'/auth/login/email'",
+        "jsonBody",
+        "{ headers: { 'Content-Type': 'application/json' } }"
+      ],
+      "auth": "none",
+      "responseSnippet": "client.post('/auth/login/email', jsonBody, { headers: { 'Content-Type': 'application/json' } })"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 142,
+        "column": 33,
+        "index": 4285
+      },
+      "functionName": "anonymous@client.js:130",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/login",
+      "displayPath": "/auth/login",
+      "args": [
+        "'/auth/login'",
+        "jsonBody",
+        "{ headers: { 'Content-Type': 'application/json' } }"
+      ],
+      "auth": "none",
+      "responseSnippet": "client.post('/auth/login', jsonBody, { headers: { 'Content-Type': 'application/json' } })"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 149,
+        "column": 35,
+        "index": 4629
+      },
+      "functionName": "anonymous@client.js:130",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/login/email",
+      "displayPath": "/auth/login/email",
+      "args": [
+        "'/auth/login/email'",
+        "form",
+        "{\n              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },\n            }"
+      ],
+      "auth": "none",
+      "responseSnippet": "client.post('/auth/login/email', form, {\n              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },\n            })"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 162,
+        "column": 31,
+        "index": 5073
+      },
+      "functionName": "anonymous@client.js:130",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/login/email",
+      "displayPath": "/auth/login/email",
+      "args": [
+        "'/auth/login/email'",
+        "form",
+        "{\n          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },\n        }"
+      ],
+      "auth": "none",
+      "responseSnippet": "client.post('/auth/login/email', form, {\n          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },\n        })"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 206,
+        "column": 19,
+        "index": 6154
+      },
+      "functionName": "anonymous@client.js:172",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/signup/email",
+      "displayPath": "/auth/signup/email",
+      "args": [
+        "jsonCandidates",
+        "body"
+      ],
+      "notes": "tryPostJsonSequential helper",
+      "contentType": "application/json",
+      "auth": "none",
+      "responseSnippet": "tryPostJsonSequential(jsonCandidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 206,
+        "column": 19,
+        "index": 6154
+      },
+      "functionName": "anonymous@client.js:172",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/signup",
+      "displayPath": "/auth/signup",
+      "args": [
+        "jsonCandidates",
+        "body"
+      ],
+      "notes": "tryPostJsonSequential helper",
+      "contentType": "application/json",
+      "auth": "none",
+      "responseSnippet": "tryPostJsonSequential(jsonCandidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 206,
+        "column": 19,
+        "index": 6154
+      },
+      "functionName": "anonymous@client.js:172",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/register",
+      "displayPath": "/auth/register",
+      "args": [
+        "jsonCandidates",
+        "body"
+      ],
+      "notes": "tryPostJsonSequential helper",
+      "contentType": "application/json",
+      "auth": "none",
+      "responseSnippet": "tryPostJsonSequential(jsonCandidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 206,
+        "column": 19,
+        "index": 6154
+      },
+      "functionName": "anonymous@client.js:172",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/signup",
+      "displayPath": "/signup",
+      "args": [
+        "jsonCandidates",
+        "body"
+      ],
+      "notes": "tryPostJsonSequential helper",
+      "contentType": "application/json",
+      "auth": "none",
+      "responseSnippet": "tryPostJsonSequential(jsonCandidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 206,
+        "column": 19,
+        "index": 6154
+      },
+      "functionName": "anonymous@client.js:172",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/register",
+      "displayPath": "/register",
+      "args": [
+        "jsonCandidates",
+        "body"
+      ],
+      "notes": "tryPostJsonSequential helper",
+      "contentType": "application/json",
+      "auth": "none",
+      "responseSnippet": "tryPostJsonSequential(jsonCandidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 206,
+        "column": 19,
+        "index": 6154
+      },
+      "functionName": "anonymous@client.js:172",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/users/signup",
+      "displayPath": "/users/signup",
+      "args": [
+        "jsonCandidates",
+        "body"
+      ],
+      "notes": "tryPostJsonSequential helper",
+      "contentType": "application/json",
+      "auth": "none",
+      "responseSnippet": "tryPostJsonSequential(jsonCandidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 206,
+        "column": 19,
+        "index": 6154
+      },
+      "functionName": "anonymous@client.js:172",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/users/register",
+      "displayPath": "/users/register",
+      "args": [
+        "jsonCandidates",
+        "body"
+      ],
+      "notes": "tryPostJsonSequential helper",
+      "contentType": "application/json",
+      "auth": "none",
+      "responseSnippet": "tryPostJsonSequential(jsonCandidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 206,
+        "column": 19,
+        "index": 6154
+      },
+      "functionName": "anonymous@client.js:172",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/users",
+      "displayPath": "/users",
+      "args": [
+        "jsonCandidates",
+        "body"
+      ],
+      "notes": "tryPostJsonSequential helper",
+      "contentType": "application/json",
+      "auth": "auto-bearer",
+      "responseSnippet": "tryPostJsonSequential(jsonCandidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 209,
+        "column": 19,
+        "index": 6289
+      },
+      "functionName": "anonymous@client.js:172",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/signup/email",
+      "displayPath": "/auth/signup/email",
+      "args": [
+        "formCandidates",
+        "body"
+      ],
+      "notes": "tryPostFormSequential helper",
+      "contentType": "application/x-www-form-urlencoded",
+      "auth": "none",
+      "responseSnippet": "tryPostFormSequential(formCandidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 209,
+        "column": 19,
+        "index": 6289
+      },
+      "functionName": "anonymous@client.js:172",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/signup",
+      "displayPath": "/auth/signup",
+      "args": [
+        "formCandidates",
+        "body"
+      ],
+      "notes": "tryPostFormSequential helper",
+      "contentType": "application/x-www-form-urlencoded",
+      "auth": "none",
+      "responseSnippet": "tryPostFormSequential(formCandidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 209,
+        "column": 19,
+        "index": 6289
+      },
+      "functionName": "anonymous@client.js:172",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/register",
+      "displayPath": "/auth/register",
+      "args": [
+        "formCandidates",
+        "body"
+      ],
+      "notes": "tryPostFormSequential helper",
+      "contentType": "application/x-www-form-urlencoded",
+      "auth": "none",
+      "responseSnippet": "tryPostFormSequential(formCandidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 209,
+        "column": 19,
+        "index": 6289
+      },
+      "functionName": "anonymous@client.js:172",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/signup",
+      "displayPath": "/signup",
+      "args": [
+        "formCandidates",
+        "body"
+      ],
+      "notes": "tryPostFormSequential helper",
+      "contentType": "application/x-www-form-urlencoded",
+      "auth": "none",
+      "responseSnippet": "tryPostFormSequential(formCandidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 209,
+        "column": 19,
+        "index": 6289
+      },
+      "functionName": "anonymous@client.js:172",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/register",
+      "displayPath": "/register",
+      "args": [
+        "formCandidates",
+        "body"
+      ],
+      "notes": "tryPostFormSequential helper",
+      "contentType": "application/x-www-form-urlencoded",
+      "auth": "none",
+      "responseSnippet": "tryPostFormSequential(formCandidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 209,
+        "column": 19,
+        "index": 6289
+      },
+      "functionName": "anonymous@client.js:172",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/users/signup",
+      "displayPath": "/users/signup",
+      "args": [
+        "formCandidates",
+        "body"
+      ],
+      "notes": "tryPostFormSequential helper",
+      "contentType": "application/x-www-form-urlencoded",
+      "auth": "none",
+      "responseSnippet": "tryPostFormSequential(formCandidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 209,
+        "column": 19,
+        "index": 6289
+      },
+      "functionName": "anonymous@client.js:172",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/users/register",
+      "displayPath": "/users/register",
+      "args": [
+        "formCandidates",
+        "body"
+      ],
+      "notes": "tryPostFormSequential helper",
+      "contentType": "application/x-www-form-urlencoded",
+      "auth": "none",
+      "responseSnippet": "tryPostFormSequential(formCandidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 209,
+        "column": 19,
+        "index": 6289
+      },
+      "functionName": "anonymous@client.js:172",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/users",
+      "displayPath": "/users",
+      "args": [
+        "formCandidates",
+        "body"
+      ],
+      "notes": "tryPostFormSequential helper",
+      "contentType": "application/x-www-form-urlencoded",
+      "auth": "auto-bearer",
+      "responseSnippet": "tryPostFormSequential(formCandidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 232,
+        "column": 19,
+        "index": 6820
+      },
+      "functionName": "anonymous@client.js:214",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/chats/rooms",
+      "displayPath": "/chats/rooms",
+      "args": [
+        "candidates",
+        "body"
+      ],
+      "notes": "tryPostJsonSequential helper",
+      "contentType": "application/json",
+      "auth": "auto-bearer",
+      "responseSnippet": "tryPostJsonSequential(candidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 232,
+        "column": 19,
+        "index": 6820
+      },
+      "functionName": "anonymous@client.js:214",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/chat/rooms",
+      "displayPath": "/chat/rooms",
+      "args": [
+        "candidates",
+        "body"
+      ],
+      "notes": "tryPostJsonSequential helper",
+      "contentType": "application/json",
+      "auth": "auto-bearer",
+      "responseSnippet": "tryPostJsonSequential(candidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 232,
+        "column": 19,
+        "index": 6820
+      },
+      "functionName": "anonymous@client.js:214",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/rooms",
+      "displayPath": "/rooms",
+      "args": [
+        "candidates",
+        "body"
+      ],
+      "notes": "tryPostJsonSequential helper",
+      "contentType": "application/json",
+      "auth": "auto-bearer",
+      "responseSnippet": "tryPostJsonSequential(candidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 232,
+        "column": 19,
+        "index": 6820
+      },
+      "functionName": "anonymous@client.js:214",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/conversations",
+      "displayPath": "/conversations",
+      "args": [
+        "candidates",
+        "body"
+      ],
+      "notes": "tryPostJsonSequential helper",
+      "contentType": "application/json",
+      "auth": "auto-bearer",
+      "responseSnippet": "tryPostJsonSequential(candidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 236,
+        "column": 21,
+        "index": 6946
+      },
+      "functionName": "anonymous@client.js:214",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/chats/rooms",
+      "displayPath": "/chats/rooms",
+      "args": [
+        "candidates",
+        "body"
+      ],
+      "notes": "tryPostFormSequential helper",
+      "contentType": "application/x-www-form-urlencoded",
+      "auth": "auto-bearer",
+      "responseSnippet": "tryPostFormSequential(candidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 236,
+        "column": 21,
+        "index": 6946
+      },
+      "functionName": "anonymous@client.js:214",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/chat/rooms",
+      "displayPath": "/chat/rooms",
+      "args": [
+        "candidates",
+        "body"
+      ],
+      "notes": "tryPostFormSequential helper",
+      "contentType": "application/x-www-form-urlencoded",
+      "auth": "auto-bearer",
+      "responseSnippet": "tryPostFormSequential(candidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 236,
+        "column": 21,
+        "index": 6946
+      },
+      "functionName": "anonymous@client.js:214",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/rooms",
+      "displayPath": "/rooms",
+      "args": [
+        "candidates",
+        "body"
+      ],
+      "notes": "tryPostFormSequential helper",
+      "contentType": "application/x-www-form-urlencoded",
+      "auth": "auto-bearer",
+      "responseSnippet": "tryPostFormSequential(candidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 236,
+        "column": 21,
+        "index": 6946
+      },
+      "functionName": "anonymous@client.js:214",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/conversations",
+      "displayPath": "/conversations",
+      "args": [
+        "candidates",
+        "body"
+      ],
+      "notes": "tryPostFormSequential helper",
+      "contentType": "application/x-www-form-urlencoded",
+      "auth": "auto-bearer",
+      "responseSnippet": "tryPostFormSequential(candidates, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 274,
+        "column": 31,
+        "index": 7824
+      },
+      "functionName": "anonymous@client.js:250",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/phone/request-otp",
+      "displayPath": "/auth/phone/request-otp",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "none",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 274,
+        "column": 31,
+        "index": 7824
+      },
+      "functionName": "anonymous@client.js:250",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/phone/send-otp",
+      "displayPath": "/auth/phone/send-otp",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "none",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 274,
+        "column": 31,
+        "index": 7824
+      },
+      "functionName": "anonymous@client.js:250",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/otp/request",
+      "displayPath": "/auth/otp/request",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "none",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 274,
+        "column": 31,
+        "index": 7824
+      },
+      "functionName": "anonymous@client.js:250",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/otp/request",
+      "displayPath": "/otp/request",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "none",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 274,
+        "column": 31,
+        "index": 7824
+      },
+      "functionName": "anonymous@client.js:250",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/otp/send",
+      "displayPath": "/otp/send",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "none",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 313,
+        "column": 31,
+        "index": 8859
+      },
+      "functionName": "anonymous@client.js:288",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/phone/verify",
+      "displayPath": "/auth/phone/verify",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 313,
+        "column": 31,
+        "index": 8859
+      },
+      "functionName": "anonymous@client.js:288",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/phone/confirm",
+      "displayPath": "/auth/phone/confirm",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 313,
+        "column": 31,
+        "index": 8859
+      },
+      "functionName": "anonymous@client.js:288",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/otp/verify",
+      "displayPath": "/auth/otp/verify",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "none",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 313,
+        "column": 31,
+        "index": 8859
+      },
+      "functionName": "anonymous@client.js:288",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/otp/verify",
+      "displayPath": "/otp/verify",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "none",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 357,
+        "column": 31,
+        "index": 10194
+      },
+      "functionName": "anonymous@client.js:327",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/phone/complete-profile",
+      "displayPath": "/auth/phone/complete-profile",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 357,
+        "column": 31,
+        "index": 10194
+      },
+      "functionName": "anonymous@client.js:327",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/phone/signup",
+      "displayPath": "/auth/phone/signup",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "none",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 357,
+        "column": 31,
+        "index": 10194
+      },
+      "functionName": "anonymous@client.js:327",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/auth/signup/phone",
+      "displayPath": "/auth/signup/phone",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "none",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 357,
+        "column": 31,
+        "index": 10194
+      },
+      "functionName": "anonymous@client.js:327",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/users/signup/phone",
+      "displayPath": "/users/signup/phone",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "none",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 385,
+        "column": 31,
+        "index": 10970
+      },
+      "functionName": "anonymous@client.js:371",
+      "client": "axios",
+      "method": "GET",
+      "rawPath": "/legal-documents/${key}",
+      "displayPath": "/legal-documents/{key}",
+      "args": [
+        "path"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.get(path)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 385,
+        "column": 31,
+        "index": 10970
+      },
+      "functionName": "anonymous@client.js:371",
+      "client": "axios",
+      "method": "GET",
+      "rawPath": "/legal/${key}",
+      "displayPath": "/legal/{key}",
+      "args": [
+        "path"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.get(path)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 385,
+        "column": 31,
+        "index": 10970
+      },
+      "functionName": "anonymous@client.js:371",
+      "client": "axios",
+      "method": "GET",
+      "rawPath": "/policies/${key}",
+      "displayPath": "/policies/{key}",
+      "args": [
+        "path"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.get(path)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 385,
+        "column": 31,
+        "index": 10970
+      },
+      "functionName": "anonymous@client.js:371",
+      "client": "axios",
+      "method": "GET",
+      "rawPath": "/cms/pages/${key}",
+      "displayPath": "/cms/pages/{key}",
+      "args": [
+        "path"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.get(path)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 420,
+        "column": 31,
+        "index": 11862
+      },
+      "functionName": "anonymous@client.js:399",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/chats/direct",
+      "displayPath": "/chats/direct",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 420,
+        "column": 31,
+        "index": 11862
+      },
+      "functionName": "anonymous@client.js:399",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/chat/direct",
+      "displayPath": "/chat/direct",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 420,
+        "column": 31,
+        "index": 11862
+      },
+      "functionName": "anonymous@client.js:399",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/chats/rooms/direct",
+      "displayPath": "/chats/rooms/direct",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 420,
+        "column": 31,
+        "index": 11862
+      },
+      "functionName": "anonymous@client.js:399",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/chat/rooms/direct",
+      "displayPath": "/chat/rooms/direct",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 420,
+        "column": 31,
+        "index": 11862
+      },
+      "functionName": "anonymous@client.js:399",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/conversations/direct",
+      "displayPath": "/conversations/direct",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 452,
+        "column": 31,
+        "index": 12644
+      },
+      "functionName": "anonymous@client.js:442",
+      "client": "axios",
+      "method": "GET",
+      "rawPath": "/store/point-products",
+      "displayPath": "/store/point-products",
+      "args": [
+        "path"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.get(path)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 452,
+        "column": 31,
+        "index": 12644
+      },
+      "functionName": "anonymous@client.js:442",
+      "client": "axios",
+      "method": "GET",
+      "rawPath": "/store/products",
+      "displayPath": "/store/products",
+      "args": [
+        "path"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.get(path)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 452,
+        "column": 31,
+        "index": 12644
+      },
+      "functionName": "anonymous@client.js:442",
+      "client": "axios",
+      "method": "GET",
+      "rawPath": "/shop/points",
+      "displayPath": "/shop/points",
+      "args": [
+        "path"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.get(path)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 452,
+        "column": 31,
+        "index": 12644
+      },
+      "functionName": "anonymous@client.js:442",
+      "client": "axios",
+      "method": "GET",
+      "rawPath": "/payments/products",
+      "displayPath": "/payments/products",
+      "args": [
+        "path"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.get(path)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 484,
+        "column": 31,
+        "index": 13539
+      },
+      "functionName": "anonymous@client.js:469",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/store/purchases/confirm",
+      "displayPath": "/store/purchases/confirm",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 484,
+        "column": 31,
+        "index": 13539
+      },
+      "functionName": "anonymous@client.js:469",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/payments/confirm",
+      "displayPath": "/payments/confirm",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 484,
+        "column": 31,
+        "index": 13539
+      },
+      "functionName": "anonymous@client.js:469",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/iap/confirm",
+      "displayPath": "/iap/confirm",
+      "args": [
+        "path",
+        "body"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.post(path, body)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 499,
+        "column": 33,
+        "index": 13928
+      },
+      "functionName": "anonymous@client.js:498",
+      "client": "axios",
+      "method": "GET",
+      "rawPath": "/users/me",
+      "displayPath": "/users/me",
+      "args": [
+        "'/users/me'"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.get('/users/me')"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 504,
+        "column": 33,
+        "index": 14076
+      },
+      "functionName": "anonymous@client.js:503",
+      "client": "axios",
+      "method": "GET",
+      "rawPath": "/users/${userId}",
+      "displayPath": "/users/{userId}",
+      "args": [
+        "`/users/${userId}`"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.get(`/users/${userId}`)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 509,
+        "column": 33,
+        "index": 14240
+      },
+      "functionName": "anonymous@client.js:508",
+      "client": "axios",
+      "method": "GET",
+      "rawPath": "/announcements/active",
+      "displayPath": "/announcements/active",
+      "args": [
+        "'/announcements/active'"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.get('/announcements/active')"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 510,
+        "column": 35,
+        "index": 14327
+      },
+      "functionName": "anonymous@client.js:508",
+      "client": "axios",
+      "method": "GET",
+      "rawPath": "/announcements",
+      "displayPath": "/announcements",
+      "args": [
+        "'/announcements'",
+        "{ params: { isActive: true } }"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.get('/announcements', { params: { isActive: true } })"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 513,
+        "column": 45,
+        "index": 14455
+      },
+      "functionName": "anonymous@client.js:513",
+      "client": "axios",
+      "method": "GET",
+      "rawPath": "/topics",
+      "displayPath": "/topics",
+      "args": [
+        "'/topics'"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.get('/topics')"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 514,
+        "column": 55,
+        "index": 14549
+      },
+      "functionName": "anonymous@client.js:514",
+      "client": "axios",
+      "method": "GET",
+      "rawPath": "/posts",
+      "displayPath": "/posts",
+      "args": [
+        "'/posts'",
+        "{ params }"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.get('/posts', { params })"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 515,
+        "column": 69,
+        "index": 14668
+      },
+      "functionName": "anonymous@client.js:515",
+      "client": "axios",
+      "method": "GET",
+      "rawPath": "/topics/${topicId}/posts",
+      "displayPath": "/topics/{topicId}/posts",
+      "args": [
+        "`/topics/${topicId}/posts`",
+        "{ params }"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.get(`/topics/${topicId}/posts`, { params })"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 516,
+        "column": 54,
+        "index": 14790
+      },
+      "functionName": "anonymous@client.js:516",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/posts",
+      "displayPath": "/posts",
+      "args": [
+        "'/posts'",
+        "postData"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.post('/posts', postData)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 517,
+        "column": 56,
+        "index": 14895
+      },
+      "functionName": "anonymous@client.js:517",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/community/report",
+      "displayPath": "/community/report",
+      "args": [
+        "'/community/report'",
+        "reportData"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.post('/community/report', reportData)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 518,
+        "column": 54,
+        "index": 15011
+      },
+      "functionName": "anonymous@client.js:518",
+      "client": "axios",
+      "method": "POST",
+      "rawPath": "/community/block",
+      "displayPath": "/community/block",
+      "args": [
+        "'/community/block'",
+        "blockData"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.post('/community/block', blockData)"
+    },
+    {
+      "sourceFile": "src/api/client.js",
+      "loc": {
+        "line": 521,
+        "column": 29,
+        "index": 15137
+      },
+      "functionName": "anonymous@client.js:519",
+      "client": "axios",
+      "method": "GET",
+      "rawPath": "/gifts",
+      "displayPath": "/gifts",
+      "args": [
+        "'/gifts'"
+      ],
+      "auth": "auto-bearer",
+      "responseSnippet": "client.get('/gifts')"
+    },
+    {
+      "sourceFile": "src/screens/my/SettingsScreen.js",
+      "loc": {
+        "line": 135,
+        "column": 29,
+        "index": 4092
+      },
+      "functionName": "anonymous@SettingsScreen.js:123",
+      "client": "fetch",
+      "method": "GET",
+      "rawPath": "https://manage.tokfriends.app/api/fonts/latest",
+      "displayPath": "https://manage.tokfriends.app/api/fonts/latest",
+      "args": [
+        "MANAGED_FONT_ENDPOINT"
+      ],
+      "auth": "none",
+      "responseSnippet": "fetch(MANAGED_FONT_ENDPOINT)"
+    }
+  ]
+}

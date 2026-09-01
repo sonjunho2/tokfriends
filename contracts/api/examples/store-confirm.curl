@@ -1,0 +1,9 @@
+curl -X POST https://api.tokfriends.app/store/purchases/confirm \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "pkg1000",
+    "transactionId": "APPLE-TRANSACTION-123",
+    "receipt": "<base64-receipt>",
+    "platform": "ios"
+  }'

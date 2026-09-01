@@ -1,0 +1,1 @@
+export { EmailSignupDto } from '../dto';

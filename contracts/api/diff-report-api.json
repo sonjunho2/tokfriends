@@ -1,0 +1,11 @@
+{
+  "clientUsageApp": {
+    "found": false,
+    "missingFile": "./_contract/client-usage-app.json"
+  },
+  "clientUsageAdmin": {
+    "found": false,
+    "missingFile": "./_contract/client-usage-admin.json"
+  },
+  "differences": []
+}

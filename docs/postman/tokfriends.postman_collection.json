@@ -1,0 +1,47 @@
+{
+  "info": {
+    "name": "TokFriends API",
+    "_postman_id": "8e6b0bfc-2a8e-4f7d-91a5-53f1f9b7a0a1",
+    "description": "TokFriends 기본 엔드포인트 컬렉션",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Login (Email)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{API_BASE}}/auth/login/email", "host": ["{{API_BASE}}"], "path": ["auth", "login", "email"] },
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"your-password\"\n}" }
+      }
+    },
+    {
+      "name": "Metrics (Admin)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{JWT}}" }],
+        "url": { "raw": "{{API_BASE}}/metrics", "host": ["{{API_BASE}}"], "path": ["metrics"] }
+      }
+    },
+    {
+      "name": "Announcements - List (Admin)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{JWT}}" }],
+        "url": { "raw": "{{API_BASE}}/admin/announcements", "host": ["{{API_BASE}}"], "path": ["admin", "announcements"] }
+      }
+    },
+    {
+      "name": "Reports - List (Admin)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{JWT}}" }],
+        "url": { "raw": "{{API_BASE}}/admin/reports?status=PENDING", "host": ["{{API_BASE}}"], "path": ["admin", "reports"], "query": [{"key": "status", "value": "PENDING"}] }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "API_BASE", "value": "https://tok-friends-api.onrender.com" },
+    { "key": "JWT", "value": "" }
+  ]
+}

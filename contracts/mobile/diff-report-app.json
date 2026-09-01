@@ -1,0 +1,730 @@
+{
+  "summary": {
+    "usageEndpointCount": 62,
+    "contractEndpointCount": 57,
+    "missingCount": 43,
+    "unusedCount": 38
+  },
+  "missingInContract": [
+    {
+      "method": "POST",
+      "path": "/{p}",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 69,
+          "function": "tryPostJsonSequential"
+        },
+        {
+          "file": "src/api/client.js",
+          "line": 88,
+          "function": "tryPostFormSequential"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/{url}",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 101,
+          "function": "anonymous@client.js:100"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/{url}",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 106,
+          "function": "anonymous@client.js:105"
+        }
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/{url}",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 111,
+          "function": "anonymous@client.js:110"
+        }
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/{url}",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 116,
+          "function": "anonymous@client.js:115"
+        }
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/{url}",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 121,
+          "function": "anonymous@client.js:120"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 142,
+          "function": "anonymous@client.js:130"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/auth/signup",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 206,
+          "function": "anonymous@client.js:172"
+        },
+        {
+          "file": "src/api/client.js",
+          "line": 209,
+          "function": "anonymous@client.js:172"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/auth/register",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 206,
+          "function": "anonymous@client.js:172"
+        },
+        {
+          "file": "src/api/client.js",
+          "line": 209,
+          "function": "anonymous@client.js:172"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/signup",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 206,
+          "function": "anonymous@client.js:172"
+        },
+        {
+          "file": "src/api/client.js",
+          "line": 209,
+          "function": "anonymous@client.js:172"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/register",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 206,
+          "function": "anonymous@client.js:172"
+        },
+        {
+          "file": "src/api/client.js",
+          "line": 209,
+          "function": "anonymous@client.js:172"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/users/signup",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 206,
+          "function": "anonymous@client.js:172"
+        },
+        {
+          "file": "src/api/client.js",
+          "line": 209,
+          "function": "anonymous@client.js:172"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/users/register",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 206,
+          "function": "anonymous@client.js:172"
+        },
+        {
+          "file": "src/api/client.js",
+          "line": 209,
+          "function": "anonymous@client.js:172"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/users",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 206,
+          "function": "anonymous@client.js:172"
+        },
+        {
+          "file": "src/api/client.js",
+          "line": 209,
+          "function": "anonymous@client.js:172"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/chat/rooms",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 232,
+          "function": "anonymous@client.js:214"
+        },
+        {
+          "file": "src/api/client.js",
+          "line": 236,
+          "function": "anonymous@client.js:214"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/rooms",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 232,
+          "function": "anonymous@client.js:214"
+        },
+        {
+          "file": "src/api/client.js",
+          "line": 236,
+          "function": "anonymous@client.js:214"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/conversations",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 232,
+          "function": "anonymous@client.js:214"
+        },
+        {
+          "file": "src/api/client.js",
+          "line": 236,
+          "function": "anonymous@client.js:214"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/auth/phone/send-otp",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 274,
+          "function": "anonymous@client.js:250"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/auth/otp/request",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 274,
+          "function": "anonymous@client.js:250"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/otp/request",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 274,
+          "function": "anonymous@client.js:250"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/otp/send",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 274,
+          "function": "anonymous@client.js:250"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/auth/phone/confirm",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 313,
+          "function": "anonymous@client.js:288"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/auth/otp/verify",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 313,
+          "function": "anonymous@client.js:288"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/otp/verify",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 313,
+          "function": "anonymous@client.js:288"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/auth/phone/signup",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 357,
+          "function": "anonymous@client.js:327"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/auth/signup/phone",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 357,
+          "function": "anonymous@client.js:327"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/users/signup/phone",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 357,
+          "function": "anonymous@client.js:327"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/legal-documents/{key}",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 385,
+          "function": "anonymous@client.js:371"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/legal/{key}",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 385,
+          "function": "anonymous@client.js:371"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/policies/{key}",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 385,
+          "function": "anonymous@client.js:371"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/cms/pages/{key}",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 385,
+          "function": "anonymous@client.js:371"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/chat/direct",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 420,
+          "function": "anonymous@client.js:399"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/chats/rooms/direct",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 420,
+          "function": "anonymous@client.js:399"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/chat/rooms/direct",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 420,
+          "function": "anonymous@client.js:399"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/conversations/direct",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 420,
+          "function": "anonymous@client.js:399"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/store/products",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 452,
+          "function": "anonymous@client.js:442"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/shop/points",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 452,
+          "function": "anonymous@client.js:442"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/payments/products",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 452,
+          "function": "anonymous@client.js:442"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/payments/confirm",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 484,
+          "function": "anonymous@client.js:469"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/iap/confirm",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 484,
+          "function": "anonymous@client.js:469"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/users/{userId}",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 504,
+          "function": "anonymous@client.js:503"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/topics/{topicId}/posts",
+      "sources": [
+        {
+          "file": "src/api/client.js",
+          "line": 515,
+          "function": "anonymous@client.js:515"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/fonts/latest",
+      "sources": [
+        {
+          "file": "src/screens/my/SettingsScreen.js",
+          "line": 135,
+          "function": "anonymous@SettingsScreen.js:123"
+        }
+      ]
+    }
+  ],
+  "unusedInApp": [
+    {
+      "method": "GET",
+      "path": "/",
+      "summary": "Redirect to docs"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/apple",
+      "summary": "Apple login"
+    },
+    {
+      "method": "GET",
+      "path": "/users/search",
+      "summary": "Search users"
+    },
+    {
+      "method": "PATCH",
+      "path": "/users/{id}",
+      "summary": "Update profile"
+    },
+    {
+      "method": "GET",
+      "path": "/users/{id}",
+      "summary": "Get user"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/users",
+      "summary": "Admin list users"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/users/{id}",
+      "summary": "Admin user detail"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/users/{id}",
+      "summary": "Admin update user"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/users/{id}/status",
+      "summary": "Admin update status"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/users/{id}/notes",
+      "summary": "Admin add note"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/users/{id}/actions/resend-verification",
+      "summary": "Log resend verification"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/users/{id}/actions/password-reset",
+      "summary": "Log password reset"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/users/{id}/actions/escalate",
+      "summary": "Log escalate"
+    },
+    {
+      "method": "GET",
+      "path": "/topics/{id}/posts",
+      "summary": "Posts by topic"
+    },
+    {
+      "method": "GET",
+      "path": "/discover",
+      "summary": "Discover users"
+    },
+    {
+      "method": "POST",
+      "path": "/friendships",
+      "summary": "Send friend request"
+    },
+    {
+      "method": "GET",
+      "path": "/friendships",
+      "summary": "List friend requests"
+    },
+    {
+      "method": "POST",
+      "path": "/friendships/{id}/accept",
+      "summary": "Accept friend"
+    },
+    {
+      "method": "POST",
+      "path": "/friendships/{id}/decline",
+      "summary": "Decline friend"
+    },
+    {
+      "method": "POST",
+      "path": "/friendships/{id}/cancel",
+      "summary": "Cancel friend"
+    },
+    {
+      "method": "GET",
+      "path": "/chats",
+      "summary": "List chats"
+    },
+    {
+      "method": "POST",
+      "path": "/chats/message",
+      "summary": "Send message"
+    },
+    {
+      "method": "GET",
+      "path": "/legal-documents/{slug}",
+      "summary": "Get legal document"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/announcements",
+      "summary": "Admin list announcements"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/announcements",
+      "summary": "Create announcement"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/announcements/{id}",
+      "summary": "Update announcement"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/announcements/{id}",
+      "summary": "Delete announcement"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/reports",
+      "summary": "Admin list reports"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/reports/recent",
+      "summary": "Recent reports"
+    },
+    {
+      "method": "GET",
+      "path": "/metrics",
+      "summary": "Metrics summary"
+    },
+    {
+      "method": "GET",
+      "path": "/metrics/dashboard",
+      "summary": "Metrics dashboard"
+    },
+    {
+      "method": "POST",
+      "path": "/translate",
+      "summary": "Translate text"
+    },
+    {
+      "method": "GET",
+      "path": "/icebreakers",
+      "summary": "Get icebreakers"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/users/{id}/role",
+      "summary": "Set user role"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/refunds",
+      "summary": "List refunds"
+    },
+    {
+      "method": "POST",
+      "path": "/admin/refunds",
+      "summary": "Create refund"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/refunds/{id}/approve",
+      "summary": "Approve refund"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin/refunds/{id}/deny",
+      "summary": "Deny refund"
+    }
+  ]
+}

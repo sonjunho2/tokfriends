@@ -27,12 +27,3 @@ C:\Users\ION\Downloads\work\tokfriends\
 ├─ .gitignore
 └─ README.md
 ```
-
-## 첨부 원본 소스 매핑
-
-- `tok-friends-api/tok-friends-main/services/api` → `services/api`
-- `tokfriends-app/tokfriends-app-main` → `apps/mobile`
-- `tokfriends-admin/tokfriends-admin-main/admin-web` → `apps/admin`
-- `tok-friends-api/tok-friends-main/apps/admin` → `legacy/api-admin`
-
-실제 `.env`, `debug.keystore`, `node_modules`, `.next`, `dist`, `build`, `.expo`는 복사/커밋하지 않습니다.

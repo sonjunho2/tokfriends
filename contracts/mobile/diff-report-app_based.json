@@ -1,0 +1,238 @@
+{
+  "generatedAt": "2025-01-04T00:00:00.000Z",
+  "summary": {
+    "totalCallsAnalyzed": 77,
+    "matched": 67,
+    "missing": 10,
+    "mismatchedAuth": 6,
+    "unusedApiOperations": 0
+  },
+  "missingCalls": [
+    {
+      "source": "app",
+      "method": "POST",
+      "path": "/auth/otp/request",
+      "auths": [
+        "none"
+      ],
+      "examples": [
+        [
+          "src/api/client.js",
+          "requestPhoneOtp"
+        ]
+      ]
+    },
+    {
+      "source": "app",
+      "method": "POST",
+      "path": "/auth/phone/confirm",
+      "auths": [
+        "none"
+      ],
+      "examples": [
+        [
+          "src/api/client.js",
+          "verifyPhoneOtp"
+        ]
+      ]
+    },
+    {
+      "source": "app",
+      "method": "POST",
+      "path": "/auth/otp/verify",
+      "auths": [
+        "none"
+      ],
+      "examples": [
+        [
+          "src/api/client.js",
+          "verifyPhoneOtp"
+        ]
+      ]
+    },
+    {
+      "source": "app",
+      "method": "POST",
+      "path": "/otp/verify",
+      "auths": [
+        "none"
+      ],
+      "examples": [
+        [
+          "src/api/client.js",
+          "verifyPhoneOtp"
+        ]
+      ]
+    },
+    {
+      "source": "app",
+      "method": "POST",
+      "path": "/chat/direct",
+      "auths": [
+        "auto-bearer"
+      ],
+      "examples": [
+        [
+          "src/api/client.js",
+          "ensureDirectRoom"
+        ]
+      ]
+    },
+    {
+      "source": "app",
+      "method": "POST",
+      "path": "/chat/rooms/direct",
+      "auths": [
+        "auto-bearer"
+      ],
+      "examples": [
+        [
+          "src/api/client.js",
+          "ensureDirectRoom"
+        ]
+      ]
+    },
+    {
+      "source": "app",
+      "method": "POST",
+      "path": "/conversations/direct",
+      "auths": [
+        "auto-bearer"
+      ],
+      "examples": [
+        [
+          "src/api/client.js",
+          "ensureDirectRoom"
+        ]
+      ]
+    },
+    {
+      "source": "app",
+      "method": "GET",
+      "path": "/cms/pages/{key}",
+      "auths": [
+        "auto-bearer"
+      ],
+      "examples": [
+        [
+          "src/api/client.js",
+          "getLegalDocument"
+        ]
+      ]
+    },
+    {
+      "source": "app",
+      "method": "GET",
+      "path": "/legal/{key}",
+      "auths": [
+        "auto-bearer"
+      ],
+      "examples": [
+        [
+          "src/api/client.js",
+          "getLegalDocument"
+        ]
+      ]
+    },
+    {
+      "source": "app",
+      "method": "GET",
+      "path": "/policies/{key}",
+      "auths": [
+        "auto-bearer"
+      ],
+      "examples": [
+        [
+          "src/api/client.js",
+          "getLegalDocument"
+        ]
+      ]
+    }
+  ],
+  "authMismatches": [
+    {
+      "method": "GET",
+      "path": "/health",
+      "expectedAuth": "none",
+      "seenAuths": [
+        "bearerAuth"
+      ],
+      "examples": [
+        [
+          "src/api/client.js",
+          "health"
+        ]
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/auth/phone/verify",
+      "expectedAuth": "none",
+      "seenAuths": [
+        "bearerAuth"
+      ],
+      "examples": [
+        [
+          "src/api/client.js",
+          "verifyPhoneOtp"
+        ]
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/auth/phone/complete-profile",
+      "expectedAuth": "none",
+      "seenAuths": [
+        "bearerAuth"
+      ],
+      "examples": [
+        [
+          "src/api/client.js",
+          "completePhoneSignup"
+        ]
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/legal-documents/{slug}",
+      "expectedAuth": "none",
+      "seenAuths": [
+        "bearerAuth"
+      ],
+      "examples": [
+        [
+          "src/api/client.js",
+          "getLegalDocument"
+        ]
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/gifts",
+      "expectedAuth": "none",
+      "seenAuths": [
+        "bearerAuth"
+      ],
+      "examples": [
+        [
+          "src/api/client.js",
+          "getGiftOptions"
+        ]
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/announcements/active",
+      "expectedAuth": "none",
+      "seenAuths": [
+        "bearerAuth"
+      ],
+      "examples": [
+        [
+          "src/api/client.js",
+          "getActiveAnnouncements"
+        ]
+      ]
+    }
+  ]
+}

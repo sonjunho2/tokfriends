@@ -1,0 +1,41 @@
+name: Android Preview (APK, Dev)
+
+on:
+  workflow_dispatch: {}
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  TOK_API_BASE_URL: https://tok-friends-api.onrender.com
+
+jobs:
+  android-preview:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+         
+      - name: Install deps
+        run: npm install --no-audit --no-fund
+
+      - name: Install EAS CLI
+        run: npm i -g eas-cli@latest
+
+      - name: Verify Expo login
+        run: eas whoami || eas login --token ${{ secrets.EXPO_TOKEN }}
+
+      - name: Show config
+        run: |
+          npx expo config --json || true
+          npx expo-doctor || true
+
+      - name: Build Android APK (preview)
+        run: eas build -p android --profile preview --non-interactive --wait --clear-cache
+
+      - name: Show latest finished build
+        run: eas build:list --status finished --limit 1 --non-interactive --json || true
