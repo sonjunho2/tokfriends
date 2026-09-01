@@ -226,7 +226,7 @@ export default function SettingsPage() {
         {
           id: 'security' as SettingsSection,
           label: '보안 상태',
-          value: `2FA 명`,
+          value: `2FA ${twoFactorEnabledCount}명`,
           helper: '보안 · 감사 상태',
           icon: ShieldCheck,
         },
