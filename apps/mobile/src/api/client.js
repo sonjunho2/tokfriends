@@ -297,9 +297,9 @@ export const apiClient = {
   },
 
   async verifyPhoneOtp(payload = {}) {
-    // 더미 모드: 즉시 토큰과 adminOverride 반환
+    // 더미 모드: 즉시 토큰 반환
     if (USE_DUMMY_AUTH) {
-      return { token: 'dummy-token', adminOverride: true };
+      return { token: 'dummy-token' };
     }
 
     const digits = String(payload?.phone || '')
@@ -342,7 +342,6 @@ export const apiClient = {
       ...(payload?.headline ? { headline: String(payload.headline).trim() } : {}),
       ...(payload?.bio ? { bio: String(payload.bio).trim() } : {}),
       ...(payload?.avatarUri ? { avatarUri: payload.avatarUri } : {}),
-      ...(payload?.adminOverride ? { adminOverride: true } : {}),
     };
 
     // 필수 입력값이 모두 채워졌는지 검증

@@ -87,20 +87,6 @@ const routeMap = defineRouteMap({
     method: 'post',
     description: '관리자 차단 등록.',
   },
-  'admin.overrideCodes.list': {
-    key: 'admin.overrideCodes.list',
-    required: '/admin/override-codes',
-    actual: '/admin/override-codes',
-    method: 'get',
-    description: '관리자 비상 인증번호 조회.',
-  },
-  'admin.overrideCodes.update': {
-    key: 'admin.overrideCodes.update',
-    required: '/admin/override-codes',
-    actual: '/admin/override-codes',
-    method: 'put',
-    description: '관리자 비상 인증번호 저장.',
-  },
 } as const)
 
 export type RouteKey = keyof typeof routeMap

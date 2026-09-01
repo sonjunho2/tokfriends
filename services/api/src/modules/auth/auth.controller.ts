@@ -71,6 +71,6 @@ export class AuthController {
     description: 'Allows previously deployed clients to finish onboarding without code changes.',
   })
   completePhoneProfile(@Body() dto: CompletePhoneProfileDto) {
-    return this.auth.completePhoneProfile(dto, dto.adminOverride ?? false);
+    return this.auth.completePhoneProfile(dto);
   }
 }

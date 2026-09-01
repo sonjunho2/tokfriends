@@ -82,7 +82,6 @@ export default function AgreementScreen({ navigation, route }) {
     phone,
     verificationId,
     formattedPhone,
-    adminOverride: route?.params?.adminOverride || false,
   });
   };
 

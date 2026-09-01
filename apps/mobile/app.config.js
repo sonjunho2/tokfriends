@@ -37,32 +37,10 @@ const isSnackEnvironment = () => {
   return flag === '1' || flag === 'true';
 };
 
-const parseAdminOverrideCodes = (input) => {
-  if (!input) {
-    return [];
-  }
-  if (Array.isArray(input)) {
-    return input
-      .map((value) => String(value || '').trim())
-      .filter(Boolean);
-  }
-  if (typeof input === 'string') {
-    return input
-      .split(',')
-      .map((value) => value.trim())
-      .filter(Boolean);
-  }
-  return [];
-};
 
 module.exports = ({ config }) => {
   const resolvedConfig = config ?? {};
   const snackEnvironment = isSnackEnvironment();
-  const adminOverrideCodes =
-    parseAdminOverrideCodes(process.env.EXPO_PUBLIC_ADMIN_OVERRIDE_CODES) ||
-    parseAdminOverrideCodes(process.env.ADMIN_OVERRIDE_CODES) ||
-    parseAdminOverrideCodes(resolvedConfig?.extra?.ADMIN_OVERRIDE_CODES);
-
   // 플러그인 목록 복사
   const plugins = [...(resolvedConfig.plugins ?? [])];
 
@@ -137,10 +115,6 @@ module.exports = ({ config }) => {
         process.env.EXPO_PUBLIC_API_BASE_URL ??
         resolvedConfig?.extra?.TOK_API_BASE_URL ??
         'https://tok-friends-api.onrender.com',
-      ADMIN_OVERRIDE_CODES:
-        adminOverrideCodes && adminOverrideCodes.length > 0
-          ? adminOverrideCodes
-          : ['123456'],
       eas: {
         projectId: 'eb3c1b74-5c41-4ce0-9574-d0d3eb932d72',
       },

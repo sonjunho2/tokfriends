@@ -1604,39 +1604,3 @@ export async function saveAdminAuditMemo(payload: { memo: string }) {
     throw error
   }
 }
-
-function normalizeAdminOverrideCodes(input: unknown): string[] {
-  if (!input) {
-    return []
-  }
-
-  if (Array.isArray(input)) {
-    return input.map((code) => String(code).trim()).filter((code) => code.length > 0)
-  }
-
-  if (typeof input === 'string') {
-    return input
-      .split(',')
-      .map((code) => code.trim())
-      .filter((code) => code.length > 0)
-  }
-
-  if (typeof input === 'object' && input) {
-    const candidate = (input as Record<string, unknown>).codes
-    return normalizeAdminOverrideCodes(candidate)
-  }
-
-  return []
-}
-
-export async function getAdminOverrideCodes() {
-  const route = buildRoutePath('admin.overrideCodes.list')
-  const response = await api.get(route)
-  return normalizeAdminOverrideCodes(response.data)
-}
-
-export async function updateAdminOverrideCodes(codes: string[]) {
-  const route = buildRoutePath('admin.overrideCodes.update')
-  const response = await api.put(route, { codes })
-  return normalizeAdminOverrideCodes(response.data)
-}

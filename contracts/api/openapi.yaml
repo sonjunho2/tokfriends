@@ -163,8 +163,6 @@ components:
           type: "string"
         avatarUri:
           type: "string"
-        adminOverride:
-          type: "boolean"
     UserSummary:
       type: "object"
       properties:

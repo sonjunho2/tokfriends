@@ -19,7 +19,9 @@ import {
 } from './dto';
 
 const OTP_EXPIRY_SECONDS = 180;
-const DISABLE_AUTH = process.env.DISABLE_AUTH_AND_PAYMENT === 'true';
+const DISABLE_AUTH =
+  process.env.NODE_ENV !== 'production' &&
+  process.env.DISABLE_AUTH_AND_PAYMENT === 'true';
 
 @Injectable()
 export class AuthService {
@@ -185,7 +187,6 @@ export class AuthService {
     if (DISABLE_AUTH) {
       return {
         token: 'dummy-token',
-        adminOverride: true,
         needsProfile: true,
         verificationId: `admin-${Date.now()}`,
       };
@@ -258,10 +259,7 @@ export class AuthService {
     return { needsProfile: true, verificationId: request.id };
   }
 
-  async completePhoneProfile(
-    dto: CompletePhoneProfileDto,
-    adminOverride = false,
-  ) {
+  async completePhoneProfile(dto: CompletePhoneProfileDto) {
     const digits = this.normalizePhone(dto.phone);
     if (!digits) {
       throw new BadRequestException('Invalid phone number');
@@ -279,7 +277,7 @@ export class AuthService {
     const avatarUri =
       avatarUriValue && avatarUriValue.length > 0 ? avatarUriValue : undefined;
 
-    if (DISABLE_AUTH || adminOverride) {
+    if (DISABLE_AUTH) {
       const userId = await this.createOrUpdatePhoneUser({
         phoneDigits: digits,
         nickname,

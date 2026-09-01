@@ -48,7 +48,7 @@ const REGION_OPTIONS = [
 
 export default function ProfileRegistrationScreen({ navigation, route }) {
   const { authenticateWithToken } = useAuth();
-  const { phone, verificationId: initialVerificationId, adminOverride } = route.params || {};
+  const { phone, verificationId: initialVerificationId } = route.params || {};
 
   const [nickname, setNickname] = useState('');
   const [birthYear, setBirthYear] = useState('');
@@ -95,16 +95,14 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
   };
 
   const handleSubmit = async () => {
-    // verificationId와 adminOverride 플래그 결정
+    // verificationId 결정
     let verificationId = initialVerificationId;
-    let overrideFlag = adminOverride;
 
     // 더미 모드에서는 verificationId 없이도 진행
     if (USE_DUMMY_AUTH) {
       if (!verificationId) {
-        verificationId = 'admin-override';  // dummy verificationId
+        verificationId = 'dummy-verification';
       }
-      overrideFlag = true;  // 관리자 우회
     }
 
     if (!verificationId) {
@@ -128,10 +126,6 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
         headline: headline.trim(),
         bio: bio.trim(),
         ...(shouldIncludeAvatar ? { avatarUri: imageUri } : {}),
-        // dummy 모드이거나 adminOverride가 true이거나 verificationId 접두사가 'admin-'인 경우 adminOverride 전달
-        ...(overrideFlag || String(verificationId).startsWith('admin-')
-          ? { adminOverride: true }
-          : {}),
       };
       const response = await apiClient.completePhoneSignup(payload);
       const token =

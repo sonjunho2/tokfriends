@@ -14,7 +14,6 @@ import colors from '../../theme/colors';
 import ButtonPrimary from '../../components/ButtonPrimary';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
-import { ADMIN_OVERRIDE_CODES } from '../../config/env';
 
 function sanitizePhone(input) {
   return String(input || '')
@@ -43,22 +42,9 @@ export default function PhoneEntryScreen({ navigation }) {
     () => String(codeInput || '').replace(/\D/g, '').slice(0, 6),
     [codeInput],
   );
-  const adminOverrideCodes = useMemo(() => {
-    const normalized = (ADMIN_OVERRIDE_CODES || [])
-      .map((code) =>
-        String(code || '')
-          .replace(/\D/g, '')
-          .slice(0, 6),
-      )
-      .filter(Boolean);
-    return new Set(normalized);
-  }, [ADMIN_OVERRIDE_CODES]);
-  const adminOverrideMatch = adminOverrideCodes.has(codeDigits);
-  const adminOverrideEnabled = adminOverrideCodes.size > 0;
   const valid = digits.length >= 10 && digits.length <= 11;
   const canVerify =
-    !verificationLoading &&
-    ((otpRequested && codeDigits.length >= 4) || adminOverrideMatch);
+    !verificationLoading && otpRequested && codeDigits.length >= 4;
   const { authenticateWithToken } = useAuth();
   
   useEffect(() => {
@@ -67,10 +53,11 @@ export default function PhoneEntryScreen({ navigation }) {
     setRequestId(null);
   }, [digits]);
 
-  const completeVerification = async (response, { override = false } = {}) => {
+  const completeVerification = async (response) => {
     const token = response?.token || response?.accessToken || response?.access_token;
     const needsProfile =
-      override || (response?.needsProfile ?? response?.isNewUser ?? !token);
+      response?.needsProfile ?? response?.isNewUser ?? !token;
+
     if (token) {
       const result = await authenticateWithToken(token, response?.user || null);
       if (!result.success) {
@@ -79,16 +66,24 @@ export default function PhoneEntryScreen({ navigation }) {
       navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
       return;
     }
+
     if (needsProfile) {
+      const nextVerificationId =
+        response?.verificationId || response?.sessionId || requestId;
+
+      if (!nextVerificationId) {
+        Alert.alert('오류', '인증 정보가 확인되지 않습니다. 다시 인증해 주세요.');
+        return;
+      }
+
       navigation.replace('Agreement', {
         phone: digits,
         formattedPhone: formatted,
-        verificationId:
-          response?.verificationId || response?.sessionId || requestId || `admin-${Date.now()}`,
-        adminOverride: override,
+        verificationId: nextVerificationId,
       });
       return;
     }
+
     Alert.alert('안내', '추가 정보가 필요합니다. 다시 시도해 주세요.');
   };
 
@@ -118,35 +113,22 @@ export default function PhoneEntryScreen({ navigation }) {
       Alert.alert('안내', '휴대폰 번호를 정확히 입력해 주세요.');
       return;
     }
-    const adminOverride = adminOverrideMatch;
-    if (!otpRequested && !adminOverride) {
+    if (!otpRequested) {
       Alert.alert('안내', '먼저 인증번호를 전송해 주세요.');
       return;
     }
-    if (!adminOverride && codeDigits.length < 4) {
+    if (codeDigits.length < 4) {
       Alert.alert('안내', '인증번호를 정확히 입력해 주세요.');
       return;
     }
+    if (!requestId) {
+      Alert.alert('안내', '인증번호 요청 정보가 확인되지 않아요. 다시 시도해 주세요.');
+      return;
+    }
     if (verificationLoading) return;
+
     setVerificationLoading(true);
     try {
-      if (adminOverride) {
-        let overrideVerificationId = requestId;
-        if (!overrideVerificationId) {
-          overrideVerificationId = `admin-${Date.now()}`;
-          setRequestId(overrideVerificationId);
-        }
-        Alert.alert('관리자 인증', '관리자 인증번호로 인증을 완료했어요.');
-        await completeVerification(
-          { verificationId: overrideVerificationId, adminOverride: true },
-          { override: true },
-        );
-        return;
-      }
-      if (!requestId) {
-        Alert.alert('안내', '인증번호 요청 정보가 확인되지 않아요. 다시 시도해 주세요.');
-        return;
-      }
       const response = await apiClient.verifyPhoneOtp({
         phone: digits,
         code: codeDigits,
@@ -154,7 +136,10 @@ export default function PhoneEntryScreen({ navigation }) {
       });
       await completeVerification(response);
     } catch (error) {
-      Alert.alert('인증 실패', error?.message || '인증번호가 올바르지 않아요. 다시 확인해 주세요.');
+      Alert.alert(
+        '인증 실패',
+        error?.message || '인증번호가 올바르지 않아요. 다시 확인해 주세요.',
+      );
     } finally {
       setVerificationLoading(false);
     }
@@ -187,7 +172,7 @@ export default function PhoneEntryScreen({ navigation }) {
             />
           </View>
 
-          {(otpRequested || adminOverrideEnabled) && (
+          {otpRequested && (
             <View style={styles.codeCard}>
               <Text style={styles.label}>인증번호</Text>
               <TextInput
@@ -202,9 +187,6 @@ export default function PhoneEntryScreen({ navigation }) {
                 returnKeyType="done"
                 onSubmitEditing={handleVerify}
               />
-              {adminOverrideEnabled && (
-                <Text style={styles.hint}>관리자 인증번호 입력 시 자동 인증돼요.</Text>
-              )}
             </View>
           )}
 
@@ -216,7 +198,7 @@ export default function PhoneEntryScreen({ navigation }) {
             disabled={!valid || loading || verificationLoading}
             loading={loading}
           />
-          {(otpRequested || adminOverrideEnabled) && (
+          {otpRequested && (
             <ButtonPrimary
               style={styles.verifyButton}
               title="인증하기"

@@ -28,8 +28,6 @@ import {
   updateAdminIntegrationSetting,
   updateAdminTeamMember,
   updateAdminTeamMemberPassword,
-  getAdminOverrideCodes,
-  updateAdminOverrideCodes,
   type AdminFeatureFlag,
   type AdminIntegrationSetting,
   type AdminSettingsSnapshot,
@@ -124,11 +122,6 @@ export default function SettingsPage() {
   const [integrations, setIntegrations] = useState<AdminIntegrationSetting[]>(FALLBACK_SETTINGS.integrations)
   const [auditLog, setAuditLog] = useState(FALLBACK_SETTINGS.auditMemo ?? '')
   const [initialAuditLog, setInitialAuditLog] = useState(FALLBACK_SETTINGS.auditMemo ?? '')
-  const [overrideCodes, setOverrideCodes] = useState<string[]>([])
-  const [initialOverrideCodes, setInitialOverrideCodes] = useState<string[]>([])
-  const [overrideCodesInput, setOverrideCodesInput] = useState('')
-  const [loadingOverrideCodes, setLoadingOverrideCodes] = useState(false)
-  const [savingOverrideCodes, setSavingOverrideCodes] = useState(false)
   
   const [savingMemberId, setSavingMemberId] = useState<string | null>(null)
   const [savingFlagId, setSavingFlagId] = useState<string | null>(null)
@@ -186,7 +179,7 @@ export default function SettingsPage() {
         {
           id: 'security' as SettingsSection,
           label: '보안 & 감사',
-          description: '2단계 인증과 비상 인증번호를 점검합니다.',
+          description: '2단계 인증과 감사 로그를 점검합니다.',
           icon: ShieldCheck,
         },
         {
@@ -233,8 +226,8 @@ export default function SettingsPage() {
         {
           id: 'security' as SettingsSection,
           label: '보안 상태',
-          value: overrideCodes.length > 0 ? `인증번호 ${overrideCodes.length}개` : '인증번호 미설정',
-          helper: `2FA 적용 ${twoFactorEnabledCount}명`,
+          value: `2FA 명`,
+          helper: '보안 · 감사 상태',
           icon: ShieldCheck,
         },
         {
@@ -264,7 +257,6 @@ export default function SettingsPage() {
       enabledFlagCount,
       flags.length,
       integrations.length,
-      overrideCodes.length,
       suspendedMemberCount,
       twoFactorEnabledCount,
     ]
@@ -306,7 +298,6 @@ export default function SettingsPage() {
 
   useEffect(() => {
     void loadSettings()
-    void loadOverrideCodes()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -352,84 +343,6 @@ export default function SettingsPage() {
     }
   }
 
-  function parseOverrideCodes(input: string): string[] {
-    return input
-      .split(',')
-      .map((code) => code.trim())
-      .filter((code) => code.length > 0)
-  }
-
-  function formatOverrideCodesInput(codes: string[]): string {
-    return codes.join(', ')
-  }
-
-  async function loadOverrideCodes() {
-    setLoadingOverrideCodes(true)
-    try {
-      const codes = await getAdminOverrideCodes()
-      setOverrideCodes(codes)
-      setInitialOverrideCodes(codes)
-      setOverrideCodesInput(formatOverrideCodesInput(codes))
-    } catch (error) {
-      const ax = error as AxiosError<{ message?: string }>
-      const message = ax?.response?.data?.message || ax?.message || '인증번호 정보를 불러오지 못했습니다.'
-      toast({ title: '관리자 인증번호 조회 실패', description: message, variant: 'destructive' })
-    } finally {
-      setLoadingOverrideCodes(false)
-    }
-  }
-
-  const resetOverrideCodesInput = () => {
-    setOverrideCodesInput(formatOverrideCodesInput(initialOverrideCodes))
-  }
-
-  const saveOverrideCodes = async () => {
-    const codes = parseOverrideCodes(overrideCodesInput)
-    if (codes.length === 0) {
-      if (typeof window !== 'undefined' && !window.confirm('모든 관리자 인증번호를 삭제하시겠습니까? 앱에서 비상 인증이 불가능해집니다.')) {
-        return
-      }
-    }
-
-    const invalid = codes.filter((code) => !/^\d{4,10}$/.test(code))
-    if (invalid.length > 0) {
-      toast({
-        title: '인증번호 형식 오류',
-        description: `4~10자리 숫자만 사용할 수 있습니다: ${invalid.join(', ')}`,
-        variant: 'destructive',
-      })
-      return
-    }
-
-    setSavingOverrideCodes(true)
-    try {
-      const saved = await updateAdminOverrideCodes(codes)
-      setOverrideCodes(saved)
-      setInitialOverrideCodes(saved)
-      setOverrideCodesInput(formatOverrideCodesInput(saved))
-      toast({
-        title: '관리자 인증번호 저장 완료',
-        description:
-          saved.length > 0
-            ? `총 ${saved.length}개의 인증번호를 저장했습니다. Expo 앱에도 동일한 값을 설정하세요.`
-            : '인증번호를 모두 삭제했습니다. 필요 시 새 인증번호를 추가하세요.',
-      })
-    } catch (error) {
-      const ax = error as AxiosError<{ message?: string }>
-      const message = ax?.response?.data?.message || ax?.message || '관리자 인증번호를 저장하지 못했습니다.'
-      toast({ title: '관리자 인증번호 저장 실패', description: message, variant: 'destructive' })
-    } finally {
-      setSavingOverrideCodes(false)
-    }
-  }
-
-  const draftOverrideCodes = useMemo(() => parseOverrideCodes(overrideCodesInput), [overrideCodesInput])
-  const overrideCodesChanged = useMemo(() => {
-    if (draftOverrideCodes.length !== initialOverrideCodes.length) {
-      return true
-    }
-    return draftOverrideCodes.some((code, index) => code !== initialOverrideCodes[index])
-  }, [draftOverrideCodes, initialOverrideCodes])
 
   const createMember = async () => {
     const email = newAdmin.email.trim()
@@ -1167,70 +1080,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>관리자 인증번호</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              앱과 동일한 비상 인증 코드를 관리합니다. 저장 시 <code>.env.local</code> 파일의
-              EXPO_PUBLIC_ADMIN_OVERRIDE_CODES 값이 업데이트됩니다.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="space-y-2">
-              <Label htmlFor="admin-override-codes">인증번호 목록</Label>
-              <Textarea
-                id="admin-override-codes"
-                value={overrideCodesInput}
-                onChange={(event) => setOverrideCodesInput(event.target.value)}
-                placeholder="123456, 654321"
-                rows={3}
-                disabled={loadingOverrideCodes || savingOverrideCodes}
-              />
-              <p className="text-xs text-muted-foreground">
-                콤마(,)로 구분된 4~10자리 숫자만 입력하세요. 저장하면 Expo 앱에도 동일한 값을 맞춰야 합니다.
-              </p>
-            </div>
-            {draftOverrideCodes.length > 0 ? (
-              <div className="flex flex-wrap gap-2 text-xs">
-                {draftOverrideCodes.map((code) => (
-                  <span key={code} className="rounded-md border px-2 py-1 font-mono">
-                    {code}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">저장할 인증번호가 없습니다.</p>
-            )}
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                onClick={() => void saveOverrideCodes()}
-                disabled={savingOverrideCodes || loadingOverrideCodes || !overrideCodesChanged}
-              >
-                {savingOverrideCodes ? '저장 중…' : '인증번호 저장'}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => resetOverrideCodesInput()}
-                disabled={savingOverrideCodes || loadingOverrideCodes || !overrideCodesChanged}
-              >
-                입력 되돌리기
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => void loadOverrideCodes()}
-                disabled={savingOverrideCodes || loadingOverrideCodes}
-              >
-                다시 불러오기
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              현재 저장된 코드: {overrideCodes.length > 0 ? overrideCodes.join(', ') : '없음'}
-            </p>
-          </CardContent>
-        </Card>
       </section>
     )}
 
