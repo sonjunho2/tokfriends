@@ -11,20 +11,9 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
+import { UpdateUserDto } from './update-user.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-
-type UpdateUserRequest = {
-  displayName?: string;
-  nickname?: string;
-  bio?: string;
-  region1?: string;
-  region2?: string;
-  interests?: string[] | string;
-  marketingOptIn?: boolean | string;
-  headline?: string;
-  avatarUri?: string;
-};
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -81,7 +70,7 @@ export class UsersController {
   async update(
     @Param('id') id: string,
     @CurrentUser() user: any,
-    @Body() body: UpdateUserRequest,
+    @Body() body: UpdateUserDto,
   ) {
     const authId = user?.sub ?? user?.id;
     if (!authId || authId !== id) {
@@ -153,7 +142,7 @@ export class UsersController {
     };
   }
 
-  private normalizeInterests(value: UpdateUserRequest['interests']) {
+  private normalizeInterests(value: UpdateUserDto['interests']) {
     if (Array.isArray(value)) {
       return value
         .map((item) => (typeof item === 'string' ? item.trim() : ''))
@@ -170,7 +159,7 @@ export class UsersController {
     return undefined;
   }
 
-  private normalizeBoolean(value: UpdateUserRequest['marketingOptIn']) {
+  private normalizeBoolean(value: UpdateUserDto['marketingOptIn']) {
     if (value === undefined) return undefined;
     if (typeof value === 'boolean') return value;
     if (typeof value === 'string') {
