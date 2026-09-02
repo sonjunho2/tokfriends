@@ -49,7 +49,23 @@ async function bootstrap() {
   );
 
   const port = Number(process.env.PORT ?? 4000);
-  const allowedOrigins = parseOrigins(process.env.CORS_ORIGIN);
+  const isProduction = process.env.NODE_ENV === 'production';
+  const corsOriginEnv = process.env.CORS_ORIGIN?.trim();
+
+  if (isProduction && !corsOriginEnv) {
+    throw new Error('CORS_ORIGIN is required in production');
+  }
+
+  const allowedOrigins = parseOrigins(corsOriginEnv);
+
+  if (
+    isProduction &&
+    allowedOrigins.some(
+      (candidate) => typeof candidate === 'string' && candidate === '*',
+    )
+  ) {
+    throw new Error('CORS_ORIGIN wildcard is not allowed in production');
+  }
   const hasWildcard = allowedOrigins.some(
     (candidate) => typeof candidate === 'string' && candidate === '*',
   );
