@@ -280,7 +280,12 @@ export class AdminUsersController {
   }
 
   @Patch(':id')
-  async updateProfile(@Param('id') id: string, @Body() body: Record<string, any>) {
+  async updateProfile(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: Record<string, any>,
+  ) {
+    const actorId = user?.id ?? user?.sub;
     await this.ensureUserExists(id);
 
     const existingProfile = await this.prisma.profile.findUnique({
@@ -412,6 +417,7 @@ export class AdminUsersController {
       data: {
         target: `user:${id}`,
         action: 'USER_ACTION:PROFILE_UPDATE',
+        actorId,
         notes: JSON.stringify({ updated: Object.keys(body ?? {}) }),
       },
     });
