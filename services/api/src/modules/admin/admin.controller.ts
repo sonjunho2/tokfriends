@@ -1,7 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PrismaClient } from '@prisma/client';
-import { JwtGuard } from '../../common/jwt.guard';
 import { RolesGuard, Roles } from '../../common/roles.guard';
 import { CreateRefundDto, SetUserRoleDto } from './dto';
 
@@ -9,7 +8,7 @@ const prisma = new PrismaClient();
 
 @ApiTags('admin')
 @ApiBearerAuth()
-@UseGuards(JwtGuard, RolesGuard)
+@UseGuards(RolesGuard)
 @Roles('admin')
 @Controller('admin')
 export class AdminController {
