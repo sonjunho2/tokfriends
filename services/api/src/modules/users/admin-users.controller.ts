@@ -17,7 +17,7 @@ import { PrismaService } from 'nestjs-prisma';
 import { UsersService } from './users.service';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { Roles, RolesGuard } from '../../common/roles.guard';
-import { AdminUserActionDto, AdminUserNoteDto } from './admin-users.dto';
+import { AdminUserActionDto, AdminUserNoteDto, AdminUserStatusDto } from './admin-users.dto';
 
 type ProfileVisibilitySettings = {
   marketingOptIn?: boolean;
@@ -429,7 +429,7 @@ export class AdminUsersController {
   async updateStatus(
     @CurrentUser() user: any,
     @Param('id') id: string,
-    @Body() body: { status: string; expiresAt?: string },
+    @Body() body: AdminUserStatusDto,
   ) {
     const actorId = user?.id ?? user?.sub;
     await this.ensureUserExists(id);

@@ -23,3 +23,13 @@ export class AdminUserActionDto {
   @IsObject()
   metadata?: Record<string, any>;
 }
+export class AdminUserStatusDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  status: string;
+
+  @IsOptional()
+  @IsString()
+  expiresAt?: string;
+}
