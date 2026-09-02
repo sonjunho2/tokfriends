@@ -179,11 +179,55 @@ components = {
                 "avatarUri": {"type": "string"},
             },
         },
+        "PublicUserSearchItem": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+                "displayName": {"type": ["string", "null"]},
+                "nickname": {"type": ["string", "null"]},
+                "bio": {"type": ["string", "null"]},
+                "interests": {"type": "array", "items": {"type": "string"}},
+            },
+        },
         "UsersSearchResponse": {
             "type": "object",
             "properties": {
                 "ok": {"type": "boolean"},
-                "data": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "data": {
+                    "type": "array",
+                    "items": {"$ref": "#/components/schemas/PublicUserSearchItem"},
+                },
+                "items": {
+                    "type": "array",
+                    "items": {"$ref": "#/components/schemas/PublicUserSearchItem"},
+                },
+            },
+        },
+        "PublicUserProfile": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+                "displayName": {"type": ["string", "null"]},
+                "region1": {"type": ["string", "null"]},
+                "region2": {"type": ["string", "null"]},
+                "profile": {
+                    "type": ["object", "null"],
+                    "properties": {
+                        "nickname": {"type": ["string", "null"]},
+                        "bio": {"type": ["string", "null"]},
+                        "headline": {"type": ["string", "null"]},
+                        "avatarUri": {"type": ["string", "null"]},
+                        "interests": {"type": "array", "items": {"type": "string"}},
+                        "badges": {"type": "array", "items": {"type": "string"}},
+                    },
+                },
+            },
+        },
+        "PublicUserResponse": {
+            "type": "object",
+            "properties": {
+                "ok": {"type": "boolean"},
+                "data": {"$ref": "#/components/schemas/PublicUserProfile"},
             },
         },
         "AdminUsersListResponse": {
@@ -644,7 +688,7 @@ endpoints = [
         "tags": ["users"],
         "public": False,
         "responses": {
-            "200": {"description": "User detail", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/UsersMeResponse"}}}},
+            "200": {"description": "User detail", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PublicUserResponse"}}}},
             "404": {"description": "Not found"},
         },
     },

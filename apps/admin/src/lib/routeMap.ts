@@ -48,7 +48,7 @@ const routeMap = defineRouteMap({
   'users.search': {
     key: 'users.search',
     required: '/users/search',
-    actual: '/users/search',
+    actual: '/admin/users',
     method: 'get',
     description: '관리자 전용 사용자 목록/검색. 정렬/필터/페이지를 모두 지원하는 실제 API로 매핑.',
   },

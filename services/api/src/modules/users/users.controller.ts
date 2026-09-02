@@ -33,35 +33,23 @@ export class UsersController {
 
   @ApiQuery({ name: 'q', required: false, type: String })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'keyword', required: false, type: String })
-  @ApiQuery({ name: 'phone', required: false, type: String })
-  @ApiQuery({ name: 'status', required: false, type: String })
   @Get('search')
+  @UseGuards(JwtAuthGuard)
   async search(
     @Query('q') q: string = '',
     @Query('limit') limit?: string,
-    @Query('keyword') keyword?: string,
-    @Query('phone') phone?: string,
-    @Query('status') status?: string,
   ) {
     const take = Math.min(50, Math.max(1, Number(limit ?? 20) || 20));
-    const hasFilters =
-      Boolean(keyword?.trim()) || Boolean(phone?.trim()) || Boolean(status?.trim());
-    if (hasFilters) {
-      const users = await this.users.searchUsers({ keyword, phone, status, limit: take });
-      return { ok: true, data: users, items: users };
-    }
     const results = await this.users.search(q ?? '', take);
+
     const items = results.map((item) => ({
       id: item.id,
-      email: item.email,
       displayName: item.displayName,
       nickname: item.profile?.nickname ?? null,
-      status: item.status,
-      createdAt: item.createdAt,
       bio: item.profile?.bio ?? null,
       interests: item.profile?.interests ?? [],
     }));
+
     return { ok: true, data: items, items };
   }
 
@@ -103,12 +91,31 @@ export class UsersController {
 
   // 공용/모바일에서 단건 조회 시 사용 예시
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   async getUserById(@Param('id') id: string) {
     const user = await this.users.byId(id);
     if (!user) throw new NotFoundException('User not found');
-    return { ok: true, data: this.serializeUser(user) };
+    return { ok: true, data: this.serializePublicUser(user) };
   }
 
+  private serializePublicUser(user: any) {
+    return {
+      id: user.id,
+      displayName: user.displayName ?? null,
+      region1: user.region1 ?? null,
+      region2: user.region2 ?? null,
+      profile: user.profile
+        ? {
+            nickname: user.profile.nickname ?? null,
+            bio: user.profile.bio ?? null,
+            headline: user.profile.headline ?? null,
+            avatarUri: user.profile.avatarUri ?? null,
+            interests: user.profile.interests ?? [],
+            badges: user.profile.badges ?? [],
+          }
+        : null,
+    };
+  }
   private serializeUser(user: any) {
     const visibility = user?.profile?.visibility as Record<string, any> | undefined;
     return {

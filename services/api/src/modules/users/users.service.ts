@@ -35,24 +35,41 @@ export class UsersService {
     const trimmed = term.trim();
     if (!trimmed) return [];
 
-    const users = await this.searchUsers({ keyword: trimmed, limit: take });
-
-    return users.map((user) => ({
-      id: user.id,
-      email: user.email,
-      displayName: user.displayName,
-      status: user.status,
-      createdAt: user.createdAt,
-      profile: user.profile
-        ? {
-            nickname: user.profile.nickname,
-            bio: user.profile.bio,
-            interests: user.profile.interests,
-          }
-        : null,
-    }));
+    return this.prisma.user.findMany({
+      where: {
+        status: 'active',
+        OR: [
+          {
+            displayName: {
+              contains: trimmed,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+          {
+            profile: {
+              nickname: {
+                contains: trimmed,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          },
+        ],
+      },
+      take: Math.min(50, Math.max(1, take)),
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        displayName: true,
+        profile: {
+          select: {
+            nickname: true,
+            bio: true,
+            interests: true,
+          },
+        },
+      },
+    });
   }
-
   async searchUsers(filters: UserSearchFilters) {
     const where: Prisma.UserWhereInput = {};
     const or: Prisma.UserWhereInput['OR'] = [];
