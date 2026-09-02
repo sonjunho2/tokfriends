@@ -9,11 +9,13 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'nestjs-prisma';
 import { UsersService } from './users.service';
+import { Roles, RolesGuard } from '../../common/roles.guard';
 
 type AdminUserNoteDto = { note: string; authorId?: string };
 type AdminUserActionDto = { reason?: string; performedBy?: string; metadata?: Record<string, any> };
@@ -26,6 +28,8 @@ type ProfileVisibilitySettings = {
 
 @ApiTags('admin/users')
 @ApiBearerAuth()
+@UseGuards(RolesGuard)
+@Roles('admin')
 @Controller('admin/users')
 export class AdminUsersController {
   constructor(
