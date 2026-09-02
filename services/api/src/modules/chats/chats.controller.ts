@@ -3,6 +3,7 @@ import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ChatsService } from './chats.service';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { DirectChatDto, SendMessageDto } from './dto';
 
 @ApiTags('chats')
 @Controller('chats')
@@ -18,7 +19,7 @@ export class ChatsController {
   @Post('message')
   send(
     @CurrentUser() user: any,
-    @Body() dto: { chatId: string; content: string },
+    @Body() dto: SendMessageDto,
   ) {
     const currentUserId = user?.sub ?? user?.id;
     return this.chats.send(currentUserId, dto);
@@ -27,7 +28,7 @@ export class ChatsController {
   @Post(['rooms', 'chat/rooms', 'chats/rooms', 'conversations'])
   createRoom(
     @CurrentUser() user: any,
-    @Body() dto: { targetUserId: string },
+    @Body() dto: DirectChatDto,
   ) {
     const currentUserId = user?.sub ?? user?.id;
     return this.chats.ensureDirectRoom(currentUserId, dto.targetUserId);
@@ -36,7 +37,7 @@ export class ChatsController {
   @Post('direct')
   ensureDirect(
     @CurrentUser() user: any,
-    @Body() dto: { targetUserId: string },
+    @Body() dto: DirectChatDto,
   ) {
     const currentUserId = user?.sub ?? user?.id;
     return this.chats.ensureDirectRoom(currentUserId, dto.targetUserId);
