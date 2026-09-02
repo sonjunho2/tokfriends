@@ -427,7 +427,12 @@ export class AdminUsersController {
   }
 
   @Patch(':id/status')
-  async updateStatus(@Param('id') id: string, @Body() body: { status: string; expiresAt?: string }) {
+  async updateStatus(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: { status: string; expiresAt?: string },
+  ) {
+    const actorId = user?.id ?? user?.sub;
     await this.ensureUserExists(id);
     const next = String(body?.status || '').toLowerCase();
     const updated = await this.prisma.user.update({
@@ -440,6 +445,7 @@ export class AdminUsersController {
       data: {
         target: `user:${id}`,
         action: 'USER_ACTION:STATUS_CHANGE',
+        actorId,
         notes: JSON.stringify({ status: next, expiresAt: body?.expiresAt ?? null }),
       },
     });
