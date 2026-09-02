@@ -17,9 +17,8 @@ import { PrismaService } from 'nestjs-prisma';
 import { UsersService } from './users.service';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { Roles, RolesGuard } from '../../common/roles.guard';
+import { AdminUserActionDto, AdminUserNoteDto } from './admin-users.dto';
 
-type AdminUserNoteDto = { note: string; authorId?: string };
-type AdminUserActionDto = { reason?: string; metadata?: Record<string, any> };
 type ProfileVisibilitySettings = {
   marketingOptIn?: boolean;
   verified?: boolean;
