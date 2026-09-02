@@ -15,6 +15,7 @@ import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'nestjs-prisma';
 import { UsersService } from './users.service';
+import { CurrentUser } from '../auth/current-user.decorator';
 import { Roles, RolesGuard } from '../../common/roles.guard';
 
 type AdminUserNoteDto = { note: string; authorId?: string };
@@ -441,16 +442,23 @@ export class AdminUsersController {
   }
 
   @Post(':id/notes')
-  async addNote(@Param('id') id: string, @Body() body: AdminUserNoteDto) {
+  async addNote(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: AdminUserNoteDto,
+  ) {
     await this.ensureUserExists(id);
+
+    const actorId = user?.id ?? user?.sub;
     const noteText = body?.note?.trim();
+
     if (!noteText) {
       throw new BadRequestException('note is required');
     }
 
     const entry = await this.prisma.auditLog.create({
       data: {
-        actorId: body?.authorId ?? null,
+        actorId,
         target: `user:${id}`,
         action: 'USER_NOTE',
         notes: noteText,
@@ -468,7 +476,6 @@ export class AdminUsersController {
       },
     };
   }
-
   @Post(':id/actions/resend-verification')
   async resendVerification(@Param('id') id: string, @Body() body: AdminUserActionDto) {
     await this.ensureUserExists(id);
