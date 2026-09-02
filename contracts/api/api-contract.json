@@ -431,9 +431,6 @@
         "properties": {
           "note": {
             "type": "string"
-          },
-          "authorId": {
-            "type": "string"
           }
         }
       },
@@ -441,9 +438,6 @@
         "type": "object",
         "properties": {
           "reason": {
-            "type": "string"
-          },
-          "performedBy": {
             "type": "string"
           },
           "metadata": {
@@ -568,13 +562,9 @@
       "FriendshipRequest": {
         "type": "object",
         "required": [
-          "requesterId",
           "addresseeId"
         ],
         "properties": {
-          "requesterId": {
-            "type": "string"
-          },
           "addresseeId": {
             "type": "string"
           }
@@ -608,14 +598,10 @@
         "type": "object",
         "required": [
           "chatId",
-          "senderId",
           "content"
         ],
         "properties": {
           "chatId": {
-            "type": "string"
-          },
-          "senderId": {
             "type": "string"
           },
           "content": {
@@ -626,20 +612,10 @@
       "ChatRoomRequest": {
         "type": "object",
         "required": [
-          "userAId",
-          "userBId"
+          "targetUserId"
         ],
         "properties": {
-          "userAId": {
-            "type": "string"
-          },
-          "userBId": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "category": {
+          "targetUserId": {
             "type": "string"
           }
         }
@@ -1880,23 +1856,40 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "ok": {
-                    "type": "boolean"
-                  },
                   "id": {
-                    "type": "string"
-                  },
-                  "userAId": {
-                    "type": "string"
-                  },
-                  "userBId": {
                     "type": "string"
                   },
                   "title": {
                     "type": "string"
                   },
-                  "category": {
-                    "type": "string"
+                  "participants": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "displayName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "nickname": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "avatarUri": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
                   }
                 }
               }

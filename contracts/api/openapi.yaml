@@ -289,14 +289,10 @@ components:
       properties:
         note:
           type: "string"
-        authorId:
-          type: "string"
     AdminUserAction:
       type: "object"
       properties:
         reason:
-          type: "string"
-        performedBy:
           type: "string"
         metadata:
           type: "object"
@@ -378,11 +374,8 @@ components:
     FriendshipRequest:
       type: "object"
       required:
-        - "requesterId"
         - "addresseeId"
       properties:
-        requesterId:
-          type: "string"
         addresseeId:
           type: "string"
     Friendship:
@@ -405,28 +398,18 @@ components:
       type: "object"
       required:
         - "chatId"
-        - "senderId"
         - "content"
       properties:
         chatId:
-          type: "string"
-        senderId:
           type: "string"
         content:
           type: "string"
     ChatRoomRequest:
       type: "object"
       required:
-        - "userAId"
-        - "userBId"
+        - "targetUserId"
       properties:
-        userAId:
-          type: "string"
-        userBId:
-          type: "string"
-        title:
-          type: "string"
-        category:
+        targetUserId:
           type: "string"
     ChatDirectRequest:
       type: "object"
@@ -1348,18 +1331,29 @@ paths:
               schema:
                 type: "object"
                 properties:
-                  ok:
-                    type: "boolean"
                   id:
-                    type: "string"
-                  userAId:
-                    type: "string"
-                  userBId:
                     type: "string"
                   title:
                     type: "string"
-                  category:
-                    type: "string"
+                  participants:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                        displayName:
+                          type:
+                            - "string"
+                            - "null"
+                        nickname:
+                          type:
+                            - "string"
+                            - "null"
+                        avatarUri:
+                          type:
+                            - "string"
+                            - "null"
       security:
         -
           bearerAuth:

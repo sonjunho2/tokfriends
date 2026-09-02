@@ -221,14 +221,12 @@ components = {
             "required": ["note"],
             "properties": {
                 "note": {"type": "string"},
-                "authorId": {"type": "string"},
             },
         },
         "AdminUserAction": {
             "type": "object",
             "properties": {
                 "reason": {"type": "string"},
-                "performedBy": {"type": "string"},
                 "metadata": {"type": "object", "additionalProperties": True},
             },
         },
@@ -281,9 +279,8 @@ components = {
         },
         "FriendshipRequest": {
             "type": "object",
-            "required": ["requesterId", "addresseeId"],
+            "required": ["addresseeId"],
             "properties": {
-                "requesterId": {"type": "string"},
                 "addresseeId": {"type": "string"},
             },
         },
@@ -301,21 +298,17 @@ components = {
         },
         "ChatMessageRequest": {
             "type": "object",
-            "required": ["chatId", "senderId", "content"],
+            "required": ["chatId", "content"],
             "properties": {
                 "chatId": {"type": "string"},
-                "senderId": {"type": "string"},
                 "content": {"type": "string"},
             },
         },
         "ChatRoomRequest": {
             "type": "object",
-            "required": ["userAId", "userBId"],
+            "required": ["targetUserId"],
             "properties": {
-                "userAId": {"type": "string"},
-                "userBId": {"type": "string"},
-                "title": {"type": "string"},
-                "category": {"type": "string"},
+                "targetUserId": {"type": "string"},
             },
         },
         "ChatDirectRequest": {
@@ -875,7 +868,7 @@ endpoints = [
         "aliases": ["/chats/chat/rooms", "/chats/chats/rooms", "/chats/conversations"],
         "requestBody": {"schema": {"$ref": "#/components/schemas/ChatRoomRequest"}},
         "responses": {
-            "200": {"description": "Room", "content": {"application/json": {"schema": {"type": "object", "properties": {"ok": {"type": "boolean"}, "id": {"type": "string"}, "userAId": {"type": "string"}, "userBId": {"type": "string"}, "title": {"type": "string"}, "category": {"type": "string"}}}}}},
+            "200": {"description": "Room", "content": {"application/json": {"schema": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}, "participants": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "displayName": {"type": ["string", "null"]}, "nickname": {"type": ["string", "null"]}, "avatarUri": {"type": ["string", "null"]}}}}}}}}},
         },
     },
     {
