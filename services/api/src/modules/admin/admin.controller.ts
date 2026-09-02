@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PrismaClient } from '@prisma/client';
 import { JwtGuard } from '../../common/jwt.guard';
 import { RolesGuard, Roles } from '../../common/roles.guard';
+import { CreateRefundDto, SetUserRoleDto } from './dto';
 
 const prisma = new PrismaClient();
 
@@ -13,7 +14,7 @@ const prisma = new PrismaClient();
 @Controller('admin')
 export class AdminController {
   @Patch('users/:id/role')
-  async setRole(@Param('id') id: string, @Body() dto: { role: 'user'|'moderator'|'admin' }) {
+  async setRole(@Param('id') id: string, @Body() dto: SetUserRoleDto) {
     const u = await prisma.user.update({ where: { id }, data: { role: dto.role } });
     await prisma.auditLog.create({ data: { actorId: id, target: 'user:'+id, action: 'SET_ROLE:'+dto.role } });
     return u;
@@ -25,8 +26,8 @@ export class AdminController {
   }
 
   @Post('refunds')
-  async createRefund(@Body() dto: { userId: string, platform: string, productId: string, receiptId: string, reason?: string }) {
-    return prisma.refundRequest.create({ data: dto as any });
+  async createRefund(@Body() dto: CreateRefundDto) {
+    return prisma.refundRequest.create({ data: dto });
   }
 
   @Patch('refunds/:id/approve')

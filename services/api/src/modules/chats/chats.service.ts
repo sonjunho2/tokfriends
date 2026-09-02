@@ -39,36 +39,57 @@ export class ChatsService {
 
   private readonly chatInclude = chatWithUsersInclude;
 
-  async list() {
-    return this.prisma.chat.findMany({ take: 20, orderBy: { lastMessageAt: 'desc' } });
-  }
+  async list(currentUserId: string) {
+    if (!currentUserId) {
+      throw new BadRequestException('Missing authenticated user');
+    }
 
-  async send(dto: { chatId: string; senderId: string; content: string }) {
-    const msg = await this.prisma.message.create({
-      data: { chatId: dto.chatId, senderId: dto.senderId, content: dto.content },
+    return this.prisma.chat.findMany({
+      where: {
+        OR: [
+          { userAId: currentUserId },
+          { userBId: currentUserId },
+        ],
+      },
+      take: 20,
+      orderBy: { lastMessageAt: 'desc' },
     });
-    await this.prisma.chat.update({ where: { id: dto.chatId }, data: { lastMessageAt: new Date() } });
-    return msg;
   }
+  async send(currentUserId: string, dto: { chatId: string; content: string }) {
+    if (!currentUserId) {
+      throw new BadRequestException('Missing authenticated user');
+    }
 
-  async createRoom(dto: { userAId: string; userBId: string; title?: string; category?: string }) {
-    const chat = await this.prisma.chat.create({
+    const chat = await this.prisma.chat.findFirst({
+      where: {
+        id: dto.chatId,
+        OR: [
+          { userAId: currentUserId },
+          { userBId: currentUserId },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (!chat) {
+      throw new NotFoundException('Chat not found');
+    }
+
+    const msg = await this.prisma.message.create({
       data: {
-        userAId: dto.userAId,
-        userBId: dto.userBId,
-        lastMessageAt: new Date(),
+        chatId: dto.chatId,
+        senderId: currentUserId,
+        content: dto.content,
       },
     });
-    return {
-      ok: true,
-      id: chat.id,
-      userAId: chat.userAId,
-      userBId: chat.userBId,
-      title: dto.title ?? '',
-      category: dto.category ?? '',
-    };
-  }
 
+    await this.prisma.chat.update({
+      where: { id: dto.chatId },
+      data: { lastMessageAt: new Date() },
+    });
+
+    return msg;
+  }
   async ensureDirectRoom(currentUserId: string, targetUserId: string): Promise<DirectRoomResponse> {
     if (!currentUserId) {
       throw new BadRequestException('Missing authenticated user');

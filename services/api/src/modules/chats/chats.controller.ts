@@ -1,5 +1,5 @@
 // services/api/src/modules/chats/chats.controller.ts
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ChatsService } from './chats.service';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -10,16 +10,27 @@ export class ChatsController {
   constructor(private readonly chats: ChatsService) {}
 
   @Get()
-  list() { return this.chats.list(); }
+  list(@CurrentUser() user: any) {
+    const currentUserId = user?.sub ?? user?.id;
+    return this.chats.list(currentUserId);
+  }
 
   @Post('message')
-  send(@Body() dto: { chatId: string; senderId: string; content: string }) {
-    return this.chats.send(dto);
+  send(
+    @CurrentUser() user: any,
+    @Body() dto: { chatId: string; content: string },
+  ) {
+    const currentUserId = user?.sub ?? user?.id;
+    return this.chats.send(currentUserId, dto);
   }
 
   @Post(['rooms', 'chat/rooms', 'chats/rooms', 'conversations'])
-  createRoom(@Body() dto: { userAId: string; userBId: string; title?: string; category?: string }) {
-    return this.chats.createRoom(dto);
+  createRoom(
+    @CurrentUser() user: any,
+    @Body() dto: { targetUserId: string },
+  ) {
+    const currentUserId = user?.sub ?? user?.id;
+    return this.chats.ensureDirectRoom(currentUserId, dto.targetUserId);
   }
 
   @Post('direct')
