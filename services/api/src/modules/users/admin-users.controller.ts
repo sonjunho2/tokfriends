@@ -19,7 +19,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { Roles, RolesGuard } from '../../common/roles.guard';
 
 type AdminUserNoteDto = { note: string; authorId?: string };
-type AdminUserActionDto = { reason?: string; performedBy?: string; metadata?: Record<string, any> };
+type AdminUserActionDto = { reason?: string; metadata?: Record<string, any> };
 type ProfileVisibilitySettings = {
   marketingOptIn?: boolean;
   verified?: boolean;
@@ -477,26 +477,40 @@ export class AdminUsersController {
     };
   }
   @Post(':id/actions/resend-verification')
-  async resendVerification(@Param('id') id: string, @Body() body: AdminUserActionDto) {
+  async resendVerification(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: AdminUserActionDto,
+  ) {
     await this.ensureUserExists(id);
-    const entry = await this.logAction(id, 'RESEND_VERIFICATION', body);
+    const actorId = user?.id ?? user?.sub;
+    const entry = await this.logAction(actorId, id, 'RESEND_VERIFICATION', body);
     return { ok: true, data: entry };
   }
 
   @Post(':id/actions/password-reset')
-  async triggerPasswordReset(@Param('id') id: string, @Body() body: AdminUserActionDto) {
+  async triggerPasswordReset(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: AdminUserActionDto,
+  ) {
     await this.ensureUserExists(id);
-    const entry = await this.logAction(id, 'PASSWORD_RESET', body);
+    const actorId = user?.id ?? user?.sub;
+    const entry = await this.logAction(actorId, id, 'PASSWORD_RESET', body);
     return { ok: true, data: entry };
   }
 
   @Post(':id/actions/escalate')
-  async escalate(@Param('id') id: string, @Body() body: AdminUserActionDto) {
+  async escalate(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: AdminUserActionDto,
+  ) {
     await this.ensureUserExists(id);
-    const entry = await this.logAction(id, 'ESCALATE', body);
+    const actorId = user?.id ?? user?.sub;
+    const entry = await this.logAction(actorId, id, 'ESCALATE', body);
     return { ok: true, data: entry };
   }
-
   private resolveRiskFilter(level?: string): Prisma.IntFilter | undefined {
     if (!level) return undefined;
     switch (level.toLowerCase()) {
@@ -565,21 +579,32 @@ export class AdminUsersController {
     }
   }
 
-  private async logAction(userId: string, action: string, body: AdminUserActionDto) {
+  private async logAction(
+    actorId: string,
+    userId: string,
+    action: string,
+    body: AdminUserActionDto,
+  ) {
     const payload = {
       reason: body?.reason ?? null,
-      performedBy: body?.performedBy ?? null,
+      performedBy: actorId,
       metadata: body?.metadata ?? null,
     };
 
     const entry = await this.prisma.auditLog.create({
       data: {
-        actorId: body?.performedBy ?? null,
+        actorId,
         target: `user:${userId}`,
         action: `USER_ACTION:${action}`,
         notes: JSON.stringify(payload),
       },
-      select: { id: true, action: true, notes: true, createdAt: true, actorId: true },
+      select: {
+        id: true,
+        action: true,
+        notes: true,
+        createdAt: true,
+        actorId: true,
+      },
     });
 
     return {
@@ -590,7 +615,6 @@ export class AdminUsersController {
       metadata: this.tryParseJson(entry.notes),
     };
   }
-
   private tryParseJson(raw?: string | null) {
     if (!raw) return null;
     try {
