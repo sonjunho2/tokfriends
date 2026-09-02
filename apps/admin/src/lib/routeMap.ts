@@ -69,8 +69,8 @@ const routeMap = defineRouteMap({
   'users.status': {
     key: 'users.status',
     required: '/users/{userId}/status',
-    actual: '/users/:userId/status',
-    method: 'put',
+    actual: '/admin/users/:userId/status',
+    method: 'patch',
     description: '사용자 상태 변경 전용 엔드포인트.',
   },
   'community.report': {
