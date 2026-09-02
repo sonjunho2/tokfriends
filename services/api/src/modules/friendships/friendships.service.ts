@@ -1,47 +1,113 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 
 @Injectable()
 export class FriendshipsService {
   constructor(private prisma: PrismaService) {}
 
-  // 친구 요청 생성
   async sendRequest(requesterId: string, addresseeId: string) {
+    if (!requesterId) {
+      throw new BadRequestException('Missing authenticated user');
+    }
+
+    if (requesterId === addresseeId) {
+      throw new BadRequestException('Cannot send a friend request to yourself');
+    }
+
+    const addressee = await this.prisma.user.findFirst({
+      where: {
+        id: addresseeId,
+        status: 'active',
+      },
+      select: { id: true },
+    });
+
+    if (!addressee) {
+      throw new NotFoundException('User not found');
+    }
+
     return this.prisma.friendship.create({
-      data: { requesterId, addresseeId, status: 'requested' },
+      data: {
+        requesterId,
+        addresseeId,
+        status: 'requested',
+      },
     });
   }
 
-  // 요청 수락
-  async acceptRequest(id: string) {
+  async acceptRequest(currentUserId: string, id: string) {
+    const request = await this.prisma.friendship.findFirst({
+      where: {
+        id,
+        addresseeId: currentUserId,
+        status: 'requested',
+      },
+      select: { id: true },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Friend request not found');
+    }
+
     return this.prisma.friendship.update({
       where: { id },
       data: { status: 'accepted' },
     });
   }
 
-  // 요청 거절
-  async declineRequest(id: string) {
+  async declineRequest(currentUserId: string, id: string) {
+    const request = await this.prisma.friendship.findFirst({
+      where: {
+        id,
+        addresseeId: currentUserId,
+        status: 'requested',
+      },
+      select: { id: true },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Friend request not found');
+    }
+
     return this.prisma.friendship.update({
       where: { id },
       data: { status: 'declined' },
     });
   }
 
-  // 요청 취소/삭제
-  async cancelRequest(id: string) {
+  async cancelRequest(currentUserId: string, id: string) {
+    const request = await this.prisma.friendship.findFirst({
+      where: {
+        id,
+        requesterId: currentUserId,
+        status: 'requested',
+      },
+      select: { id: true },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Friend request not found');
+    }
+
     return this.prisma.friendship.delete({
       where: { id },
     });
   }
 
-  // 특정 사용자가 주고받은 요청 목록 조회
-  async listRequests(userId: string) {
+  async listRequests(currentUserId: string) {
+    if (!currentUserId) {
+      throw new BadRequestException('Missing authenticated user');
+    }
+
     return this.prisma.friendship.findMany({
       where: {
         OR: [
-          { requesterId: userId },
-          { addresseeId: userId },
+          { requesterId: currentUserId },
+          { addresseeId: currentUserId },
         ],
       },
     });

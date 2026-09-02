@@ -1,6 +1,8 @@
-import { Controller, Post, Get, Param, Body, Query } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { FriendshipsService } from './friendships.service';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { SendFriendRequestDto } from './dto';
 
 @ApiTags('friendships')
 @ApiBearerAuth()
@@ -9,29 +11,67 @@ export class FriendshipsController {
   constructor(private readonly friendships: FriendshipsService) {}
 
   @Post()
-  async send(@Body() body: { requesterId: string; addresseeId: string }) {
-    const { requesterId, addresseeId } = body;
-    return { ok: true, data: await this.friendships.sendRequest(requesterId, addresseeId) };
+  async send(
+    @CurrentUser() user: any,
+    @Body() dto: SendFriendRequestDto,
+  ) {
+    const currentUserId = user?.id ?? user?.sub;
+
+    return {
+      ok: true,
+      data: await this.friendships.sendRequest(
+        currentUserId,
+        dto.addresseeId,
+      ),
+    };
   }
 
   @Post(':id/accept')
-  async accept(@Param('id') id: string) {
-    return { ok: true, data: await this.friendships.acceptRequest(id) };
+  async accept(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    const currentUserId = user?.id ?? user?.sub;
+
+    return {
+      ok: true,
+      data: await this.friendships.acceptRequest(currentUserId, id),
+    };
   }
 
   @Post(':id/decline')
-  async decline(@Param('id') id: string) {
-    return { ok: true, data: await this.friendships.declineRequest(id) };
+  async decline(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    const currentUserId = user?.id ?? user?.sub;
+
+    return {
+      ok: true,
+      data: await this.friendships.declineRequest(currentUserId, id),
+    };
   }
 
   @Post(':id/cancel')
-  async cancel(@Param('id') id: string) {
-    return { ok: true, data: await this.friendships.cancelRequest(id) };
+  async cancel(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    const currentUserId = user?.id ?? user?.sub;
+
+    return {
+      ok: true,
+      data: await this.friendships.cancelRequest(currentUserId, id),
+    };
   }
 
   @Get()
-  @ApiQuery({ name: 'userId', required: true, type: String })
-  async list(@Query('userId') userId: string) {
-    return { ok: true, data: await this.friendships.listRequests(userId) };
+  async list(@CurrentUser() user: any) {
+    const currentUserId = user?.id ?? user?.sub;
+
+    return {
+      ok: true,
+      data: await this.friendships.listRequests(currentUserId),
+    };
   }
 }
