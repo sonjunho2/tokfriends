@@ -246,6 +246,11 @@ export class UsersService {
     });
   }
 
+  phoneHashForSearch(phone?: string) {
+    const phoneDigits = this.normalizePhone(phone);
+    return phoneDigits ? this.hashPhone(phoneDigits) : undefined;
+  }
+
   private normalizePhone(phone?: string) {
     return phone ? phone.replace(/[^\d]/g, '') : '';
   }

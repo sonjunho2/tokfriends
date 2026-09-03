@@ -41,6 +41,7 @@ export class AdminUsersController {
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'search', required: false, type: String, example: 'kim' })
+  @ApiQuery({ name: 'phone', required: false, type: String, example: '01012345678' })
   @ApiQuery({ name: 'status', required: false, type: String })
   @ApiQuery({ name: 'riskLevel', required: false, type: String, example: 'high' })
   @ApiQuery({ name: 'segment', required: false, type: String })
@@ -51,6 +52,7 @@ export class AdminUsersController {
     @Query('page') page = '1',
     @Query('limit') limit = '10',
     @Query('search') search?: string,
+    @Query('phone') phone?: string,
     @Query('status') status?: string,
     @Query('riskLevel') riskLevel?: string,
     @Query('segment') segment?: string,
@@ -63,6 +65,11 @@ export class AdminUsersController {
     const skip = (p - 1) * take;
 
     const where: Prisma.UserWhereInput = {};
+
+    const phoneHash = this.usersService.phoneHashForSearch(phone);
+    if (phoneHash) {
+      where.phoneHash = phoneHash;
+    }
 
     if (search?.trim()) {
       where.OR = [

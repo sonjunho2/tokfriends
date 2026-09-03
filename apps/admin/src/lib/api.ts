@@ -275,7 +275,7 @@ export type UserUpdatePayload = Record<string, unknown>
 
 function mapAdminUserSearchParams(params: UserSearchParams) {
   const { query, phoneNumber, nickname, status, page, limit, ...rest } = params
-  const searchTerms = [query, phoneNumber, nickname]
+  const searchTerms = [query, nickname]
     .map((value) => (typeof value === 'string' ? value.trim() : ''))
     .filter((value) => value.length > 0)
 
@@ -283,6 +283,10 @@ function mapAdminUserSearchParams(params: UserSearchParams) {
 
   if (searchTerms.length > 0) {
     mapped.search = searchTerms.join(' ')
+  }
+
+  if (typeof phoneNumber === 'string' && phoneNumber.trim().length > 0) {
+    mapped.phone = phoneNumber.trim()
   }
 
   if (status && status.trim().length > 0) {
