@@ -386,7 +386,7 @@ export class AdminSettingsService {
       throw new NotFoundException('Admin integration setting not found');
     }
 
-    const value = dto.value.trim();
+    const value = dto.value;
     const maskedValue = '********';
 
     let encryptedValue = existing.encryptedValue;
