@@ -39,6 +39,12 @@ const PERMISSION_HINT = 'users.manage, reports.view'
 
 type SettingsSection = 'overview' | 'team' | 'security' | 'product' | 'integrations'
 
+type AdminIntegrationDraft = AdminIntegrationSetting & {
+  draftValue?: string
+  dirty?: boolean
+  clearRequested?: boolean
+}
+
 function parsePermissionInput(input: string | string[]): string[] {
   if (Array.isArray(input)) {
     return input.map((value) => value.trim()).filter((value) => value.length > 0)
@@ -65,7 +71,7 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [members, setMembers] = useState<AdminTeamMember[]>([])
   const [flags, setFlags] = useState<AdminFeatureFlag[]>([])
-  const [integrations, setIntegrations] = useState<AdminIntegrationSetting[]>([])
+  const [integrations, setIntegrations] = useState<AdminIntegrationDraft[]>([])
   const [auditLog, setAuditLog] = useState('')
   const [initialAuditLog, setInitialAuditLog] = useState('')
   
@@ -480,33 +486,37 @@ export default function SettingsPage() {
     }
   }
 
-  const updateIntegration = async (id: string, value: string) => {
-    setIntegrations((prev) => prev.map((integration) => (integration.id === id ? { ...integration, value } : integration)))
-    setSavingIntegrationId(id)
-    try {
-      const updated = await updateAdminIntegrationSetting(id, { value })
-      setIntegrations((prev) => prev.map((integration) => (integration.id === id ? { ...integration, ...updated } : integration)))
-      toast({ title: '통합 설정 저장', description: `${updated.label ?? '연동'} 정보가 저장되었습니다.` })
-    } catch (error) {
-      const ax = error as AxiosError | undefined
-      const message = (ax?.response?.data as any)?.message || ax?.message || '통합 설정을 저장하지 못했습니다.'
-      toast({ title: '통합 저장 실패', description: Array.isArray(message) ? message.join(', ') : String(message), variant: 'destructive' })
-    } finally {
-      setSavingIntegrationId(null)
-    }
+  const updateIntegration = (id: string, value: string) => {
+    setIntegrations((prev) =>
+      prev.map((integration) => (integration.id === id ? { ...integration, draftValue: value, dirty: value.length > 0, clearRequested: false } : integration))
+    )
+  }
+
+  const clearIntegration = (id: string) => {
+    setIntegrations((prev) =>
+      prev.map((integration) => integration.id === id ? { ...integration, draftValue: '', dirty: !integration.clearRequested, clearRequested: !integration.clearRequested } : integration)
+    )
   }
 
   const saveIntegrations = async () => {
+    const dirtyIntegrations = integrations.filter((integration) => integration.dirty)
+    if (dirtyIntegrations.length === 0) {
+      toast({ title: '변경 사항 없음', description: '저장할 외부 서비스 키 변경이 없습니다.' })
+      return
+    }
+
     setSavingIntegrationId('bulk')
     try {
-      await Promise.all(
-        integrations.map((integration) => updateAdminIntegrationSetting(integration.id, { value: integration.value ?? '' }))
+      const updatedIntegrations = await Promise.all(
+        dirtyIntegrations.map((integration) => updateAdminIntegrationSetting(integration.id, { value: integration.draftValue ?? '' }))
       )
-      toast({ title: '통합 설정 일괄 저장', description: '모든 외부 서비스 키가 최신 상태로 저장되었습니다.' })
+      const updatedById = new Map(updatedIntegrations.map((integration) => [integration.id, integration]))
+      setIntegrations((prev) => prev.map((integration) => updatedById.get(integration.id) ?? integration))
+      toast({ title: '통합 설정 저장', description: '변경한 외부 서비스 키가 저장되었습니다.' })
     } catch (error) {
       const ax = error as AxiosError | undefined
-      const message = (ax?.response?.data as any)?.message || ax?.message || '통합 정보를 일괄 저장하지 못했습니다.'
-      toast({ title: '일괄 저장 실패', description: Array.isArray(message) ? message.join(', ') : String(message), variant: 'destructive' })
+      const message = (ax?.response?.data as any)?.message || ax?.message || '통합 설정 변경사항을 저장하지 못했습니다.'
+      toast({ title: '통합 저장 실패', description: Array.isArray(message) ? message.join(', ') : String(message), variant: 'destructive' })
     } finally {
       setSavingIntegrationId(null)
     }
@@ -1025,7 +1035,7 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle>외부 서비스 연동</CardTitle>
             <p className="text-sm text-muted-foreground">
-              푸시·모니터링·AI 키를 관리합니다. 값을 입력하면 자동으로 저장되며, 필요 시 일괄 저장 버튼으로 다시 동기화할 수 있습니다.
+              푸시·모니터링·AI 키를 관리합니다. 값을 수정한 뒤 저장 버튼을 눌러 서버에 반영하세요.
             </p>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
@@ -1034,16 +1044,29 @@ export default function SettingsPage() {
                 <div key={integration.id} className="space-y-2">
                   <Label>{integration.label ?? integration.id}</Label>
                   <Input
-                    value={integration.value ?? ''}
+                    type="password"
+                    value={integration.draftValue ?? ''}
                     placeholder={integration.placeholder ?? ''}
-                    onChange={(event) => void updateIntegration(integration.id, event.target.value)}
-                    disabled={savingIntegrationId === integration.id}
+                    autoComplete="new-password"
+                    onChange={(event) => updateIntegration(integration.id, event.target.value)}
+                    disabled={savingIntegrationId === 'bulk'}
                   />
+                  {(integration.value ?? '').length > 0 && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => clearIntegration(integration.id)}
+                      disabled={savingIntegrationId === 'bulk'}
+                    >
+                      {integration.clearRequested ? '삭제 취소' : '저장값 삭제'}
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
             <Button size="sm" variant="outline" onClick={() => void saveIntegrations()} disabled={savingIntegrationId === 'bulk'}>
-              일괄 저장
+              변경사항 저장
             </Button>
             <Button asChild size="sm" variant="link">
               <Link href="/settings/legal">약관 및 정책 문서 관리로 이동</Link>
