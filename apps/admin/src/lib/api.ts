@@ -7,8 +7,6 @@ import axios, {
 } from 'axios'
 
 import {
-  AdminAuthError,
-  authenticateAdminAccount,
   createAdminAccount,
   deleteAdminAccount,
   ensureDefaultSuperAdminAccount,
@@ -199,34 +197,8 @@ export interface LoginWithEmailResponse {
 
 export async function loginWithEmail(payload: LoginWithEmailRequest) {
   const route = buildRoutePath('auth.login.email')
-  try {
-    const response = await postJson<LoginWithEmailResponse>(route, payload)
-    return response.data
-  } catch (error) {
-    if (isAxiosError(error)) {
-      try {
-        const result = authenticateAdminAccount(payload.email, payload.password)
-        return {
-          token: result.accessToken,
-          access_token: result.accessToken,
-          refresh_token: result.refreshToken,
-          user: {
-            id: result.account.id,
-            email: result.account.email,
-            name: result.account.name,
-            role: result.account.role,
-            permissions: result.account.permissions,
-            lastLoginAt: result.account.lastLoginAt,
-          },
-        }
-      } catch (authError) {
-        if (authError instanceof AdminAuthError) {
-          throw authError
-        }
-      }
-    }
-    throw error
-  }
+  const response = await postJson<LoginWithEmailResponse>(route, payload)
+  return response.data
 }
 
 export async function checkHealth() {
