@@ -5,23 +5,22 @@ import * as argon2 from 'argon2'
 const prisma = new PrismaClient()
 
 async function seedAdminUser() {
-  const email = process.env.SEED_ADMIN_EMAIL ?? 'admin@example.com'
-  const plain = process.env.SEED_ADMIN_PASSWORD ?? 'Admin123!'
+  const email = process.env.SEED_ADMIN_EMAIL?.trim()
+  const plain = process.env.SEED_ADMIN_PASSWORD
 
-  if (!process.env.SEED_ADMIN_EMAIL || !process.env.SEED_ADMIN_PASSWORD) {
-    console.warn(
-      '⚠️  SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD not set. Using default admin@example.com / Admin123! credentials for seeding.'
+  if (!email || !plain) {
+    throw new Error(
+      'SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD are required to seed the admin account.'
     )
   }
-  // TODO(security): Manage admin seed credentials via secrets manager/environment vars and rotate them after use.
 
   const passwordHash = await argon2.hash(plain)
 
-  await prisma.user.upsert({
+  const user = await prisma.user.upsert({
     where: { email },
     update: {
       passwordHash,
-      role: 'SUPER_ADMIN',
+      role: 'admin',
       status: 'active',
       provider: 'email',
       displayName: 'Super Admin',
@@ -31,20 +30,31 @@ async function seedAdminUser() {
     create: {
       email,
       passwordHash,
-      role: 'SUPER_ADMIN',
+      role: 'admin',
       status: 'active',
       provider: 'email',
       displayName: 'Super Admin',
       trustScore: 100,
       lang: 'ko',
-      dob: new Date('1990-01-01T00:00:00.000Z'),
-      gender: 'unknown',
-      phoneHash: '',
-      region1: 'KR',
-      region2: 'Seoul',
     },
   })
-  console.log(`✅ Seeded/updated admin user: ${email}`)
+
+  await prisma.adminProfile.upsert({
+    where: { userId: user.id },
+    update: {
+      role: 'SUPER_ADMIN',
+      status: 'ACTIVE',
+      permissions: ['users.manage', 'reports.view', 'content.manage', 'settings.manage'],
+    },
+    create: {
+      userId: user.id,
+      role: 'SUPER_ADMIN',
+      status: 'ACTIVE',
+      permissions: ['users.manage', 'reports.view', 'content.manage', 'settings.manage'],
+    },
+  })
+
+  console.log(`Seeded/updated admin user: ${email}`)
 }
 
 async function seedTopics() {

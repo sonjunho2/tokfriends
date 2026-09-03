@@ -48,6 +48,7 @@ model User {
   refundRequests RefundRequest[]
   pointPurchases PointPurchase[]
   phoneVerifications PhoneVerification[]
+  adminProfile       AdminProfile?
 }
 
 model Profile {
@@ -267,6 +268,34 @@ model BannedWord {
   createdAt DateTime @default(now())
 }
 
+enum AdminTeamRole {
+  SUPER_ADMIN
+  MANAGER
+  MODERATOR
+  SUPPORT
+  EDITOR
+  VIEWER
+}
+
+enum AdminTeamStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model AdminProfile {
+  userId           String          @id
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role             AdminTeamRole   @default(MANAGER)
+  status           AdminTeamStatus @default(ACTIVE)
+  permissions      String[]        @default([])
+  twoFactorEnabled Boolean         @default(false)
+  lastLoginAt      DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([role])
+  @@index([status])
+}
 enum ReportStatus {
   PENDING
   REVIEWING

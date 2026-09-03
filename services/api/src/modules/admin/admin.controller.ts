@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PrismaClient } from '@prisma/client';
 import { RolesGuard, Roles } from '../../common/roles.guard';
-import { CreateRefundDto, SetUserRoleDto } from './dto';
+import { CreateAdminTeamMemberDto, CreateRefundDto, SetUserRoleDto, UpdateAdminTeamMemberDto, UpdateAdminTeamMemberPasswordDto } from './dto';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { AdminSettingsService } from './admin-settings.service';
 
 const prisma = new PrismaClient();
 
@@ -13,6 +14,51 @@ const prisma = new PrismaClient();
 @Roles('admin')
 @Controller('admin')
 export class AdminController {
+  constructor(private readonly adminSettings: AdminSettingsService) {}
+
+  @Get('settings/snapshot')
+  async getSettingsSnapshot(@CurrentUser() user: any) {
+    const actorId = user?.id ?? user?.sub;
+    return this.adminSettings.getSnapshot(actorId);
+  }
+
+  @Post('settings/team')
+  async createSettingsTeamMember(
+    @CurrentUser() user: any,
+    @Body() dto: CreateAdminTeamMemberDto,
+  ) {
+    const actorId = user?.id ?? user?.sub;
+    return this.adminSettings.createTeamMember(actorId, dto);
+  }
+
+  @Patch('settings/team/:memberId')
+  async updateSettingsTeamMember(
+    @CurrentUser() user: any,
+    @Param('memberId') memberId: string,
+    @Body() dto: UpdateAdminTeamMemberDto,
+  ) {
+    const actorId = user?.id ?? user?.sub;
+    return this.adminSettings.updateTeamMember(actorId, memberId, dto);
+  }
+
+  @Patch('settings/team/:memberId/password')
+  async updateSettingsTeamMemberPassword(
+    @CurrentUser() user: any,
+    @Param('memberId') memberId: string,
+    @Body() dto: UpdateAdminTeamMemberPasswordDto,
+  ) {
+    const actorId = user?.id ?? user?.sub;
+    return this.adminSettings.updateTeamMemberPassword(actorId, memberId, dto);
+  }
+
+  @Delete('settings/team/:memberId')
+  async deleteSettingsTeamMember(
+    @CurrentUser() user: any,
+    @Param('memberId') memberId: string,
+  ) {
+    const actorId = user?.id ?? user?.sub;
+    return this.adminSettings.deleteTeamMember(actorId, memberId);
+  }
   @Patch('users/:id/role')
   async setRole(
     @CurrentUser() user: any,
