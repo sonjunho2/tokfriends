@@ -16,8 +16,8 @@ model User {
   phoneHash      String?  @unique
   email          String?  @unique
   provider       String
-  dob            DateTime
-  gender         String
+  dob            DateTime?
+  gender         String?
   region1        String?
   region2        String?
   lang           String?

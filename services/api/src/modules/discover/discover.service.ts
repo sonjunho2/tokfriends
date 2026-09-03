@@ -19,7 +19,7 @@ export class DiscoverService {
 
   async findUsers(filters: Filters) {
     const now = new Date();
-    const where: Prisma.UserWhereInput = {};
+    const where: Prisma.UserWhereInput = { role: 'user', status: 'active' };
 
     if (filters.gender) where.gender = filters.gender;
 
