@@ -31,6 +31,27 @@ export class UsersService {
     });
   }
 
+  async byPublicId(id: string) {
+    return this.prisma.user.findFirst({
+      where: { id, status: 'active' },
+      select: {
+        id: true,
+        displayName: true,
+        region1: true,
+        region2: true,
+        profile: {
+          select: {
+            nickname: true,
+            bio: true,
+            headline: true,
+            avatarUri: true,
+            interests: true,
+            badges: true,
+          },
+        },
+      },
+    });
+  }
   async search(term: string, take: number = 20) {
     const trimmed = term.trim();
     if (!trimmed) return [];

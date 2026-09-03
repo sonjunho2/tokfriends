@@ -93,7 +93,7 @@ export class UsersController {
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   async getUserById(@Param('id') id: string) {
-    const user = await this.users.byId(id);
+    const user = await this.users.byPublicId(id);
     if (!user) throw new NotFoundException('User not found');
     return { ok: true, data: this.serializePublicUser(user) };
   }
