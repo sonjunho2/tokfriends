@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
 import { checkHealth, loginWithEmail, saveLoginResult } from '@/lib/api'
-import { AdminAuthError, ensureDefaultSuperAdminAccount } from '@/lib/admin-auth'
 import type { AxiosError } from 'axios'
 
 export default function LoginPage() {
@@ -64,8 +63,7 @@ export default function LoginPage() {
 
     setIsLoading(true)
     try {
-      ensureDefaultSuperAdminAccount()
-      // ✅ 이메일 기반 로그인 엔드포인트 (로컬 슈퍼 관리자 계정 fallback 포함)
+      // 이메일 기반 실제 API 로그인 엔드포인트
       const result = await loginWithEmail(data)
 
       if (result?.token || result?.access_token) {
@@ -78,10 +76,6 @@ export default function LoginPage() {
       // 응답은 200인데 토큰이 없을 때
       throw new Error('서버 응답에 토큰이 없습니다.')
     } catch (err) {
-      if (err instanceof AdminAuthError) {
-        toast({ title: '로그인 실패', description: err.message, variant: 'destructive' })
-        return
-      }
       logAxios('[Login Error]', err, 'error')
 
       const ax = err as AxiosError | undefined
@@ -109,12 +103,6 @@ export default function LoginPage() {
             관리자 계정으로 로그인하세요
             {health === 'ok' && <span className="ml-2 text-green-600 text-xs">(서버 연결 OK)</span>}
             {health === 'bad' && <span className="ml-2 text-red-600 text-xs">(서버 연결 불안정)</span>}
-            <div className="mt-2 space-y-1 rounded-md bg-muted/40 p-2 text-xs leading-relaxed text-muted-foreground">
-              <p>
-                기본 슈퍼 관리자 계정: <strong>admin@example.com</strong> / <strong>Admin123!</strong>
-              </p>
-              <p>로그인 후 설정 &gt; 팀 관리에서 비밀번호를 변경하고 부관리자를 생성하세요.</p>
-            </div>
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -126,7 +114,7 @@ export default function LoginPage() {
                 type="email"
                 inputMode="email"
                 autoComplete="username"
-                placeholder="admin@example.com"
+                placeholder="admin@company.com"
               />
             </div>
             <div className="space-y-2">
