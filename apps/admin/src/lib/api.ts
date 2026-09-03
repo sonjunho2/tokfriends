@@ -6,17 +6,6 @@ import axios, {
   isAxiosError,
 } from 'axios'
 
-import {
-  createAdminAccount,
-  deleteAdminAccount,
-  ensureDefaultSuperAdminAccount,
-  getAuditMemoSnapshot,
-  listAdminAccounts,
-  saveAuditMemoSnapshot,
-  updateAdminAccount,
-  updateAdminPassword,
-  type AdminAccount,
-} from './admin-auth'
 
 import { buildRoutePath } from './routeMap'
 import {
@@ -1447,115 +1436,29 @@ const EMPTY_ADMIN_SETTINGS: AdminSettingsSnapshot = {
   auditMemo: '',
 }
 
-function adaptAccountToTeamMember(account: AdminAccount): AdminTeamMember {
-  return {
-    id: account.id,
-    email: account.email,
-    username: account.username,
-    name: account.name,
-    role: account.role,
-    status: account.status,
-    twoFactor: account.twoFactorEnabled,
-    permissions: [...account.permissions],
-    lastLoginAt: account.lastLoginAt,
-  }
-}
-
 export async function getAdminSettingsSnapshot(params: Record<string, unknown> = {}) {
-  try {
-    const response = await api.get('/admin/settings/snapshot', { params })
-    return normalizeAdminSettings(response.data)
-  } catch (error) {
-    if (isAxiosError(error)) {
-      ensureDefaultSuperAdminAccount()
-      const accounts = listAdminAccounts()
-      return {
-        members: accounts.map((account) => adaptAccountToTeamMember(account)),
-        featureFlags: [],
-        integrations: [],
-        auditMemo: getAuditMemoSnapshot(),
-      }
-    }
-    throw error
-  }
+  const response = await api.get('/admin/settings/snapshot', { params })
+  return normalizeAdminSettings(response.data)
 }
 
 export async function createAdminTeamMember(payload: Record<string, unknown>) {
-  try {
-    const response = await api.post('/admin/settings/team', payload)
-    return normalizeAdminSettings({ members: [response.data] }).members[0]
-  } catch (error) {
-    if (isAxiosError(error)) {
-      try {
-        const rawRole = typeof payload.role === 'string' ? payload.role.toUpperCase() : undefined
-        const rawStatus = typeof payload.status === 'string' ? payload.status.toUpperCase() : undefined
-        const created = createAdminAccount({
-          email: String(payload.email ?? payload.username ?? ''),
-          name: typeof payload.name === 'string' ? payload.name : String(payload.displayName ?? payload.email ?? ''),
-          role: (rawRole as any) ?? 'MANAGER',
-          status: (rawStatus as any) ?? 'ACTIVE',
-          password: String(payload.password ?? ''),
-          permissions: Array.isArray(payload.permissions)
-            ? (payload.permissions as unknown[]).map((value) => String(value))
-            : undefined,
-          twoFactorEnabled: Boolean(payload.twoFactor ?? payload.twoFactorEnabled ?? false),
-        })
-        return adaptAccountToTeamMember(created)
-      } catch (fallbackError) {
-        throw fallbackError
-      }
-    }
-    throw error
-  }
+  const response = await api.post('/admin/settings/team', payload)
+  return normalizeAdminSettings({ members: [response.data] }).members[0]
 }
 
 export async function updateAdminTeamMember(memberId: string, payload: Record<string, unknown>) {
-  try {
-    const response = await api.patch(`/admin/settings/team/${memberId}`, payload)
-    return normalizeAdminSettings({ members: [response.data] }).members[0]
-  } catch (error) {
-    if (isAxiosError(error)) {
-      const updated = updateAdminAccount(memberId, {
-        name: typeof payload.name === 'string' ? payload.name : undefined,
-        role: typeof payload.role === 'string' ? (payload.role as string).toUpperCase() as any : undefined,
-        status: typeof payload.status === 'string' ? (payload.status as string).toUpperCase() as any : undefined,
-        permissions: Array.isArray(payload.permissions)
-          ? (payload.permissions as unknown[]).map((value) => String(value))
-          : undefined,
-        twoFactorEnabled: typeof payload.twoFactor === 'boolean' ? payload.twoFactor : undefined,
-        email: typeof payload.email === 'string' ? payload.email : undefined,
-      })
-      return adaptAccountToTeamMember(updated)
-    }
-    throw error
-  }
+  const response = await api.patch(`/admin/settings/team/${memberId}`, payload)
+  return normalizeAdminSettings({ members: [response.data] }).members[0]
 }
 
 export async function deleteAdminTeamMember(memberId: string) {
-  try {
-    await api.delete(`/admin/settings/team/${memberId}`)
-  } catch (error) {
-    if (isAxiosError(error)) {
-      deleteAdminAccount(memberId)
-    } else {
-      throw error
-    }
-  }
+  await api.delete(`/admin/settings/team/${memberId}`)
   return { success: true }
 }
 
 export async function updateAdminTeamMemberPassword(memberId: string, payload: { password: string }) {
-  try {
-    const response = await api.patch(`/admin/settings/team/${memberId}/password`, payload)
-    return normalizeAdminSettings({ members: [response.data] }).members[0]
-  } catch (error) {
-    if (isAxiosError(error)) {
-      updateAdminPassword(memberId, payload.password)
-      const account = listAdminAccounts().find((candidate) => candidate.id === memberId)
-      return account ? adaptAccountToTeamMember(account) : undefined
-    }
-    throw error
-  }
+  const response = await api.patch(`/admin/settings/team/${memberId}/password`, payload)
+  return normalizeAdminSettings({ members: [response.data] }).members[0]
 }
 
 export async function updateAdminFeatureFlag(flagId: string, payload: Record<string, unknown>) {
@@ -1569,14 +1472,6 @@ export async function updateAdminIntegrationSetting(settingId: string, payload: 
 }
 
 export async function saveAdminAuditMemo(payload: { memo: string }) {
-  try {
-    const response = await api.post('/admin/settings/audit-log', payload)
-    return (response.data as { memo?: string } | undefined)?.memo ?? payload.memo
-  } catch (error) {
-    if (isAxiosError(error)) {
-      saveAuditMemoSnapshot(payload.memo)
-      return payload.memo
-    }
-    throw error
-  }
+  const response = await api.post('/admin/settings/audit-log', payload)
+  return (response.data as { memo?: string } | undefined)?.memo ?? payload.memo
 }

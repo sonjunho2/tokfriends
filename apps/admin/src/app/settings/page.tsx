@@ -30,68 +30,14 @@ import {
   updateAdminTeamMemberPassword,
   type AdminFeatureFlag,
   type AdminIntegrationSetting,
-  type AdminSettingsSnapshot,
   type AdminTeamMember,
 } from '@/lib/api'
-import { AdminAuthError, ensureDefaultSuperAdminAccount, listAdminAccounts } from '@/lib/admin-auth'
 import type { AxiosError } from 'axios'
 import { cn } from '@/lib/utils'
-
-const FALLBACK_SETTINGS: AdminSettingsSnapshot = {
-  members: [],
-  featureFlags: [
-    {
-      id: 'flag-new-matching',
-      name: 'matching.nextPreset',
-      description: '신규 AI 추천 프리셋 롤아웃',
-      environment: 'stage',
-      enabled: true,
-    },
-    {
-      id: 'flag-chat-audit',
-      name: 'chat.auditLog',
-      description: '채팅 감사 로그 상세보기',
-      environment: 'prod',
-      enabled: true,
-    },
-    {
-      id: 'flag-campaign-builder',
-      name: 'engagement.builder',
-      description: '푸시 캠페인 빌더 베타',
-      environment: 'dev',
-      enabled: false,
-    },
-  ],
-  integrations: [
-    { id: 'integration-push', label: 'FCM Server Key', value: 'AIzaSy***', placeholder: 'FCM 키 입력' },
-    { id: 'integration-sentry', label: 'Sentry DSN', value: 'https://example@sentry.io/123', placeholder: 'Sentry DSN' },
-    { id: 'integration-openai', label: 'OpenAI API Key', value: '', placeholder: 'sk-...' },
-  ],
-  auditMemo: '',
-}
 
 const PERMISSION_HINT = 'users.manage, reports.view'
 
 type SettingsSection = 'overview' | 'team' | 'security' | 'product' | 'integrations'
-
-function mapAccountsToMembers(accounts: ReturnType<typeof listAdminAccounts>): AdminTeamMember[] {
-  return accounts.map((account) => ({
-    id: account.id,
-    email: account.email,
-    username: account.username,
-    name: account.name,
-    role: account.role,
-    status: account.status,
-    twoFactor: account.twoFactorEnabled,
-    permissions: [...account.permissions],
-    lastLoginAt: account.lastLoginAt,
-  }))
-}
-
-function getFallbackMembers(): AdminTeamMember[] {
-  ensureDefaultSuperAdminAccount()
-  return mapAccountsToMembers(listAdminAccounts())
-}
 
 function parsePermissionInput(input: string | string[]): string[] {
   if (Array.isArray(input)) {
@@ -117,11 +63,11 @@ export default function SettingsPage() {
   const defaultPermissionText = PERMISSION_HINT
 
   const [isLoading, setIsLoading] = useState(false)
-  const [members, setMembers] = useState<AdminTeamMember[]>(() => getFallbackMembers())
-  const [flags, setFlags] = useState<AdminFeatureFlag[]>(FALLBACK_SETTINGS.featureFlags)
-  const [integrations, setIntegrations] = useState<AdminIntegrationSetting[]>(FALLBACK_SETTINGS.integrations)
-  const [auditLog, setAuditLog] = useState(FALLBACK_SETTINGS.auditMemo ?? '')
-  const [initialAuditLog, setInitialAuditLog] = useState(FALLBACK_SETTINGS.auditMemo ?? '')
+  const [members, setMembers] = useState<AdminTeamMember[]>([])
+  const [flags, setFlags] = useState<AdminFeatureFlag[]>([])
+  const [integrations, setIntegrations] = useState<AdminIntegrationSetting[]>([])
+  const [auditLog, setAuditLog] = useState('')
+  const [initialAuditLog, setInitialAuditLog] = useState('')
   
   const [savingMemberId, setSavingMemberId] = useState<string | null>(null)
   const [savingFlagId, setSavingFlagId] = useState<string | null>(null)
@@ -305,16 +251,12 @@ export default function SettingsPage() {
     setIsLoading(true)
     try {
       const snapshot = await getAdminSettingsSnapshot()
-      const localMembers = snapshot.members.length > 0 ? snapshot.members : mapAccountsToMembers(listAdminAccounts())
-      setMembers(localMembers)
-      setFlags(snapshot.featureFlags.length > 0 ? snapshot.featureFlags : FALLBACK_SETTINGS.featureFlags)
-      setIntegrations(snapshot.integrations.length > 0 ? snapshot.integrations : FALLBACK_SETTINGS.integrations)
+      setMembers(snapshot.members)
+      setFlags(snapshot.featureFlags)
+      setIntegrations(snapshot.integrations)
       setAuditLog(snapshot.auditMemo ?? '')
       setInitialAuditLog(snapshot.auditMemo ?? '')
     } catch (error) {
-      if (error instanceof AdminAuthError) {
-        toast({ title: '설정 데이터 불러오기 실패', description: error.message, variant: 'destructive' })
-      } else {
         const ax = error as AxiosError | undefined
         const message =
           (ax?.response?.data as any)?.message || ax?.message || '설정 정보를 불러오지 못했습니다. 기본 예시를 보여드립니다.'
@@ -323,21 +265,11 @@ export default function SettingsPage() {
           description: Array.isArray(message) ? message.join(', ') : String(message),
           variant: 'destructive',
         })
-      }
-      const localMembers = mapAccountsToMembers(listAdminAccounts())
-      if (localMembers.length > 0) {
-        setMembers(localMembers)
-      } else {
-        setMembers(getFallbackMembers())
-      }
-      toast({
-        title: '로컬 예시 데이터 사용',
-        description: 'API 연결 대신 저장된 관리자 계정 정보를 표시합니다.',
-      })
-      setFlags(FALLBACK_SETTINGS.featureFlags)
-      setIntegrations(FALLBACK_SETTINGS.integrations)
-      setAuditLog(FALLBACK_SETTINGS.auditMemo ?? '')
-      setInitialAuditLog(FALLBACK_SETTINGS.auditMemo ?? '')
+      setMembers([])
+      setFlags([])
+      setIntegrations([])
+      setAuditLog('')
+      setInitialAuditLog('')
     } finally {
       setIsLoading(false)
     }
@@ -370,13 +302,9 @@ export default function SettingsPage() {
       resetNewAdmin()
       setIsCreateDialogOpen(false)
     } catch (error) {
-      if (error instanceof AdminAuthError) {
-        toast({ title: '추가 실패', description: error.message, variant: 'destructive' })
-      } else {
         const ax = error as AxiosError | undefined
         const message = (ax?.response?.data as any)?.message || ax?.message || '운영자 계정을 추가하지 못했습니다.'
         toast({ title: '추가 실패', description: Array.isArray(message) ? message.join(', ') : String(message), variant: 'destructive' })
-      }
     } finally {
       setSavingMemberId(null)
     }
@@ -393,13 +321,9 @@ export default function SettingsPage() {
         description: `${updated?.name ?? updated?.email ?? '운영자'}의 역할을 ${resolveRoleLabel(nextRole)}로 저장했습니다.`,
       })
     } catch (error) {
-      if (error instanceof AdminAuthError) {
-        toast({ title: '역할 변경 실패', description: error.message, variant: 'destructive' })
-      } else {
         const ax = error as AxiosError | undefined
         const message = (ax?.response?.data as any)?.message || ax?.message || '역할을 변경하지 못했습니다.'
         toast({ title: '역할 변경 실패', description: Array.isArray(message) ? message.join(', ') : String(message), variant: 'destructive' })
-      }
     } finally {
       setSavingMemberId(null)
     }
@@ -413,13 +337,9 @@ export default function SettingsPage() {
       setMembers((prev) => prev.map((member) => (member.id === id ? { ...member, ...updated, status: nextStatus } : member)))
       toast({ title: '상태 변경', description: `${updated?.name ?? updated?.email ?? '운영자'}의 상태를 ${resolveStatusLabel(nextStatus)}로 저장했습니다.` })
     } catch (error) {
-      if (error instanceof AdminAuthError) {
-        toast({ title: '상태 변경 실패', description: error.message, variant: 'destructive' })
-      } else {
         const ax = error as AxiosError | undefined
         const message = (ax?.response?.data as any)?.message || ax?.message || '상태를 변경하지 못했습니다.'
         toast({ title: '상태 변경 실패', description: Array.isArray(message) ? message.join(', ') : String(message), variant: 'destructive' })
-      }
     } finally {
       setSavingMemberId(null)
     }
@@ -436,13 +356,9 @@ export default function SettingsPage() {
         description: `${updated?.name ?? updated?.email ?? '운영자'}의 2FA 설정이 ${updated?.twoFactor ? '활성화' : '비활성화'}되었습니다.`,
       })
     } catch (error) {
-      if (error instanceof AdminAuthError) {
-        toast({ title: '2FA 변경 실패', description: error.message, variant: 'destructive' })
-      } else {
         const ax = error as AxiosError | undefined
         const message = (ax?.response?.data as any)?.message || ax?.message || '2FA 상태를 변경하지 못했습니다.'
         toast({ title: '2FA 변경 실패', description: Array.isArray(message) ? message.join(', ') : String(message), variant: 'destructive' })
-      }
     } finally {
       setSavingMemberId(null)
     }
@@ -465,13 +381,9 @@ export default function SettingsPage() {
       setMembers((prev) => prev.filter((item) => item.id !== member.id))
       toast({ title: '계정 삭제', description: `${member.name ?? member.email ?? '운영자'} 계정을 삭제했습니다.` })
     } catch (error) {
-      if (error instanceof AdminAuthError) {
-        toast({ title: '삭제 실패', description: error.message, variant: 'destructive' })
-      } else {
         const ax = error as AxiosError | undefined
         const message = (ax?.response?.data as any)?.message || ax?.message || '계정을 삭제하지 못했습니다.'
         toast({ title: '삭제 실패', description: Array.isArray(message) ? message.join(', ') : String(message), variant: 'destructive' })
-      }
     } finally {
       setSavingMemberId(null)
     }
@@ -501,13 +413,9 @@ export default function SettingsPage() {
       setIsPermissionDialogOpen(false)
       setPermissionTarget(null)
     } catch (error) {
-      if (error instanceof AdminAuthError) {
-        toast({ title: '권한 저장 실패', description: error.message, variant: 'destructive' })
-      } else {
         const ax = error as AxiosError | undefined
         const message = (ax?.response?.data as any)?.message || ax?.message || '권한을 저장하지 못했습니다.'
         toast({ title: '권한 저장 실패', description: Array.isArray(message) ? message.join(', ') : String(message), variant: 'destructive' })
-      }
     } finally {
       setSavingMemberId(null)
     }
@@ -549,13 +457,9 @@ export default function SettingsPage() {
       }
       closePasswordDialog()
     } catch (error) {
-      if (error instanceof AdminAuthError) {
-        toast({ title: '비밀번호 변경 실패', description: error.message, variant: 'destructive' })
-      } else {
         const ax = error as AxiosError | undefined
         const message = (ax?.response?.data as any)?.message || ax?.message || '비밀번호를 변경하지 못했습니다.'
         toast({ title: '비밀번호 변경 실패', description: Array.isArray(message) ? message.join(', ') : String(message), variant: 'destructive' })
-      }
     } finally {
       setSavingPassword(false)
     }
