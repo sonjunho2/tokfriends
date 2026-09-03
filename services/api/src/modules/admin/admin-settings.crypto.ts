@@ -8,6 +8,7 @@ const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
 const KEY_LENGTH = 32;
 const FORMAT_VERSION = 'v1';
+const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
 function getEncryptionKey(): Buffer {
   const encoded = process.env.ADMIN_SETTINGS_ENCRYPTION_KEY?.trim();
@@ -16,11 +17,19 @@ function getEncryptionKey(): Buffer {
     throw new Error('ADMIN_SETTINGS_ENCRYPTION_KEY is required');
   }
 
+  if (!BASE64_PATTERN.test(encoded)) {
+    throw new Error('ADMIN_SETTINGS_ENCRYPTION_KEY must be valid Base64');
+  }
+
   let key: Buffer;
 
   try {
     key = Buffer.from(encoded, 'base64');
   } catch {
+    throw new Error('ADMIN_SETTINGS_ENCRYPTION_KEY must be valid Base64');
+  }
+
+  if (key.toString('base64') !== encoded) {
     throw new Error('ADMIN_SETTINGS_ENCRYPTION_KEY must be valid Base64');
   }
 
