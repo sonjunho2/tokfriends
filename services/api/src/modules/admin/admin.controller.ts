@@ -2,7 +2,16 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@n
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PrismaClient } from '@prisma/client';
 import { RolesGuard, Roles } from '../../common/roles.guard';
-import { CreateAdminTeamMemberDto, CreateRefundDto, SetUserRoleDto, UpdateAdminTeamMemberDto, UpdateAdminTeamMemberPasswordDto } from './dto';
+import {
+  CreateAdminTeamMemberDto,
+  CreateRefundDto,
+  SaveAdminAuditMemoDto,
+  SetUserRoleDto,
+  UpdateAdminFeatureFlagDto,
+  UpdateAdminIntegrationSettingDto,
+  UpdateAdminTeamMemberDto,
+  UpdateAdminTeamMemberPasswordDto,
+} from './dto';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AdminSettingsService } from './admin-settings.service';
 
@@ -58,6 +67,35 @@ export class AdminController {
   ) {
     const actorId = user?.id ?? user?.sub;
     return this.adminSettings.deleteTeamMember(actorId, memberId);
+  }
+
+  @Patch('settings/feature-flags/:flagId')
+  async updateSettingsFeatureFlag(
+    @CurrentUser() user: any,
+    @Param('flagId') flagId: string,
+    @Body() dto: UpdateAdminFeatureFlagDto,
+  ) {
+    const actorId = user?.id ?? user?.sub;
+    return this.adminSettings.updateFeatureFlag(actorId, flagId, dto);
+  }
+
+  @Patch('settings/integrations/:settingId')
+  async updateSettingsIntegration(
+    @CurrentUser() user: any,
+    @Param('settingId') settingId: string,
+    @Body() dto: UpdateAdminIntegrationSettingDto,
+  ) {
+    const actorId = user?.id ?? user?.sub;
+    return this.adminSettings.updateIntegrationSetting(actorId, settingId, dto);
+  }
+
+  @Post('settings/audit-log')
+  async saveSettingsAuditMemo(
+    @CurrentUser() user: any,
+    @Body() dto: SaveAdminAuditMemoDto,
+  ) {
+    const actorId = user?.id ?? user?.sub;
+    return this.adminSettings.saveAuditMemo(actorId, dto);
   }
   @Patch('users/:id/role')
   async setRole(

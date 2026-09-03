@@ -1,8 +1,16 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
-import { CreateAdminTeamMemberDto, UpdateAdminTeamMemberDto, UpdateAdminTeamMemberPasswordDto } from './dto';
+import {
+  CreateAdminTeamMemberDto,
+  SaveAdminAuditMemoDto,
+  UpdateAdminFeatureFlagDto,
+  UpdateAdminIntegrationSettingDto,
+  UpdateAdminTeamMemberDto,
+  UpdateAdminTeamMemberPasswordDto,
+} from './dto';
 import { PrismaService } from 'nestjs-prisma';
+import { encryptAdminSettingValue } from './admin-settings.crypto';
 
 const adminProfileArgs = Prisma.validator<Prisma.AdminProfileDefaultArgs>()({
   include: {
@@ -331,19 +339,140 @@ export class AdminSettingsService {
 
     return { success: true };
   }
-  async getSnapshot(actorId: string) {
+  async updateFeatureFlag(
+    actorId: string,
+    flagId: string,
+    dto: UpdateAdminFeatureFlagDto,
+  ) {
     await this.requireSettingsActor(actorId);
 
-    const profiles = await this.prisma.adminProfile.findMany({
-      include: adminProfileArgs.include,
-      orderBy: { createdAt: 'asc' },
+    const existing = await this.prisma.adminFeatureFlag.findUnique({
+      where: { id: flagId },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Admin feature flag not found');
+    }
+
+    const updated = await this.prisma.adminFeatureFlag.update({
+      where: { id: flagId },
+      data: { enabled: dto.enabled },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorId,
+        target: `admin-feature-flag:${flagId}`,
+        action: 'ADMIN_FEATURE_FLAG_UPDATED',
+        notes: `enabled=${updated.enabled}`,
+      },
+    });
+
+    return updated;
+  }
+
+  async updateIntegrationSetting(
+    actorId: string,
+    settingId: string,
+    dto: UpdateAdminIntegrationSettingDto,
+  ) {
+    await this.requireSettingsActor(actorId);
+
+    const existing = await this.prisma.adminIntegrationSetting.findUnique({
+      where: { id: settingId },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Admin integration setting not found');
+    }
+
+    const value = dto.value.trim();
+    const maskedValue = '********';
+
+    let encryptedValue = existing.encryptedValue;
+
+    if (value === '') {
+      encryptedValue = null;
+    } else if (value !== maskedValue) {
+      encryptedValue = encryptAdminSettingValue(value);
+    }
+
+    const updated = await this.prisma.adminIntegrationSetting.update({
+      where: { id: settingId },
+      data: { encryptedValue },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorId,
+        target: `admin-integration:${settingId}`,
+        action: 'ADMIN_INTEGRATION_SETTING_UPDATED',
+        notes: `configured=${Boolean(updated.encryptedValue)}`,
+      },
     });
 
     return {
+      id: updated.id,
+      label: updated.label,
+      placeholder: updated.placeholder ?? undefined,
+      value: updated.encryptedValue ? maskedValue : '',
+    };
+  }
+
+  async saveAuditMemo(actorId: string, dto: SaveAdminAuditMemoDto) {
+    await this.requireSettingsActor(actorId);
+
+    const state = await this.prisma.adminSettingsState.upsert({
+      where: { id: 'default' },
+      update: { auditMemo: dto.memo },
+      create: {
+        id: 'default',
+        auditMemo: dto.memo,
+      },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorId,
+        target: 'admin-settings:audit-memo',
+        action: 'ADMIN_AUDIT_MEMO_UPDATED',
+      },
+    });
+
+    return { memo: state.auditMemo };
+  }
+  async getSnapshot(actorId: string) {
+    await this.requireSettingsActor(actorId);
+
+    const [profiles, featureFlags, integrations, settingsState] =
+      await Promise.all([
+        this.prisma.adminProfile.findMany({
+          include: adminProfileArgs.include,
+          orderBy: { createdAt: 'asc' },
+        }),
+        this.prisma.adminFeatureFlag.findMany({
+          orderBy: { name: 'asc' },
+        }),
+        this.prisma.adminIntegrationSetting.findMany({
+          orderBy: { label: 'asc' },
+        }),
+        this.prisma.adminSettingsState.findUnique({
+          where: { id: 'default' },
+        }),
+      ]);
+
+    const maskedValue = '********';
+
+    return {
       members: profiles.map((profile) => this.toTeamMember(profile)),
-      featureFlags: [],
-      integrations: [],
-      auditMemo: '',
+      featureFlags,
+      integrations: integrations.map((setting) => ({
+        id: setting.id,
+        label: setting.label,
+        placeholder: setting.placeholder ?? undefined,
+        value: setting.encryptedValue ? maskedValue : '',
+      })),
+      auditMemo: settingsState?.auditMemo ?? '',
     };
   }
 }

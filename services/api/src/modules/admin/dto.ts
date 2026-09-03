@@ -117,3 +117,19 @@ export class UpdateAdminTeamMemberPasswordDto {
   @MaxLength(128)
   password: string;
 }
+export class UpdateAdminFeatureFlagDto {
+  @IsBoolean()
+  enabled: boolean;
+}
+
+export class UpdateAdminIntegrationSettingDto {
+  @IsString()
+  @MaxLength(10000)
+  value: string;
+}
+
+export class SaveAdminAuditMemoDto {
+  @IsString()
+  @MaxLength(5000)
+  memo: string;
+}
