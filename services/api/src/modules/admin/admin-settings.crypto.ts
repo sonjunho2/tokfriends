@@ -7,7 +7,8 @@ import {
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
 const KEY_LENGTH = 32;
-const FORMAT_VERSION = 'v1';
+const LEGACY_FORMAT_VERSION = 'v1';
+const FORMAT_VERSION = 'v2';
 const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
 function getEncryptionKey(): Buffer {
@@ -42,10 +43,23 @@ function getEncryptionKey(): Buffer {
   return key;
 }
 
-export function encryptAdminSettingValue(value: string): string {
+function getAdditionalAuthenticatedData(settingId: string): Buffer {
+  if (!settingId) {
+    throw new Error('Admin integration setting id is required');
+  }
+
+  return Buffer.from(`admin-integration:${settingId}`, 'utf8');
+}
+
+export function encryptAdminSettingValue(
+  value: string,
+  settingId: string,
+): string {
   const key = getEncryptionKey();
   const iv = randomBytes(IV_LENGTH);
   const cipher = createCipheriv(ALGORITHM, key, iv);
+
+  cipher.setAAD(getAdditionalAuthenticatedData(settingId));
 
   const encrypted = Buffer.concat([
     cipher.update(value, 'utf8'),
@@ -62,12 +76,15 @@ export function encryptAdminSettingValue(value: string): string {
   ].join(':');
 }
 
-export function decryptAdminSettingValue(payload: string): string {
+export function decryptAdminSettingValue(
+  payload: string,
+  settingId: string,
+): string {
   const [version, ivEncoded, authTagEncoded, encryptedEncoded] =
     payload.split(':');
 
   if (
-    version !== FORMAT_VERSION ||
+    (version !== LEGACY_FORMAT_VERSION && version !== FORMAT_VERSION) ||
     !ivEncoded ||
     !authTagEncoded ||
     encryptedEncoded === undefined
@@ -85,6 +102,11 @@ export function decryptAdminSettingValue(payload: string): string {
   }
 
   const decipher = createDecipheriv(ALGORITHM, key, iv);
+
+  if (version === FORMAT_VERSION) {
+    decipher.setAAD(getAdditionalAuthenticatedData(settingId));
+  }
+
   decipher.setAuthTag(authTag);
 
   const decrypted = Buffer.concat([

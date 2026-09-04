@@ -394,7 +394,7 @@ export class AdminSettingsService {
     if (value === '') {
       encryptedValue = null;
     } else if (value !== maskedValue) {
-      encryptedValue = encryptAdminSettingValue(value);
+      encryptedValue = encryptAdminSettingValue(value, settingId);
     }
 
     const updated = await this.prisma.adminIntegrationSetting.update({
