@@ -96,14 +96,6 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     config.headers['Accept'] = config.responseType === 'blob' ? 'application/octet-stream' : 'application/json'
   }
 
-  // 진단 로그: 토큰 부착 여부(앞 10자만)
-  if (typeof window !== 'undefined') {
-    const short = token ? token.slice(0, 10) + '…' : '(no token)'
-    const method = (config.method || 'GET').toUpperCase()
-    const fullUrl = `${config.baseURL ?? ''}${config.url ?? ''}`
-    // eslint-disable-next-line no-console
-    console.info('[TokFriends Admin] ->', method, fullUrl, '| auth =', short)
-  }
   return config
 })
 
