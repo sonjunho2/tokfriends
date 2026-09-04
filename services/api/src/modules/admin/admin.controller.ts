@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from 'nestjs-prisma';
 import { RolesGuard, Roles } from '../../common/roles.guard';
 import {
   CreateAdminTeamMemberDto,
@@ -15,15 +15,16 @@ import {
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AdminSettingsService } from './admin-settings.service';
 
-const prisma = new PrismaClient();
-
 @ApiTags('admin')
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
 @Roles('admin')
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminSettings: AdminSettingsService) {}
+  constructor(
+    private readonly adminSettings: AdminSettingsService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Get('settings/snapshot')
   async getSettingsSnapshot(@CurrentUser() user: any) {
@@ -105,12 +106,12 @@ export class AdminController {
   ) {
     const actorId = user?.id ?? user?.sub;
 
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await this.prisma.user.update({
       where: { id },
       data: { role: dto.role },
     });
 
-    await prisma.auditLog.create({
+    await this.prisma.auditLog.create({
       data: {
         actorId,
         target: `user:${id}`,
@@ -122,21 +123,21 @@ export class AdminController {
   }
   @Get('refunds')
   async listRefunds() {
-    return prisma.refundRequest.findMany({ orderBy: { createdAt: 'desc' } });
+    return this.prisma.refundRequest.findMany({ orderBy: { createdAt: 'desc' } });
   }
 
   @Post('refunds')
   async createRefund(@Body() dto: CreateRefundDto) {
-    return prisma.refundRequest.create({ data: dto });
+    return this.prisma.refundRequest.create({ data: dto });
   }
 
   @Patch('refunds/:id/approve')
   async approve(@Param('id') id: string) {
-    return prisma.refundRequest.update({ where: { id }, data: { status: 'approved', decidedAt: new Date() } });
+    return this.prisma.refundRequest.update({ where: { id }, data: { status: 'approved', decidedAt: new Date() } });
   }
 
   @Patch('refunds/:id/deny')
   async deny(@Param('id') id: string) {
-    return prisma.refundRequest.update({ where: { id }, data: { status: 'denied', decidedAt: new Date() } });
+    return this.prisma.refundRequest.update({ where: { id }, data: { status: 'denied', decidedAt: new Date() } });
   }
 }
