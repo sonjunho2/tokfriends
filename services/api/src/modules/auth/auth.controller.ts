@@ -19,6 +19,7 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post(['signup/email', 'signup', 'register', 'users/signup', 'users/register'])
   @ApiOperation({
     summary: 'Sign up with email address',
