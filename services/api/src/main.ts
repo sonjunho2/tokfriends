@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 type AllowedOrigin = string | RegExp;
@@ -39,6 +40,8 @@ function withPrefix(prefix: string, url: string) {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.use(helmet());
 
   app.useGlobalPipes(
     new ValidationPipe({
