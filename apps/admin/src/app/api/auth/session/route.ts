@@ -16,10 +16,15 @@ export async function GET(request: NextRequest) {
     return response
   }
 
-  const meResponse = await fetch(`${apiBase}/v1/users/me`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store',
-  })
+  let meResponse: Response
+  try {
+    meResponse = await fetch(`${apiBase}/v1/users/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    })
+  } catch {
+    return NextResponse.json({ message: 'Admin API is unavailable.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
+  }
 
   const meData = await meResponse.json().catch(() => null)
   const currentUser = meData?.data
