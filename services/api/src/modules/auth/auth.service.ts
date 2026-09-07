@@ -3,6 +3,8 @@ import {
   BadRequestException,
   UnauthorizedException,
   ConflictException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import * as argon2 from 'argon2';
@@ -19,6 +21,7 @@ import {
 } from './dto';
 
 const OTP_EXPIRY_SECONDS = 180;
+const OTP_REQUEST_COOLDOWN_SECONDS = 60;
 const DISABLE_AUTH =
   process.env.NODE_ENV !== 'production' &&
   process.env.DISABLE_AUTH_AND_PAYMENT === 'true';
@@ -148,6 +151,36 @@ export class AuthService {
     }
 
     const { digits, countryCode } = this.formatPhoneKey(dto.phone, dto.countryCode);
+
+    const now = new Date();
+    const recentRequest = await this.prisma.phoneVerification.findFirst({
+      where: {
+        phone: digits,
+        countryCode,
+        createdAt: {
+          gte: new Date(now.getTime() - OTP_REQUEST_COOLDOWN_SECONDS * 1000),
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    });
+
+    if (recentRequest) {
+      const retryAfter = Math.max(
+        1,
+        Math.ceil(
+          (recentRequest.createdAt.getTime() +
+            OTP_REQUEST_COOLDOWN_SECONDS * 1000 -
+            now.getTime()) /
+            1000,
+        ),
+      );
+
+      throw new HttpException(
+        { error: 'OTP_REQUEST_TOO_FREQUENT', retryAfter },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
 
     const code = this.generateOtpCode();
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_SECONDS * 1000);
