@@ -47,6 +47,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post(['phone/request-otp', 'otp/request', 'otp/send', 'phone/otp/request'])
   @ApiOperation({
     summary: 'Request phone OTP',
@@ -57,6 +58,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post(['phone/verify', 'otp/verify', 'otp/confirm', 'phone/otp/verify'])
   @ApiOperation({
     summary: 'Verify phone OTP',
