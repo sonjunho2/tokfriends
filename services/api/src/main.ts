@@ -41,6 +41,8 @@ function withPrefix(prefix: string, url: string) {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
   app.use(helmet());
 
   app.useGlobalPipes(
