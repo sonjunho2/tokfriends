@@ -48,16 +48,25 @@ export function AppShell({ items, children }: AppShellProps) {
   }, [items])
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    try {
-      const stored = window.localStorage.getItem('user')
-      if (stored) {
-        const parsed = JSON.parse(stored) as { name?: string; email?: string }
-        setAdminName(parsed?.name || parsed?.email || '관리자')
+    void (async () => {
+      try {
+        const response = await fetch('/api/auth/session', {
+          method: 'GET',
+          cache: 'no-store',
+        })
+        const session = await response.json().catch(() => null)
+        const user = session?.user as { name?: string; email?: string } | undefined
+
+        if (response.ok && session?.authenticated) {
+          setAdminName(user?.name || user?.email || '관리자')
+          return
+        }
+
+        setAdminName('관리자')
+      } catch {
+        setAdminName('관리자')
       }
-    } catch {
-      setAdminName('관리자')
-    }
+    })()
   }, [])
 
   const handleLogout = () => {

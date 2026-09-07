@@ -15,49 +15,17 @@ import {
   unwrapArray,
 } from './normalize'
 
-const ENV_BASE_CANDIDATES = [
-  process.env.TOK_API_BASE_URL,
-  process.env.NEXT_PUBLIC_API_URL,
-  process.env.NEXT_PUBLIC_API_BASE_URL,
-  process.env.REACT_APP_API_URL,
-  process.env.VITE_API_URL,
-].filter((value): value is string => Boolean(value && value.trim().length > 0))
-
-const RAW_BASE = (ENV_BASE_CANDIDATES[0] ?? '').trim()
-const API_BASE_URL = RAW_BASE.replace(/\/+$/, '')
-const API_ORIGIN =
-  API_BASE_URL && /^https?:\/\//i.test(API_BASE_URL)
-    ? new URL(API_BASE_URL).origin
-    : ''
-const SHOULD_SEND_CREDENTIALS =
-  typeof window !== 'undefined' && API_ORIGIN ? API_ORIGIN === window.location.origin : false
-
-if (!RAW_BASE) {
-  throw new Error(
-    '[TokFriends Admin] API_BASE_URL is undefined. Set NEXT_PUBLIC_API_BASE_URL in your .env file.'
-  )
-} else if (typeof window !== 'undefined') {
-  // eslint-disable-next-line no-console
-  console.log('[TokFriends Admin] API_BASE_URL =', API_BASE_URL, '(env)')
-}
+const API_BASE_URL = '/api/backend'
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: SHOULD_SEND_CREDENTIALS,
+  withCredentials: true,
   timeout: 8000,
 })
 
 const TOKEN_KEY = 'tokfriends_admin_token'
 const ACCESS_KEY = 'access_token'
 
-export function getAccessToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem(TOKEN_KEY) || localStorage.getItem(ACCESS_KEY) || null
-}
-export function setAccessToken(token: string) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(TOKEN_KEY, token)
-}
 export function clearAuthStorage() {
   if (typeof window === 'undefined') return
   localStorage.removeItem(TOKEN_KEY)
@@ -66,22 +34,26 @@ export function clearAuthStorage() {
   localStorage.removeItem('user')
 }
 
-/** 표준 로그아웃: 저장 토큰 삭제 후 /login 이동 */
-export function logoutToLogin() {
+/** 표준 로그아웃: 서버 세션과 기존 브라우저 인증 정보를 정리한 후 /login 이동 */
+export async function logoutToLogin() {
   clearAuthStorage()
-  if (typeof window !== 'undefined') {
-    window.location.href = '/login'
+
+  if (typeof window === 'undefined') return
+
+  try {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      cache: 'no-store',
+    })
+  } catch {
+    // 로그아웃 요청 실패와 관계없이 로그인 화면으로 이동합니다.
   }
+
+  window.location.href = '/login'
 }
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = getAccessToken()
   config.headers = config.headers || {}
-
-  if (token) {
-    config.headers['Authorization'] = `Bearer ${token}`
-  }
-
   if (!config.headers['Accept']) {
     config.headers['Accept'] = config.responseType === 'blob' ? 'application/octet-stream' : 'application/json'
   }
@@ -130,15 +102,6 @@ export function postForm<T = any>(url: string, data?: Record<string, any>, confi
   })
 }
 
-export function saveLoginResult(payload: any) {
-  const token = payload?.token || payload?.access_token
-  const user = payload?.user
-
-  if (token) setAccessToken(token)
-  if (typeof window !== 'undefined' && user) {
-    localStorage.setItem('user', JSON.stringify(user))
-  }
-}
 
 // 대시보드 메트릭스
 export async function getDashboardMetrics() {
@@ -157,15 +120,14 @@ export interface LoginWithEmailRequest {
 }
 
 export interface LoginWithEmailResponse {
-  access_token?: string
-  token?: string
-  user?: unknown
-  [key: string]: unknown
+  ok: boolean
+  user: unknown
 }
 
 export async function loginWithEmail(payload: LoginWithEmailRequest) {
-  const route = buildRoutePath('auth.login.email')
-  const response = await postJson<LoginWithEmailResponse>(route, payload)
+  const response = await axios.post<LoginWithEmailResponse>('/api/auth/login', payload, {
+    headers: { 'Content-Type': 'application/json' },
+  })
   return response.data
 }
 

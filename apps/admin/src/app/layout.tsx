@@ -7,7 +7,7 @@ import { Noto_Sans_KR } from 'next/font/google'
 import { AppShell, type AppShellNavItem } from '@/components/layout/app-shell'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
-import { clearAuthStorage, getAccessToken, getCurrentUser } from '@/lib/api'
+import { clearAuthStorage } from '@/lib/api'
 
 import './globals.css'
 
@@ -96,7 +96,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const router = useRouter()
 
   useEffect(() => {
-    const token = getAccessToken()
     const currentPath = pathname ?? '/'
 
     if (PUBLIC_PATHS.includes(currentPath)) {
@@ -104,21 +103,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       return
     }
 
-    if (!token) {
-      setIsAuthenticated(false)
-      router.push('/login')
-      return
-    }
-
     void (async () => {
       try {
-        const currentUserResponse = await getCurrentUser()
-        if (currentUserResponse?.data?.role !== 'admin') {
+        const response = await fetch('/api/auth/session', {
+          method: 'GET',
+          cache: 'no-store',
+        })
+        const session = await response.json().catch(() => null)
+
+        if (!response.ok || !session?.authenticated || session?.user?.role !== 'admin') {
           clearAuthStorage()
           setIsAuthenticated(false)
           router.push('/login')
           return
         }
+
         setIsAuthenticated(true)
       } catch {
         clearAuthStorage()

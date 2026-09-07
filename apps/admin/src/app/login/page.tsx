@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
-import { checkHealth, clearAuthStorage, getCurrentUser, loginWithEmail, saveLoginResult } from '@/lib/api'
+import { checkHealth, loginWithEmail } from '@/lib/api'
 import type { AxiosError } from 'axios'
 
 export default function LoginPage() {
@@ -66,21 +66,13 @@ export default function LoginPage() {
       // 이메일 기반 실제 API 로그인 엔드포인트
       const result = await loginWithEmail(data)
 
-      if (result?.token || result?.access_token) {
-        saveLoginResult(result)
-        const currentUserResponse = await getCurrentUser()
-        const currentUser = currentUserResponse?.data
-        if (currentUser?.role !== 'admin') {
-          clearAuthStorage()
-          throw new Error('관리자 계정만 로그인할 수 있습니다.')
-        }
+      if (result?.ok) {
         toast({ title: '로그인 성공', description: '관리자 대시보드로 이동합니다.' })
         router.push('/dashboard')
         return
       }
 
-      // 응답은 200인데 토큰이 없을 때
-      throw new Error('서버 응답에 토큰이 없습니다.')
+      throw new Error('로그인 응답을 확인할 수 없습니다.')
     } catch (err) {
       logAxios('[Login Error]', err, 'error')
 
