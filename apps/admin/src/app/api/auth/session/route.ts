@@ -7,11 +7,13 @@ export async function GET(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value
 
   if (!apiBase) {
-    return NextResponse.json({ message: 'Admin API configuration is missing.' }, { status: 500 })
+    return NextResponse.json({ message: 'Admin API configuration is missing.' }, { status: 500, headers: { 'Cache-Control': 'no-store' } })
   }
 
   if (!token) {
-    return NextResponse.json({ authenticated: false }, { status: 401 })
+    const response = NextResponse.json({ authenticated: false }, { status: 401 })
+    response.headers.set('Cache-Control', 'no-store')
+    return response
   }
 
   const meResponse = await fetch(`${apiBase}/v1/users/me`, {
@@ -24,12 +26,15 @@ export async function GET(request: NextRequest) {
 
   if (!meResponse.ok || currentUser?.role !== 'admin') {
     const response = NextResponse.json({ authenticated: false }, { status: 401 })
+    response.headers.set('Cache-Control', 'no-store')
     response.cookies.set({ name: SESSION_COOKIE, value: '', maxAge: 0, httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' })
     return response
   }
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     authenticated: true,
     user: currentUser,
   })
+  response.headers.set('Cache-Control', 'no-store')
+  return response
 }
