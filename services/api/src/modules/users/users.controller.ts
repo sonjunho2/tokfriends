@@ -123,6 +123,7 @@ export class UsersController {
       email: user.email,
       displayName: user.displayName ?? null,
       status: user.status,
+      role: user.role,
       provider: user.provider,
       region1: user.region1 ?? null,
       region2: user.region2 ?? null,
