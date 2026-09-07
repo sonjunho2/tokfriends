@@ -2,12 +2,13 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { getAccessToken } from '@/lib/api'
 
 export default function Home() {
   const router = useRouter()
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token')
+    const token = getAccessToken()
     if (token) {
       router.push('/dashboard')
     } else {
