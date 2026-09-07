@@ -14,7 +14,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Admin API configuration is missing.' }, { status: 500, headers: { 'Cache-Control': 'no-store' } })
   }
 
-  const body = await request.json()
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ message: 'Invalid JSON request body.' }, { status: 400, headers: { 'Cache-Control': 'no-store' } })
+  }
 
   const loginResponse = await fetch(`${apiBase}/v1/auth/login/email`, {
     method: 'POST',
