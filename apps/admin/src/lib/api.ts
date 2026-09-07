@@ -182,6 +182,12 @@ export async function loginWithEmail(payload: LoginWithEmailRequest) {
   return response.data
 }
 
+export async function getCurrentUser() {
+  const route = buildRoutePath('users.me')
+  const response = await api.get(route)
+  return response.data
+}
+
 export async function checkHealth() {
   const route = buildRoutePath('auth.health')
   const response = await api.get(route)

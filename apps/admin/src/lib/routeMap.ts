@@ -31,6 +31,13 @@ const routeMap = defineRouteMap({
     method: 'post',
     description: '이메일 아이디 + 비밀번호 기반 관리자 로그인. 백엔드 미구현 시 로컬 슈퍼 관리자 계정을 사용합니다.',
   },
+  'users.me': {
+    key: 'users.me',
+    required: '/users/me',
+    actual: '/users/me',
+    method: 'get',
+    description: '현재 로그인한 사용자 정보를 조회합니다.',
+  },
   'dashboard.metrics': {
     key: 'dashboard.metrics',
     required: '/metrics/dashboard',

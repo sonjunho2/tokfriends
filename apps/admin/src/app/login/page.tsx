@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
-import { checkHealth, loginWithEmail, saveLoginResult } from '@/lib/api'
+import { checkHealth, clearAuthStorage, getCurrentUser, loginWithEmail, saveLoginResult } from '@/lib/api'
 import type { AxiosError } from 'axios'
 
 export default function LoginPage() {
@@ -68,6 +68,12 @@ export default function LoginPage() {
 
       if (result?.token || result?.access_token) {
         saveLoginResult(result)
+        const currentUserResponse = await getCurrentUser()
+        const currentUser = currentUserResponse?.data
+        if (currentUser?.role !== 'admin') {
+          clearAuthStorage()
+          throw new Error('관리자 계정만 로그인할 수 있습니다.')
+        }
         toast({ title: '로그인 성공', description: '관리자 대시보드로 이동합니다.' })
         router.push('/dashboard')
         return
