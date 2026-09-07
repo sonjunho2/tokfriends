@@ -31,12 +31,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Invalid login request.' }, { status: 400, headers: { 'Cache-Control': 'no-store' } })
   }
 
-  const loginResponse = await fetch(`${apiBase}/v1/auth/login/email`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(parsedBody.data),
-    cache: 'no-store',
-  })
+  let loginResponse: Response
+  try {
+    loginResponse = await fetch(`${apiBase}/v1/auth/login/email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(parsedBody.data),
+      cache: 'no-store',
+    })
+  } catch {
+    return NextResponse.json({ message: 'Admin API is unavailable.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
+  }
 
   const loginData = await loginResponse.json().catch(() => null)
 
@@ -50,10 +55,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Login response did not contain an access token.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
   }
 
-  const meResponse = await fetch(`${apiBase}/v1/users/me`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store',
-  })
+  let meResponse: Response
+  try {
+    meResponse = await fetch(`${apiBase}/v1/users/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    })
+  } catch {
+    return NextResponse.json({ message: 'Admin API is unavailable.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
+  }
 
   const meData = await meResponse.json().catch(() => null)
   const currentUser = meData?.data
