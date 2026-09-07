@@ -238,6 +238,10 @@ export class AuthService {
       throw new BadRequestException('Invalid verification request');
     }
 
+    if (request.verifiedAt) {
+      throw new BadRequestException('Verification code already used');
+    }
+
     if (request.expiresAt.getTime() < Date.now()) {
       throw new BadRequestException('Verification code expired');
     }
