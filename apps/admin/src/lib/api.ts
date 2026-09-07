@@ -57,7 +57,6 @@ export function getAccessToken(): string | null {
 export function setAccessToken(token: string) {
   if (typeof window === 'undefined') return
   localStorage.setItem(TOKEN_KEY, token)
-  localStorage.setItem(ACCESS_KEY, token)
 }
 export function clearAuthStorage() {
   if (typeof window === 'undefined') return
