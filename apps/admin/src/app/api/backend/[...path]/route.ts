@@ -47,13 +47,18 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
   const hasBody = !['GET', 'HEAD'].includes(request.method)
   const body = hasBody ? await request.arrayBuffer() : undefined
 
-  const upstream = await fetch(targetUrl, {
-    method: request.method,
-    headers,
-    body,
-    cache: 'no-store',
-    redirect: 'manual',
-  })
+  let upstream: Response
+  try {
+    upstream = await fetch(targetUrl, {
+      method: request.method,
+      headers,
+      body,
+      cache: 'no-store',
+      redirect: 'manual',
+    })
+  } catch {
+    return NextResponse.json({ message: 'Admin API is unavailable.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
+  }
 
   const responseHeaders = new Headers()
   const upstreamContentType = upstream.headers.get('content-type')
