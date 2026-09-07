@@ -106,22 +106,24 @@ async function bootstrap() {
     return next();
   });
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('Tok Friends API')
-    .setDescription('HTTP API for the Tok Friends clients.')
-    .setVersion('1.0.0')
-    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' })
-    .build();
+  if (!isProduction) {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('Tok Friends API')
+      .setDescription('HTTP API for the Tok Friends clients.')
+      .setVersion('1.0.0')
+      .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' })
+      .build();
 
-  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig, {
-    deepScanRoutes: true,
-  });
+    const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig, {
+      deepScanRoutes: true,
+    });
 
-  SwaggerModule.setup('docs', app, swaggerDocument, {
-    jsonDocumentUrl: 'docs-json',
-    useGlobalPrefix: true,
-    swaggerOptions: { persistAuthorization: true },
-  });
+    SwaggerModule.setup('docs', app, swaggerDocument, {
+      jsonDocumentUrl: 'docs-json',
+      useGlobalPrefix: true,
+      swaggerOptions: { persistAuthorization: true },
+    });
+  }
 
   await app.listen(port);
   // eslint-disable-next-line no-console
