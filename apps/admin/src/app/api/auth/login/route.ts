@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 
 const SESSION_COOKIE = 'tokfriends_admin_session'
+const adminLoginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+}).strict()
 
 export async function POST(request: NextRequest) {
   const origin = request.headers.get('origin')
@@ -21,10 +26,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Invalid JSON request body.' }, { status: 400, headers: { 'Cache-Control': 'no-store' } })
   }
 
+  const parsedBody = adminLoginSchema.safeParse(body)
+  if (!parsedBody.success) {
+    return NextResponse.json({ message: 'Invalid login request.' }, { status: 400, headers: { 'Cache-Control': 'no-store' } })
+  }
+
   const loginResponse = await fetch(`${apiBase}/v1/auth/login/email`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify(parsedBody.data),
     cache: 'no-store',
   })
 
