@@ -7,7 +7,7 @@ import { Noto_Sans_KR } from 'next/font/google'
 import { AppShell, type AppShellNavItem } from '@/components/layout/app-shell'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
-import { getAccessToken } from '@/lib/api'
+import { clearAuthStorage, getAccessToken, getCurrentUser } from '@/lib/api'
 
 import './globals.css'
 
@@ -104,12 +104,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       return
     }
 
-    if (token) {
-      setIsAuthenticated(true)
-    } else {
+    if (!token) {
       setIsAuthenticated(false)
       router.push('/login')
+      return
     }
+
+    void (async () => {
+      try {
+        const currentUserResponse = await getCurrentUser()
+        if (currentUserResponse?.data?.role !== 'admin') {
+          clearAuthStorage()
+          setIsAuthenticated(false)
+          router.push('/login')
+          return
+        }
+        setIsAuthenticated(true)
+      } catch {
+        clearAuthStorage()
+        setIsAuthenticated(false)
+        router.push('/login')
+      }
+    })()
   }, [pathname, router])
 
   if (isAuthenticated === null) {
