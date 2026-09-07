@@ -19,6 +19,16 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
   const targetUrl = new URL(`${apiBase}/v1/${path}`)
   targetUrl.search = request.nextUrl.search
 
+  const isStateChangingRequest = !['GET', 'HEAD', 'OPTIONS'].includes(request.method)
+
+  if (isStateChangingRequest) {
+    const origin = request.headers.get('origin')
+
+    if (!origin || origin !== request.nextUrl.origin) {
+      return NextResponse.json({ message: 'Invalid request origin.' }, { status: 403 })
+    }
+  }
+
   const token = request.cookies.get(SESSION_COOKIE)?.value
   const isPublicHealthCheck = path === 'health'
 
