@@ -69,6 +69,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post(['phone/complete-profile', 'otp/complete-profile', 'phone/otp/complete-profile'])
   @ApiOperation({
     summary: 'Complete phone profile after OTP verification',
