@@ -1,6 +1,7 @@
 // services/api/src/modules/auth/auth.controller.ts
 import { Controller, Post, Body } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { Public } from './public.decorator';
 import { AuthService } from './auth.service';
 import {
@@ -28,6 +29,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post(['login/email', 'login'])
   @ApiOperation({
     summary: 'Log in with email address',
