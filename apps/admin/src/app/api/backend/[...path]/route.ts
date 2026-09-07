@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const SESSION_COOKIE = 'tokfriends_admin_session'
+const UPSTREAM_TIMEOUT_MS = 10_000
 
 type RouteContext = {
   params: {
@@ -55,8 +56,12 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
       body,
       cache: 'no-store',
       redirect: 'manual',
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     })
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      return NextResponse.json({ message: 'Admin API request timed out.' }, { status: 504, headers: { 'Cache-Control': 'no-store' } })
+    }
     return NextResponse.json({ message: 'Admin API is unavailable.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
   }
 
