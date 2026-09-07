@@ -49,7 +49,6 @@ export const api = axios.create({
 
 const TOKEN_KEY = 'tokfriends_admin_token'
 const ACCESS_KEY = 'access_token'
-const REFRESH_KEY = 'refresh_token'
 
 export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null
@@ -60,19 +59,11 @@ export function setAccessToken(token: string) {
   localStorage.setItem(TOKEN_KEY, token)
   localStorage.setItem(ACCESS_KEY, token)
 }
-export function getRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem(REFRESH_KEY)
-}
-export function setRefreshToken(token: string) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(REFRESH_KEY, token)
-}
 export function clearAuthStorage() {
   if (typeof window === 'undefined') return
   localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem(ACCESS_KEY)
-  localStorage.removeItem(REFRESH_KEY)
+  localStorage.removeItem('refresh_token')
   localStorage.removeItem('user')
 }
 
@@ -142,11 +133,9 @@ export function postForm<T = any>(url: string, data?: Record<string, any>, confi
 
 export function saveLoginResult(payload: any) {
   const token = payload?.token || payload?.access_token
-  const refresh = payload?.refresh_token
   const user = payload?.user
 
   if (token) setAccessToken(token)
-  if (refresh) setRefreshToken(refresh)
   if (typeof window !== 'undefined' && user) {
     localStorage.setItem('user', JSON.stringify(user))
   }
@@ -171,7 +160,6 @@ export interface LoginWithEmailRequest {
 export interface LoginWithEmailResponse {
   access_token?: string
   token?: string
-  refresh_token?: string
   user?: unknown
   [key: string]: unknown
 }
