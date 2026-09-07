@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
   if (!meResponse.ok || currentUser?.role !== 'admin') {
     const response = NextResponse.json({ authenticated: false }, { status: 401 })
-    response.cookies.delete(SESSION_COOKIE)
+    response.cookies.set({ name: SESSION_COOKIE, value: '', maxAge: 0, httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' })
     return response
   }
 
