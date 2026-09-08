@@ -25,15 +25,6 @@ export class ChatsController {
     return this.chats.send(currentUserId, dto);
   }
 
-  @Post(['rooms', 'chat/rooms', 'chats/rooms', 'conversations'])
-  createRoom(
-    @CurrentUser() user: any,
-    @Body() dto: DirectChatDto,
-  ) {
-    const currentUserId = user?.sub ?? user?.id;
-    return this.chats.ensureDirectRoom(currentUserId, dto.targetUserId);
-  }
-
   @Post('direct')
   ensureDirect(
     @CurrentUser() user: any,
