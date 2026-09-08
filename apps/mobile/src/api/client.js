@@ -463,9 +463,6 @@ export const apiClient = {
 
     const endpoints = [
       '/store/point-products',
-      '/store/products',
-      '/shop/points',
-      '/payments/products',
     ];
     let lastErr;
     for (const path of endpoints) {
@@ -502,8 +499,6 @@ export const apiClient = {
     };
     const endpoints = [
       '/store/purchases/confirm',
-      '/payments/confirm',
-      '/iap/confirm',
     ];
     let lastErr;
     for (const path of endpoints) {
