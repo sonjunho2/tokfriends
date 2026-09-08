@@ -92,6 +92,7 @@ const NAV_ITEMS: AppShellNavItem[] = [
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const [sessionError, setSessionError] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
 
@@ -99,6 +100,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     const currentPath = pathname ?? '/'
 
     if (PUBLIC_PATHS.includes(currentPath)) {
+      setSessionError(false)
       setIsAuthenticated(true)
       return
     }
@@ -111,21 +113,45 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         })
         const session = await response.json().catch(() => null)
 
-        if (!response.ok || !session?.authenticated || session?.user?.role !== 'admin') {
+        if (!response.ok) {
+          if (response.status === 401) {
+            clearAuthStorage()
+            setIsAuthenticated(false)
+            router.push('/login')
+          } else {
+            setSessionError(true)
+          }
+          return
+        }
+
+        if (!session?.authenticated || session?.user?.role !== 'admin') {
           clearAuthStorage()
           setIsAuthenticated(false)
           router.push('/login')
           return
         }
 
+        setSessionError(false)
         setIsAuthenticated(true)
       } catch {
-        clearAuthStorage()
-        setIsAuthenticated(false)
-        router.push('/login')
+        setSessionError(true)
       }
     })()
   }, [pathname, router])
+
+  if (sessionError) {
+    return (
+      <html lang="ko" suppressHydrationWarning>
+        <body className={notoSansKr.className}>
+          <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
+            <div className="text-base font-semibold">관리자 API에 연결할 수 없습니다.</div>
+            <div className="text-sm text-muted-foreground">잠시 후 다시 시도해주세요.</div>
+            <button className="rounded-md border px-4 py-2 text-sm" onClick={() => window.location.reload()}>다시 시도</button>
+          </div>
+        </body>
+      </html>
+    )
+  }
 
   if (isAuthenticated === null) {
     return (
