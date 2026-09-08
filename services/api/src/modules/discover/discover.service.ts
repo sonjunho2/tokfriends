@@ -17,9 +17,25 @@ function yearsAgo(base: Date, years: number) {
 export class DiscoverService {
   constructor(private prisma: PrismaService) {}
 
-  async findUsers(filters: Filters) {
+  async findUsers(filters: Filters, currentUserId?: string) {
     const now = new Date();
     const where: Prisma.UserWhereInput = { role: 'user', status: 'active' };
+
+    if (currentUserId) {
+      where.NOT = [
+        { id: currentUserId },
+        {
+          blocksToMe: {
+            some: { userId: currentUserId },
+          },
+        },
+        {
+          blocksByMe: {
+            some: { blockedUserId: currentUserId },
+          },
+        },
+      ];
+    }
 
     if (filters.gender) where.gender = filters.gender;
 
