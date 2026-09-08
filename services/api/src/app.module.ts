@@ -18,6 +18,7 @@ import { TopicsModule } from './modules/topics/topics.module';
 import { CommunityModule } from './modules/community/community.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { GiftsModule } from './modules/gifts/gifts.module';
+import { StoreModule } from './modules/store/store.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { GiftsModule } from './modules/gifts/gifts.module';
     DiscoverModule,
     AdminModule,
     GiftsModule,
+    StoreModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
