@@ -82,6 +82,7 @@ export default function ChatRoomScreen({ route, navigation }) {
   const [reportVisible, setReportVisible] = useState(false);
   const [reportText, setReportText] = useState('');
   const [reporting, setReporting] = useState(false);
+  const [blocking, setBlocking] = useState(false);
   const [attachSheetVisible, setAttachSheetVisible] = useState(false);
   const [cameraModeVisible, setCameraModeVisible] = useState(false);
   const [giftSheetVisible, setGiftSheetVisible] = useState(false);
@@ -321,6 +322,51 @@ export default function ChatRoomScreen({ route, navigation }) {
   const openReport = () => {
     setOptionsVisible(false);
     setReportVisible(true);
+  };
+
+  const handleBlockUser = () => {
+    if (blocking) return;
+
+    const blockedUserId = user?.id || user?._id;
+    if (!blockedUserId) {
+      setOptionsVisible(false);
+      Alert.alert('차단 실패', '차단할 회원 정보를 찾을 수 없습니다.');
+      return;
+    }
+
+    setOptionsVisible(false);
+
+    Alert.alert(
+      '회원 차단',
+      '이 회원을 차단하시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '차단',
+          style: 'destructive',
+          onPress: async () => {
+            setBlocking(true);
+
+            try {
+              await apiClient.blockUser({ blockedUserId });
+              Alert.alert('차단 완료', '회원이 차단되었습니다.', [
+                {
+                  text: '확인',
+                  onPress: () => navigation.goBack(),
+                },
+              ]);
+            } catch (error) {
+              Alert.alert(
+                '차단 실패',
+                error?.message || '회원을 차단하지 못했습니다.',
+              );
+            } finally {
+              setBlocking(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const submitReport = async () => {
@@ -787,6 +833,19 @@ export default function ChatRoomScreen({ route, navigation }) {
                 <TouchableOpacity style={styles.optionItem} onPress={openReport}>
                   <Ionicons name="flag-outline" size={18} color={colors.primary} />
                   <Text style={styles.optionText}>신고하기</Text>
+                </TouchableOpacity>
+                <View style={styles.optionDivider} />
+                <TouchableOpacity
+                  style={styles.optionItem}
+                  onPress={handleBlockUser}
+                  disabled={blocking}
+                >
+                  {blocking ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  ) : (
+                    <Ionicons name="ban-outline" size={18} color={colors.primary} />
+                  )}
+                  <Text style={styles.optionText}>차단하기</Text>
                 </TouchableOpacity>
               </View>
             </TouchableWithoutFeedback>
