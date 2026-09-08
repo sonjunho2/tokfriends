@@ -533,6 +533,23 @@ export const apiClient = {
   async reportUser(reportData) { const { data } = await client.post('/community/report', reportData); return data; },
   async blockUser(blockData) { const { data } = await client.post('/community/block', blockData); return data; },
 
+  async getBlockedUsers() {
+    const { data } = await client.get('/community/blocks');
+    return data;
+  },
+
+  async unblockUser(blockedUserId) {
+    const target = String(blockedUserId || '').trim();
+    if (!target) {
+      throw normalizeError(new Error('차단 해제할 회원 ID가 필요합니다.'));
+    }
+
+    const { data } = await client.delete(
+      `/community/block/${encodeURIComponent(target)}`,
+    );
+    return data;
+  },
+
   async getGiftOptions() {
     try {
       const { data } = await client.get('/gifts');
