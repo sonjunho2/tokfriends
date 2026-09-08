@@ -431,14 +431,6 @@ export const apiClient = {
       return data?.data ?? data;
     } catch (err) {
       const status = err?.status || err?.response?.status;
-      if (status === 404) {
-        return {
-          id: `local-${Date.now()}`,
-          participants: [target],
-          title: options?.title || '새 대화',
-          isFallback: true,
-        };
-      }
       if (status === 410) {
         const goneError = new Error('1:1 대화 생성이 더 이상 지원되지 않습니다. 고객센터로 문의해 주세요.');
         goneError.status = 410;
