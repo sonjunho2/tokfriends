@@ -397,9 +397,6 @@ export const apiClient = {
     }
     const candidates = [
       `/legal-documents/${key}`,
-      `/legal/${key}`,
-      `/policies/${key}`,
-      `/cms/pages/${key}`,
     ];
     let lastErr;
     for (const path of candidates) {
