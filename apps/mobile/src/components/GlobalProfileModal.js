@@ -19,7 +19,6 @@ import Avatar from './Avatar';
 import { useNavigation } from '@react-navigation/native';
 import { apiClient } from '../api/client';
 
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=600&q=80';
 
 export default function GlobalProfileModal() {
   const navigation = useNavigation();
@@ -33,13 +32,11 @@ export default function GlobalProfileModal() {
     if (!user) return null;
     return {
       name: user?.nickname || user?.displayName || user?.name || '회원님',
-      location: user?.location || '서울, 27살 여자',
-      title: user?.headline || '오늘 가입한 회원입니다',
-      bio:
-        user?.bio ||
-        '새로운 인연을 기다리고 있어요. 반려견과 드라이브하는 것을 좋아해요!',
+      location: user?.location || '지역 미설정',
+      title: user?.headline || '한줄 소개가 없습니다.',
+      bio: user?.bio || '소개가 없습니다.',
       avatar: user?.avatar || null,
-      coverImage: user?.coverImage || FALLBACK_IMAGE,
+      coverImage: user?.coverImage || user?.avatar || null,
     };
   }, [profile, user]);
 
@@ -105,7 +102,11 @@ export default function GlobalProfileModal() {
       onRequestClose={handleClose}
     >
       <View style={styles.container}>
-        <Image source={{ uri: profileData.coverImage }} style={styles.coverImage} />
+        {profileData.coverImage ? (
+          <Image source={{ uri: profileData.coverImage }} style={styles.coverImage} />
+        ) : (
+          <View style={styles.coverPlaceholder} />
+        )}
 
         <View style={[styles.topBar, { paddingTop: insets.top + 6 }]}> 
           <TouchableOpacity style={styles.topButton} onPress={handleClose} hitSlop={8}>
@@ -171,6 +172,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 320,
+  },
+  coverPlaceholder: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 320,
+    backgroundColor: colors.backgroundSecondary,
   },
   topBar: {
     position: 'absolute',
