@@ -38,7 +38,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: 'Admin API returned a server error.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
   }
 
-  if (!meResponse.ok || currentUser?.role !== 'admin') {
+  if (!meResponse.ok && ![401, 403].includes(meResponse.status)) {
+    return NextResponse.json({ message: meResponse.status === 429 ? 'Admin API rate limit exceeded.' : 'Admin API request failed.' }, { status: meResponse.status === 429 ? 429 : 502, headers: { 'Cache-Control': 'no-store' } })
+  }
+
+  if ([401, 403].includes(meResponse.status) || currentUser?.role !== 'admin') {
     const response = NextResponse.json({ authenticated: false }, { status: 401 })
     response.headers.set('Cache-Control', 'no-store')
     response.cookies.set({ name: SESSION_COOKIE, value: '', maxAge: 0, httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' })
