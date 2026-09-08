@@ -30,10 +30,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         id: true,
         role: true,
         status: true,
+        tokenVersion: true,
       },
     });
 
     if (!user || user.status !== 'active') {
+      return null;
+    }
+
+    const tokenVersion =
+      typeof payload.tokenVersion === 'number' ? payload.tokenVersion : 0;
+
+    if (user.tokenVersion !== tokenVersion) {
       return null;
     }
 

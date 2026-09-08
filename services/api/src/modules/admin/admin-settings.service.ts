@@ -261,7 +261,7 @@ export class AdminSettingsService {
     const updated = await this.prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: memberId },
-        data: { passwordHash },
+        data: { passwordHash, tokenVersion: { increment: 1 } },
       });
 
       await tx.auditLog.create({
@@ -324,6 +324,7 @@ export class AdminSettingsService {
           role: 'user',
           status: 'suspended',
           passwordHash: null,
+          tokenVersion: { increment: 1 },
         },
       });
 

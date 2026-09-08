@@ -87,8 +87,21 @@ export class AuthService {
     return secret;
   }
 
-  private makeToken(payload: any) {
-    return jwtSign(payload, this.getJwtSecret(), { expiresIn: '7d' });
+  private async makeToken(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { tokenVersion: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return jwtSign(
+      { sub: userId, tokenVersion: user.tokenVersion },
+      this.getJwtSecret(),
+      { expiresIn: '7d' },
+    );
   }
 
   async signupEmail(dto: EmailSignupDto) {
@@ -115,7 +128,7 @@ export class AuthService {
       select: { id: true, email: true, displayName: true },
     });
 
-    const token = this.makeToken({ sub: user.id });
+    const token = await this.makeToken(user.id);
     return { user, token, access_token: token }; // 프론트 호환
   }
 
@@ -133,7 +146,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const token = this.makeToken({ sub: user.id });
+    const token = await this.makeToken(user.id);
     return {
       user: { id: user.id, email: user.email, displayName: user.displayName ?? null },
       token,
@@ -283,7 +296,7 @@ export class AuthService {
         data: verificationUpdate,
       });
 
-      const token = this.makeToken({ sub: resolvedUserId });
+      const token = await this.makeToken(resolvedUserId);
       const user = await this.serializeAuthUser(resolvedUserId);
       return { token, user };
     }
@@ -327,7 +340,7 @@ export class AuthService {
         avatarUri: avatarUri ?? null,
       });
 
-      const token = this.makeToken({ sub: userId });
+      const token = await this.makeToken(userId);
       const user = await this.serializeAuthUser(userId);
       return { token, user };
     }
@@ -345,7 +358,7 @@ export class AuthService {
     }
 
     if (request.completedAt && request.userId) {
-      const token = this.makeToken({ sub: request.userId });
+      const token = await this.makeToken(request.userId);
       const user = await this.serializeAuthUser(request.userId);
       return { token, user };
     }
@@ -365,7 +378,7 @@ export class AuthService {
           completedAt: new Date(),
         },
       });
-      const token = this.makeToken({ sub: existing.id });
+      const token = await this.makeToken(existing.id);
       const user = await this.serializeAuthUser(existing.id);
       return { token, user };
     }
@@ -406,7 +419,7 @@ export class AuthService {
         return user.id;
       });
 
-      const token = this.makeToken({ sub: result });
+      const token = await this.makeToken(result);
       const user = await this.serializeAuthUser(result);
       return { token, user };
     } catch (error: any) {
