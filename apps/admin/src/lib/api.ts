@@ -34,11 +34,14 @@ export function clearAuthStorage() {
   localStorage.removeItem('user')
 }
 
+let logoutInProgress = false
+
 /** 표준 로그아웃: 서버 세션과 기존 브라우저 인증 정보를 정리한 후 /login 이동 */
 export async function logoutToLogin() {
-  clearAuthStorage()
+  if (typeof window === 'undefined' || logoutInProgress) return
+  logoutInProgress = true
 
-  if (typeof window === 'undefined') return
+  clearAuthStorage()
 
   try {
     await fetch('/api/auth/logout', {
