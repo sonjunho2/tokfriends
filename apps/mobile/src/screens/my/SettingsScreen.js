@@ -12,10 +12,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import * as Font from 'expo-font';
 import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
 import { useAuth } from '../../context/AuthContext';
+import { apiClient } from '../../api/client';
 
 
 const MANAGED_FONT_ENDPOINT = 'https://manage.tokfriends.app/api/fonts/latest';
@@ -49,6 +51,7 @@ export default function SettingsScreen({ navigation }) {
   const [selectedFont, setSelectedFont] = useState('system');
   const [fontLoading, setFontLoading] = useState(false);
   const [fontMessage, setFontMessage] = useState('');
+  const [blockedCount, setBlockedCount] = useState(null);
 
   const dynamicFont = useMemo(() => {
     if (selectedFont === 'system') {
@@ -106,8 +109,40 @@ export default function SettingsScreen({ navigation }) {
     },
   ];
 
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      const loadBlockedCount = async () => {
+        try {
+          const response = await apiClient.getBlockedUsers();
+          const blockedItems = Array.isArray(response?.data)
+            ? response.data
+            : Array.isArray(response?.items)
+            ? response.items
+            : [];
+
+          if (active) {
+            setBlockedCount(blockedItems.length);
+          }
+        } catch (error) {
+          console.warn('Failed to load blocked user count', error);
+          if (active) {
+            setBlockedCount(null);
+          }
+        }
+      };
+
+      loadBlockedCount();
+
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+
   const supportLinks = [
-    { key: 'blocked', icon: 'ban-outline', label: '내가 차단한 회원', value: '0명' },
+    { key: 'blocked', icon: 'ban-outline', label: '내가 차단한 회원', value: blockedCount === null ? undefined : String(blockedCount) + '명', onPress: () => navigation.navigate('BlockedUsers') },
     { key: 'faq', icon: 'help-circle-outline', label: '자주 묻는 질문' },
     { key: 'support', icon: 'chatbubble-ellipses-outline', label: '영자언니에게 문의하기' },
   ];
@@ -366,7 +401,7 @@ export default function SettingsScreen({ navigation }) {
           <Text style={[styles.sectionTitle, dynamicFont.heading]}>도움말</Text>
           <View style={styles.card}>
             {supportLinks.map((item) => (
-              <TouchableOpacity key={item.key} style={styles.supportRow} activeOpacity={0.85}>
+              <TouchableOpacity key={item.key} style={styles.supportRow} activeOpacity={0.85} onPress={item.onPress}>
                 <Ionicons
                   name={item.icon}
                   size={18}
