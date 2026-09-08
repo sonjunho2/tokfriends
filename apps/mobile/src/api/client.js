@@ -241,30 +241,6 @@ export const apiClient = {
     }
   },
 
-  async createRoom(payload = {}) {
-    const body = {
-      title: String(payload?.title || '').trim(),
-      category: String(payload?.category || '').trim() || '프로필기반',
-    };
-    if (!body.title) {
-      throw normalizeError(new Error('방 제목을 입력해 주세요.'));
-    }
-
-    try {
-      const { data } = await client.post('/chats/rooms', body, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      return data;
-    } catch (err) {
-      if ((err?.status || err?.response?.status) === 410) {
-        const goneError = new Error('채팅방 생성이 더 이상 지원되지 않습니다. 고객센터로 문의해 주세요.');
-        goneError.status = 410;
-        throw goneError;
-      }
-      throw normalizeError(err);
-    }
-  },
-
   async requestPhoneOtp(payload = {}) {
     // 더미 모드: 서버 호출 없이 requestId 반환
     if (USE_DUMMY_AUTH) {
