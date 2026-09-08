@@ -15,8 +15,6 @@ import Avatar from '../../components/Avatar';
 import colors from '../../theme/colors';
 import { apiClient } from '../../api/client';
 
-const FALLBACK_IMAGE =
-  'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=1080&q=80';
 
 export default function ProfileDetailScreen({ navigation, route }) {
   const profile = route?.params?.profile;
@@ -25,16 +23,14 @@ export default function ProfileDetailScreen({ navigation, route }) {
   const [sending, setSending] = useState(false);
 
   const data = useMemo(() => {
-    const location = profile?.location || '서울 · 5km 이내';
+    const location = profile?.location || '지역 미설정';
     return {
-      name: profile?.name || '회원님',
+      name: profile?.name || '회원',
       location,
-      title: profile?.title || '오늘 가입한 회원입니다',
-      bio:
-        profile?.bio ||
-        '새로운 인연을 기다리고 있어요. 반려견과 드라이브하는 것을 좋아해요!',
+      title: profile?.title || '한줄 소개가 없습니다.',
+      bio: profile?.bio || '소개가 없습니다.',
       avatar: profile?.avatar || null,
-      coverImage: profile?.coverImage || FALLBACK_IMAGE,
+      coverImage: profile?.coverImage || profile?.avatar || null,
       age: profile?.age,
       distanceKm: profile?.distanceKm ?? profile?.distance,
       points: profile?.points,
@@ -112,7 +108,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.heroWrapper}>
           <ImageBackground
-            source={{ uri: data.coverImage }}
+            source={data.coverImage ? { uri: data.coverImage } : undefined}
             style={styles.cover}
             imageStyle={styles.coverImage}
           >
@@ -198,6 +194,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   cover: {
+    backgroundColor: colors.backgroundSecondary,
     height: 360,
     justifyContent: 'flex-end',
   },
