@@ -13,6 +13,7 @@ import ChatsScreen from '../screens/main/ChatsScreen';
 import ShopScreen from '../screens/shop/ShopScreen';           
 import SettingsScreen from '../screens/my/SettingsScreen';
 import ProfileEditScreen from '../screens/my/ProfileEditScreen';
+import BlockedUsersScreen from '../screens/my/BlockedUsersScreen';
 
 // ===== 서브 =====
 import HotRecommendScreen from '../screens/recommend/HotRecommendScreen';
@@ -98,6 +99,11 @@ function MyPageStack() {
       <MyPageStackNav.Screen
         name="ProfileEdit"
         component={ProfileEditScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="BlockedUsers"
+        component={BlockedUsersScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </MyPageStackNav.Navigator>
