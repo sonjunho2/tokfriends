@@ -30,13 +30,18 @@ export default function GlobalProfileModal() {
   const profileData = useMemo(() => {
     if (profile) return profile;
     if (!user) return null;
+
+    const userProfile = user?.profile ?? {};
+    const location =
+      [user?.region1, user?.region2].filter(Boolean).join(' · ') || '지역 미설정';
+
     return {
-      name: user?.nickname || user?.displayName || user?.name || '회원님',
-      location: user?.location || '지역 미설정',
-      title: user?.headline || '한줄 소개가 없습니다.',
-      bio: user?.bio || '소개가 없습니다.',
-      avatar: user?.avatar || null,
-      coverImage: user?.coverImage || user?.avatar || null,
+      name: userProfile?.nickname || user?.displayName || '회원님',
+      location,
+      title: userProfile?.headline || '한줄 소개가 없습니다.',
+      bio: userProfile?.bio || '소개가 없습니다.',
+      avatar: userProfile?.avatarUri || null,
+      coverImage: userProfile?.avatarUri || null,
     };
   }, [profile, user]);
 
