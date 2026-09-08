@@ -6,14 +6,10 @@ import colors from '../../theme/colors';
 import Card from '../../components/Card';
 
 const GRID = [
-  { key: 'HOT추천', label: 'HOT추천' },
-  { key: '접속중', label: '접속중' },
-  { key: '가까운', label: '가까운' },
+  { key: '전체', label: '전체' },
   { key: '20대', label: '20대' },
   { key: '30대', label: '30대' },
   { key: '40대이상', label: '40대이상' },
-  { key: '이성친구', label: '이성친구' },
-  { key: '즉석만남', label: '즉석만남' },
 ];
 
 const CARD_H = 190; // 두 박스 동일 높이
