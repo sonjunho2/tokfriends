@@ -41,6 +41,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('apple')
   @ApiOperation({ summary: 'Authenticate with Apple Sign-In' })
   loginApple(@Body() dto: AppleTokenDto) {
