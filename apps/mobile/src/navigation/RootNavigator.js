@@ -20,7 +20,6 @@ import ProfileEditScreen from '../screens/my/ProfileEditScreen';
 import HotRecommendScreen from '../screens/recommend/HotRecommendScreen';
 import ChatRoomScreen from '../screens/main/ChatRoomScreen';
 import ProfileDetailScreen from '../screens/main/ProfileDetailScreen';
-import CreateChatRoomScreen from '../screens/chat/CreateChatRoomScreen';
 
 // ===== 인증 =====
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
@@ -85,15 +84,6 @@ function ChatsStack() {
         name="ChatRoom"
         component={ChatRoomScreen}
         options={{ animation: 'slide_from_right' }}
-      />
-      <ChatsStackNav.Screen
-        name="CreateChatRoom"
-        component={CreateChatRoomScreen}
-        options={{
-          animation: 'fade',
-          presentation: 'transparentModal',
-          contentStyle: { backgroundColor: 'transparent' },
-        }}
       />
     </ChatsStackNav.Navigator>
   );

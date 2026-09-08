@@ -35,7 +35,6 @@ const linking = {
         screens: {
           ChatsMain: 'chats',
           ChatRoom: 'chat/:id',
-          CreateChatRoom: 'chat/create',
         },
       },
       Shop: 'shop',
