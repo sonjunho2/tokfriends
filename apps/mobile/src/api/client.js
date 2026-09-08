@@ -317,7 +317,6 @@ export const apiClient = {
       ...(rawRegion ? { region: String(rawRegion).trim() } : {}),
       ...(payload?.headline ? { headline: String(payload.headline).trim() } : {}),
       ...(payload?.bio ? { bio: String(payload.bio).trim() } : {}),
-      ...(payload?.avatarUri ? { avatarUri: payload.avatarUri } : {}),
     };
 
     // 필수 입력값이 모두 채워졌는지 검증
@@ -338,7 +337,6 @@ export const apiClient = {
           region: body.region || null,
           headline: body.headline,
           bio: body.bio,
-          avatarUri: body.avatarUri,
         },
         needsProfile: false,
       };
@@ -515,6 +513,55 @@ export const apiClient = {
     }
     try {
       const { data } = await client.patch(`/users/${userId}`, payload);
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async uploadAvatar(asset = {}) {
+    const uri = String(asset?.uri || '').trim();
+
+    if (!uri) {
+      throw normalizeError(new Error('업로드할 프로필 사진이 필요합니다.'));
+    }
+
+    const fileSize = Number(asset?.fileSize || 0);
+    if (Number.isFinite(fileSize) && fileSize > 5 * 1024 * 1024) {
+      throw normalizeError(new Error('프로필 사진은 5MB 이하만 업로드할 수 있습니다.'));
+    }
+
+    const mimeType = String(asset?.mimeType || '').trim().toLowerCase();
+    const extensions = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+    };
+    const extension = extensions[mimeType];
+
+    if (!extension) {
+      throw normalizeError(
+        new Error('JPEG, PNG, WebP 형식의 사진만 업로드할 수 있습니다.'),
+      );
+    }
+
+    const fileName =
+      String(asset?.fileName || '').trim() || 'avatar.' + extension;
+
+    const formData = new FormData();
+    formData.append('file', {
+      uri,
+      name: fileName,
+      type: mimeType,
+    });
+
+    try {
+      const { data } = await client.post('/media/avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
       return data?.data ?? data;
     } catch (e) {
       throw normalizeError(e);
