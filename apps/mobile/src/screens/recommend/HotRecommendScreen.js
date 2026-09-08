@@ -54,7 +54,7 @@ function mapDiscoverUser(user) {
   return {
     id: user?.id,
     name: profile?.nickname || user?.displayName || '회원',
-    age: calculateAge(user?.dob),
+    age: typeof user?.age === 'number' ? user.age : calculateAge(user?.dob),
     subtitle: profile?.headline || profile?.bio || undefined,
     bio: profile?.bio || undefined,
     headline: profile?.headline || undefined,

@@ -13,6 +13,18 @@ function yearsAgo(base: Date, years: number) {
   return new Date(base.getFullYear() - years, base.getMonth(), base.getDate());
 }
 
+function calculateAge(dob: Date, now: Date) {
+  let age = now.getFullYear() - dob.getFullYear();
+
+  const birthdayNotReached =
+    now.getMonth() < dob.getMonth() ||
+    (now.getMonth() === dob.getMonth() && now.getDate() < dob.getDate());
+
+  if (birthdayNotReached) age -= 1;
+
+  return Math.max(0, age);
+}
+
 @Injectable()
 export class DiscoverService {
   constructor(private prisma: PrismaService) {}
@@ -53,7 +65,7 @@ export class DiscoverService {
       ];
     }
 
-    return this.prisma.user.findMany({
+    const users = await this.prisma.user.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       take: 50,
@@ -77,5 +89,10 @@ export class DiscoverService {
         },
       },
     });
+
+    return users.map(({ dob, ...user }) => ({
+      ...user,
+      age: dob ? calculateAge(dob, now) : null,
+    }));
   }
 }
