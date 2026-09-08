@@ -34,6 +34,10 @@ export async function GET(request: NextRequest) {
   const meData = await meResponse.json().catch(() => null)
   const currentUser = meData?.data
 
+  if (meResponse.status >= 500) {
+    return NextResponse.json({ message: 'Admin API returned a server error.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
+  }
+
   if (!meResponse.ok || currentUser?.role !== 'admin') {
     const response = NextResponse.json({ authenticated: false }, { status: 401 })
     response.headers.set('Cache-Control', 'no-store')
