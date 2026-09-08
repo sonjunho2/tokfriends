@@ -1,5 +1,5 @@
 // services/api/src/modules/chats/chats.service.ts
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'nestjs-prisma';
 
@@ -44,12 +44,31 @@ export class ChatsService {
       throw new BadRequestException('Missing authenticated user');
     }
 
+    const blocks = await this.prisma.block.findMany({
+      where: {
+        OR: [
+          { userId: currentUserId },
+          { blockedUserId: currentUserId },
+        ],
+      },
+      select: {
+        userId: true,
+        blockedUserId: true,
+      },
+    });
+
+    const blockedUserIds = blocks.map((block) =>
+      block.userId === currentUserId ? block.blockedUserId : block.userId,
+    );
+
     return this.prisma.chat.findMany({
       where: {
         OR: [
           { userAId: currentUserId },
           { userBId: currentUserId },
         ],
+        userAId: blockedUserIds.length > 0 ? { notIn: blockedUserIds } : undefined,
+        userBId: blockedUserIds.length > 0 ? { notIn: blockedUserIds } : undefined,
       },
       take: 20,
       orderBy: { lastMessageAt: 'desc' },
@@ -68,12 +87,21 @@ export class ChatsService {
           { userBId: currentUserId },
         ],
       },
-      select: { id: true },
+      select: {
+        id: true,
+        userAId: true,
+        userBId: true,
+      },
     });
 
     if (!chat) {
       throw new NotFoundException('Chat not found');
     }
+
+    const targetUserId =
+      chat.userAId === currentUserId ? chat.userBId : chat.userAId;
+
+    await this.ensureUsersCanChat(currentUserId, targetUserId);
 
     const msg = await this.prisma.message.create({
       data: {
@@ -112,6 +140,8 @@ export class ChatsService {
       throw new NotFoundException('Target user not found');
     }
 
+    await this.ensureUsersCanChat(currentUserId, targetUserId);
+
     const chat = await this.prisma.$transaction(async (tx) => {
       const existing = await tx.chat.findFirst({
         where: {
@@ -140,6 +170,22 @@ export class ChatsService {
     return this.serializeDirectChat(chat, currentUserId);
   }
 
+
+  private async ensureUsersCanChat(userId: string, targetUserId: string) {
+    const block = await this.prisma.block.findFirst({
+      where: {
+        OR: [
+          { userId, blockedUserId: targetUserId },
+          { userId: targetUserId, blockedUserId: userId },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (block) {
+      throw new ForbiddenException('Chat is unavailable for blocked users.');
+    }
+  }
   private serializeDirectChat(chat: ChatWithUsers, currentUserId: string): DirectRoomResponse {
     const userA = chat.userA;
     const userB = chat.userB;
