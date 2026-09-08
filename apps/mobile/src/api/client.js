@@ -500,6 +500,18 @@ export const apiClient = {
     catch (e) { throw normalizeError(e); }
   },
 
+  async updateUser(userId, payload = {}) {
+    if (!userId) {
+      throw normalizeError(new Error('사용자 ID가 필요합니다.'));
+    }
+    try {
+      const { data } = await client.patch(`/users/${userId}`, payload);
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
   async getActiveAnnouncements() {
     try { const { data } = await client.get('/announcements/active'); return data; }
     catch { const { data } = await client.get('/announcements', { params: { isActive: true } }); return data; }
