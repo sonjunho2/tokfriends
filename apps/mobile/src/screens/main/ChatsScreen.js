@@ -90,17 +90,7 @@ export default function ChatsScreen({ navigation, route }) {
           )}
         </View>
         <Text style={styles.headerTitle}>대화</Text>
-        <View style={styles.headerSideRight}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('CreateChatRoom')}
-            hitSlop={8}
-            style={styles.createBtn}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="add" size={18} color={colors.textInverse} />
-            <Text style={styles.createBtnTxt}>방 만들기</Text>
-          </TouchableOpacity>
-        </View>
+        <View style={styles.headerSideRight} />
       </View>
 
       {/* 세그먼트 */}
