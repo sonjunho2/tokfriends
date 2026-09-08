@@ -9,7 +9,6 @@ import { useAuth } from '../context/AuthContext';
 import { useAuthStoreSync } from '../store/auth';
 // ===== 메인 =====
 import HomeScreen from '../screens/main/HomeScreen';
-import ExploreScreen from '../screens/explore/ExploreScreen'; 
 import ChatsScreen from '../screens/main/ChatsScreen';
 import ShopScreen from '../screens/shop/ShopScreen';           
 import SettingsScreen from '../screens/my/SettingsScreen';
@@ -59,7 +58,6 @@ function HomeStack() {
       screenOptions={{ headerShown: false }}
     >
       <HomeStackNav.Screen name="HomeMain" component={HomeScreen} />
-      <HomeStackNav.Screen name="Explore" component={ExploreScreen} />
       <HomeStackNav.Screen name="HotRecommend" component={HotRecommendScreen} />
       <HomeStackNav.Screen
         name="ProfileDetail"
