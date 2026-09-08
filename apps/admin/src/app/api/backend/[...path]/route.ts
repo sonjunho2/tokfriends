@@ -13,7 +13,7 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
   const apiBase = process.env.TOK_API_BASE_URL?.replace(/\/+$/, '')
 
   if (!apiBase) {
-    return NextResponse.json({ message: 'Admin API configuration is missing.' }, { status: 500 })
+    return NextResponse.json({ message: 'Admin API configuration is missing.' }, { status: 500, headers: { 'Cache-Control': 'no-store' } })
   }
 
   const path = context.params.path.map((segment) => encodeURIComponent(segment)).join('/')
@@ -26,7 +26,7 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
     const origin = request.headers.get('origin')
 
     if (!origin || origin !== request.nextUrl.origin) {
-      return NextResponse.json({ message: 'Invalid request origin.' }, { status: 403 })
+      return NextResponse.json({ message: 'Invalid request origin.' }, { status: 403, headers: { 'Cache-Control': 'no-store' } })
     }
   }
 
@@ -34,7 +34,7 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
   const isPublicHealthCheck = path === 'health'
 
   if (!token && !isPublicHealthCheck) {
-    return NextResponse.json({ message: 'Authentication required.' }, { status: 401 })
+    return NextResponse.json({ message: 'Authentication required.' }, { status: 401, headers: { 'Cache-Control': 'no-store' } })
   }
 
   const headers = new Headers()
