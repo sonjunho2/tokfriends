@@ -12,15 +12,21 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
+import { apiClient } from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ProfileEditScreen({ navigation, route }) {
   const profile = route?.params?.profile ?? {};
   const preferredFont = route?.params?.preferredFont;
+  const { user, refreshMe } = useAuth();
+  const userProfile = user?.profile ?? {};
 
-  const [name, setName] = useState(profile?.name ?? '');
-  const [location, setLocation] = useState(profile?.location ?? '');
-  const [title, setTitle] = useState(profile?.title ?? '');
-  const [bio, setBio] = useState(profile?.bio ?? '');
+  const [name, setName] = useState(userProfile?.nickname ?? profile?.name ?? user?.displayName ?? '');
+  const [region1, setRegion1] = useState(user?.region1 ?? '');
+  const [region2, setRegion2] = useState(user?.region2 ?? '');
+  const [title, setTitle] = useState(userProfile?.headline ?? profile?.title ?? '');
+  const [bio, setBio] = useState(userProfile?.bio ?? profile?.bio ?? '');
+  const [saving, setSaving] = useState(false);
 
   const previewFontStyle = useMemo(() => {
     if (!preferredFont || preferredFont === 'system') {
@@ -29,17 +35,46 @@ export default function ProfileEditScreen({ navigation, route }) {
     return { fontFamily: preferredFont };
   }, [preferredFont]);
 
-  const handleSave = () => {
-    Alert.alert(
-      '프로필 저장',
-      '입력한 정보가 임시로 저장되었습니다. 실제 저장은 API 연결 후 완료됩니다.',
-      [
+  const handleSave = async () => {
+    if (saving) return;
+
+    if (!user?.id) {
+      Alert.alert('프로필 저장 실패', '로그인 사용자 정보를 확인할 수 없습니다.');
+      return;
+    }
+
+    if (!name.trim()) {
+      Alert.alert('입력 확인', '닉네임을 입력해 주세요.');
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      await apiClient.updateUser(user.id, {
+        nickname: name.trim(),
+        region1: region1.trim(),
+        region2: region2.trim(),
+        headline: title.trim(),
+        bio: bio.trim(),
+      });
+
+      await refreshMe();
+
+      Alert.alert('프로필 저장', '프로필이 저장되었습니다.', [
         {
           text: '확인',
           onPress: () => navigation.goBack(),
         },
-      ],
-    );
+      ]);
+    } catch (error) {
+      Alert.alert(
+        '프로필 저장 실패',
+        error?.message || '프로필을 저장하지 못했습니다.',
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -71,12 +106,21 @@ export default function ProfileEditScreen({ navigation, route }) {
             placeholderTextColor={colors.textTertiary}
           />
 
-          <Text style={styles.label}>지역 / 나이</Text>
+          <Text style={styles.label}>지역 1</Text>
           <TextInput
             style={styles.input}
-            value={location}
-            onChangeText={setLocation}
-            placeholder="예) 서울, 여자 27살"
+            value={region1}
+            onChangeText={setRegion1}
+            placeholder="예) 서울"
+            placeholderTextColor={colors.textTertiary}
+          />
+
+          <Text style={styles.label}>지역 2</Text>
+          <TextInput
+            style={styles.input}
+            value={region2}
+            onChangeText={setRegion2}
+            placeholder="예) 강남구"
             placeholderTextColor={colors.textTertiary}
           />
 
@@ -105,7 +149,7 @@ export default function ProfileEditScreen({ navigation, route }) {
           <Text style={styles.previewTitle}>미리보기</Text>
           <View style={styles.previewBox}>
             <Text style={[styles.previewName, previewFontStyle]}>{name || '회원님'}</Text>
-            <Text style={[styles.previewLocation, previewFontStyle]}>{location || '서울, 여자 27살'}</Text>
+            <Text style={[styles.previewLocation, previewFontStyle]}>{[region1, region2].filter(Boolean).join(' · ') || '지역 미설정'}</Text>
             <Text style={[styles.previewTagline, previewFontStyle]}>{title || '나와 취미가 맞는 사람 찾는 중!'}</Text>
             <Text style={[styles.previewBio, previewFontStyle]}>
               {bio || '좋아하는 음악과 카페에 대해 이야기해요. 진솔한 대화를 좋아합니다.'}
@@ -113,9 +157,9 @@ export default function ProfileEditScreen({ navigation, route }) {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.saveButton} activeOpacity={0.85} onPress={handleSave}>
+        <TouchableOpacity style={styles.saveButton} activeOpacity={0.85} onPress={handleSave} disabled={saving}>
           <Ionicons name="save-outline" size={20} color={colors.textInverse} />
-          <Text style={styles.saveButtonText}>변경사항 저장</Text>
+          <Text style={styles.saveButtonText}>{saving ? '저장 중...' : '변경사항 저장'}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
