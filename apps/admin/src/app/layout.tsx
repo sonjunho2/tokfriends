@@ -96,11 +96,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [adminName, setAdminName] = useState('관리자')
   const pathname = usePathname()
   const router = useRouter()
+  const currentPath = pathname ?? '/'
+  const isPublicPage = PUBLIC_PATHS.includes(currentPath)
 
   useEffect(() => {
-    const currentPath = pathname ?? '/'
-
-    if (PUBLIC_PATHS.includes(currentPath)) {
+    if (isPublicPage) {
       setSessionError(false)
       setIsAuthenticated(true)
       return
@@ -139,7 +139,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         setSessionError(true)
       }
     })()
-  }, [pathname, router])
+  }, [isPublicPage, router])
 
   if (sessionError) {
     return (
@@ -166,9 +166,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </html>
     )
   }
-
-  const currentPath = pathname ?? '/'
-  const isPublicPage = PUBLIC_PATHS.includes(currentPath)
 
   return (
     <html lang="ko" suppressHydrationWarning>
