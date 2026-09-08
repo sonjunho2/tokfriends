@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { LogOut, Search, Sparkles, ChevronRight } from 'lucide-react'
@@ -22,13 +22,13 @@ export interface AppShellNavItem {
 
 interface AppShellProps {
   items: AppShellNavItem[]
+  adminName?: string
   children: React.ReactNode
 }
 
-export function AppShell({ items, children }: AppShellProps) {
+export function AppShell({ items, adminName = '관리자', children }: AppShellProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const [adminName, setAdminName] = useState('관리자')
 
   const activeItem = useMemo(() => {
     if (!pathname) return items[0]
@@ -46,28 +46,6 @@ export function AppShell({ items, children }: AppShellProps) {
     })
     return Array.from(groups.entries())
   }, [items])
-
-  useEffect(() => {
-    void (async () => {
-      try {
-        const response = await fetch('/api/auth/session', {
-          method: 'GET',
-          cache: 'no-store',
-        })
-        const session = await response.json().catch(() => null)
-        const user = session?.user as { name?: string; email?: string } | undefined
-
-        if (response.ok && session?.authenticated) {
-          setAdminName(user?.name || user?.email || '관리자')
-          return
-        }
-
-        setAdminName('관리자')
-      } catch {
-        setAdminName('관리자')
-      }
-    })()
-  }, [])
 
   const handleLogout = () => {
     logoutToLogin()

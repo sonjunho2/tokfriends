@@ -93,6 +93,7 @@ const NAV_ITEMS: AppShellNavItem[] = [
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const [sessionError, setSessionError] = useState(false)
+  const [adminName, setAdminName] = useState('관리자')
   const pathname = usePathname()
   const router = useRouter()
 
@@ -131,6 +132,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           return
         }
 
+        setAdminName(session.user?.name || session.user?.email || '관리자')
         setSessionError(false)
         setIsAuthenticated(true)
       } catch {
@@ -172,7 +174,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko" suppressHydrationWarning>
       <body className={notoSansKr.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {isPublicPage ? children : <AppShell items={NAV_ITEMS}>{children}</AppShell>}
+          {isPublicPage ? children : <AppShell items={NAV_ITEMS} adminName={adminName}>{children}</AppShell>}
           <Toaster />
         </ThemeProvider>
       </body>
