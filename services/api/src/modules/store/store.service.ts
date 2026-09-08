@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PrismaService } from 'nestjs-prisma';
 import { promises as fs } from 'fs';
@@ -92,7 +92,20 @@ export class StoreService {
     }
   }
 
+  private assertUnverifiedPurchaseAllowed() {
+    const allowUnverified =
+      process.env.NODE_ENV !== 'production' &&
+      process.env.ALLOW_UNVERIFIED_PURCHASES === 'true';
+
+    if (!allowUnverified) {
+      throw new ServiceUnavailableException(
+        'Purchase verification is not configured.',
+      );
+    }
+  }
+
   async confirmPointPurchase(userId: string, dto: ConfirmPurchaseDto) {
+    this.assertUnverifiedPurchaseAllowed();
     if (!userId) {
       throw new BadRequestException('Missing authenticated user');
     }
