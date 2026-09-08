@@ -425,7 +425,7 @@ export const apiClient = {
     };
 
     try {
-      const { data } = await client.post('/chat/direct', body);
+      const { data } = await client.post('/chats/direct', body);
       if (data?.data?.room) return data.data.room;
       if (data?.room) return data.room;
       return data?.data ?? data;
