@@ -1,5 +1,5 @@
 // services/api/src/modules/community/community.service.ts
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 
 @Injectable()
@@ -23,8 +23,28 @@ export class CommunityService {
   }
 
   async block(userId: string, dto: { blockedUserId: string }) {
-    const block = await this.prisma.block.create({
-      data: {
+    if (userId === dto.blockedUserId) {
+      throw new BadRequestException('You cannot block yourself.');
+    }
+
+    const targetUser = await this.prisma.user.findUnique({
+      where: { id: dto.blockedUserId },
+      select: { id: true },
+    });
+
+    if (!targetUser) {
+      throw new NotFoundException('User not found.');
+    }
+
+    const block = await this.prisma.block.upsert({
+      where: {
+        userId_blockedUserId: {
+          userId,
+          blockedUserId: dto.blockedUserId,
+        },
+      },
+      update: {},
+      create: {
         userId,
         blockedUserId: dto.blockedUserId,
       },
