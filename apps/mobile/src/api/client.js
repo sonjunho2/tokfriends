@@ -558,7 +558,7 @@ export const apiClient = {
     try {
       const { data } = await client.post('/media/avatar', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': false,
         },
       });
 
