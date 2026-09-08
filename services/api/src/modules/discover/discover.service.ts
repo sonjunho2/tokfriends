@@ -43,12 +43,22 @@ export class DiscoverService {
       take: 50,
       select: {
         id: true,
-        email: true,
         displayName: true,
         gender: true,
         dob: true,
         region1: true,
         region2: true,
+        profile: {
+          select: {
+            nickname: true,
+            bio: true,
+            headline: true,
+            avatarUri: true,
+            interests: true,
+            badges: true,
+            lastSeenAt: true,
+          },
+        },
       },
     });
   }
