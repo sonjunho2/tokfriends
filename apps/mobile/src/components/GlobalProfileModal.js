@@ -71,7 +71,10 @@ export default function GlobalProfileModal() {
     setSending(true);
     try {
       const room = await apiClient.ensureDirectRoom(targetId, { title: profileData?.name });
-      const roomId = room?.id || room?._id || Date.now();
+      const roomId = room?.id || room?._id;
+      if (!roomId) {
+        throw new Error('채팅방 정보를 확인할 수 없습니다.');
+      }
       const participant = {
         id: targetId,
         name: profileData?.name,
