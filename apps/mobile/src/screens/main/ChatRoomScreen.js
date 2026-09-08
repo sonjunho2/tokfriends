@@ -24,6 +24,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Avatar from '../../components/Avatar';
 import colors from '../../theme/colors';
 import { listGiftOptions } from '../../api/gifts';
+import { apiClient } from '../../api/client';
 
 const INITIAL_MESSAGES = [
     {
@@ -80,6 +81,7 @@ export default function ChatRoomScreen({ route, navigation }) {
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
   const [reportText, setReportText] = useState('');
+  const [reporting, setReporting] = useState(false);
   const [attachSheetVisible, setAttachSheetVisible] = useState(false);
   const [cameraModeVisible, setCameraModeVisible] = useState(false);
   const [giftSheetVisible, setGiftSheetVisible] = useState(false);
@@ -321,16 +323,40 @@ export default function ChatRoomScreen({ route, navigation }) {
     setReportVisible(true);
   };
 
-  const submitReport = () => {
-    if (!reportText.trim()) {
+  const submitReport = async () => {
+    if (reporting) return;
+
+    const reason = reportText.trim();
+    if (!reason) {
       Alert.alert('알림', '신고 내용을 입력해 주세요.');
       return;
     }
 
-    const submittedText = reportText.trim();
-    setReportVisible(false);
-    setReportText('');
-    Alert.alert('신고 완료', `신고가 접수되었습니다.\n\n내용: ${submittedText}`);
+    const targetUserId = user?.id || user?._id;
+    if (!targetUserId) {
+      Alert.alert('신고 실패', '신고할 회원 정보를 찾을 수 없습니다.');
+      return;
+    }
+
+    setReporting(true);
+
+    try {
+      await apiClient.reportUser({
+        targetUserId,
+        reason,
+      });
+
+      setReportVisible(false);
+      setReportText('');
+      Alert.alert('신고 완료', '신고가 정상적으로 접수되었습니다.');
+    } catch (error) {
+      Alert.alert(
+        '신고 실패',
+        error?.message || '신고를 접수하지 못했습니다.',
+      );
+    } finally {
+      setReporting(false);
+    }
   };
 
   const renderMessage = ({ item }) => {
@@ -799,12 +825,16 @@ export default function ChatRoomScreen({ route, navigation }) {
                     <Text style={styles.secondaryBtnTxt}>취소</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.primaryBtn, reportText.trim() === '' && styles.primaryBtnDisabled]}
+                    style={[styles.primaryBtn, (reportText.trim() === '' || reporting) && styles.primaryBtnDisabled]}
                     onPress={submitReport}
-                    disabled={reportText.trim() === ''}
+                    disabled={reportText.trim() === '' || reporting}
                     activeOpacity={0.85}
                   >
-                    <Text style={styles.primaryBtnTxt}>신고 보내기</Text>
+                    {reporting ? (
+                      <ActivityIndicator size="small" color={colors.textInverse} />
+                    ) : (
+                      <Text style={styles.primaryBtnTxt}>신고 보내기</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
