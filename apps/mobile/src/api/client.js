@@ -491,7 +491,7 @@ export const apiClient = {
       };
     }
 
-    try { const { data } = await client.get('/users/me'); return data; }
+    try { const { data } = await client.get('/users/me'); return data?.data ?? data; }
     catch (e) { throw normalizeError(e); }
   },
 
