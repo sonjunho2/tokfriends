@@ -19,6 +19,7 @@ import { CommunityModule } from './modules/community/community.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { GiftsModule } from './modules/gifts/gifts.module';
 import { StoreModule } from './modules/store/store.module';
+import { LegalDocumentsModule } from './modules/legal-documents/legal-documents.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { StoreModule } from './modules/store/store.module';
     AdminModule,
     GiftsModule,
     StoreModule,
+    LegalDocumentsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
