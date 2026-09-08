@@ -500,6 +500,15 @@ export const apiClient = {
     catch (e) { throw normalizeError(e); }
   },
 
+  async getDiscover(params = {}) {
+    try {
+      const { data } = await client.get('/discover', { params });
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
   async updateUser(userId, payload = {}) {
     if (!userId) {
       throw normalizeError(new Error('사용자 ID가 필요합니다.'));
