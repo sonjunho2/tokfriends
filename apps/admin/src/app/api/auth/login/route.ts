@@ -50,6 +50,10 @@ export async function POST(request: NextRequest) {
 
   const loginData = await loginResponse.json().catch(() => null)
 
+  if (loginResponse.status >= 500) {
+    return NextResponse.json({ message: 'Admin API returned a server error.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
+  }
+
   if (!loginResponse.ok) {
     return NextResponse.json(loginData ?? { message: 'Login failed.' }, { status: loginResponse.status, headers: { 'Cache-Control': 'no-store' } })
   }
