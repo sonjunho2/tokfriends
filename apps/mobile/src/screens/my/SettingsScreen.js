@@ -33,11 +33,12 @@ const FALLBACK_MANAGED_FONTS = [
 
 export default function SettingsScreen({ navigation }) {
   const { user } = useAuth();
+  const userProfile = user?.profile ?? {};
 
-  const nickname = user?.nickname || user?.displayName || user?.name || '회원님';
-  const locationLabel = user?.location || '서울, 여자 27살';
+  const nickname = userProfile?.nickname || user?.displayName || '회원님';
+  const locationLabel = [user?.region1, user?.region2].filter(Boolean).join(' · ') || '지역 미설정';
   const tagline =
-    user?.headline || user?.title || '대화친구 필요하신분? 나이는 상관없어요!';
+    userProfile?.headline || '한줄 소개를 등록해 주세요.';
 
   const [pushEnabled, setPushEnabled] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
@@ -62,7 +63,7 @@ export default function SettingsScreen({ navigation }) {
   }, [selectedFont]);
 
   const balance = useMemo(() => {
-    const p = user?.points ?? user?.balance ?? 300;
+    const p = user?.pointsBalance ?? 0;
     if (typeof p === 'number') return p;
     const numeric = parseInt(String(p).replace(/\D/g, ''), 10);
     return Number.isFinite(numeric) ? numeric : 0;
@@ -72,12 +73,12 @@ export default function SettingsScreen({ navigation }) {
     () => ({
       name: nickname,
       location: locationLabel,
-      title: user?.joinPhrase || '오늘 가입한 회원입니다',
+      title: userProfile?.headline || '한줄 소개를 등록해 주세요.',
       bio:
-        user?.bio ||
+        userProfile?.bio ||
         '새로운 인연을 기다리고 있어요. 반려견과 드라이브하는 것을 좋아해요!',
-      avatar: user?.avatar || null,
-      coverImage: user?.coverImage || FALLBACK_COVER,
+      avatar: userProfile?.avatarUri || null,
+      coverImage: FALLBACK_COVER,
     }),
     [nickname, locationLabel, user]
   );
@@ -225,7 +226,7 @@ export default function SettingsScreen({ navigation }) {
             <Avatar
               size={72}
               name={nickname}
-              uri={user?.avatar}
+              uri={userProfile?.avatarUri}
               showBorder
               style={styles.profileAvatar}
             />
