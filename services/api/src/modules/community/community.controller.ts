@@ -1,5 +1,5 @@
 // services/api/src/modules/community/community.controller.ts
-import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Request, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { CommunityService } from './community.service';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
@@ -40,5 +40,18 @@ export class CommunityController {
   @Post('block')
   async block(@Request() req: any, @Body() dto: BlockDto) {
     return this.communityService.block(req.user.id, dto);
+  }
+
+  @Get('blocks')
+  async listBlocks(@Request() req: any) {
+    return this.communityService.listBlocks(req.user.id);
+  }
+
+  @Delete('block/:blockedUserId')
+  async unblock(
+    @Request() req: any,
+    @Param('blockedUserId') blockedUserId: string,
+  ) {
+    return this.communityService.unblock(req.user.id, blockedUserId);
   }
 }

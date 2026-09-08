@@ -52,4 +52,52 @@ export class CommunityService {
 
     return { ok: true, id: block.id };
   }
+
+  async listBlocks(userId: string) {
+    const blocks = await this.prisma.block.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        blockedUserId: true,
+        createdAt: true,
+        blockedUser: {
+          select: {
+            id: true,
+            displayName: true,
+            region1: true,
+            region2: true,
+            profile: {
+              select: {
+                nickname: true,
+                headline: true,
+                avatarUri: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return {
+      items: blocks.map((block) => ({
+        id: block.id,
+        blockedUserId: block.blockedUserId,
+        createdAt: block.createdAt,
+        user: block.blockedUser,
+      })),
+      total: blocks.length,
+    };
+  }
+
+  async unblock(userId: string, blockedUserId: string) {
+    await this.prisma.block.deleteMany({
+      where: {
+        userId,
+        blockedUserId,
+      },
+    });
+
+    return { ok: true };
+  }
 }
