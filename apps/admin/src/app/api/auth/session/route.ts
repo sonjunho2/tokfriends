@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const SESSION_COOKIE = 'tokfriends_admin_session'
+const UPSTREAM_TIMEOUT_MS = 10_000
 
 export async function GET(request: NextRequest) {
   const apiBase = process.env.TOK_API_BASE_URL?.replace(/\/+$/, '')
@@ -21,8 +22,12 @@ export async function GET(request: NextRequest) {
     meResponse = await fetch(`${apiBase}/v1/users/me`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: 'no-store',
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     })
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      return NextResponse.json({ message: 'Admin API request timed out.' }, { status: 504, headers: { 'Cache-Control': 'no-store' } })
+    }
     return NextResponse.json({ message: 'Admin API is unavailable.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
   }
 
