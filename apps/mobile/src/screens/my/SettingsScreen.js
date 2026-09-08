@@ -17,8 +17,6 @@ import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
 import { useAuth } from '../../context/AuthContext';
 
-const FALLBACK_COVER =
-  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1080&q=80';
 
 const MANAGED_FONT_ENDPOINT = 'https://manage.tokfriends.app/api/fonts/latest';
 
@@ -74,11 +72,9 @@ export default function SettingsScreen({ navigation }) {
       name: nickname,
       location: locationLabel,
       title: userProfile?.headline || '한줄 소개를 등록해 주세요.',
-      bio:
-        userProfile?.bio ||
-        '새로운 인연을 기다리고 있어요. 반려견과 드라이브하는 것을 좋아해요!',
+      bio: userProfile?.bio || '소개가 없습니다.',
       avatar: userProfile?.avatarUri || null,
-      coverImage: FALLBACK_COVER,
+      coverImage: userProfile?.avatarUri || null,
     }),
     [nickname, locationLabel, user]
   );
