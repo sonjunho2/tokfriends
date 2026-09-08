@@ -26,7 +26,6 @@ const linking = {
         screens: {
           HomeMain: 'home',
           Explore: 'home/explore',
-          UniversalList: 'home/list',
           HotRecommend: 'home/hot',
           ProfileDetail: 'home/profile',
         },

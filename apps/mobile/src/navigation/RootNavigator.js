@@ -7,7 +7,6 @@ import { Ionicons } from '@expo/vector-icons';
 import colors from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
 import { useAuthStoreSync } from '../store/auth';
-import UniversalListScreen from '../screens/list/UniversalListScreen'; 
 // ===== 메인 =====
 import HomeScreen from '../screens/main/HomeScreen';
 import ExploreScreen from '../screens/explore/ExploreScreen'; 
@@ -60,7 +59,6 @@ function HomeStack() {
       screenOptions={{ headerShown: false }}
     >
       <HomeStackNav.Screen name="HomeMain" component={HomeScreen} />
-      <HomeStackNav.Screen name="UniversalList" component={UniversalListScreen} />
       <HomeStackNav.Screen name="Explore" component={ExploreScreen} />
       <HomeStackNav.Screen name="HotRecommend" component={HotRecommendScreen} />
       <HomeStackNav.Screen
