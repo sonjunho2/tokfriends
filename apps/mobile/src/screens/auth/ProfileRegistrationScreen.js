@@ -47,7 +47,7 @@ const REGION_OPTIONS = [
 ];
 
 export default function ProfileRegistrationScreen({ navigation, route }) {
-  const { authenticateWithToken } = useAuth();
+  const { authenticateWithToken, setUser } = useAuth();
   const { phone, verificationId: initialVerificationId } = route.params || {};
 
   const [nickname, setNickname] = useState('');
@@ -57,6 +57,7 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
   const [headline, setHeadline] = useState('');
   const [bio, setBio] = useState('');
   const [imageUri, setImageUri] = useState(null);
+  const [imageAsset, setImageAsset] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [regionModalVisible, setRegionModalVisible] = useState(false);
 
@@ -87,6 +88,7 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
         quality: 0.85,
       });
       if (!res.canceled && res.assets?.[0]?.uri) {
+        setImageAsset(res.assets[0]);
         setImageUri(res.assets[0].uri);
       }
     } catch (error) {
@@ -115,7 +117,6 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
     }
     setSubmitting(true);
     try {
-      const shouldIncludeAvatar = !USE_DUMMY_AUTH && imageUri;
       const payload = {
         verificationId,
         phone,
@@ -125,7 +126,6 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
         region: region.trim() || null,
         headline: headline.trim(),
         bio: bio.trim(),
-        ...(shouldIncludeAvatar ? { avatarUri: imageUri } : {}),
       };
       const response = await apiClient.completePhoneSignup(payload);
       const token =
@@ -142,6 +142,30 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
         Alert.alert('로그인 실패', authResult.error || '세션을 생성하지 못했습니다.');
         return;
       }
+      if (!USE_DUMMY_AUTH && imageAsset) {
+        try {
+          const uploadedAvatar = await apiClient.uploadAvatar(imageAsset);
+          const avatarUrl = String(uploadedAvatar?.url || '').trim();
+          const userId = authResult?.user?.id || response?.user?.id;
+
+          if (!avatarUrl || !userId) {
+            throw new Error('프로필 사진 저장 정보를 확인하지 못했습니다.');
+          }
+
+          const updatedUser = await apiClient.updateUser(userId, {
+            avatarUri: avatarUrl,
+          });
+
+          await setUser(updatedUser);
+        } catch (avatarError) {
+          Alert.alert(
+            '프로필 사진',
+            avatarError?.message ||
+              '회원가입은 완료되었지만 프로필 사진을 저장하지 못했습니다. 나중에 다시 등록해 주세요.',
+          );
+        }
+      }
+
       navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
     } catch (error) {
       Alert.alert(
