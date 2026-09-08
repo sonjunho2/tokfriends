@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
 const SESSION_COOKIE = 'tokfriends_admin_session'
+const UPSTREAM_TIMEOUT_MS = 10_000
 const adminLoginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
@@ -38,8 +39,12 @@ export async function POST(request: NextRequest) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(parsedBody.data),
       cache: 'no-store',
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     })
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      return NextResponse.json({ message: 'Admin API request timed out.' }, { status: 504, headers: { 'Cache-Control': 'no-store' } })
+    }
     return NextResponse.json({ message: 'Admin API is unavailable.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
   }
 
@@ -60,8 +65,12 @@ export async function POST(request: NextRequest) {
     meResponse = await fetch(`${apiBase}/v1/users/me`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: 'no-store',
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     })
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      return NextResponse.json({ message: 'Admin API request timed out.' }, { status: 504, headers: { 'Cache-Control': 'no-store' } })
+    }
     return NextResponse.json({ message: 'Admin API is unavailable.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
   }
 
