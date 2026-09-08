@@ -422,7 +422,6 @@ export const apiClient = {
     }
     const body = {
       targetUserId: target,
-      participantId: target,
     };
 
     try {
