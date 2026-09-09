@@ -8,8 +8,10 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
 import { apiClient } from '../../api/client';
@@ -26,6 +28,10 @@ export default function ProfileEditScreen({ navigation, route }) {
   const [region2, setRegion2] = useState(user?.region2 ?? '');
   const [title, setTitle] = useState(userProfile?.headline ?? profile?.title ?? '');
   const [bio, setBio] = useState(userProfile?.bio ?? profile?.bio ?? '');
+  const [avatarUri, setAvatarUri] = useState(
+    userProfile?.avatarUri ?? profile?.avatarUri ?? profile?.image ?? null,
+  );
+  const [avatarAsset, setAvatarAsset] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const previewFontStyle = useMemo(() => {
@@ -34,6 +40,39 @@ export default function ProfileEditScreen({ navigation, route }) {
     }
     return { fontFamily: preferredFont };
   }, [preferredFont]);
+
+  const handlePickAvatar = async () => {
+    if (saving) return;
+
+    try {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== 'granted') {
+        Alert.alert(
+          '권한 필요',
+          '사진을 선택하려면 갤러리 접근 권한이 필요합니다.',
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.85,
+      });
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setAvatarAsset(result.assets[0]);
+        setAvatarUri(result.assets[0].uri);
+      }
+    } catch {
+      Alert.alert(
+        '프로필 사진',
+        '사진을 선택하지 못했습니다. 다시 시도해 주세요.',
+      );
+    }
+  };
 
   const handleSave = async () => {
     if (saving) return;
@@ -51,12 +90,24 @@ export default function ProfileEditScreen({ navigation, route }) {
     setSaving(true);
 
     try {
+      let nextAvatarUri = avatarUri;
+
+      if (avatarAsset) {
+        const uploadedAvatar = await apiClient.uploadAvatar(avatarAsset);
+        nextAvatarUri = String(uploadedAvatar?.url || '').trim();
+
+        if (!nextAvatarUri) {
+          throw new Error('프로필 사진 저장 정보를 확인하지 못했습니다.');
+        }
+      }
+
       await apiClient.updateUser(user.id, {
         nickname: name.trim(),
         region1: region1.trim(),
         region2: region2.trim(),
         headline: title.trim(),
         bio: bio.trim(),
+        ...(nextAvatarUri ? { avatarUri: nextAvatarUri } : {}),
       });
 
       await refreshMe();
@@ -96,6 +147,40 @@ export default function ProfileEditScreen({ navigation, route }) {
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.avatarSection}>
+          <TouchableOpacity
+            style={styles.avatarButton}
+            activeOpacity={0.85}
+            onPress={handlePickAvatar}
+            disabled={saving}
+          >
+            {avatarUri ? (
+              <Image
+                source={{ uri: avatarUri }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Ionicons
+                  name="person"
+                  size={44}
+                  color={colors.textTertiary}
+                />
+              </View>
+            )}
+
+            <View style={styles.avatarEditBadge}>
+              <Ionicons
+                name="camera"
+                size={17}
+                color={colors.textInverse}
+              />
+            </View>
+          </TouchableOpacity>
+
+          <Text style={styles.avatarHelp}>프로필 사진 변경</Text>
+        </View>
+
         <View style={styles.formCard}>
           <Text style={styles.label}>닉네임</Text>
           <TextInput
@@ -192,6 +277,51 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
     color: colors.text,
+  },
+  avatarSection: {
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  avatarButton: {
+    position: 'relative',
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+  },
+  avatarImage: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: colors.backgroundSecondary,
+  },
+  avatarPlaceholder: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    right: 0,
+    bottom: 2,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  avatarHelp: {
+    marginTop: 10,
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
   },
   formCard: {
     marginTop: 20,
