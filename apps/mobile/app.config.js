@@ -9,6 +9,7 @@ module.exports = ({ config }) => {
     'expo-font',
     'expo-secure-store',
     'expo-video',
+    'expo-splash-screen',
     'expo-status-bar',
   ];
 
