@@ -32,7 +32,7 @@ const FALLBACK_MANAGED_FONTS = [
 ];
 
 export default function SettingsScreen({ navigation }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const userProfile = user?.profile ?? {};
 
   const nickname = userProfile?.nickname || user?.displayName || '회원님';
@@ -226,6 +226,22 @@ export default function SettingsScreen({ navigation }) {
     }
   }, [availableFonts, fontLoading]);
 
+  const handleLogout = () => {
+    Alert.alert(
+      '로그아웃',
+      '로그아웃하시겠어요?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '로그아웃',
+          style: 'destructive',
+          onPress: () => {
+            void logout();
+          },
+        },
+      ],
+    );
+  };
   const handleOpenProfile = () => {
     navigation.navigate('ProfileDetail', {
       profile: profilePayload,
@@ -418,6 +434,19 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </View>
 
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, dynamicFont.heading]}>계정</Text>
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.logoutRow}
+              activeOpacity={0.85}
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out-outline" size={20} color="#DC2626" />
+              <Text style={[styles.logoutLabel, dynamicFont.body]}>로그아웃</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         <TouchableOpacity
           style={styles.footerCard}
           activeOpacity={0.9}
@@ -678,6 +707,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     fontWeight: '700',
+  },
+  logoutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 16,
+  },
+  logoutLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#DC2626',
   },
   footerCard: {
     marginTop: 24,
