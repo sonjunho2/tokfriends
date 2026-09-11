@@ -581,6 +581,10 @@ export const apiClient = {
   async blockUser(blockData) { const { data } = await client.post('/community/block', blockData); return data; },
 
   async getBlockedUsers() {
+    if (USE_DUMMY_AUTH) {
+      return { data: [] };
+    }
+
     const { data } = await client.get('/community/blocks');
     return data;
   },
