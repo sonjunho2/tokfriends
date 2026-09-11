@@ -19,12 +19,25 @@ import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { Video } from 'expo-av';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { LinearGradient } from 'expo-linear-gradient';
 import Avatar from '../../components/Avatar';
 import colors from '../../theme/colors';
 import { listGiftOptions } from '../../api/gifts';
 import { apiClient } from '../../api/client';
+
+function ChatVideoAttachment({ uri }) {
+  const player = useVideoPlayer(uri);
+
+  return (
+    <VideoView
+      player={player}
+      style={styles.videoAttachment}
+      contentFit="cover"
+      nativeControls
+    />
+  );
+}
 
 const INITIAL_MESSAGES = [
     {
@@ -433,13 +446,7 @@ export default function ChatRoomScreen({ route, navigation }) {
         if (item.mediaType === 'video') {
           return (
             <View style={styles.videoAttachmentContainer}>
-              <Video
-                source={{ uri: item.media.uri }}
-                style={styles.videoAttachment}
-                resizeMode="cover"
-                useNativeControls
-                shouldPlay={false}
-              />
+              <ChatVideoAttachment uri={item.media.uri} />
             </View>
           );
         }
