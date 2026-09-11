@@ -43,6 +43,22 @@ module.exports = ({ config }) => {
   const snackEnvironment = isSnackEnvironment();
   // 플러그인 목록 복사
   const plugins = [...(resolvedConfig.plugins ?? [])];
+  const requiredPlugins = [
+    'expo-asset',
+    'expo-font',
+    'expo-secure-store',
+    'expo-video',
+  ];
+
+  for (const plugin of requiredPlugins) {
+    const alreadyConfigured = plugins.some((entry) =>
+      Array.isArray(entry) ? entry[0] === plugin : entry === plugin,
+    );
+
+    if (!alreadyConfigured) {
+      plugins.push(plugin);
+    }
+  }
 
   // 스낵 환경이 아닌 경우에만 Android 빌드 속성 플러그인 로딩
   if (!snackEnvironment) {
