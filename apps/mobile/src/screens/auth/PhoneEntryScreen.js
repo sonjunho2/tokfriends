@@ -63,7 +63,6 @@ export default function PhoneEntryScreen({ navigation }) {
       if (!result.success) {
         throw new Error(result.error || '세션 생성 실패');
       }
-      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
       return;
     }
 

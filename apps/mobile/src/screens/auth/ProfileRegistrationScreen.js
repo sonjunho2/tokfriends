@@ -166,7 +166,6 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
         }
       }
 
-      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
     } catch (error) {
       Alert.alert(
         '가입 실패',
