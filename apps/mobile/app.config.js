@@ -7,6 +7,7 @@ module.exports = ({ config }) => {
   const requiredPlugins = [
     'expo-asset',
     'expo-font',
+    'expo-image-picker',
     'expo-secure-store',
     'expo-video',
     'expo-splash-screen',
