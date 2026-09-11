@@ -63,7 +63,7 @@ module.exports = ({ config }) => {
   // 스낵 환경이 아닌 경우에만 Android 빌드 속성 플러그인 로딩
   if (!snackEnvironment) {
     // 동적으로 @expo/config-plugins 로드 (Snack에서 모듈 없을 때 오류 방지)
-    const { withGradleProperties, withProjectBuildGradle } = require('@expo/config-plugins');
+    const { withGradleProperties, withProjectBuildGradle } = require('expo/config-plugins');
 
     // Android 빌드 속성 적용 함수
     const withAndroidBuildProperties = (config, options = {}) => {
