@@ -1,3 +1,25 @@
+diff --git a/node_modules/expo-in-app-purchases/android/build.gradle b/node_modules/expo-in-app-purchases/android/build.gradle
+index 4ebe730..e738288 100644
+--- a/node_modules/expo-in-app-purchases/android/build.gradle
++++ b/node_modules/expo-in-app-purchases/android/build.gradle
+@@ -65,6 +65,17 @@ android {
+     }
+   }
+
++  if (agpVersion.tokenize('.')[0].toInteger() >= 8) {
++    compileOptions {
++      sourceCompatibility JavaVersion.VERSION_17
++      targetCompatibility JavaVersion.VERSION_17
++    }
++
++    kotlinOptions {
++      jvmTarget = JavaVersion.VERSION_17.majorVersion
++    }
++  }
++
+   namespace "expo.modules.inapppurchases"
+   defaultConfig {
+     minSdkVersion safeExtGet("minSdkVersion", 21)
 diff --git a/node_modules/expo-in-app-purchases/android/src/main/java/expo/modules/inapppurchases/InAppPurchasesModule.java b/node_modules/expo-in-app-purchases/android/src/main/java/expo/modules/inapppurchases/InAppPurchasesModule.java
 deleted file mode 100644
 index 1111111111111111111111111111111111111111..0000000000000000000000000000000000000000 100644
