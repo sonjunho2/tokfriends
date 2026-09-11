@@ -48,6 +48,7 @@ module.exports = ({ config }) => {
     'expo-font',
     'expo-secure-store',
     'expo-video',
+    'expo-status-bar',
   ];
 
   for (const plugin of requiredPlugins) {
