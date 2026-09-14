@@ -23,8 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-92133fbe258caa4a69bbadcc83f46a0d52712ae9
-feat: add wallet ledger foundation
+44a8f634e00b1728b977a21cdbf36d7cb078604a
+feat: add admin RBAC audit and approval foundation
+
+Remote GitHub branch HEAD verified:
+44a8f634e00b1728b977a21cdbf36d7cb078604a
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -57,17 +60,17 @@ Migrations present:
 6. 20260908044000_add_legal_documents
 7. 20260914042731_add_owner_activity_account_foundation
 8. 20260914050305_add_wallet_ledger_foundation
+9. 20260914054641_add_rbac_audit_risk_foundation
 
 2026-09-14:
-npx prisma migrate deploy
-applied the final two pending migrations.
-
-Then:
 npx prisma migrate status
 => Database schema is up to date!
 
-git status --short afterward:
-clean.
+RBAC migration applied checksum:
+a9ff341e18d78f1d4b94c93652aa72ee06b571e7a0161bb8f49f5cade7746f51
+
+DB migration checksum and migration.sql SHA256:
+MATCH PASS
 
 ### Owner / ActivityAccount foundation
 Completed 2026-09-14.
@@ -125,6 +128,52 @@ Completed 2026-09-14.
 - Migration checksum preservation fix commit: bb7e1c349e9f6887a2e8aaca79338281e00542b0
 - Wallet/Ledger commit: 92133fbe258caa4a69bbadcc83f46a0d52712ae9
 
+### RBAC / Audit / Risk foundation
+Completed 2026-09-14.
+
+- Added global AdminPermissionsGuard after JWT authentication
+- Added explicit server-side admin permission metadata
+- Added permission keys:
+  - users.manage
+  - reports.view
+  - content.manage
+  - refunds.view
+  - refunds.manage
+  - approvals.view
+  - approvals.manage
+  - settings.manage
+- Protected admin/users with users.manage
+- Protected admin/reports with reports.view
+- Protected admin/announcements with content.manage
+- Protected legal-document mutation with settings.manage
+- Protected refund routes with refunds.view/refunds.manage
+- Added default-deny behavior for admin routes missing explicit permission metadata
+- Permission declaration is checked before SUPER_ADMIN bypass
+- Added structured AuditLog fields: reason, context, metadata
+- Added AdminApprovalRequest foundation
+- Added approval states: PENDING / APPROVED / REJECTED / CANCELLED
+- Added approval idempotency key support
+- Added requester / decider attribution
+- Enforced four-eyes rule: requester cannot approve or reject own request
+- Added expiry handling for pending approvals
+- Added admin approval API:
+  - GET /admin/approvals
+  - POST /admin/approvals
+  - PATCH /admin/approvals/:id/decision
+- Added structured transactional audit logging for user role changes
+- Added structured transactional audit logging for refund create/approve/deny
+- Hardened approval DTO validation
+- Prisma validate PASS
+- Prisma migrate status PASS
+- NestJS API build PASS
+- git diff --check PASS
+- staged migration SHA256 verified against applied DB checksum
+- Migration checksum MATCH PASS after staging
+- Feature commit:
+  44a8f634e00b1728b977a21cdbf36d7cb078604a
+- GitHub remote branch HEAD verified at the same SHA
+- Admin 2FA enforcement remains a later security task; it was not enabled here to avoid locking out current administration before the full 2FA flow exists.
+
 ### Final high-level IA
 Mobile main tabs:
 Home / Live / Chat / Points / My
@@ -179,21 +228,33 @@ Existing active domains:
 auth/users/chats/reports/metrics/announcements/posts/topics/community/
 friendships/discover/admin/gifts/store/legal-documents/media/health
 
-Major new domains required:
-Owner/ActivityAccount
-Wallet/Ledger
-Gift transactions
-Follow/Interest/Visitors
-Feed/Story
-LIVE
-Ads/Rewards
-Redemption/Settlement
+Core foundations now present:
+- Owner / ActivityAccount
+- Wallet / Ledger
+- Admin RBAC / Audit / Approval
+
+Major domains still required:
+- Gift transactions
+- Follow / Interest / Visitors
+- Feed / Story
+- LIVE
+- Ads / Rewards
+- Redemption / Settlement
 
 ### Prisma
-Current schema still centers most behavior on User.
-User.pointsBalance is a direct integer balance.
+Current schema still preserves User as the compatibility center for existing behavior.
 
-Do not delete or radically repurpose User in first migration.
+Foundation models now include:
+- Owner
+- ActivityAccount
+- Wallet
+- WalletLedgerEntry
+- AdminApprovalRequest
+
+AuditLog now supports structured reason/context/metadata.
+
+User.pointsBalance remains as a legacy transitional balance field.
+Do not remove or repurpose it until dependent APIs are deliberately migrated to Wallet/Ledger.
 
 ## Current Phase
 
@@ -201,7 +262,7 @@ Phase 4 design/IA:
 COMPLETE ENOUGH TO IMPLEMENT.
 
 Phase 5 core data foundation:
-IN PROGRESS.
+COMPLETE FOR INITIAL FOUNDATION.
 
 Owner / ActivityAccount foundation:
 COMPLETE.
@@ -210,11 +271,17 @@ Wallet / Ledger foundation:
 COMPLETE.
 
 RBAC / Audit / Risk foundation:
-NEXT.
+COMPLETE.
+
+Next implementation phase:
+MOBILE NAVIGATION.
 
 ## Immediate Next Task
 
-Implement RBAC / Audit / Risk foundation safely.
+Implement the DAGAON mobile navigation foundation safely.
+
+Target main tabs:
+Home / Live / Chat / Points / My
 
 First commands to run when resuming:
 
@@ -223,7 +290,10 @@ git branch --show-current
 git status --short
 git log -1 --oneline
 
-Then inspect the exact current AdminProfile, AuditLog, admin authorization, JWT guard, and high-risk admin action paths before editing.
+Then inspect the exact current mobile navigator and tab screen wiring before editing.
+
+Do not implement LIVE, real Chat, Social, or Wallet behavior in the navigation commit.
+Only establish the commercial DAGAON navigation structure and safe screen placeholders/reuse where appropriate.
 
 ## RBAC / Audit / Risk Safety Rules
 
@@ -280,4 +350,4 @@ First Owner/ActivityAccount migration must:
 - Do not run npm audit fix --force.
 - Do not remove legacy modules solely because they look unused.
 - Do not rewrite Chat/Wallet/Gift/LIVE simultaneously.
-- Do not change User.pointsBalance until Wallet/Ledger migration plan is implemented.
+- Do not remove or repurpose legacy User.pointsBalance until dependent APIs are deliberately migrated to Wallet/Ledger.
