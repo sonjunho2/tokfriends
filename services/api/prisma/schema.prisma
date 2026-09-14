@@ -76,9 +76,45 @@ model ActivityAccount {
   isPrimary    Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  wallet       Wallet?
 
   @@index([ownerId])
   @@index([ownerId, isPrimary])
+}
+
+model Wallet {
+  id                String   @id @default(cuid())
+  activityAccountId String   @unique
+  activityAccount   ActivityAccount @relation(fields: [activityAccountId], references: [id], onDelete: Restrict)
+  spendableBalance  Int      @default(0)
+  redeemableBalance Int      @default(0)
+  pendingEarnings   Int      @default(0)
+  status            String   @default("active")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  ledgerEntries     WalletLedgerEntry[]
+}
+
+model WalletLedgerEntry {
+  id                String   @id @default(cuid())
+  walletId          String
+  wallet            Wallet   @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  kind              String
+  source            String
+  deltaSpendable    Int      @default(0)
+  deltaRedeemable   Int      @default(0)
+  deltaPending      Int      @default(0)
+  spendableAfter    Int
+  redeemableAfter   Int
+  pendingAfter      Int
+  idempotencyKey    String   @unique
+  referenceType     String?
+  referenceId       String?
+  metadata          Json?
+  createdAt         DateTime @default(now())
+
+  @@index([walletId, createdAt])
+  @@index([referenceType, referenceId])
 }
 
 model Profile {
