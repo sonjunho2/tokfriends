@@ -22,9 +22,9 @@ Tagline:
 Last known working branch:
 chore/mobile-sdk57-upgrade
 
-Last verified dependency/runtime commit:
-6992879bb3067dc331e3aeeeada65086eba19930
-fix: align Expo SDK 57 runtime dependencies
+Last verified project commit:
+84547983d9175bf26c03d6ad4d66583f2d85450e
+feat: add owner and activity account foundation
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -55,6 +55,7 @@ Migrations present:
 4. 20260903025431_add_admin_settings_storage
 5. 20260908014500_add_user_token_version
 6. 20260908044000_add_legal_documents
+7. 20260914042731_add_owner_activity_account_foundation
 
 2026-09-14:
 npx prisma migrate deploy
@@ -66,6 +67,30 @@ npx prisma migrate status
 
 git status --short afterward:
 clean.
+
+### Owner / ActivityAccount foundation
+Completed 2026-09-14.
+
+- Added backward-compatible Owner model
+- Added backward-compatible ActivityAccount model
+- Preserved existing User/auth/AdminProfile/Chat/Friendship/Post relationships
+- Added legacy User bridge relations without mass foreign-key rewrites
+- Backfilled every existing User into one Owner and one primary ActivityAccount
+- Existing User rows remain unchanged
+- User count: 2
+- Owner count: 2
+- ActivityAccount count: 2
+- Primary ActivityAccount count: 2
+- Owner/ActivityAccount legacy relationships verified PASS
+- Prisma validate PASS
+- Prisma migrate deploy PASS
+- Prisma migrate status: database schema is up to date
+- Prisma Client generation PASS
+- NestJS API build PASS
+- git diff --check PASS
+- ESLint could not run because the existing API project has no ESLint configuration file
+- Migration committed and pushed separately
+- Commit: 84547983d9175bf26c03d6ad4d66583f2d85450e
 
 ### Final high-level IA
 Mobile main tabs:
@@ -143,22 +168,44 @@ Phase 4 design/IA:
 COMPLETE ENOUGH TO IMPLEMENT.
 
 Phase 5 core data foundation:
-STARTING.
+IN PROGRESS.
+
+Owner / ActivityAccount foundation:
+COMPLETE.
+
+Wallet / Ledger foundation:
+NEXT.
 
 ## Immediate Next Task
 
-Implement Owner / ActivityAccount foundation safely.
+Implement Wallet / Ledger foundation safely.
 
-First command to run when resuming:
+First commands to run when resuming:
 
 cd C:\Users\ION\Downloads\work\tokfriends
 git branch --show-current
 git status --short
 git log -1 --oneline
 
-Then inspect exact Prisma schema before edits.
+Then inspect the exact current Prisma wallet/points-related schema and store purchase flow before editing.
 
-## First Migration Safety Rules
+## Wallet / Ledger Migration Safety Rules
+
+The first Wallet/Ledger migration must:
+- preserve User.pointsBalance during the transition
+- introduce a server-authoritative wallet and immutable ledger foundation
+- preserve existing point purchase behavior until API migration is deliberate
+- backfill current balances without losing or duplicating value
+- record transaction provenance and support idempotency
+- keep ActivityAccount as the wallet-owning social context
+- avoid implementing Gifts, Ads, LIVE, or Redemption in the same migration
+- use its own migration
+- pass Prisma validation and migration checks
+- pass API build and available project checks
+- commit separately
+
+
+## Completed Owner / ActivityAccount Migration Safety Rules
 
 First Owner/ActivityAccount migration must:
 - preserve User
