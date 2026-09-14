@@ -50,6 +50,35 @@ model User {
   pointPurchases PointPurchase[]
   phoneVerifications PhoneVerification[]
   adminProfile       AdminProfile?
+  ownerBridge           Owner?           @relation("LegacyOwnerUser")
+  activityAccountBridge ActivityAccount? @relation("LegacyActivityUser")
+}
+
+model Owner {
+  id               String            @id @default(cuid())
+  legacyUserId     String?           @unique
+  legacyUser       User?             @relation("LegacyOwnerUser", fields: [legacyUserId], references: [id], onDelete: SetNull)
+  status           String            @default("active")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  activityAccounts ActivityAccount[]
+}
+
+model ActivityAccount {
+  id           String   @id @default(cuid())
+  ownerId      String
+  owner        Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  legacyUserId String?  @unique
+  legacyUser   User?    @relation("LegacyActivityUser", fields: [legacyUserId], references: [id], onDelete: SetNull)
+  handle       String?  @unique
+  displayName  String?
+  status       String   @default("active")
+  isPrimary    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([ownerId, isPrimary])
 }
 
 model Profile {
