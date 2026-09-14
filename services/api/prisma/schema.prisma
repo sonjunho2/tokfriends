@@ -52,6 +52,8 @@ model User {
   adminProfile       AdminProfile?
   ownerBridge           Owner?           @relation("LegacyOwnerUser")
   activityAccountBridge ActivityAccount? @relation("LegacyActivityUser")
+  adminApprovalRequests AdminApprovalRequest[] @relation("AdminApprovalRequester")
+  adminApprovalDecisions AdminApprovalRequest[] @relation("AdminApprovalDecider")
 }
 
 model Owner {
@@ -304,6 +306,9 @@ model AuditLog {
   target    String
   action    String
   notes     String?
+  reason    String?
+  context   Json?
+  metadata  Json?
   createdAt DateTime @default(now())
 }
 
@@ -362,6 +367,38 @@ model AdminProfile {
   @@index([role])
   @@index([status])
 }
+
+enum AdminApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model AdminApprovalRequest {
+  id              String              @id @default(cuid())
+  action          String
+  target          String
+  reason          String
+  context         Json?
+  metadata        Json?
+  status          AdminApprovalStatus @default(PENDING)
+  idempotencyKey  String?             @unique
+  requestedById   String
+  requestedBy     User                @relation("AdminApprovalRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  decidedById     String?
+  decidedBy       User?               @relation("AdminApprovalDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+  decisionReason  String?
+  expiresAt       DateTime?
+  decidedAt       DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([status, createdAt])
+  @@index([requestedById, status])
+  @@index([target, action])
+}
+
 model AdminFeatureFlag {
   id          String   @id
   name        String   @unique

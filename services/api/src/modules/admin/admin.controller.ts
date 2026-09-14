@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@n
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PrismaService } from 'nestjs-prisma';
 import { RolesGuard, Roles } from '../../common/roles.guard';
+import { AdminPermissions } from '../../common/admin-permissions.guard';
 import {
   CreateAdminTeamMemberDto,
   CreateRefundDto,
@@ -19,6 +20,7 @@ import { AdminSettingsService } from './admin-settings.service';
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
 @Roles('admin')
+@AdminPermissions('settings.manage')
 @Controller('admin')
 export class AdminController {
   constructor(
@@ -98,6 +100,7 @@ export class AdminController {
     const actorId = user?.id ?? user?.sub;
     return this.adminSettings.saveAuditMemo(actorId, dto);
   }
+  @AdminPermissions('users.manage')
   @Patch('users/:id/role')
   async setRole(
     @CurrentUser() user: any,
@@ -106,38 +109,140 @@ export class AdminController {
   ) {
     const actorId = user?.id ?? user?.sub;
 
-    const updatedUser = await this.prisma.user.update({
-      where: { id },
-      data: { role: dto.role },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const existingUser = await tx.user.findUnique({
+        where: { id },
+        select: { role: true },
+      });
 
-    await this.prisma.auditLog.create({
-      data: {
-        actorId,
-        target: `user:${id}`,
-        action: `SET_ROLE:${dto.role}`,
-      },
-    });
+      const updatedUser = await tx.user.update({
+        where: { id },
+        data: { role: dto.role },
+      });
 
-    return updatedUser;
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          target: `user:${id}`,
+          action: 'USER_ROLE_CHANGED',
+          context: {
+            previousRole: existingUser?.role ?? null,
+            nextRole: dto.role,
+          },
+        },
+      });
+
+      return updatedUser;
+    });
   }
+  @AdminPermissions('refunds.view')
   @Get('refunds')
   async listRefunds() {
     return this.prisma.refundRequest.findMany({ orderBy: { createdAt: 'desc' } });
   }
 
+  @AdminPermissions('refunds.manage')
   @Post('refunds')
-  async createRefund(@Body() dto: CreateRefundDto) {
-    return this.prisma.refundRequest.create({ data: dto });
+  async createRefund(
+    @CurrentUser() user: any,
+    @Body() dto: CreateRefundDto,
+  ) {
+    const actorId = user?.id ?? user?.sub;
+
+    return this.prisma.$transaction(async (tx) => {
+      const created = await tx.refundRequest.create({ data: dto });
+
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          target: `refund:${created.id}`,
+          action: 'REFUND_REQUEST_CREATED',
+          reason: dto.reason ?? null,
+          context: {
+            userId: dto.userId,
+            platform: dto.platform,
+            productId: dto.productId,
+          },
+        },
+      });
+
+      return created;
+    });
   }
 
+  @AdminPermissions('refunds.manage')
   @Patch('refunds/:id/approve')
-  async approve(@Param('id') id: string) {
-    return this.prisma.refundRequest.update({ where: { id }, data: { status: 'approved', decidedAt: new Date() } });
+  async approve(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    const actorId = user?.id ?? user?.sub;
+
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.refundRequest.findUnique({
+        where: { id },
+        select: { status: true },
+      });
+
+      const updated = await tx.refundRequest.update({
+        where: { id },
+        data: {
+          status: 'approved',
+          decidedAt: new Date(),
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          target: `refund:${id}`,
+          action: 'REFUND_REQUEST_APPROVED',
+          context: {
+            previousStatus: existing?.status ?? null,
+            nextStatus: 'approved',
+          },
+        },
+      });
+
+      return updated;
+    });
   }
 
+  @AdminPermissions('refunds.manage')
   @Patch('refunds/:id/deny')
-  async deny(@Param('id') id: string) {
-    return this.prisma.refundRequest.update({ where: { id }, data: { status: 'denied', decidedAt: new Date() } });
+  async deny(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    const actorId = user?.id ?? user?.sub;
+
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.refundRequest.findUnique({
+        where: { id },
+        select: { status: true },
+      });
+
+      const updated = await tx.refundRequest.update({
+        where: { id },
+        data: {
+          status: 'denied',
+          decidedAt: new Date(),
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          target: `refund:${id}`,
+          action: 'REFUND_REQUEST_DENIED',
+          context: {
+            previousStatus: existing?.status ?? null,
+            nextStatus: 'denied',
+          },
+        },
+      });
+
+      return updated;
+    });
   }
 }

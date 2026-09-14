@@ -21,6 +21,8 @@ import { GiftsModule } from './modules/gifts/gifts.module';
 import { StoreModule } from './modules/store/store.module';
 import { LegalDocumentsModule } from './modules/legal-documents/legal-documents.module';
 import { MediaModule } from './modules/media/media.module';
+import { AdminPermissionsGuard } from './common/admin-permissions.guard';
+import { AdminSecurityModule } from './modules/admin-security/admin-security.module';
 
 @Module({
   imports: [
@@ -44,10 +46,12 @@ import { MediaModule } from './modules/media/media.module';
     StoreModule,
     LegalDocumentsModule,
     MediaModule,
+    AdminSecurityModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: AdminPermissionsGuard },
   ],
 })
 export class AppModule {}

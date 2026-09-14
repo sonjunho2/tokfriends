@@ -1,2 +1,3 @@
 services/api/prisma/migrations/20260914042731_add_owner_activity_account_foundation/migration.sql text eol=crlf
 services/api/prisma/migrations/20260914050305_add_wallet_ledger_foundation/migration.sql text eol=lf
+services/api/prisma/migrations/20260914054641_add_rbac_audit_risk_foundation/migration.sql text eol=lf

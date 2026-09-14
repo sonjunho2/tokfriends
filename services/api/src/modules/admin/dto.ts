@@ -10,6 +10,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { ADMIN_PERMISSION_KEYS } from '../../common/admin-permissions.guard';
 
 export class SetUserRoleDto {
   @IsIn(['user', 'moderator', 'admin'])
@@ -74,6 +75,7 @@ export class CreateAdminTeamMemberDto {
   @IsArray()
   @ArrayUnique()
   @IsString({ each: true })
+  @IsIn([...ADMIN_PERMISSION_KEYS], { each: true })
   permissions?: string[];
 
   @IsOptional()
@@ -105,6 +107,7 @@ export class UpdateAdminTeamMemberDto {
   @IsArray()
   @ArrayUnique()
   @IsString({ each: true })
+  @IsIn([...ADMIN_PERMISSION_KEYS], { each: true })
   permissions?: string[];
 
   @IsOptional()

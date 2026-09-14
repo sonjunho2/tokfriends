@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Roles, RolesGuard } from '../../common/roles.guard';
+import { AdminPermissions } from '../../common/admin-permissions.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { Public } from '../auth/public.decorator';
 import { UpdateLegalDocumentDto } from './dto/update-legal-document.dto';
@@ -28,6 +29,7 @@ export class LegalDocumentsController {
   @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles('admin')
+  @AdminPermissions('settings.manage')
   updateDocument(
     @CurrentUser() user: any,
     @Param('slug') slug: string,

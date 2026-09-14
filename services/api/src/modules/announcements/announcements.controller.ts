@@ -1,9 +1,11 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { PrismaService } from 'nestjs-prisma';
+import { AdminPermissions } from '../../common/admin-permissions.guard';
 
 @ApiTags('admin/announcements')
 @ApiBearerAuth()
+@AdminPermissions('content.manage')
 @Controller('admin/announcements')
 export class AdminAnnouncementsController {
   constructor(private readonly prisma: PrismaService) {}

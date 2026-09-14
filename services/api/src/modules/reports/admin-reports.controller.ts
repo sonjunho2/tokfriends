@@ -2,9 +2,11 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ReportsService } from './reports.service';
+import { AdminPermissions } from '../../common/admin-permissions.guard';
 
 @ApiTags('admin/reports')
 @ApiBearerAuth()
+@AdminPermissions('reports.view')
 @Controller('admin/reports')
 export class AdminReportsController {
   constructor(private readonly reports: ReportsService) {}

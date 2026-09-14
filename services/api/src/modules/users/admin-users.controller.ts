@@ -17,6 +17,7 @@ import { PrismaService } from 'nestjs-prisma';
 import { UsersService } from './users.service';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { Roles, RolesGuard } from '../../common/roles.guard';
+import { AdminPermissions } from '../../common/admin-permissions.guard';
 import { AdminUpdateUserDto, AdminUserActionDto, AdminUserNoteDto, AdminUserStatusDto } from './admin-users.dto';
 
 type ProfileVisibilitySettings = {
@@ -30,6 +31,7 @@ type ProfileVisibilitySettings = {
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
 @Roles('admin')
+@AdminPermissions('users.manage')
 @Controller('admin/users')
 export class AdminUsersController {
   constructor(
