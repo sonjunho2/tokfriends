@@ -23,11 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-44a8f634e00b1728b977a21cdbf36d7cb078604a
-feat: add admin RBAC audit and approval foundation
+6e7ce46419719f199cb11cfbfc39f91889a3952f
+feat: add DAGAON mobile navigation foundation
 
 Remote GitHub branch HEAD verified:
-44a8f634e00b1728b977a21cdbf36d7cb078604a
+6e7ce46419719f199cb11cfbfc39f91889a3952f
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -174,6 +174,34 @@ Completed 2026-09-14.
 - GitHub remote branch HEAD verified at the same SHA
 - Admin 2FA enforcement remains a later security task; it was not enabled here to avoid locking out current administration before the full 2FA flow exists.
 
+### Mobile navigation foundation
+Completed 2026-09-14.
+
+- Main tabs changed to Home / Live / Chat / Points / My
+- Home reuses HomeScreen
+- Chat reuses ChatsScreen stack
+- Points reuses ShopScreen without changing purchase logic
+- My reuses the existing Settings/My stack
+- Added minimal LiveScreen placeholder only
+- Preserved AuthFlow and onboarding stack
+- Updated mobile deep links for new tab route names
+- Preserved technical ddakchin:// deep-link prefix
+- Updated profile/chat navigation references from old tab names
+- Home consumer brand changed from MJ톡 to DAGAON
+- General tab active color set locally to #6D4AFF
+- LIVE tab active color set to #FF3B6B
+- Global theme colors were intentionally not changed in this commit
+- No LIVE backend/LiveKit implementation
+- No real Chat WebSocket implementation
+- No API/Prisma/Admin changes
+- Mobile Babel transform check PASS
+- Mobile relative import check PASS
+- expo-doctor 21/21 PASS
+- git diff --cached --check PASS
+- Feature commit:
+  6e7ce46419719f199cb11cfbfc39f91889a3952f
+- GitHub remote branch HEAD verified at the same SHA
+
 ### Final high-level IA
 Mobile main tabs:
 Home / Live / Chat / Points / My
@@ -273,15 +301,20 @@ COMPLETE.
 RBAC / Audit / Risk foundation:
 COMPLETE.
 
+Mobile navigation foundation:
+COMPLETE.
+
 Next implementation phase:
-MOBILE NAVIGATION.
+ADMIN NAVIGATION.
 
 ## Immediate Next Task
 
-Implement the DAGAON mobile navigation foundation safely.
+Implement the DAGAON Admin navigation foundation safely.
 
-Target main tabs:
-Home / Live / Chat / Points / My
+Target Admin IA:
+Dashboard / Members / Social / Chat / Live / Content /
+Points & Gifts / Ads & Rewards / Settlement /
+Reports & Safety / Analytics / Admin & Permissions / Settings
 
 First commands to run when resuming:
 
@@ -290,10 +323,10 @@ git branch --show-current
 git status --short
 git log -1 --oneline
 
-Then inspect the exact current mobile navigator and tab screen wiring before editing.
+Then inspect the current apps/admin route and sidebar/navigation structure before editing.
 
-Do not implement LIVE, real Chat, Social, or Wallet behavior in the navigation commit.
-Only establish the commercial DAGAON navigation structure and safe screen placeholders/reuse where appropriate.
+Do not implement missing Admin business features in the navigation commit.
+Only establish the DAGAON Admin information architecture and safe route wiring/placeholders where appropriate.
 
 ## RBAC / Audit / Risk Safety Rules
 
