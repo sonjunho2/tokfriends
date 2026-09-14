@@ -175,7 +175,7 @@ export default function ShopScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>상점</Text>
+        <Text style={styles.title}>Points</Text>
         <View style={styles.pointBadge}>
           <Text style={styles.pointIcon}>P</Text>
           <Text style={styles.pointText}>{balance}</Text>

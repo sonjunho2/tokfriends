@@ -29,14 +29,15 @@ const linking = {
           ProfileDetail: 'home/profile',
         },
       },
-      Chats: {
+      Live: 'live',
+      Chat: {
         screens: {
           ChatsMain: 'chats',
           ChatRoom: 'chat/:id',
         },
       },
-      Shop: 'shop',
-      MyPage: {
+      Points: 'points',
+      My: {
         screens: {
           MyPageMain: 'mypage',
           ProfileDetail: 'mypage/profile',

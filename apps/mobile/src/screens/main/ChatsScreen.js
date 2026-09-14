@@ -89,7 +89,7 @@ export default function ChatsScreen({ navigation, route }) {
             </TouchableOpacity>
           )}
         </View>
-        <Text style={styles.headerTitle}>대화</Text>
+        <Text style={styles.headerTitle}>Chat</Text>
         <View style={styles.headerSideRight} />
       </View>
 

@@ -52,14 +52,14 @@ export default function GlobalProfileModal() {
   const handleOpenMyPage = () => {
     closeProfile();
     setTimeout(() => {
-      navigation.navigate('MyPage', { screen: 'MyPageMain' });
+      navigation.navigate('My', { screen: 'MyPageMain' });
     }, 0);
   };
 
   const handleOpenSettings = () => {
     closeProfile();
     setTimeout(() => {
-      navigation.navigate('MyPage', { screen: 'MyPageMain' });
+      navigation.navigate('My', { screen: 'MyPageMain' });
     }, 0);
   };
 
@@ -85,7 +85,7 @@ export default function GlobalProfileModal() {
       };
       closeProfile();
       setTimeout(() => {
-        navigation.navigate('Chats', {
+        navigation.navigate('Chat', {
           screen: 'ChatRoom',
           params: { id: roomId, room, user: participant },
         });

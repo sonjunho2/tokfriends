@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useAuthStoreSync } from '../store/auth';
 // ===== 메인 =====
 import HomeScreen from '../screens/main/HomeScreen';
+import LiveScreen from '../screens/main/LiveScreen';
 import ChatsScreen from '../screens/main/ChatsScreen';
 import ShopScreen from '../screens/shop/ShopScreen';           
 import SettingsScreen from '../screens/my/SettingsScreen';
@@ -117,7 +118,7 @@ function MainTabs() {
       initialRouteName="Home"
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
+        tabBarActiveTintColor: '#6D4AFF',
         tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle: {
           backgroundColor: colors.backgroundSecondary,
@@ -128,10 +129,11 @@ function MainTabs() {
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         tabBarIcon: ({ focused, color, size }) => {
           const iconMap = {
-            Home: focused ? 'people' : 'people-outline',
-            Chats: focused ? 'chatbubbles' : 'chatbubbles-outline',
-            Shop: focused ? 'bag' : 'bag-outline',
-            MyPage: focused ? 'person' : 'person-outline',
+            Home: focused ? 'home' : 'home-outline',
+            Live: focused ? 'radio' : 'radio-outline',
+            Chat: focused ? 'chatbubbles' : 'chatbubbles-outline',
+            Points: focused ? 'diamond' : 'diamond-outline',
+            My: focused ? 'person' : 'person-outline',
           };
           const name = iconMap[route.name] || (focused ? 'ellipse' : 'ellipse-outline');
           return <Ionicons name={name} size={size} color={color} />;
@@ -142,7 +144,7 @@ function MainTabs() {
       <Tab.Screen
         name="Home"
         component={HomeStack}
-        options={{ tabBarLabel: '홈' }}
+        options={{ tabBarLabel: 'Home' }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             // 기본 동작(탭 전환)으로 홈 스택의 현재 화면을 유지하면
@@ -152,9 +154,17 @@ function MainTabs() {
           },
         })}
       />
-      <Tab.Screen name="Chats" component={ChatsStack} options={{ tabBarLabel: '대화' }} />
-      <Tab.Screen name="Shop" component={ShopScreen} options={{ tabBarLabel: '상점' }} />
-      <Tab.Screen name="MyPage" component={MyPageStack} options={{ tabBarLabel: '마이페이지' }} />
+      <Tab.Screen
+        name="Live"
+        component={LiveScreen}
+        options={{
+          tabBarLabel: 'Live',
+          tabBarActiveTintColor: '#FF3B6B',
+        }}
+      />
+      <Tab.Screen name="Chat" component={ChatsStack} options={{ tabBarLabel: 'Chat' }} />
+      <Tab.Screen name="Points" component={ShopScreen} options={{ tabBarLabel: 'Points' }} />
+      <Tab.Screen name="My" component={MyPageStack} options={{ tabBarLabel: 'My' }} />
     </Tab.Navigator>
   );
 }

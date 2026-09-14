@@ -81,7 +81,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
         avatar: data.avatar,
         headline: data.title,
       };
-      navigation.navigate('Chats', {
+      navigation.navigate('Chat', {
         screen: 'ChatRoom',
         params: {
           id: roomId,

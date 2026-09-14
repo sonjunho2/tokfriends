@@ -123,7 +123,7 @@ export default function HomeScreen({ navigation }) {
       {/* 상단 앱명(가운데/크게) + 검색 */}
       <View style={styles.appbar}>
         <View style={{ width: 24 }} />
-        <Text style={styles.appTitle}>MJ톡</Text>
+        <Text style={styles.appTitle}>DAGAON</Text>
         <TouchableOpacity hitSlop={8} style={styles.searchBtn}>
           <Ionicons name="search" size={20} color={colors.text} />
         </TouchableOpacity>
@@ -172,9 +172,9 @@ export default function HomeScreen({ navigation }) {
               onPress={() => {
                 const parentNav = navigation.getParent?.();
                 if (parentNav && typeof parentNav.navigate === 'function') {
-                  parentNav.navigate('Chats', { initialSeg: '신규' });
+                  parentNav.navigate('Chat', { screen: 'ChatsMain', params: { initialSeg: '신규' } });
                 } else if (typeof navigation.navigate === 'function') {
-                  navigation.navigate('Chats');
+                  navigation.navigate('Chat');
                 }
               }}
             >

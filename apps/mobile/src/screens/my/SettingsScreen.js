@@ -260,7 +260,7 @@ export default function SettingsScreen({ navigation }) {
         >
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, dynamicFont.heading]}>마이페이지</Text>
+        <Text style={[styles.headerTitle, dynamicFont.heading]}>My</Text>
         <View style={styles.headerButton} />
       </View>
 
