@@ -23,8 +23,8 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-84547983d9175bf26c03d6ad4d66583f2d85450e
-feat: add owner and activity account foundation
+92133fbe258caa4a69bbadcc83f46a0d52712ae9
+feat: add wallet ledger foundation
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -56,6 +56,7 @@ Migrations present:
 5. 20260908014500_add_user_token_version
 6. 20260908044000_add_legal_documents
 7. 20260914042731_add_owner_activity_account_foundation
+8. 20260914050305_add_wallet_ledger_foundation
 
 2026-09-14:
 npx prisma migrate deploy
@@ -91,6 +92,38 @@ Completed 2026-09-14.
 - ESLint could not run because the existing API project has no ESLint configuration file
 - Migration committed and pushed separately
 - Commit: 84547983d9175bf26c03d6ad4d66583f2d85450e
+
+### Wallet / Ledger foundation
+Completed 2026-09-14.
+
+- Added one Wallet per ActivityAccount
+- Added spendableBalance, redeemableBalance, and pendingEarnings buckets
+- Added append-oriented WalletLedgerEntry foundation with delta and post-transaction balance fields
+- Added unique idempotencyKey support for duplicate transaction prevention
+- Added source/reference/metadata fields for transaction provenance
+- Preserved existing User.pointsBalance during the transition
+- Preserved existing PointPurchase behavior and User relationship
+- Backfilled every existing ActivityAccount with one Wallet
+- Existing User.pointsBalance copied to Wallet.spendableBalance
+- Non-zero legacy balances create an opening ledger entry
+- Zero legacy balances do not create unnecessary opening ledger entries
+- ActivityAccount count: 2
+- Wallet count: 2
+- Missing Wallet count: 0
+- Total legacy balance: 0
+- Total wallet spendable balance: 0
+- Wallet relationship verification PASS
+- Wallet balance preservation verification PASS
+- Prisma validate PASS
+- Prisma migrate deploy PASS
+- Prisma migrate status: database schema is up to date
+- Prisma Client generation PASS
+- NestJS API build PASS
+- Applied migration checksum verified against migration.sql
+- Added .gitattributes rules to preserve applied Prisma migration line endings/checksums
+- Owner migration pinned to CRLF; Wallet migration pinned to LF
+- Migration checksum preservation fix commit: bb7e1c349e9f6887a2e8aaca79338281e00542b0
+- Wallet/Ledger commit: 92133fbe258caa4a69bbadcc83f46a0d52712ae9
 
 ### Final high-level IA
 Mobile main tabs:
@@ -174,11 +207,14 @@ Owner / ActivityAccount foundation:
 COMPLETE.
 
 Wallet / Ledger foundation:
+COMPLETE.
+
+RBAC / Audit / Risk foundation:
 NEXT.
 
 ## Immediate Next Task
 
-Implement Wallet / Ledger foundation safely.
+Implement RBAC / Audit / Risk foundation safely.
 
 First commands to run when resuming:
 
@@ -187,9 +223,26 @@ git branch --show-current
 git status --short
 git log -1 --oneline
 
-Then inspect the exact current Prisma wallet/points-related schema and store purchase flow before editing.
+Then inspect the exact current AdminProfile, AuditLog, admin authorization, JWT guard, and high-risk admin action paths before editing.
 
-## Wallet / Ledger Migration Safety Rules
+## RBAC / Audit / Risk Safety Rules
+
+The first RBAC/Audit/Risk foundation must:
+- preserve current user authentication and JWT behavior during the transition
+- preserve the existing User.role and AdminProfile relationship until migration is deliberate
+- enforce authorization server-side, not only in Admin UI
+- use explicit permissions and default-deny behavior for protected admin actions
+- keep audit records append-oriented and attributable to the acting admin
+- capture target, action, reason/context, and relevant metadata for sensitive operations
+- create a foundation for high-risk approval and dual-control without implementing every admin workflow at once
+- avoid mixing Mobile navigation, Social, Chat, Gift, or LIVE changes into the same feature
+- inspect existing admin and audit schema before adding new models or fields
+- use its own migration if schema changes are required
+- pass Prisma validation/migration checks when applicable
+- pass API build and available project checks
+- commit separately
+
+## Completed Wallet / Ledger Migration Safety Rules
 
 The first Wallet/Ledger migration must:
 - preserve User.pointsBalance during the transition
@@ -203,7 +256,6 @@ The first Wallet/Ledger migration must:
 - pass Prisma validation and migration checks
 - pass API build and available project checks
 - commit separately
-
 
 ## Completed Owner / ActivityAccount Migration Safety Rules
 
