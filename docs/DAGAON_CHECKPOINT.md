@@ -23,11 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-2482462c5c5e4fc9d5d38429220eef0db2e71e8c
-feat: add profile visit API foundation
+9ca3d214564331f09381613f91d1e1ef7fe2409a
+feat: add activity chat identity foundation
 
 Remote GitHub branch HEAD verified:
-2482462c5c5e4fc9d5d38429220eef0db2e71e8c
+9ca3d214564331f09381613f91d1e1ef7fe2409a
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -632,6 +632,101 @@ Completed 2026-09-15.
   2482462c5c5e4fc9d5d38429220eef0db2e71e8c
 - GitHub remote branch HEAD verified at the same SHA
 
+### ActivityAccount Chat identity schema foundation
+Completed 2026-09-15.
+
+- Real Chat existing structure audit COMPLETE
+- Real Chat DB data audit COMPLETE
+- ActivityAccount Chat identity schema foundation COMPLETE
+- Pre-implementation DB audit for the currently connected database:
+  - User: 2
+  - Owner: 2
+  - ActivityAccount: 2
+  - active ActivityAccount: 1
+  - Chat: 0
+  - Message: 0
+  - Block: 0
+  - Device: 0
+- No duplicate legacy Chat, self Chat, or Message sender integrity issue was present
+- No Chat or Message rows required backfill
+- Audit results apply only to the currently connected database
+- Environments containing legacy Chat data require the same audit before migration/backfill
+- Existing legacy Chat identity remains required and unchanged:
+  - userAId
+  - userBId
+  - userA User relation
+  - userB User relation
+- Added nullable ActivityAccount Chat bridge:
+  - accountAId String?
+  - accountBId String?
+  - accountA ActivityAccount?
+  - accountB ActivityAccount?
+- ActivityAccount Chat foreign keys use onDelete: SetNull
+- Existing User foreign keys were not removed or made nullable
+- Added ActivityAccount inverse relations:
+  - chatsAsAccountA
+  - chatsAsAccountB
+- Existing Message senderId and sender User relation remain required
+- Added nullable Message sender bridge:
+  - senderAccountId String?
+  - senderAccount ActivityAccount?
+  - onDelete: SetNull
+- Added ActivityAccount inverse relation chatMessagesSent
+- Added Chat constraints and indexes:
+  - @@unique([accountAId, accountBId])
+  - @@index([accountAId, lastMessageAt])
+  - @@index([accountBId, lastMessageAt])
+- Added Message index:
+  - @@index([senderAccountId, createdAt])
+- Application-level canonical participant ordering is not implemented yet
+- Canonical ordering is reserved for the direct-room API slice
+- No DB lexical ordering CHECK was added
+- Initial migration:
+  - 20260915050503_add_activity_chat_identity_foundation
+  - applied successfully
+  - SHA-256: DC6C67092415DD9F6BEDB6D01B0D376B47B6069870218C0226159C2EDA983DC0
+  - DB checksum matches the migration file
+  - migration.sql pinned to LF
+  - applied migration bytes must never be modified
+- Initial migration added nullable bridge columns, SetNull foreign keys, unique/indexes,
+  the self-chat CHECK, and the original pair-complete CHECK
+- A compatibility conflict was identified between the pair-complete CHECK and independent SetNull foreign keys
+- Deleting one ActivityAccount could null only one bridge column and violate the pair-complete CHECK
+- The applied initial migration was not edited
+- Corrective migration:
+  - 20260915141108_fix_activity_chat_setnull_compatibility
+  - removes only Chat_activity_account_pair_complete_check
+  - SHA-256: 242B2DD2050007CF23EB75FF34DAABF88A926E3C9DF468E9B5B222A7939E2159
+  - DB checksum matches the migration file
+  - migration.sql pinned to LF
+  - applied migration bytes must never be modified
+- Final DB constraint state:
+  - Chat_activity_account_pair_complete_check absent
+  - Chat_activity_account_self_check retained
+  - Chat_accountAId_fkey retains ON DELETE SET NULL
+  - Chat_accountBId_fkey retains ON DELETE SET NULL
+  - account pair unique retained
+  - accountA/list index retained
+  - accountB/list index retained
+  - Message senderAccount index retained
+- Transitional nullable bridges may be partially null after ActivityAccount deletion
+- New ActivityAccount Chat creation must set both participants together in application logic
+- No User-to-ActivityAccount, Chat, or Message backfill SQL included
+- No legacy Chat merge/deletion or Message movement included
+- Total migrations: 12
+- npx prisma migrate deploy PASS
+- npx prisma migrate status PASS
+- Database schema is up to date
+- npx prisma validate PASS
+- npm run build PASS
+- git diff --check PASS
+- services/api/src, existing Chat behavior, WebSocket, Community, Auth/JWT, Mobile,
+  Admin, package/dependency, message list/read/unread, attachment, push, and realtime unchanged
+- Final working tree clean after feature commit and push
+- Feature commit:
+  9ca3d214564331f09381613f91d1e1ef7fe2409a
+- GitHub remote branch HEAD verified at the same SHA
+
 ### Final high-level IA
 Mobile main tabs:
 Home / Live / Chat / Points / My
@@ -709,6 +804,16 @@ Social identity architecture:
 - Block enforcement was not implemented in this schema foundation.
 - Follow, Interest, and ProfileVisit enforce bilateral User-level Block visibility and creation policy.
 - The Owner/User compatibility boundary must prevent Block bypass across future multi-ActivityAccount identities.
+
+Real Chat identity architecture:
+- Existing Chat and Message behavior remains legacy User-based for compatibility.
+- Nullable ActivityAccount participant and sender bridges now provide an additive migration path.
+- Legacy User identity fields remain required during the transition.
+- ActivityAccount deletion preserves Chat/history rows through independent SetNull foreign keys.
+- Partial-null Chat bridge state is permitted for transitional history preservation.
+- New ActivityAccount direct rooms must set both account participant fields together.
+- Canonical account pair ordering and direct-room concurrency safety remain application-layer follow-up work.
+- Message list, realtime, read/unread, attachments, push, and Mobile Chat integration remain unimplemented.
 
 Major domains still required:
 - Gift transactions
@@ -789,14 +894,23 @@ COMPLETE.
 SOCIAL foundation:
 COMPLETE.
 
+Real Chat existing structure audit:
+COMPLETE.
+
+Real Chat DB data audit:
+COMPLETE.
+
+ActivityAccount Chat identity schema foundation:
+COMPLETE.
+
 Next implementation phase:
-REAL CHAT — NEXT.
+REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Begin the Real Chat foundation.
+Begin the ActivityAccount-based direct-room API safety foundation.
 
-Do not implement Chat code before inspecting the existing structure and defining a minimal foundation slice.
+Limit the next slice to direct-room creation and lookup safety without converting all Chat behavior at once.
 
 First commands to run when resuming:
 
@@ -806,21 +920,26 @@ git status --short
 git log -1 --oneline
 
 Before editing:
-- Inspect Chat and Message models in services/api/prisma/schema.prisma.
-- Inspect chat-related controllers, services, and modules under services/api/src.
-- Inspect the Mobile Chat tab, screens, and API client.
-- Determine whether the current Chat implementation is dummy, legacy, or partially real.
-- Document the current legacy User-based Chat identity.
-- Define the minimum scope for moving Chat identity toward ActivityAccount.
-- Inspect how Block affects chat room creation and visibility.
-- Determine whether Friendship is required to start or retain a chat.
-- Inspect the existing message pagination structure.
-- Determine whether read/unread state exists.
-- Determine whether websocket or other realtime infrastructure exists.
-- Inspect current attachment and image-message support.
-- Inspect current push-notification integration for Chat.
-- Do not guess the Chat implementation policy or begin a large refactor before this inspection.
-- Choose a minimal Real Chat foundation slice only after the existing structure is understood.
+- Reinspect the current Chat schema and ChatsService before implementation.
+- Convert only POST /chats/direct to an ActivityAccount-based input boundary first.
+- Require req.user.activityAccountId.
+- Use targetAccountId as the target identity.
+- Require active actor ActivityAccount and active actor Owner.
+- Require active target ActivityAccount and active target Owner.
+- Reject self-chat.
+- Enforce bilateral legacy User Block checks without exposing Block direction.
+- Require both Owners to have valid legacyUserId bridges while userAId/userBId remain mandatory.
+- If either legacy bridge is absent, reject direct-room creation safely rather than writing null User foreign keys.
+- Set both accountAId and accountBId for every new ActivityAccount Chat.
+- Apply deterministic canonical ordering to participant ActivityAccount IDs.
+- Use the account pair database unique constraint.
+- Run Block check and existing-room lookup/create in a Serializable transaction.
+- Retry Prisma P2034 conflicts.
+- Prevent duplicate rooms under concurrent direct-room requests.
+- Do not expose legacy User IDs or Owner IDs in the consumer response.
+- Preserve existing legacy Chat compatibility rather than destructively converting old rows.
+- Do not add a Friendship requirement; preserve the current policy.
+- Do not mix message list/send, realtime, read/unread, push, attachments, or Mobile dummy removal into this slice.
 
 ## RBAC / Audit / Risk Safety Rules
 
