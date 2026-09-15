@@ -23,11 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-8693e94fcdddd44098dcd213d577add6806675d2
-fix: unify API JWT guard usage
+c4059b015242fd5309ff025e223d7ec79f422c7d
+feat: resolve activity account request context
 
 Remote GitHub branch HEAD verified:
-8693e94fcdddd44098dcd213d577add6806675d2
+c4059b015242fd5309ff025e223d7ec79f422c7d
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -309,6 +309,51 @@ Completed 2026-09-15.
   8693e94fcdddd44098dcd213d577add6806675d2
 - GitHub remote branch HEAD verified at the same SHA
 
+### ActivityAccount request context foundation
+Completed 2026-09-15.
+
+- canonical JwtStrategy에서 authenticated User 기준으로 ActivityAccount context resolve
+- JWT payload 자체는 변경하지 않음
+- JWT는 기존 `{ sub, tokenVersion }` 유지
+- request.user 기존 필드 유지:
+  - id
+  - role
+  - status
+- request.user에 추가:
+  - ownerId
+  - activityAccountId
+- consumer `role === 'user'`에서만 ActivityAccount context resolve
+- active Owner만 사용
+- active ActivityAccount 후보만 사용
+- 후보 조건:
+  - isPrimary === true
+  - 또는 legacyUserId === current User.id
+- primary 우선
+- 이후 createdAt 오름차순
+- 최대 1개 선택
+- Owner 소유 범위 안에서만 account 선택
+- Owner가 없거나 inactive이면:
+  - ownerId = null
+  - activityAccountId = null
+- ActivityAccount가 없으면:
+  - activityAccountId = null
+- admin 등 role !== user:
+  - ownerId = null
+  - activityAccountId = null
+- foundation 데이터가 없거나 inactive여도 기존 active User 인증은 실패시키지 않음
+- account-scoped endpoint에서 non-null 강제는 아직 하지 않음
+- Friendship / Chat / Community / Discover의 User-based compatibility는 유지
+- single Prisma findUnique call with nested select로 구현
+- 별도 Prisma API 호출은 추가하지 않음
+- 실제 SQL query count / DB round trip 수는 아직 측정하지 않음
+- npx prettier --check src/modules/auth/jwt.strategy.ts PASS
+- npx prisma validate PASS
+- npm run build PASS
+- git diff --check PASS
+- Feature commit:
+  c4059b015242fd5309ff025e223d7ec79f422c7d
+- GitHub remote branch HEAD verified at the same SHA
+
 ### Final high-level IA
 Mobile main tabs:
 Home / Live / Chat / Points / My
@@ -369,10 +414,13 @@ Core foundations now present:
 - Admin RBAC / Audit / Approval
 - New consumer Users are provisioned with an Owner, primary ActivityAccount, and Wallet
 
-Authentication/request context remains User-based.
-Current ActivityAccount selection/resolution is not implemented yet.
+The canonical JwtStrategy request context provides User identity plus optional Owner/ActivityAccount context.
+JWT does not permanently store ActivityAccount selection state.
+The primary / legacy compatibility account is currently resolved server-side.
+Future multi-ActivityAccount switching is not implemented yet.
+Future account switching should extend the server-side selection layer rather than center on JWT reissuance.
+Account-scoped endpoint enforcement remains a separate follow-up task.
 Active legacy guards that overwrote req.user were removed from CommunityController and UsersController.
-The canonical JwtStrategy request context can now be the basis for ActivityAccount resolution.
 Legacy guard file cleanup/deletion remains a separate follow-up task.
 
 Major domains still required:
@@ -433,12 +481,15 @@ COMPLETE.
 API JWT guard usage unification:
 COMPLETE.
 
+ActivityAccount request context foundation:
+COMPLETE.
+
 Next implementation phase:
 SOCIAL — IN PROGRESS.
 
 ## Immediate Next Task
 
-Prepare the design and implementation path for safely resolving the current ActivityAccount from an authenticated User.
+Finalize the identity boundary for connecting ActivityAccount to the Social domain before designing Follow / Interest / ProfileVisit schema.
 
 First commands to run when resuming:
 
@@ -448,13 +499,13 @@ git status --short
 git log -1 --oneline
 
 Before editing:
-- Inspect JwtStrategy and the current req.user structure.
-- Prefer evaluating server-side User -> Owner -> ActivityAccount resolution without permanently fixing ActivityAccount selection in JWT.
-- Review legacyUserId / isPrimary as the current default compatibility account resolution path.
-- Design the resolution path without blocking future multi-ActivityAccount selection.
-- Keep the existing User-based Friendship as a compatibility layer.
-- Add Follow / Interest / ProfileVisit schema only after the resolution approach is confirmed.
-- Do not mix Real Chat, Gift, LIVE, Feed, or Points into this step.
+- Keep existing Friendship / Block / Report on the User-based compatibility layer for now.
+- Review whether new Follow / Interest / ProfileVisit models should use ActivityAccount as their identity.
+- Design Block visibility so it also applies consistently to the ActivityAccount social graph.
+- Preserve identity separation between accounts owned by one Owner in future multi-ActivityAccount flows.
+- Use request.user.activityAccountId without changing the JWT payload.
+- Add Follow / Interest / ProfileVisit schema only after this identity boundary is confirmed.
+- Do not mix Chat, Gift, LIVE, Feed, or Points into this step.
 
 ## RBAC / Audit / Risk Safety Rules
 
