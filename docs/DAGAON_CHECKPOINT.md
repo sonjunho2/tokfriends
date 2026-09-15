@@ -23,11 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-98a6fc495f10bd23ae981d8f228147b7798872a8
-feat: add activity social graph foundation
+7babb3a7b8ef0c10d608df0475562e74c4508aab
+feat: add follow API foundation
 
 Remote GitHub branch HEAD verified:
-98a6fc495f10bd23ae981d8f228147b7798872a8
+7babb3a7b8ef0c10d608df0475562e74c4508aab
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -414,6 +414,70 @@ Completed 2026-09-15.
   98a6fc495f10bd23ae981d8f228147b7798872a8
 - GitHub remote branch HEAD verified at the same SHA
 
+### Follow API/service foundation
+Completed 2026-09-15.
+
+- Implemented ActivityAccount-based Follow APIs:
+  - PUT /follows/:targetAccountId
+  - DELETE /follows/:targetAccountId
+  - GET /follows/:targetAccountId/status
+  - GET /follows/:accountId/followers
+  - GET /follows/:accountId/following
+- Account-scoped Follow endpoints require req.user.activityAccountId
+- Missing ActivityAccount context returns ForbiddenException("Active activity account required")
+- JWT payload remains unchanged
+- req.user.id is used for legacy User Block compatibility checks
+- Follow creation policy:
+  - self-follow rejected
+  - actor ActivityAccount and Owner must be active
+  - target ActivityAccount and Owner must be active
+  - missing/inactive target uses a generic NotFound response
+  - bilateral legacy User Block checked when target Owner.legacyUserId exists
+  - Block direction is not exposed
+  - compound followerAccountId_followingAccountId upsert provides idempotent follow
+  - Block check and upsert run in a Serializable transaction
+  - Prisma P2034 conflicts retry up to three times
+- Unfollow uses idempotent deleteMany
+- Missing, inactive, or blocked target does not prevent existing Follow cleanup
+- Follow status:
+  - only visible active targets are queried
+  - blocked/inactive targets use the same NotFound response
+  - self status returns following=false
+  - following is determined from the compound pair
+- Followers/following lists:
+  - offset pagination with defaults offset=0 and limit=20
+  - maximum limit=50
+  - ordered by createdAt desc and id desc
+  - take limit+1 used to calculate hasMore
+  - inactive ActivityAccount and inactive Owner filtered out
+  - bilateral Block counterpart Owners excluded in the Prisma where clause
+  - Owners with legacyUserId=null are not hidden solely because the bridge is absent
+- Consumer response exposes only:
+  - id
+  - handle
+  - displayName
+  - followedAt
+- Consumer response does not expose ownerId, legacyUserId, or User.id
+- CommunityService block integration:
+  - existing Block upsert preserved
+  - existing bilateral Friendship deletion preserved
+  - both Users' Owners resolved by legacyUserId
+  - all Follow rows between both Owners' ActivityAccounts deleted in both directions
+  - deleted Follow rows are not restored by unblock
+  - existing Serializable transaction and P2034 retry preserved
+- Interest and ProfileVisit unchanged
+- Prisma schema and migrations unchanged
+- package/dependency, JWT strategy, Friendship service, Mobile, and Admin unchanged
+- prettier write/check PASS
+- prisma validate PASS
+- Prisma Client generated before build
+- npm run build PASS
+- git diff --check PASS
+- Final working tree clean after feature commit
+- Feature commit:
+  7babb3a7b8ef0c10d608df0475562e74c4508aab
+- GitHub remote branch HEAD verified at the same SHA
+
 ### Final high-level IA
 Mobile main tabs:
 Home / Live / Chat / Points / My
@@ -489,7 +553,8 @@ Social identity architecture:
 - Account-scoped Social APIs should use req.user.activityAccountId without storing the selection in JWT.
 - A null ActivityAccount context should be rejected only by future account-scoped endpoints; existing User authentication remains valid.
 - Block enforcement was not implemented in this schema foundation.
-- Follow / Interest / ProfileVisit services must consistently enforce bilateral User-level Block visibility and creation policy.
+- Follow now enforces bilateral User-level Block visibility and creation policy.
+- Interest / ProfileVisit services must apply the same policy in later implementations.
 - The Owner/User compatibility boundary must prevent Block bypass across future multi-ActivityAccount identities.
 
 Major domains still required:
@@ -559,12 +624,15 @@ COMPLETE.
 ActivityAccount Social graph schema foundation:
 COMPLETE.
 
+Follow API/service foundation:
+COMPLETE.
+
 Next implementation phase:
 SOCIAL — IN PROGRESS.
 
 ## Immediate Next Task
 
-Begin the Follow API/service foundation without mixing Interest or ProfileVisit.
+Begin the Interest API/service foundation without mixing Follow changes or ProfileVisit.
 
 First commands to run when resuming:
 
@@ -574,13 +642,16 @@ git status --short
 git log -1 --oneline
 
 Before editing:
-- Require req.user.activityAccountId for Follow endpoints.
-- Validate that the target ActivityAccount is active.
-- Reject self-follow.
+- Require req.user.activityAccountId for Interest endpoints.
+- Validate that the target ActivityAccount and Owner are active.
+- Reject self-interest.
 - Enforce bilateral legacy User Block checks.
-- Make follow and unfollow idempotent.
-- Prevent blocked accounts from appearing in Follow lists or lookups.
-- Keep Interest and ProfileVisit out of the first Follow implementation.
+- Define idempotent send and remove behavior.
+- Prevent blocked/inactive accounts from appearing in lookups or lists.
+- Design paginated received and sent lists where needed.
+- Expose only minimal consumer ActivityAccount fields without internal identities.
+- Review Interest cleanup policy for CommunityService block separately.
+- Keep ProfileVisit out of the Interest implementation.
 - Do not mix Chat, Gift, LIVE, Feed, or Points into this step.
 
 ## RBAC / Audit / Risk Safety Rules
