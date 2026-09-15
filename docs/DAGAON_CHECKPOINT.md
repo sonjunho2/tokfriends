@@ -23,11 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-c4059b015242fd5309ff025e223d7ec79f422c7d
-feat: resolve activity account request context
+98a6fc495f10bd23ae981d8f228147b7798872a8
+feat: add activity social graph foundation
 
 Remote GitHub branch HEAD verified:
-c4059b015242fd5309ff025e223d7ec79f422c7d
+98a6fc495f10bd23ae981d8f228147b7798872a8
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -61,10 +61,22 @@ Migrations present:
 7. 20260914042731_add_owner_activity_account_foundation
 8. 20260914050305_add_wallet_ledger_foundation
 9. 20260914054641_add_rbac_audit_risk_foundation
+10. 20260915025317_add_activity_social_graph_foundation
 
-2026-09-14:
+2026-09-15:
 npx prisma migrate status
 => Database schema is up to date!
+
+Activity social graph migration SHA-256:
+0BF4DC41E50D9C9D04905FAE3807C4A38C70960B0AF10D27DEE3025B86636671
+
+.gitattributes migration rule:
+services/api/prisma/migrations/20260915025317_add_activity_social_graph_foundation/migration.sql text eol=lf
+
+Activity social graph migration SHA-256 before/after apply:
+MATCH PASS
+
+Do not modify the applied activity social graph migration bytes.
 
 RBAC migration applied checksum:
 a9ff341e18d78f1d4b94c93652aa72ee06b571e7a0161bb8f49f5cade7746f51
@@ -354,6 +366,54 @@ Completed 2026-09-15.
   c4059b015242fd5309ff025e223d7ec79f422c7d
 - GitHub remote branch HEAD verified at the same SHA
 
+### ActivityAccount Social graph foundation
+Completed 2026-09-15.
+
+- Added ActivityAccount identity-based Social graph models:
+  - Follow
+  - Interest
+  - ProfileVisit
+- Follow:
+  - followerAccountId / followingAccountId
+  - unique account pair
+  - createdAt indexes in both directions
+  - self relation prevented by Follow_accounts_distinct CHECK
+  - ActivityAccount deletion cascades
+- Interest:
+  - senderAccountId / targetAccountId
+  - unique account pair
+  - createdAt indexes in both directions
+  - self relation prevented by Interest_accounts_distinct CHECK
+  - ActivityAccount deletion cascades
+- ProfileVisit:
+  - visitorAccountId / visitedAccountId
+  - no pair unique constraint so visit history is preserved
+  - visitedAt indexes in both directions
+  - self relation prevented by ProfileVisit_accounts_distinct CHECK
+  - ActivityAccount deletion cascades
+- Existing compatibility models remain unchanged:
+  - Friendship remains User-based
+  - Block remains User-based
+  - Report remains User-based
+- Chat was outside this work scope
+- Migration: 20260915025317_add_activity_social_graph_foundation
+- Migration applied successfully to the local database
+- Total migrations: 10
+- Database schema is up to date
+- Migration SQL SHA-256:
+  0BF4DC41E50D9C9D04905FAE3807C4A38C70960B0AF10D27DEE3025B86636671
+- Migration uses `.gitattributes` rule `text eol=lf`
+- Migration SHA-256 matched before and after apply
+- Applied migration bytes must not be modified
+- prisma format PASS
+- prisma validate PASS
+- prisma migrate status PASS
+- API npm run build PASS
+- git diff --check PASS
+- Feature commit:
+  98a6fc495f10bd23ae981d8f228147b7798872a8
+- GitHub remote branch HEAD verified at the same SHA
+
 ### Final high-level IA
 Mobile main tabs:
 Home / Live / Chat / Points / My
@@ -423,6 +483,15 @@ Account-scoped endpoint enforcement remains a separate follow-up task.
 Active legacy guards that overwrote req.user were removed from CommunityController and UsersController.
 Legacy guard file cleanup/deletion remains a separate follow-up task.
 
+Social identity architecture:
+- New Social graph identity is ActivityAccount.
+- Existing Friendship / Block / Report compatibility remains User-based.
+- Account-scoped Social APIs should use req.user.activityAccountId without storing the selection in JWT.
+- A null ActivityAccount context should be rejected only by future account-scoped endpoints; existing User authentication remains valid.
+- Block enforcement was not implemented in this schema foundation.
+- Follow / Interest / ProfileVisit services must consistently enforce bilateral User-level Block visibility and creation policy.
+- The Owner/User compatibility boundary must prevent Block bypass across future multi-ActivityAccount identities.
+
 Major domains still required:
 - Gift transactions
 - Follow / Interest / Visitors
@@ -484,12 +553,18 @@ COMPLETE.
 ActivityAccount request context foundation:
 COMPLETE.
 
+Social identity boundary:
+COMPLETE.
+
+ActivityAccount Social graph schema foundation:
+COMPLETE.
+
 Next implementation phase:
 SOCIAL — IN PROGRESS.
 
 ## Immediate Next Task
 
-Finalize the identity boundary for connecting ActivityAccount to the Social domain before designing Follow / Interest / ProfileVisit schema.
+Begin the Follow API/service foundation without mixing Interest or ProfileVisit.
 
 First commands to run when resuming:
 
@@ -499,12 +574,13 @@ git status --short
 git log -1 --oneline
 
 Before editing:
-- Keep existing Friendship / Block / Report on the User-based compatibility layer for now.
-- Review whether new Follow / Interest / ProfileVisit models should use ActivityAccount as their identity.
-- Design Block visibility so it also applies consistently to the ActivityAccount social graph.
-- Preserve identity separation between accounts owned by one Owner in future multi-ActivityAccount flows.
-- Use request.user.activityAccountId without changing the JWT payload.
-- Add Follow / Interest / ProfileVisit schema only after this identity boundary is confirmed.
+- Require req.user.activityAccountId for Follow endpoints.
+- Validate that the target ActivityAccount is active.
+- Reject self-follow.
+- Enforce bilateral legacy User Block checks.
+- Make follow and unfollow idempotent.
+- Prevent blocked accounts from appearing in Follow lists or lookups.
+- Keep Interest and ProfileVisit out of the first Follow implementation.
 - Do not mix Chat, Gift, LIVE, Feed, or Points into this step.
 
 ## RBAC / Audit / Risk Safety Rules
