@@ -70,6 +70,47 @@ export class CommunityService {
               },
             });
 
+            const owners = await transaction.owner.findMany({
+              where: {
+                legacyUserId: { in: [userId, dto.blockedUserId] },
+              },
+              select: {
+                legacyUserId: true,
+                activityAccounts: {
+                  select: { id: true },
+                },
+              },
+            });
+            const userOwner = owners.find(
+              (owner) => owner.legacyUserId === userId,
+            );
+            const blockedUserOwner = owners.find(
+              (owner) => owner.legacyUserId === dto.blockedUserId,
+            );
+
+            if (userOwner && blockedUserOwner) {
+              const userAccountIds = userOwner.activityAccounts.map(
+                (account) => account.id,
+              );
+              const blockedUserAccountIds =
+                blockedUserOwner.activityAccounts.map((account) => account.id);
+
+              await transaction.follow.deleteMany({
+                where: {
+                  OR: [
+                    {
+                      followerAccountId: { in: userAccountIds },
+                      followingAccountId: { in: blockedUserAccountIds },
+                    },
+                    {
+                      followerAccountId: { in: blockedUserAccountIds },
+                      followingAccountId: { in: userAccountIds },
+                    },
+                  ],
+                },
+              });
+            }
+
             return createdBlock;
           },
           { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
