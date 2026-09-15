@@ -23,11 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-c3f0521fa77937bfcbe90c391527b0512989cb49
-feat: harden activity account direct rooms
+2e0d48867ec52818c69cd0ee496c48cc68ee6907
+feat: add activity account chat list
 
 Remote GitHub branch HEAD verified:
-c3f0521fa77937bfcbe90c391527b0512989cb49
+2e0d48867ec52818c69cd0ee496c48cc68ee6907
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -748,6 +748,35 @@ Completed 2026-09-15.
   c3f0521fa77937bfcbe90c391527b0512989cb49
 - GitHub remote branch HEAD verified at the same SHA
 
+### ActivityAccount-based Chat list identity foundation
+Completed 2026-09-15.
+
+- GET /chats uses canonical JwtStrategy user.id and user.activityAccountId context
+- Requires an active actor ActivityAccount, active Owner, and active legacy User bridge
+- Verifies actor Owner.legacyUserId equals the authenticated User.id
+- Includes only fully bridged accountAId/accountBId Chat rows
+- Excludes null/null legacy Chat and partial-null Chat rows
+- The GET read path performs no lazy bridge, update, backfill, or merge
+- Requires active counterpart ActivityAccount, Owner, and legacy User
+- Excludes bilateral legacy User Block counterparts; no Friendship requirement is added
+- Actor-side userAId/userBId alignment is filtered in Prisma where clauses
+- Counterpart cross-relation legacy User alignment remains a post-filter; malformed rows are excluded
+- General eligibility and Block filtering run before take:20, preventing invalid rooms from consuming normal list slots
+- Ordering is lastMessageAt descending, then id descending; take 20 remains
+- Pagination parameters, last-message preview, unread/read state, and message list API remain unimplemented
+- Consumer response exposes only Chat id, counterpart ActivityAccount id/handle/displayName, and lastMessageAt
+- Does not expose userAId, userBId, accountAId, accountBId, Owner.id, legacy User.id, Owner.legacyUserId, or Block/bridge data
+- POST /chats/message remains legacy User-based; senderAccountId and atomic Message/lastMessageAt transaction are not yet implemented
+- POST /chats/direct compatibility remains unchanged, including targetUserId legacy fallback
+- Prettier check PASS
+- Prisma validate PASS
+- API npm run build PASS
+- git diff --check PASS
+- LF to CRLF warnings occurred for tracked source files but did not fail diff check
+- Feature commit/push completed:
+  2e0d48867ec52818c69cd0ee496c48cc68ee6907
+- GitHub remote branch HEAD verified at the same SHA
+
 ### Final high-level IA
 Mobile main tabs:
 Home / Live / Chat / Points / My
@@ -924,14 +953,20 @@ COMPLETE.
 ActivityAccount Chat identity schema foundation:
 COMPLETE.
 
+ActivityAccount-based direct-room API safety foundation:
+COMPLETE.
+
+ActivityAccount-based Chat list identity foundation:
+COMPLETE.
+
 Next implementation phase:
 REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Begin the ActivityAccount-based Chat list + message-send identity foundation.
+Begin the ActivityAccount-based message-send identity foundation.
 
-Limit the next slice to Chat list and message-send identity without converting all Chat behavior at once.
+Inspect the current message-send path before implementation. The next slice should use user.id + activityAccountId, validate the active actor ActivityAccount/Owner/legacy User bridge and account participants, define legacy null/null and partial-null room compatibility, write senderId plus senderAccountId, recheck bilateral Block, and atomically create Message plus update Chat.lastMessageAt. Do not mark this work complete yet; message list, realtime, read/unread, attachments, push, and mobile integration remain later slices.
 
 First commands to run when resuming:
 
