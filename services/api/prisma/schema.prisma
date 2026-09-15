@@ -79,9 +79,53 @@ model ActivityAccount {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   wallet       Wallet?
+  followsSent           Follow[]       @relation("FollowFollower")
+  followsReceived       Follow[]       @relation("FollowFollowing")
+  interestsSent         Interest[]     @relation("InterestSender")
+  interestsReceived     Interest[]     @relation("InterestTarget")
+  profileVisitsMade     ProfileVisit[] @relation("ProfileVisitVisitor")
+  profileVisitsReceived ProfileVisit[] @relation("ProfileVisitVisited")
 
   @@index([ownerId])
   @@index([ownerId, isPrimary])
+}
+
+model Follow {
+  id                 String          @id @default(cuid())
+  followerAccountId  String
+  followingAccountId String
+  followerAccount    ActivityAccount @relation("FollowFollower", fields: [followerAccountId], references: [id], onDelete: Cascade)
+  followingAccount   ActivityAccount @relation("FollowFollowing", fields: [followingAccountId], references: [id], onDelete: Cascade)
+  createdAt          DateTime        @default(now())
+
+  @@unique([followerAccountId, followingAccountId])
+  @@index([followerAccountId, createdAt])
+  @@index([followingAccountId, createdAt])
+}
+
+model Interest {
+  id              String          @id @default(cuid())
+  senderAccountId String
+  targetAccountId String
+  senderAccount   ActivityAccount @relation("InterestSender", fields: [senderAccountId], references: [id], onDelete: Cascade)
+  targetAccount   ActivityAccount @relation("InterestTarget", fields: [targetAccountId], references: [id], onDelete: Cascade)
+  createdAt       DateTime        @default(now())
+
+  @@unique([senderAccountId, targetAccountId])
+  @@index([senderAccountId, createdAt])
+  @@index([targetAccountId, createdAt])
+}
+
+model ProfileVisit {
+  id               String          @id @default(cuid())
+  visitorAccountId String
+  visitedAccountId String
+  visitorAccount   ActivityAccount @relation("ProfileVisitVisitor", fields: [visitorAccountId], references: [id], onDelete: Cascade)
+  visitedAccount   ActivityAccount @relation("ProfileVisitVisited", fields: [visitedAccountId], references: [id], onDelete: Cascade)
+  visitedAt        DateTime        @default(now())
+
+  @@index([visitorAccountId, visitedAt])
+  @@index([visitedAccountId, visitedAt])
 }
 
 model Wallet {
