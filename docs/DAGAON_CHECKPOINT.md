@@ -23,11 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-9ca3d214564331f09381613f91d1e1ef7fe2409a
-feat: add activity chat identity foundation
+c3f0521fa77937bfcbe90c391527b0512989cb49
+feat: harden activity account direct rooms
 
 Remote GitHub branch HEAD verified:
-9ca3d214564331f09381613f91d1e1ef7fe2409a
+c3f0521fa77937bfcbe90c391527b0512989cb49
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -727,6 +727,27 @@ Completed 2026-09-15.
   9ca3d214564331f09381613f91d1e1ef7fe2409a
 - GitHub remote branch HEAD verified at the same SHA
 
+### ActivityAccount-based direct-room API safety foundation
+Completed 2026-09-15.
+
+- POST /chats/direct now uses an ActivityAccount-aware compatibility boundary
+- targetAccountId is preferred; targetUserId remains a legacy fallback
+- Active actor/target ActivityAccount and Owner validation is enforced
+- Legacy User bridge validation, self-chat prevention, and bilateral Block checks are enforced
+- Canonical account/user ordering and safe room reuse are applied
+- Serializable transaction with bounded P2034 and account-pair P2002 retry is used
+- Consumer response exposes only Chat id and ActivityAccount public identity
+- Existing GET /chats and POST /chats/message behavior remains legacy User-based
+- Message list/realtime/read state/attachments/push/mobile integration remain out of scope
+- npx prisma generate PASS; Prisma schema/migrations unchanged
+- Prettier check PASS
+- Prisma validate PASS
+- API npm run build PASS
+- git diff --check PASS
+- Feature commit:
+  c3f0521fa77937bfcbe90c391527b0512989cb49
+- GitHub remote branch HEAD verified at the same SHA
+
 ### Final high-level IA
 Mobile main tabs:
 Home / Live / Chat / Points / My
@@ -908,9 +929,9 @@ REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Begin the ActivityAccount-based direct-room API safety foundation.
+Begin the ActivityAccount-based Chat list + message-send identity foundation.
 
-Limit the next slice to direct-room creation and lookup safety without converting all Chat behavior at once.
+Limit the next slice to Chat list and message-send identity without converting all Chat behavior at once.
 
 First commands to run when resuming:
 
