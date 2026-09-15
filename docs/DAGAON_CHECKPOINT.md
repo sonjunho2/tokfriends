@@ -23,11 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-b2ce5bc982dfe56d5825971e3229eda14e59f3de
-feat: add DAGAON admin navigation foundation
+ab97304fb5100cf4c2d3c913fb081ce07eb48df7
+fix: harden friendship and block safety
 
 Remote GitHub branch HEAD verified:
-b2ce5bc982dfe56d5825971e3229eda14e59f3de
+ab97304fb5100cf4c2d3c913fb081ce07eb48df7
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -233,6 +233,31 @@ Completed 2026-09-15.
   b2ce5bc982dfe56d5825971e3229eda14e59f3de
 - GitHub remote branch HEAD verified at the same SHA
 
+### Social friendship / block safety foundation
+Completed 2026-09-15.
+
+- 기존 User 기반 Friendship 호환 구조 유지
+- Prisma schema/migration 변경 없음
+- Follow / Interest / ProfileVisit는 이번 작업에 포함하지 않음
+- 양방향 Block 존재 시 친구 요청 금지
+- 친구 요청 수락 직전에도 양방향 Block 검사
+- Block 방향을 오류 메시지로 노출하지 않음
+- 양방향 Friendship 관계를 기준으로 accepted/requested 중복 생성 방지
+- declined 관계만 존재하면 기존 declined 관계 삭제 후 재요청 허용
+- 친구 목록/요청 조회에서 양방향 Block 상대 제외
+- 사용자 차단 시 양방향 기존 Friendship 삭제
+- Block 생성/upsert와 Friendship 삭제를 하나의 transaction으로 처리
+- sendRequest / acceptRequest / block에 Serializable transaction 적용
+- Prisma P2034 직렬화 충돌 시 최대 3회 재시도
+- unblock 시 기존 Friendship 자동 복구 없음
+- npx prettier --check PASS
+- npx prisma validate PASS
+- npm run build PASS
+- git diff --check PASS
+- Feature commit:
+  ab97304fb5100cf4c2d3c913fb081ce07eb48df7
+- GitHub remote branch HEAD verified at the same SHA
+
 ### Final high-level IA
 Mobile main tabs:
 Home / Live / Chat / Points / My
@@ -261,7 +286,7 @@ High-level UX/design specs completed for:
 
 ### Mobile
 Current tabs:
-Home / Chats / Shop / MyPage
+Home / Live / Chat / Points / My
 
 Reusable:
 - Home discover API
@@ -338,12 +363,15 @@ COMPLETE.
 Admin navigation foundation:
 COMPLETE.
 
+Friendship / Block safety foundation:
+COMPLETE.
+
 Next implementation phase:
-SOCIAL.
+SOCIAL — IN PROGRESS.
 
 ## Immediate Next Task
 
-Begin the DAGAON Social foundation safely.
+Inspect the current ActivityAccount resolution and authentication plumbing before the next DAGAON Social step.
 
 First commands to run when resuming:
 
@@ -352,17 +380,12 @@ git branch --show-current
 git status --short
 git log -1 --oneline
 
-Before editing, inspect the exact existing Prisma social models and current API/mobile usage for:
-- Friendship
-- discover
-- block/report
-- profile relationships
-- existing /matches Admin route
-- current social client methods
-
-Define the first backward-compatible Social implementation slice from the existing code before changing schema or APIs.
-
-Do not mix Real Chat, Gift, LIVE, Feed/Story, or Points/Rewards implementation into the first Social commit.
+Before editing:
+- Inspect how ActivityAccount is selected and resolved from the current request/session.
+- Confirm whether Follow / Interest / ProfileVisit can be designed around ActivityAccount.
+- Keep the existing User-based Friendship as a compatibility layer.
+- Investigate the current activity-account resolution/auth plumbing before any schema change.
+- Do not mix Real Chat, Gift, LIVE, Feed, or Points into this Social step.
 
 ## RBAC / Audit / Risk Safety Rules
 
