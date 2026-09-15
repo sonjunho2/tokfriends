@@ -1,6 +1,13 @@
 // services/api/src/modules/community/community.service.ts
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'nestjs-prisma';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import { PrismaService } from "nestjs-prisma";
+
+const MAX_TRANSACTION_RETRIES = 3;
 
 @Injectable()
 export class CommunityService {
@@ -24,7 +31,7 @@ export class CommunityService {
 
   async block(userId: string, dto: { blockedUserId: string }) {
     if (userId === dto.blockedUserId) {
-      throw new BadRequestException('You cannot block yourself.');
+      throw new BadRequestException("You cannot block yourself.");
     }
 
     const targetUser = await this.prisma.user.findUnique({
@@ -33,30 +40,59 @@ export class CommunityService {
     });
 
     if (!targetUser) {
-      throw new NotFoundException('User not found.');
+      throw new NotFoundException("User not found.");
     }
 
-    const block = await this.prisma.block.upsert({
-      where: {
-        userId_blockedUserId: {
-          userId,
-          blockedUserId: dto.blockedUserId,
-        },
-      },
-      update: {},
-      create: {
-        userId,
-        blockedUserId: dto.blockedUserId,
-      },
-    });
+    for (let retryCount = 0; ; retryCount += 1) {
+      try {
+        const block = await this.prisma.$transaction(
+          async (transaction) => {
+            const createdBlock = await transaction.block.upsert({
+              where: {
+                userId_blockedUserId: {
+                  userId,
+                  blockedUserId: dto.blockedUserId,
+                },
+              },
+              update: {},
+              create: {
+                userId,
+                blockedUserId: dto.blockedUserId,
+              },
+            });
 
-    return { ok: true, id: block.id };
+            await transaction.friendship.deleteMany({
+              where: {
+                OR: [
+                  { requesterId: userId, addresseeId: dto.blockedUserId },
+                  { requesterId: dto.blockedUserId, addresseeId: userId },
+                ],
+              },
+            });
+
+            return createdBlock;
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+
+        return { ok: true, id: block.id };
+      } catch (error) {
+        const shouldRetry =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2034" &&
+          retryCount < MAX_TRANSACTION_RETRIES;
+
+        if (!shouldRetry) {
+          throw error;
+        }
+      }
+    }
   }
 
   async listBlocks(userId: string) {
     const blocks = await this.prisma.block.findMany({
       where: { userId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       select: {
         id: true,
         blockedUserId: true,
