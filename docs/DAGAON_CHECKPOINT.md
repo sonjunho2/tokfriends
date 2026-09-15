@@ -23,11 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-2e0d48867ec52818c69cd0ee496c48cc68ee6907
-feat: add activity account chat list
+89a71fa51b07f4ef5638ae2c19a9cdacd781be5e
+feat: add activity account message sending
 
 Remote GitHub branch HEAD verified:
-2e0d48867ec52818c69cd0ee496c48cc68ee6907
+89a71fa51b07f4ef5638ae2c19a9cdacd781be5e
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -777,6 +777,38 @@ Completed 2026-09-15.
   2e0d48867ec52818c69cd0ee496c48cc68ee6907
 - GitHub remote branch HEAD verified at the same SHA
 
+### ActivityAccount-based message-send identity foundation
+Completed 2026-09-15.
+
+- POST /chats/message uses canonical JwtStrategy user.id and user.activityAccountId; user.sub fallback was removed
+- Requires an active actor ActivityAccount, active Owner, and active legacy User bridge matching the authenticated User.id
+- Permits send only for fully bridged accountAId/accountBId Chat rows; null/null and partial-null Chat sends are rejected
+- The send path performs no lazy bridge, backfill, or merge
+- Validates actor account participation and actor-side account/User alignment
+- Requires an active counterpart ActivityAccount, Owner, and legacy User bridge
+- Validates counterpart cross-relation account/User alignment; malformed Chat rows return ConflictException("Chat is unavailable")
+- Rejects same-Owner ActivityAccount and same legacy User identity sends
+- Rechecks bilateral legacy User Block inside the transaction; no Friendship requirement is added
+- Message create and Chat.lastMessageAt update run in the same Serializable transaction
+- Retries P2034 only, up to three times; all other errors are thrown unchanged
+- Each transaction attempt creates one now value used for both Message.createdAt and Chat.lastMessageAt
+- Records senderId as actor Owner.legacyUserId and senderAccountId as actor ActivityAccount.id
+- Consumer response exposes id, chatId, senderAccountId, type, content, translatedContent, and createdAt only
+- Does not expose senderId, isFlagged, Owner.id, Owner.legacyUserId, legacy User.id, or Block/internal bridge data
+- SendMessageDto has no clientMessageId/idempotency key; HTTP/network retry deduplication remains unimplemented
+- Message list, pagination, preview, unread/read state, edit/delete, attachment persistence, and push remain unimplemented
+- WebSocket/Gateway remains legacy-based and was not changed
+- Mobile ChatRoomScreen has no real HTTP send integration yet
+- Existing GET /chats ActivityAccount list and POST /chats/direct compatibility/lazy bridge behavior remain unchanged
+- Prettier check PASS
+- Prisma validate PASS
+- API npm run build PASS
+- git diff --check PASS
+- LF to CRLF warnings occurred for tracked source files but did not fail diff check
+- Feature commit/push completed:
+  89a71fa51b07f4ef5638ae2c19a9cdacd781be5e
+- GitHub remote branch HEAD verified at the same SHA
+
 ### Final high-level IA
 Mobile main tabs:
 Home / Live / Chat / Points / My
@@ -959,14 +991,17 @@ COMPLETE.
 ActivityAccount-based Chat list identity foundation:
 COMPLETE.
 
+ActivityAccount-based message-send identity foundation:
+COMPLETE.
+
 Next implementation phase:
 REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Begin the ActivityAccount-based message-send identity foundation.
+Inspect the Message list / chat room history API foundation before implementation.
 
-Inspect the current message-send path before implementation. The next slice should use user.id + activityAccountId, validate the active actor ActivityAccount/Owner/legacy User bridge and account participants, define legacy null/null and partial-null room compatibility, write senderId plus senderAccountId, recheck bilateral Block, and atomically create Message plus update Chat.lastMessageAt. Do not mark this work complete yet; message list, realtime, read/unread, attachments, push, and mobile integration remain later slices.
+Review current message-history API availability, pagination/cursor choice, ActivityAccount room authorization, senderAccountId public identity, legacy senderId privacy, deleted ActivityAccount history policy, Block-after-history policy, ordering/page size, response serialization, and mobile ChatRoomScreen integration. Do not mark this work complete yet; realtime/WebSocket, unread/read, attachments, push, and client idempotency remain later slices.
 
 First commands to run when resuming:
 
