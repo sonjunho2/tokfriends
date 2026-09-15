@@ -109,6 +109,21 @@ export class CommunityService {
                   ],
                 },
               });
+
+              await transaction.interest.deleteMany({
+                where: {
+                  OR: [
+                    {
+                      senderAccountId: { in: userAccountIds },
+                      targetAccountId: { in: blockedUserAccountIds },
+                    },
+                    {
+                      senderAccountId: { in: blockedUserAccountIds },
+                      targetAccountId: { in: userAccountIds },
+                    },
+                  ],
+                },
+              });
             }
 
             return createdBlock;

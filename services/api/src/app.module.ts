@@ -24,6 +24,7 @@ import { MediaModule } from "./modules/media/media.module";
 import { AdminPermissionsGuard } from "./common/admin-permissions.guard";
 import { AdminSecurityModule } from "./modules/admin-security/admin-security.module";
 import { FollowsModule } from "./modules/follows/follows.module";
+import { InterestsModule } from "./modules/interests/interests.module";
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { FollowsModule } from "./modules/follows/follows.module";
     MediaModule,
     AdminSecurityModule,
     FollowsModule,
+    InterestsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
