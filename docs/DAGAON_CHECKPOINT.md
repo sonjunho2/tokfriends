@@ -23,11 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-ab97304fb5100cf4c2d3c913fb081ce07eb48df7
-fix: harden friendship and block safety
+e679cb2e9882f462d6ae2d4a05ea11309f9cc5e1
+fix: provision consumer account foundation
 
 Remote GitHub branch HEAD verified:
-ab97304fb5100cf4c2d3c913fb081ce07eb48df7
+e679cb2e9882f462d6ae2d4a05ea11309f9cc5e1
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -258,6 +258,40 @@ Completed 2026-09-15.
   ab97304fb5100cf4c2d3c913fb081ce07eb48df7
 - GitHub remote branch HEAD verified at the same SHA
 
+### Consumer account provisioning foundation
+Completed 2026-09-15.
+
+- 신규 일반 User가 생성될 때 Owner / Primary ActivityAccount / Wallet foundation을 함께 보장
+- 기존 User 기반 authentication/API compatibility 유지
+- role !== 'user' 계정은 consumer provisioning에서 제외
+- Admin account creation flow는 변경하지 않음
+- Owner는 legacyUserId 기준 idempotent provisioning
+- ActivityAccount는 legacyUserId 기준 idempotent provisioning
+- 신규 ActivityAccount는 isPrimary=true
+- 기존 Owner / ActivityAccount 데이터는 불필요하게 덮어쓰지 않음
+- Wallet은 ActivityAccount 기준 없을 때만 생성
+- 기존 Wallet balance 및 ledger는 변경하지 않음
+- 신규 Wallet의 spendableBalance는 transitional User.pointsBalance에서 초기화
+- redeemableBalance / pendingEarnings는 0으로 초기화
+- 신규 Wallet이며 User.pointsBalance > 0일 때만 opening WalletLedgerEntry 생성
+- opening ledger source:
+  consumer_foundation_provisioning
+- opening ledger idempotency key:
+  consumer-foundation:legacy-balance:<ActivityAccount.id>
+- pointsBalance가 0이면 불필요한 ledger entry 생성하지 않음
+- Email signup에서 User 생성 + foundation provisioning을 하나의 Prisma transaction으로 처리
+- 정상 phone profile 생성에서 User + foundation + phoneVerification 완료를 같은 transaction으로 처리
+- DISABLE_AUTH phone upsert 경로도 transaction + idempotent provisioning 적용
+- 기존 auth API response shape 유지
+- JWT payload / req.user / ActivityAccount selection은 이번 작업에서 변경하지 않음
+- Prisma schema/migration 변경 없음
+- npx prisma validate PASS
+- npm run build PASS
+- git diff --check PASS
+- Feature commit:
+  e679cb2e9882f462d6ae2d4a05ea11309f9cc5e1
+- GitHub remote branch HEAD verified at the same SHA
+
 ### Final high-level IA
 Mobile main tabs:
 Home / Live / Chat / Points / My
@@ -316,6 +350,10 @@ Core foundations now present:
 - Owner / ActivityAccount
 - Wallet / Ledger
 - Admin RBAC / Audit / Approval
+- New consumer Users are provisioned with an Owner, primary ActivityAccount, and Wallet
+
+Authentication/request context remains User-based.
+Current ActivityAccount selection/resolution is not implemented yet.
 
 Major domains still required:
 - Gift transactions
@@ -327,6 +365,9 @@ Major domains still required:
 
 ### Prisma
 Current schema still preserves User as the compatibility center for existing behavior.
+
+New consumer Users now receive Owner / primary ActivityAccount / Wallet provisioning,
+while User remains the compatibility center.
 
 Foundation models now include:
 - Owner
@@ -366,12 +407,15 @@ COMPLETE.
 Friendship / Block safety foundation:
 COMPLETE.
 
+Consumer account provisioning foundation:
+COMPLETE.
+
 Next implementation phase:
 SOCIAL — IN PROGRESS.
 
 ## Immediate Next Task
 
-Inspect the current ActivityAccount resolution and authentication plumbing before the next DAGAON Social step.
+Investigate and design how to safely resolve the current ActivityAccount from an authenticated User before adding Social schema.
 
 First commands to run when resuming:
 
@@ -381,11 +425,14 @@ git status --short
 git log -1 --oneline
 
 Before editing:
-- Inspect how ActivityAccount is selected and resolved from the current request/session.
-- Confirm whether Follow / Interest / ProfileVisit can be designed around ActivityAccount.
+- Inspect JwtStrategy and the current req.user structure.
+- Decide how to resolve the User -> Owner -> ActivityAccount bridge in request context.
+- Review whether the primary compatibility ActivityAccount can be the default for each legacy User.
+- Design the resolution path without preventing future multi-ActivityAccount selection.
+- Compare permanently embedding ActivityAccount in JWT with server-side resolution per request.
 - Keep the existing User-based Friendship as a compatibility layer.
-- Investigate the current activity-account resolution/auth plumbing before any schema change.
-- Do not mix Real Chat, Gift, LIVE, Feed, or Points into this Social step.
+- Add Follow / Interest / ProfileVisit schema only after the resolution approach is confirmed.
+- Do not mix Real Chat, Gift, LIVE, Feed, or Points into this step.
 
 ## RBAC / Audit / Risk Safety Rules
 
