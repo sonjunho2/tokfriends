@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from "class-validator";
 
 export class SendMessageDto {
   @IsString()
@@ -12,7 +12,13 @@ export class SendMessageDto {
 }
 
 export class DirectChatDto {
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  targetUserId: string;
+  targetAccountId?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  targetUserId?: string;
 }
