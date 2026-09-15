@@ -23,11 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-b92c26e6fc9bee590afc200b389d8a1737bae51d
-feat: add interest API foundation
+2482462c5c5e4fc9d5d38429220eef0db2e71e8c
+feat: add profile visit API foundation
 
 Remote GitHub branch HEAD verified:
-b92c26e6fc9bee590afc200b389d8a1737bae51d
+2482462c5c5e4fc9d5d38429220eef0db2e71e8c
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -549,6 +549,89 @@ Completed 2026-09-15.
   b92c26e6fc9bee590afc200b389d8a1737bae51d
 - GitHub remote branch HEAD verified at the same SHA
 
+### ProfileVisit API/service foundation
+Completed 2026-09-15.
+
+- Implemented ActivityAccount-based ProfileVisit APIs:
+  - POST /profile-visits/:targetAccountId
+  - GET /profile-visits/received
+  - GET /profile-visits/sent
+- All ProfileVisit endpoints require req.user.activityAccountId
+- Missing ActivityAccount context returns ForbiddenException("Active activity account required")
+- JWT payload and JwtStrategy remain unchanged
+- req.user.id is used for legacy User Block compatibility checks
+- Received and sent history are private to the current ActivityAccount
+- No public API exposes another ActivityAccount's visit history
+- Profile visit creation policy:
+  - self-visit recording rejected
+  - actor ActivityAccount and Owner must be active
+  - target ActivityAccount and Owner must be active
+  - missing/inactive target uses a generic NotFound response
+  - bilateral legacy User Block checked when target Owner.legacyUserId exists
+  - Block direction is not exposed
+  - blocked target returns BadRequestException("Profile visit is unavailable")
+  - Block check and ProfileVisit create run in a Serializable transaction
+  - Prisma P2034 conflicts retry up to three times
+- ProfileVisit preserves repeated visit history rather than an idempotent relation:
+  - transaction.profileVisit.create() used for every visit
+  - repeated visitorAccountId/visitedAccountId pairs are allowed
+  - no upsert or dedupe
+  - no pair unique constraint added
+  - no aggregation or groupBy
+  - history is not reduced to only the latest visit
+  - raw visit events are retained
+- Received history:
+  - visitedAccountId is the current activityAccountId
+  - every visit event is returned as a history item
+- Sent history:
+  - visitorAccountId is the current activityAccountId
+  - every visit event is returned as a history item
+- Counterpart ActivityAccount and Owner must be active
+- Bilaterally blocked counterpart Owners are excluded in the Prisma where clause
+- No JavaScript post-filtering creates pagination holes
+- Owners with legacyUserId=null are not hidden solely because the bridge is absent
+- Offset pagination uses:
+  - default offset=0
+  - default limit=20
+  - maximum limit=50
+  - visitedAt desc and id desc ordering
+  - take limit+1 to calculate hasMore
+- Consumer response items expose only:
+  - id as the counterpart ActivityAccount.id
+  - handle
+  - displayName
+  - visitedAt
+- Consumer response does not expose:
+  - ProfileVisit row id
+  - visitorAccountId
+  - visitedAccountId
+  - ownerId
+  - legacyUserId
+  - User.id
+- CommunityService block integration preserves:
+  - existing Block upsert
+  - existing bilateral Friendship deletion
+  - existing bilateral Follow deletion
+  - existing bilateral Interest deletion
+- CommunityService block integration additionally:
+  - reuses the existing Owner ActivityAccount ID arrays
+  - deletes ProfileVisit rows in both directions between all ActivityAccounts of both Owners
+  - performs ProfileVisit cleanup in the same Serializable transaction
+  - prevents past visit history from remaining visible after block
+  - does not restore deleted visit history after unblock
+  - preserves existing Prisma P2034 retry behavior
+- Follow and Interest files unchanged
+- Prisma schema and migrations unchanged
+- package/dependency, JWT/Auth, Friendship, Mobile, and Admin unchanged
+- prettier write/check PASS
+- prisma validate PASS
+- npm run build PASS
+- git diff --check PASS
+- Final working tree clean after feature commit
+- Feature commit:
+  2482462c5c5e4fc9d5d38429220eef0db2e71e8c
+- GitHub remote branch HEAD verified at the same SHA
+
 ### Final high-level IA
 Mobile main tabs:
 Home / Live / Chat / Points / My
@@ -624,13 +707,12 @@ Social identity architecture:
 - Account-scoped Social APIs should use req.user.activityAccountId without storing the selection in JWT.
 - A null ActivityAccount context should be rejected only by future account-scoped endpoints; existing User authentication remains valid.
 - Block enforcement was not implemented in this schema foundation.
-- Follow and Interest now enforce bilateral User-level Block visibility and creation policy.
-- ProfileVisit service must apply the same policy in its later implementation.
+- Follow, Interest, and ProfileVisit enforce bilateral User-level Block visibility and creation policy.
 - The Owner/User compatibility boundary must prevent Block bypass across future multi-ActivityAccount identities.
 
 Major domains still required:
 - Gift transactions
-- Visitors
+- Real Chat
 - Feed / Story
 - LIVE
 - Ads / Rewards
@@ -701,12 +783,20 @@ COMPLETE.
 Interest API/service foundation:
 COMPLETE.
 
+ProfileVisit API/service foundation:
+COMPLETE.
+
+SOCIAL foundation:
+COMPLETE.
+
 Next implementation phase:
-SOCIAL — IN PROGRESS.
+REAL CHAT — NEXT.
 
 ## Immediate Next Task
 
-Begin the ProfileVisit API/service foundation without mixing Follow or Interest changes.
+Begin the Real Chat foundation.
+
+Do not implement Chat code before inspecting the existing structure and defining a minimal foundation slice.
 
 First commands to run when resuming:
 
@@ -716,19 +806,21 @@ git status --short
 git log -1 --oneline
 
 Before editing:
-- Require req.user.activityAccountId for ProfileVisit endpoints.
-- Reject self-visit recording.
-- Validate that the target ActivityAccount and Owner are active.
-- Enforce bilateral legacy User Block checks.
-- Define the visit recording policy while preserving repeated visit history.
-- Keep received visitors private to the current ActivityAccount.
-- Review the disclosure scope for sent/visited history.
-- Design pagination for visit history and visitor lists.
-- Prevent blocked/inactive accounts from appearing in lookups or lists.
-- Expose only minimal consumer ActivityAccount fields without internal identities.
-- Review existing ProfileVisit cleanup policy for CommunityService block from a privacy perspective.
-- Do not modify Follow or Interest files.
-- Do not mix Chat, Gift, LIVE, Feed, or Points into this step.
+- Inspect Chat and Message models in services/api/prisma/schema.prisma.
+- Inspect chat-related controllers, services, and modules under services/api/src.
+- Inspect the Mobile Chat tab, screens, and API client.
+- Determine whether the current Chat implementation is dummy, legacy, or partially real.
+- Document the current legacy User-based Chat identity.
+- Define the minimum scope for moving Chat identity toward ActivityAccount.
+- Inspect how Block affects chat room creation and visibility.
+- Determine whether Friendship is required to start or retain a chat.
+- Inspect the existing message pagination structure.
+- Determine whether read/unread state exists.
+- Determine whether websocket or other realtime infrastructure exists.
+- Inspect current attachment and image-message support.
+- Inspect current push-notification integration for Chat.
+- Do not guess the Chat implementation policy or begin a large refactor before this inspection.
+- Choose a minimal Real Chat foundation slice only after the existing structure is understood.
 
 ## RBAC / Audit / Risk Safety Rules
 
