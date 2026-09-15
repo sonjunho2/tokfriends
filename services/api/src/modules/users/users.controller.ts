@@ -7,12 +7,10 @@ import {
   Param,
   Patch,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './update-user.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
 @ApiTags('users')
@@ -23,7 +21,6 @@ export class UsersController {
 
   // 내 정보 조회 (JWT 토큰 기반)
   @Get('me')
-  @UseGuards(JwtAuthGuard)
   async getMe(@CurrentUser() user: any) {
     const userId = user?.sub ?? user?.id;
     const userData = userId ? await this.users.byId(userId) : null;
@@ -34,7 +31,6 @@ export class UsersController {
   @ApiQuery({ name: 'q', required: false, type: String })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @Get('search')
-  @UseGuards(JwtAuthGuard)
   async search(
     @Query('q') q: string = '',
     @Query('limit') limit?: string,
@@ -54,7 +50,6 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
   async update(
     @Param('id') id: string,
     @CurrentUser() user: any,
@@ -91,7 +86,6 @@ export class UsersController {
 
   // 공용/모바일에서 단건 조회 시 사용 예시
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
   async getUserById(@Param('id') id: string) {
     const user = await this.users.byPublicId(id);
     if (!user) throw new NotFoundException('User not found');
