@@ -23,11 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-89a71fa51b07f4ef5638ae2c19a9cdacd781be5e
-feat: add activity account message sending
+85d8b1a4d927293db6608e2fa98653168cac013f
+feat: add activity account message history
 
 Remote GitHub branch HEAD verified:
-89a71fa51b07f4ef5638ae2c19a9cdacd781be5e
+85d8b1a4d927293db6608e2fa98653168cac013f
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -763,7 +763,7 @@ Completed 2026-09-15.
 - Counterpart cross-relation legacy User alignment remains a post-filter; malformed rows are excluded
 - General eligibility and Block filtering run before take:20, preventing invalid rooms from consuming normal list slots
 - Ordering is lastMessageAt descending, then id descending; take 20 remains
-- Pagination parameters, last-message preview, unread/read state, and message list API remain unimplemented
+- Pagination parameters for chat list, last-message preview, and unread/read state remain unimplemented; message history API is now provided separately
 - Consumer response exposes only Chat id, counterpart ActivityAccount id/handle/displayName, and lastMessageAt
 - Does not expose userAId, userBId, accountAId, accountBId, Owner.id, legacy User.id, Owner.legacyUserId, or Block/bridge data
 - POST /chats/message remains legacy User-based; senderAccountId and atomic Message/lastMessageAt transaction are not yet implemented
@@ -796,7 +796,7 @@ Completed 2026-09-15.
 - Consumer response exposes id, chatId, senderAccountId, type, content, translatedContent, and createdAt only
 - Does not expose senderId, isFlagged, Owner.id, Owner.legacyUserId, legacy User.id, or Block/internal bridge data
 - SendMessageDto has no clientMessageId/idempotency key; HTTP/network retry deduplication remains unimplemented
-- Message list, pagination, preview, unread/read state, edit/delete, attachment persistence, and push remain unimplemented
+- Message history API is now implemented; preview, unread/read state, edit/delete, attachment persistence, and push remain unimplemented
 - WebSocket/Gateway remains legacy-based and was not changed
 - Mobile ChatRoomScreen has no real HTTP send integration yet
 - Existing GET /chats ActivityAccount list and POST /chats/direct compatibility/lazy bridge behavior remain unchanged
@@ -808,6 +808,50 @@ Completed 2026-09-15.
 - Feature commit/push completed:
   89a71fa51b07f4ef5638ae2c19a9cdacd781be5e
 - GitHub remote branch HEAD verified at the same SHA
+
+### ActivityAccount-based message-history foundation
+Completed 2026-09-15.
+
+- Added GET /chats/:chatId/messages using canonical JwtStrategy user.id and user.activityAccountId; no user.sub fallback
+- Requires an active actor ActivityAccount / Owner / legacy User exact bridge
+- Consumer history permits fully bridged accountAId/accountBId Chat rows only; null/null and partial-null rooms are rejected
+- Validates actor participation/alignment, active counterpart bridge, counterpart cross-relation alignment, and same Owner/same legacy identity malformed rooms
+- Bilateral legacy User Block returns Chat not found without exposing Block direction or room existence
+- No read-path lazy bridge, update, backfill, or merge; no Friendship requirement
+- Uses composite createdAt + id cursor pagination, DB ordering createdAt desc then id desc, default limit 30, and max 50
+- Uses limit + 1 for nextCursor; consumer items return oldest to newest and nextCursor is the current page oldest row
+- Query validation errors are Invalid message cursor and Invalid message limit
+- Public response exposes id, chatId, nullable senderAccountId, type, content, translatedContent, and createdAt only
+- Does not expose senderId, isFlagged, Owner/User identity, Block, or internal bridge data
+- A non-participant senderAccountId is returned as a null tombstone; sender handle/displayName/avatar are not joined
+- Mobile and WebSocket/Gateway were not changed
+- Unread/read, edit/delete, attachments, push, and clientMessageId/idempotency remain unimplemented
+- Existing GET /chats, POST /chats/message, and POST /chats/direct behavior remains unchanged
+- Added history pagination index migration: 20260915161907_add_chat_message_history_index
+- Index: Message(chatId, createdAt, id)
+- Migration checksum: 5872bf7a15efb822589b7aca73bbad898002baf52da7440519da4a52c8dad9a1
+- Migration file uses LF with no BOM; existing applied migration bytes were unchanged
+- Render production DB migration applied 2026-09-15: 13 migrations total; Database schema up to date
+- The seven newly applied migrations all have applied_steps_count=1, finished_at present, and rolled_back_at=null
+  - 20260914042731_add_owner_activity_account_foundation
+  - 20260914050305_add_wallet_ledger_foundation
+  - 20260914054641_add_rbac_audit_risk_foundation
+  - 20260915025317_add_activity_social_graph_foundation
+  - 20260915050503_add_activity_chat_identity_foundation
+  - 20260915141108_fix_activity_chat_setnull_compatibility
+  - 20260915161907_add_chat_message_history_index
+- Render production DB read-only verification: User/Owner/ActivityAccount/Wallet counts are 3 each; WalletLedgerEntry, Follow, Interest, ProfileVisit, Chat, and Message counts are 0
+- Owner legacy bridge, primary ActivityAccount bridge, and Wallet bridge verification passed 3/3
+- Verified DB indexes: Message_chatId_createdAt_id_idx, Message_senderAccountId_createdAt_idx, Chat_accountAId_lastMessageAt_idx, Chat_accountBId_lastMessageAt_idx, and Chat_accountAId_accountBId_key
+- Verified constraints: pair-complete check absent, self check retained, and Chat account plus Message senderAccount foreign keys use ON DELETE SET NULL
+- Prettier PASS
+- Prisma validate PASS
+- API build PASS
+- git diff --check PASS
+- Feature commit/push:
+  85d8b1a4d927293db6608e2fa98653168cac013f
+- GitHub remote branch HEAD verified at the same SHA
+- Render tok-friends-api currently deploys branch chore/api-recovery; this history API feature code is not yet deployed to the Render production API
 
 ### Final high-level IA
 Mobile main tabs:
@@ -895,7 +939,7 @@ Real Chat identity architecture:
 - Partial-null Chat bridge state is permitted for transitional history preservation.
 - New ActivityAccount direct rooms must set both account participant fields together.
 - Canonical account pair ordering and direct-room concurrency safety remain application-layer follow-up work.
-- Message list, realtime, read/unread, attachments, push, and Mobile Chat integration remain unimplemented.
+- Message history API is implemented; realtime, read/unread, attachments, push, and Mobile Chat integration remain unimplemented.
 
 Major domains still required:
 - Gift transactions
@@ -994,14 +1038,17 @@ COMPLETE.
 ActivityAccount-based message-send identity foundation:
 COMPLETE.
 
+ActivityAccount-based message-history foundation:
+COMPLETE.
+
 Next implementation phase:
 REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Inspect the Message list / chat room history API foundation before implementation.
+Inspect Mobile real Chat HTTP integration foundation before implementation.
 
-Review current message-history API availability, pagination/cursor choice, ActivityAccount room authorization, senderAccountId public identity, legacy senderId privacy, deleted ActivityAccount history policy, Block-after-history policy, ordering/page size, response serialization, and mobile ChatRoomScreen integration. Do not mark this work complete yet; realtime/WebSocket, unread/read, attachments, push, and client idempotency remain later slices.
+Inspect apps/mobile/src/api/client.js, ChatsScreen, ChatRoomScreen, and ProfileDetail/GlobalProfileModal direct-room navigation. Verify ensureDirectRoom room-id delivery, GET /chats and GET /chats/:chatId/messages integration, POST /chats/message integration, dummy list/INITIAL_MESSAGES removal scope, ActivityAccount public identity use, load-older pagination UX, optimistic send/error handling, and Block/404 handling. Do not mark implementation complete yet; realtime/WebSocket, unread/read, attachments, push, and idempotency remain later slices.
 
 First commands to run when resuming:
 
