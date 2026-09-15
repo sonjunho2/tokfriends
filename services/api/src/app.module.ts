@@ -25,6 +25,7 @@ import { AdminPermissionsGuard } from "./common/admin-permissions.guard";
 import { AdminSecurityModule } from "./modules/admin-security/admin-security.module";
 import { FollowsModule } from "./modules/follows/follows.module";
 import { InterestsModule } from "./modules/interests/interests.module";
+import { ProfileVisitsModule } from "./modules/profile-visits/profile-visits.module";
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { InterestsModule } from "./modules/interests/interests.module";
     AdminSecurityModule,
     FollowsModule,
     InterestsModule,
+    ProfileVisitsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

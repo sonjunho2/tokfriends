@@ -124,6 +124,21 @@ export class CommunityService {
                   ],
                 },
               });
+
+              await transaction.profileVisit.deleteMany({
+                where: {
+                  OR: [
+                    {
+                      visitorAccountId: { in: userAccountIds },
+                      visitedAccountId: { in: blockedUserAccountIds },
+                    },
+                    {
+                      visitorAccountId: { in: blockedUserAccountIds },
+                      visitedAccountId: { in: userAccountIds },
+                    },
+                  ],
+                },
+              });
             }
 
             return createdBlock;
