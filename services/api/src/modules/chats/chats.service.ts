@@ -6,8 +6,9 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
+import { isISO8601 } from "class-validator";
 import { PrismaService } from "nestjs-prisma";
-import { DirectChatDto, SendMessageDto } from "./dto";
+import { ChatMessagesQueryDto, DirectChatDto, SendMessageDto } from "./dto";
 
 const MAX_TRANSACTION_RETRIES = 3;
 
@@ -75,6 +76,19 @@ type SendMessageResponse = {
   content: string;
   translatedContent: string | null;
   createdAt: Date;
+};
+type ChatMessageHistoryItem = {
+  id: string;
+  chatId: string;
+  senderAccountId: string | null;
+  type: string;
+  content: string;
+  translatedContent: string | null;
+  createdAt: Date;
+};
+type ChatMessageHistoryResponse = {
+  items: ChatMessageHistoryItem[];
+  nextCursor: { createdAt: string; id: string } | null;
 };
 
 @Injectable()
@@ -217,6 +231,183 @@ export class ChatsService {
         },
       ];
     });
+  }
+
+  async history(
+    currentUserId: string | undefined,
+    actorAccountId: string | null | undefined,
+    chatId: string,
+    query: ChatMessagesQueryDto,
+  ): Promise<ChatMessageHistoryResponse> {
+    if (!currentUserId)
+      throw new BadRequestException("Missing authenticated user");
+    if (!actorAccountId)
+      throw new ForbiddenException("Active activity account required");
+    const hasCursorCreatedAt = query.cursorCreatedAt !== undefined;
+    const hasCursorId = query.cursorId !== undefined;
+    if (hasCursorCreatedAt !== hasCursorId)
+      throw new BadRequestException("Invalid message cursor");
+    const limit = query.limit ?? 30;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 50)
+      throw new BadRequestException("Invalid message limit");
+    let cursorDate: Date | null = null;
+    if (hasCursorCreatedAt) {
+      if (
+        typeof query.cursorCreatedAt !== "string" ||
+        !query.cursorCreatedAt ||
+        !isISO8601(query.cursorCreatedAt) ||
+        typeof query.cursorId !== "string" ||
+        !query.cursorId
+      )
+        throw new BadRequestException("Invalid message cursor");
+      cursorDate = new Date(query.cursorCreatedAt);
+    }
+    const actor = await this.prisma.activityAccount.findFirst({
+      where: {
+        id: actorAccountId,
+        status: "active",
+        owner: {
+          status: "active",
+          legacyUserId: currentUserId,
+          legacyUser: { status: "active" },
+        },
+      },
+      select: directAccountSelect,
+    });
+    if (!actor?.owner.legacyUserId)
+      throw new ForbiddenException("Active activity account required");
+    const chat = await this.prisma.chat.findFirst({
+      where: {
+        id: chatId,
+        OR: [
+          {
+            accountAId: actorAccountId,
+            userAId: actor.owner.legacyUserId,
+            accountBId: { not: null },
+            accountB: {
+              is: {
+                status: "active",
+                owner: {
+                  status: "active",
+                  legacyUserId: { not: null },
+                  legacyUser: { status: "active" },
+                },
+              },
+            },
+          },
+          {
+            accountBId: actorAccountId,
+            userBId: actor.owner.legacyUserId,
+            accountAId: { not: null },
+            accountA: {
+              is: {
+                status: "active",
+                owner: {
+                  status: "active",
+                  legacyUserId: { not: null },
+                  legacyUser: { status: "active" },
+                },
+              },
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        userAId: true,
+        userBId: true,
+        accountAId: true,
+        accountBId: true,
+        accountA: {
+          select: {
+            id: true,
+            ownerId: true,
+            owner: { select: { legacyUserId: true } },
+          },
+        },
+        accountB: {
+          select: {
+            id: true,
+            ownerId: true,
+            owner: { select: { legacyUserId: true } },
+          },
+        },
+      },
+    });
+    if (!chat) throw new NotFoundException("Chat not found");
+    const counterpart =
+      chat.accountAId === actorAccountId ? chat.accountB : chat.accountA;
+    const counterpartUserId = counterpart?.owner.legacyUserId;
+    const aligned =
+      chat.accountAId === actorAccountId
+        ? chat.userBId === counterpartUserId
+        : chat.userAId === counterpartUserId;
+    if (
+      !counterpartUserId ||
+      !aligned ||
+      counterpart.ownerId === actor.ownerId ||
+      counterpartUserId === actor.owner.legacyUserId
+    )
+      throw new NotFoundException("Chat not found");
+    const block = await this.prisma.block.findFirst({
+      where: {
+        OR: [
+          {
+            userId: actor.owner.legacyUserId,
+            blockedUserId: counterpartUserId,
+          },
+          {
+            userId: counterpartUserId,
+            blockedUserId: actor.owner.legacyUserId,
+          },
+        ],
+      },
+      select: { id: true },
+    });
+    if (block) throw new NotFoundException("Chat not found");
+    const messages = await this.prisma.message.findMany({
+      where: {
+        chatId: chat.id,
+        ...(cursorDate
+          ? {
+              OR: [
+                { createdAt: { lt: cursorDate } },
+                { createdAt: cursorDate, id: { lt: query.cursorId! } },
+              ],
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        chatId: true,
+        senderAccountId: true,
+        type: true,
+        content: true,
+        translatedContent: true,
+        createdAt: true,
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+    });
+    const hasMore = messages.length > limit;
+    const page = messages.slice(0, limit);
+    const oldest = page[page.length - 1];
+    return {
+      items: page
+        .map((message) => ({
+          ...message,
+          senderAccountId:
+            message.senderAccountId === chat.accountAId ||
+            message.senderAccountId === chat.accountBId
+              ? message.senderAccountId
+              : null,
+        }))
+        .reverse(),
+      nextCursor:
+        hasMore && oldest
+          ? { createdAt: oldest.createdAt.toISOString(), id: oldest.id }
+          : null,
+    };
   }
 
   async send(

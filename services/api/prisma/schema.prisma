@@ -266,6 +266,7 @@ model Message {
   isFlagged         Boolean          @default(false)
 
   @@index([senderAccountId, createdAt])
+  @@index([chatId, createdAt, id])
 }
 
 model Topic {

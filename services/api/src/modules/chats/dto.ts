@@ -1,3 +1,4 @@
+import { Type } from "class-transformer";
 import { IsNotEmpty, IsOptional, IsString, MaxLength } from "class-validator";
 
 export class SendMessageDto {
@@ -21,4 +22,18 @@ export class DirectChatDto {
   @IsString()
   @IsNotEmpty()
   targetUserId?: string;
+}
+
+export class ChatMessagesQueryDto {
+  @IsOptional()
+  @IsString()
+  cursorCreatedAt?: string;
+
+  @IsOptional()
+  @IsString()
+  cursorId?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  limit?: number;
 }
