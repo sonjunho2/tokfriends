@@ -23,11 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-85d8b1a4d927293db6608e2fa98653168cac013f
-feat: add activity account message history
+57542f2a7d6bd2bddd964a619a866c7306a0f872
+feat: expose activity account identity in user me
 
 Remote GitHub branch HEAD verified:
-85d8b1a4d927293db6608e2fa98653168cac013f
+57542f2a7d6bd2bddd964a619a866c7306a0f872
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -853,6 +853,37 @@ Completed 2026-09-15.
 - GitHub remote branch HEAD verified at the same SHA
 - Render tok-friends-api currently deploys branch chore/api-recovery; this history API feature code is not yet deployed to the Render production API
 
+### GET /users/me ActivityAccount identity foundation
+Completed 2026-09-15.
+
+- GET /users/me uses canonical JwtStrategy request context user.id
+- The legacy user.sub fallback was removed from GET /users/me
+- The existing `{ ok: true, data }` envelope and serializeUser fields are preserved
+- Added `data.activityAccountId: string | null`
+- activityAccountId reuses the canonical current ActivityAccount id already resolved by JwtStrategy
+- No additional ActivityAccount database query was added
+- UsersService.byId and serializeUser remain unchanged
+- PATCH /users/:id response and GET /users/:id public serializer contracts remain unchanged
+- ownerId, Owner.id, Owner.legacyUserId, ActivityAccount.ownerId, ActivityAccount.legacyUserId, and other internal bridge data are not exposed
+- An authenticated User without ActivityAccount context still receives /users/me with activityAccountId=null
+- Account-scoped non-null enforcement remains endpoint-specific
+- Mobile AuthContext can use user.activityAccountId from its existing /users/me user state contract; Mobile files were not changed
+- Chat APIs, Prisma schema, migrations, and the database were not changed
+- npm run build PASS
+- git diff --check PASS
+- npx prettier --check src/modules/users/users.controller.ts FAIL because the unchanged HEAD version has the same existing formatting issue
+- No whole-file formatting sweep was performed in this feature
+- Feature commit/push:
+  57542f2a7d6bd2bddd964a619a866c7306a0f872
+- GitHub remote branch HEAD verified at the same SHA
+
+### Production deployment limitation
+
+- Render production DB has the latest migrations applied.
+- Render tok-friends-api currently deploys branch chore/api-recovery.
+- ActivityAccount Chat list/send/history code and the GET /users/me activityAccountId contract are not yet live on the Render production API.
+- Mobile real HTTP integration can proceed, but production-endpoint E2E verification remains limited until the API deployment branch changes.
+
 ### Final high-level IA
 Mobile main tabs:
 Home / Live / Chat / Points / My
@@ -891,6 +922,11 @@ Reusable:
 - report/block
 - Point product/IAP purchase flow
 - current Settings/My shell
+
+Current ActivityAccount identity contract:
+- The backend /users/me contract now provides activityAccountId.
+- AuthContext can consume user.activityAccountId without a structural change.
+- Existing Mobile Chat screens and API client do not yet use this value.
 
 Known gaps:
 - Chats list dummy data
@@ -1041,14 +1077,32 @@ COMPLETE.
 ActivityAccount-based message-history foundation:
 COMPLETE.
 
+Current ActivityAccount public identity foundation:
+COMPLETE.
+
 Next implementation phase:
 REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Inspect Mobile real Chat HTTP integration foundation before implementation.
+Implement Mobile real Chat list HTTP integration foundation.
 
-Inspect apps/mobile/src/api/client.js, ChatsScreen, ChatRoomScreen, and ProfileDetail/GlobalProfileModal direct-room navigation. Verify ensureDirectRoom room-id delivery, GET /chats and GET /chats/:chatId/messages integration, POST /chats/message integration, dummy list/INITIAL_MESSAGES removal scope, ActivityAccount public identity use, load-older pagination UX, optimistic send/error handling, and Block/404 handling. Do not mark implementation complete yet; realtime/WebSocket, unread/read, attachments, push, and idempotency remain later slices.
+First slice scope:
+- apps/mobile/src/api/client.js
+- apps/mobile/src/screens/main/ChatsScreen.js
+- only any necessary existing Chat list item component
+
+Goals:
+- add apiClient.getChats() and connect GET /chats
+- remove the ChatsScreen dummy list
+- use the backend counterpart ActivityAccount public identity
+- use `displayName || handle || "대화"` for the title
+- remove or safely placeholder fake preview, unread, avatar, points, and location values that the backend does not provide
+- retain the fixed take:20 API behavior; do not add list pagination
+- add loading, error, and empty states
+- choose the smallest safe pull-to-refresh or focus-refresh approach
+
+Do not include ChatRoom history/send integration, ProfileDetail or GlobalProfileModal targetAccountId conversion, WebSocket, read/unread, media, gift, push, or idempotency in this slice. Do not mark this implementation complete before it is actually implemented.
 
 First commands to run when resuming:
 
@@ -1056,28 +1110,6 @@ cd C:\Users\ION\Downloads\work\tokfriends
 git branch --show-current
 git status --short
 git log -1 --oneline
-
-Before editing:
-- Reinspect the current Chat schema and ChatsService before implementation.
-- Convert only POST /chats/direct to an ActivityAccount-based input boundary first.
-- Require req.user.activityAccountId.
-- Use targetAccountId as the target identity.
-- Require active actor ActivityAccount and active actor Owner.
-- Require active target ActivityAccount and active target Owner.
-- Reject self-chat.
-- Enforce bilateral legacy User Block checks without exposing Block direction.
-- Require both Owners to have valid legacyUserId bridges while userAId/userBId remain mandatory.
-- If either legacy bridge is absent, reject direct-room creation safely rather than writing null User foreign keys.
-- Set both accountAId and accountBId for every new ActivityAccount Chat.
-- Apply deterministic canonical ordering to participant ActivityAccount IDs.
-- Use the account pair database unique constraint.
-- Run Block check and existing-room lookup/create in a Serializable transaction.
-- Retry Prisma P2034 conflicts.
-- Prevent duplicate rooms under concurrent direct-room requests.
-- Do not expose legacy User IDs or Owner IDs in the consumer response.
-- Preserve existing legacy Chat compatibility rather than destructively converting old rows.
-- Do not add a Friendship requirement; preserve the current policy.
-- Do not mix message list/send, realtime, read/unread, push, attachments, or Mobile dummy removal into this slice.
 
 ## RBAC / Audit / Risk Safety Rules
 
