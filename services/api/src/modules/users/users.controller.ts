@@ -13,6 +13,11 @@ import { UsersService } from './users.service';
 import { UpdateUserDto } from './update-user.dto';
 import { CurrentUser } from '../auth/current-user.decorator';
 
+type CurrentRequestUser = {
+  id?: string;
+  activityAccountId?: string | null;
+};
+
 @ApiTags('users')
 @ApiBearerAuth()
 @Controller('users')
@@ -21,11 +26,17 @@ export class UsersController {
 
   // 내 정보 조회 (JWT 토큰 기반)
   @Get('me')
-  async getMe(@CurrentUser() user: any) {
-    const userId = user?.sub ?? user?.id;
+  async getMe(@CurrentUser() user: CurrentRequestUser) {
+    const userId = user?.id;
     const userData = userId ? await this.users.byId(userId) : null;
     if (!userData) throw new NotFoundException('User not found');
-    return { ok: true, data: this.serializeUser(userData) };
+    return {
+      ok: true,
+      data: {
+        ...this.serializeUser(userData),
+        activityAccountId: user?.activityAccountId ?? null,
+      },
+    };
   }
 
   @ApiQuery({ name: 'q', required: false, type: String })
