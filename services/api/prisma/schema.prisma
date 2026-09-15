@@ -85,6 +85,9 @@ model ActivityAccount {
   interestsReceived     Interest[]     @relation("InterestTarget")
   profileVisitsMade     ProfileVisit[] @relation("ProfileVisitVisitor")
   profileVisitsReceived ProfileVisit[] @relation("ProfileVisitVisited")
+  chatsAsAccountA       Chat[]         @relation("ChatAccountA")
+  chatsAsAccountB       Chat[]         @relation("ChatAccountB")
+  chatMessagesSent      Message[]      @relation("MessageSenderAccount")
 
   @@index([ownerId])
   @@index([ownerId, isPrimary])
@@ -231,26 +234,38 @@ model Friendship {
 }
 
 model Chat {
-  id            String   @id @default(cuid())
+  id            String           @id @default(cuid())
   userAId       String
   userBId       String
-  userA         User     @relation("A", fields: [userAId], references: [id])
-  userB         User     @relation("B", fields: [userBId], references: [id])
+  userA         User             @relation("A", fields: [userAId], references: [id])
+  userB         User             @relation("B", fields: [userBId], references: [id])
+  accountAId    String?
+  accountBId    String?
+  accountA      ActivityAccount? @relation("ChatAccountA", fields: [accountAId], references: [id], onDelete: SetNull)
+  accountB      ActivityAccount? @relation("ChatAccountB", fields: [accountBId], references: [id], onDelete: SetNull)
   lastMessageAt DateTime?
   messages      Message[]
+
+  @@unique([accountAId, accountBId])
+  @@index([accountAId, lastMessageAt])
+  @@index([accountBId, lastMessageAt])
 }
 
 model Message {
-  id                 String   @id @default(cuid())
-  chatId             String
-  chat               Chat     @relation(fields: [chatId], references: [id])
-  senderId           String
-  sender             User     @relation(fields: [senderId], references: [id])
-  type               String   @default("text")
-  content            String
-  translatedContent  String?
-  createdAt          DateTime @default(now())
-  isFlagged          Boolean  @default(false)
+  id                String           @id @default(cuid())
+  chatId            String
+  chat              Chat             @relation(fields: [chatId], references: [id])
+  senderId          String
+  sender            User             @relation(fields: [senderId], references: [id])
+  senderAccountId   String?
+  senderAccount     ActivityAccount? @relation("MessageSenderAccount", fields: [senderAccountId], references: [id], onDelete: SetNull)
+  type              String           @default("text")
+  content           String
+  translatedContent String?
+  createdAt         DateTime         @default(now())
+  isFlagged         Boolean          @default(false)
+
+  @@index([senderAccountId, createdAt])
 }
 
 model Topic {

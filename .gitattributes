@@ -2,3 +2,5 @@ services/api/prisma/migrations/20260914042731_add_owner_activity_account_foundat
 services/api/prisma/migrations/20260914050305_add_wallet_ledger_foundation/migration.sql text eol=lf
 services/api/prisma/migrations/20260914054641_add_rbac_audit_risk_foundation/migration.sql text eol=lf
 services/api/prisma/migrations/20260915025317_add_activity_social_graph_foundation/migration.sql text eol=lf
+services/api/prisma/migrations/20260915050503_add_activity_chat_identity_foundation/migration.sql text eol=lf
+services/api/prisma/migrations/20260915141108_fix_activity_chat_setnull_compatibility/migration.sql text eol=lf
