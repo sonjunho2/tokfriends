@@ -7,7 +7,7 @@ import {
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "nestjs-prisma";
-import { DirectChatDto } from "./dto";
+import { DirectChatDto, SendMessageDto } from "./dto";
 
 const MAX_TRANSACTION_RETRIES = 3;
 
@@ -66,6 +66,15 @@ type DirectRoomResponse = {
     handle: string | null;
     displayName: string | null;
   }>;
+};
+type SendMessageResponse = {
+  id: string;
+  chatId: string;
+  senderAccountId: string;
+  type: string;
+  content: string;
+  translatedContent: string | null;
+  createdAt: Date;
 };
 
 @Injectable()
@@ -210,31 +219,159 @@ export class ChatsService {
     });
   }
 
-  async send(currentUserId: string, dto: { chatId: string; content: string }) {
+  async send(
+    currentUserId: string | undefined,
+    actorAccountId: string | null | undefined,
+    dto: SendMessageDto,
+  ): Promise<SendMessageResponse> {
     if (!currentUserId)
       throw new BadRequestException("Missing authenticated user");
-    const chat = await this.prisma.chat.findFirst({
-      where: {
-        id: dto.chatId,
-        OR: [{ userAId: currentUserId }, { userBId: currentUserId }],
-      },
-      select: { id: true, userAId: true, userBId: true },
-    });
-    if (!chat) throw new NotFoundException("Chat not found");
-    const target = chat.userAId === currentUserId ? chat.userBId : chat.userAId;
-    await this.ensureUsersCanChat(currentUserId, target);
-    const msg = await this.prisma.message.create({
-      data: {
-        chatId: dto.chatId,
-        senderId: currentUserId,
-        content: dto.content,
-      },
-    });
-    await this.prisma.chat.update({
-      where: { id: dto.chatId },
-      data: { lastMessageAt: new Date() },
-    });
-    return msg;
+    if (!actorAccountId)
+      throw new ForbiddenException("Active activity account required");
+    for (let attempt = 0; attempt < MAX_TRANSACTION_RETRIES; attempt += 1) {
+      try {
+        return await this.prisma.$transaction(
+          async (tx) => {
+            const actor = await tx.activityAccount.findFirst({
+              where: {
+                id: actorAccountId,
+                status: "active",
+                owner: {
+                  status: "active",
+                  legacyUserId: currentUserId,
+                  legacyUser: { status: "active" },
+                },
+              },
+              select: directAccountSelect,
+            });
+            if (!actor?.owner.legacyUserId)
+              throw new ForbiddenException("Active activity account required");
+            const chat = await tx.chat.findFirst({
+              where: {
+                id: dto.chatId,
+                OR: [
+                  {
+                    accountAId: actorAccountId,
+                    userAId: actor.owner.legacyUserId,
+                    accountBId: { not: null },
+                    accountB: {
+                      is: {
+                        status: "active",
+                        owner: {
+                          status: "active",
+                          legacyUserId: { not: null },
+                          legacyUser: { status: "active" },
+                        },
+                      },
+                    },
+                  },
+                  {
+                    accountBId: actorAccountId,
+                    userBId: actor.owner.legacyUserId,
+                    accountAId: { not: null },
+                    accountA: {
+                      is: {
+                        status: "active",
+                        owner: {
+                          status: "active",
+                          legacyUserId: { not: null },
+                          legacyUser: { status: "active" },
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+              select: {
+                id: true,
+                userAId: true,
+                userBId: true,
+                accountAId: true,
+                accountBId: true,
+                accountA: {
+                  select: {
+                    id: true,
+                    ownerId: true,
+                    owner: { select: { legacyUserId: true } },
+                  },
+                },
+                accountB: {
+                  select: {
+                    id: true,
+                    ownerId: true,
+                    owner: { select: { legacyUserId: true } },
+                  },
+                },
+              },
+            });
+            if (!chat) throw new NotFoundException("Chat not found");
+            const counterpart =
+              chat.accountAId === actorAccountId
+                ? chat.accountB
+                : chat.accountA;
+            const counterpartUserId = counterpart?.owner.legacyUserId;
+            const aligned =
+              chat.accountAId === actorAccountId
+                ? chat.userBId === counterpartUserId
+                : chat.userAId === counterpartUserId;
+            if (
+              !counterpartUserId ||
+              !aligned ||
+              counterpart.ownerId === actor.ownerId ||
+              counterpartUserId === actor.owner.legacyUserId
+            )
+              throw new ConflictException("Chat is unavailable");
+            const block = await tx.block.findFirst({
+              where: {
+                OR: [
+                  {
+                    userId: actor.owner.legacyUserId,
+                    blockedUserId: counterpartUserId,
+                  },
+                  {
+                    userId: counterpartUserId,
+                    blockedUserId: actor.owner.legacyUserId,
+                  },
+                ],
+              },
+              select: { id: true },
+            });
+            if (block) throw new ForbiddenException("Chat is unavailable");
+            const now = new Date();
+            const message = await tx.message.create({
+              data: {
+                chatId: dto.chatId,
+                senderId: actor.owner.legacyUserId,
+                senderAccountId: actor.id,
+                content: dto.content,
+                createdAt: now,
+              },
+              select: {
+                id: true,
+                chatId: true,
+                senderAccountId: true,
+                type: true,
+                content: true,
+                translatedContent: true,
+                createdAt: true,
+              },
+            });
+            await tx.chat.update({
+              where: { id: chat.id },
+              data: { lastMessageAt: now },
+            });
+            return {
+              ...message,
+              senderAccountId: actor.id,
+            };
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+      } catch (error: unknown) {
+        if (!isTransactionConflict(error)) throw error;
+      }
+    }
+    throw new ConflictException("Chat is unavailable");
   }
 
   async ensureDirectRoom(

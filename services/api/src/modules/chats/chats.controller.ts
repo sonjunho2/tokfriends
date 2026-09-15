@@ -18,9 +18,8 @@ export class ChatsController {
   }
 
   @Post("message")
-  send(@CurrentUser() user: any, @Body() dto: SendMessageDto) {
-    const currentUserId = user?.sub ?? user?.id;
-    return this.chats.send(currentUserId, dto);
+  send(@CurrentUser() user: CurrentRequestUser, @Body() dto: SendMessageDto) {
+    return this.chats.send(user?.id, user?.activityAccountId, dto);
   }
 
   @Post("direct")
