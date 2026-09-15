@@ -23,11 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-e679cb2e9882f462d6ae2d4a05ea11309f9cc5e1
-fix: provision consumer account foundation
+8693e94fcdddd44098dcd213d577add6806675d2
+fix: unify API JWT guard usage
 
 Remote GitHub branch HEAD verified:
-e679cb2e9882f462d6ae2d4a05ea11309f9cc5e1
+8693e94fcdddd44098dcd213d577add6806675d2
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -292,6 +292,23 @@ Completed 2026-09-15.
   e679cb2e9882f462d6ae2d4a05ea11309f9cc5e1
 - GitHub remote branch HEAD verified at the same SHA
 
+### API JWT guard usage unification
+Completed 2026-09-15.
+
+- API JWT guard usage unification 완료
+- 실제 서버는 services/api/src/app.module.ts의 global APP_GUARD에서
+  services/api/src/modules/auth/jwt.guard.ts를 canonical guard로 사용
+- CommunityController에서 ../../guards/jwt-auth.guard active usage 제거
+- UsersController에서 ../auth/jwt-auth.guard active usage 제거
+- legacy guard 파일 자체는 아직 삭제하지 않음
+- PostsController는 기존 canonical jwt.guard.ts 사용 유지
+- global guard가 non-@Public route 보호를 계속 담당
+- npm run build PASS
+- git diff --check PASS
+- Feature commit:
+  8693e94fcdddd44098dcd213d577add6806675d2
+- GitHub remote branch HEAD verified at the same SHA
+
 ### Final high-level IA
 Mobile main tabs:
 Home / Live / Chat / Points / My
@@ -354,6 +371,9 @@ Core foundations now present:
 
 Authentication/request context remains User-based.
 Current ActivityAccount selection/resolution is not implemented yet.
+Active legacy guards that overwrote req.user were removed from CommunityController and UsersController.
+The canonical JwtStrategy request context can now be the basis for ActivityAccount resolution.
+Legacy guard file cleanup/deletion remains a separate follow-up task.
 
 Major domains still required:
 - Gift transactions
@@ -410,12 +430,15 @@ COMPLETE.
 Consumer account provisioning foundation:
 COMPLETE.
 
+API JWT guard usage unification:
+COMPLETE.
+
 Next implementation phase:
 SOCIAL — IN PROGRESS.
 
 ## Immediate Next Task
 
-Investigate and design how to safely resolve the current ActivityAccount from an authenticated User before adding Social schema.
+Prepare the design and implementation path for safely resolving the current ActivityAccount from an authenticated User.
 
 First commands to run when resuming:
 
@@ -426,10 +449,9 @@ git log -1 --oneline
 
 Before editing:
 - Inspect JwtStrategy and the current req.user structure.
-- Decide how to resolve the User -> Owner -> ActivityAccount bridge in request context.
-- Review whether the primary compatibility ActivityAccount can be the default for each legacy User.
-- Design the resolution path without preventing future multi-ActivityAccount selection.
-- Compare permanently embedding ActivityAccount in JWT with server-side resolution per request.
+- Prefer evaluating server-side User -> Owner -> ActivityAccount resolution without permanently fixing ActivityAccount selection in JWT.
+- Review legacyUserId / isPrimary as the current default compatibility account resolution path.
+- Design the resolution path without blocking future multi-ActivityAccount selection.
 - Keep the existing User-based Friendship as a compatibility layer.
 - Add Follow / Interest / ProfileVisit schema only after the resolution approach is confirmed.
 - Do not mix Real Chat, Gift, LIVE, Feed, or Points into this step.
