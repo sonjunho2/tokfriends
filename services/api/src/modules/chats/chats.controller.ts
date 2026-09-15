@@ -13,9 +13,8 @@ export class ChatsController {
   constructor(private readonly chats: ChatsService) {}
 
   @Get()
-  list(@CurrentUser() user: any) {
-    const currentUserId = user?.sub ?? user?.id;
-    return this.chats.list(currentUserId);
+  list(@CurrentUser() user: CurrentRequestUser) {
+    return this.chats.list(user?.id, user?.activityAccountId);
   }
 
   @Post("message")

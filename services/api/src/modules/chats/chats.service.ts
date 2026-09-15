@@ -72,26 +72,141 @@ type DirectRoomResponse = {
 export class ChatsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(currentUserId: string) {
+  async list(
+    currentUserId: string | undefined,
+    actorAccountId?: string | null,
+  ) {
     if (!currentUserId)
       throw new BadRequestException("Missing authenticated user");
+    if (!actorAccountId)
+      throw new ForbiddenException("Active activity account required");
+    const actor = await this.prisma.activityAccount.findFirst({
+      where: {
+        id: actorAccountId,
+        status: "active",
+        owner: {
+          status: "active",
+          legacyUserId: currentUserId,
+          legacyUser: { status: "active" },
+        },
+      },
+      select: {
+        id: true,
+        ownerId: true,
+        owner: { select: { legacyUserId: true } },
+      },
+    });
+    if (!actor?.owner.legacyUserId)
+      throw new ForbiddenException("Active activity account required");
     const blocks = await this.prisma.block.findMany({
       where: {
-        OR: [{ userId: currentUserId }, { blockedUserId: currentUserId }],
+        OR: [
+          { userId: actor.owner.legacyUserId },
+          { blockedUserId: actor.owner.legacyUserId },
+        ],
       },
       select: { userId: true, blockedUserId: true },
     });
     const blocked = blocks.map((b) =>
-      b.userId === currentUserId ? b.blockedUserId : b.userId,
+      b.userId === actor.owner.legacyUserId ? b.blockedUserId : b.userId,
     );
-    return this.prisma.chat.findMany({
+    const chats = await this.prisma.chat.findMany({
       where: {
-        OR: [{ userAId: currentUserId }, { userBId: currentUserId }],
-        userAId: blocked.length ? { notIn: blocked } : undefined,
-        userBId: blocked.length ? { notIn: blocked } : undefined,
+        OR: [
+          {
+            accountAId: actorAccountId,
+            userAId: actor.owner.legacyUserId,
+            accountBId: { not: null },
+            accountB: {
+              is: {
+                status: "active",
+                owner: {
+                  status: "active",
+                  legacyUserId: blocked.length
+                    ? { notIn: blocked }
+                    : { not: null },
+                  legacyUser: { status: "active" },
+                },
+              },
+            },
+          },
+          {
+            accountBId: actorAccountId,
+            userBId: actor.owner.legacyUserId,
+            accountAId: { not: null },
+            accountA: {
+              is: {
+                status: "active",
+                owner: {
+                  status: "active",
+                  legacyUserId: blocked.length
+                    ? { notIn: blocked }
+                    : { not: null },
+                  legacyUser: { status: "active" },
+                },
+              },
+            },
+          },
+        ],
       },
       take: 20,
-      orderBy: { lastMessageAt: "desc" },
+      orderBy: [{ lastMessageAt: "desc" }, { id: "desc" }],
+      include: {
+        accountA: {
+          select: {
+            id: true,
+            handle: true,
+            displayName: true,
+            status: true,
+            owner: {
+              select: {
+                status: true,
+                legacyUserId: true,
+                legacyUser: { select: { status: true } },
+              },
+            },
+          },
+        },
+        accountB: {
+          select: {
+            id: true,
+            handle: true,
+            displayName: true,
+            status: true,
+            owner: {
+              select: {
+                status: true,
+                legacyUserId: true,
+                legacyUser: { select: { status: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+    return chats.flatMap((chat) => {
+      const counterpart =
+        chat.accountAId === actorAccountId ? chat.accountB : chat.accountA;
+      const counterpartUserId = counterpart?.owner.legacyUserId;
+      if (!counterpart || !counterpartUserId) return [];
+      const aligned =
+        chat.accountAId === actorAccountId
+          ? chat.userAId === actor.owner.legacyUserId &&
+            chat.userBId === counterpartUserId
+          : chat.userBId === actor.owner.legacyUserId &&
+            chat.userAId === counterpartUserId;
+      if (!aligned) return [];
+      return [
+        {
+          id: chat.id,
+          counterpart: {
+            id: counterpart.id,
+            handle: counterpart.handle,
+            displayName: counterpart.displayName,
+          },
+          lastMessageAt: chat.lastMessageAt,
+        },
+      ];
     });
   }
 
