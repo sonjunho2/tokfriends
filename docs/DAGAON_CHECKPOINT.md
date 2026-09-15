@@ -23,11 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-7babb3a7b8ef0c10d608df0475562e74c4508aab
-feat: add follow API foundation
+b92c26e6fc9bee590afc200b389d8a1737bae51d
+feat: add interest API foundation
 
 Remote GitHub branch HEAD verified:
-7babb3a7b8ef0c10d608df0475562e74c4508aab
+b92c26e6fc9bee590afc200b389d8a1737bae51d
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -478,6 +478,77 @@ Completed 2026-09-15.
   7babb3a7b8ef0c10d608df0475562e74c4508aab
 - GitHub remote branch HEAD verified at the same SHA
 
+### Interest API/service foundation
+Completed 2026-09-15.
+
+- Implemented ActivityAccount-based Interest APIs:
+  - PUT /interests/:targetAccountId
+  - DELETE /interests/:targetAccountId
+  - GET /interests/:targetAccountId/status
+  - GET /interests/sent
+  - GET /interests/received
+- Sent and received lists are private to the current req.user.activityAccountId
+- No API exposes another ActivityAccount's sent or received Interest list
+- Account-scoped Interest endpoints require req.user.activityAccountId
+- Missing ActivityAccount context returns ForbiddenException("Active activity account required")
+- JWT payload and JwtStrategy remain unchanged
+- req.user.id is used for legacy User Block compatibility checks
+- Interest creation policy:
+  - self-interest rejected
+  - actor ActivityAccount and Owner must be active
+  - target ActivityAccount and Owner must be active
+  - missing/inactive target uses a generic NotFound response
+  - bilateral legacy User Block checked when target Owner.legacyUserId exists
+  - Block direction is not exposed
+  - compound senderAccountId_targetAccountId upsert provides idempotent send
+  - Block check and Interest upsert run in a Serializable transaction
+  - Prisma P2034 conflicts retry up to three times
+- Interest remove uses idempotent deleteMany
+- Missing, inactive, or blocked target does not prevent existing Interest cleanup
+- Target visibility validation does not block remove
+- Interest status:
+  - only visible active targets are queried
+  - blocked/inactive/missing targets use the same NotFound response
+  - self status returns interested=false
+  - interested is determined from the compound pair
+- Sent/received lists:
+  - sent contains Interest sent by the current ActivityAccount
+  - received contains Interest received by the current ActivityAccount
+  - offset pagination with defaults offset=0 and limit=20
+  - maximum limit=50
+  - ordered by createdAt desc and id desc
+  - take limit+1 used to calculate hasMore
+  - inactive counterpart ActivityAccounts and Owners filtered out
+  - bilateral Block counterpart Owners excluded in the Prisma where clause
+  - Owners with legacyUserId=null are not hidden solely because the bridge is absent
+- Consumer response exposes only:
+  - id
+  - handle
+  - displayName
+  - interestedAt
+- Consumer response does not expose ownerId, legacyUserId, or User.id
+- CommunityService block integration preserves:
+  - existing Block upsert
+  - existing bilateral Friendship deletion
+  - existing bilateral Follow deletion
+- CommunityService block integration additionally:
+  - reuses the existing Owner ActivityAccount ID arrays
+  - deletes Interest rows in both directions between all ActivityAccounts of both Owners
+  - performs Interest cleanup in the same Serializable transaction
+  - does not restore deleted Interest rows after unblock
+  - preserves existing Prisma P2034 retry behavior
+- ProfileVisit and Follow files unchanged
+- Prisma schema and migrations unchanged
+- package/dependency, JWT strategy, Friendship service, Mobile, and Admin unchanged
+- prettier write/check PASS
+- prisma validate PASS
+- npm run build PASS
+- git diff --check PASS
+- Final working tree clean after feature commit
+- Feature commit:
+  b92c26e6fc9bee590afc200b389d8a1737bae51d
+- GitHub remote branch HEAD verified at the same SHA
+
 ### Final high-level IA
 Mobile main tabs:
 Home / Live / Chat / Points / My
@@ -553,13 +624,13 @@ Social identity architecture:
 - Account-scoped Social APIs should use req.user.activityAccountId without storing the selection in JWT.
 - A null ActivityAccount context should be rejected only by future account-scoped endpoints; existing User authentication remains valid.
 - Block enforcement was not implemented in this schema foundation.
-- Follow now enforces bilateral User-level Block visibility and creation policy.
-- Interest / ProfileVisit services must apply the same policy in later implementations.
+- Follow and Interest now enforce bilateral User-level Block visibility and creation policy.
+- ProfileVisit service must apply the same policy in its later implementation.
 - The Owner/User compatibility boundary must prevent Block bypass across future multi-ActivityAccount identities.
 
 Major domains still required:
 - Gift transactions
-- Follow / Interest / Visitors
+- Visitors
 - Feed / Story
 - LIVE
 - Ads / Rewards
@@ -627,12 +698,15 @@ COMPLETE.
 Follow API/service foundation:
 COMPLETE.
 
+Interest API/service foundation:
+COMPLETE.
+
 Next implementation phase:
 SOCIAL — IN PROGRESS.
 
 ## Immediate Next Task
 
-Begin the Interest API/service foundation without mixing Follow changes or ProfileVisit.
+Begin the ProfileVisit API/service foundation without mixing Follow or Interest changes.
 
 First commands to run when resuming:
 
@@ -642,16 +716,18 @@ git status --short
 git log -1 --oneline
 
 Before editing:
-- Require req.user.activityAccountId for Interest endpoints.
+- Require req.user.activityAccountId for ProfileVisit endpoints.
+- Reject self-visit recording.
 - Validate that the target ActivityAccount and Owner are active.
-- Reject self-interest.
 - Enforce bilateral legacy User Block checks.
-- Define idempotent send and remove behavior.
+- Define the visit recording policy while preserving repeated visit history.
+- Keep received visitors private to the current ActivityAccount.
+- Review the disclosure scope for sent/visited history.
+- Design pagination for visit history and visitor lists.
 - Prevent blocked/inactive accounts from appearing in lookups or lists.
-- Design paginated received and sent lists where needed.
 - Expose only minimal consumer ActivityAccount fields without internal identities.
-- Review Interest cleanup policy for CommunityService block separately.
-- Keep ProfileVisit out of the Interest implementation.
+- Review existing ProfileVisit cleanup policy for CommunityService block from a privacy perspective.
+- Do not modify Follow or Interest files.
 - Do not mix Chat, Gift, LIVE, Feed, or Points into this step.
 
 ## RBAC / Audit / Risk Safety Rules
