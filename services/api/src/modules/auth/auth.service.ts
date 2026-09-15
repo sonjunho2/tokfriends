@@ -30,6 +30,87 @@ const DISABLE_AUTH =
 export class AuthService {
   constructor(private prisma: PrismaService) {}
 
+  private async ensureConsumerFoundation(
+    tx: Prisma.TransactionClient,
+    user: {
+      id: string;
+      role: string;
+      status: string;
+      displayName: string | null;
+      pointsBalance: number;
+    },
+  ) {
+    if (user.role !== 'user') {
+      return;
+    }
+
+    const owner = await tx.owner.upsert({
+      where: { legacyUserId: user.id },
+      update: {},
+      create: {
+        legacyUserId: user.id,
+        status: user.status,
+      },
+      select: { id: true },
+    });
+
+    const activityAccount = await tx.activityAccount.upsert({
+      where: { legacyUserId: user.id },
+      update: {},
+      create: {
+        ownerId: owner.id,
+        legacyUserId: user.id,
+        displayName: user.displayName,
+        status: user.status,
+        isPrimary: true,
+      },
+      select: { id: true },
+    });
+
+    const existingWallet = await tx.wallet.findUnique({
+      where: { activityAccountId: activityAccount.id },
+      select: { id: true },
+    });
+
+    if (existingWallet) {
+      return;
+    }
+
+    const wallet = await tx.wallet.create({
+      data: {
+        activityAccountId: activityAccount.id,
+        spendableBalance: user.pointsBalance,
+        redeemableBalance: 0,
+        pendingEarnings: 0,
+        status: 'active',
+      },
+      select: { id: true },
+    });
+
+    if (user.pointsBalance > 0) {
+      await tx.walletLedgerEntry.create({
+        data: {
+          walletId: wallet.id,
+          kind: 'credit',
+          source: 'consumer_foundation_provisioning',
+          deltaSpendable: user.pointsBalance,
+          deltaRedeemable: 0,
+          deltaPending: 0,
+          spendableAfter: user.pointsBalance,
+          redeemableAfter: 0,
+          pendingAfter: 0,
+          idempotencyKey: `consumer-foundation:legacy-balance:${activityAccount.id}`,
+          referenceType: 'User',
+          referenceId: user.id,
+          metadata: {
+            purpose: 'consumer_foundation_provisioning',
+            legacyField: 'User.pointsBalance',
+          },
+        },
+      });
+    }
+  }
+
   private normalizePhone(phone: string) {
     return phone.replace(/[^\d]/g, '');
   }
@@ -115,17 +196,34 @@ export class AuthService {
 
     const hashed = await argon2.hash(dto.password);
 
-    const user = await this.prisma.user.create({
-      data: {
-        email: dto.email,
-        provider: 'email',
-        // phoneHash: '' // schema가 optional이므로 불필요. 꼭 필요하면 빈문자 유지 가능
-        passwordHash: hashed,
-        displayName: (dto as any).displayName ?? null,
-        dob: new Date(dto.dob),
-        gender: dto.gender,
-      },
-      select: { id: true, email: true, displayName: true },
+    const user = await this.prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          email: dto.email,
+          provider: 'email',
+          // phoneHash: '' // schema가 optional이므로 불필요. 꼭 필요하면 빈문자 유지 가능
+          passwordHash: hashed,
+          displayName: (dto as any).displayName ?? null,
+          dob: new Date(dto.dob),
+          gender: dto.gender,
+        },
+        select: {
+          id: true,
+          email: true,
+          displayName: true,
+          role: true,
+          status: true,
+          pointsBalance: true,
+        },
+      });
+
+      await this.ensureConsumerFoundation(tx, createdUser);
+
+      return {
+        id: createdUser.id,
+        email: createdUser.email,
+        displayName: createdUser.displayName,
+      };
     });
 
     const token = await this.makeToken(user.id);
@@ -405,8 +503,16 @@ export class AuthService {
               },
             },
           },
-          select: { id: true },
+          select: {
+            id: true,
+            role: true,
+            status: true,
+            displayName: true,
+            pointsBalance: true,
+          },
         });
+
+        await this.ensureConsumerFoundation(tx, user);
 
         await tx.phoneVerification.update({
           where: { id: request.id },
@@ -457,36 +563,18 @@ export class AuthService {
       profileUpdate.avatarUri = options.avatarUri;
     }
 
-    const user = await this.prisma.user.upsert({
-      where: { phoneHash },
-      create: {
-        provider: 'phone',
-        phoneHash,
-        displayName: options.nickname,
-        dob: options.dob,
-        gender: options.gender,
-        region1: options.region1 ?? null,
-        region2: options.region2 ?? null,
-        profile: {
-          create: {
-            nickname: options.nickname || '회원',
-            bio: options.bio ?? null,
-            headline: options.headline ?? null,
-            avatarUri: options.avatarUri ?? null,
-            interests: [],
-            badges: [],
-          },
-        },
-      },
-      update: {
-        displayName: options.nickname ?? undefined,
-        dob: options.dob,
-        gender: options.gender,
-        region1: options.region1 ?? null,
-        region2: options.region2 ?? null,
-        profile: {
-          upsert: {
-            update: profileUpdate,
+    const user = await this.prisma.$transaction(async (tx) => {
+      const upsertedUser = await tx.user.upsert({
+        where: { phoneHash },
+        create: {
+          provider: 'phone',
+          phoneHash,
+          displayName: options.nickname,
+          dob: options.dob,
+          gender: options.gender,
+          region1: options.region1 ?? null,
+          region2: options.region2 ?? null,
+          profile: {
             create: {
               nickname: options.nickname || '회원',
               bio: options.bio ?? null,
@@ -497,8 +585,37 @@ export class AuthService {
             },
           },
         },
-      },
-      select: { id: true },
+        update: {
+          displayName: options.nickname ?? undefined,
+          dob: options.dob,
+          gender: options.gender,
+          region1: options.region1 ?? null,
+          region2: options.region2 ?? null,
+          profile: {
+            upsert: {
+              update: profileUpdate,
+              create: {
+                nickname: options.nickname || '회원',
+                bio: options.bio ?? null,
+                headline: options.headline ?? null,
+                avatarUri: options.avatarUri ?? null,
+                interests: [],
+                badges: [],
+              },
+            },
+          },
+        },
+        select: {
+          id: true,
+          role: true,
+          status: true,
+          displayName: true,
+          pointsBalance: true,
+        },
+      });
+
+      await this.ensureConsumerFoundation(tx, upsertedUser);
+      return upsertedUser;
     });
 
     return user.id;
