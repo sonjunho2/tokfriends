@@ -50,10 +50,15 @@ function formatLastSeen(lastSeenAt) {
 
 function mapDiscoverUser(user) {
   const profile = user?.profile ?? {};
+  const targetAccountId =
+    typeof user?.targetAccountId === 'string'
+      ? user.targetAccountId.trim()
+      : '';
 
   return {
     id: user?.id,
     targetUserId: user?.id,
+    targetAccountId: targetAccountId || undefined,
     name: profile?.nickname || user?.displayName || '회원',
     age: typeof user?.age === 'number' ? user.age : calculateAge(user?.dob),
     subtitle: profile?.headline || profile?.bio || undefined,
@@ -131,10 +136,21 @@ export default function HotRecommendScreen({ navigation, route }) {
   }, [seg, users]);
 
   const handleOpenProfile = (item) => {
+    const targetAccountId =
+      typeof item?.targetAccountId === 'string'
+        ? item.targetAccountId.trim()
+        : '';
+    const targetUserId =
+      typeof item?.targetUserId === 'string' ? item.targetUserId.trim() : '';
+    const targetIdentity = targetAccountId
+      ? { targetAccountId }
+      : targetUserId
+        ? { targetUserId }
+        : {};
     navigation.navigate('ProfileDetail', {
       profile: {
         id: item?.id,
-        targetUserId: item?.targetUserId,
+        ...targetIdentity,
         name: item?.name,
         location: item?.regionLabel || '지역 미설정',
         title: item?.headline || '프로필',
