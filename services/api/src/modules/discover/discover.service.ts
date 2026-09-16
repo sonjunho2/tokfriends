@@ -1,6 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'nestjs-prisma';
-import { Prisma } from '@prisma/client';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "nestjs-prisma";
+import { Prisma } from "@prisma/client";
+import {
+  buildDefaultActivityAccountOrderBy,
+  isDefaultActivityAccountCandidate,
+} from "../../common/activity-account-selection";
 
 type Filters = {
   gender?: string;
@@ -31,7 +35,7 @@ export class DiscoverService {
 
   async findUsers(filters: Filters, currentUserId?: string) {
     const now = new Date();
-    const where: Prisma.UserWhereInput = { role: 'user', status: 'active' };
+    const where: Prisma.UserWhereInput = { role: "user", status: "active" };
 
     if (currentUserId) {
       where.NOT = [
@@ -51,10 +55,15 @@ export class DiscoverService {
 
     if (filters.gender) where.gender = filters.gender;
 
-    if (typeof filters.ageMin === 'number' || typeof filters.ageMax === 'number') {
+    if (
+      typeof filters.ageMin === "number" ||
+      typeof filters.ageMax === "number"
+    ) {
       const dob: Prisma.DateTimeFilter = {};
-      if (typeof filters.ageMin === 'number') dob.lte = yearsAgo(now, filters.ageMin);
-      if (typeof filters.ageMax === 'number') dob.gte = yearsAgo(now, (filters.ageMax ?? 0) + 1);
+      if (typeof filters.ageMin === "number")
+        dob.lte = yearsAgo(now, filters.ageMin);
+      if (typeof filters.ageMax === "number")
+        dob.gte = yearsAgo(now, (filters.ageMax ?? 0) + 1);
       where.dob = dob;
     }
 
@@ -67,7 +76,7 @@ export class DiscoverService {
 
     const users = await this.prisma.user.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 50,
       select: {
         id: true,
@@ -87,12 +96,38 @@ export class DiscoverService {
             lastSeenAt: true,
           },
         },
+        ownerBridge: {
+          select: {
+            status: true,
+            legacyUserId: true,
+            activityAccounts: {
+              where: { status: "active" },
+              orderBy: buildDefaultActivityAccountOrderBy(),
+              select: {
+                id: true,
+                status: true,
+                isPrimary: true,
+                legacyUserId: true,
+              },
+            },
+          },
+        },
       },
     });
 
-    return users.map(({ dob, ...user }) => ({
-      ...user,
-      age: dob ? calculateAge(dob, now) : null,
-    }));
+    return users.map(({ dob, ownerBridge, ...user }) => {
+      const targetAccountId =
+        ownerBridge?.status === "active" && ownerBridge.legacyUserId === user.id
+          ? (ownerBridge.activityAccounts.find((account) =>
+              isDefaultActivityAccountCandidate(account, user.id),
+            )?.id ?? null)
+          : null;
+
+      return {
+        ...user,
+        targetAccountId,
+        age: dob ? calculateAge(dob, now) : null,
+      };
+    });
   }
 }
