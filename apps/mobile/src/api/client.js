@@ -536,6 +536,44 @@ export const apiClient = {
     }
   },
 
+  async sendChatMessage(chatId, content) {
+    const target = String(chatId || '').trim();
+    const text = String(content ?? '').trim();
+    if (!target) {
+      throw normalizeError(new Error('대화방 ID가 필요합니다.'));
+    }
+    if (!text) {
+      throw normalizeError(new Error('메시지 내용을 입력해 주세요.'));
+    }
+
+    try {
+      const { data } = await client.post('/chats/message', {
+        chatId: target,
+        content: text,
+      });
+      const message = data?.data ?? data;
+      if (
+        !message ||
+        typeof message !== 'object' ||
+        Array.isArray(message) ||
+        typeof message.id !== 'string' ||
+        !message.id ||
+        typeof message.chatId !== 'string' ||
+        !message.chatId ||
+        typeof message.senderAccountId !== 'string' ||
+        !message.senderAccountId ||
+        typeof message.content !== 'string' ||
+        !message.createdAt ||
+        typeof message.type !== 'string'
+      ) {
+        throw new Error('메시지 전송 응답 형식이 올바르지 않습니다.');
+      }
+      return message;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
   async updateUser(userId, payload = {}) {
     if (!userId) {
       throw normalizeError(new Error('사용자 ID가 필요합니다.'));

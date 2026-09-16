@@ -60,6 +60,7 @@ export default function ChatRoomScreen({ route, navigation }) {
   const [messages, setMessages] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
   const [inputText, setInputText] = useState('');
   const flatListRef = useRef(null);
   const historyRequestRef = useRef(0);
@@ -371,10 +372,56 @@ export default function ChatRoomScreen({ route, navigation }) {
     }
   }, [giftSheetVisible, loadGiftOptions]);
 
-  const sendMessage = () => {
-    if (inputText.trim() === '') return;
-    appendMessage({ text: inputText.trim() });
-    setInputText('');
+  const sendMessage = async () => {
+    if (sendingMessage) return;
+    const content = inputText.trim();
+    if (
+      !content ||
+      !chatId ||
+      !currentActivityAccountId ||
+      historyLoading ||
+      historyError
+    ) {
+      return;
+    }
+
+    setSendingMessage(true);
+    try {
+      const sent = await apiClient.sendChatMessage(chatId, content);
+      if (
+        sent.chatId !== chatId ||
+        sent.senderAccountId !== currentActivityAccountId
+      ) {
+        throw new Error('메시지 전송 응답의 대화 또는 발신자 정보가 올바르지 않습니다.');
+      }
+
+      const nextMessage = {
+        id: sent.id,
+        chatId: sent.chatId,
+        sender: 'me',
+        senderAccountId: sent.senderAccountId,
+        text: sent.content,
+        timestamp: formatMessageTime(sent.createdAt),
+        type: 'text',
+        backendType: sent.type,
+      };
+
+      setMessages((prev) => {
+        if (prev.some((item) => item.id === nextMessage.id)) return prev;
+        return [...prev, nextMessage];
+      });
+      setInputText((current) => (current.trim() === content ? '' : current));
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    } catch (error) {
+      Alert.alert(
+        '메시지 전송 실패',
+        error?.message || '메시지를 전송하지 못했습니다.',
+      );
+    } finally {
+      setSendingMessage(false);
+    }
   };
 
   const openReport = () => {
@@ -725,16 +772,34 @@ export default function ChatRoomScreen({ route, navigation }) {
           <TouchableOpacity
             style={[
               styles.sendButton,
-              inputText.trim() === '' && styles.sendButtonDisabled
+              (
+                inputText.trim() === '' ||
+                sendingMessage ||
+                historyLoading ||
+                !!historyError ||
+                !chatId ||
+                !currentActivityAccountId
+              ) && styles.sendButtonDisabled
             ]}
             onPress={sendMessage}
-            disabled={inputText.trim() === ''}
+            disabled={
+              inputText.trim() === '' ||
+              sendingMessage ||
+              historyLoading ||
+              !!historyError ||
+              !chatId ||
+              !currentActivityAccountId
+            }
           >
-            <Ionicons
-             name="paper-plane"
-              size={20}
-              color={inputText.trim() ? '#2B230A' : colors.textTertiary}
-            />
+            {sendingMessage ? (
+              <ActivityIndicator size="small" color="#2B230A" />
+            ) : (
+              <Ionicons
+               name="paper-plane"
+                size={20}
+                color={inputText.trim() ? '#2B230A' : colors.textTertiary}
+              />
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
