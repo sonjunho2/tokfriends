@@ -23,11 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-cbec8ac716fc3997dd511a8c57cfa8a17db88f10
-feat: integrate mobile chat list
+b5ddc292ca01887d637ccec0a9c55da9fc6fbb6a
+feat: integrate mobile chat history
 
 Remote GitHub branch HEAD verified:
-cbec8ac716fc3997dd511a8c57cfa8a17db88f10
+b5ddc292ca01887d637ccec0a9c55da9fc6fbb6a
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -908,6 +908,40 @@ Completed 2026-09-16.
   cbec8ac716fc3997dd511a8c57cfa8a17db88f10
 - GitHub remote branch HEAD exact SHA verified at the same SHA
 
+### Mobile ChatRoom message history HTTP integration foundation
+Completed 2026-09-16.
+
+- Added apiClient.getChatMessages(chatId) to apps/mobile/src/api/client.js
+- Added real GET /chats/:chatId/messages HTTP integration with required chatId validation and encodeURIComponent path handling
+- Added no fallback route and no client-side limit or cursor query; the backend default of 30 messages is used
+- Preserves nextCursor in the API client but does not use it for Mobile UI pagination
+- Removed ChatRoomScreen INITIAL_MESSAGES and changed the messages initial value to []
+- Resolves the Chat id in order from route.params.chatId, route.params.id, then route.params.room.id
+- Uses AuthContext user.activityAccountId as the current ActivityAccount identity with no legacy User id fallback
+- Displays backend content in a text bubble and uses createdAt for the actual timestamp display
+- Preserves the backend type as backendType while treating the screen message type as text in this slice
+- Sets sender=me only when senderAccountId equals the current ActivityAccount id
+- Sets another non-empty senderAccountId to sender=other
+- Sets a null or unavailable senderAccountId to sender=unknown without treating it as the current user
+- Does not display the counterpart Avatar for an unknown sender
+- Added initial history loading, error with retry, and successful empty states
+- Added request generation/ref handling to prevent stale async responses from updating state
+- Cursor pagination/load-more, Mobile POST /chats/message integration, and WebSocket/realtime remain unimplemented
+- Existing local attachment/media/gift/send UI was not converted to backend behavior
+- Backend/API, Prisma/schema/migrations, and dependencies were not changed
+- Changed files:
+  - apps/mobile/src/api/client.js
+  - apps/mobile/src/screens/main/ChatRoomScreen.js
+- Babel transform PASS for both changed files
+- Relative import verification PASS
+- git diff --check PASS
+- npx expo-doctor: 20/21 checks passed
+- Only the existing dependency warnings remain: expo 57.0.22 (recommended 57.0.23), expo-image-picker 57.0.17 (recommended 57.0.18)
+- No dependency upgrade was performed
+- Feature commit:
+  b5ddc292ca01887d637ccec0a9c55da9fc6fbb6a
+- GitHub remote branch HEAD exact SHA verified at the same SHA
+
 ### Production deployment limitation
 
 - Render production DB has the latest migrations applied.
@@ -957,14 +991,15 @@ Reusable:
 Current ActivityAccount identity contract:
 - The backend /users/me contract now provides activityAccountId.
 - AuthContext can consume user.activityAccountId without a structural change.
-- Existing Mobile Chat screens and API client do not yet use this value.
+- Mobile Chat list and ChatRoom history now use ActivityAccount identity.
 
 Known gaps:
-- Chats list dummy data
-- ChatRoom local INITIAL_MESSAGES
+- ChatRoom HTTP message send
+- Chat history cursor/load-more
+- realtime/WebSocket
 - Gift sending not financial/server transaction
 - no mobile friendship functions
-- no Follow/Interest
+- no Mobile Follow/Interest integration
 - no LIVE
 - no commercial Feed/Story
 - mojibake in older files
@@ -1006,7 +1041,7 @@ Real Chat identity architecture:
 - Partial-null Chat bridge state is permitted for transitional history preservation.
 - New ActivityAccount direct rooms must set both account participant fields together.
 - Canonical account pair ordering and direct-room concurrency safety remain application-layer follow-up work.
-- Message history API is implemented; realtime, read/unread, attachments, push, and Mobile Chat integration remain unimplemented.
+- Mobile Chat list and ChatRoom history HTTP integrations are implemented; Mobile HTTP send, realtime, read/unread, attachments, and push remain unimplemented.
 
 Major domains still required:
 - Gift transactions
@@ -1114,27 +1149,31 @@ COMPLETE.
 Mobile real Chat list HTTP integration foundation:
 COMPLETE.
 
+Mobile ChatRoom message history HTTP integration foundation:
+COMPLETE.
+
 Next implementation phase:
 REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Implement Mobile ChatRoom message history HTTP integration foundation.
+Implement Mobile ChatRoom message send HTTP integration foundation.
 
 First slice scope:
 - apps/mobile/src/api/client.js
 - apps/mobile/src/screens/main/ChatRoomScreen.js
 
 Goals:
-- inspect the current ChatRoom message and render structure first
-- add Mobile GET /chats/:chatId/messages integration
-- use chatId passed from ChatsScreen
-- consume backend ActivityAccount sender identity safely
-- replace dummy initial message history with real HTTP history only after preserving existing UI behavior
-- add initial loading, error, and empty handling
-- keep message send as a separate later slice
+- inspect the current local send/append flow first
+- add Mobile POST /chats/message integration
+- use the current chatId
+- rely on backend ActivityAccount sender identity
+- append the server-confirmed message response
+- preserve the existing history state
+- add send-in-progress and error handling
+- prevent accidental duplicate local optimistic append in this first slice
 
-Do not include message send integration, WebSocket/realtime, unread/read, attachment/media backend, gift transaction, push, clientMessageId/idempotency, Prisma/schema/migration, backend API changes, or Render deployment changes in this slice. Do not mark this implementation complete before it is actually implemented.
+Do not include clientMessageId/idempotency, automatic retry after an uncertain network failure, WebSocket/realtime, cursor history pagination, unread/read, attachment/media backend, gift transaction, push, Prisma/schema/migration, backend API changes, or Render deployment changes in this slice. Do not mark this implementation complete before it is actually implemented.
 
 First commands to run when resuming:
 
