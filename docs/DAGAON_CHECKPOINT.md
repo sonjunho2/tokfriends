@@ -1560,7 +1560,7 @@ The first Wallet/Ledger migration must:
 - keep ActivityAccount as the wallet-owning social context
 - avoid implementing Gifts, Ads, LIVE, or Redemption in the same migration
 - use its own migration
-- pass Prisma validation and migration checks when applicable
+- pass Prisma validation and migration checks
 - pass API build and available project checks
 - commit separately
 
