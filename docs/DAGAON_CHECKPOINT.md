@@ -23,17 +23,17 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-f9bcbce8a5880537cb221a1bb3c02a46fc60bb01
-refactor: share activity account target selection
+e2c75aeb1759750c11bd2312a2341e1d629dab85
+feat: add discover target account identity
 
 Remote GitHub branch HEAD verified:
-f9bcbce8a5880537cb221a1bb3c02a46fc60bb01
+e2c75aeb1759750c11bd2312a2341e1d629dab85
 
 Parent commit:
-590e80d96c82174e2e96c11153f3be475f765100
+711f1bb3e08052e42689fcfc1b9851b197f694a7
 
-GitHub compare verified exactly one commit ahead with exactly three changed files,
-22 additions, 10 deletions, and no other files.
+GitHub compare verified exactly one commit ahead with exactly two changed files,
+68 additions, 13 deletions, and no other files.
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -1131,11 +1131,42 @@ Completed 2026-09-16.
   590e80d96c82174e2e96c11153f3be475f765100
 - GitHub remote branch HEAD exact SHA verified at the feature commit
 
+### Additive Discover target ActivityAccount identity
+Completed 2026-09-16.
+
+- `/discover` remains based on Prisma.User
+- Existing User filtering remains unchanged: active role=user results, current-user exclusion, bilateral block filtering, gender, age, region, createdAt descending, and take 50
+- `/discover.id` remains the legacy User.id
+- Added the public `targetAccountId: string | null` field
+- Users without a usable ActivityAccount remain in the existing discover result set with targetAccountId=null
+- Target selection requires an existing active Owner with Owner.legacyUserId exactly aligned to User.id
+- Candidate ActivityAccounts are active and either primary or linked by ActivityAccount.legacyUserId to User.id
+- Deterministic ordering is isPrimary DESC, createdAt ASC, id ASC; only the first usable candidate ID is exposed
+- Extended services/api/src/common/activity-account-selection.ts with buildDefaultActivityAccountOrderBy() and isDefaultActivityAccountCandidate()
+- Existing buildDefaultActivityAccountSelection() remains available and now reuses the shared ordering helper
+- Uses the existing User.findMany nested relation select; there is no per-user Prisma query or Promise.all query fan-out
+- Actual SQL round-trip count was not measured
+- ownerBridge and internal Owner/ActivityAccount status, primary, owner, and legacy bridge fields are stripped from the public response
+- DiscoverController, Chats, JWT, Mobile, Community, Prisma schema, migrations, dependencies, and the database were unchanged
+- Changed files:
+  - services/api/src/common/activity-account-selection.ts
+  - services/api/src/modules/discover/discover.service.ts
+- Prettier PASS
+- Prisma validate PASS
+- API build PASS
+- git diff --check PASS
+- Feature diff: 68 additions, 13 deletions
+- Feature commit:
+  e2c75aeb1759750c11bd2312a2341e1d629dab85
+- Parent commit:
+  711f1bb3e08052e42689fcfc1b9851b197f694a7
+- GitHub remote branch HEAD exact SHA verified at the feature commit
+
 ### Production deployment limitation
 
 - Render production tokfriends-db has the latest tracked migrations applied and its ActivityAccount invariants were verified as CLEAN FOUNDATION.
 - Render tok-friends-api currently deploys branch chore/api-recovery.
-- The shared deterministic selector, ActivityAccount Chat list/direct-room/history/send code, Community report/block ActivityAccount compatibility, and the GET /users/me activityAccountId contract are not yet live on the Render production API.
+- The shared deterministic selector, additive /discover targetAccountId, ActivityAccount Chat list/direct-room/history/send code, Community report/block ActivityAccount compatibility, and the GET /users/me activityAccountId contract are not yet live on the Render production API.
 - Mobile real HTTP integration can proceed, but production-endpoint E2E verification remains limited until the API deployment branch changes.
 
 ### Final high-level IA
@@ -1181,7 +1212,9 @@ Current ActivityAccount identity contract:
 - The backend /users/me contract now provides activityAccountId.
 - AuthContext can consume user.activityAccountId without a structural change.
 - Mobile Chat list, ChatRoom history, and ChatRoom text send now use ActivityAccount identity.
-- /discover response id remains a legacy User ID; Home and HotRecommend preserve it explicitly as targetUserId.
+- /discover response id remains a legacy User ID and its additive targetAccountId is an explicit nullable ActivityAccount action target.
+- Users without a usable target account remain in discover results with targetAccountId=null.
+- Home and HotRecommend do not yet consume /discover targetAccountId and currently preserve /discover.id explicitly as targetUserId.
 - The Mobile direct-room client now supports explicit targetAccountId without reinterpreting identity types.
 - There is no current proven ActivityAccount-based new-direct-room UI source.
 - Chats list counterpart.id remains an ActivityAccount ID and counterpartAccountId is not reinterpreted as a legacy User ID.
@@ -1195,11 +1228,12 @@ Current ActivityAccount identity contract:
 - The shared ordering is isPrimary DESC, createdAt ASC, id ASC.
 - Owner primary uniqueness remains unenforced by the DB, although both configured and production audited data are currently clean.
 - User.activityAccountBridge remains a legacy compatibility relation, not a primary/current-account relation.
-- /discover.id remains a legacy User ID and /discover does not yet expose an ActivityAccount target identity.
+- Shared discover target selection requires an active Owner with exact legacy bridge alignment and uses active candidates ordered by isPrimary DESC, createdAt ASC, id ASC.
+- Internal Owner and ActivityAccount bridge fields are not exposed by /discover.
 
 Known gaps:
-- /discover does not expose targetAccountId
-- ActivityAccount-first profile/direct-room consumer flow is not wired
+- Mobile Home/HotRecommend do not yet consume /discover targetAccountId
+- ActivityAccount-first profile/direct-room consumer flow is not fully wired
 - no primary uniqueness DB enforcement
 - Chat history cursor/load-more
 - realtime/WebSocket
@@ -1380,31 +1414,32 @@ COMPLETE.
 Shared deterministic ActivityAccount target selection:
 COMPLETE.
 
+Additive Discover target ActivityAccount identity:
+COMPLETE.
+
 Next implementation phase:
 REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Add additive /discover targetAccountId using the shared ActivityAccount selection primitive.
+Propagate `/discover targetAccountId` through Mobile Home and HotRecommend profile entrypoints.
 
-Backend-only first slice.
+Mobile-only next slice.
 
 Target:
-- services/api/src/modules/discover/discover.service.ts
-- services/api/src/common/activity-account-selection.ts only as the existing shared helper; do not broaden its behavior unnecessarily
+- apps/mobile/src/screens/main/HomeScreen.js
+- apps/mobile/src/screens/recommend/HotRecommendScreen.js
 
 Goals:
-- keep the existing /discover query based on Prisma.User
-- preserve response id as the legacy User ID
-- add an explicit additive targetAccountId field
-- use the shared deterministic target-selection semantics: active account, primary or matching legacy bridge, isPrimary DESC, createdAt ASC, id ASC, take 1
-- require an active Owner and exact Owner legacy bridge alignment
-- never expose Owner.id, Owner.legacyUserId, ActivityAccount.ownerId, or ActivityAccount.legacyUserId
-- decide explicitly whether a User without a usable target account remains in the result with targetAccountId null or is excluded; preserve the existing discover result set unless a stronger requirement is proven
-- do not change Home, HotRecommend, ProfileDetail, GlobalProfileModal, ChatRoom, or the current targetUserId flow in this backend-only slice
-- do not modify Prisma/schema/migrations or dependencies
+- preserve each discover result id as the legacy User.id for list keys and display identity
+- explicitly read only a usable non-empty targetAccountId from the discover response
+- when targetAccountId is usable, pass only targetAccountId to ProfileDetail
+- otherwise pass only the existing legacy targetUserId fallback
+- never pass targetUserId and targetAccountId together
+- preserve existing display, filters, carousel, and list-key behavior
+- do not reinterpret ActivityAccount IDs as generic id or User IDs
 
-Out of scope: changing /discover.id, removing legacy User IDs, switching Mobile consumers to targetAccountId, changing ProfileDetail/GlobalProfileModal/ChatRoom/Community, modifying Prisma/schema/migrations or primary constraints, DB repair, Follow/Interest/ProfileVisit Mobile wiring, realtime/WebSocket, unread/read, pagination, attachments, Gift transactions, push, Render deployment, or dependency changes.
+Out of scope: changing ProfileDetailScreen, GlobalProfileModal, ChatRoom, ChatsScreen, apiClient.ensureDirectRoom, the /discover backend or /discover.id, Community, Follow/Interest/ProfileVisit wiring, Prisma/schema/migrations, DB repair, primary uniqueness constraints, realtime/WebSocket, unread/read, pagination, attachments/media, Gift transactions, push, Render deployment, or dependencies.
 
 First commands to run when resuming:
 
