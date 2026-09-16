@@ -23,11 +23,17 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-cdb59afd4c2f324893ebd24a504a1742ce87eaf5
-feat: make mobile direct chat identity explicit
+0b52bb35f62c59f002fc6d1599d056bf8e27173a
+feat: support account identity for report and block
 
 Remote GitHub branch HEAD verified:
-cdb59afd4c2f324893ebd24a504a1742ce87eaf5
+0b52bb35f62c59f002fc6d1599d056bf8e27173a
+
+Parent commit:
+c561303e3b488a95ed38942b247aef2e31a65cd4
+
+GitHub compare verified exactly one commit ahead with exactly four modified files,
+187 additions, 34 deletions, and no other files.
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -1014,11 +1020,50 @@ Completed 2026-09-16.
 - GitHub compare verified exactly one commit ahead with exactly five modified files and no other files
 - GitHub remote branch HEAD exact SHA verified at the feature commit
 
+### ActivityAccount-compatible Community report/block boundary
+Completed 2026-09-16.
+
+- Community Report and Block remain User-level DB policies; Prisma schema and migrations were not changed
+- ReportDto now accepts optional targetAccountId while preserving targetUserId, postId, reason, and post-only reports
+- ActivityAccount report targets are resolved internally through an active ActivityAccount, active Owner, Owner.legacyUserId, and active legacy User
+- Report.reportedId stores only the resolved legacy User ID; ActivityAccount IDs are never persisted there
+- When targetUserId and targetAccountId are both supplied, their resolved User identity must match
+- Self-report is rejected and the existing Admin reported User relation is preserved
+- BlockDto now accepts either optional blockedUserId or optional targetAccountId as a dual compatibility contract
+- ActivityAccount block targets are resolved internally to a legacy User ID; Block.blockedUserId stores only that User ID
+- Self and same-owner account targets resolve to the authenticated User and are rejected
+- Existing Block upsert, bilateral Friendship cleanup, all-account Follow/Interest/ProfileVisit cleanup, Serializable transaction, and bounded P2034 retry behavior are preserved
+- GET /community/blocks, DELETE /community/block/:blockedUserId, and BlockedUsersScreen are unchanged
+- Mobile reportUser validates targetUserId, targetAccountId, postId, and reason; user-target reports reject simultaneous User and ActivityAccount identities while post-only reports remain supported
+- Mobile blockUser accepts exactly one of blockedUserId or targetAccountId; unblockUser is unchanged
+- ChatRoom report/block removed the generic user.id/user._id fallback and now accepts only user.targetUserId, user.targetAccountId, or route.params.counterpartAccountId
+- counterpartAccountId is interpreted only as an ActivityAccount ID; conflicting account IDs or simultaneous User/account identities block the request
+- ActivityAccount IDs are not copied into generic user.id
+- Legacy Home/HotRecommend direct rooms continue to report/block through targetUserId
+- Future targetAccountId direct rooms and current ChatsScreen rooms report/block through targetAccountId, with legacy User resolution confined to the server
+- GET /chats did not need a legacy User ID response field
+- Changed files:
+  - apps/mobile/src/api/client.js
+  - apps/mobile/src/screens/main/ChatRoomScreen.js
+  - services/api/src/modules/community/community.controller.ts
+  - services/api/src/modules/community/community.service.ts
+- Backend Prettier, Prisma validate, and API build PASS
+- Mobile Babel transforms and relative import verification PASS
+- npx expo-doctor: 20/21 checks passed with only the existing patch-version warnings: expo 57.0.22 (recommended 57.0.23), expo-image-picker 57.0.17 (recommended 57.0.18)
+- No dependency changes were made
+- git diff --check PASS
+- Feature diff: 187 additions, 34 deletions
+- Feature commit:
+  0b52bb35f62c59f002fc6d1599d056bf8e27173a
+- Parent commit:
+  c561303e3b488a95ed38942b247aef2e31a65cd4
+- GitHub remote branch HEAD exact SHA verified at the feature commit
+
 ### Production deployment limitation
 
 - Render production DB has the latest migrations applied.
 - Render tok-friends-api currently deploys branch chore/api-recovery.
-- ActivityAccount Chat list/send/history code and the GET /users/me activityAccountId contract are not yet live on the Render production API.
+- ActivityAccount Chat list/direct-room/history/send code, Community report/block ActivityAccount compatibility, and the GET /users/me activityAccountId contract are not yet live on the Render production API.
 - Mobile real HTTP integration can proceed, but production-endpoint E2E verification remains limited until the API deployment branch changes.
 
 ### Final high-level IA
@@ -1069,11 +1114,16 @@ Current ActivityAccount identity contract:
 - There is no current proven ActivityAccount-based new-direct-room UI source.
 - Chats list counterpart.id remains an ActivityAccount ID and counterpartAccountId is not reinterpreted as a legacy User ID.
 - GlobalProfileModal no longer falls back to generic profile.id/profile._id for direct-room identity.
+- Community Report/Block remains legacy User-level in the DB while Mobile/API accept explicit ActivityAccount targets.
+- The server resolves ActivityAccount -> Owner -> legacy User internally without exposing Owner or bridge IDs.
+- ChatsScreen counterpartAccountId now supports ChatRoom report/block without exposing a legacy User ID.
+- ActivityAccount IDs are never reinterpreted as generic User IDs.
+- Follow, Interest, and ProfileVisit remain ActivityAccount-first but are not wired to Mobile profile entrypoints.
 
 Known gaps:
 - /discover does not expose an ActivityAccount ID
 - ActivityAccount-first profile/direct-room consumer flow is not wired
-- ChatRoom report/block and other legacy-User-dependent participant actions require identity dependency audit before ActivityAccount-first entrypoints
+- Deterministic legacy User -> ActivityAccount target selection must be confirmed or reused before extending /discover
 - Chat history cursor/load-more
 - realtime/WebSocket
 - attachment/media backend
@@ -1110,6 +1160,8 @@ Legacy guard file cleanup/deletion remains a separate follow-up task.
 Social identity architecture:
 - New Social graph identity is ActivityAccount.
 - Existing Friendship / Block / Report compatibility remains User-based.
+- Community report/block now accepts explicit ActivityAccount targets and resolves them internally to the existing User-level policy.
+- Owner and bridge internal IDs are not exposed by that compatibility boundary.
 - Account-scoped Social APIs should use req.user.activityAccountId without storing the selection in JWT.
 - A null ActivityAccount context should be rejected only by future account-scoped endpoints; existing User authentication remains valid.
 - Block enforcement was not implemented in this schema foundation.
@@ -1242,36 +1294,36 @@ COMPLETE.
 Mobile direct-room explicit identity boundary:
 COMPLETE.
 
+ActivityAccount-compatible Community report/block boundary:
+COMPLETE.
+
 Next implementation phase:
 REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Audit ActivityAccount-first profile/direct-room consumer dependencies before extending /discover.
+Audit reusable legacy User -> ActivityAccount target selection before extending /discover.
 
 First audit scope:
-- apps/mobile/src/api/client.js
-- apps/mobile/src/screens/main/ChatRoomScreen.js
-- apps/mobile/src/screens/main/ProfileDetailScreen.js
-- apps/mobile/src/components/GlobalProfileModal.js
-- apps/mobile/src/screens/main/HomeScreen.js
-- apps/mobile/src/screens/recommend/HotRecommendScreen.js
-- services/api/src/modules/discover/discover.service.ts
-- users/profile consumer endpoints relevant to profile cards
-- report endpoint/controller/service
-- block endpoint/controller/service
-- services/api/src/modules/chats/chats.controller.ts
 - services/api/src/modules/chats/chats.service.ts
+- services/api/src/modules/discover/discover.service.ts
+- Owner and ActivityAccount Prisma relations
+- User.ownerBridge and User.activityAccountBridge
+- existing consumer provisioning logic
+- any existing helper/service that resolves a primary or compatible ActivityAccount
 
 Goals:
-- identify which ChatRoom features currently require user.id as a legacy User ID
-- separate the legacy User ID and ActivityAccount ID requirements of report, block, favorite, and profile actions
-- determine whether ActivityAccount-first direct-room entrypoints still require a legacy User compatibility ID
-- determine the safest ActivityAccount-aware /discover consumer response shape without fixing that shape before the audit
-- do not overwrite /discover id with an ActivityAccount ID
-- determine whether an explicit ActivityAccount field can be added while preserving existing consumer compatibility
+- re-verify the direct-room resolveLegacyTarget rule: active legacy User, matching active Owner bridge, active candidate account where isPrimary is true or legacyUserId matches, ordered by isPrimary descending then createdAt ascending, take 1
+- determine whether /discover can safely reuse exactly the same target-selection semantics
+- decide whether a shared resolver/helper is required instead of duplicating selection logic
+- compare activityAccountId and targetAccountId as the future public field name under multi-ActivityAccount semantics
+- verify whether primary ActivityAccount uniqueness is enforced by a DB constraint
+- analyze behavior when multiple active primary rows or no primary row exist
+- distinguish User.activityAccountBridge from Owner.activityAccounts
+- preserve /discover id as the legacy User ID
+- do not change the /discover response during this audit
 
-This next task is READ-ONLY. Do not change the /discover response, add an ActivityAccount field, switch Mobile to actual targetAccountId usage, change report/block or ChatRoom, modify Prisma/schema/migrations, or include WebSocket/realtime, pagination, unread/read, attachments, Gift transactions, push, Render deployment, or dependency changes.
+This next task is READ-ONLY. Do not change the /discover response, add targetAccountId, refactor a shared resolver, modify Prisma/schema/migrations, change ProfileDetail/Home/HotRecommend, wire Follow/Interest/ProfileVisit to Mobile, change Chat list/history/send or Community report/block, or include WebSocket/realtime, pagination, unread/read, attachments, Gift transactions, push, Render deployment, or dependency changes.
 
 First commands to run when resuming:
 
