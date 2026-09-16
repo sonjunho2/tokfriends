@@ -1,6 +1,6 @@
 # DAGAON Development Checkpoint
 
-Updated: 2026-09-15
+Updated: 2026-09-16
 
 ## Project
 
@@ -23,11 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-57542f2a7d6bd2bddd964a619a866c7306a0f872
-feat: expose activity account identity in user me
+cbec8ac716fc3997dd511a8c57cfa8a17db88f10
+feat: integrate mobile chat list
 
 Remote GitHub branch HEAD verified:
-57542f2a7d6bd2bddd964a619a866c7306a0f872
+cbec8ac716fc3997dd511a8c57cfa8a17db88f10
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -877,6 +877,37 @@ Completed 2026-09-15.
   57542f2a7d6bd2bddd964a619a866c7306a0f872
 - GitHub remote branch HEAD verified at the same SHA
 
+### Mobile real Chat list HTTP integration foundation
+Completed 2026-09-16.
+
+- Added apiClient.getChats() to apps/mobile/src/api/client.js
+- Added real GET /chats HTTP integration without client-side query, limit, pagination, or fallback routes
+- Preserved the backend fixed take:20 behavior
+- Removed the ChatsScreen dummy chat list
+- Removed fake unread, preview/snippet, avatar, points, location/distance, age, new/favorite state, and related filters
+- Uses the backend counterpart ActivityAccount identity
+- Preserves counterpart.id as counterpartAccountId and does not treat it as a legacy User id or Owner id
+- Chat title rule is `displayName || handle || "대화"`
+- Added initial loading, error with retry, empty, and FlatList pull-to-refresh states
+- ChatRoom navigation passes id, chatId, title, and counterpartAccountId
+- ChatRoomScreen and INITIAL_MESSAGES were not changed
+- Message history/send integration and WebSocket/realtime remain unimplemented on Mobile
+- Backend/API, Prisma/schema/migrations, and dependencies were not changed
+- Changed files:
+  - apps/mobile/src/api/client.js
+  - apps/mobile/src/screens/main/ChatsScreen.js
+  - apps/mobile/src/components/ChatListItem.js
+- Babel transform PASS for all three changed files
+- Relative import verification PASS
+- git diff --check PASS
+- npx expo-doctor: 20/21 checks passed
+- The remaining dependency compatibility warning was not introduced by this feature
+- Existing package state: expo 57.0.22 (recommended 57.0.23), expo-image-picker 57.0.17 (recommended 57.0.18)
+- No dependency upgrade was performed in this feature
+- Feature commit:
+  cbec8ac716fc3997dd511a8c57cfa8a17db88f10
+- GitHub remote branch HEAD exact SHA verified at the same SHA
+
 ### Production deployment limitation
 
 - Render production DB has the latest migrations applied.
@@ -1080,29 +1111,30 @@ COMPLETE.
 Current ActivityAccount public identity foundation:
 COMPLETE.
 
+Mobile real Chat list HTTP integration foundation:
+COMPLETE.
+
 Next implementation phase:
 REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Implement Mobile real Chat list HTTP integration foundation.
+Implement Mobile ChatRoom message history HTTP integration foundation.
 
 First slice scope:
 - apps/mobile/src/api/client.js
-- apps/mobile/src/screens/main/ChatsScreen.js
-- only any necessary existing Chat list item component
+- apps/mobile/src/screens/main/ChatRoomScreen.js
 
 Goals:
-- add apiClient.getChats() and connect GET /chats
-- remove the ChatsScreen dummy list
-- use the backend counterpart ActivityAccount public identity
-- use `displayName || handle || "대화"` for the title
-- remove or safely placeholder fake preview, unread, avatar, points, and location values that the backend does not provide
-- retain the fixed take:20 API behavior; do not add list pagination
-- add loading, error, and empty states
-- choose the smallest safe pull-to-refresh or focus-refresh approach
+- inspect the current ChatRoom message and render structure first
+- add Mobile GET /chats/:chatId/messages integration
+- use chatId passed from ChatsScreen
+- consume backend ActivityAccount sender identity safely
+- replace dummy initial message history with real HTTP history only after preserving existing UI behavior
+- add initial loading, error, and empty handling
+- keep message send as a separate later slice
 
-Do not include ChatRoom history/send integration, ProfileDetail or GlobalProfileModal targetAccountId conversion, WebSocket, read/unread, media, gift, push, or idempotency in this slice. Do not mark this implementation complete before it is actually implemented.
+Do not include message send integration, WebSocket/realtime, unread/read, attachment/media backend, gift transaction, push, clientMessageId/idempotency, Prisma/schema/migration, backend API changes, or Render deployment changes in this slice. Do not mark this implementation complete before it is actually implemented.
 
 First commands to run when resuming:
 
