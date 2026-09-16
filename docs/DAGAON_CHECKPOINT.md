@@ -697,6 +697,7 @@ Completed 2026-09-15.
 - Initial migration added nullable bridge columns, SetNull foreign keys, unique/indexes,
   the self-chat CHECK, and the original pair-complete CHECK
 - A compatibility conflict was identified between the pair-complete CHECK and independent SetNull foreign keys
+- Deleting one ActivityAccount could null only one bridge column and violate the pair-complete CHECK
 - The applied initial migration was not edited
 - Corrective migration:
   - 20260915141108_fix_activity_chat_setnull_compatibility
@@ -1559,7 +1560,7 @@ The first Wallet/Ledger migration must:
 - keep ActivityAccount as the wallet-owning social context
 - avoid implementing Gifts, Ads, LIVE, or Redemption in the same migration
 - use its own migration
-- pass Prisma validation and migration checks
+- pass Prisma validation and migration checks when applicable
 - pass API build and available project checks
 - commit separately
 
