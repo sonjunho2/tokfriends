@@ -507,6 +507,15 @@ export const apiClient = {
     }
   },
 
+  async getChats() {
+    try {
+      const { data } = await client.get('/chats');
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
   async updateUser(userId, payload = {}) {
     if (!userId) {
       throw normalizeError(new Error('사용자 ID가 필요합니다.'));

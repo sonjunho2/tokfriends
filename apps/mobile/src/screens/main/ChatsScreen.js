@@ -1,79 +1,74 @@
 // src/screens/main/ChatsScreen.js
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { apiClient } from '../../api/client';
 import colors from '../../theme/colors';
 import ChatListItem from '../../components/ChatListItem';
-import SegmentBar from '../../components/SegmentBar';
 
-const SEGMENTS = ['전체', '읽지 않음', '신규', '즐겨찾기'];
+const normalizeChats = (response) => {
+  if (!Array.isArray(response)) {
+    throw new Error('대화 목록 응답 형식이 올바르지 않습니다.');
+  }
 
-const createInitialChats = () =>
-  Array.from({ length: 12 }, (_, i) => ({
-    id: i + 1,
-    name: ['은별', '아라', '사라', '윤아', '나리', '도윤'][i % 6],
-    age: [22, 27, 31, 29, 34, 26][i % 6],
-    points: [15, 0, 30, 5, 80, 0][i % 6],
-    snippet: '대화해요!',
-    timeLabel: ['방금', '1시간', '17시간', '2일', '6시간', '3일'][i % 6],
-    regionLabel: ['서초', '수서', '대전', '울산', '서울', '부산'][i % 6],
-    distanceKm: [3, 18, 42, 5, 16, 28][i % 6],
-    unread: [0, 1, 0, 2, 0, 3][i % 6],
-    isNew: [false, true, false, false, true, false][i % 6],
-    favorite: [true, false, false, true, false, false][i % 6],
-  }));
-
-export default function ChatsScreen({ navigation, route }) {
-  // route.params.initialSeg 로 초기 탭을 지정할 수 있게 함 (예: '신규', '전체' 등)
-  const initialIndex = Math.max(0, SEGMENTS.findIndex((s) => s === route?.params?.initialSeg));
-  const [seg, setSeg] = useState(SEGMENTS[initialIndex] || SEGMENTS[0]);
-  const [chats, setChats] = useState(createInitialChats);
-
-  // 다른 화면에서 넘어오며 params가 갱신될 때도 반영
-  useEffect(() => {
-    if (route?.params?.initialSeg) {
-      const idx = SEGMENTS.findIndex((s) => s === route.params.initialSeg);
-      if (idx >= 0) setSeg(SEGMENTS[idx]);
+  return response.map((chat) => {
+    if (!chat?.id || !chat?.counterpart?.id) {
+      throw new Error('대화 목록 응답 형식이 올바르지 않습니다.');
     }
-  }, [route?.params?.initialSeg]);
 
-  const filteredData = useMemo(() => {
-    switch (seg) {
-      case '읽지 않음':
-        return chats.filter((chat) => chat.unread > 0);
-      case '신규':
-        return chats.filter((chat) => chat.isNew);
-      case '즐겨찾기':
-        return chats.filter((chat) => chat.favorite);
-      default:
-        return chats;
+    return {
+      id: chat.id,
+      counterpartAccountId: chat.counterpart.id,
+      title: chat.counterpart.displayName || chat.counterpart.handle || '대화',
+      lastMessageAt: chat.lastMessageAt ?? null,
+    };
+  });
+};
+
+export default function ChatsScreen({ navigation }) {
+  const [chats, setChats] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+
+  const loadChats = useCallback(async ({ refresh = false } = {}) => {
+    if (refresh) setRefreshing(true);
+    else setLoading(true);
+    setError('');
+
+    try {
+      const response = await apiClient.getChats();
+      setChats(normalizeChats(response));
+    } catch (requestError) {
+      setError(requestError?.message || '대화 목록을 불러오지 못했습니다.');
+    } finally {
+      if (refresh) setRefreshing(false);
+      else setLoading(false);
     }
-  }, [chats, seg]);
-
-  const updateFavorite = useCallback((chatId, nextFavorite) => {
-    setChats((prev) =>
-      prev.map((chat) =>
-        chat.id === chatId
-          ? {
-              ...chat,
-              favorite: nextFavorite,
-              isNew: nextFavorite ? false : chat.isNew,
-            }
-          : chat
-      )
-    );
   }, []);
+
+  useEffect(() => {
+    loadChats();
+  }, [loadChats]);
 
   const handleOpenChat = useCallback(
     (item) => {
       navigation.navigate('ChatRoom', {
         id: item.id,
-        user: item,
-        isFavorite: item.favorite,
-        onToggleFavorite: (nextFavorite) => updateFavorite(item.id, nextFavorite),
+        chatId: item.id,
+        title: item.title,
+        counterpartAccountId: item.counterpartAccountId,
       });
     },
-    [navigation, updateFavorite]
+    [navigation]
   );
 
   const canGoBack = navigation.canGoBack();
@@ -93,30 +88,45 @@ export default function ChatsScreen({ navigation, route }) {
         <View style={styles.headerSideRight} />
       </View>
 
-      {/* 세그먼트 */}
-      <SegmentBar
-        segments={SEGMENTS}
-        value={seg}
-        onChange={setSeg}
-        style={styles.segmentBar}
-        contentContainerStyle={{ paddingRight: 12 }}
-      />
-
-      {/* 리스트 */}
-      <FlatList
-        style={styles.list}
-        data={filteredData}
-        keyExtractor={(it) => String(it.id)}
-        renderItem={({ item }) => <ChatListItem item={item} onPress={() => handleOpenChat(item)} />}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyWrap}>
-            <Text style={styles.emptyTitle}>표시할 대화가 없어요</Text>
-            <Text style={styles.emptySubtitle}>새로운 대화를 시작하거나 즐겨찾기를 추가해 보세요.</Text>
-          </View>
-        }
-      />
+      {loading ? (
+        <View style={styles.stateWrap}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.stateMessage}>대화 목록을 불러오는 중이에요.</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.stateWrap}>
+          <Text style={styles.errorTitle}>대화 목록을 불러오지 못했어요</Text>
+          <Text style={styles.stateMessage}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => loadChats()}>
+            <Text style={styles.retryButtonText}>다시 시도</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          style={styles.list}
+          data={chats}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={({ item }) => (
+            <ChatListItem item={item} onPress={() => handleOpenChat(item)} />
+          )}
+          contentContainerStyle={[styles.listContent, !chats.length && styles.emptyListContent]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => loadChats({ refresh: true })}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyWrap}>
+              <Text style={styles.emptyTitle}>대화가 없어요</Text>
+              <Text style={styles.emptySubtitle}>새로운 대화를 시작하면 여기에 표시됩니다.</Text>
+            </View>
+          }
+        />
+      )}
     </View>
   );
 }
@@ -136,26 +146,6 @@ const styles = StyleSheet.create({
   headerSide: { width: 40, alignItems: 'flex-start', justifyContent: 'center' },
   headerSideRight: { minWidth: 40, alignItems: 'flex-end', justifyContent: 'center' },
   headerTitle: { fontSize: 22, fontWeight: '900', color: colors.text },
-  createBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
-    shadowColor: '#F36C93',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  createBtnTxt: { color: colors.textInverse, fontWeight: '800', fontSize: 13 },
-  segmentBar: {
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-    backgroundColor: colors.backgroundSecondary,
-  },
   list: {
     flex: 1,
     backgroundColor: colors.backgroundSecondary,
@@ -165,6 +155,39 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     paddingTop: 8,
     backgroundColor: colors.backgroundSecondary,
+  },
+  emptyListContent: {
+    flexGrow: 1,
+  },
+  stateWrap: {
+    flex: 1,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.backgroundSecondary,
+  },
+  stateMessage: {
+    marginTop: 10,
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  errorTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  retryButton: {
+    marginTop: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+  },
+  retryButtonText: {
+    color: colors.textInverse,
+    fontSize: 13,
+    fontWeight: '800',
   },
   emptyWrap: {
     paddingVertical: 80,
