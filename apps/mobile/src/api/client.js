@@ -647,8 +647,52 @@ export const apiClient = {
   async getPosts(params = {}) { const { data } = await client.get('/posts', { params }); return data; },
   async getTopicPosts(topicId, params = {}) { const { data } = await client.get(`/topics/${topicId}/posts`, { params }); return data; },
   async createPost(postData) { const { data } = await client.post('/posts', postData); return data; },
-  async reportUser(reportData) { const { data } = await client.post('/community/report', reportData); return data; },
-  async blockUser(blockData) { const { data } = await client.post('/community/block', blockData); return data; },
+  async reportUser(reportData = {}) {
+    const targetUserId = typeof reportData?.targetUserId === 'string'
+      ? reportData.targetUserId.trim()
+      : '';
+    const targetAccountId = typeof reportData?.targetAccountId === 'string'
+      ? reportData.targetAccountId.trim()
+      : '';
+    const postId = typeof reportData?.postId === 'string' ? reportData.postId.trim() : '';
+    const reason = typeof reportData?.reason === 'string' ? reportData.reason.trim() : '';
+
+    if (!reason) {
+      throw normalizeError(new Error('신고 사유가 필요합니다.'));
+    }
+    if (targetUserId && targetAccountId) {
+      throw normalizeError(new Error('신고 대상 식별 정보가 올바르지 않습니다.'));
+    }
+    if (!targetUserId && !targetAccountId && !postId) {
+      throw normalizeError(new Error('신고 대상 정보가 필요합니다.'));
+    }
+
+    const body = {
+      ...(targetUserId ? { targetUserId } : {}),
+      ...(targetAccountId ? { targetAccountId } : {}),
+      ...(postId ? { postId } : {}),
+      reason,
+    };
+    const { data } = await client.post('/community/report', body);
+    return data;
+  },
+
+  async blockUser(blockData = {}) {
+    const blockedUserId = typeof blockData?.blockedUserId === 'string'
+      ? blockData.blockedUserId.trim()
+      : '';
+    const targetAccountId = typeof blockData?.targetAccountId === 'string'
+      ? blockData.targetAccountId.trim()
+      : '';
+
+    if (Boolean(blockedUserId) === Boolean(targetAccountId)) {
+      throw normalizeError(new Error('차단 대상 식별 정보가 올바르지 않습니다.'));
+    }
+
+    const body = blockedUserId ? { blockedUserId } : { targetAccountId };
+    const { data } = await client.post('/community/block', body);
+    return data;
+  },
 
   async getBlockedUsers() {
     if (USE_DUMMY_AUTH) {

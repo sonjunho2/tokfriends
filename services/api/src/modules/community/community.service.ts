@@ -15,12 +15,26 @@ export class CommunityService {
 
   async report(
     reporterId: string,
-    dto: { targetUserId?: string; postId?: string; reason: string },
+    dto: {
+      targetUserId?: string;
+      targetAccountId?: string;
+      postId?: string;
+      reason: string;
+    },
   ) {
+    const reportedId =
+      dto.targetUserId || dto.targetAccountId
+        ? await this.resolveTargetUserId(dto.targetUserId, dto.targetAccountId)
+        : undefined;
+
+    if (reportedId === reporterId) {
+      throw new BadRequestException("You cannot report yourself.");
+    }
+
     const report = await this.prisma.report.create({
       data: {
         reporterId,
-        reportedId: dto.targetUserId,
+        reportedId,
         postId: dto.postId,
         reason: dto.reason,
       },
@@ -29,13 +43,21 @@ export class CommunityService {
     return { ok: true, id: report.id };
   }
 
-  async block(userId: string, dto: { blockedUserId: string }) {
-    if (userId === dto.blockedUserId) {
+  async block(
+    userId: string,
+    dto: { blockedUserId?: string; targetAccountId?: string },
+  ) {
+    const resolvedBlockedUserId = await this.resolveTargetUserId(
+      dto.blockedUserId,
+      dto.targetAccountId,
+    );
+
+    if (userId === resolvedBlockedUserId) {
       throw new BadRequestException("You cannot block yourself.");
     }
 
     const targetUser = await this.prisma.user.findUnique({
-      where: { id: dto.blockedUserId },
+      where: { id: resolvedBlockedUserId },
       select: { id: true },
     });
 
@@ -51,28 +73,28 @@ export class CommunityService {
               where: {
                 userId_blockedUserId: {
                   userId,
-                  blockedUserId: dto.blockedUserId,
+                  blockedUserId: resolvedBlockedUserId,
                 },
               },
               update: {},
               create: {
                 userId,
-                blockedUserId: dto.blockedUserId,
+                blockedUserId: resolvedBlockedUserId,
               },
             });
 
             await transaction.friendship.deleteMany({
               where: {
                 OR: [
-                  { requesterId: userId, addresseeId: dto.blockedUserId },
-                  { requesterId: dto.blockedUserId, addresseeId: userId },
+                  { requesterId: userId, addresseeId: resolvedBlockedUserId },
+                  { requesterId: resolvedBlockedUserId, addresseeId: userId },
                 ],
               },
             });
 
             const owners = await transaction.owner.findMany({
               where: {
-                legacyUserId: { in: [userId, dto.blockedUserId] },
+                legacyUserId: { in: [userId, resolvedBlockedUserId] },
               },
               select: {
                 legacyUserId: true,
@@ -85,7 +107,7 @@ export class CommunityService {
               (owner) => owner.legacyUserId === userId,
             );
             const blockedUserOwner = owners.find(
-              (owner) => owner.legacyUserId === dto.blockedUserId,
+              (owner) => owner.legacyUserId === resolvedBlockedUserId,
             );
 
             if (userOwner && blockedUserOwner) {
@@ -206,5 +228,46 @@ export class CommunityService {
     });
 
     return { ok: true };
+  }
+
+  private async resolveTargetUserId(
+    targetUserId?: string,
+    targetAccountId?: string,
+  ) {
+    const normalizedUserId = targetUserId?.trim() || undefined;
+    const normalizedAccountId = targetAccountId?.trim() || undefined;
+
+    if (!normalizedUserId && !normalizedAccountId) {
+      throw new BadRequestException("Target user is required.");
+    }
+
+    if (!normalizedAccountId) {
+      return normalizedUserId as string;
+    }
+
+    const account = await this.prisma.activityAccount.findFirst({
+      where: {
+        id: normalizedAccountId,
+        status: "active",
+        owner: {
+          status: "active",
+          legacyUserId: { not: null },
+          legacyUser: { status: "active" },
+        },
+      },
+      select: {
+        owner: { select: { legacyUserId: true } },
+      },
+    });
+    const resolvedUserId = account?.owner.legacyUserId;
+
+    if (!resolvedUserId) {
+      throw new NotFoundException("User not found.");
+    }
+    if (normalizedUserId && normalizedUserId !== resolvedUserId) {
+      throw new BadRequestException("Target identity does not match.");
+    }
+
+    return resolvedUserId;
   }
 }

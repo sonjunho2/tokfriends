@@ -49,6 +49,32 @@ const formatMessageTime = (createdAt) => {
   });
 };
 
+const resolveParticipantTarget = (user, routeParams) => {
+  const targetUserId =
+    typeof user?.targetUserId === 'string' ? user.targetUserId.trim() : '';
+  const userTargetAccountId =
+    typeof user?.targetAccountId === 'string' ? user.targetAccountId.trim() : '';
+  const routeAccountId =
+    typeof routeParams?.counterpartAccountId === 'string'
+      ? routeParams.counterpartAccountId.trim()
+      : '';
+
+  if (
+    userTargetAccountId &&
+    routeAccountId &&
+    userTargetAccountId !== routeAccountId
+  ) {
+    return null;
+  }
+
+  const targetAccountId = userTargetAccountId || routeAccountId;
+  if (Boolean(targetUserId) === Boolean(targetAccountId)) {
+    return null;
+  }
+
+  return targetUserId ? { targetUserId } : { targetAccountId };
+};
+
 export default function ChatRoomScreen({ route, navigation }) {
   const { user: paramUser, title: paramTitle } = route.params || {};
   const user = paramUser || { name: paramTitle || '친구' };
@@ -432,8 +458,8 @@ export default function ChatRoomScreen({ route, navigation }) {
   const handleBlockUser = () => {
     if (blocking) return;
 
-    const blockedUserId = user?.id || user?._id;
-    if (!blockedUserId) {
+    const participantTarget = resolveParticipantTarget(user, route?.params);
+    if (!participantTarget) {
       setOptionsVisible(false);
       Alert.alert('차단 실패', '차단할 회원 정보를 찾을 수 없습니다.');
       return;
@@ -453,7 +479,11 @@ export default function ChatRoomScreen({ route, navigation }) {
             setBlocking(true);
 
             try {
-              await apiClient.blockUser({ blockedUserId });
+              await apiClient.blockUser(
+                participantTarget.targetUserId
+                  ? { blockedUserId: participantTarget.targetUserId }
+                  : { targetAccountId: participantTarget.targetAccountId },
+              );
               Alert.alert('차단 완료', '회원이 차단되었습니다.', [
                 {
                   text: '확인',
@@ -483,8 +513,8 @@ export default function ChatRoomScreen({ route, navigation }) {
       return;
     }
 
-    const targetUserId = user?.id || user?._id;
-    if (!targetUserId) {
+    const participantTarget = resolveParticipantTarget(user, route?.params);
+    if (!participantTarget) {
       Alert.alert('신고 실패', '신고할 회원 정보를 찾을 수 없습니다.');
       return;
     }
@@ -492,10 +522,7 @@ export default function ChatRoomScreen({ route, navigation }) {
     setReporting(true);
 
     try {
-      await apiClient.reportUser({
-        targetUserId,
-        reason,
-      });
+      await apiClient.reportUser({ ...participantTarget, reason });
 
       setReportVisible(false);
       setReportText('');
