@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { PrismaService } from "nestjs-prisma";
+import { buildDefaultActivityAccountSelection } from "../../common/activity-account-selection";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -36,11 +37,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             id: true,
             status: true,
             activityAccounts: {
-              where: {
-                status: "active",
-                OR: [{ isPrimary: true }, { legacyUserId: payload.sub }],
-              },
-              orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+              ...buildDefaultActivityAccountSelection(payload.sub),
               take: 1,
               select: { id: true },
             },

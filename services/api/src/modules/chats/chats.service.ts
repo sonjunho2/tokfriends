@@ -8,6 +8,7 @@ import {
 import { Prisma } from "@prisma/client";
 import { isISO8601 } from "class-validator";
 import { PrismaService } from "nestjs-prisma";
+import { buildDefaultActivityAccountSelection } from "../../common/activity-account-selection";
 import { ChatMessagesQueryDto, DirectChatDto, SendMessageDto } from "./dto";
 
 const MAX_TRANSACTION_RETRIES = 3;
@@ -754,11 +755,7 @@ export class ChatsService {
             status: true,
             legacyUserId: true,
             activityAccounts: {
-              where: {
-                status: "active",
-                OR: [{ isPrimary: true }, { legacyUserId: targetUserId }],
-              },
-              orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+              ...buildDefaultActivityAccountSelection(targetUserId),
               take: 1,
               select: {
                 id: true,
