@@ -20,6 +20,7 @@ function mapHomeDiscoverUser(user) {
 
   return {
     id: user?.id,
+    targetUserId: user?.id,
     name: profile?.nickname || user?.displayName || '회원',
     age: typeof user?.age === 'number' ? user.age : undefined,
     avatar: profile?.avatarUri || undefined,
@@ -107,6 +108,7 @@ export default function HomeScreen({ navigation }) {
     navigation.navigate('ProfileDetail', {
       profile: {
         id: item.id,
+        targetUserId: item.targetUserId,
         name: item.name,
         location: item.location,
         title: item.title,

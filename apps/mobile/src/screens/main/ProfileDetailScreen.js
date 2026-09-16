@@ -63,20 +63,29 @@ export default function ProfileDetailScreen({ navigation, route }) {
 
   const handleMessage = async () => {
     if (sending) return;
-    const targetId = profile?.id || profile?._id;
-    if (!targetId) {
+    const targetUserId =
+      typeof profile?.targetUserId === 'string' ? profile.targetUserId.trim() : '';
+    const targetAccountId =
+      typeof profile?.targetAccountId === 'string' ? profile.targetAccountId.trim() : '';
+    if (!targetUserId && !targetAccountId) {
       Alert.alert('안내', '대화할 회원 정보를 찾을 수 없습니다.');
+      return;
+    }
+    if (targetUserId && targetAccountId) {
+      Alert.alert('안내', '대화 상대 식별 정보가 올바르지 않습니다.');
       return;
     }
     setSending(true);
     try {
-      const room = await apiClient.ensureDirectRoom(targetId, { title: data.name });
+      const room = await apiClient.ensureDirectRoom(
+        targetUserId ? { targetUserId } : { targetAccountId },
+      );
       const roomId = room?.id || room?._id;
       if (!roomId) {
         throw new Error('채팅방 정보를 확인할 수 없습니다.');
       }
       const participant = {
-        id: targetId,
+        ...(targetUserId ? { id: targetUserId, targetUserId } : { targetAccountId }),
         name: data.name,
         avatar: data.avatar,
         headline: data.title,

@@ -53,6 +53,7 @@ function mapDiscoverUser(user) {
 
   return {
     id: user?.id,
+    targetUserId: user?.id,
     name: profile?.nickname || user?.displayName || '회원',
     age: typeof user?.age === 'number' ? user.age : calculateAge(user?.dob),
     subtitle: profile?.headline || profile?.bio || undefined,
@@ -133,6 +134,7 @@ export default function HotRecommendScreen({ navigation, route }) {
     navigation.navigate('ProfileDetail', {
       profile: {
         id: item?.id,
+        targetUserId: item?.targetUserId,
         name: item?.name,
         location: item?.regionLabel || '지역 미설정',
         title: item?.headline || '프로필',

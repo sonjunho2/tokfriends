@@ -389,14 +389,17 @@ export const apiClient = {
     throw normalizeError(lastErr || new Error('약관 문서를 찾을 수 없습니다.'));
   },
 
-  async ensureDirectRoom(userId, options = {}) {
-    const target = userId || options?.targetUserId || options?.participantId;
-    if (!target) {
-      throw normalizeError(new Error('대화할 상대의 ID가 필요합니다.'));
+  async ensureDirectRoom({ targetUserId, targetAccountId } = {}) {
+    const normalizedUserId =
+      typeof targetUserId === 'string' ? targetUserId.trim() : '';
+    const normalizedAccountId =
+      typeof targetAccountId === 'string' ? targetAccountId.trim() : '';
+    if (Boolean(normalizedUserId) === Boolean(normalizedAccountId)) {
+      throw normalizeError(new Error('대화 상대 식별자가 올바르지 않습니다.'));
     }
-    const body = {
-      targetUserId: target,
-    };
+    const body = normalizedUserId
+      ? { targetUserId: normalizedUserId }
+      : { targetAccountId: normalizedAccountId };
 
     try {
       const { data } = await client.post('/chats/direct', body);
