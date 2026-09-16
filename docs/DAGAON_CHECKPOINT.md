@@ -23,17 +23,17 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-0b52bb35f62c59f002fc6d1599d056bf8e27173a
-feat: support account identity for report and block
+f9bcbce8a5880537cb221a1bb3c02a46fc60bb01
+refactor: share activity account target selection
 
 Remote GitHub branch HEAD verified:
-0b52bb35f62c59f002fc6d1599d056bf8e27173a
+f9bcbce8a5880537cb221a1bb3c02a46fc60bb01
 
 Parent commit:
-c561303e3b488a95ed38942b247aef2e31a65cd4
+590e80d96c82174e2e96c11153f3be475f765100
 
-GitHub compare verified exactly one commit ahead with exactly four modified files,
-187 additions, 34 deletions, and no other files.
+GitHub compare verified exactly one commit ahead with exactly three changed files,
+22 additions, 10 deletions, and no other files.
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -1059,11 +1059,83 @@ Completed 2026-09-16.
   c561303e3b488a95ed38942b247aef2e31a65cd4
 - GitHub remote branch HEAD exact SHA verified at the feature commit
 
+### ActivityAccount selection invariant audits
+Completed 2026-09-16.
+
+Configured DB READ-ONLY audit:
+- User count: 2; Owner count: 2; ActivityAccount count: 2
+- Active User: 1; active Owner: 1; active ActivityAccount: 1
+- Duplicate active primary Owner: 0
+- No usable candidate Owner: 0
+- Bridge mismatch: 0
+- Resolver/activityAccountBridge divergence: 0
+- Ordering tie: 0
+- CLEAN FOUNDATION
+- Primary uniqueness is NOT DB enforced
+- Configured DB had 12 applied migrations
+- Latest configured DB migration: 20260915141108_fix_activity_chat_setnull_compatibility
+- Tracked migration 20260915161907_add_chat_message_history_index was not yet applied to that configured DB
+- No DB mutation or file modification was performed
+
+Render production tokfriends-db READ-ONLY audit:
+- Workspace: My Workspace; Postgres: tokfriends-db
+- User count: 3 / active 3
+- Owner count: 3 / active 3
+- ActivityAccount count: 3 / active 3
+- All three Owners have exactly one primary account
+- Duplicate active primary Owner: 0
+- No usable candidate Owner: 0
+- Cross-owner bridge mismatch: 0
+- Resolver/activityAccountBridge divergence: 0
+- Ordering tie: 0
+- No-primary resolver-null Owner: 0
+- CLEAN FOUNDATION
+- ActivityAccount.legacyUserId unique index exists
+- ActivityAccount.ownerId_isPrimary index exists but is non-unique
+- No primary partial unique index, isPrimary unique constraint, or custom primary-enforcing trigger/check exists
+- PRIMARY UNIQUENESS NOT DB ENFORCED
+- Applied migrations: 13
+- Owner/ActivityAccount foundation and Chat history index migrations are applied
+- Latest applied migration: 20260915161907_add_chat_message_history_index
+- All queries were read-only and no DB mutation was performed
+
+The configured DB and Render production DB are separate environments. The configured DB migration lag must not be interpreted as production DB lag; production was verified through the latest tracked Chat history index migration.
+
+### Shared deterministic ActivityAccount target selection
+Completed 2026-09-16.
+
+- Added services/api/src/common/activity-account-selection.ts as a shared pure Prisma selection helper
+- The helper contains no DB call, authentication, Owner validation, or transaction behavior
+- Shared candidate predicate: active ActivityAccount where isPrimary is true or legacyUserId matches the requested legacy User ID
+- Shared deterministic ordering: isPrimary DESC, createdAt ASC, id ASC
+- id ASC is the final deterministic tie-breaker
+- This does not resolve or normalize duplicate-primary data and is not a schema invariant change
+- ChatsService.resolveLegacyTarget() remains in place
+- Existing target User active, Owner active, exact bridge alignment, self, block, and transaction validation remain unchanged
+- JwtStrategy authentication, tokenVersion, role, Owner, return-shape, and null semantics remain unchanged
+- JWT and Chats share only the common candidate-selection primitive; actor current/default policy and target compatibility policy may evolve separately
+- /discover was not changed
+- Prisma schema, migrations, and dependencies were not changed
+- Changed files:
+  - services/api/src/common/activity-account-selection.ts
+  - services/api/src/modules/auth/jwt.strategy.ts
+  - services/api/src/modules/chats/chats.service.ts
+- Prettier PASS
+- Prisma validate PASS
+- API build PASS
+- git diff --check PASS
+- Feature diff: 22 additions, 10 deletions
+- Feature commit:
+  f9bcbce8a5880537cb221a1bb3c02a46fc60bb01
+- Parent commit:
+  590e80d96c82174e2e96c11153f3be475f765100
+- GitHub remote branch HEAD exact SHA verified at the feature commit
+
 ### Production deployment limitation
 
-- Render production DB has the latest migrations applied.
+- Render production tokfriends-db has the latest tracked migrations applied and its ActivityAccount invariants were verified as CLEAN FOUNDATION.
 - Render tok-friends-api currently deploys branch chore/api-recovery.
-- ActivityAccount Chat list/direct-room/history/send code, Community report/block ActivityAccount compatibility, and the GET /users/me activityAccountId contract are not yet live on the Render production API.
+- The shared deterministic selector, ActivityAccount Chat list/direct-room/history/send code, Community report/block ActivityAccount compatibility, and the GET /users/me activityAccountId contract are not yet live on the Render production API.
 - Mobile real HTTP integration can proceed, but production-endpoint E2E verification remains limited until the API deployment branch changes.
 
 ### Final high-level IA
@@ -1119,11 +1191,16 @@ Current ActivityAccount identity contract:
 - ChatsScreen counterpartAccountId now supports ChatRoom report/block without exposing a legacy User ID.
 - ActivityAccount IDs are never reinterpreted as generic User IDs.
 - Follow, Interest, and ProfileVisit remain ActivityAccount-first but are not wired to Mobile profile entrypoints.
+- Legacy User default/target ActivityAccount candidate selection now uses a shared primitive in JWT and Chats.
+- The shared ordering is isPrimary DESC, createdAt ASC, id ASC.
+- Owner primary uniqueness remains unenforced by the DB, although both configured and production audited data are currently clean.
+- User.activityAccountBridge remains a legacy compatibility relation, not a primary/current-account relation.
+- /discover.id remains a legacy User ID and /discover does not yet expose an ActivityAccount target identity.
 
 Known gaps:
-- /discover does not expose an ActivityAccount ID
+- /discover does not expose targetAccountId
 - ActivityAccount-first profile/direct-room consumer flow is not wired
-- Deterministic legacy User -> ActivityAccount target selection must be confirmed or reused before extending /discover
+- no primary uniqueness DB enforcement
 - Chat history cursor/load-more
 - realtime/WebSocket
 - attachment/media backend
@@ -1297,33 +1374,37 @@ COMPLETE.
 ActivityAccount-compatible Community report/block boundary:
 COMPLETE.
 
+ActivityAccount selection invariant audits:
+COMPLETE.
+
+Shared deterministic ActivityAccount target selection:
+COMPLETE.
+
 Next implementation phase:
 REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Audit reusable legacy User -> ActivityAccount target selection before extending /discover.
+Add additive /discover targetAccountId using the shared ActivityAccount selection primitive.
 
-First audit scope:
-- services/api/src/modules/chats/chats.service.ts
+Backend-only first slice.
+
+Target:
 - services/api/src/modules/discover/discover.service.ts
-- Owner and ActivityAccount Prisma relations
-- User.ownerBridge and User.activityAccountBridge
-- existing consumer provisioning logic
-- any existing helper/service that resolves a primary or compatible ActivityAccount
+- services/api/src/common/activity-account-selection.ts only as the existing shared helper; do not broaden its behavior unnecessarily
 
 Goals:
-- re-verify the direct-room resolveLegacyTarget rule: active legacy User, matching active Owner bridge, active candidate account where isPrimary is true or legacyUserId matches, ordered by isPrimary descending then createdAt ascending, take 1
-- determine whether /discover can safely reuse exactly the same target-selection semantics
-- decide whether a shared resolver/helper is required instead of duplicating selection logic
-- compare activityAccountId and targetAccountId as the future public field name under multi-ActivityAccount semantics
-- verify whether primary ActivityAccount uniqueness is enforced by a DB constraint
-- analyze behavior when multiple active primary rows or no primary row exist
-- distinguish User.activityAccountBridge from Owner.activityAccounts
-- preserve /discover id as the legacy User ID
-- do not change the /discover response during this audit
+- keep the existing /discover query based on Prisma.User
+- preserve response id as the legacy User ID
+- add an explicit additive targetAccountId field
+- use the shared deterministic target-selection semantics: active account, primary or matching legacy bridge, isPrimary DESC, createdAt ASC, id ASC, take 1
+- require an active Owner and exact Owner legacy bridge alignment
+- never expose Owner.id, Owner.legacyUserId, ActivityAccount.ownerId, or ActivityAccount.legacyUserId
+- decide explicitly whether a User without a usable target account remains in the result with targetAccountId null or is excluded; preserve the existing discover result set unless a stronger requirement is proven
+- do not change Home, HotRecommend, ProfileDetail, GlobalProfileModal, ChatRoom, or the current targetUserId flow in this backend-only slice
+- do not modify Prisma/schema/migrations or dependencies
 
-This next task is READ-ONLY. Do not change the /discover response, add targetAccountId, refactor a shared resolver, modify Prisma/schema/migrations, change ProfileDetail/Home/HotRecommend, wire Follow/Interest/ProfileVisit to Mobile, change Chat list/history/send or Community report/block, or include WebSocket/realtime, pagination, unread/read, attachments, Gift transactions, push, Render deployment, or dependency changes.
+Out of scope: changing /discover.id, removing legacy User IDs, switching Mobile consumers to targetAccountId, changing ProfileDetail/GlobalProfileModal/ChatRoom/Community, modifying Prisma/schema/migrations or primary constraints, DB repair, Follow/Interest/ProfileVisit Mobile wiring, realtime/WebSocket, unread/read, pagination, attachments, Gift transactions, push, Render deployment, or dependency changes.
 
 First commands to run when resuming:
 
