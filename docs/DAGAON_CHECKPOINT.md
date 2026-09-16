@@ -23,11 +23,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-d659b43bb4c7d9d71802d0d34126648d64b99b96
-feat: integrate mobile chat send
+cdb59afd4c2f324893ebd24a504a1742ce87eaf5
+feat: make mobile direct chat identity explicit
 
 Remote GitHub branch HEAD verified:
-d659b43bb4c7d9d71802d0d34126648d64b99b96
+cdb59afd4c2f324893ebd24a504a1742ce87eaf5
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -977,6 +977,43 @@ Completed 2026-09-16.
   d659b43bb4c7d9d71802d0d34126648d64b99b96
 - GitHub remote branch HEAD exact SHA verified at the same SHA
 
+### Mobile direct-room explicit identity boundary
+Completed 2026-09-16.
+
+- Implemented after a READ-ONLY direct-room identity audit
+- Confirmed /discover is based on Prisma.User and user.id remains a legacy User ID; it was not reinterpreted as an ActivityAccount ID
+- Removed the positional/generic ensureDirectRoom(userId, options) contract
+- Added explicit apiClient.ensureDirectRoom object contracts for exactly one of `{ targetUserId }` or `{ targetAccountId }`
+- Trims targetUserId and targetAccountId independently and blocks the request when neither or both are present
+- Includes exactly one identity in the POST /chats/direct request body
+- Removed the participantId fallback while preserving the endpoint, response normalization order, and HTTP 410 handling
+- Home preserves /discover user.id separately as targetUserId and passes it to ProfileDetail
+- HotRecommend preserves /discover user.id as targetUserId and passes it to ProfileDetail
+- ProfileDetail no longer uses profile.id or profile._id as direct-room identity
+- ProfileDetail accepts only profile.targetUserId or profile.targetAccountId and calls the API only when exactly one is present
+- The legacy path preserves `id: targetUserId` for current ChatRoom compatibility
+- The ActivityAccount path does not copy the ActivityAccount ID into generic participant id
+- GlobalProfileModal removed the profile.id/profile._id direct-room fallback and accepts only explicit targetUserId or targetAccountId
+- GlobalProfileModal does not request a room when identity is missing or ambiguous; the audit found no current openProfile caller in apps/mobile/src
+- Identity boundary: legacy User ID -> targetUserId, ActivityAccount ID -> targetAccountId, Chat ID -> chatId; these are not automatically reinterpreted
+- Changed files:
+  - apps/mobile/src/api/client.js
+  - apps/mobile/src/components/GlobalProfileModal.js
+  - apps/mobile/src/screens/main/HomeScreen.js
+  - apps/mobile/src/screens/main/ProfileDetailScreen.js
+  - apps/mobile/src/screens/recommend/HotRecommendScreen.js
+- Babel transform PASS for all five changed files
+- Relative import verification PASS
+- git diff --check PASS
+- npx expo-doctor: 20/21 checks passed with only the existing patch-version warnings
+- Dependencies, backend/API, Prisma/schema, and migrations were not changed
+- Feature commit:
+  cdb59afd4c2f324893ebd24a504a1742ce87eaf5
+- Parent commit:
+  b610062ae41aeefaf8ce172e6ef986ea1584e059
+- GitHub compare verified exactly one commit ahead with exactly five modified files and no other files
+- GitHub remote branch HEAD exact SHA verified at the feature commit
+
 ### Production deployment limitation
 
 - Render production DB has the latest migrations applied.
@@ -1027,14 +1064,22 @@ Current ActivityAccount identity contract:
 - The backend /users/me contract now provides activityAccountId.
 - AuthContext can consume user.activityAccountId without a structural change.
 - Mobile Chat list, ChatRoom history, and ChatRoom text send now use ActivityAccount identity.
+- /discover response id remains a legacy User ID; Home and HotRecommend preserve it explicitly as targetUserId.
+- The Mobile direct-room client now supports explicit targetAccountId without reinterpreting identity types.
+- There is no current proven ActivityAccount-based new-direct-room UI source.
+- Chats list counterpart.id remains an ActivityAccount ID and counterpartAccountId is not reinterpreted as a legacy User ID.
+- GlobalProfileModal no longer falls back to generic profile.id/profile._id for direct-room identity.
 
 Known gaps:
+- /discover does not expose an ActivityAccount ID
+- ActivityAccount-first profile/direct-room consumer flow is not wired
+- ChatRoom report/block and other legacy-User-dependent participant actions require identity dependency audit before ActivityAccount-first entrypoints
 - Chat history cursor/load-more
 - realtime/WebSocket
-- direct-room Mobile ActivityAccount identity entrypoint cleanup/alignment
 - attachment/media backend
 - unread/read
 - push
+- clientMessageId/idempotency
 - Gift sending not financial/server transaction
 - no mobile friendship functions
 - no Mobile Follow/Interest integration
@@ -1194,31 +1239,39 @@ COMPLETE.
 Mobile ChatRoom message send HTTP integration foundation:
 COMPLETE.
 
+Mobile direct-room explicit identity boundary:
+COMPLETE.
+
 Next implementation phase:
 REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Audit and align Mobile direct-room ActivityAccount identity entrypoints.
+Audit ActivityAccount-first profile/direct-room consumer dependencies before extending /discover.
 
 First audit scope:
 - apps/mobile/src/api/client.js
+- apps/mobile/src/screens/main/ChatRoomScreen.js
 - apps/mobile/src/screens/main/ProfileDetailScreen.js
-- direct ChatRoom navigation call sites
-- discover/profile data identity semantics
+- apps/mobile/src/components/GlobalProfileModal.js
+- apps/mobile/src/screens/main/HomeScreen.js
+- apps/mobile/src/screens/recommend/HotRecommendScreen.js
+- services/api/src/modules/discover/discover.service.ts
+- users/profile consumer endpoints relevant to profile cards
+- report endpoint/controller/service
+- block endpoint/controller/service
 - services/api/src/modules/chats/chats.controller.ts
 - services/api/src/modules/chats/chats.service.ts
-- services/api/src/modules/chats/dto.ts
 
 Goals:
-- identify exactly which ID Mobile passes when starting a new direct room
-- identify entrypoints that mix ActivityAccount ID and legacy User ID
-- determine which paths can move to the preferred POST /chats/direct targetAccountId contract
-- do not reinterpret a counterpart ActivityAccount ID as targetUserId
-- align direct-room entrypoints with the existing Chat list/history/send identity contract
-- verify the exact profile/discover response identity contract before implementation
+- identify which ChatRoom features currently require user.id as a legacy User ID
+- separate the legacy User ID and ActivityAccount ID requirements of report, block, favorite, and profile actions
+- determine whether ActivityAccount-first direct-room entrypoints still require a legacy User compatibility ID
+- determine the safest ActivityAccount-aware /discover consumer response shape without fixing that shape before the audit
+- do not overwrite /discover id with an ActivityAccount ID
+- determine whether an explicit ActivityAccount field can be added while preserving existing consumer compatibility
 
-This checkpoint update does not implement code. Keep WebSocket/realtime, cursor history pagination, unread/read, attachment/media backend, gift transaction, push, Prisma/schema/migration, backend API changes, and Render deployment changes outside this audit/next slice.
+This next task is READ-ONLY. Do not change the /discover response, add an ActivityAccount field, switch Mobile to actual targetAccountId usage, change report/block or ChatRoom, modify Prisma/schema/migrations, or include WebSocket/realtime, pagination, unread/read, attachments, Gift transactions, push, Render deployment, or dependency changes.
 
 First commands to run when resuming:
 
