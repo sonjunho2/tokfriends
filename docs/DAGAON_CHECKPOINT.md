@@ -23,17 +23,17 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-954959b0b83fc4e095fcb6c785ca34c43a6ced5d
-feat: propagate discover target account identity
+84584038832687e452656a4df542740647dced9e
+fix: remove unsupported profile deep links
 
 Remote GitHub branch HEAD verified:
-954959b0b83fc4e095fcb6c785ca34c43a6ced5d
+84584038832687e452656a4df542740647dced9e
 
 Parent commit:
-2136664e9664b464d89ef5549070ae6e22f684d4
+2612bd56dfbdb8942423939e51d4786472e12dd4
 
-GitHub compare verified exactly one commit ahead with exactly two changed files,
-34 additions, 2 deletions, and no other files.
+GitHub compare verified exactly one commit ahead with exactly one changed file,
+0 additions, 2 deletions, and no other files.
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -697,7 +697,6 @@ Completed 2026-09-15.
 - Initial migration added nullable bridge columns, SetNull foreign keys, unique/indexes,
   the self-chat CHECK, and the original pair-complete CHECK
 - A compatibility conflict was identified between the pair-complete CHECK and independent SetNull foreign keys
-- Deleting one ActivityAccount could null only one bridge column and violate the pair-complete CHECK
 - The applied initial migration was not edited
 - Corrective migration:
   - 20260915141108_fix_activity_chat_setnull_compatibility
@@ -1200,12 +1199,42 @@ Compatibility:
   2136664e9664b464d89ef5549070ae6e22f684d4
 - GitHub remote branch HEAD exact SHA verified at the feature commit
 
+### Mobile profile/direct-room identity audit and deep-link cleanup
+Completed 2026-09-16.
+
+Audit findings:
+- GlobalProfileModal reads only explicit `targetUserId` / `targetAccountId`, rejects missing or simultaneous identities, and has no generic `profile.id` / `profile._id` direct-room fallback.
+- `openProfile` has no actual caller in the current Mobile source; GlobalProfileModal is mounted but its direct-room path is currently dormant.
+- ProfileModalContext stores the supplied profile object without identity transformation or namespace inference.
+- ProfileDetailScreen reads only explicit `targetUserId` / `targetAccountId`, rejects missing or simultaneous identities, and calls `ensureDirectRoom` with exactly one identity.
+- Mobile `ensureDirectRoom` call sites are GlobalProfileModal and ProfileDetailScreen only; both preserve the exact-one contract.
+- Home and HotRecommend preserve `/discover.id` as the legacy User identity, prefer explicit `/discover.targetAccountId`, and fall back to explicit `targetUserId` without passing both.
+- ChatsScreen preserves `chat.id` as Chat ID and `chat.counterpart.id` as `counterpartAccountId`; ChatRoom keeps Chat and ActivityAccount namespaces separate.
+- No generic-ID reinterpretation was found for `profile.id`, `profile._id`, `user.id`, `user._id`, or `counterpartAccountId` in a direct-room path.
+
+Focused fix:
+- Removed unsupported `Home.ProfileDetail -> home/profile` linking mapping.
+- Removed unsupported `My.ProfileDetail -> mypage/profile` linking mapping.
+- RootNavigator ProfileDetail screen registrations remain unchanged for Home and My stacks.
+- Home, HotRecommend, and Settings internal ProfileDetail navigation remains available.
+- No new URL identity contract, query parsing, generic ID parameter, profile fetch, or resolver was introduced.
+- ProfileDetailScreen, GlobalProfileModal, ProfileModalContext, Home, HotRecommend, Settings, ChatsScreen, ChatRoomScreen, apiClient, backend, Prisma schema, migrations, dependencies, and docs outside this checkpoint were unchanged by the focused code fix.
+- `src/navigation/index.js` Babel transform PASS.
+- `git diff --check` PASS.
+- Feature diff: 0 additions, 2 deletions.
+- Feature commit:
+  84584038832687e452656a4df542740647dced9e
+- Parent commit:
+  2612bd56dfbdb8942423939e51d4786472e12dd4
+- GitHub remote branch HEAD exact SHA verified at the feature commit.
+
 ### Production deployment limitation
 
 - Render production tokfriends-db has the latest tracked migrations applied and its ActivityAccount invariants were verified as CLEAN FOUNDATION.
 - Render tok-friends-api currently deploys branch chore/api-recovery.
-- The shared deterministic selector, additive /discover targetAccountId, Mobile targetAccountId propagation, ActivityAccount Chat list/direct-room/history/send code, Community report/block ActivityAccount compatibility, and the GET /users/me activityAccountId contract are not yet live on the Render production API.
-- Mobile real HTTP integration can proceed, but production-endpoint E2E verification remains limited until the API deployment branch changes.
+- The shared deterministic selector, additive `/discover targetAccountId`, ActivityAccount Chat list/direct-room/history/send code, Community report/block ActivityAccount compatibility, and the GET `/users/me activityAccountId` contract on this working branch are not yet live on the Render production API.
+- Mobile targetAccountId propagation and the ProfileDetail deep-link cleanup are working-branch Mobile code; this checkpoint does not claim they are present in a released production app.
+- Mobile fallback behavior remains compatible with a production API that does not yet return `targetAccountId`, but production-endpoint E2E verification remains limited until the API deployment branch changes.
 
 ### Final high-level IA
 Mobile main tabs:
@@ -1257,11 +1286,13 @@ Current ActivityAccount identity contract:
 - ProfileDetail navigation receives exactly one direct-room identity: targetAccountId when usable, otherwise targetUserId.
 - ActivityAccount IDs are not copied into generic id, and old production responses without targetAccountId remain compatible.
 - ProfileDetailScreen remains unchanged and already rejects simultaneous targetUserId and targetAccountId.
-- GlobalProfileModal also accepts explicit targetUserId or targetAccountId, rejects simultaneous identities, and does not fall back to generic profile.id/profile._id.
-- The Mobile direct-room client now supports explicit targetAccountId without reinterpreting identity types.
-- There is no current proven ActivityAccount-based new-direct-room UI source.
+- GlobalProfileModal also accepts explicit targetUserId or targetAccountId, rejects missing/simultaneous identities, and does not fall back to generic profile.id/profile._id.
+- Remaining Mobile profile/direct-room identity entrypoints were audited; no direct-room generic-ID namespace reinterpretation or exact-one violation was found.
+- GlobalProfileModal currently has no actual `openProfile` caller, so that path is dormant rather than an active identity source.
+- The unsupported `home/profile` and `mypage/profile` ProfileDetail deep-link mappings were removed; internal ProfileDetail screen registration and internal navigation remain intact.
+- Home and HotRecommend are the current new-direct-room UI sources and prefer `/discover.targetAccountId` when usable, with explicit `targetUserId` fallback.
+- The Mobile direct-room client supports explicit targetAccountId without reinterpreting identity types.
 - Chats list counterpart.id remains an ActivityAccount ID and counterpartAccountId is not reinterpreted as a legacy User ID.
-- GlobalProfileModal no longer falls back to generic profile.id/profile._id for direct-room identity.
 - Community Report/Block remains legacy User-level in the DB while Mobile/API accept explicit ActivityAccount targets.
 - The server resolves ActivityAccount -> Owner -> legacy User internally without exposing Owner or bridge IDs.
 - ChatsScreen counterpartAccountId now supports ChatRoom report/block without exposing a legacy User ID.
@@ -1275,7 +1306,6 @@ Current ActivityAccount identity contract:
 - Internal Owner and ActivityAccount bridge fields are not exposed by /discover.
 
 Known gaps:
-- ActivityAccount-first profile/direct-room consumer flow is not fully audited/wired
 - no primary uniqueness DB enforcement
 - Chat history cursor/load-more
 - realtime/WebSocket
@@ -1462,36 +1492,37 @@ COMPLETE.
 Mobile Discover target ActivityAccount propagation:
 COMPLETE.
 
+Remaining Mobile profile/direct-room identity audit:
+COMPLETE.
+
+Unsupported ProfileDetail deep-link cleanup:
+COMPLETE.
+
 Next implementation phase:
 REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-READ-ONLY audit remaining Mobile profile/direct-room identity entrypoints.
+Mobile Chat history cursor/load-more integration.
 
-The next task is audit-only. Do not modify code.
+Keep this as one small Mobile-only slice.
 
 Target:
-- apps/mobile/src/components/GlobalProfileModal.js
-- apps/mobile/src/context/ProfileModalContext.js
-- apps/mobile/src/screens/main/ProfileDetailScreen.js
-- apps/mobile/src/navigation/RootNavigator.js
-- apps/mobile/src/navigation/index.js
-- all apps/mobile/src usages of useProfileModal, openProfile, ProfileDetail, targetUserId, targetAccountId, ensureDirectRoom, profile.id, profile._id, user.id, and user._id
+- apps/mobile/src/api/client.js
+- apps/mobile/src/screens/main/ChatRoomScreen.js
 
 Goals:
-- find every actual GlobalProfileModal caller and classify each profile payload as legacy User, ActivityAccount, explicit identity, generic fallback, or potentially ambiguous
-- find every actual ProfileDetail caller, including Home and HotRecommend, and classify each identity source
-- find every Mobile ensureDirectRoom call and verify that it passes exactly one of `{ targetUserId }` or `{ targetAccountId }`
-- identify any path that automatically reinterprets generic id, _id, profile.id, profile._id, user.id, or user._id as a direct-room identity
-- preserve the identity rules: legacy User ID -> targetUserId; ActivityAccount ID -> targetAccountId/counterpartAccountId; Chat ID -> chatId
-- decide whether another focused Mobile-only implementation slice is actually needed
+- preserve the existing initial history load and backend oldest-to-newest display contract
+- allow the Mobile client to request older history using the backend `nextCursor`
+- keep cursor identity opaque; do not parse or reinterpret it client-side
+- prepend older server-confirmed messages without duplicating message IDs or reordering the current page
+- stop requesting when `nextCursor` is null/empty
+- keep stale-request protection and existing current ActivityAccount sender classification intact
+- preserve current text-send behavior and do not mix pagination with realtime, unread/read, attachments, push, gift transactions, or idempotency work
 
-Audit outcome rule:
-- If every remaining entrypoint is already explicit and exact-one, record that no code change is needed and move to the next Real Chat gap.
-- If a caller drops identity or uses a generic fallback, limit the next implementation slice to that caller only.
+Before implementation, re-read the backend GET `/chats/:chatId/messages` cursor contract and the current Mobile `getChatMessages` / ChatRoom history state to confirm the minimal request shape.
 
-Out of scope for this audit: modifying GlobalProfileModal, ProfileModalContext, ProfileDetailScreen, Home, HotRecommend, ChatRoom, ChatsScreen, apiClient, backend, docs, Prisma, migrations, packages, or dependencies.
+Out of scope: WebSocket/realtime, unread/read, attachment/media backend, push, `clientMessageId`/idempotency, Gift transactions, Social wiring, LIVE, Prisma/schema/migrations, production deployment changes, and dependency upgrades.
 
 First commands to run when resuming:
 
