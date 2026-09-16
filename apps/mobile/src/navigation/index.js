@@ -26,7 +26,6 @@ const linking = {
         screens: {
           HomeMain: 'home',
           HotRecommend: 'home/hot',
-          ProfileDetail: 'home/profile',
         },
       },
       Live: 'live',
@@ -40,7 +39,6 @@ const linking = {
       My: {
         screens: {
           MyPageMain: 'mypage',
-          ProfileDetail: 'mypage/profile',
           ProfileEdit: 'mypage/edit',
         },
       },
