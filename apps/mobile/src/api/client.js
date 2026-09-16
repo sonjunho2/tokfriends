@@ -516,6 +516,26 @@ export const apiClient = {
     }
   },
 
+  async getChatMessages(chatId) {
+    const target = String(chatId || '').trim();
+    if (!target) {
+      throw normalizeError(new Error('대화방 ID가 필요합니다.'));
+    }
+
+    try {
+      const { data } = await client.get(`/chats/${encodeURIComponent(target)}/messages`);
+      if (!Array.isArray(data?.data)) {
+        throw new Error('대화 내역 응답 형식이 올바르지 않습니다.');
+      }
+      return {
+        items: data.data,
+        nextCursor: data?.pageInfo?.nextCursor ?? null,
+      };
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
   async updateUser(userId, payload = {}) {
     if (!userId) {
       throw normalizeError(new Error('사용자 ID가 필요합니다.'));

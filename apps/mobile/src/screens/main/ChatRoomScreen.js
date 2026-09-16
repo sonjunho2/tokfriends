@@ -25,6 +25,7 @@ import Avatar from '../../components/Avatar';
 import colors from '../../theme/colors';
 import { listGiftOptions } from '../../api/gifts';
 import { apiClient } from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
 
 function ChatVideoAttachment({ uri }) {
   const player = useVideoPlayer(uri);
@@ -39,56 +40,29 @@ function ChatVideoAttachment({ uri }) {
   );
 }
 
-const INITIAL_MESSAGES = [
-    {
-    id: 'date-1',
-    type: 'date',
-    text: '2023년 8월 13일 일요일',
-  },
-  {
-    id: '1',
-    text: '안녕하세요! 만나서 반가워요 😊',
-    sender: 'other',
-    timestamp: '오후 2:30',
-  },
-  {
-    id: '2',
-    text: '안녕하세요! 저도 반가워요~',
-    sender: 'me',
-    timestamp: '오후 2:31',
-  },
-  {
-    id: '3',
-    text: '프로필 보고 대화 신청했어요. 취미가 비슷한 것 같아서요!',
-    sender: 'other',
-    timestamp: '오후 2:32',
-  },
-  {
-    id: '4',
-    text: '어떤 취미 좋아하세요?',
-    sender: 'other',
-    timestamp: '오후 2:32',
-  },
-  {
-    id: '5',
-    text: '저는 주로 카페 가는 걸 좋아하고, 주말엔 영화 보러 가기도 해요!',
-    sender: 'me',
-    timestamp: '오후 2:33',
-  },
-  {
-    id: '6',
-    text: '오 저도 카페 투어 좋아해요! 최근에 가본 곳 중에 추천할 만한 곳 있으세요?',
-    sender: 'other',
-    timestamp: '오후 2:34',
-  },
-];
+const formatMessageTime = (createdAt) => {
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString('ko-KR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
 
 export default function ChatRoomScreen({ route, navigation }) {
   const { user: paramUser, title: paramTitle } = route.params || {};
   const user = paramUser || { name: paramTitle || '친구' };
-  const [messages, setMessages] = useState(INITIAL_MESSAGES);
+  const chatId = String(
+    route?.params?.chatId || route?.params?.id || route?.params?.room?.id || ''
+  ).trim();
+  const { user: authUser } = useAuth();
+  const currentActivityAccountId = authUser?.activityAccountId;
+  const [messages, setMessages] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState('');
   const [inputText, setInputText] = useState('');
   const flatListRef = useRef(null);
+  const historyRequestRef = useRef(0);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [composerHeight, setComposerHeight] = useState(0);
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -105,6 +79,77 @@ export default function ChatRoomScreen({ route, navigation }) {
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [isFavorite, setIsFavorite] = useState(route?.params?.isFavorite ?? false);
   const insets = useSafeAreaInsets();
+
+  const loadHistory = useCallback(async () => {
+    const requestId = historyRequestRef.current + 1;
+    historyRequestRef.current = requestId;
+    setMessages([]);
+    setHistoryError('');
+
+    if (!chatId) {
+      setHistoryLoading(false);
+      setHistoryError('대화방 정보를 확인할 수 없습니다.');
+      return;
+    }
+    if (!currentActivityAccountId) {
+      setHistoryLoading(false);
+      setHistoryError('활성 프로필 정보를 확인할 수 없습니다.');
+      return;
+    }
+
+    setHistoryLoading(true);
+    try {
+      const response = await apiClient.getChatMessages(chatId);
+      const nextMessages = response.items.map((message) => {
+        if (
+          !message?.id ||
+          !message?.chatId ||
+          typeof message.content !== 'string' ||
+          !message?.createdAt
+        ) {
+          throw new Error('대화 내역 응답 형식이 올바르지 않습니다.');
+        }
+
+        const senderAccountId = message.senderAccountId;
+        const sender =
+          senderAccountId === currentActivityAccountId
+            ? 'me'
+            : typeof senderAccountId === 'string' && senderAccountId
+              ? 'other'
+              : 'unknown';
+
+        return {
+          id: message.id,
+          chatId: message.chatId,
+          sender,
+          senderAccountId: senderAccountId ?? null,
+          text: message.content,
+          timestamp: formatMessageTime(message.createdAt),
+          type: 'text',
+          backendType: message.type,
+        };
+      });
+
+      if (historyRequestRef.current === requestId) {
+        setMessages(nextMessages);
+      }
+    } catch (error) {
+      if (historyRequestRef.current === requestId) {
+        setHistoryError(error?.message || '대화 내역을 불러오지 못했습니다.');
+      }
+    } finally {
+      if (historyRequestRef.current === requestId) {
+        setHistoryLoading(false);
+      }
+    }
+  }, [chatId, currentActivityAccountId]);
+
+  useEffect(() => {
+    loadHistory();
+    return () => {
+      historyRequestRef.current += 1;
+    };
+  }, [loadHistory]);
 
   useEffect(() => {
     const showListener = Keyboard.addListener('keyboardDidShow', () => {
@@ -501,7 +546,7 @@ export default function ChatRoomScreen({ route, navigation }) {
           isMe ? styles.myMessageContainer : styles.otherMessageContainer,
         ]}
       >
-        {!isMe && (
+        {item.sender === 'other' && (
           <Avatar
             name={user.name}
             size={40}
@@ -621,6 +666,25 @@ export default function ChatRoomScreen({ route, navigation }) {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+          ListEmptyComponent={
+            <View style={styles.historyStateContainer}>
+              {historyLoading ? (
+                <>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={styles.historyStateText}>대화 내역을 불러오는 중...</Text>
+                </>
+              ) : historyError ? (
+                <>
+                  <Text style={styles.historyStateText}>{historyError}</Text>
+                  <TouchableOpacity style={styles.historyRetryButton} onPress={loadHistory}>
+                    <Text style={styles.historyRetryText}>다시 시도</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <Text style={styles.historyStateText}>아직 메시지가 없어요</Text>
+              )}
+            </View>
+          }
         />
 
         <View
@@ -1010,6 +1074,30 @@ const styles = StyleSheet.create({
   messagesList: {
     paddingHorizontal: 20,
     paddingTop: 24,
+  },
+  historyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+    gap: 12,
+  },
+  historyStateText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  historyRetryButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderWidth: 1,
+    borderColor: '#E2E8F5',
+  },
+  historyRetryText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
   },
   messageContainer: {
     marginBottom: 14,
