@@ -23,21 +23,21 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-2cec1a269262ef78bab99a9366e1327268c7915d
-feat: add mobile chat typing indicator
+e39fda3c6f0e4e94eeb7eed93371927e6ec45f88
+fix: preserve activity account after avatar signup
 
 Remote GitHub branch HEAD verified:
-2cec1a269262ef78bab99a9366e1327268c7915d
+e39fda3c6f0e4e94eeb7eed93371927e6ec45f88
 
 Parent commit:
-08bc0bb9c5c9977ca2c160abae3dbd6e3c8daa84
+1844e2896536b61702fd24690015d3d283001d47
 
-GitHub compare verified against base 08bc0bb9c5c9977ca2c160abae3dbd6e3c8daa84:
+GitHub compare verified against base 1844e2896536b61702fd24690015d3d283001d47:
 - ahead by exactly 1 commit
 - behind by 0 commits
 - exactly 1 changed file
-- 170 additions and 3 deletions
-- apps/mobile/src/screens/main/ChatRoomScreen.js: +170 / -3
+- 3 additions and 2 deletions
+- apps/mobile/src/screens/auth/ProfileRegistrationScreen.js: +3 / -2
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -1347,11 +1347,57 @@ Completed 2026-09-17.
 - Implementation commit:
   2cec1a269262ef78bab99a9366e1327268c7915d
 
+### Phone signup optional-avatar ActivityAccount state preservation
+Completed 2026-09-17.
+
+- A read-only source audit confirmed a deterministic source-level state overwrite bug in the optional-avatar phone signup path
+- `authenticateWithToken(token)` correctly fetched canonical `GET /users/me` state containing `activityAccountId`
+- Mobile `apiClient.updateUser()` calls `PATCH /users/:id`
+- `PATCH /users/:id` returns `serializeUser(updated)`, which does not add `activityAccountId`
+- AuthContext `setUser()` replaces the user object rather than merging it
+- The old avatar-selected path could therefore overwrite canonical `/users/me` state with the PATCH response and remove `activityAccountId` from in-memory AuthContext until a later canonical refresh/restart
+- `User.id`, `Owner.id`, `ownerId`, and `legacyUserId` are not ActivityAccount IDs and were not reinterpreted as such
+- The smallest safe fix was implemented only in `apps/mobile/src/screens/auth/ProfileRegistrationScreen.js`
+- The avatar path now:
+  1. uploads the avatar
+  2. PATCHes the User avatar
+  3. discards the noncanonical PATCH response
+  4. calls `apiClient.getMe()`
+  5. stores the canonical response using `setUser(canonicalMe)`
+- AuthContext behavior was not changed
+- `apiClient` behavior was not changed
+- Backend/API serialization was not changed
+- Prisma/schema/migrations were not changed
+- Package dependencies were not changed
+- Implementation diff is exactly +3 / -2 in one Mobile file
+- Babel/static transform validation PASS
+- `git diff --check` PASS
+- Runtime verification:
+  - Local Cloudinary media configuration was required to exercise the avatar path
+  - Cloudinary credentials were supplied only as local process environment values for testing
+  - No Cloudinary credential or secret was added to Git-tracked files
+  - Cloudinary read-only authentication check eventually PASSed after correcting the local credential input
+  - Local API `/v1/health` PASS with database ok
+  - Fresh phone signup with a selected avatar completed successfully with no avatar error popup
+  - Expo Go was not restarted after signup
+  - The new user entered Chat successfully without an active-profile/`activityAccountId` error
+  - One test message appeared exactly once locally
+  - The counterpart received the message in realtime
+- This verifies that the optional-avatar signup path preserves the currently required ActivityAccount Chat state for the tested local path
+- This remains local physical-device/emulator validation, not production deployment readiness
+- Implementation commit:
+  e39fda3c6f0e4e94eeb7eed93371927e6ec45f88
+- Parent commit:
+  1844e2896536b61702fd24690015d3d283001d47
+- GitHub remote branch HEAD independently verified at the implementation commit
+
 ### Production deployment limitation
 
 - The working-branch 1:1 Chat realtime Gateway and local physical-device/emulator validation are not a production deployment claim.
 - The phone-signup ActivityAccount auth refresh fix at 4d92f7b97c579e0510d2b8dacb66ed2f26b6f4b0 is verified on the working branch but is not claimed to be present in a released production app.
 - The Mobile Chat typing indicator at 2cec1a269262ef78bab99a9366e1327268c7915d is locally device-validated working-branch code; this does not claim it is live in the released production app or API.
+- The optional-avatar ActivityAccount state-preservation fix at e39fda3c6f0e4e94eeb7eed93371927e6ec45f88 is verified on the working branch with local device testing; this does not claim the fix is present in a released production app or production API.
+- Cloudinary credentials used for the local test were local development/runtime configuration only, not repository configuration; production media credential/configuration readiness remains a separate deployment concern.
 
 - Render production tokfriends-db has the latest tracked migrations applied and its ActivityAccount invariants were verified as CLEAN FOUNDATION.
 - Render tok-friends-api currently deploys branch chore/api-recovery.
@@ -1360,6 +1406,14 @@ Completed 2026-09-17.
 - Mobile Chat history cursor/load-more is working-branch Mobile code; this checkpoint does not claim it is present in a released production app.
 - The Agora provider decision is an architecture decision only; Agora SDK integration and production LIVE readiness are not complete.
 - Mobile fallback behavior remains compatible with a production API that does not yet return `targetAccountId`, but production-endpoint E2E verification remains limited until the API deployment branch changes.
+
+### Local test infrastructure note
+
+- The local API currently requires Cloudinary process environment configuration to exercise `/media/avatar`
+- Cloudinary credentials are not committed to the repository and must never be recorded in this checkpoint
+- Do not assume local Cloudinary process environment values persist after PowerShell or API restart
+- The canonical local API health path is `/v1/health`
+- Transient local test configuration is not production configuration
 
 ### Final high-level IA
 Mobile main tabs:
@@ -1413,6 +1467,7 @@ Reusable:
 Current ActivityAccount identity contract:
 - The backend /users/me contract now provides activityAccountId.
 - AuthContext can consume user.activityAccountId without a structural change.
+- The phone-signup optional-avatar path now rehydrates canonical `/users/me` after the avatar PATCH before replacing AuthContext user state, preserving `activityAccountId` in the validated local path.
 - Mobile Chat list, ChatRoom history, and ChatRoom text send now use ActivityAccount identity.
 - /discover response id remains a legacy User ID and its additive targetAccountId is an explicit nullable ActivityAccount action target.
 - Users without a usable target account remain in discover results with targetAccountId=null.
@@ -1647,30 +1702,44 @@ COMPLETE.
 Mobile 1:1 Chat typing indicator:
 COMPLETE FOR THE CURRENTLY VALIDATED LOCAL 1:1 CHAT PATH.
 
+Phone signup optional-avatar ActivityAccount state preservation:
+COMPLETE FOR THE CURRENTLY VALIDATED LOCAL SIGNUP/CHAT PATH.
+
 Next implementation phase:
 REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Phone signup optional-avatar ActivityAccount state read-only audit.
+Real Chat clientMessageId / idempotency read-only audit.
 
 This next step is AUDIT ONLY, not implementation.
 
 Goals:
-- inspect `apps/mobile/src/screens/auth/ProfileRegistrationScreen.js`
-- inspect AuthContext `authenticateWithToken` / `setUser` / `refreshMe` behavior
-- inspect `apiClient.updateUser()`
-- inspect the API `PATCH /users/:id` response serialization
-- determine whether the `updateUser` response includes `activityAccountId`
-- trace the exact signup path when `imageAsset`/avatar is selected
-- determine whether `authenticateWithToken(token)` correctly hydrates `/users/me` and then `setUser(updatedUser)` can overwrite that canonical state with a payload missing `activityAccountId`
-- do not assume this is a proven runtime bug
-- identify whether the risk is real from source
-- define the smallest safe fix if needed
-- prefer the narrow onboarding avatar path over a broad AuthContext behavioral change
-- consider `refreshMe()` after avatar update if source confirms that is the safest path
+- inspect the current Mobile ChatRoom send flow
+- inspect `apiClient.sendChatMessage()`
+- inspect the `POST /chats/message` controller/service
+- inspect Message schema/model fields
+- inspect transaction/persistence behavior
+- inspect realtime publisher behavior after persistence
+- inspect current Mobile server-confirmed append and message-ID dedupe behavior
+- determine whether repeated HTTP submissions/retries can persist duplicate messages
+- determine whether network timeout/retry can create an ambiguous successful-write state
+- determine whether any `clientMessageId`/idempotency key already exists anywhere in Mobile/API/DB
+- do not assume a bug before source evidence
+- define the smallest additive idempotency design if needed
+- preserve the server-generated canonical message ID
+- preserve ActivityAccount sender identity rules
+- preserve the HTTP persistence / WebSocket delivery boundary
+- do not reinterpret identity namespaces
 - do not implement anything during this audit
-- do not mix typing, Gift, Wallet/Ledger, LIVE, Agora, Prisma, Admin, or production changes
+- do not mix attachments, unread/read, push, Gift, Wallet/Ledger, LIVE, Agora, Prisma migration implementation, Admin, or production deployment into the audit
+
+Expected audit output:
+- exact current duplicate/retry risk from source
+- exact affected files
+- whether DB/schema support is required
+- smallest safe implementation slice
+- runtime verification plan
 
 First commands to run when resuming:
 
