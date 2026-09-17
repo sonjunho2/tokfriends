@@ -31,6 +31,9 @@ import {
   createChatSocket,
 } from '../../realtime/chatSocket';
 
+const LOCAL_TYPING_IDLE_MS = 1500;
+const REMOTE_TYPING_EXPIRY_MS = 3000;
+
 function ChatVideoAttachment({ uri }) {
   const player = useVideoPlayer(uri);
 
@@ -115,6 +118,22 @@ export default function ChatRoomScreen({ route, navigation }) {
   const chatId = String(
     route?.params?.chatId || route?.params?.id || route?.params?.room?.id || ''
   ).trim();
+  const routeCounterpartAccountId =
+    typeof route?.params?.counterpartAccountId === 'string'
+      ? route.params.counterpartAccountId.trim()
+      : '';
+  const userCounterpartAccountId =
+    typeof user?.targetAccountId === 'string'
+      ? user.targetAccountId.trim()
+      : '';
+  const hasCounterpartIdentityConflict = Boolean(
+    routeCounterpartAccountId &&
+    userCounterpartAccountId &&
+    routeCounterpartAccountId !== userCounterpartAccountId,
+  );
+  const counterpartAccountId = hasCounterpartIdentityConflict
+    ? ''
+    : routeCounterpartAccountId || userCounterpartAccountId;
   const { user: authUser, token: authToken } = useAuth();
   const currentActivityAccountId = authUser?.activityAccountId;
   const [messages, setMessages] = useState([]);
@@ -125,9 +144,17 @@ export default function ChatRoomScreen({ route, navigation }) {
   const [olderHistoryError, setOlderHistoryError] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const [inputText, setInputText] = useState('');
+  const [isCounterpartTyping, setIsCounterpartTyping] = useState(false);
   const flatListRef = useRef(null);
   const historyRequestRef = useRef(0);
   const shouldScrollToEndRef = useRef(false);
+  const socketRef = useRef(null);
+  const socketAuthReadyRef = useRef(false);
+  const localTypingActiveRef = useRef(false);
+  const localTypingSentRef = useRef(false);
+  const localTypingTimerRef = useRef(null);
+  const remoteTypingTimerRef = useRef(null);
+  const inputTextRef = useRef('');
   const [headerHeight, setHeaderHeight] = useState(0);
   const [composerHeight, setComposerHeight] = useState(0);
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -155,6 +182,67 @@ export default function ChatRoomScreen({ route, navigation }) {
       return [...currentMessages, nextMessage];
     });
   }, []);
+
+  const clearLocalTypingTimer = useCallback(() => {
+    if (localTypingTimerRef.current) {
+      clearTimeout(localTypingTimerRef.current);
+      localTypingTimerRef.current = null;
+    }
+  }, []);
+
+  const clearRemoteTypingTimer = useCallback(() => {
+    if (remoteTypingTimerRef.current) {
+      clearTimeout(remoteTypingTimerRef.current);
+      remoteTypingTimerRef.current = null;
+    }
+  }, []);
+
+  const emitTyping = useCallback((typing) => {
+    const socket = socketRef.current;
+    if (
+      !socket ||
+      !socket.connected ||
+      !socketAuthReadyRef.current ||
+      !chatId
+    ) {
+      return false;
+    }
+
+    socket.emit(CHAT_SOCKET_EVENTS.TYPING, {
+      chatId,
+      typing,
+    });
+    return true;
+  }, [chatId]);
+
+  const handleInputTextChange = useCallback((nextText) => {
+    setInputText(nextText);
+    inputTextRef.current = nextText;
+    clearLocalTypingTimer();
+
+    if (!nextText.trim()) {
+      localTypingActiveRef.current = false;
+      if (localTypingSentRef.current) {
+        emitTyping(false);
+      }
+      localTypingSentRef.current = false;
+      return;
+    }
+
+    localTypingActiveRef.current = true;
+    if (!localTypingSentRef.current && emitTyping(true)) {
+      localTypingSentRef.current = true;
+    }
+
+    localTypingTimerRef.current = setTimeout(() => {
+      localTypingActiveRef.current = false;
+      if (localTypingSentRef.current) {
+        emitTyping(false);
+      }
+      localTypingSentRef.current = false;
+      localTypingTimerRef.current = null;
+    }, LOCAL_TYPING_IDLE_MS);
+  }, [clearLocalTypingTimer, emitTyping]);
 
   const loadHistory = useCallback(async () => {
     const requestId = historyRequestRef.current + 1;
@@ -276,6 +364,9 @@ export default function ChatRoomScreen({ route, navigation }) {
   }, [loadHistory]);
 
   useEffect(() => {
+    clearRemoteTypingTimer();
+    setIsCounterpartTyping(false);
+
     const normalizedToken =
       typeof authToken === 'string'
         ? authToken.trim()
@@ -286,13 +377,22 @@ export default function ChatRoomScreen({ route, navigation }) {
     }
 
     const socket = createChatSocket(normalizedToken);
+    socketRef.current = socket;
+    socketAuthReadyRef.current = false;
+    localTypingSentRef.current = false;
 
     const handleAuthReady = (payload) => {
       if (payload?.ok !== true) return;
 
+      socketAuthReadyRef.current = true;
+      localTypingSentRef.current = false;
       socket.emit(CHAT_SOCKET_EVENTS.JOIN, {
         chatId,
       });
+
+      if (localTypingActiveRef.current && emitTyping(true)) {
+        localTypingSentRef.current = true;
+      }
     };
 
     const handleRealtimeMessage = (message) => {
@@ -314,11 +414,53 @@ export default function ChatRoomScreen({ route, navigation }) {
       }
     };
 
+    const handleRealtimeTyping = (payload) => {
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return;
+      if (payload.chatId !== chatId || typeof payload.typing !== 'boolean') return;
+
+      const senderAccountId =
+        typeof payload.senderAccountId === 'string'
+          ? payload.senderAccountId.trim()
+          : '';
+      if (!senderAccountId || senderAccountId === currentActivityAccountId) return;
+      if (hasCounterpartIdentityConflict) return;
+      if (counterpartAccountId && senderAccountId !== counterpartAccountId) return;
+
+      clearRemoteTypingTimer();
+      if (!payload.typing) {
+        setIsCounterpartTyping(false);
+        return;
+      }
+
+      setIsCounterpartTyping(true);
+      remoteTypingTimerRef.current = setTimeout(() => {
+        setIsCounterpartTyping(false);
+        remoteTypingTimerRef.current = null;
+      }, REMOTE_TYPING_EXPIRY_MS);
+    };
+
     socket.on(CHAT_SOCKET_EVENTS.AUTH_READY, handleAuthReady);
     socket.on(CHAT_SOCKET_EVENTS.MESSAGE, handleRealtimeMessage);
+    socket.on(CHAT_SOCKET_EVENTS.TYPING, handleRealtimeTyping);
     socket.connect();
 
     return () => {
+      clearLocalTypingTimer();
+      clearRemoteTypingTimer();
+      if (
+        socket.connected &&
+        socketAuthReadyRef.current &&
+        localTypingSentRef.current
+      ) {
+        socket.emit(CHAT_SOCKET_EVENTS.TYPING, {
+          chatId,
+          typing: false,
+        });
+      }
+      localTypingActiveRef.current = false;
+      localTypingSentRef.current = false;
+      socketAuthReadyRef.current = false;
+
       if (socket.connected) {
         socket.emit(CHAT_SOCKET_EVENTS.LEAVE, {
           chatId,
@@ -333,13 +475,25 @@ export default function ChatRoomScreen({ route, navigation }) {
         CHAT_SOCKET_EVENTS.MESSAGE,
         handleRealtimeMessage,
       );
+      socket.off(
+        CHAT_SOCKET_EVENTS.TYPING,
+        handleRealtimeTyping,
+      );
       socket.disconnect();
+      if (socketRef.current === socket) {
+        socketRef.current = null;
+      }
     };
   }, [
     authToken,
     chatId,
     currentActivityAccountId,
+    counterpartAccountId,
+    hasCounterpartIdentityConflict,
     appendUniquePersistedMessage,
+    clearLocalTypingTimer,
+    clearRemoteTypingTimer,
+    emitTyping,
   ]);
 
   useEffect(() => {
@@ -575,6 +729,13 @@ export default function ChatRoomScreen({ route, navigation }) {
       return;
     }
 
+    clearLocalTypingTimer();
+    localTypingActiveRef.current = false;
+    if (localTypingSentRef.current) {
+      emitTyping(false);
+    }
+    localTypingSentRef.current = false;
+
     setSendingMessage(true);
     try {
       const sent = await apiClient.sendChatMessage(chatId, content);
@@ -597,7 +758,11 @@ export default function ChatRoomScreen({ route, navigation }) {
       };
 
       appendUniquePersistedMessage(nextMessage);
-      setInputText((current) => (current.trim() === content ? '' : current));
+      setInputText((current) => {
+        const nextInput = current.trim() === content ? '' : current;
+        inputTextRef.current = nextInput;
+        return nextInput;
+      });
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -850,7 +1015,9 @@ export default function ChatRoomScreen({ route, navigation }) {
             <Text style={styles.headerName}>{user.name}</Text>
             <View style={styles.onlineStatus}>
               <View style={styles.onlineDot} />
-              <Text style={styles.onlineText}>온라인</Text>
+              <Text style={styles.onlineText}>
+                {isCounterpartTyping ? '입력 중...' : '온라인'}
+              </Text>
             </View>
           </View>
         </View>
@@ -985,7 +1152,7 @@ export default function ChatRoomScreen({ route, navigation }) {
               placeholder="메시지 입력..."
               placeholderTextColor={colors.textTertiary}
               value={inputText}
-              onChangeText={setInputText}
+              onChangeText={handleInputTextChange}
               multiline
               maxLength={500}
             />
