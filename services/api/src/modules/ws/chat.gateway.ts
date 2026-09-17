@@ -1,28 +1,44 @@
-import { WebSocketGateway, WebSocketServer, OnGatewayConnection, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
+import { OnModuleDestroy } from '@nestjs/common';
+import { WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayInit, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { containsBadWord } from '../../common/badwords';
 import { logEvent } from '../analytics/analytics.service';
 import { AuthenticatedUserContextService } from '../auth/authenticated-user-context.service';
+import { ChatRealtimePublisher } from '../chats/chat-realtime-publisher.service';
 import { ChatsService } from '../chats/chats.service';
 
 const prisma = new PrismaClient();
 
 @WebSocketGateway({ cors: { origin: process.env.WS_ALLOWED_ORIGINS || '*' } })
-export class ChatGateway implements OnGatewayConnection {
+export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModuleDestroy {
   @WebSocketServer() server: Server;
   private readonly jwtSecret: string;
+  private unsubscribeRealtime?: () => void;
 
   constructor(
     private readonly authenticatedUserContext: AuthenticatedUserContextService,
     private readonly chatsService: ChatsService,
+    private readonly chatRealtimePublisher: ChatRealtimePublisher,
   ) {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
       throw new Error('JWT_SECRET is required');
     }
     this.jwtSecret = jwtSecret;
+  }
+
+  afterInit(server: Server) {
+    this.unsubscribeRealtime?.();
+    this.unsubscribeRealtime = this.chatRealtimePublisher.subscribe((message) => {
+      server.to(`chat:${message.chatId}`).emit('chat:message', message);
+    });
+  }
+
+  onModuleDestroy(): void {
+    this.unsubscribeRealtime?.();
+    this.unsubscribeRealtime = undefined;
   }
 
   async handleConnection(client: Socket) {
