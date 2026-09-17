@@ -26,6 +26,10 @@ import colors from '../../theme/colors';
 import { listGiftOptions } from '../../api/gifts';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import {
+  CHAT_SOCKET_EVENTS,
+  createChatSocket,
+} from '../../realtime/chatSocket';
 
 function ChatVideoAttachment({ uri }) {
   const player = useVideoPlayer(uri);
@@ -111,7 +115,7 @@ export default function ChatRoomScreen({ route, navigation }) {
   const chatId = String(
     route?.params?.chatId || route?.params?.id || route?.params?.room?.id || ''
   ).trim();
-  const { user: authUser } = useAuth();
+  const { user: authUser, token: authToken } = useAuth();
   const currentActivityAccountId = authUser?.activityAccountId;
   const [messages, setMessages] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
@@ -140,6 +144,17 @@ export default function ChatRoomScreen({ route, navigation }) {
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [isFavorite, setIsFavorite] = useState(route?.params?.isFavorite ?? false);
   const insets = useSafeAreaInsets();
+
+  const appendUniquePersistedMessage = useCallback((nextMessage) => {
+    if (!nextMessage?.id) return;
+
+    setMessages((currentMessages) => {
+      if (currentMessages.some((message) => message.id === nextMessage.id)) {
+        return currentMessages;
+      }
+      return [...currentMessages, nextMessage];
+    });
+  }, []);
 
   const loadHistory = useCallback(async () => {
     const requestId = historyRequestRef.current + 1;
@@ -171,7 +186,19 @@ export default function ChatRoomScreen({ route, navigation }) {
 
       if (historyRequestRef.current === requestId) {
         shouldScrollToEndRef.current = true;
-        setMessages(nextMessages);
+        setMessages((currentMessages) => {
+          const historyIds = new Set(
+            nextMessages.map((message) => message.id),
+          );
+
+          const currentOnlyMessages = currentMessages.filter(
+            (message) =>
+              message?.id &&
+              !historyIds.has(message.id),
+          );
+
+          return [...nextMessages, ...currentOnlyMessages];
+        });
         setNextCursor(response.nextCursor || null);
       }
     } catch (error) {
@@ -247,6 +274,73 @@ export default function ChatRoomScreen({ route, navigation }) {
       historyRequestRef.current += 1;
     };
   }, [loadHistory]);
+
+  useEffect(() => {
+    const normalizedToken =
+      typeof authToken === 'string'
+        ? authToken.trim()
+        : '';
+
+    if (!normalizedToken || !chatId || !currentActivityAccountId) {
+      return undefined;
+    }
+
+    const socket = createChatSocket(normalizedToken);
+
+    const handleAuthReady = (payload) => {
+      if (payload?.ok !== true) return;
+
+      socket.emit(CHAT_SOCKET_EVENTS.JOIN, {
+        chatId,
+      });
+    };
+
+    const handleRealtimeMessage = (message) => {
+      if (message?.chatId !== chatId) return;
+
+      try {
+        const nextMessage = normalizeHistoryMessage(
+          message,
+          currentActivityAccountId,
+        );
+
+        appendUniquePersistedMessage(nextMessage);
+
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      } catch {
+        // Ignore malformed realtime payloads without affecting HTTP chat flows.
+      }
+    };
+
+    socket.on(CHAT_SOCKET_EVENTS.AUTH_READY, handleAuthReady);
+    socket.on(CHAT_SOCKET_EVENTS.MESSAGE, handleRealtimeMessage);
+    socket.connect();
+
+    return () => {
+      if (socket.connected) {
+        socket.emit(CHAT_SOCKET_EVENTS.LEAVE, {
+          chatId,
+        });
+      }
+
+      socket.off(
+        CHAT_SOCKET_EVENTS.AUTH_READY,
+        handleAuthReady,
+      );
+      socket.off(
+        CHAT_SOCKET_EVENTS.MESSAGE,
+        handleRealtimeMessage,
+      );
+      socket.disconnect();
+    };
+  }, [
+    authToken,
+    chatId,
+    currentActivityAccountId,
+    appendUniquePersistedMessage,
+  ]);
 
   useEffect(() => {
     const showListener = Keyboard.addListener('keyboardDidShow', () => {
@@ -502,10 +596,7 @@ export default function ChatRoomScreen({ route, navigation }) {
         backendType: sent.type,
       };
 
-      setMessages((prev) => {
-        if (prev.some((item) => item.id === nextMessage.id)) return prev;
-        return [...prev, nextMessage];
-      });
+      appendUniquePersistedMessage(nextMessage);
       setInputText((current) => (current.trim() === content ? '' : current));
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
