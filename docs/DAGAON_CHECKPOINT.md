@@ -1,6 +1,6 @@
 # DAGAON Development Checkpoint
 
-Updated: 2026-09-16
+Updated: 2026-09-17
 
 ## Project
 
@@ -23,17 +23,22 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-84584038832687e452656a4df542740647dced9e
-fix: remove unsupported profile deep links
+bc0d2bfff56ca64ea4f4b04dfc5496b7ee667813
+feat: paginate mobile chat history
 
 Remote GitHub branch HEAD verified:
-84584038832687e452656a4df542740647dced9e
+bc0d2bfff56ca64ea4f4b04dfc5496b7ee667813
 
 Parent commit:
-2612bd56dfbdb8942423939e51d4786472e12dd4
+71668b45014d17299cca81ba36d88394c46004b5
 
-GitHub compare verified exactly one commit ahead with exactly one changed file,
-0 additions, 2 deletions, and no other files.
+GitHub compare verified against base 71668b45014d17299cca81ba36d88394c46004b5:
+- ahead by exactly 1 commit
+- behind by 0 commits
+- exactly 2 changed files
+- 185 additions and 32 deletions
+- apps/mobile/src/api/client.js: +23 / -2
+- apps/mobile/src/screens/main/ChatRoomScreen.js: +162 / -30
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -1229,12 +1234,54 @@ Focused fix:
   2612bd56dfbdb8942423939e51d4786472e12dd4
 - GitHub remote branch HEAD exact SHA verified at the feature commit.
 
+### Mobile Chat history cursor/load-more integration
+Completed 2026-09-17.
+
+- Mobile Chat history cursor/load-more integration COMPLETE
+- API client `getChatMessages` now supports an optional backend cursor
+- Initial history request remains cursor-free
+- Older history uses the backend `nextCursor`
+- Cursor pair:
+  - `cursorCreatedAt`
+  - `cursorId`
+- Backend cursor values pass through without client reinterpretation
+- Client does not send a custom limit; the backend default remains authoritative
+- Backend page item order remains oldest -> newest
+- Older pages are prepended without client-side sorting
+- `message.id` based dedupe prevents duplicates
+- Existing current message order is preserved
+- Page-internal order is preserved
+- Null/empty `nextCursor` stops further history requests
+- Initial history loading/error state remains separate from older-history loading/error state
+- Older-page failure does not discard already-loaded messages or globally block text sending
+- Sender classification remains ActivityAccount-based
+- No User ID / ActivityAccount ID namespace reinterpretation was introduced
+- Stale request protection is preserved
+- `maintainVisibleContentPosition` provides prepend scroll stability
+- Unconditional content-size scroll-to-end was removed
+- Initial history uses one-shot scroll-to-end
+- Existing explicit text-send / local media / local gift scroll-to-end behavior is preserved
+- Existing server-confirmed text-send behavior is preserved; no optimistic text send was added
+- `apps/mobile/src/api/client.js` Babel transform PASS
+- `apps/mobile/src/screens/main/ChatRoomScreen.js` Babel transform PASS
+- Relative import verification PASS
+- `git diff --check` PASS
+- Exact staged files and numstat verified
+- Local/origin SHA exact match verified
+- Feature commit:
+  bc0d2bfff56ca64ea4f4b04dfc5496b7ee667813
+- Parent commit:
+  71668b45014d17299cca81ba36d88394c46004b5
+- Known limitation: actual-device scroll feel/behavior remains pending runtime UX verification on a physical device; this is not a known functional failure.
+
 ### Production deployment limitation
 
 - Render production tokfriends-db has the latest tracked migrations applied and its ActivityAccount invariants were verified as CLEAN FOUNDATION.
 - Render tok-friends-api currently deploys branch chore/api-recovery.
 - The shared deterministic selector, additive `/discover targetAccountId`, ActivityAccount Chat list/direct-room/history/send code, Community report/block ActivityAccount compatibility, and the GET `/users/me activityAccountId` contract on this working branch are not yet live on the Render production API.
 - Mobile targetAccountId propagation and the ProfileDetail deep-link cleanup are working-branch Mobile code; this checkpoint does not claim they are present in a released production app.
+- Mobile Chat history cursor/load-more is working-branch Mobile code; this checkpoint does not claim it is present in a released production app.
+- The Agora provider decision is an architecture decision only; Agora SDK integration and production LIVE readiness are not complete.
 - Mobile fallback behavior remains compatible with a production API that does not yet return `targetAccountId`, but production-endpoint E2E verification remains limited until the API deployment branch changes.
 
 ### Final high-level IA
@@ -1262,6 +1309,16 @@ High-level UX/design specs completed for:
 - Admin desktop layout
 
 ## Current Architecture Findings
+
+### LIVE provider decision
+
+- LIVE media provider for the initial commercial launch: Agora
+- Self-hosted LiveKit is deferred and outside the current implementation scope
+- Self-hosted LiveKit or another media architecture may be reconsidered after commercial growth provides sufficient usage and cost evidence
+- Agora is the media transport/provider layer; DAGAON business logic must not become Agora-dependent
+- DAGAON API/DB remains authoritative for room and broadcast metadata, permissions, service state, Wallet/Ledger, gifts, reporting/blocking/moderation, and Admin operations
+- The DAGAON server should own required Agora token issuance
+- This is an architecture/provider decision, not completed Agora SDK integration, a completed LIVE backend, or a production-readiness claim
 
 ### Mobile
 Current tabs:
@@ -1308,7 +1365,6 @@ Current ActivityAccount identity contract:
 
 Known gaps:
 - no primary uniqueness DB enforcement
-- Chat history cursor/load-more
 - realtime/WebSocket
 - attachment/media backend
 - unread/read
@@ -1317,7 +1373,7 @@ Known gaps:
 - Gift sending not financial/server transaction
 - no mobile friendship functions
 - no Mobile Follow/Interest integration
-- no LIVE
+- LIVE Agora integration
 - no commercial Feed/Story
 - mojibake in older files
 
@@ -1361,7 +1417,7 @@ Real Chat identity architecture:
 - New ActivityAccount direct rooms must set both account participant fields together.
 - Canonical account pair ordering and direct-room concurrency safety remain application-layer follow-up work.
 - Mobile Chat list, ChatRoom history, and ChatRoom text send HTTP integrations are implemented; text send appends only server-confirmed responses.
-- Realtime, read/unread, attachments, push, history load-more, and clientMessageId/idempotency remain unimplemented.
+- Realtime, read/unread, attachments, push, and clientMessageId/idempotency remain unimplemented.
 
 Major domains still required:
 - Gift transactions
@@ -1499,31 +1555,28 @@ COMPLETE.
 Unsupported ProfileDetail deep-link cleanup:
 COMPLETE.
 
+Mobile Chat history cursor/load-more integration:
+COMPLETE.
+
 Next implementation phase:
 REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Mobile Chat history cursor/load-more integration.
+Real Chat realtime/WebSocket architecture read-only audit.
 
-Keep this as one small Mobile-only slice.
-
-Target:
-- apps/mobile/src/api/client.js
-- apps/mobile/src/screens/main/ChatRoomScreen.js
+This next step is an audit, not an implementation slice.
 
 Goals:
-- preserve the existing initial history load and backend oldest-to-newest display contract
-- allow the Mobile client to request older history using the backend `nextCursor`
-- keep cursor identity opaque; do not parse or reinterpret it client-side
-- prepend older server-confirmed messages without duplicating message IDs or reordering the current page
-- stop requesting when `nextCursor` is null/empty
-- keep stale-request protection and existing current ActivityAccount sender classification intact
-- preserve current text-send behavior and do not mix pagination with realtime, unread/read, attachments, push, gift transactions, or idempotency work
-
-Before implementation, re-read the backend GET `/chats/:chatId/messages` cursor contract and the current Mobile `getChatMessages` / ChatRoom history state to confirm the minimal request shape.
-
-Out of scope: WebSocket/realtime, unread/read, attachment/media backend, push, `clientMessageId`/idempotency, Gift transactions, Social wiring, LIVE, Prisma/schema/migrations, production deployment changes, and dependency upgrades.
+- inspect the current API Chat module structure
+- inspect the current Mobile ChatRoom structure
+- search the repository for existing WebSocket, Socket.IO, gateway, and event infrastructure
+- verify current dependencies
+- determine how authenticated ActivityAccount identity should bind to a realtime connection
+- clarify the responsibility boundary between message persistence and realtime delivery
+- identify duplicate-delivery and idempotency risks
+- identify reconnect, room join/leave, and authorization requirements
+- define a minimal future implementation slice without implementing WebSocket yet
 
 First commands to run when resuming:
 
