@@ -9,6 +9,10 @@ import { Prisma } from "@prisma/client";
 import { isISO8601 } from "class-validator";
 import { PrismaService } from "nestjs-prisma";
 import { buildDefaultActivityAccountSelection } from "../../common/activity-account-selection";
+import {
+  ChatRealtimeMessage,
+  ChatRealtimePublisher,
+} from "./chat-realtime-publisher.service";
 import { ChatMessagesQueryDto, DirectChatDto, SendMessageDto } from "./dto";
 
 const MAX_TRANSACTION_RETRIES = 3;
@@ -69,15 +73,7 @@ type DirectRoomResponse = {
     displayName: string | null;
   }>;
 };
-type SendMessageResponse = {
-  id: string;
-  chatId: string;
-  senderAccountId: string;
-  type: string;
-  content: string;
-  translatedContent: string | null;
-  createdAt: Date;
-};
+type SendMessageResponse = ChatRealtimeMessage;
 type ChatMessageHistoryItem = {
   id: string;
   chatId: string;
@@ -94,7 +90,10 @@ type ChatMessageHistoryResponse = {
 
 @Injectable()
 export class ChatsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly chatRealtimePublisher: ChatRealtimePublisher,
+  ) {}
 
   async list(
     currentUserId: string | undefined,
@@ -537,7 +536,7 @@ export class ChatsService {
       throw new ForbiddenException("Active activity account required");
     for (let attempt = 0; attempt < MAX_TRANSACTION_RETRIES; attempt += 1) {
       try {
-        return await this.prisma.$transaction(
+        const message = await this.prisma.$transaction(
           async (tx) => {
             const actor = await tx.activityAccount.findFirst({
               where: {
@@ -674,6 +673,8 @@ export class ChatsService {
           },
           { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
         );
+        this.chatRealtimePublisher.publish(message);
+        return message;
       } catch (error: unknown) {
         if (!isTransactionConflict(error)) throw error;
       }
