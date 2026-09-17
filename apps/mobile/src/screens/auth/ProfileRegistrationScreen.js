@@ -137,7 +137,7 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
         );
         return;
       }
-      const authResult = await authenticateWithToken(token, response?.user || null);
+      const authResult = await authenticateWithToken(token);
       if (!authResult.success) {
         Alert.alert('로그인 실패', authResult.error || '세션을 생성하지 못했습니다.');
         return;
