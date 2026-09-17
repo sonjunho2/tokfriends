@@ -234,6 +234,121 @@ export class ChatsService {
     });
   }
 
+  async authorizeRealtimeRoom(
+    currentUserId: string | undefined,
+    actorAccountId: string | null | undefined,
+    chatId: string,
+  ): Promise<{ chatId: string }> {
+    if (!currentUserId)
+      throw new BadRequestException("Missing authenticated user");
+    if (!actorAccountId)
+      throw new ForbiddenException("Active activity account required");
+    const actor = await this.prisma.activityAccount.findFirst({
+      where: {
+        id: actorAccountId,
+        status: "active",
+        owner: {
+          status: "active",
+          legacyUserId: currentUserId,
+          legacyUser: { status: "active" },
+        },
+      },
+      select: directAccountSelect,
+    });
+    if (!actor?.owner.legacyUserId)
+      throw new ForbiddenException("Active activity account required");
+    const chat = await this.prisma.chat.findFirst({
+      where: {
+        id: chatId,
+        OR: [
+          {
+            accountAId: actorAccountId,
+            userAId: actor.owner.legacyUserId,
+            accountBId: { not: null },
+            accountB: {
+              is: {
+                status: "active",
+                owner: {
+                  status: "active",
+                  legacyUserId: { not: null },
+                  legacyUser: { status: "active" },
+                },
+              },
+            },
+          },
+          {
+            accountBId: actorAccountId,
+            userBId: actor.owner.legacyUserId,
+            accountAId: { not: null },
+            accountA: {
+              is: {
+                status: "active",
+                owner: {
+                  status: "active",
+                  legacyUserId: { not: null },
+                  legacyUser: { status: "active" },
+                },
+              },
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        userAId: true,
+        userBId: true,
+        accountAId: true,
+        accountBId: true,
+        accountA: {
+          select: {
+            id: true,
+            ownerId: true,
+            owner: { select: { legacyUserId: true } },
+          },
+        },
+        accountB: {
+          select: {
+            id: true,
+            ownerId: true,
+            owner: { select: { legacyUserId: true } },
+          },
+        },
+      },
+    });
+    if (!chat) throw new NotFoundException("Chat not found");
+    const counterpart =
+      chat.accountAId === actorAccountId ? chat.accountB : chat.accountA;
+    const counterpartUserId = counterpart?.owner.legacyUserId;
+    const aligned =
+      chat.accountAId === actorAccountId
+        ? chat.userBId === counterpartUserId
+        : chat.userAId === counterpartUserId;
+    if (
+      !counterpartUserId ||
+      !aligned ||
+      counterpart.ownerId === actor.ownerId ||
+      counterpartUserId === actor.owner.legacyUserId
+    )
+      throw new NotFoundException("Chat not found");
+    const block = await this.prisma.block.findFirst({
+      where: {
+        OR: [
+          {
+            userId: actor.owner.legacyUserId,
+            blockedUserId: counterpartUserId,
+          },
+          {
+            userId: counterpartUserId,
+            blockedUserId: actor.owner.legacyUserId,
+          },
+        ],
+      },
+      select: { id: true },
+    });
+    if (block) throw new NotFoundException("Chat not found");
+    return { chatId: chat.id };
+  }
+
   async history(
     currentUserId: string | undefined,
     actorAccountId: string | null | undefined,
