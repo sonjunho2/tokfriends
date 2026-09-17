@@ -152,11 +152,12 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
             throw new Error('프로필 사진 저장 정보를 확인하지 못했습니다.');
           }
 
-          const updatedUser = await apiClient.updateUser(userId, {
+          await apiClient.updateUser(userId, {
             avatarUri: avatarUrl,
           });
 
-          await setUser(updatedUser);
+          const canonicalMe = await apiClient.getMe();
+          await setUser(canonicalMe);
         } catch (avatarError) {
           Alert.alert(
             '프로필 사진',
