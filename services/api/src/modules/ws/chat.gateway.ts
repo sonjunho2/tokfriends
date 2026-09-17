@@ -69,9 +69,26 @@ export class ChatGateway implements OnGatewayConnection {
 
   @SubscribeMessage('typing')
   async typing(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string, typing: boolean }) {
-    const userId = client.data.userId as string;
-    this.server.to(`chat:${data.chatId}`).emit('typing', { chatId: data.chatId, userId, typing: data.typing });
-    return { ok: true };
+    const userId = client.data.userId;
+    const chatId = typeof data?.chatId === 'string' ? data.chatId.trim() : '';
+    if (typeof userId !== 'string' || !userId.trim() || !chatId || typeof data?.typing !== 'boolean') {
+      return { ok: false, error: 'CHAT_UNAVAILABLE' };
+    }
+    try {
+      const authorized = await this.chatsService.authorizeRealtimeRoom(
+        userId,
+        client.data.activityAccountId,
+        chatId,
+      );
+      this.server.to(`chat:${authorized.chatId}`).emit('typing', {
+        chatId: authorized.chatId,
+        userId,
+        typing: data.typing,
+      });
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: 'CHAT_UNAVAILABLE' };
+    }
   }
 
   @SubscribeMessage('message:send')
