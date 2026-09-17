@@ -23,21 +23,21 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-4d92f7b97c579e0510d2b8dacb66ed2f26b6f4b0
-fix: refresh auth after phone signup
+2cec1a269262ef78bab99a9366e1327268c7915d
+feat: add mobile chat typing indicator
 
 Remote GitHub branch HEAD verified:
-4d92f7b97c579e0510d2b8dacb66ed2f26b6f4b0
+2cec1a269262ef78bab99a9366e1327268c7915d
 
 Parent commit:
-057451c9b61b5012e34420aad6496b2ffe3cc3ae
+08bc0bb9c5c9977ca2c160abae3dbd6e3c8daa84
 
-GitHub compare verified against base 057451c9b61b5012e34420aad6496b2ffe3cc3ae:
+GitHub compare verified against base 08bc0bb9c5c9977ca2c160abae3dbd6e3c8daa84:
 - ahead by exactly 1 commit
 - behind by 0 commits
 - exactly 1 changed file
-- 1 addition and 1 deletion
-- apps/mobile/src/screens/auth/ProfileRegistrationScreen.js: +1 / -1
+- 170 additions and 3 deletions
+- apps/mobile/src/screens/main/ChatRoomScreen.js: +170 / -3
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -1320,10 +1320,38 @@ Completed 2026-09-17.
   057451c9b61b5012e34420aad6496b2ffe3cc3ae
 - GitHub remote branch HEAD independently verified at the fix commit
 
+### Mobile 1:1 Chat typing indicator
+Completed 2026-09-17.
+
+- The server `chat:typing` contract was already implemented
+- Mobile now emits typing using exactly `{ chatId, typing }`
+- `senderAccountId` remains server-derived
+- Mobile ignores self, malformed, wrong-chat, and conflicting counterpart identity typing events
+- Local typing idle timeout: 1500 ms
+- Remote lost-false safety expiry: 3000 ms
+- The header switches between "온라인" and "입력 중..."
+- HTTP message persistence was not changed
+- `chat:message` persistence/realtime behavior was not changed
+- Message history/pagination was not changed
+- No backend, schema, migration, or package change
+- Real-device runtime verification:
+  - C -> A typing indicator PASS
+  - idle timeout -> online PASS
+  - clearing input -> immediate online PASS
+  - send while typing -> immediate online PASS
+  - sent message appeared exactly once PASS
+  - A -> C typing indicator PASS
+  - leaving ChatRoom while typing -> immediate online PASS
+  - force-closing sender app without normal `typing: false` -> remote indicator cleared by ~3 second expiry PASS
+- This is local physical-device/emulator validation, not production deployment readiness
+- Implementation commit:
+  2cec1a269262ef78bab99a9366e1327268c7915d
+
 ### Production deployment limitation
 
 - The working-branch 1:1 Chat realtime Gateway and local physical-device/emulator validation are not a production deployment claim.
 - The phone-signup ActivityAccount auth refresh fix at 4d92f7b97c579e0510d2b8dacb66ed2f26b6f4b0 is verified on the working branch but is not claimed to be present in a released production app.
+- The Mobile Chat typing indicator at 2cec1a269262ef78bab99a9366e1327268c7915d is locally device-validated working-branch code; this does not claim it is live in the released production app or API.
 
 - Render production tokfriends-db has the latest tracked migrations applied and its ActivityAccount invariants were verified as CLEAN FOUNDATION.
 - Render tok-friends-api currently deploys branch chore/api-recovery.
@@ -1414,7 +1442,7 @@ Current ActivityAccount identity contract:
 
 Known gaps:
 - no primary uniqueness DB enforcement
-- Mobile typing indicator UI is not yet wired to the existing chat:typing realtime event
+- dedicated server-side typing abuse/rate throttling remains future hardening
 - attachment/media backend
 - unread/read
 - push
@@ -1466,7 +1494,7 @@ Real Chat identity architecture:
 - New ActivityAccount direct rooms must set both account participant fields together.
 - Canonical account pair ordering and direct-room concurrency safety remain application-layer follow-up work.
 - Mobile Chat list, ChatRoom history, and ChatRoom text send HTTP integrations are implemented; text send appends only server-confirmed responses.
-- Realtime text delivery is implemented and locally device-validated; Mobile typing indicator UI, read/unread, attachments, push, and clientMessageId/idempotency remain incomplete.
+- Realtime text delivery and the Mobile typing indicator are implemented and locally device-validated; typing is complete for the currently validated local 1:1 Chat path, while read/unread, attachments, push, and clientMessageId/idempotency remain incomplete.
 
 Major domains still required:
 - Gift transactions
@@ -1616,25 +1644,33 @@ COMPLETE.
 Phone signup ActivityAccount auth refresh fix:
 COMPLETE.
 
+Mobile 1:1 Chat typing indicator:
+COMPLETE FOR THE CURRENTLY VALIDATED LOCAL 1:1 CHAT PATH.
+
 Next implementation phase:
 REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Real Chat Mobile typing indicator UI read-only audit.
+Phone signup optional-avatar ActivityAccount state read-only audit.
 
-This next step is an audit before implementation.
+This next step is AUDIT ONLY, not implementation.
 
 Goals:
-- inspect the existing Mobile ChatRoom realtime socket lifecycle
-- inspect the existing server chat:typing contract
-- confirm that Mobile currently does not render counterpart typing state
-- define typing start / stop / debounce / cleanup behavior
-- define incoming typing UI behavior and timeout fallback
-- preserve server-derived senderAccountId identity
-- preserve the existing HTTP persistence and WebSocket delivery boundary
-- avoid changing Gift, Wallet/Ledger, LIVE, Prisma, migrations, or production deployment
-- define the smallest implementation slice for Mobile typing UI
+- inspect `apps/mobile/src/screens/auth/ProfileRegistrationScreen.js`
+- inspect AuthContext `authenticateWithToken` / `setUser` / `refreshMe` behavior
+- inspect `apiClient.updateUser()`
+- inspect the API `PATCH /users/:id` response serialization
+- determine whether the `updateUser` response includes `activityAccountId`
+- trace the exact signup path when `imageAsset`/avatar is selected
+- determine whether `authenticateWithToken(token)` correctly hydrates `/users/me` and then `setUser(updatedUser)` can overwrite that canonical state with a payload missing `activityAccountId`
+- do not assume this is a proven runtime bug
+- identify whether the risk is real from source
+- define the smallest safe fix if needed
+- prefer the narrow onboarding avatar path over a broad AuthContext behavioral change
+- consider `refreshMe()` after avatar update if source confirms that is the safest path
+- do not implement anything during this audit
+- do not mix typing, Gift, Wallet/Ledger, LIVE, Agora, Prisma, Admin, or production changes
 
 First commands to run when resuming:
 
