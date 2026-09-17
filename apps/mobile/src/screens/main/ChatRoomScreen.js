@@ -49,6 +49,36 @@ const formatMessageTime = (createdAt) => {
   });
 };
 
+const normalizeHistoryMessage = (message, currentActivityAccountId) => {
+  if (
+    !message?.id ||
+    !message?.chatId ||
+    typeof message.content !== 'string' ||
+    !message?.createdAt
+  ) {
+    throw new Error('대화 내역 응답 형식이 올바르지 않습니다.');
+  }
+
+  const senderAccountId = message.senderAccountId;
+  const sender =
+    senderAccountId === currentActivityAccountId
+      ? 'me'
+      : typeof senderAccountId === 'string' && senderAccountId
+        ? 'other'
+        : 'unknown';
+
+  return {
+    id: message.id,
+    chatId: message.chatId,
+    sender,
+    senderAccountId: senderAccountId ?? null,
+    text: message.content,
+    timestamp: formatMessageTime(message.createdAt),
+    type: 'text',
+    backendType: message.type,
+  };
+};
+
 const resolveParticipantTarget = (user, routeParams) => {
   const targetUserId =
     typeof user?.targetUserId === 'string' ? user.targetUserId.trim() : '';
@@ -86,10 +116,14 @@ export default function ChatRoomScreen({ route, navigation }) {
   const [messages, setMessages] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState('');
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [olderHistoryError, setOlderHistoryError] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const [inputText, setInputText] = useState('');
   const flatListRef = useRef(null);
   const historyRequestRef = useRef(0);
+  const shouldScrollToEndRef = useRef(false);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [composerHeight, setComposerHeight] = useState(0);
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -112,6 +146,10 @@ export default function ChatRoomScreen({ route, navigation }) {
     historyRequestRef.current = requestId;
     setMessages([]);
     setHistoryError('');
+    setNextCursor(null);
+    setLoadingOlder(false);
+    setOlderHistoryError('');
+    shouldScrollToEndRef.current = false;
 
     if (!chatId) {
       setHistoryLoading(false);
@@ -127,38 +165,14 @@ export default function ChatRoomScreen({ route, navigation }) {
     setHistoryLoading(true);
     try {
       const response = await apiClient.getChatMessages(chatId);
-      const nextMessages = response.items.map((message) => {
-        if (
-          !message?.id ||
-          !message?.chatId ||
-          typeof message.content !== 'string' ||
-          !message?.createdAt
-        ) {
-          throw new Error('대화 내역 응답 형식이 올바르지 않습니다.');
-        }
-
-        const senderAccountId = message.senderAccountId;
-        const sender =
-          senderAccountId === currentActivityAccountId
-            ? 'me'
-            : typeof senderAccountId === 'string' && senderAccountId
-              ? 'other'
-              : 'unknown';
-
-        return {
-          id: message.id,
-          chatId: message.chatId,
-          sender,
-          senderAccountId: senderAccountId ?? null,
-          text: message.content,
-          timestamp: formatMessageTime(message.createdAt),
-          type: 'text',
-          backendType: message.type,
-        };
-      });
+      const nextMessages = response.items.map((message) =>
+        normalizeHistoryMessage(message, currentActivityAccountId),
+      );
 
       if (historyRequestRef.current === requestId) {
+        shouldScrollToEndRef.current = true;
         setMessages(nextMessages);
+        setNextCursor(response.nextCursor || null);
       }
     } catch (error) {
       if (historyRequestRef.current === requestId) {
@@ -170,6 +184,62 @@ export default function ChatRoomScreen({ route, navigation }) {
       }
     }
   }, [chatId, currentActivityAccountId]);
+
+  const loadOlderHistory = useCallback(async () => {
+    if (
+      !chatId ||
+      !currentActivityAccountId ||
+      !nextCursor ||
+      historyLoading ||
+      historyError ||
+      loadingOlder
+    ) {
+      return;
+    }
+
+    const requestId = historyRequestRef.current;
+    const cursor = nextCursor;
+    setLoadingOlder(true);
+    setOlderHistoryError('');
+
+    try {
+      const response = await apiClient.getChatMessages(chatId, cursor);
+      const olderMessages = response.items.map((message) =>
+        normalizeHistoryMessage(message, currentActivityAccountId),
+      );
+
+      if (historyRequestRef.current === requestId) {
+        setMessages((currentMessages) => {
+          const currentIds = new Set(currentMessages.map((message) => message.id));
+          const pageIds = new Set();
+          const uniqueOlderMessages = olderMessages.filter((message) => {
+            if (currentIds.has(message.id) || pageIds.has(message.id)) return false;
+            pageIds.add(message.id);
+            return true;
+          });
+          return [...uniqueOlderMessages, ...currentMessages];
+        });
+        setNextCursor(response.nextCursor || null);
+      }
+    } catch (error) {
+      if (historyRequestRef.current === requestId) {
+        setOlderHistoryError(
+          error?.message || '이전 대화를 불러오지 못했습니다.',
+        );
+      }
+    } finally {
+      if (historyRequestRef.current === requestId) {
+        setLoadingOlder(false);
+      }
+    }
+  }, [
+    chatId,
+    currentActivityAccountId,
+    nextCursor,
+    historyLoading,
+    historyError,
+    loadingOlder,
+  ]);
 
   useEffect(() => {
     loadHistory();
@@ -739,7 +809,41 @@ export default function ChatRoomScreen({ route, navigation }) {
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+          maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+          onContentSizeChange={() => {
+            if (!shouldScrollToEndRef.current) return;
+            shouldScrollToEndRef.current = false;
+            flatListRef.current?.scrollToEnd({ animated: false });
+          }}
+          ListHeaderComponent={
+            messages.length > 0 && (nextCursor || loadingOlder || olderHistoryError) ? (
+              <View style={styles.olderHistoryContainer}>
+                {loadingOlder ? (
+                  <>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                    <Text style={styles.olderHistoryText}>이전 대화를 불러오는 중...</Text>
+                  </>
+                ) : olderHistoryError ? (
+                  <>
+                    <Text style={styles.olderHistoryErrorText}>{olderHistoryError}</Text>
+                    <TouchableOpacity
+                      style={styles.olderHistoryButton}
+                      onPress={loadOlderHistory}
+                    >
+                      <Text style={styles.olderHistoryButtonText}>다시 시도</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.olderHistoryButton}
+                    onPress={loadOlderHistory}
+                  >
+                    <Text style={styles.olderHistoryButtonText}>이전 대화 불러오기</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : null
+          }
           ListEmptyComponent={
             <View style={styles.historyStateContainer}>
               {historyLoading ? (
@@ -1187,6 +1291,34 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F5',
   },
   historyRetryText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  olderHistoryContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 20,
+    gap: 8,
+  },
+  olderHistoryText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  olderHistoryErrorText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  olderHistoryButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderWidth: 1,
+    borderColor: '#E2E8F5',
+  },
+  olderHistoryButtonText: {
     fontSize: 13,
     fontWeight: '700',
     color: colors.primary,

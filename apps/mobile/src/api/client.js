@@ -519,14 +519,35 @@ export const apiClient = {
     }
   },
 
-  async getChatMessages(chatId) {
+  async getChatMessages(chatId, cursor) {
     const target = String(chatId || '').trim();
     if (!target) {
       throw normalizeError(new Error('대화방 ID가 필요합니다.'));
     }
 
+    let config;
+    if (cursor !== null && cursor !== undefined) {
+      if (
+        typeof cursor?.createdAt !== 'string' ||
+        !cursor.createdAt.trim() ||
+        typeof cursor?.id !== 'string' ||
+        !cursor.id.trim()
+      ) {
+        throw normalizeError(new Error('메시지 커서가 올바르지 않습니다.'));
+      }
+      config = {
+        params: {
+          cursorCreatedAt: cursor.createdAt,
+          cursorId: cursor.id,
+        },
+      };
+    }
+
     try {
-      const { data } = await client.get(`/chats/${encodeURIComponent(target)}/messages`);
+      const { data } = await client.get(
+        `/chats/${encodeURIComponent(target)}/messages`,
+        config,
+      );
       if (!Array.isArray(data?.data)) {
         throw new Error('대화 내역 응답 형식이 올바르지 않습니다.');
       }
