@@ -2,11 +2,26 @@ import { OnModuleDestroy } from '@nestjs/common';
 import { WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayInit, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
+import { isCorsOriginAllowed, parseCorsOrigins } from '../../common/cors-origins';
 import { AuthenticatedUserContextService } from '../auth/authenticated-user-context.service';
 import { ChatRealtimePublisher } from '../chats/chat-realtime-publisher.service';
 import { ChatsService } from '../chats/chats.service';
 
-@WebSocketGateway({ cors: { origin: process.env.WS_ALLOWED_ORIGINS || '*' } })
+@WebSocketGateway({
+  cors: {
+    origin: (origin, callback) => {
+      const allowedOrigins = parseCorsOrigins(
+        process.env.CORS_ORIGIN?.trim(),
+      );
+
+      if (!origin || isCorsOriginAllowed(origin, allowedOrigins)) {
+        return callback(null, true);
+      }
+
+      callback(new Error(`CORS blocked: ${origin}`), false);
+    },
+  },
+})
 export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModuleDestroy {
   @WebSocketServer() server: Server;
   private readonly jwtSecret: string;

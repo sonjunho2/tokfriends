@@ -4,34 +4,12 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
-
-type AllowedOrigin = string | RegExp;
-
-function parseOrigins(env?: string): AllowedOrigin[] {
-  if (!env) return ['*'];
-  return env
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((value) => {
-      if (value.startsWith('/') && value.endsWith('/') && value.length > 2) {
-        try {
-          return new RegExp(value.slice(1, -1));
-        } catch {
-          return value;
-        }
-      }
-      return value;
-    });
-}
-
-function isOriginAllowed(origin: string, allowedOrigins: AllowedOrigin[]): boolean {
-  return allowedOrigins.some((allowed) => {
-    if (allowed === '*') return true;
-    if (allowed instanceof RegExp) return allowed.test(origin);
-    return allowed === origin;
-  });
-}
+import {
+  assertProductionCorsOrigins,
+  hasWildcardCorsOrigin,
+  isCorsOriginAllowed,
+  parseCorsOrigins,
+} from './common/cors-origins';
 
 function withPrefix(prefix: string, url: string) {
   if (!url) return prefix;
@@ -57,29 +35,20 @@ async function bootstrap() {
   const isProduction = process.env.NODE_ENV === 'production';
   const corsOriginEnv = process.env.CORS_ORIGIN?.trim();
 
-  if (isProduction && !corsOriginEnv) {
-    throw new Error('CORS_ORIGIN is required in production');
-  }
+  const allowedOrigins = parseCorsOrigins(corsOriginEnv);
 
-  const allowedOrigins = parseOrigins(corsOriginEnv);
-
-  if (
-    isProduction &&
-    allowedOrigins.some(
-      (candidate) => typeof candidate === 'string' && candidate === '*',
-    )
-  ) {
-    throw new Error('CORS_ORIGIN wildcard is not allowed in production');
-  }
-  const hasWildcard = allowedOrigins.some(
-    (candidate) => typeof candidate === 'string' && candidate === '*',
+  assertProductionCorsOrigins(
+    corsOriginEnv,
+    isProduction,
+    allowedOrigins,
   );
+  const hasWildcard = hasWildcardCorsOrigin(allowedOrigins);
 
   app.enableCors({
     origin: (origin, callback) => {
       // 서버간 통신/헬스체크 등 Origin 없는 요청 허용
       if (!origin) return callback(null, true);
-      if (isOriginAllowed(origin, allowedOrigins)) return callback(null, true);
+      if (isCorsOriginAllowed(origin, allowedOrigins)) return callback(null, true);
       callback(new Error(`CORS blocked: ${origin}`), false);
     },
     credentials: !hasWildcard,
