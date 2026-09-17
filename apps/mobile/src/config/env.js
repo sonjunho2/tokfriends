@@ -8,6 +8,20 @@ const rawApiBaseUrl =
   'https://tok-friends-api.onrender.com';
 
 export const API_BASE_URL = rawApiBaseUrl.replace(/\/$/, '');
+
+const rawWsBaseUrl =
+  process.env.EXPO_PUBLIC_WS_BASE_URL ||
+  API_BASE_URL;
+
+const resolveOrigin = (value) => {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return String(value || '').replace(/\/$/, '');
+  }
+};
+
+export const WS_BASE_URL = resolveOrigin(rawWsBaseUrl);
 export const REQUEST_TIMEOUT_MS = 10000;
 export const STORAGE_TOKEN_KEY = 'tokfriends_access_token';
 
@@ -26,6 +40,7 @@ export const USE_DUMMY_AUTH =
 
 export default {
   API_BASE_URL,
+  WS_BASE_URL,
   REQUEST_TIMEOUT_MS,
   STORAGE_TOKEN_KEY,
   USE_DUMMY_AUTH,
