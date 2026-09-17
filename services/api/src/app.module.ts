@@ -7,6 +7,7 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { UsersModule } from "./modules/users/users.module";
 import { HealthModule } from "./modules/health/health.module";
 import { ChatsModule } from "./modules/chats/chats.module";
+import { WsModule } from "./modules/ws/ws.module";
 import { ReportsModule } from "./modules/reports/reports.module";
 import { MetricsModule } from "./modules/metrics/metrics.module";
 import { AnnouncementsModule } from "./modules/announcements/announcements.module";
@@ -36,6 +37,7 @@ import { ProfileVisitsModule } from "./modules/profile-visits/profile-visits.mod
     AuthModule,
     UsersModule,
     ChatsModule,
+    WsModule,
     ReportsModule,
     MetricsModule,
     AnnouncementsModule,
