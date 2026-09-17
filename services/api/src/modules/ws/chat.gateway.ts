@@ -1,12 +1,16 @@
 import { OnModuleDestroy } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayInit, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { isCorsOriginAllowed, parseCorsOrigins } from '../../common/cors-origins';
 import { AuthenticatedUserContextService } from '../auth/authenticated-user-context.service';
+import { Public } from '../auth/public.decorator';
 import { ChatRealtimePublisher } from '../chats/chat-realtime-publisher.service';
 import { ChatsService } from '../chats/chats.service';
 
+@Public()
+@SkipThrottle({ default: true })
 @WebSocketGateway({
   cors: {
     origin: (origin, callback) => {
