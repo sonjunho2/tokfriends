@@ -58,7 +58,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModule
     }
   }
 
-  @SubscribeMessage('join')
+  @SubscribeMessage('chat:join')
   async join(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string }) {
     const userId = client.data.userId;
     const chatId = typeof data?.chatId === 'string' ? data.chatId.trim() : '';
@@ -78,7 +78,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModule
     }
   }
 
-  @SubscribeMessage('typing')
+  @SubscribeMessage('chat:leave')
+  async leave(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string }) {
+    const userId = client.data.userId;
+    const chatId = typeof data?.chatId === 'string' ? data.chatId.trim() : '';
+    if (typeof userId !== 'string' || !userId.trim() || !chatId) {
+      return { ok: false, error: 'CHAT_UNAVAILABLE' };
+    }
+    await client.leave(`chat:${chatId}`);
+    return { ok: true };
+  }
+
+  @SubscribeMessage('chat:typing')
   async typing(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string, typing: boolean }) {
     const userId = client.data.userId;
     const chatId = typeof data?.chatId === 'string' ? data.chatId.trim() : '';
@@ -91,9 +102,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModule
         client.data.activityAccountId,
         chatId,
       );
-      this.server.to(`chat:${authorized.chatId}`).emit('typing', {
+      this.server.to(`chat:${authorized.chatId}`).emit('chat:typing', {
         chatId: authorized.chatId,
-        userId,
+        senderAccountId: client.data.activityAccountId,
         typing: data.typing,
       });
       return { ok: true };
