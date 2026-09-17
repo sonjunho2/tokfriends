@@ -23,22 +23,21 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-bc0d2bfff56ca64ea4f4b04dfc5496b7ee667813
-feat: paginate mobile chat history
+4d92f7b97c579e0510d2b8dacb66ed2f26b6f4b0
+fix: refresh auth after phone signup
 
 Remote GitHub branch HEAD verified:
-bc0d2bfff56ca64ea4f4b04dfc5496b7ee667813
+4d92f7b97c579e0510d2b8dacb66ed2f26b6f4b0
 
 Parent commit:
-71668b45014d17299cca81ba36d88394c46004b5
+057451c9b61b5012e34420aad6496b2ffe3cc3ae
 
-GitHub compare verified against base 71668b45014d17299cca81ba36d88394c46004b5:
+GitHub compare verified against base 057451c9b61b5012e34420aad6496b2ffe3cc3ae:
 - ahead by exactly 1 commit
 - behind by 0 commits
-- exactly 2 changed files
-- 185 additions and 32 deletions
-- apps/mobile/src/api/client.js: +23 / -2
-- apps/mobile/src/screens/main/ChatRoomScreen.js: +162 / -30
+- exactly 1 changed file
+- 1 addition and 1 deletion
+- apps/mobile/src/screens/auth/ProfileRegistrationScreen.js: +1 / -1
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -1274,7 +1273,57 @@ Completed 2026-09-17.
   71668b45014d17299cca81ba36d88394c46004b5
 - Known limitation: actual-device scroll feel/behavior remains pending runtime UX verification on a physical device; this is not a known functional failure.
 
+### 1:1 Chat realtime runtime and device validation
+Completed 2026-09-17.
+
+- Chat WebSocket gateway is activated on the working branch
+- Socket.IO authentication uses JWT and resolves server-side ActivityAccount identity
+- HTTP remains the message persistence path; WebSocket is the realtime delivery path
+- Server derives sender identity; the client does not choose senderAccountId
+- Room authorization is enforced before join and typing events
+- Local positive end-to-end Chat runtime smoke PASS
+- Missing/invalid WebSocket token rejection PASS
+- Unauthorized room join rejection PASS
+- Authorized typing event delivery PASS
+- Unauthorized typing rejection PASS
+- Room leave behavior PASS
+- Physical Android device A and Android emulator B ran Expo Go 57.0.9
+- Local API / OTP proxy / Metro connectivity was verified through explicit ADB reverse rules
+- Physical-device phone OTP onboarding and profile completion PASS
+- Real Mobile direct-room creation PASS
+- HTTP message send and DB persistence PASS
+- Stored history reload PASS
+- B -> A realtime WebSocket delivery PASS
+- A -> B realtime WebSocket delivery PASS
+- Room re-entry preserved persisted messages
+- message.id based Mobile dedupe showed no duplicate messages after re-entry
+- Core 1:1 Chat device path is runtime-validated locally
+- This does not mean the working branch is deployed or production-ready
+- Gateway activation commit:
+  057451c9b61b5012e34420aad6496b2ffe3cc3ae
+
+### Phone signup ActivityAccount auth refresh fix
+Completed 2026-09-17.
+
+- Device testing found that a newly registered phone user could reach Home but ChatRoom initially reported missing active profile information
+- Root cause: ProfileRegistrationScreen passed response.user directly to authenticateWithToken
+- That bypassed the canonical /users/me refresh that supplies activityAccountId
+- ProfileRegistrationScreen now calls authenticateWithToken(token)
+- authenticateWithToken therefore loads canonical /users/me state immediately after phone signup
+- Fresh test user C completed signup and sent a Chat message without restarting Expo Go
+- Regression verification PASS on Android emulator
+- Changed file:
+  - apps/mobile/src/screens/auth/ProfileRegistrationScreen.js
+- Fix commit:
+  4d92f7b97c579e0510d2b8dacb66ed2f26b6f4b0
+- Parent commit:
+  057451c9b61b5012e34420aad6496b2ffe3cc3ae
+- GitHub remote branch HEAD independently verified at the fix commit
+
 ### Production deployment limitation
+
+- The working-branch 1:1 Chat realtime Gateway and local physical-device/emulator validation are not a production deployment claim.
+- The phone-signup ActivityAccount auth refresh fix at 4d92f7b97c579e0510d2b8dacb66ed2f26b6f4b0 is verified on the working branch but is not claimed to be present in a released production app.
 
 - Render production tokfriends-db has the latest tracked migrations applied and its ActivityAccount invariants were verified as CLEAN FOUNDATION.
 - Render tok-friends-api currently deploys branch chore/api-recovery.
@@ -1365,7 +1414,7 @@ Current ActivityAccount identity contract:
 
 Known gaps:
 - no primary uniqueness DB enforcement
-- realtime/WebSocket
+- Mobile typing indicator UI is not yet wired to the existing chat:typing realtime event
 - attachment/media backend
 - unread/read
 - push
@@ -1417,7 +1466,7 @@ Real Chat identity architecture:
 - New ActivityAccount direct rooms must set both account participant fields together.
 - Canonical account pair ordering and direct-room concurrency safety remain application-layer follow-up work.
 - Mobile Chat list, ChatRoom history, and ChatRoom text send HTTP integrations are implemented; text send appends only server-confirmed responses.
-- Realtime, read/unread, attachments, push, and clientMessageId/idempotency remain unimplemented.
+- Realtime text delivery is implemented and locally device-validated; Mobile typing indicator UI, read/unread, attachments, push, and clientMessageId/idempotency remain incomplete.
 
 Major domains still required:
 - Gift transactions
@@ -1558,25 +1607,34 @@ COMPLETE.
 Mobile Chat history cursor/load-more integration:
 COMPLETE.
 
+Real Chat realtime/WebSocket core:
+COMPLETE FOR LOCAL 1:1 CORE PATH.
+
+Physical-device 1:1 Chat runtime validation:
+COMPLETE.
+
+Phone signup ActivityAccount auth refresh fix:
+COMPLETE.
+
 Next implementation phase:
 REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Real Chat realtime/WebSocket architecture read-only audit.
+Real Chat Mobile typing indicator UI read-only audit.
 
-This next step is an audit, not an implementation slice.
+This next step is an audit before implementation.
 
 Goals:
-- inspect the current API Chat module structure
-- inspect the current Mobile ChatRoom structure
-- search the repository for existing WebSocket, Socket.IO, gateway, and event infrastructure
-- verify current dependencies
-- determine how authenticated ActivityAccount identity should bind to a realtime connection
-- clarify the responsibility boundary between message persistence and realtime delivery
-- identify duplicate-delivery and idempotency risks
-- identify reconnect, room join/leave, and authorization requirements
-- define a minimal future implementation slice without implementing WebSocket yet
+- inspect the existing Mobile ChatRoom realtime socket lifecycle
+- inspect the existing server chat:typing contract
+- confirm that Mobile currently does not render counterpart typing state
+- define typing start / stop / debounce / cleanup behavior
+- define incoming typing UI behavior and timeout fallback
+- preserve server-derived senderAccountId identity
+- preserve the existing HTTP persistence and WebSocket delivery boundary
+- avoid changing Gift, Wallet/Ledger, LIVE, Prisma, migrations, or production deployment
+- define the smallest implementation slice for Mobile typing UI
 
 First commands to run when resuming:
 
