@@ -2,14 +2,9 @@ import { OnModuleDestroy } from '@nestjs/common';
 import { WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayInit, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
-import { containsBadWord } from '../../common/badwords';
-import { logEvent } from '../analytics/analytics.service';
 import { AuthenticatedUserContextService } from '../auth/authenticated-user-context.service';
 import { ChatRealtimePublisher } from '../chats/chat-realtime-publisher.service';
 import { ChatsService } from '../chats/chats.service';
-
-const prisma = new PrismaClient();
 
 @WebSocketGateway({ cors: { origin: process.env.WS_ALLOWED_ORIGINS || '*' } })
 export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModuleDestroy {
@@ -107,17 +102,4 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModule
     }
   }
 
-  @SubscribeMessage('message:send')
-  async messageSend(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string, content: string }) {
-    const userId = client.data.userId as string;
-    if (containsBadWord(data.content)) return { ok: false, error: 'CONTENT_FLAGGED' };
-    const chat = await prisma.chat.findUnique({ where: { id: data.chatId } });
-    if (!chat) return { ok: false, error: 'NO_CHAT' };
-    if (![chat.userAId, chat.userBId].includes(userId)) return { ok: false, error: 'NOT_MEMBER' };
-    const msg = await prisma.message.create({ data: { chatId: data.chatId, senderId: userId, content: data.content } });
-    await prisma.chat.update({ where: { id: data.chatId }, data: { lastMessageAt: new Date() } });
-    this.server.to(`chat:${data.chatId}`).emit('message:new', { chatId: data.chatId, msg });
-    await logEvent('message_sent_ws', { chatId: data.chatId }, userId);
-    return { ok: true };
-  }
 }
