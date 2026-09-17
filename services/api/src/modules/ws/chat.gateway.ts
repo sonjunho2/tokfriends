@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import { containsBadWord } from '../../common/badwords';
 import { logEvent } from '../analytics/analytics.service';
 import { AuthenticatedUserContextService } from '../auth/authenticated-user-context.service';
+import { ChatsService } from '../chats/chats.service';
 
 const prisma = new PrismaClient();
 
@@ -15,6 +16,7 @@ export class ChatGateway implements OnGatewayConnection {
 
   constructor(
     private readonly authenticatedUserContext: AuthenticatedUserContextService,
+    private readonly chatsService: ChatsService,
   ) {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
@@ -47,12 +49,22 @@ export class ChatGateway implements OnGatewayConnection {
 
   @SubscribeMessage('join')
   async join(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string }) {
-    const userId = client.data.userId as string;
-    const chat = await prisma.chat.findUnique({ where: { id: data.chatId } });
-    if (!chat) return { ok: false, error: 'NO_CHAT' };
-    if (![chat.userAId, chat.userBId].includes(userId)) return { ok: false, error: 'NOT_MEMBER' };
-    client.join(`chat:${data.chatId}`);
-    return { ok: true };
+    const userId = client.data.userId;
+    const chatId = typeof data?.chatId === 'string' ? data.chatId.trim() : '';
+    if (typeof userId !== 'string' || !userId.trim() || !chatId) {
+      return { ok: false, error: 'CHAT_UNAVAILABLE' };
+    }
+    try {
+      const authorized = await this.chatsService.authorizeRealtimeRoom(
+        userId,
+        client.data.activityAccountId,
+        chatId,
+      );
+      client.join(`chat:${authorized.chatId}`);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: 'CHAT_UNAVAILABLE' };
+    }
   }
 
   @SubscribeMessage('typing')
