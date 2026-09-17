@@ -1,12 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
-import { PrismaService } from "nestjs-prisma";
-import { buildDefaultActivityAccountSelection } from "../../common/activity-account-selection";
+import { AuthenticatedUserContextService } from "./authenticated-user-context.service";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly authenticatedUserContext: AuthenticatedUserContextService,
+  ) {
     const jwtSecret = process.env.JWT_SECRET;
 
     if (!jwtSecret) {
@@ -20,54 +21,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any) {
-    if (!payload?.sub) {
-      return null;
-    }
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: {
-        id: true,
-        role: true,
-        status: true,
-        tokenVersion: true,
-        ownerBridge: {
-          select: {
-            id: true,
-            status: true,
-            activityAccounts: {
-              ...buildDefaultActivityAccountSelection(payload.sub),
-              take: 1,
-              select: { id: true },
-            },
-          },
-        },
-      },
-    });
-
-    if (!user || user.status !== "active") {
-      return null;
-    }
-
-    const tokenVersion =
-      typeof payload.tokenVersion === "number" ? payload.tokenVersion : 0;
-
-    if (user.tokenVersion !== tokenVersion) {
-      return null;
-    }
-
-    const activeConsumerOwner =
-      user.role === "user" && user.ownerBridge?.status === "active"
-        ? user.ownerBridge
-        : null;
-
-    return {
-      id: user.id,
-      role: user.role,
-      status: user.status,
-      ownerId: activeConsumerOwner?.id ?? null,
-      activityAccountId: activeConsumerOwner?.activityAccounts[0]?.id ?? null,
-    };
+  async validate(payload: unknown) {
+    return this.authenticatedUserContext.resolveFromPayload(payload);
   }
 }
