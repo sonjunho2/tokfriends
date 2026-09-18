@@ -1,6 +1,6 @@
 # DAGAON Development Checkpoint
 
-Updated: 2026-09-17
+Updated: 2026-09-18
 
 ## Project
 
@@ -23,21 +23,25 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-e39fda3c6f0e4e94eeb7eed93371927e6ec45f88
-fix: preserve activity account after avatar signup
+6a55defb16bb81b15b9691657adb4e45536cff3c
+feat: add chat message idempotency
 
 Remote GitHub branch HEAD verified:
-e39fda3c6f0e4e94eeb7eed93371927e6ec45f88
+6a55defb16bb81b15b9691657adb4e45536cff3c
 
 Parent commit:
-1844e2896536b61702fd24690015d3d283001d47
+11ba835b8502aa92c97302575306e5aa83093c5d
 
-GitHub compare verified against base 1844e2896536b61702fd24690015d3d283001d47:
+GitHub compare verified against base 11ba835b8502aa92c97302575306e5aa83093c5d:
 - ahead by exactly 1 commit
 - behind by 0 commits
-- exactly 1 changed file
-- 3 additions and 2 deletions
-- apps/mobile/src/screens/auth/ProfileRegistrationScreen.js: +3 / -2
+- exactly 6 changed files
+- apps/mobile/src/api/client.js
+- apps/mobile/src/screens/main/ChatRoomScreen.js
+- services/api/prisma/migrations/20260918095000_add_chat_message_idempotency/migration.sql
+- services/api/prisma/schema.prisma
+- services/api/src/modules/chats/chats.service.ts
+- services/api/src/modules/chats/dto.ts
 
 IMPORTANT:
 Before resuming code work, re-run:
@@ -72,9 +76,14 @@ Migrations present:
 8. 20260914050305_add_wallet_ledger_foundation
 9. 20260914054641_add_rbac_audit_risk_foundation
 10. 20260915025317_add_activity_social_graph_foundation
+11. 20260915050503_add_activity_chat_identity_foundation
+12. 20260915141108_fix_activity_chat_setnull_compatibility
+13. 20260915161907_add_chat_message_history_index
+14. 20260918095000_add_chat_message_idempotency
 
-2026-09-15:
+2026-09-18:
 npx prisma migrate status
+=> 14 migrations found
 => Database schema is up to date!
 
 Activity social graph migration SHA-256:
@@ -1391,12 +1400,57 @@ Completed 2026-09-17.
   1844e2896536b61702fd24690015d3d283001d47
 - GitHub remote branch HEAD independently verified at the implementation commit
 
+### Real Chat clientMessageId / message idempotency
+Completed 2026-09-18.
+
+- Added nullable `Message.clientMessageId` as `VARCHAR(128)`
+- Added unique constraint on `(senderAccountId, clientMessageId)`
+- Migration: `20260918095000_add_chat_message_idempotency`
+- DTO accepts optional, non-empty string `clientMessageId` with max length 128
+- `senderAccountId` remains server-derived and is not accepted from the client
+- Existing authentication, membership, ActivityAccount alignment, and block validation remain ahead of idempotency reuse
+- Same `senderAccountId + clientMessageId` with the same chat/content returns the existing canonical Message
+- Exact retry does not create a new Message row
+- Exact retry does not update `Chat.lastMessageAt`
+- Exact retry does not republish realtime
+- Reusing the same key with different chat/content returns Conflict
+- Prisma P2002 recovery re-reads the committed canonical Message for the idempotency key
+- Unrelated P2002 errors are not swallowed
+- Existing Serializable/P2034 retry behavior remains in place
+- Clients without `clientMessageId` remain backward-compatible
+- Mobile creates one UUID v4 per logical send
+- Failed retry with unchanged chat/content reuses the same pending `clientMessageId`
+- Editing the input or completing a successful send discards the pending ID
+- Canonical server `Message.id` remains the Mobile UI dedupe identity
+- Realtime payload/identity contract was not expanded
+- Local validation:
+  - `prisma validate` PASS
+  - `prisma generate` PASS
+  - API build PASS
+  - Mobile static validation PASS
+  - `git diff --check` PASS
+  - local Prisma migration status: up to date
+  - physical-device first send PASS
+  - identical HTTP request replay PASS
+  - replay returned the same canonical `Message.id`
+  - content row count remained 1 -> 1
+  - same `senderAccountId + clientMessageId` row count remained 1
+  - `Message.id`, `Message.createdAt`, and `Chat.lastMessageAt` remained unchanged
+  - no unexpected Message row was created
+  - no duplicate message appeared on the phone
+- Implementation commit:
+  6a55defb16bb81b15b9691657adb4e45536cff3c
+- Parent commit:
+  11ba835b8502aa92c97302575306e5aa83093c5d
+- GitHub remote branch HEAD independently verified at the implementation commit before this checkpoint update
+
 ### Production deployment limitation
 
 - The working-branch 1:1 Chat realtime Gateway and local physical-device/emulator validation are not a production deployment claim.
 - The phone-signup ActivityAccount auth refresh fix at 4d92f7b97c579e0510d2b8dacb66ed2f26b6f4b0 is verified on the working branch but is not claimed to be present in a released production app.
 - The Mobile Chat typing indicator at 2cec1a269262ef78bab99a9366e1327268c7915d is locally device-validated working-branch code; this does not claim it is live in the released production app or API.
 - The optional-avatar ActivityAccount state-preservation fix at e39fda3c6f0e4e94eeb7eed93371927e6ec45f88 is verified on the working branch with local device testing; this does not claim the fix is present in a released production app or production API.
+- The Chat clientMessageId/idempotency implementation at 6a55defb16bb81b15b9691657adb4e45536cff3c is verified against the local DB and physical-device/local HTTP replay path; this does not claim it is deployed to the released production app or production API.
 - Cloudinary credentials used for the local test were local development/runtime configuration only, not repository configuration; production media credential/configuration readiness remains a separate deployment concern.
 
 - Render production tokfriends-db has the latest tracked migrations applied and its ActivityAccount invariants were verified as CLEAN FOUNDATION.
@@ -1414,6 +1468,7 @@ Completed 2026-09-17.
 - Do not assume local Cloudinary process environment values persist after PowerShell or API restart
 - The canonical local API health path is `/v1/health`
 - Transient local test configuration is not production configuration
+- A temporary local HTTP debug proxy was used only for the 2026-09-18 idempotency replay verification; it is not repository code and is not production configuration
 
 ### Final high-level IA
 Mobile main tabs:
@@ -1501,7 +1556,6 @@ Known gaps:
 - attachment/media backend
 - unread/read
 - push
-- clientMessageId/idempotency
 - Gift sending not financial/server transaction
 - no mobile friendship functions
 - no Mobile Follow/Interest integration
@@ -1549,7 +1603,7 @@ Real Chat identity architecture:
 - New ActivityAccount direct rooms must set both account participant fields together.
 - Canonical account pair ordering and direct-room concurrency safety remain application-layer follow-up work.
 - Mobile Chat list, ChatRoom history, and ChatRoom text send HTTP integrations are implemented; text send appends only server-confirmed responses.
-- Realtime text delivery and the Mobile typing indicator are implemented and locally device-validated; typing is complete for the currently validated local 1:1 Chat path, while read/unread, attachments, push, and clientMessageId/idempotency remain incomplete.
+- Realtime text delivery, the Mobile typing indicator, and clientMessageId/message-send idempotency are implemented and locally device-validated for the currently validated local 1:1 Chat path; read/unread, attachments, and push remain incomplete.
 
 Major domains still required:
 - Gift transactions
@@ -1705,41 +1759,36 @@ COMPLETE FOR THE CURRENTLY VALIDATED LOCAL 1:1 CHAT PATH.
 Phone signup optional-avatar ActivityAccount state preservation:
 COMPLETE FOR THE CURRENTLY VALIDATED LOCAL SIGNUP/CHAT PATH.
 
+Real Chat clientMessageId / message idempotency:
+COMPLETE FOR THE CURRENTLY VALIDATED LOCAL 1:1 CHAT PATH.
+
 Next implementation phase:
 REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Real Chat clientMessageId / idempotency read-only audit.
+Fresh OTP login ActivityAccount hydration audit/fix.
 
-This next step is AUDIT ONLY, not implementation.
+Observed local behavior:
+- Immediately after an existing-user OTP login, entering Chat in the same in-memory session could show "활성 프로필 정보를 확인할 수 없습니다" because `authUser.activityAccountId` was absent.
+- Closing/reopening the app allowed stored-token startup hydration through canonical `GET /users/me`, after which Chat worked normally.
+- This issue predates and is separate from the clientMessageId/idempotency implementation.
 
-Goals:
-- inspect the current Mobile ChatRoom send flow
-- inspect `apiClient.sendChatMessage()`
-- inspect the `POST /chats/message` controller/service
-- inspect Message schema/model fields
-- inspect transaction/persistence behavior
-- inspect realtime publisher behavior after persistence
-- inspect current Mobile server-confirmed append and message-ID dedupe behavior
-- determine whether repeated HTTP submissions/retries can persist duplicate messages
-- determine whether network timeout/retry can create an ambiguous successful-write state
-- determine whether any `clientMessageId`/idempotency key already exists anywhere in Mobile/API/DB
-- do not assume a bug before source evidence
-- define the smallest additive idempotency design if needed
-- preserve the server-generated canonical message ID
-- preserve ActivityAccount sender identity rules
-- preserve the HTTP persistence / WebSocket delivery boundary
-- do not reinterpret identity namespaces
-- do not implement anything during this audit
-- do not mix attachments, unread/read, push, Gift, Wallet/Ledger, LIVE, Agora, Prisma migration implementation, Admin, or production deployment into the audit
+Current source boundary already identified:
+- Canonical `GET /users/me` returns `activityAccountId`.
+- Existing-user `verifyPhoneOtp` returns `serializeAuthUser(...)`.
+- `serializeAuthUser(...)` currently selects User/profile fields but does not include `activityAccountId`.
+- `AuthContext.authenticateWithToken(token, userPayload)` uses the supplied `userPayload` directly and skips `apiClient.getMe()` when that payload is present.
+- App startup with a stored token does call `apiClient.getMe()`.
 
-Expected audit output:
-- exact current duplicate/retry risk from source
-- exact affected files
-- whether DB/schema support is required
-- smallest safe implementation slice
-- runtime verification plan
+Next-step rules:
+- Re-audit the current AuthContext and auth response source before editing.
+- Determine the smallest canonical hydration fix.
+- Check regression risk across OTP login, phone signup/profile completion, email login/signup, stored-token startup, and avatar signup state preservation.
+- Preserve explicit ActivityAccount/User identity namespaces.
+- Do not modify the completed Chat idempotency implementation while fixing authentication hydration.
+- Keep the issue OPEN until source validation and runtime verification are complete.
+- Do not treat this working-branch/local finding as a production deployment claim.
 
 First commands to run when resuming:
 
