@@ -560,9 +560,10 @@ export const apiClient = {
     }
   },
 
-  async sendChatMessage(chatId, content) {
+  async sendChatMessage({ chatId, content, clientMessageId } = {}) {
     const target = String(chatId || '').trim();
     const text = String(content ?? '').trim();
+    const requestId = String(clientMessageId || '').trim();
     if (!target) {
       throw normalizeError(new Error('대화방 ID가 필요합니다.'));
     }
@@ -570,10 +571,15 @@ export const apiClient = {
       throw normalizeError(new Error('메시지 내용을 입력해 주세요.'));
     }
 
+    if (!requestId) {
+      throw normalizeError(new Error('Client message ID is required.'));
+    }
+
     try {
       const { data } = await client.post('/chats/message', {
         chatId: target,
         content: text,
+        clientMessageId: requestId,
       });
       const message = data?.data ?? data;
       if (

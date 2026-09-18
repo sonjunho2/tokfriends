@@ -18,6 +18,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { uuid } from 'expo-modules-core';
 import * as ImagePicker from 'expo-image-picker';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -155,6 +156,7 @@ export default function ChatRoomScreen({ route, navigation }) {
   const localTypingTimerRef = useRef(null);
   const remoteTypingTimerRef = useRef(null);
   const inputTextRef = useRef('');
+  const pendingMessageRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [composerHeight, setComposerHeight] = useState(0);
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -216,6 +218,12 @@ export default function ChatRoomScreen({ route, navigation }) {
   }, [chatId]);
 
   const handleInputTextChange = useCallback((nextText) => {
+    if (
+      pendingMessageRef.current &&
+      pendingMessageRef.current.content !== nextText.trim()
+    ) {
+      pendingMessageRef.current = null;
+    }
     setInputText(nextText);
     inputTextRef.current = nextText;
     clearLocalTypingTimer();
@@ -738,7 +746,18 @@ export default function ChatRoomScreen({ route, navigation }) {
 
     setSendingMessage(true);
     try {
-      const sent = await apiClient.sendChatMessage(chatId, content);
+      const pendingMessage =
+        pendingMessageRef.current?.chatId === chatId &&
+        pendingMessageRef.current?.content === content
+          ? pendingMessageRef.current
+          : {
+              chatId,
+              content,
+              clientMessageId: uuid.v4(),
+            };
+      pendingMessageRef.current = pendingMessage;
+
+      const sent = await apiClient.sendChatMessage(pendingMessage);
       if (
         sent.chatId !== chatId ||
         sent.senderAccountId !== currentActivityAccountId
@@ -758,6 +777,7 @@ export default function ChatRoomScreen({ route, navigation }) {
       };
 
       appendUniquePersistedMessage(nextMessage);
+      pendingMessageRef.current = null;
       setInputText((current) => {
         const nextInput = current.trim() === content ? '' : current;
         inputTextRef.current = nextInput;

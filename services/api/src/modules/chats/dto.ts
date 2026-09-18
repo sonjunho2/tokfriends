@@ -10,6 +10,12 @@ export class SendMessageDto {
   @IsNotEmpty()
   @MaxLength(4000)
   content: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(128)
+  clientMessageId?: string;
 }
 
 export class DirectChatDto {

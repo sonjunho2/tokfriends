@@ -41,6 +41,28 @@ function isTransactionConflict(error: unknown): boolean {
     error.code === "P2034"
   );
 }
+function isMessageIdempotencyUniqueConflict(error: unknown): boolean {
+  if (
+    !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+    error.code !== "P2002"
+  ) {
+    return false;
+  }
+  const target = (error.meta as { target?: string | string[] } | undefined)
+    ?.target;
+  if (Array.isArray(target)) {
+    return (
+      target.includes("senderAccountId") &&
+      target.includes("clientMessageId")
+    );
+  }
+  return (
+    typeof target === "string" &&
+    ((target.includes("senderAccountId") &&
+      target.includes("clientMessageId")) ||
+      target.includes("Message_senderAccountId_clientMessageId_key"))
+  );
+}
 
 const chatInclude = Prisma.validator<Prisma.ChatInclude>()({
   userA: { select: { id: true } },
@@ -536,7 +558,7 @@ export class ChatsService {
       throw new ForbiddenException("Active activity account required");
     for (let attempt = 0; attempt < MAX_TRANSACTION_RETRIES; attempt += 1) {
       try {
-        const message = await this.prisma.$transaction(
+        const result = await this.prisma.$transaction(
           async (tx) => {
             const actor = await tx.activityAccount.findFirst({
               where: {
@@ -643,12 +665,47 @@ export class ChatsService {
               select: { id: true },
             });
             if (block) throw new ForbiddenException("Chat is unavailable");
+            if (dto.clientMessageId) {
+              const existingMessage = await tx.message.findFirst({
+                where: {
+                  senderAccountId: actor.id,
+                  clientMessageId: dto.clientMessageId,
+                },
+                select: {
+                  id: true,
+                  chatId: true,
+                  senderAccountId: true,
+                  type: true,
+                  content: true,
+                  translatedContent: true,
+                  createdAt: true,
+                },
+              });
+              if (existingMessage) {
+                if (
+                  existingMessage.chatId !== dto.chatId ||
+                  existingMessage.content !== dto.content
+                ) {
+                  throw new ConflictException(
+                    "Message request conflicts with an existing message",
+                  );
+                }
+                return {
+                  message: {
+                    ...existingMessage,
+                    senderAccountId: actor.id,
+                  },
+                  created: false,
+                };
+              }
+            }
             const now = new Date();
             const message = await tx.message.create({
               data: {
                 chatId: dto.chatId,
                 senderId: actor.owner.legacyUserId,
                 senderAccountId: actor.id,
+                clientMessageId: dto.clientMessageId,
                 content: dto.content,
                 createdAt: now,
               },
@@ -667,15 +724,51 @@ export class ChatsService {
               data: { lastMessageAt: now },
             });
             return {
-              ...message,
-              senderAccountId: actor.id,
+              message: {
+                ...message,
+                senderAccountId: actor.id,
+              },
+              created: true,
             };
           },
           { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
         );
-        this.chatRealtimePublisher.publish(message);
-        return message;
+        if (result.created)
+          this.chatRealtimePublisher.publish(result.message);
+        return result.message;
       } catch (error: unknown) {
+        if (isMessageIdempotencyUniqueConflict(error) && dto.clientMessageId) {
+          const existingMessage = await this.prisma.message.findFirst({
+            where: {
+              senderAccountId: actorAccountId,
+              clientMessageId: dto.clientMessageId,
+            },
+            select: {
+              id: true,
+              chatId: true,
+              senderAccountId: true,
+              type: true,
+              content: true,
+              translatedContent: true,
+              createdAt: true,
+            },
+          });
+          if (existingMessage) {
+            if (
+              existingMessage.chatId !== dto.chatId ||
+              existingMessage.content !== dto.content
+            ) {
+              throw new ConflictException(
+                "Message request conflicts with an existing message",
+              );
+            }
+            return {
+              ...existingMessage,
+              senderAccountId: actorAccountId,
+            };
+          }
+          continue;
+        }
         if (!isTransactionConflict(error)) throw error;
       }
     }

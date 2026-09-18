@@ -258,6 +258,7 @@ model Message {
   senderId          String
   sender            User             @relation(fields: [senderId], references: [id])
   senderAccountId   String?
+  clientMessageId   String?          @db.VarChar(128)
   senderAccount     ActivityAccount? @relation("MessageSenderAccount", fields: [senderAccountId], references: [id], onDelete: SetNull)
   type              String           @default("text")
   content           String
@@ -265,6 +266,7 @@ model Message {
   createdAt         DateTime         @default(now())
   isFlagged         Boolean          @default(false)
 
+  @@unique([senderAccountId, clientMessageId])
   @@index([senderAccountId, createdAt])
   @@index([chatId, createdAt, id])
 }
