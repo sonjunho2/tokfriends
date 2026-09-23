@@ -1771,21 +1771,25 @@ COMPLETE FOR LOCAL 1:1 CHAT PATH (migration 20260923030027_add_message_read_at, 
 Real Chat media attachment backend integration:
 COMPLETE FOR LOCAL 1:1 CHAT PATH (POST /media/chat, MediaService.uploadChatMedia, SendMessageDto type field, Mobile uploadChatMedia & ChatRoomScreen media persistence).
 
+Chat push notification foundation (Firebase Cloud Messaging):
+COMPLETE FOR LOCAL 1:1 CHAT PATH (Device schema migration 20260923032500_add_device_token_unique_and_index, NotificationsModule/NotificationsService with graceful FCM fallback & auto-cleanup of invalid tokens, ChatsService send push dispatch, and Mobile apiClient token registration).
+
 Next implementation phase:
-REAL CHAT — IN PROGRESS.
+REAL CHAT & IN-ROOM GIFT TRANSACTIONS — IN PROGRESS.
 
 ## Immediate Next Task
 
-Chat push notification foundation audit (Firebase Cloud Messaging).
+Chat in-room financial Gift sending transaction foundation (Wallet/Ledger integration).
 
 Status: OPEN.
 
 Goals:
-- inspect current push token registration (FCM / APNs) and user device token model
-- inspect push notification triggers on incoming 1:1 chat message when recipient is offline or outside the room
-- define smallest additive FCM push notification service foundation
-- preserve existing auth, chat idempotency, and media attachment flow
-- avoid mixing Gift notifications, LIVE push, or bulk marketing push into the chat push foundation
+- inspect current Gifts catalog and in-chat gift UI in Mobile ChatRoomScreen
+- verify wallet spendable balance check and atomic WalletLedgerEntry debit for sender
+- credit recipient wallet or pending balance via ledger entry
+- deliver server-authoritative 'gift' message type in 1:1 chat room with realtime event
+- preserve idempotency and prevent double-spending
+
 
 First commands to run when resuming:
 

@@ -14,6 +14,7 @@ import { LegacyModule } from './legacy/legacy.module'; // 추가
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/jwt.guard';
 import { AliasModule } from './alias/alias.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { AliasModule } from './alias/alias.module';
     AuthModule,
     UsersModule,
     ChatsModule,
+    NotificationsModule,
     ReportsModule,
     MetricsModule,
     StoreModule,

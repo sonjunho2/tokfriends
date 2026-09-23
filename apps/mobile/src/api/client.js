@@ -811,6 +811,33 @@ export const apiClient = {
       throw normalizeError(err);
     }
   },
+
+  async registerPushToken(token, platform = 'android', locale = 'ko') {
+    if (!token) {
+      throw normalizeError(new Error('디바이스 푸시 토큰이 필요합니다.'));
+    }
+    const { data } = await client.post('/notifications/token', {
+      token: String(token).trim(),
+      platform: String(platform || 'android').toLowerCase(),
+      locale: locale ? String(locale).trim() : 'ko',
+    });
+    return data;
+  },
+
+  async unregisterPushToken(token) {
+    if (!token) {
+      return { success: true };
+    }
+    const { data } = await client.delete(
+      `/notifications/token/${encodeURIComponent(String(token).trim())}`,
+    );
+    return data;
+  },
+
+  async getRegisteredDevices() {
+    const { data } = await client.get('/notifications/devices');
+    return data;
+  },
 };
 
 export default client;

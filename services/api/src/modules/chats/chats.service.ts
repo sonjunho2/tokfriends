@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
@@ -14,6 +15,7 @@ import {
   ChatRealtimePublisher,
 } from "./chat-realtime-publisher.service";
 import { ChatMessagesQueryDto, DirectChatDto, SendMessageDto } from "./dto";
+import { NotificationsService } from "../notifications/notifications.service";
 
 const MAX_TRANSACTION_RETRIES = 3;
 
@@ -113,9 +115,12 @@ type ChatMessageHistoryResponse = {
 
 @Injectable()
 export class ChatsService {
+  private readonly logger = new Logger(ChatsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly chatRealtimePublisher: ChatRealtimePublisher,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async list(
@@ -785,6 +790,8 @@ export class ChatsService {
                     senderAccountId: actor.id,
                   },
                   created: false,
+                  recipientUserId: undefined as string | undefined,
+                  senderDisplayName: undefined as string | undefined,
                 };
               }
             }
@@ -819,12 +826,31 @@ export class ChatsService {
                 senderAccountId: actor.id,
               },
               created: true,
+              recipientUserId: counterpartUserId,
+              senderDisplayName: actor.displayName || actor.handle || "사용자",
             };
           },
           { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
         );
-        if (result.created)
+        if (result.created) {
           this.chatRealtimePublisher.publish(result.message);
+          if (result.recipientUserId) {
+            this.notificationsService
+              .sendChatPush({
+                recipientUserId: result.recipientUserId,
+                senderDisplayName: result.senderDisplayName || "새 메시지",
+                content: result.message.content,
+                type: result.message.type,
+                chatId: result.message.chatId,
+                messageId: result.message.id,
+              })
+              .catch((err) => {
+                this.logger.warn(
+                  `Failed to dispatch chat push: ${err instanceof Error ? err.message : err}`,
+                );
+              });
+          }
+        }
         return result.message;
       } catch (error: unknown) {
         if (isMessageIdempotencyUniqueConflict(error) && dto.clientMessageId) {
