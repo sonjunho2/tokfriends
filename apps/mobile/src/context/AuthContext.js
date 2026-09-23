@@ -50,7 +50,14 @@ export const AuthProvider = ({ children }) => {
       if (!token) throw new Error('토큰이 필요합니다.');
       await saveToken(token);
       setState((s) => ({ ...s, token }));
-      const me = userPayload || (await apiClient.getMe());
+      const hasCanonicalActivityAccount = Boolean(
+        userPayload &&
+          typeof userPayload.activityAccountId === 'string' &&
+          userPayload.activityAccountId.trim(),
+      );
+      const me = hasCanonicalActivityAccount
+        ? userPayload
+        : await apiClient.getMe();
       setState((s) => ({ ...s, user: me }));
       return { success: true, user: me };
     } catch (e) {
