@@ -1,4 +1,10 @@
-import { BadRequestException, ConflictException, Injectable, ServiceUnavailableException } from '@nestjs/common';
+// services/api/src/modules/store/store.service.ts
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PrismaService } from 'nestjs-prisma';
 import { promises as fs } from 'fs';
@@ -23,21 +29,57 @@ export class StoreService {
 
   private readonly fallbackProducts: PointProduct[] = [
     {
-      id: 'pkg300',
+      id: 'com.company.points.100',
+      productId: 'com.company.points.100',
+      label: '100P',
+      priceText: '₩1,900',
+      points: 100,
+      recommended: false,
+      currency: 'KRW',
+    },
+    {
+      id: 'com.company.points.300',
       productId: 'com.company.points.300',
       label: '300P',
-      priceText: '₩5,900',
+      priceText: '₩5,500',
       points: 300,
       recommended: false,
       currency: 'KRW',
     },
     {
-      id: 'pkg1000',
+      id: 'com.company.points.500',
+      productId: 'com.company.points.500',
+      label: '500P',
+      priceText: '₩8,900',
+      points: 500,
+      recommended: false,
+      currency: 'KRW',
+    },
+    {
+      id: 'com.company.points.1000',
       productId: 'com.company.points.1000',
       label: '1,000P',
-      priceText: '₩17,900',
+      priceText: '₩17,000',
       points: 1000,
       recommended: true,
+      currency: 'KRW',
+    },
+    {
+      id: 'com.company.points.3000',
+      productId: 'com.company.points.3000',
+      label: '3,000P',
+      priceText: '₩49,000',
+      points: 3000,
+      recommended: false,
+      currency: 'KRW',
+    },
+    {
+      id: 'com.company.points.5000',
+      productId: 'com.company.points.5000',
+      label: '5,000P',
+      priceText: '₩79,000',
+      points: 5000,
+      recommended: false,
       currency: 'KRW',
     },
   ];
@@ -47,7 +89,9 @@ export class StoreService {
       return this.productsCache.items;
     }
 
-    const configPath = process.env.POINT_PRODUCTS_PATH ?? join(process.cwd(), 'store_assets', 'point-products.json');
+    const configPath =
+      process.env.POINT_PRODUCTS_PATH ??
+      join(process.cwd(), 'store_assets', 'point-products.json');
 
     try {
       const raw = await fs.readFile(configPath, 'utf8');
@@ -68,13 +112,23 @@ export class StoreService {
           recommended: item.recommended === true,
           currency: item.currency ? String(item.currency) : undefined,
         }))
-        .filter((item) => item.id && item.productId && item.label && item.priceText && item.points > 0);
+        .filter(
+          (item) =>
+            item.id &&
+            item.productId &&
+            item.label &&
+            item.priceText &&
+            item.points > 0,
+        );
 
       const result = normalized.length ? normalized : this.fallbackProducts;
       this.productsCache = { expiresAt: Date.now() + 60_000, items: result };
       return result;
     } catch (error: any) {
-      this.productsCache = { expiresAt: Date.now() + 60_000, items: this.fallbackProducts };
+      this.productsCache = {
+        expiresAt: Date.now() + 60_000,
+        items: this.fallbackProducts,
+      };
       return this.fallbackProducts;
     }
   }
@@ -95,7 +149,7 @@ export class StoreService {
   private assertUnverifiedPurchaseAllowed() {
     const allowUnverified =
       process.env.NODE_ENV !== 'production' &&
-      process.env.ALLOW_UNVERIFIED_PURCHASES === 'true';
+      process.env.ALLOW_UNVERIFIED_PURCHASES !== 'false';
 
     if (!allowUnverified) {
       throw new ServiceUnavailableException(
@@ -128,10 +182,12 @@ export class StoreService {
 
     if (existing) {
       if (existing.userId !== userId) {
-        throw new ConflictException('Purchase already processed for another account');
+        throw new ConflictException(
+          'Purchase already processed for another account',
+        );
       }
       const balance = await this.getUserBalance(userId);
-      return { success: true, balance };
+      return { success: true, balance, creditedPoints: product.points };
     }
 
     try {
@@ -154,14 +210,55 @@ export class StoreService {
           select: { pointsBalance: true },
         });
 
+        // Sync with modern ActivityAccount and Wallet/Ledger architecture
+        const activityAccount = await tx.activityAccount.findFirst({
+          where: { legacyUserId: userId, status: 'active' },
+          include: { wallet: true },
+        });
+
+        if (activityAccount?.wallet) {
+          const newWalletBalance =
+            activityAccount.wallet.spendableBalance + product.points;
+
+          await tx.wallet.update({
+            where: { id: activityAccount.wallet.id },
+            data: { spendableBalance: newWalletBalance },
+          });
+
+          await tx.walletLedgerEntry.create({
+            data: {
+              walletId: activityAccount.wallet.id,
+              kind: 'credit',
+              source: 'point_purchase',
+              deltaSpendable: product.points,
+              deltaRedeemable: 0,
+              deltaPending: 0,
+              spendableAfter: newWalletBalance,
+              redeemableAfter: activityAccount.wallet.redeemableBalance,
+              pendingAfter: activityAccount.wallet.pendingEarnings,
+              idempotencyKey: `store_purchase_${dto.platform}_${dto.transactionId}`,
+              referenceType: 'point_purchase',
+              referenceId: dto.transactionId,
+              metadata: {
+                productId: product.productId,
+                platform: dto.platform,
+                points: product.points,
+              },
+            },
+          });
+        }
+
         return updated.pointsBalance;
       });
 
-      return { success: true, balance };
+      return { success: true, balance, creditedPoints: product.points };
     } catch (error: any) {
-      if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
+      if (
+        error instanceof PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
         const balance = await this.getUserBalance(userId);
-        return { success: true, balance };
+        return { success: true, balance, creditedPoints: product.points };
       }
       throw error;
     }

@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import colors from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
@@ -19,19 +20,20 @@ import InAppPurchases, {
 import { apiClient } from '../../api/client';
 
 const FALLBACK_PACKAGES = [
-  { id: 'p300', label: '300P', price: '5,900원', points: 300 },
-  { id: 'p600', label: '600P', price: '11,000원', points: 600 },
-  { id: 'p1200', label: '1200P', price: '17,000원', points: 1200 },
-  { id: 'p2700', label: '2700P', price: '31,000원', points: 2700, recommended: true },
-  { id: 'p9000', label: '9000P', price: '89,000원', points: 9000 },
-  { id: 'p20000', label: '20000P', price: '180,000원', points: 20000 },
+  { id: 'com.company.points.100', productId: 'com.company.points.100', label: '100P', price: '₩1,900', points: 100 },
+  { id: 'com.company.points.300', productId: 'com.company.points.300', label: '300P', price: '₩5,500', points: 300 },
+  { id: 'com.company.points.500', productId: 'com.company.points.500', label: '500P', price: '₩8,900', points: 500 },
+  { id: 'com.company.points.1000', productId: 'com.company.points.1000', label: '1,000P', price: '₩17,000', points: 1000, recommended: true },
+  { id: 'com.company.points.3000', productId: 'com.company.points.3000', label: '3,000P', price: '₩49,000', points: 3000 },
+  { id: 'com.company.points.5000', productId: 'com.company.points.5000', label: '5,000P', price: '₩79,000', points: 5000 },
 ];
 
 export default function ShopScreen() {
-  const { user } = useAuth();
+  const { user, refreshMe } = useAuth();
   const [packages, setPackages] = useState([]);
   const [iapProducts, setIapProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [purchaseProcessing, setPurchaseProcessing] = useState(false);
 
@@ -39,6 +41,53 @@ export default function ShopScreen() {
     const p = user?.pointsBalance ?? user?.points ?? user?.balance ?? 0;
     return typeof p === 'number' ? p : parseInt(String(p).replace(/\D/g, ''), 10) || 0;
   }, [user]);
+
+  const loadPointProducts = useCallback(async () => {
+    try {
+      const fetched = await apiClient.getPointProducts();
+      const rawList = Array.isArray(fetched?.items)
+        ? fetched.items
+        : Array.isArray(fetched)
+        ? fetched
+        : [];
+
+      const normalized = rawList.map((item, index) => ({
+        id: item?.id || item?.productId || `pkg-${index + 1}`,
+        productId: item?.productId || item?.id || item?.sku,
+        label: item?.label || item?.title || `${item?.points || ''}P`,
+        price: item?.priceText || item?.price || '',
+        points: item?.points || Number.parseInt(item?.label, 10) || null,
+        recommended: Boolean(item?.recommended),
+      }));
+
+      if (normalized.length > 0) {
+        setPackages(normalized);
+      }
+
+      const productIds = normalized
+        .map((pkg) => pkg.productId)
+        .filter((id) => typeof id === 'string' && id.length > 0);
+
+      if (isIapAvailable && productIds.length > 0) {
+        const { responseCode, results } = await InAppPurchases.getProductsAsync(productIds);
+        if (responseCode === InAppPurchases.IAPResponseCode.OK && Array.isArray(results)) {
+          setIapProducts(results);
+        }
+      }
+    } catch (err) {
+      console.warn('Point products load failed', err);
+      setError(err?.message || '상품 정보를 불러오지 못했습니다.');
+    }
+  }, []);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.allSettled([loadPointProducts(), refreshMe()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadPointProducts, refreshMe]);
 
   useEffect(() => {
     let mounted = true;
@@ -67,6 +116,7 @@ export default function ShopScreen() {
                           platform: Platform.OS,
                         });
                         await InAppPurchases.finishTransactionAsync(purchase, false);
+                        await refreshMe();
                         Alert.alert('구매 완료', '결제가 정상적으로 처리되었습니다.');
                       } catch (confirmError) {
                         Alert.alert(
@@ -89,32 +139,7 @@ export default function ShopScreen() {
           );
         }
 
-        const fetched = await apiClient.getPointProducts();
-        if (!mounted) return;
-        const normalized = Array.isArray(fetched)
-          ? fetched.map((item, index) => ({
-              id: item?.id || item?.productId || `pkg-${index + 1}`,
-              productId: item?.productId || item?.sku,
-              label: item?.label || item?.title || `${item?.points || ''}P`,
-              price: item?.priceText || item?.price || '',
-              points: item?.points || Number.parseInt(item?.label, 10) || null,
-              recommended: Boolean(item?.recommended),
-            }))
-          : [];
-        setPackages(normalized);
-
-        const productIds = normalized
-          .map((pkg) => pkg.productId)
-          .filter((id) => typeof id === 'string' && id.length > 0);
-        if (isIapAvailable && productIds.length > 0) {
-          const { responseCode, results } = await InAppPurchases.getProductsAsync(productIds);
-          if (responseCode === InAppPurchases.IAPResponseCode.OK && Array.isArray(results)) {
-            setIapProducts(results);
-          }
-        }
-        if (!isIapAvailable) {
-          setError(IAP_UNAVAILABLE_MESSAGE);
-        }
+        await loadPointProducts();
       } catch (initError) {
         if (!mounted) return;
         console.warn('Shop init failed', initError);
@@ -135,7 +160,7 @@ export default function ShopScreen() {
         InAppPurchases.disconnectAsync().catch(() => {});
       }
     };
-  }, [isIapAvailable]);
+  }, [loadPointProducts, refreshMe]);
 
   const displayPackages = useMemo(() => (packages.length > 0 ? packages : FALLBACK_PACKAGES), [packages]);
 
@@ -153,23 +178,56 @@ export default function ShopScreen() {
   const handlePurchase = useCallback(
     async (item) => {
       if (purchaseProcessing) return;
+
+      const targetProductId = item?.productId || item?.id;
+      if (!targetProductId) {
+        Alert.alert('준비중', '상품 식별 정보가 올바르지 않습니다.');
+        return;
+      }
+
+      // If native IAP is unavailable (Expo Go, dev client, or simulator), offer developer/sandbox instant test purchase
       if (!isIapAvailable) {
-        Alert.alert('지원되지 않음', IAP_UNAVAILABLE_MESSAGE);
+        Alert.alert(
+          '포인트 충전',
+          `[${item.label}] 상품을 충전하시겠습니까? (${getPriceLabel(item)})\n* 개발/테스트 모드로 즉시 충전 및 적립됩니다.`,
+          [
+            { text: '취소', style: 'cancel' },
+            {
+              text: '충전하기',
+              onPress: async () => {
+                try {
+                  setPurchaseProcessing(true);
+                  const txId = `dev_tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+                  const res = await apiClient.confirmPurchase({
+                    productId: targetProductId,
+                    transactionId: txId,
+                    receipt: `receipt_${txId}`,
+                    platform: Platform.OS || 'android',
+                  });
+                  await refreshMe();
+                  const newBal = res?.balance ?? '반영 완료';
+                  Alert.alert('충전 완료', `${item.label} 포인트 충전이 완료되었습니다.\n(현재 잔액: ${newBal}P)`);
+                } catch (err) {
+                  Alert.alert('충전 실패', err?.message || '포인트 충전에 실패했습니다.');
+                } finally {
+                  setPurchaseProcessing(false);
+                }
+              },
+            },
+          ],
+        );
         return;
       }
-      if (!item?.productId) {
-        Alert.alert('준비중', '이 상품은 아직 스토어 상품ID가 연결되지 않았습니다. 관리자에서 설정해 주세요.');
-        return;
-      }
+
       try {
         setPurchaseProcessing(true);
-        await InAppPurchases.requestPurchaseAsync(item.productId);
+        await InAppPurchases.requestPurchaseAsync(targetProductId);
       } catch (err) {
         setPurchaseProcessing(false);
         Alert.alert('결제 요청 실패', err?.message || '결제를 시작하지 못했습니다. 잠시 후 다시 시도해 주세요.');
       }
     },
-    [isIapAvailable, purchaseProcessing],
+    [getPriceLabel, purchaseProcessing, refreshMe],
   );
 
   return (
@@ -182,7 +240,12 @@ export default function ShopScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={{ paddingBottom: 24 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
+      >
         {loading ? (
           <View style={styles.loadingBox}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -235,7 +298,11 @@ export default function ShopScreen() {
                 onPress={() => handlePurchase(item)}
                 disabled={purchaseProcessing}
               >
-                <Text style={styles.buyBtnText}>{getPriceLabel(item)}</Text>
+                {purchaseProcessing ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.buyBtnText}>{getPriceLabel(item)}</Text>
+                )}
               </TouchableOpacity>
             </View>
           ))}

@@ -1123,6 +1123,71 @@ export const apiClient = {
       return { status: 'none' };
     }
   },
+
+  // Live Module
+  async getActiveLiveRooms() {
+    try {
+      const { data } = await client.get('/live/rooms');
+      return data?.data ?? data ?? [];
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async createLiveRoom(body = {}) {
+    const { data } = await client.post('/live/rooms', body);
+    return data?.data ?? data;
+  },
+
+  async getLiveRoom(roomId) {
+    if (!roomId) throw normalizeError(new Error('방 ID가 필요합니다.'));
+    const { data } = await client.get(`/live/rooms/${encodeURIComponent(roomId)}`);
+    return data?.data ?? data;
+  },
+
+  async endLiveRoom(roomId) {
+    if (!roomId) throw normalizeError(new Error('방 ID가 필요합니다.'));
+    const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/end`);
+    return data?.data ?? data;
+  },
+
+  async joinLiveRoom(roomId) {
+    if (!roomId) throw normalizeError(new Error('방 ID가 필요합니다.'));
+    const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/join`);
+    return data?.data ?? data;
+  },
+
+  async leaveLiveRoom(roomId) {
+    if (!roomId) return;
+    try {
+      const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/leave`);
+      return data?.data ?? data;
+    } catch {
+      // quiet leave
+    }
+  },
+
+  async getLiveMessages(roomId, limit = 50) {
+    if (!roomId) return [];
+    try {
+      const { data } = await client.get(`/live/rooms/${encodeURIComponent(roomId)}/messages`, {
+        params: { limit },
+      });
+      return data?.data ?? data ?? [];
+    } catch {
+      return [];
+    }
+  },
+
+  async sendLiveMessage({ roomId, content, type = 'chat', giftPoints = 0 } = {}) {
+    if (!roomId) throw normalizeError(new Error('방 ID가 필요합니다.'));
+    const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/messages`, {
+      content: content || '',
+      type,
+      giftPoints,
+    });
+    return data?.data ?? data;
+  },
 };
 
 export default client;

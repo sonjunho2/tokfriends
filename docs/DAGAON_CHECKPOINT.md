@@ -1801,28 +1801,23 @@ MOBILE LIVE ROOM FOUNDATION & STREAMING INTEGRATION — IN PROGRESS.
 Mobile LIVE Room Foundation / Live room list, streamer creation, and viewer room interface:
 COMPLETE (Prisma migration 20260923041804_add_live_room_foundation with LiveRoom and LiveMessage models, LiveModule/LiveService/LiveController endpoints for room lifecycle, viewer counts, and realtime live chat/reactions/gifts, Mobile apiClient live methods, modernized LiveScreen with room cards & broadcast creation modal, interactive LiveRoomScreen with realtime chat, heart reactions, gift sending, and host controls, and RootNavigator LiveStack integration).
 
+Store & In-App Purchase Wallet Flow & Points Store Integration:
+COMPLETE (services/api/store_assets/point-products.json canonical point products catalog, StoreService confirmPointPurchase atomic transaction synchronizing pointPurchase, User.pointsBalance, ActivityAccount.Wallet.spendableBalance, and immutable WalletLedgerEntry credit with idempotency, apiClient point products and live endpoints integration, Mobile ShopScreen with live catalog fetch, pull-to-refresh, developer/sandbox instant checkout fallback, and automatic useAuth().refreshMe() point balance synchronization).
+
 Next implementation phase:
-STORE & IN-APP PURCHASE WALLET FLOW VERIFICATION — IN PROGRESS.
+MOBILE CHAT MEDIA ATTACHMENTS (IMAGE UPLOAD IN 1:1 CHAT) — READY.
 
 ## Immediate Next Task
 
-Store & Point Products Real In-App Purchase Flow Verification (Points Tab).
+Mobile Chat Media & Image Attachment Flow Verification (ChatRoomScreen.js).
 
-Status: OPEN.
+Status: READY.
 
 Goals:
-- inspect Store & Purchase confirmation APIs (GET /store/point-products, POST /store/purchases/confirm)
-- connect Mobile Points Tab (ShopScreen.js) with live catalog and purchase verification
-- verify atomic Wallet / Ledger entry creation upon purchase confirmation
-- test balance synchronization to User.pointsBalance and ActivityAccount Wallet
-
-
-
-
-
-
-
-First commands to run when resuming:
+- inspect chat media upload endpoints (POST /media/presign or POST /media/upload)
+- integrate mobile ImagePicker with ChatRoomScreen photo attachment button
+- support image preview, upload progress, and rendering image message bubbles in chat thread
+- verify recipient push notification and real-time socket delivery of media messages
 
 cd C:\Users\ION\Downloads\work\tokfriends
 git branch --show-current
