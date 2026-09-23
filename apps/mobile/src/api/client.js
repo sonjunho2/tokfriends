@@ -1294,6 +1294,118 @@ export const apiClient = {
       return [];
     }
   },
+
+  // Topics & Posts (Community)
+  async getTopics() {
+    try {
+      const { data } = await client.get('/topics');
+      return data?.data ?? data ?? [];
+    } catch (e) {
+      if (USE_DUMMY_AUTH) return [{ id: 'topic_daily', name: '일상 / 수다' }];
+      throw normalizeError(e);
+    }
+  },
+
+  async getPosts(params = {}) {
+    try {
+      const { data } = await client.get('/posts', { params });
+      return data?.data ?? data ?? { items: [] };
+    } catch (e) {
+      if (USE_DUMMY_AUTH) return { items: [], nextCursor: null, hasMore: false };
+      throw normalizeError(e);
+    }
+  },
+
+  async getTopicPosts(topicId, params = {}) {
+    if (!topicId) return this.getPosts(params);
+    try {
+      const { data } = await client.get(`/topics/${encodeURIComponent(topicId)}/posts`, { params });
+      return data?.data ?? data ?? { items: [] };
+    } catch (e) {
+      if (USE_DUMMY_AUTH) return { items: [], nextCursor: null, hasMore: false };
+      throw normalizeError(e);
+    }
+  },
+
+  async createPost({ topicId, content } = {}) {
+    if (!content) throw normalizeError(new Error('게시글 내용을 입력해 주세요.'));
+    const { data } = await client.post('/posts', {
+      topicId: topicId || undefined,
+      content: String(content).trim(),
+    });
+    return data?.data ?? data;
+  },
+
+  async deletePost(postId) {
+    if (!postId) throw normalizeError(new Error('삭제할 게시글 ID가 필요합니다.'));
+    const { data } = await client.delete(`/posts/${encodeURIComponent(postId)}`);
+    return data?.data ?? data;
+  },
+
+  // Post Comments
+  async getPostComments(postId) {
+    if (!postId) return [];
+    try {
+      const { data } = await client.get(`/posts/${encodeURIComponent(postId)}/comments`);
+      return data?.data ?? data ?? [];
+    } catch (e) {
+      if (USE_DUMMY_AUTH) return [];
+      throw normalizeError(e);
+    }
+  },
+
+  async createPostComment(postId, { content } = {}) {
+    if (!postId) throw normalizeError(new Error('게시글 ID가 필요합니다.'));
+    if (!content || !content.trim()) throw normalizeError(new Error('댓글 내용을 입력해 주세요.'));
+    const { data } = await client.post(`/posts/${encodeURIComponent(postId)}/comments`, {
+      content: String(content).trim(),
+    });
+    return data?.data ?? data;
+  },
+
+  async deletePostComment(postId, commentId) {
+    if (!postId || !commentId) throw normalizeError(new Error('게시글 및 댓글 ID가 필요합니다.'));
+    const { data } = await client.delete(
+      `/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`,
+    );
+    return data?.data ?? data;
+  },
+
+  // Block & Report
+  async blockUser({ blockedUserId, targetAccountId } = {}) {
+    if (!blockedUserId && !targetAccountId) {
+      throw normalizeError(new Error('차단 대상 정보가 필요합니다.'));
+    }
+    const { data } = await client.post('/community/block', {
+      ...(blockedUserId ? { blockedUserId: String(blockedUserId).trim() } : {}),
+      ...(targetAccountId ? { targetAccountId: String(targetAccountId).trim() } : {}),
+    });
+    return data?.data ?? data;
+  },
+
+  async unblockUser(blockedUserId) {
+    if (!blockedUserId) throw normalizeError(new Error('차단 해제 대상 ID가 필요합니다.'));
+    const { data } = await client.delete(`/community/block/${encodeURIComponent(blockedUserId)}`);
+    return data?.data ?? data;
+  },
+
+  async getBlockedUsers() {
+    try {
+      const { data } = await client.get('/community/blocks');
+      return data?.data ?? data ?? [];
+    } catch {
+      return [];
+    }
+  },
+
+  async reportPost({ postId, targetUserId, reason } = {}) {
+    const { data } = await client.post('/community/report', {
+      ...(postId ? { postId: String(postId).trim() } : {}),
+      ...(targetUserId ? { targetUserId: String(targetUserId).trim() } : {}),
+      reason: String(reason || '부적절한 내용').trim(),
+    });
+    return data?.data ?? data;
+  },
 };
 
 export default client;

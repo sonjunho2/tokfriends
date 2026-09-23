@@ -12,6 +12,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
+import { CreateCommentDto } from './dto/create-comment.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
@@ -74,6 +75,59 @@ export class PostsController {
   async delete(@CurrentUser() user: any, @Param('id') postId: string) {
     const currentUserId = user?.id ?? user?.sub;
     const result = await this.postsService.delete(currentUserId, postId);
+    return {
+      ok: true,
+      data: result,
+    };
+  }
+
+  @Get('posts/:id/comments')
+  async listComments(
+    @CurrentUser() user: any,
+    @Param('id') postId: string,
+  ) {
+    const currentUserId = user?.id ?? user?.sub;
+    const comments = await this.postsService.listComments(postId, currentUserId);
+    return {
+      ok: true,
+      data: comments,
+    };
+  }
+
+  @Post('posts/:id/comments')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async createComment(
+    @CurrentUser() user: any,
+    @Param('id') postId: string,
+    @Body() dto: CreateCommentDto,
+  ) {
+    const currentUserId = user?.id ?? user?.sub;
+    const comment = await this.postsService.createComment(
+      currentUserId,
+      postId,
+      dto.content,
+    );
+    return {
+      ok: true,
+      data: comment,
+    };
+  }
+
+  @Delete('posts/:id/comments/:commentId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async deleteComment(
+    @CurrentUser() user: any,
+    @Param('id') postId: string,
+    @Param('commentId') commentId: string,
+  ) {
+    const currentUserId = user?.id ?? user?.sub;
+    const result = await this.postsService.deleteComment(
+      currentUserId,
+      postId,
+      commentId,
+    );
     return {
       ok: true,
       data: result,

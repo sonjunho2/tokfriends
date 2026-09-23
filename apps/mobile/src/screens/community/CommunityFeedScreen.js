@@ -57,6 +57,14 @@ export default function CommunityFeedScreen({ navigation, route }) {
   const [newPostTopicId, setNewPostTopicId] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Comments modal state
+  const [commentsModalVisible, setCommentsModalVisible] = useState(false);
+  const [activePost, setActivePost] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [newCommentText, setNewCommentText] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+
   // Load topics
   const loadTopics = useCallback(async () => {
     try {
@@ -278,6 +286,70 @@ export default function CommunityFeedScreen({ navigation, route }) {
     });
   };
 
+  const handleOpenComments = useCallback(async (post) => {
+    setActivePost(post);
+    setCommentsModalVisible(true);
+    setLoadingComments(true);
+    try {
+      const data = await apiClient.getPostComments(post.id);
+      setComments(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.warn('Failed to load comments', e);
+      setComments([]);
+    } finally {
+      setLoadingComments(false);
+    }
+  }, []);
+
+  const handleCreateComment = useCallback(async () => {
+    if (!activePost?.id || !newCommentText.trim() || submittingComment) return;
+    setSubmittingComment(true);
+    try {
+      const created = await apiClient.createPostComment(activePost.id, {
+        content: newCommentText.trim(),
+      });
+      setComments((prev) => [...prev, created]);
+      setNewCommentText('');
+      setPosts((prevPosts) =>
+        prevPosts.map((p) =>
+          p.id === activePost.id
+            ? { ...p, commentsCount: (p.commentsCount || 0) + 1 }
+            : p,
+        ),
+      );
+    } catch (e) {
+      Alert.alert('댓글 작성 실패', e?.message || '댓글을 작성하지 못했습니다.');
+    } finally {
+      setSubmittingComment(false);
+    }
+  }, [activePost, newCommentText, submittingComment]);
+
+  const handleDeleteComment = useCallback(async (commentId) => {
+    if (!activePost?.id || !commentId) return;
+    Alert.alert('댓글 삭제', '댓글을 삭제하시겠습니까?', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '삭제',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await apiClient.deletePostComment(activePost.id, commentId);
+            setComments((prev) => prev.filter((c) => c.id !== commentId));
+            setPosts((prevPosts) =>
+              prevPosts.map((p) =>
+                p.id === activePost.id
+                  ? { ...p, commentsCount: Math.max(0, (p.commentsCount || 1) - 1) }
+                  : p,
+              ),
+            );
+          } catch (e) {
+            Alert.alert('삭제 실패', e?.message || '댓글 삭제에 실패했습니다.');
+          }
+        },
+      },
+    ]);
+  }, [activePost]);
+
   const handleStartChat = async (author) => {
     if (!author) return;
     try {
@@ -353,6 +425,17 @@ export default function CommunityFeedScreen({ navigation, route }) {
 
         {/* Post Bottom Bar */}
         <View style={styles.postFooter}>
+          <TouchableOpacity
+            style={styles.footerCommentButton}
+            onPress={() => handleOpenComments(item)}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="chatbubbles-outline" size={15} color={colors.textSecondary} />
+            <Text style={styles.footerCommentText}>
+              댓글 {item.commentsCount > 0 ? item.commentsCount : ''}
+            </Text>
+          </TouchableOpacity>
+
           {!isMine && (
             <TouchableOpacity
               style={styles.footerChatButton}
@@ -559,6 +642,121 @@ export default function CommunityFeedScreen({ navigation, route }) {
           </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
+
+      {/* Comments Modal */}
+      <Modal
+        visible={commentsModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setCommentsModalVisible(false)}
+      >
+        <SafeAreaView style={styles.commentsModalContainer}>
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            {/* Modal Header */}
+            <View style={styles.commentsHeader}>
+              <Text style={styles.commentsHeaderTitle}>
+                댓글 {comments.length > 0 ? `(${comments.length})` : ''}
+              </Text>
+              <TouchableOpacity
+                style={styles.commentsCloseBtn}
+                onPress={() => setCommentsModalVisible(false)}
+                hitSlop={8}
+              >
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Post Summary Preview */}
+            {activePost ? (
+              <View style={styles.commentsPostPreview}>
+                <Text style={styles.commentsPostAuthor}>
+                  {activePost.author?.name}님의 글
+                </Text>
+                <Text style={styles.commentsPostSnippet} numberOfLines={2}>
+                  {activePost.content}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Comments List */}
+            {loadingComments ? (
+              <View style={styles.commentsLoadingBox}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={styles.commentsLoadingText}>댓글을 불러오고 있습니다...</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={comments}
+                keyExtractor={(item) => String(item.id)}
+                contentContainerStyle={styles.commentsListContent}
+                ListEmptyComponent={
+                  <View style={styles.commentsEmptyBox}>
+                    <Ionicons name="chatbubbles-outline" size={36} color={colors.textTertiary} />
+                    <Text style={styles.commentsEmptyText}>첫 댓글의 주인공이 되어보세요!</Text>
+                  </View>
+                }
+                renderItem={({ item }) => {
+                  const isCommentMine =
+                    currentUser?.id &&
+                    item.author?.id &&
+                    String(currentUser.id) === String(item.author.id);
+                  return (
+                    <View style={styles.commentItem}>
+                      <Avatar size={34} name={item.author?.name} uri={item.author?.avatar} />
+                      <View style={styles.commentBody}>
+                        <View style={styles.commentAuthorRow}>
+                          <Text style={styles.commentAuthorName}>{item.author?.name}</Text>
+                          <Text style={styles.commentTime}>{formatTimeAgo(item.createdAt)}</Text>
+                          {isCommentMine && (
+                            <TouchableOpacity
+                              onPress={() => handleDeleteComment(item.id)}
+                              style={styles.commentDeleteBtn}
+                              hitSlop={8}
+                            >
+                              <Text style={styles.commentDeleteText}>삭제</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                        <Text style={styles.commentContent}>{item.content}</Text>
+                      </View>
+                    </View>
+                  );
+                }}
+              />
+            )}
+
+            {/* Comment Input Row */}
+            <View style={styles.commentInputRow}>
+              <TextInput
+                style={styles.commentTextInput}
+                placeholder="따뜻한 댓글을 남겨보세요..."
+                placeholderTextColor={colors.textTertiary}
+                value={newCommentText}
+                onChangeText={setNewCommentText}
+                multiline
+                maxLength={500}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.commentSubmitBtn,
+                  (!newCommentText.trim() || submittingComment) && styles.commentSubmitBtnDisabled,
+                ]}
+                onPress={handleCreateComment}
+                disabled={!newCommentText.trim() || submittingComment}
+              >
+                {submittingComment ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="arrow-up" size={18} color="#fff" />
+                )}
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -726,10 +924,24 @@ const styles = StyleSheet.create({
     marginTop: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
     paddingTop: 10,
+  },
+  footerCommentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+  },
+  footerCommentText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
   footerChatButton: {
     flexDirection: 'row',
@@ -869,5 +1081,147 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textTertiary,
     marginTop: 8,
+  },
+  // Comments modal styles
+  commentsModalContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  commentsHeader: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.backgroundSecondary,
+  },
+  commentsHeaderTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  commentsCloseBtn: {
+    padding: 6,
+  },
+  commentsPostPreview: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.pillBg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  commentsPostAuthor: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: 2,
+  },
+  commentsPostSnippet: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textSecondary,
+  },
+  commentsLoadingBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 24,
+  },
+  commentsLoadingText: {
+    fontSize: 13,
+    color: colors.textTertiary,
+  },
+  commentsListContent: {
+    padding: 16,
+    gap: 16,
+  },
+  commentsEmptyBox: {
+    paddingVertical: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  commentsEmptyText: {
+    fontSize: 14,
+    color: colors.textTertiary,
+  },
+  commentItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  commentBody: {
+    flex: 1,
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  commentAuthorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  commentAuthorName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  commentTime: {
+    fontSize: 11,
+    color: colors.textTertiary,
+    flex: 1,
+  },
+  commentDeleteBtn: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  commentDeleteText: {
+    fontSize: 11,
+    color: '#EF4444',
+    fontWeight: '600',
+  },
+  commentContent: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.text,
+  },
+  commentInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.backgroundSecondary,
+    gap: 8,
+  },
+  commentTextInput: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 100,
+    backgroundColor: colors.pillBg,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: colors.text,
+  },
+  commentSubmitBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  commentSubmitBtnDisabled: {
+    opacity: 0.4,
   },
 });
