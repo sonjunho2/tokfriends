@@ -1,10 +1,10 @@
 // services/api/src/modules/posts/dto/create-post.dto.ts
-import { IsString, IsNotEmpty, Length } from 'class-validator';
+import { IsString, IsNotEmpty, Length, IsOptional } from 'class-validator';
 
 export class CreatePostDto {
  @IsString()
- @IsNotEmpty()
- topicId: string;
+ @IsOptional()
+ topicId?: string;
 
  @IsString()
  @IsNotEmpty()

@@ -1,9 +1,18 @@
+// src/screens/main/HomeScreen.js
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
 import Card from '../../components/Card';
+import Avatar from '../../components/Avatar';
 import { apiClient } from '../../api/client';
 
 const GRID = [
@@ -13,7 +22,7 @@ const GRID = [
   { key: '40대이상', label: '40대이상' },
 ];
 
-const CARD_H = 190; // 두 박스 동일 높이
+const CARD_H = 190;
 
 function mapHomeDiscoverUser(user) {
   const profile = user?.profile ?? {};
@@ -41,11 +50,14 @@ export default function HomeScreen({ navigation }) {
   const [idxNew, setIdxNew] = useState(0);
   const [idxBest, setIdxBest] = useState(0);
   const [discoverUsers, setDiscoverUsers] = useState([]);
+  const [communityTopics, setCommunityTopics] = useState([]);
+  const [recentPosts, setRecentPosts] = useState([]);
 
   useEffect(() => {
     const t = setInterval(() => setLeftSec((s) => (s > 0 ? s - 1 : 0)), 1000);
     return () => clearInterval(t);
   }, []);
+
   const leftStr = useMemo(() => {
     const m = Math.floor(leftSec / 60);
     const s = String(leftSec % 60).padStart(2, '0');
@@ -55,15 +67,35 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
     let active = true;
 
-    const loadDiscoverUsers = async () => {
+    const loadData = async () => {
       try {
-        const result = await apiClient.getDiscover();
-        const list = Array.isArray(result) ? result : [];
+        const [discoverResult, topicsResult, postsResult] = await Promise.allSettled([
+          apiClient.getDiscover(),
+          apiClient.getTopics(),
+          apiClient.getPosts({ take: 3 }),
+        ]);
 
-        if (active) {
+        if (!active) return;
+
+        if (discoverResult.status === 'fulfilled') {
+          const list = Array.isArray(discoverResult.value) ? discoverResult.value : [];
           setDiscoverUsers(
             list.map(mapHomeDiscoverUser).filter((item) => item.id),
           );
+        }
+
+        if (topicsResult.status === 'fulfilled') {
+          const list = Array.isArray(topicsResult.value) ? topicsResult.value : [];
+          setCommunityTopics(list);
+        }
+
+        if (postsResult.status === 'fulfilled') {
+          const items = Array.isArray(postsResult.value?.items)
+            ? postsResult.value.items
+            : Array.isArray(postsResult.value)
+            ? postsResult.value
+            : [];
+          setRecentPosts(items);
         }
       } catch {
         if (active) {
@@ -72,14 +104,14 @@ export default function HomeScreen({ navigation }) {
       }
     };
 
-    loadDiscoverUsers();
+    loadData();
 
     return () => {
       active = false;
     };
   }, []);
 
-  // 실제 회원 캐러셀
+  // 캐러셀 타이머
   useEffect(() => {
     if (discoverUsers.length <= 1) return undefined;
 
@@ -108,7 +140,7 @@ export default function HomeScreen({ navigation }) {
       ? discoverUsers[(idxBest + 1) % discoverUsers.length]
       : null;
 
-    const handleHighlightPress = (item) => {
+  const handleHighlightPress = (item) => {
     if (!item) return;
     const targetAccountId =
       typeof item?.targetAccountId === 'string'
@@ -136,9 +168,13 @@ export default function HomeScreen({ navigation }) {
     });
   };
 
+  const handleOpenCommunity = (topicId = null) => {
+    navigation.navigate('CommunityFeed', { initialTopicId: topicId });
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
-      {/* 상단 앱명(가운데/크게) + 검색 */}
+      {/* 상단 앱명(가운데) + 검색 */}
       <View style={styles.appbar}>
         <View style={{ width: 24 }} />
         <Text style={styles.appTitle}>DAGAON</Text>
@@ -148,7 +184,7 @@ export default function HomeScreen({ navigation }) {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 120 /* 하단 탭바 가림 방지 */ }}
+        contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
         {/* 초록 배너 */}
@@ -201,7 +237,7 @@ export default function HomeScreen({ navigation }) {
           </View>
         </Card>
 
-        {/* 새로운 친구 / 추천 친구 — 동일 높이 + 이미지 1장 자동 전환 + 하단 중앙 정렬 제목 */}
+        {/* 새로운 친구 / 추천 친구 */}
         <View style={styles.dualRow}>
           {/* 새로운 친구 */}
           <View style={styles.dualCol}>
@@ -214,7 +250,11 @@ export default function HomeScreen({ navigation }) {
             >
               <Card style={[styles.dualCard, { height: CARD_H }]}>
                 <View style={styles.imageWrap}>
-                  {newItem?.avatar ? <Image source={{ uri: newItem.avatar }} style={styles.image} /> : <Text style={styles.dualTitle}>{newItem?.name || '회원 없음'}</Text>}
+                  {newItem?.avatar ? (
+                    <Image source={{ uri: newItem.avatar }} style={styles.image} />
+                  ) : (
+                    <Text style={styles.dualTitle}>{newItem?.name || '회원 없음'}</Text>
+                  )}
                 </View>
               </Card>
             </TouchableOpacity>
@@ -231,17 +271,103 @@ export default function HomeScreen({ navigation }) {
             >
               <Card style={[styles.dualCard, { height: CARD_H }]}>
                 <View style={styles.imageWrap}>
-                  {bestItem?.avatar ? <Image source={{ uri: bestItem.avatar }} style={styles.image} /> : <Text style={styles.dualTitle}>{bestItem?.name || '회원 없음'}</Text>}
+                  {bestItem?.avatar ? (
+                    <Image source={{ uri: bestItem.avatar }} style={styles.image} />
+                  ) : (
+                    <Text style={styles.dualTitle}>{bestItem?.name || '회원 없음'}</Text>
+                  )}
                 </View>
               </Card>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* MJ톡 안내 (자리) */}
+        {/* 커뮤니티 토픽 피드 섹션 */}
+        <View style={styles.communitySection}>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>동네 토픽 이야기</Text>
+              <Text style={styles.sectionSub}>다양한 관심사로 이웃과 소통해보세요</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => handleOpenCommunity()}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.link}>전체보기 ›</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* 토픽 칩 리스트 */}
+          {communityTopics.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.topicChipScroll}
+            >
+              {communityTopics.map((topic) => (
+                <TouchableOpacity
+                  key={topic.id}
+                  style={styles.homeTopicChip}
+                  onPress={() => handleOpenCommunity(topic.id)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.homeTopicChipText}>#{topic.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+
+          {/* 최근 게시글 미리보기 */}
+          {recentPosts.length > 0 ? (
+            <View style={styles.recentPostsList}>
+              {recentPosts.map((post) => (
+                <TouchableOpacity
+                  key={post.id}
+                  style={styles.postPreviewCard}
+                  onPress={() => handleOpenCommunity(post.topicId)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.previewTop}>
+                    <Avatar
+                      size={28}
+                      name={post.author?.name}
+                      uri={post.author?.avatar}
+                    />
+                    <Text style={styles.previewAuthor}>{post.author?.name}</Text>
+                    <View style={styles.previewTopicBadge}>
+                      <Text style={styles.previewTopicText}>#{post.topicName}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.previewContent} numberOfLines={2}>
+                    {post.content}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.emptyPostPrompt}
+              onPress={() => handleOpenCommunity()}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.primary} />
+              <Text style={styles.emptyPostPromptText}>
+                첫 이야기를 남기고 이웃들과 소통을 시작해보세요!
+              </Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* 다가온 안심 서비스 안내 */}
         <Card style={styles.guideCard}>
-          <Text style={styles.guideTitle}>MJ톡 안내</Text>
-          <Text style={styles.guideSub}>공지/도움말/가이드 영역</Text>
+          <View style={styles.guideHeader}>
+            <Ionicons name="shield-checkmark" size={20} color={colors.primary} />
+            <Text style={styles.guideTitle}>다가온 안심 서비스 안내</Text>
+          </View>
+          <Text style={styles.guideSub}>
+            철저한 본인 인증과 24시간 모니터링으로 안전하고 깨끗한 만남을 지원합니다.
+          </Text>
         </Card>
       </ScrollView>
     </SafeAreaView>
@@ -253,26 +379,70 @@ const styles = StyleSheet.create({
 
   appbar: {
     position: 'relative',
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: colors.backgroundSecondary, borderBottomWidth: 1, borderBottomColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.backgroundSecondary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  appTitle: { fontSize: 20, fontWeight: '900', color: colors.text, textAlign: 'center', flex: 1 },
+  appTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: colors.text,
+    textAlign: 'center',
+    flex: 1,
+  },
   searchBtn: { width: 24, alignItems: 'flex-end' },
 
-  greenCard: { marginHorizontal: 16, marginTop: 12, backgroundColor: '#E8FAD8', borderRadius: 14, position: 'relative' },
+  greenCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    backgroundColor: '#E8FAD8',
+    borderRadius: 14,
+    position: 'relative',
+  },
   greenTitle: { color: '#14853E', fontWeight: '900', fontSize: 14 },
-  greenDesc: { color: '#1D4C2B', fontWeight: '700', fontSize: 16, lineHeight: 22, marginTop: 2 },
+  greenDesc: {
+    color: '#1D4C2B',
+    fontWeight: '700',
+    fontSize: 16,
+    lineHeight: 22,
+    marginTop: 2,
+  },
   timerBtn: {
-    position: 'absolute', right: 10, top: 10,
-    backgroundColor: '#2FB75E', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8,
-    flexDirection: 'row', alignItems: 'center', gap: 6,
+    position: 'absolute',
+    right: 10,
+    top: 10,
+    backgroundColor: '#2FB75E',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   timerTxt: { color: '#fff', fontWeight: '900', fontSize: 12 },
-  greenBadge: { position: 'absolute', right: 10, bottom: 8, backgroundColor: '#DDF0CB', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
+  greenBadge: {
+    position: 'absolute',
+    right: 10,
+    bottom: 8,
+    backgroundColor: '#DDF0CB',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
   greenBadgeTxt: { color: '#2D6B39', fontWeight: '700', fontSize: 11 },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, paddingHorizontal: 16, paddingTop: 12 },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
   gridItem: { width: '22%', alignItems: 'center' },
   gridIcon: {
     width: 72,
@@ -293,26 +463,38 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  wideCard: { marginHorizontal: 16, marginTop: 12, borderRadius: 14, padding: 16 },
-  wideRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  wideCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 14,
+    padding: 16,
+  },
+  wideRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   wideTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
   link: { color: colors.primary, fontWeight: '800' },
 
-  dualRow: { flexDirection: 'row', gap: 16, paddingHorizontal: 16, marginTop: 20 },
+  dualRow: {
+    flexDirection: 'row',
+    gap: 16,
+    paddingHorizontal: 16,
+    marginTop: 20,
+  },
   dualCol: { flex: 1 },
 
   dualCard: {
     borderRadius: 18,
     justifyContent: 'center',
     overflow: 'hidden',
-        padding: 0,
+    padding: 0,
   },
-
   dualHeader: {
     marginBottom: 10,
     paddingHorizontal: 4,
   },
-  // 이미지를 박스에 가득 채우되 부드러운 라운드를 유지
   imageWrap: {
     flex: 1,
     borderRadius: 18,
@@ -324,14 +506,122 @@ const styles = StyleSheet.create({
     height: '100%',
     resizeMode: 'cover',
   },
-
   dualTitle: {
     fontSize: 16,
     fontWeight: '900',
     color: colors.text,
   },
 
-  guideCard: { marginHorizontal: 16, marginTop: 12, borderRadius: 14, padding: 16 },
+  // Community Section
+  communitySection: {
+    marginTop: 24,
+    paddingHorizontal: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: colors.text,
+  },
+  sectionSub: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  topicChipScroll: {
+    gap: 8,
+    paddingBottom: 10,
+  },
+  homeTopicChip: {
+    backgroundColor: colors.backgroundSecondary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  homeTopicChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  recentPostsList: {
+    gap: 10,
+  },
+  postPreviewCard: {
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  previewTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  previewAuthor: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+    flex: 1,
+  },
+  previewTopicBadge: {
+    backgroundColor: colors.pillActiveBg,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  previewTopicText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  previewContent: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.text,
+  },
+  emptyPostPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  emptyPostPromptText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+
+  // Guide card
+  guideCard: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    borderRadius: 14,
+    padding: 16,
+  },
+  guideHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   guideTitle: { fontSize: 16, fontWeight: '800', color: colors.text },
-  guideSub: { marginTop: 6, color: colors.textSecondary },
+  guideSub: {
+    marginTop: 6,
+    color: colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+  },
 });

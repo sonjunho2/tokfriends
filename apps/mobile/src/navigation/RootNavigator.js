@@ -16,6 +16,7 @@ import SettingsScreen from '../screens/my/SettingsScreen';
 import ProfileEditScreen from '../screens/my/ProfileEditScreen';
 import BlockedUsersScreen from '../screens/my/BlockedUsersScreen';
 import FriendsScreen from '../screens/my/FriendsScreen';
+import CommunityFeedScreen from '../screens/community/CommunityFeedScreen';
 
 // ===== 서브 =====
 import HotRecommendScreen from '../screens/recommend/HotRecommendScreen';
@@ -72,6 +73,11 @@ function HomeStack() {
         component={FriendsScreen}
         options={{ animation: 'slide_from_right' }}
       />
+      <HomeStackNav.Screen
+        name="CommunityFeed"
+        component={CommunityFeedScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
     </HomeStackNav.Navigator>
   );
 }
@@ -121,6 +127,11 @@ function MyPageStack() {
       <MyPageStackNav.Screen
         name="Friends"
         component={FriendsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="CommunityFeed"
+        component={CommunityFeedScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </MyPageStackNav.Navigator>

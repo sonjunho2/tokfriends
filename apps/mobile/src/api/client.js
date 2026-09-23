@@ -728,10 +728,62 @@ export const apiClient = {
     catch { const { data } = await client.get('/announcements', { params: { isActive: true } }); return data; }
   },
 
-  async getTopics() { const { data } = await client.get('/topics'); return data; },
-  async getPosts(params = {}) { const { data } = await client.get('/posts', { params }); return data; },
-  async getTopicPosts(topicId, params = {}) { const { data } = await client.get(`/topics/${topicId}/posts`, { params }); return data; },
-  async createPost(postData) { const { data } = await client.post('/posts', postData); return data; },
+  async getTopics() {
+    try {
+      const { data } = await client.get('/topics');
+      return Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async getPosts(params = {}) {
+    try {
+      const { data } = await client.get('/posts', { params });
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async getTopicPosts(topicId, params = {}) {
+    if (!topicId) throw normalizeError(new Error('토픽 ID가 필요합니다.'));
+    try {
+      const { data } = await client.get(`/topics/${encodeURIComponent(topicId)}/posts`, { params });
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async createPost(postData = {}) {
+    const content = typeof postData?.content === 'string' ? postData.content.trim() : '';
+    if (!content) {
+      throw normalizeError(new Error('내용을 입력해 주세요.'));
+    }
+    try {
+      const { data } = await client.post('/posts', {
+        content,
+        ...(postData.topicId ? { topicId: postData.topicId } : {}),
+      });
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async deletePost(postId) {
+    const target = String(postId || '').trim();
+    if (!target) {
+      throw normalizeError(new Error('게시글 ID가 필요합니다.'));
+    }
+    try {
+      const { data } = await client.delete(`/posts/${encodeURIComponent(target)}`);
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
   async reportUser(reportData = {}) {
     const targetUserId = typeof reportData?.targetUserId === 'string'
       ? reportData.targetUserId.trim()
