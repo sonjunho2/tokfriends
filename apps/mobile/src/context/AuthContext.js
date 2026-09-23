@@ -1,6 +1,9 @@
-// src/context/AuthContext.js
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { apiClient, saveToken, clearToken, getStoredToken } from '../api/client';
+import {
+  registerPushNotifications,
+  unregisterPushNotifications,
+} from '../utils/pushNotifications';
 
 const AuthContext = createContext({
   user: null,
@@ -28,6 +31,7 @@ export const AuthProvider = ({ children }) => {
           setState((s) => ({ ...s, token: stored }));
           const me = await apiClient.getMe();
           setState((s) => ({ ...s, user: me }));
+          registerPushNotifications().catch(() => {});
         }
       } catch (e) {
         await clearToken();
@@ -59,6 +63,7 @@ export const AuthProvider = ({ children }) => {
         ? userPayload
         : await apiClient.getMe();
       setState((s) => ({ ...s, user: me }));
+      registerPushNotifications().catch(() => {});
       return { success: true, user: me };
     } catch (e) {
       return { success: false, error: e?.message || '세션 설정에 실패했습니다.' };
@@ -95,6 +100,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    try { await unregisterPushNotifications(); } catch {}
     try { await clearToken(); } catch {}
     setState({ user: null, token: null, initializing: false });
   };

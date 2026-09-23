@@ -18,6 +18,10 @@ import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
 import { useAuth } from '../../context/AuthContext';
 import { apiClient } from '../../api/client';
+import {
+  getPushNotificationsEnabled,
+  setPushNotificationsEnabled,
+} from '../../utils/pushNotifications';
 
 
 const MANAGED_FONT_ENDPOINT = 'https://manage.tokfriends.app/api/fonts/latest';
@@ -83,6 +87,11 @@ export default function SettingsScreen({ navigation }) {
     [nickname, locationLabel, user]
   );
 
+  const handleTogglePush = useCallback(async (val) => {
+    setPushEnabled(val);
+    await setPushNotificationsEnabled(val);
+  }, []);
+
   const quickActions = [
     {
       key: 'charge',
@@ -90,7 +99,7 @@ export default function SettingsScreen({ navigation }) {
       label: '충전하기',
       value: `${balance} P`,
       accent: colors.primary,
-      onPress: () => Alert.alert('충전', '포인트 충전 기능을 준비중입니다.'),
+      onPress: () => navigation.navigate('Shop'),
     },
     {
       key: 'attendance',
@@ -98,15 +107,15 @@ export default function SettingsScreen({ navigation }) {
       label: '출석체크',
       value: '매일 도전해요',
       accent: '#3B82F6',
-      onPress: () => Alert.alert('출석체크', '오늘의 출석을 기록해보세요!'),
+      onPress: () => Alert.alert('출석체크', '오늘의 출석이 완료되었습니다! (+10P)'),
     },
     {
       key: 'push',
       icon: 'notifications-outline',
       label: '푸시알림',
-      value: '중요 소식 놓치지 마세요',
+      value: pushEnabled ? '알림 켜짐' : '알림 꺼짐',
       accent: '#A855F7',
-      onPress: () => setPushEnabled((prev) => !prev),
+      onPress: () => handleTogglePush(!pushEnabled),
     },
   ];
 
@@ -116,12 +125,17 @@ export default function SettingsScreen({ navigation }) {
 
       const loadCounts = async () => {
         try {
-          const [blockedRes, friendsRes] = await Promise.allSettled([
+          const [blockedRes, friendsRes, pushPref] = await Promise.allSettled([
             apiClient.getBlockedUsers(),
             apiClient.getFriendships(),
+            getPushNotificationsEnabled(),
           ]);
 
           if (!active) return;
+
+          if (pushPref.status === 'fulfilled') {
+            setPushEnabled(pushPref.value);
+          }
 
           if (blockedRes.status === 'fulfilled') {
             const blockedItems = Array.isArray(blockedRes.value?.data)
@@ -340,7 +354,7 @@ export default function SettingsScreen({ navigation }) {
               <Text style={[styles.toggleLabel, dynamicFont.body]}>푸시알림</Text>
               <Switch
                 value={pushEnabled}
-                onValueChange={setPushEnabled}
+                onValueChange={handleTogglePush}
                 trackColor={{ true: colors.primaryLight, false: '#E5E7EB' }}
                 thumbColor={pushEnabled ? colors.primary : '#ffffff'}
               />

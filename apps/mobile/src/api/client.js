@@ -1258,6 +1258,42 @@ export const apiClient = {
       throw normalizeError(err);
     }
   },
+
+  // Notifications Module
+  async registerDeviceToken({ token, platform, locale = 'ko' } = {}) {
+    if (!token) return { success: false, reason: 'missing_token' };
+    try {
+      const { data } = await client.post('/notifications/token', {
+        token: String(token).trim(),
+        platform: String(platform || 'android').trim(),
+        locale: String(locale || 'ko').trim(),
+      });
+      return data?.data ?? data ?? { success: true };
+    } catch (e) {
+      if (USE_DUMMY_AUTH) return { success: true, dummy: true };
+      throw normalizeError(e);
+    }
+  },
+
+  async unregisterDeviceToken(token) {
+    if (!token) return { success: false };
+    try {
+      const { data } = await client.delete(`/notifications/token/${encodeURIComponent(token)}`);
+      return data?.data ?? data ?? { success: true };
+    } catch (e) {
+      if (USE_DUMMY_AUTH) return { success: true, dummy: true };
+      throw normalizeError(e);
+    }
+  },
+
+  async getUserDevices() {
+    try {
+      const { data } = await client.get('/notifications/devices');
+      return data?.data ?? data ?? [];
+    } catch {
+      return [];
+    }
+  },
 };
 
 export default client;

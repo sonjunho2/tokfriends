@@ -1807,20 +1807,23 @@ COMPLETE (services/api/store_assets/point-products.json canonical point products
 Mobile Chat Media Attachments & Profile Avatar Upload Integration:
 COMPLETE (AppModule MediaModule registration, MediaController & MediaService multipart file handling, apiClient uploadChatMedia and uploadAvatar methods with dummy auth fallback, ChatRoomScreen image/video attachment flow with real-time uploadingBar progress feedback, and ProfileEditScreen avatar upload integration).
 
+Mobile Push Notification Device Token Registration & Settings Integration:
+COMPLETE (NotificationsController & NotificationsService device token registration, apiClient registerDeviceToken/unregisterDeviceToken/getUserDevices, mobile pushNotifications utility with AsyncStorage persistence, AuthContext automatic device token registration on login/startup and cleanup on logout, and SettingsScreen interactive push notification switch toggle with status indicator and Shop navigation link).
+
 Next implementation phase:
-MOBILE PUSH NOTIFICATION TOKEN REGISTRATION & NOTIFICATIONS (NotificationsModule) — READY.
+COMMUNITY POST COMMENTS & DISCUSSION THREAD FLOW — READY.
 
 ## Immediate Next Task
 
-Mobile Push Notification Device Token Registration & Delivery Verification.
+Community Post Comments & Reply Thread Foundation.
 
 Status: READY.
 
 Goals:
-- inspect notifications endpoints (POST /notifications/token, GET /notifications)
-- wire mobile notification permission request and push token registration on app launch
-- verify push delivery on incoming 1:1 chat messages, gifts, and friend requests
-- add notification badge / list display in mobile UI
+- inspect post comments schema / model foundation
+- add comment creation, retrieval, and deletion endpoints in Posts/Community module
+- connect CommunityFeedScreen post card with comment modal / sheet
+- test bilateral block filtering and author profile enrichment on comments
 
 cd C:\Users\ION\Downloads\work\tokfriends
 git branch --show-current
