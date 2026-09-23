@@ -23,6 +23,7 @@ import { FriendshipsModule } from './friendships/friendships.module';
 import { TopicsModule } from './topics/topics.module';
 import { PostsModule } from './posts/posts.module';
 import { LiveModule } from './live/live.module';
+import { MediaModule } from './media/media.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { LiveModule } from './live/live.module';
     AuthModule,
     UsersModule,
     ChatsModule,
+    MediaModule,
     NotificationsModule,
     GiftsModule,
     FollowsModule,

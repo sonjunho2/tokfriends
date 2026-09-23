@@ -1188,6 +1188,76 @@ export const apiClient = {
     });
     return data?.data ?? data;
   },
+
+  // Media Upload Module
+  async uploadChatMedia(asset) {
+    if (!asset?.uri) throw normalizeError(new Error('미디어 파일이 필요합니다.'));
+
+    if (USE_DUMMY_AUTH) {
+      return {
+        url: asset.uri,
+        key: `dummy_${Date.now()}`,
+        mediaType: (asset?.type || '').includes('video') ? 'video' : 'image',
+      };
+    }
+
+    const formData = new FormData();
+    const uri = asset.uri;
+    const filename = asset.fileName || uri.split('/').pop() || 'upload.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const type = asset.mimeType || (match ? `image/${match[1]}` : 'image/jpeg');
+
+    formData.append('file', {
+      uri,
+      name: filename,
+      type,
+    });
+
+    try {
+      const { data } = await client.post('/media/chat', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return data?.data ?? data;
+    } catch (err) {
+      throw normalizeError(err);
+    }
+  },
+
+  async uploadAvatar(asset) {
+    if (!asset?.uri) throw normalizeError(new Error('이미지 파일이 필요합니다.'));
+
+    if (USE_DUMMY_AUTH) {
+      return {
+        url: asset.uri,
+        key: `dummy_avatar_${Date.now()}`,
+      };
+    }
+
+    const formData = new FormData();
+    const uri = asset.uri;
+    const filename = asset.fileName || uri.split('/').pop() || 'avatar.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const type = asset.mimeType || (match ? `image/${match[1]}` : 'image/jpeg');
+
+    formData.append('file', {
+      uri,
+      name: filename,
+      type,
+    });
+
+    try {
+      const { data } = await client.post('/media/avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return data?.data ?? data;
+    } catch (err) {
+      throw normalizeError(err);
+    }
+  },
 };
 
 export default client;

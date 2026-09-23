@@ -196,6 +196,7 @@ export default function ChatRoomScreen({ route, navigation }) {
   const [loadingGifts, setLoadingGifts] = useState(false);
   const [giftError, setGiftError] = useState(null);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
   const [isFavorite, setIsFavorite] = useState(route?.params?.isFavorite ?? false);
   const insets = useSafeAreaInsets();
 
@@ -644,6 +645,7 @@ export default function ChatRoomScreen({ route, navigation }) {
       const mediaType = assetType.includes('video') ? 'video' : 'image';
       const clientMessageId = uuid.v4();
 
+      setUploadingMedia(true);
       try {
         const uploadResult = await apiClient.uploadChatMedia(asset);
         const mediaUrl = uploadResult?.url || asset.uri;
@@ -669,6 +671,8 @@ export default function ChatRoomScreen({ route, navigation }) {
           '전송 실패',
           error?.message || '사진/동영상을 전송하지 못했습니다. 다시 시도해 주세요.',
         );
+      } finally {
+        setUploadingMedia(false);
       }
     },
     [chatId, currentActivityAccountId, appendUniquePersistedMessage]
@@ -1256,6 +1260,13 @@ export default function ChatRoomScreen({ route, navigation }) {
             </View>
           }
         />
+
+        {uploadingMedia ? (
+          <View style={styles.uploadingBar}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.uploadingText}>사진/동영상을 전송하고 있습니다...</Text>
+          </View>
+        ) : null}
 
         <View
           style={[
@@ -2033,6 +2044,21 @@ const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 18,
+  },
+  uploadingBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(235, 241, 255, 0.95)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(206, 218, 248, 0.8)',
+  },
+  uploadingText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
   },
   videoAttachmentContainer: {
     width: 220,

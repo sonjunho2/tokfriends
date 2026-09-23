@@ -1804,20 +1804,23 @@ COMPLETE (Prisma migration 20260923041804_add_live_room_foundation with LiveRoom
 Store & In-App Purchase Wallet Flow & Points Store Integration:
 COMPLETE (services/api/store_assets/point-products.json canonical point products catalog, StoreService confirmPointPurchase atomic transaction synchronizing pointPurchase, User.pointsBalance, ActivityAccount.Wallet.spendableBalance, and immutable WalletLedgerEntry credit with idempotency, apiClient point products and live endpoints integration, Mobile ShopScreen with live catalog fetch, pull-to-refresh, developer/sandbox instant checkout fallback, and automatic useAuth().refreshMe() point balance synchronization).
 
+Mobile Chat Media Attachments & Profile Avatar Upload Integration:
+COMPLETE (AppModule MediaModule registration, MediaController & MediaService multipart file handling, apiClient uploadChatMedia and uploadAvatar methods with dummy auth fallback, ChatRoomScreen image/video attachment flow with real-time uploadingBar progress feedback, and ProfileEditScreen avatar upload integration).
+
 Next implementation phase:
-MOBILE CHAT MEDIA ATTACHMENTS (IMAGE UPLOAD IN 1:1 CHAT) — READY.
+MOBILE PUSH NOTIFICATION TOKEN REGISTRATION & NOTIFICATIONS (NotificationsModule) — READY.
 
 ## Immediate Next Task
 
-Mobile Chat Media & Image Attachment Flow Verification (ChatRoomScreen.js).
+Mobile Push Notification Device Token Registration & Delivery Verification.
 
 Status: READY.
 
 Goals:
-- inspect chat media upload endpoints (POST /media/presign or POST /media/upload)
-- integrate mobile ImagePicker with ChatRoomScreen photo attachment button
-- support image preview, upload progress, and rendering image message bubbles in chat thread
-- verify recipient push notification and real-time socket delivery of media messages
+- inspect notifications endpoints (POST /notifications/token, GET /notifications)
+- wire mobile notification permission request and push token registration on app launch
+- verify push delivery on incoming 1:1 chat messages, gifts, and friend requests
+- add notification badge / list display in mobile UI
 
 cd C:\Users\ION\Downloads\work\tokfriends
 git branch --show-current
