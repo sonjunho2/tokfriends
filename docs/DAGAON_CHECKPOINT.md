@@ -1783,18 +1783,24 @@ COMPLETE FOR LOCAL 1:1 CHAT PATH (POST /chats/gift, GiftsService catalog with po
 Next implementation phase:
 MOBILE SOCIAL GRAPH & PROFILE INTEGRATION — IN PROGRESS.
 
+Social Follow & Interest integration on Mobile ProfileDetailScreen (ActivityAccount social graph wiring):
+COMPLETE (AppModule FollowsModule/InterestsModule/ProfileVisitsModule global registration, Mobile apiClient followAccount/unfollowAccount/getFollowStatus/sendInterest/removeInterest/getInterestStatus/recordProfileVisit, ProfileDetailScreen auto visit recording, interactive interest toggle with heart icon, and dynamic follow/unfollow toggle with status feedback).
+
+Next implementation phase:
+MOBILE SOCIAL GRAPH & FRIENDSHIPS — IN PROGRESS.
+
 ## Immediate Next Task
 
-Social Follow & Interest integration on Mobile ProfileDetailScreen (ActivityAccount social graph wiring).
+Mobile Friendship / Friends list & bilateral request management integration.
 
 Status: OPEN.
 
 Goals:
-- inspect ProfileDetailScreen and discover navigation contracts
-- wire existing backend PUT/DELETE /follows/:targetAccountId and Interest APIs to ProfileDetailScreen
-- render dynamic Follow/Interest state and toggles for other users' profiles
-- verify bilateral block safeguards and self-target guards
-- ensure smooth UI feedback and backward compatibility with targetUserId fallback
+- inspect Friendship APIs (POST /friendships/request, POST /friendships/respond, GET /friendships)
+- wire friendship list and incoming/outgoing request management to Mobile UI
+- verify bilateral block safeguards (cannot request/accept friendship if blocked in either direction)
+- preserve backward compatibility with legacy User identities while respecting ActivityAccount boundaries
+
 
 
 

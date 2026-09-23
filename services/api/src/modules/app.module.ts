@@ -16,6 +16,9 @@ import { JwtAuthGuard } from './auth/jwt.guard';
 import { AliasModule } from './alias/alias.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { GiftsModule } from './gifts/gifts.module';
+import { FollowsModule } from './follows/follows.module';
+import { InterestsModule } from './interests/interests.module';
+import { ProfileVisitsModule } from './profile-visits/profile-visits.module';
 
 @Module({
   imports: [
@@ -27,6 +30,9 @@ import { GiftsModule } from './gifts/gifts.module';
     ChatsModule,
     NotificationsModule,
     GiftsModule,
+    FollowsModule,
+    InterestsModule,
+    ProfileVisitsModule,
     ReportsModule,
     MetricsModule,
     StoreModule,

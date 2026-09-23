@@ -850,6 +850,81 @@ export const apiClient = {
     });
     return data;
   },
+
+  async followAccount(targetAccountId) {
+    if (!targetAccountId) {
+      throw normalizeError(new Error('팔로우 대상 계정 ID가 필요합니다.'));
+    }
+    const { data } = await client.put(
+      `/follows/${encodeURIComponent(String(targetAccountId).trim())}`,
+    );
+    return data?.data ?? data;
+  },
+
+  async unfollowAccount(targetAccountId) {
+    if (!targetAccountId) {
+      throw normalizeError(new Error('언팔로우 대상 계정 ID가 필요합니다.'));
+    }
+    const { data } = await client.delete(
+      `/follows/${encodeURIComponent(String(targetAccountId).trim())}`,
+    );
+    return data?.data ?? data;
+  },
+
+  async getFollowStatus(targetAccountId) {
+    if (!targetAccountId) return { following: false };
+    try {
+      const { data } = await client.get(
+        `/follows/${encodeURIComponent(String(targetAccountId).trim())}/status`,
+      );
+      return data?.data ?? data;
+    } catch {
+      return { following: false };
+    }
+  },
+
+  async sendInterest(targetAccountId) {
+    if (!targetAccountId) {
+      throw normalizeError(new Error('관심 대상 계정 ID가 필요합니다.'));
+    }
+    const { data } = await client.put(
+      `/interests/${encodeURIComponent(String(targetAccountId).trim())}`,
+    );
+    return data?.data ?? data;
+  },
+
+  async removeInterest(targetAccountId) {
+    if (!targetAccountId) {
+      throw normalizeError(new Error('관심 해제 대상 계정 ID가 필요합니다.'));
+    }
+    const { data } = await client.delete(
+      `/interests/${encodeURIComponent(String(targetAccountId).trim())}`,
+    );
+    return data?.data ?? data;
+  },
+
+  async getInterestStatus(targetAccountId) {
+    if (!targetAccountId) return { interested: false, mutual: false };
+    try {
+      const { data } = await client.get(
+        `/interests/${encodeURIComponent(String(targetAccountId).trim())}/status`,
+      );
+      return data?.data ?? data;
+    } catch {
+      return { interested: false, mutual: false };
+    }
+  },
+
+  async recordProfileVisit(targetAccountId) {
+    if (!targetAccountId) return;
+    try {
+      await client.post(
+        `/profile-visits/${encodeURIComponent(String(targetAccountId).trim())}`,
+      );
+    } catch {
+      // quiet fallback
+    }
+  },
 };
 
 export default client;
