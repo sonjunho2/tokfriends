@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { apiClient } from '../../api/client';
 import colors from '../../theme/colors';
 import ChatListItem from '../../components/ChatListItem';
@@ -29,6 +30,8 @@ const normalizeChats = (response) => {
       counterpartAccountId: chat.counterpart.id,
       title: chat.counterpart.displayName || chat.counterpart.handle || '대화',
       lastMessageAt: chat.lastMessageAt ?? null,
+      lastMessage: typeof chat.lastMessage === 'string' ? chat.lastMessage : null,
+      unreadCount: typeof chat.unreadCount === 'number' ? chat.unreadCount : 0,
     };
   });
 };
@@ -55,9 +58,11 @@ export default function ChatsScreen({ navigation }) {
     }
   }, []);
 
-  useEffect(() => {
-    loadChats();
-  }, [loadChats]);
+  useFocusEffect(
+    useCallback(() => {
+      loadChats();
+    }, [loadChats])
+  );
 
   const handleOpenChat = useCallback(
     (item) => {

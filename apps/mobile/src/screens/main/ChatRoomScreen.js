@@ -82,6 +82,7 @@ const normalizeHistoryMessage = (message, currentActivityAccountId) => {
     senderAccountId: senderAccountId ?? null,
     text: message.content,
     timestamp: formatMessageTime(message.createdAt),
+    readAt: message.readAt ?? null,
     type: 'text',
     backendType: message.type,
   };
@@ -296,6 +297,12 @@ export default function ChatRoomScreen({ route, navigation }) {
           return [...nextMessages, ...currentOnlyMessages];
         });
         setNextCursor(response.nextCursor || null);
+        try {
+          apiClient.markChatRead(chatId).catch(() => {});
+          if (socketRef.current?.connected && socketAuthReadyRef.current) {
+            socketRef.current.emit(CHAT_SOCKET_EVENTS.READ, { chatId });
+          }
+        } catch {}
       }
     } catch (error) {
       if (historyRequestRef.current === requestId) {
@@ -414,6 +421,15 @@ export default function ChatRoomScreen({ route, navigation }) {
 
         appendUniquePersistedMessage(nextMessage);
 
+        if (nextMessage.sender === 'other') {
+          try {
+            apiClient.markChatRead(chatId).catch(() => {});
+            if (socket.connected && socketAuthReadyRef.current) {
+              socket.emit(CHAT_SOCKET_EVENTS.READ, { chatId });
+            }
+          } catch {}
+        }
+
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
         }, 100);
@@ -447,9 +463,26 @@ export default function ChatRoomScreen({ route, navigation }) {
       }, REMOTE_TYPING_EXPIRY_MS);
     };
 
+    const handleRealtimeRead = (payload) => {
+      if (!payload || payload.chatId !== chatId) return;
+      const readerAccountId =
+        typeof payload.readerAccountId === 'string'
+          ? payload.readerAccountId.trim()
+          : '';
+      if (readerAccountId && readerAccountId !== currentActivityAccountId) {
+        const readAt = payload.readAt || new Date().toISOString();
+        setMessages((currentMessages) =>
+          currentMessages.map((msg) =>
+            msg.sender === 'me' && !msg.readAt ? { ...msg, readAt } : msg,
+          ),
+        );
+      }
+    };
+
     socket.on(CHAT_SOCKET_EVENTS.AUTH_READY, handleAuthReady);
     socket.on(CHAT_SOCKET_EVENTS.MESSAGE, handleRealtimeMessage);
     socket.on(CHAT_SOCKET_EVENTS.TYPING, handleRealtimeTyping);
+    socket.on(CHAT_SOCKET_EVENTS.READ, handleRealtimeRead);
     socket.connect();
 
     return () => {
@@ -486,6 +519,10 @@ export default function ChatRoomScreen({ route, navigation }) {
       socket.off(
         CHAT_SOCKET_EVENTS.TYPING,
         handleRealtimeTyping,
+      );
+      socket.off(
+        CHAT_SOCKET_EVENTS.READ,
+        handleRealtimeRead,
       );
       socket.disconnect();
       if (socketRef.current === socket) {
@@ -976,14 +1013,19 @@ export default function ChatRoomScreen({ route, navigation }) {
         )}
         <View style={styles.messageContent}>
           <View style={bubbleStyles}>{renderBubbleContent()}</View>
-          <Text
-            style={[
-              styles.messageTime,
-              isMe ? styles.myMessageTime : styles.otherMessageTime,
-            ]}
-          >
-            {item.timestamp}
-          </Text>
+          <View style={[styles.messageFooterRow, isMe && styles.myMessageFooterRow]}>
+            {isMe && !item.readAt && (
+              <Text style={styles.unreadCountBadge}>1</Text>
+            )}
+            <Text
+              style={[
+                styles.messageTime,
+                isMe ? styles.myMessageTime : styles.otherMessageTime,
+              ]}
+            >
+              {item.timestamp}
+            </Text>
+          </View>
         </View>
       </View>
     );
@@ -1675,22 +1717,29 @@ const styles = StyleSheet.create({
   otherMessageText: {
     color: '#20263A',
   },
-  messageTime: {
-    fontSize: 11,
+  messageFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 4,
     paddingHorizontal: 4,
   },
+  myMessageFooterRow: {
+    justifyContent: 'flex-end',
+  },
+  unreadCountBadge: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FF9500',
+    marginRight: 4,
+  },
+  messageTime: {
+    fontSize: 11,
+  },
   myMessageTime: {
     color: 'rgba(44, 34, 6, 0.55)',
-    textAlign: 'right',
-    alignSelf: 'flex-end',
-    marginRight: 6,
   },
   otherMessageTime: {
     color: '#8D96B5',
-    textAlign: 'left',
-    alignSelf: 'flex-start',
-    marginLeft: 6,
   },
   inputContainer: {
     flexDirection: 'row',

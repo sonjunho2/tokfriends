@@ -103,6 +103,7 @@ type ChatMessageHistoryItem = {
   type: string;
   content: string;
   translatedContent: string | null;
+  readAt: Date | null;
   createdAt: Date;
 };
 type ChatMessageHistoryResponse = {
@@ -227,6 +228,25 @@ export class ChatsService {
             },
           },
         },
+        messages: {
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          take: 1,
+          select: {
+            content: true,
+            type: true,
+            createdAt: true,
+          },
+        },
+        _count: {
+          select: {
+            messages: {
+              where: {
+                senderAccountId: { not: actorAccountId },
+                readAt: null,
+              },
+            },
+          },
+        },
       },
     });
     return chats.flatMap((chat) => {
@@ -250,6 +270,8 @@ export class ChatsService {
             displayName: counterpart.displayName,
           },
           lastMessageAt: chat.lastMessageAt,
+          lastMessage: chat.messages?.[0]?.content ?? null,
+          unreadCount: chat._count?.messages ?? 0,
         },
       ];
     });
@@ -521,6 +543,7 @@ export class ChatsService {
         type: true,
         content: true,
         translatedContent: true,
+        readAt: true,
         createdAt: true,
       },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -538,12 +561,77 @@ export class ChatsService {
             message.senderAccountId === chat.accountBId
               ? message.senderAccountId
               : null,
+          readAt: message.readAt,
         }))
         .reverse(),
       nextCursor:
         hasMore && oldest
           ? { createdAt: oldest.createdAt.toISOString(), id: oldest.id }
           : null,
+    };
+  }
+
+  async markAsRead(
+    currentUserId: string | undefined,
+    actorAccountId: string | null | undefined,
+    chatId: string,
+  ): Promise<{ chatId: string; readCount: number; readAt: string }> {
+    if (!currentUserId)
+      throw new BadRequestException("Missing authenticated user");
+    if (!actorAccountId)
+      throw new ForbiddenException("Active activity account required");
+
+    const actor = await this.prisma.activityAccount.findFirst({
+      where: {
+        id: actorAccountId,
+        status: "active",
+        owner: {
+          status: "active",
+          legacyUserId: currentUserId,
+          legacyUser: { status: "active" },
+        },
+      },
+      select: directAccountSelect,
+    });
+    if (!actor?.owner.legacyUserId)
+      throw new ForbiddenException("Active activity account required");
+
+    const chat = await this.prisma.chat.findFirst({
+      where: {
+        id: chatId,
+        OR: [
+          { accountAId: actorAccountId, userAId: actor.owner.legacyUserId },
+          { accountBId: actorAccountId, userBId: actor.owner.legacyUserId },
+        ],
+      },
+      select: { id: true, accountAId: true, accountBId: true },
+    });
+    if (!chat) throw new NotFoundException("Chat not found");
+
+    const now = new Date();
+    const updateResult = await this.prisma.message.updateMany({
+      where: {
+        chatId: chat.id,
+        senderAccountId: { not: actorAccountId },
+        readAt: null,
+      },
+      data: {
+        readAt: now,
+      },
+    });
+
+    if (updateResult.count > 0) {
+      this.chatRealtimePublisher.publishRead({
+        chatId: chat.id,
+        readerAccountId: actorAccountId,
+        readAt: now,
+      });
+    }
+
+    return {
+      chatId: chat.id,
+      readCount: updateResult.count,
+      readAt: now.toISOString(),
     };
   }
 

@@ -263,12 +263,14 @@ model Message {
   type              String           @default("text")
   content           String
   translatedContent String?
+  readAt            DateTime?
   createdAt         DateTime         @default(now())
   isFlagged         Boolean          @default(false)
 
   @@unique([senderAccountId, clientMessageId])
   @@index([senderAccountId, createdAt])
   @@index([chatId, createdAt, id])
+  @@index([chatId, readAt])
 }
 
 model Topic {

@@ -604,6 +604,19 @@ export const apiClient = {
     }
   },
 
+  async markChatRead(chatId) {
+    const target = String(chatId || '').trim();
+    if (!target) {
+      throw normalizeError(new Error('대화방 ID가 필요합니다.'));
+    }
+    try {
+      const { data } = await client.post(`/chats/${encodeURIComponent(target)}/read`);
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
   async updateUser(userId, payload = {}) {
     if (!userId) {
       throw normalizeError(new Error('사용자 ID가 필요합니다.'));

@@ -30,6 +30,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModule
   @WebSocketServer() server: Server;
   private readonly jwtSecret: string;
   private unsubscribeRealtime?: () => void;
+  private unsubscribeRead?: () => void;
 
   constructor(
     private readonly authenticatedUserContext: AuthenticatedUserContextService,
@@ -48,11 +49,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModule
     this.unsubscribeRealtime = this.chatRealtimePublisher.subscribe((message) => {
       server.to(`chat:${message.chatId}`).emit('chat:message', message);
     });
+    this.unsubscribeRead?.();
+    this.unsubscribeRead = this.chatRealtimePublisher.subscribeRead((event) => {
+      server.to(`chat:${event.chatId}`).emit('chat:read', {
+        chatId: event.chatId,
+        readerAccountId: event.readerAccountId,
+        readAt: event.readAt.toISOString(),
+      });
+    });
   }
 
   onModuleDestroy(): void {
     this.unsubscribeRealtime?.();
     this.unsubscribeRealtime = undefined;
+    this.unsubscribeRead?.();
+    this.unsubscribeRead = undefined;
   }
 
   async handleConnection(client: Socket) {
@@ -127,6 +138,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModule
         typing: data.typing,
       });
       return { ok: true };
+    } catch (e) {
+      return { ok: false, error: 'CHAT_UNAVAILABLE' };
+    }
+  }
+
+  @SubscribeMessage('chat:read')
+  async read(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string }) {
+    const userId = client.data.userId;
+    const chatId = typeof data?.chatId === 'string' ? data.chatId.trim() : '';
+    if (typeof userId !== 'string' || !userId.trim() || !chatId) {
+      return { ok: false, error: 'CHAT_UNAVAILABLE' };
+    }
+    try {
+      const result = await this.chatsService.markAsRead(
+        userId,
+        client.data.activityAccountId,
+        chatId,
+      );
+      return { ok: true, data: result };
     } catch (e) {
       return { ok: false, error: 'CHAT_UNAVAILABLE' };
     }

@@ -1762,33 +1762,27 @@ COMPLETE FOR THE CURRENTLY VALIDATED LOCAL SIGNUP/CHAT PATH.
 Real Chat clientMessageId / message idempotency:
 COMPLETE FOR THE CURRENTLY VALIDATED LOCAL 1:1 CHAT PATH.
 
+Fresh OTP login ActivityAccount hydration:
+COMPLETE FOR MOBILE AUTH CONTEXT (commit 667946b).
+
+Real Chat read / unread status foundation:
+COMPLETE FOR LOCAL 1:1 CHAT PATH (migration 20260923030027_add_message_read_at, API markAsRead, ChatGateway chat:read realtime event, Mobile unread badge & 1-indicator).
+
 Next implementation phase:
 REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Fresh OTP login ActivityAccount hydration audit/fix.
+Real Chat media attachment backend integration audit.
 
-Observed local behavior:
-- Immediately after an existing-user OTP login, entering Chat in the same in-memory session could show "활성 프로필 정보를 확인할 수 없습니다" because `authUser.activityAccountId` was absent.
-- Closing/reopening the app allowed stored-token startup hydration through canonical `GET /users/me`, after which Chat worked normally.
-- This issue predates and is separate from the clientMessageId/idempotency implementation.
+Status: OPEN.
 
-Current source boundary already identified:
-- Canonical `GET /users/me` returns `activityAccountId`.
-- Existing-user `verifyPhoneOtp` returns `serializeAuthUser(...)`.
-- `serializeAuthUser(...)` currently selects User/profile fields but does not include `activityAccountId`.
-- `AuthContext.authenticateWithToken(token, userPayload)` uses the supplied `userPayload` directly and skips `apiClient.getMe()` when that payload is present.
-- App startup with a stored token does call `apiClient.getMe()`.
-
-Next-step rules:
-- Re-audit the current AuthContext and auth response source before editing.
-- Determine the smallest canonical hydration fix.
-- Check regression risk across OTP login, phone signup/profile completion, email login/signup, stored-token startup, and avatar signup state preservation.
-- Preserve explicit ActivityAccount/User identity namespaces.
-- Do not modify the completed Chat idempotency implementation while fixing authentication hydration.
-- Keep the issue OPEN until source validation and runtime verification are complete.
-- Do not treat this working-branch/local finding as a production deployment claim.
+Goals:
+- inspect current Chat media upload and storage path (Cloudinary/S3)
+- inspect Message.type values ('media', 'image', 'video') and attachment metadata persistence
+- connect Mobile attachment sheets (camera, image, video) to backend upload and persist Message with media URL
+- preserve 1:1 Chat identity, read status, and message idempotency
+- avoid mixing Gift transactions, LIVE, or push into the media feature
 
 First commands to run when resuming:
 

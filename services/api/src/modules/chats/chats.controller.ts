@@ -43,4 +43,12 @@ export class ChatsController {
       dto,
     );
   }
+
+  @Post(":chatId/read")
+  markRead(
+    @CurrentUser() user: CurrentRequestUser,
+    @Param("chatId") chatId: string,
+  ) {
+    return this.chats.markAsRead(user?.id, user?.activityAccountId, chatId);
+  }
 }

@@ -7,6 +7,7 @@ export const CHAT_SOCKET_EVENTS = Object.freeze({
   LEAVE: 'chat:leave',
   TYPING: 'chat:typing',
   MESSAGE: 'chat:message',
+  READ: 'chat:read',
 });
 
 export const createChatSocket = (token) => {
