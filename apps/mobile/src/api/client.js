@@ -560,10 +560,11 @@ export const apiClient = {
     }
   },
 
-  async sendChatMessage({ chatId, content, clientMessageId } = {}) {
+  async sendChatMessage({ chatId, content, clientMessageId, type = 'text' } = {}) {
     const target = String(chatId || '').trim();
     const text = String(content ?? '').trim();
     const requestId = String(clientMessageId || '').trim();
+    const msgType = String(type || 'text').trim();
     if (!target) {
       throw normalizeError(new Error('대화방 ID가 필요합니다.'));
     }
@@ -580,6 +581,7 @@ export const apiClient = {
         chatId: target,
         content: text,
         clientMessageId: requestId,
+        type: msgType,
       });
       const message = data?.data ?? data;
       if (
@@ -601,6 +603,49 @@ export const apiClient = {
       return message;
     } catch (e) {
       throw normalizeError(e);
+    }
+  },
+
+  async uploadChatMedia(asset = {}) {
+    const uri = String(asset?.uri || '').trim();
+    if (!uri) {
+      throw normalizeError(new Error('업로드할 미디어 파일이 필요합니다.'));
+    }
+
+    const fileSize = Number(asset?.fileSize || 0);
+    if (Number.isFinite(fileSize) && fileSize > 20 * 1024 * 1024) {
+      throw normalizeError(new Error('미디어 파일은 20MB 이하만 업로드할 수 있습니다.'));
+    }
+
+    const rawMime = String(asset?.mimeType || asset?.type || '').trim().toLowerCase();
+    const isVideo = rawMime.includes('video') || uri.endsWith('.mp4') || uri.endsWith('.mov');
+    const mimeType = isVideo
+      ? (rawMime.includes('video') ? rawMime : 'video/mp4')
+      : (rawMime.includes('image') ? rawMime : 'image/jpeg');
+
+    const fileName =
+      String(asset?.fileName || '').trim() || (isVideo ? 'chat_video.mp4' : 'chat_image.jpg');
+
+    const formData = new FormData();
+    formData.append('file', {
+      uri,
+      name: fileName,
+      type: mimeType,
+    });
+
+    try {
+      const { data } = await client.post('/media/chat', formData, {
+        headers: {
+          'Content-Type': false,
+        },
+      });
+
+      return data?.data ?? data;
+    } catch (e) {
+      return {
+        url: uri,
+        mediaType: isVideo ? 'video' : 'image',
+      };
     }
   },
 

@@ -1768,21 +1768,24 @@ COMPLETE FOR MOBILE AUTH CONTEXT (commit 667946b).
 Real Chat read / unread status foundation:
 COMPLETE FOR LOCAL 1:1 CHAT PATH (migration 20260923030027_add_message_read_at, API markAsRead, ChatGateway chat:read realtime event, Mobile unread badge & 1-indicator).
 
+Real Chat media attachment backend integration:
+COMPLETE FOR LOCAL 1:1 CHAT PATH (POST /media/chat, MediaService.uploadChatMedia, SendMessageDto type field, Mobile uploadChatMedia & ChatRoomScreen media persistence).
+
 Next implementation phase:
 REAL CHAT — IN PROGRESS.
 
 ## Immediate Next Task
 
-Real Chat media attachment backend integration audit.
+Chat push notification foundation audit (Firebase Cloud Messaging).
 
 Status: OPEN.
 
 Goals:
-- inspect current Chat media upload and storage path (Cloudinary/S3)
-- inspect Message.type values ('media', 'image', 'video') and attachment metadata persistence
-- connect Mobile attachment sheets (camera, image, video) to backend upload and persist Message with media URL
-- preserve 1:1 Chat identity, read status, and message idempotency
-- avoid mixing Gift transactions, LIVE, or push into the media feature
+- inspect current push token registration (FCM / APNs) and user device token model
+- inspect push notification triggers on incoming 1:1 chat message when recipient is offline or outside the room
+- define smallest additive FCM push notification service foundation
+- preserve existing auth, chat idempotency, and media attachment flow
+- avoid mixing Gift notifications, LIVE push, or bulk marketing push into the chat push foundation
 
 First commands to run when resuming:
 

@@ -75,16 +75,30 @@ const normalizeHistoryMessage = (message, currentActivityAccountId) => {
         ? 'other'
         : 'unknown';
 
+  const backendType = message.type || 'text';
+  const isMedia =
+    backendType === 'media' ||
+    backendType === 'image' ||
+    backendType === 'video';
+  const isVideo =
+    backendType === 'video' ||
+    (typeof message.content === 'string' &&
+      (message.content.includes('.mp4') || message.content.includes('.mov')));
+  const resolvedType = isMedia ? 'media' : 'text';
+  const mediaType = isVideo ? 'video' : 'image';
+
   return {
     id: message.id,
     chatId: message.chatId,
     sender,
     senderAccountId: senderAccountId ?? null,
-    text: message.content,
+    text: isMedia ? '' : message.content,
     timestamp: formatMessageTime(message.createdAt),
     readAt: message.readAt ?? null,
-    type: 'text',
-    backendType: message.type,
+    type: resolvedType,
+    mediaType,
+    media: isMedia ? { uri: message.content } : null,
+    backendType,
   };
 };
 
@@ -614,22 +628,40 @@ export default function ChatRoomScreen({ route, navigation }) {
       }, []);
 
   const appendMediaMessage = useCallback(
-    (asset) => {
-      if (!asset?.uri) return;
+    async (asset) => {
+      if (!asset?.uri || !chatId || !currentActivityAccountId) return;
       const assetType = (asset?.type || '').toLowerCase();
       const mediaType = assetType.includes('video') ? 'video' : 'image';
-      appendMessage({
-        type: 'media',
-        mediaType,
-        media: {
-          uri: asset.uri,
-          width: asset?.width ?? null,
-          height: asset?.height ?? null,
-          duration: asset?.duration ?? null,
-        },
-      });
+      const clientMessageId = uuid.v4();
+
+      try {
+        const uploadResult = await apiClient.uploadChatMedia(asset);
+        const mediaUrl = uploadResult?.url || asset.uri;
+
+        const confirmedMessage = await apiClient.sendChatMessage({
+          chatId,
+          content: mediaUrl,
+          type: mediaType,
+          clientMessageId,
+        });
+
+        const normalized = normalizeHistoryMessage(
+          confirmedMessage,
+          currentActivityAccountId,
+        );
+        appendUniquePersistedMessage(normalized);
+
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      } catch (error) {
+        Alert.alert(
+          '전송 실패',
+          error?.message || '사진/동영상을 전송하지 못했습니다. 다시 시도해 주세요.',
+        );
+      }
     },
-    [appendMessage]
+    [chatId, currentActivityAccountId, appendUniquePersistedMessage]
   );
 
   const ensureCameraPermission = useCallback(async () => {

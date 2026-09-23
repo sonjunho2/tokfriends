@@ -10,6 +10,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { MediaService } from './media.service';
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+const MAX_CHAT_MEDIA_BYTES = 20 * 1024 * 1024;
 
 @ApiTags('media')
 @ApiBearerAuth()
@@ -32,5 +33,22 @@ export class MediaController {
   ) {
     const userId = user?.sub ?? user?.id;
     return this.media.uploadAvatar(userId, file);
+  }
+
+  @Post('chat')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        files: 1,
+        fileSize: MAX_CHAT_MEDIA_BYTES,
+      },
+    }),
+  )
+  uploadChatMedia(
+    @CurrentUser() user: any,
+    @UploadedFile() file: any,
+  ) {
+    const userId = user?.sub ?? user?.id;
+    return this.media.uploadChatMedia(userId, file);
   }
 }

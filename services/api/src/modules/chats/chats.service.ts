@@ -772,7 +772,8 @@ export class ChatsService {
               if (existingMessage) {
                 if (
                   existingMessage.chatId !== dto.chatId ||
-                  existingMessage.content !== dto.content
+                  existingMessage.content !== dto.content ||
+                  (dto.type && existingMessage.type !== dto.type)
                 ) {
                   throw new ConflictException(
                     "Message request conflicts with an existing message",
@@ -794,6 +795,7 @@ export class ChatsService {
                 senderId: actor.owner.legacyUserId,
                 senderAccountId: actor.id,
                 clientMessageId: dto.clientMessageId,
+                type: dto.type || "text",
                 content: dto.content,
                 createdAt: now,
               },
@@ -844,7 +846,8 @@ export class ChatsService {
           if (existingMessage) {
             if (
               existingMessage.chatId !== dto.chatId ||
-              existingMessage.content !== dto.content
+              existingMessage.content !== dto.content ||
+              (dto.type && existingMessage.type !== dto.type)
             ) {
               throw new ConflictException(
                 "Message request conflicts with an existing message",
