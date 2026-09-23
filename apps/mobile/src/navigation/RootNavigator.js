@@ -22,6 +22,7 @@ import CommunityFeedScreen from '../screens/community/CommunityFeedScreen';
 import HotRecommendScreen from '../screens/recommend/HotRecommendScreen';
 import ChatRoomScreen from '../screens/main/ChatRoomScreen';
 import ProfileDetailScreen from '../screens/main/ProfileDetailScreen';
+import LiveRoomScreen from '../screens/live/LiveRoomScreen';
 
 // ===== 인증 =====
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
@@ -32,6 +33,7 @@ import ProfileRegistrationScreen from '../screens/auth/ProfileRegistrationScreen
 
 const AuthStack = createNativeStackNavigator();
 const HomeStackNav = createNativeStackNavigator();
+const LiveStackNav = createNativeStackNavigator();
 const ChatsStackNav = createNativeStackNavigator();
 const MyPageStackNav = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -78,7 +80,29 @@ function HomeStack() {
         component={CommunityFeedScreen}
         options={{ animation: 'slide_from_right' }}
       />
+      <HomeStackNav.Screen
+        name="LiveRoom"
+        component={LiveRoomScreen}
+        options={{ animation: 'slide_from_bottom' }}
+      />
     </HomeStackNav.Navigator>
+  );
+}
+
+/** ===== 라이브 탭 안의 스택 ===== */
+function LiveStack() {
+  return (
+    <LiveStackNav.Navigator
+      initialRouteName="LiveMain"
+      screenOptions={{ headerShown: false }}
+    >
+      <LiveStackNav.Screen name="LiveMain" component={LiveScreen} />
+      <LiveStackNav.Screen
+        name="LiveRoom"
+        component={LiveRoomScreen}
+        options={{ animation: 'slide_from_bottom' }}
+      />
+    </LiveStackNav.Navigator>
   );
 }
 
@@ -183,7 +207,7 @@ function MainTabs() {
       />
       <Tab.Screen
         name="Live"
-        component={LiveScreen}
+        component={LiveStack}
         options={{
           tabBarLabel: 'Live',
           tabBarActiveTintColor: '#FF3B6B',

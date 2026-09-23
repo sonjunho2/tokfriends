@@ -22,6 +22,7 @@ import { ProfileVisitsModule } from './profile-visits/profile-visits.module';
 import { FriendshipsModule } from './friendships/friendships.module';
 import { TopicsModule } from './topics/topics.module';
 import { PostsModule } from './posts/posts.module';
+import { LiveModule } from './live/live.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { PostsModule } from './posts/posts.module';
     FriendshipsModule,
     TopicsModule,
     PostsModule,
+    LiveModule,
     ReportsModule,
     MetricsModule,
     StoreModule,

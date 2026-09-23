@@ -1798,17 +1798,24 @@ COMPLETE (AppModule TopicsModule & PostsModule global registration, TopicsServic
 Next implementation phase:
 MOBILE LIVE ROOM FOUNDATION & STREAMING INTEGRATION — IN PROGRESS.
 
+Mobile LIVE Room Foundation / Live room list, streamer creation, and viewer room interface:
+COMPLETE (Prisma migration 20260923041804_add_live_room_foundation with LiveRoom and LiveMessage models, LiveModule/LiveService/LiveController endpoints for room lifecycle, viewer counts, and realtime live chat/reactions/gifts, Mobile apiClient live methods, modernized LiveScreen with room cards & broadcast creation modal, interactive LiveRoomScreen with realtime chat, heart reactions, gift sending, and host controls, and RootNavigator LiveStack integration).
+
+Next implementation phase:
+STORE & IN-APP PURCHASE WALLET FLOW VERIFICATION — IN PROGRESS.
+
 ## Immediate Next Task
 
-Mobile LIVE Room Foundation / Live room list, streamer creation, and viewer room interface.
+Store & Point Products Real In-App Purchase Flow Verification (Points Tab).
 
 Status: OPEN.
 
 Goals:
-- inspect Live / Stream models and endpoints in backend and mobile
-- wire Live tab with active live room list, viewer count, and host information
-- build interactive Live room view with realtime comments/reactions and gift overlay
-- maintain compatibility with ActivityAccount host and viewer profiles
+- inspect Store & Purchase confirmation APIs (GET /store/point-products, POST /store/purchases/confirm)
+- connect Mobile Points Tab (ShopScreen.js) with live catalog and purchase verification
+- verify atomic Wallet / Ledger entry creation upon purchase confirmation
+- test balance synchronization to User.pointsBalance and ActivityAccount Wallet
+
 
 
 

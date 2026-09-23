@@ -54,6 +54,8 @@ model User {
   activityAccountBridge ActivityAccount? @relation("LegacyActivityUser")
   adminApprovalRequests AdminApprovalRequest[] @relation("AdminApprovalRequester")
   adminApprovalDecisions AdminApprovalRequest[] @relation("AdminApprovalDecider")
+  liveRoomsHosted       LiveRoom[]             @relation("LiveRoomHost")
+  liveMessages          LiveMessage[]          @relation("LiveMessageSender")
 }
 
 model Owner {
@@ -88,6 +90,8 @@ model ActivityAccount {
   chatsAsAccountA       Chat[]         @relation("ChatAccountA")
   chatsAsAccountB       Chat[]         @relation("ChatAccountB")
   chatMessagesSent      Message[]      @relation("MessageSenderAccount")
+  liveRoomsHostedAsAccount LiveRoom[]    @relation("LiveRoomHostAccount")
+  liveMessagesAsAccount    LiveMessage[] @relation("LiveMessageSenderAccount")
 
   @@index([ownerId])
   @@index([ownerId, isPrimary])
@@ -518,6 +522,48 @@ model LegalDocumentVersion {
   @@unique([documentSlug, version])
   @@index([documentSlug, createdAt])
 }
+
+model LiveRoom {
+  id               String           @id @default(cuid())
+  hostId           String
+  host             User             @relation("LiveRoomHost", fields: [hostId], references: [id])
+  hostAccountId    String?
+  hostAccount      ActivityAccount? @relation("LiveRoomHostAccount", fields: [hostAccountId], references: [id], onDelete: SetNull)
+  title            String
+  category         String           @default("talk")
+  status           String           @default("live")
+  viewerCount      Int              @default(0)
+  totalLikes       Int              @default(0)
+  totalGiftsPoints Int              @default(0)
+  coverUri         String?
+  streamKey        String?
+  startedAt        DateTime         @default(now())
+  endedAt          DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  messages         LiveMessage[]
+
+  @@index([status, startedAt])
+  @@index([hostId, status])
+}
+
+model LiveMessage {
+  id              String           @id @default(cuid())
+  roomId          String
+  room            LiveRoom         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  senderId        String
+  sender          User             @relation("LiveMessageSender", fields: [senderId], references: [id])
+  senderAccountId String?
+  senderAccount   ActivityAccount? @relation("LiveMessageSenderAccount", fields: [senderAccountId], references: [id], onDelete: SetNull)
+  type            String           @default("chat")
+  content         String
+  giftPoints      Int?
+  createdAt       DateTime         @default(now())
+
+  @@index([roomId, createdAt])
+}
+
 enum ReportStatus {
   PENDING
   REVIEWING

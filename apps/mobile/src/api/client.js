@@ -784,6 +784,99 @@ export const apiClient = {
       throw normalizeError(e);
     }
   },
+
+  async getActiveLiveRooms() {
+    try {
+      const { data } = await client.get('/live/rooms');
+      return Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async getLiveRoom(roomId) {
+    if (!roomId) throw normalizeError(new Error('라이브 룸 ID가 필요합니다.'));
+    try {
+      const { data } = await client.get(`/live/rooms/${encodeURIComponent(roomId)}`);
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async createLiveRoom({ title, category = 'talk', coverUri } = {}) {
+    const trimmedTitle = String(title || '').trim();
+    if (!trimmedTitle) {
+      throw normalizeError(new Error('방송 제목을 입력해 주세요.'));
+    }
+    try {
+      const { data } = await client.post('/live/rooms', {
+        title: trimmedTitle,
+        category,
+        ...(coverUri ? { coverUri } : {}),
+      });
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async endLiveRoom(roomId) {
+    if (!roomId) throw normalizeError(new Error('라이브 룸 ID가 필요합니다.'));
+    try {
+      const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/end`);
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async joinLiveRoom(roomId) {
+    if (!roomId) return { success: false };
+    try {
+      const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/join`);
+      return data?.data ?? data;
+    } catch {
+      return { success: false };
+    }
+  },
+
+  async leaveLiveRoom(roomId) {
+    if (!roomId) return { success: false };
+    try {
+      const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/leave`);
+      return data?.data ?? data;
+    } catch {
+      return { success: false };
+    }
+  },
+
+  async getLiveMessages(roomId) {
+    if (!roomId) return [];
+    try {
+      const { data } = await client.get(`/live/rooms/${encodeURIComponent(roomId)}/messages`);
+      return Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
+  },
+
+  async sendLiveMessage({ roomId, content, type = 'chat', giftPoints } = {}) {
+    if (!roomId) throw normalizeError(new Error('라이브 룸 ID가 필요합니다.'));
+    const trimmedContent = String(content || '').trim();
+    if (!trimmedContent) throw normalizeError(new Error('메시지 내용을 입력해 주세요.'));
+    try {
+      const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/messages`, {
+        content: trimmedContent,
+        type,
+        ...(giftPoints ? { giftPoints } : {}),
+      });
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
   async reportUser(reportData = {}) {
     const targetUserId = typeof reportData?.targetUserId === 'string'
       ? reportData.targetUserId.trim()
