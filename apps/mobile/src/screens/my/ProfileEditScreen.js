@@ -17,6 +17,11 @@ import colors from '../../theme/colors';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 
+const PRESET_INTERESTS = [
+  '음악', '영화', '독서', '카페', '맛집', '여행', '운동',
+  '게임', '요리', '등산', '사진', '반려동물', '패션', '미술',
+];
+
 export default function ProfileEditScreen({ navigation, route }) {
   const profile = route?.params?.profile ?? {};
   const preferredFont = route?.params?.preferredFont;
@@ -32,7 +37,42 @@ export default function ProfileEditScreen({ navigation, route }) {
     userProfile?.avatarUri ?? profile?.avatarUri ?? profile?.image ?? null,
   );
   const [avatarAsset, setAvatarAsset] = useState(null);
+  const [interests, setInterests] = useState(
+    Array.isArray(userProfile?.interests) ? userProfile.interests : [],
+  );
+  const [interestInput, setInterestInput] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const handleAddInterest = () => {
+    const tag = interestInput.trim();
+    if (!tag) return;
+    if (interests.includes(tag)) {
+      setInterestInput('');
+      return;
+    }
+    if (interests.length >= 10) {
+      Alert.alert('관심사', '관심사는 최대 10개까지 추가할 수 있습니다.');
+      return;
+    }
+    setInterests((prev) => [...prev, tag]);
+    setInterestInput('');
+  };
+
+  const handleRemoveInterest = (tag) => {
+    setInterests((prev) => prev.filter((t) => t !== tag));
+  };
+
+  const handleTogglePreset = (tag) => {
+    if (interests.includes(tag)) {
+      handleRemoveInterest(tag);
+    } else {
+      if (interests.length >= 10) {
+        Alert.alert('관심사', '관심사는 최대 10개까지 추가할 수 있습니다.');
+        return;
+      }
+      setInterests((prev) => [...prev, tag]);
+    }
+  };
 
   const previewFontStyle = useMemo(() => {
     if (!preferredFont || preferredFont === 'system') {
@@ -107,6 +147,7 @@ export default function ProfileEditScreen({ navigation, route }) {
         region2: region2.trim(),
         headline: title.trim(),
         bio: bio.trim(),
+        interests,
         ...(nextAvatarUri ? { avatarUri: nextAvatarUri } : {}),
       });
 
@@ -228,6 +269,68 @@ export default function ProfileEditScreen({ navigation, route }) {
             placeholder="나를 소개하는 글을 작성해보세요"
             placeholderTextColor={colors.textTertiary}
           />
+
+          {/* Interests / 관심사 */}
+          <Text style={styles.label}>관심사 ({interests.length}/10)</Text>
+          {interests.length > 0 && (
+            <View style={styles.interestTagRow}>
+              {interests.map((tag) => (
+                <TouchableOpacity
+                  key={tag}
+                  style={styles.interestTag}
+                  onPress={() => handleRemoveInterest(tag)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.interestTagText}>{tag}</Text>
+                  <Ionicons name="close" size={12} color={colors.primary} style={{ marginLeft: 3 }} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          <View style={styles.interestInputRow}>
+            <TextInput
+              style={styles.interestInput}
+              value={interestInput}
+              onChangeText={setInterestInput}
+              placeholder="관심사 직접 입력"
+              placeholderTextColor={colors.textTertiary}
+              returnKeyType="done"
+              onSubmitEditing={handleAddInterest}
+              maxLength={20}
+            />
+            <TouchableOpacity
+              style={styles.interestAddBtn}
+              onPress={handleAddInterest}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="add" size={20} color={colors.textInverse} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.presetLabel}>추천 관심사 (탭하면 추가/제거)</Text>
+          <View style={styles.presetRow}>
+            {PRESET_INTERESTS.map((tag) => (
+              <TouchableOpacity
+                key={tag}
+                style={[
+                  styles.presetTag,
+                  interests.includes(tag) && styles.presetTagActive,
+                ]}
+                onPress={() => handleTogglePreset(tag)}
+                activeOpacity={0.85}
+              >
+                <Text
+                  style={[
+                    styles.presetTagText,
+                    interests.includes(tag) && styles.presetTagTextActive,
+                  ]}
+                >
+                  {tag}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         <View style={styles.previewCard}>
@@ -413,5 +516,85 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: colors.textInverse,
+  },
+  interestTagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  interestTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.pillActiveBg,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  interestTagText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  interestInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+  interestInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: colors.text,
+    backgroundColor: colors.background,
+  },
+  interestAddBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  presetLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textTertiary,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  presetRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  presetTag: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: colors.pillBg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  presetTagActive: {
+    backgroundColor: colors.pillActiveBg,
+    borderColor: colors.primary,
+  },
+  presetTagText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  presetTagTextActive: {
+    color: colors.primary,
+    fontWeight: '700',
   },
 });

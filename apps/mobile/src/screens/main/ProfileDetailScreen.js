@@ -71,6 +71,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
       age: profile?.age,
       distanceKm: profile?.distanceKm ?? profile?.distance,
       points: profile?.points,
+      interests: Array.isArray(profile?.interests) ? profile.interests : [],
     };
   }, [profile]);
 
@@ -332,6 +333,16 @@ export default function ProfileDetailScreen({ navigation, route }) {
             <Ionicons name="sparkles-outline" size={20} color={colors.primary} />
             <Text style={[styles.infoText, dynamicFont.body]}>{data.bio}</Text>
           </View>
+
+          {data.interests.length > 0 && (
+            <View style={styles.interestsRow}>
+              {data.interests.map((tag) => (
+                <View key={tag} style={styles.interestPill}>
+                  <Text style={styles.interestPillText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          )}
 
           {isSelf ? (
             <TouchableOpacity
@@ -640,5 +651,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: colors.textSecondary,
+  },
+  interestsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  interestPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: colors.primaryLight,
+  },
+  interestPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primaryDark,
   },
 });

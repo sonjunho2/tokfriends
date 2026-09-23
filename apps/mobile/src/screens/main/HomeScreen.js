@@ -178,7 +178,11 @@ export default function HomeScreen({ navigation }) {
       <View style={styles.appbar}>
         <View style={{ width: 24 }} />
         <Text style={styles.appTitle}>DAGAON</Text>
-        <TouchableOpacity hitSlop={8} style={styles.searchBtn}>
+        <TouchableOpacity
+          hitSlop={8}
+          style={styles.searchBtn}
+          onPress={() => navigation.navigate('HotRecommend', { openFilter: true })}
+        >
           <Ionicons name="search" size={20} color={colors.text} />
         </TouchableOpacity>
       </View>
