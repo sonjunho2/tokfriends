@@ -53,8 +53,13 @@ export class UsersController {
       id: item.id,
       displayName: item.displayName,
       nickname: item.profile?.nickname ?? null,
+      headline: item.profile?.headline ?? null,
       bio: item.profile?.bio ?? null,
+      avatarUri: item.profile?.avatarUri ?? null,
+      region1: item.region1 ?? null,
+      region2: item.region2 ?? null,
       interests: item.profile?.interests ?? [],
+      targetAccountId: item.ownerBridge?.activityAccounts?.[0]?.id ?? null,
     }));
 
     return { ok: true, data: items, items };

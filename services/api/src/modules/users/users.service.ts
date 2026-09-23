@@ -59,6 +59,7 @@ export class UsersService {
     return this.prisma.user.findMany({
       where: {
         status: 'active',
+        role: 'user',
         OR: [
           {
             displayName: {
@@ -74,6 +75,29 @@ export class UsersService {
               },
             },
           },
+          {
+            profile: {
+              headline: {
+                contains: trimmed,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          },
+          {
+            profile: {
+              bio: {
+                contains: trimmed,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          },
+          {
+            profile: {
+              interests: {
+                has: trimmed,
+              },
+            },
+          },
         ],
       },
       take: Math.min(50, Math.max(1, take)),
@@ -81,11 +105,26 @@ export class UsersService {
       select: {
         id: true,
         displayName: true,
+        region1: true,
+        region2: true,
         profile: {
           select: {
             nickname: true,
             bio: true,
+            headline: true,
+            avatarUri: true,
             interests: true,
+          },
+        },
+        ownerBridge: {
+          select: {
+            status: true,
+            legacyUserId: true,
+            activityAccounts: {
+              where: { status: 'active', isPrimary: true },
+              take: 1,
+              select: { id: true },
+            },
           },
         },
       },
@@ -251,7 +290,7 @@ export class UsersService {
       };
     }
 
-    return this.prisma.user.update({
+    const updatedUser = await this.prisma.user.update({
       where: { id },
       data: updateData,
       include: {
@@ -265,6 +304,16 @@ export class UsersService {
         },
       },
     });
+
+    const newName = payload.nickname ?? payload.displayName;
+    if (newName) {
+      await this.prisma.activityAccount.updateMany({
+        where: { legacyUserId: id, isPrimary: true },
+        data: { displayName: newName },
+      }).catch(() => {});
+    }
+
+    return updatedUser;
   }
 
   phoneHashForSearch(phone?: string) {

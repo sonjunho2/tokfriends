@@ -11,6 +11,9 @@ type Filters = {
   ageMin?: number;
   ageMax?: number;
   region?: string; // region1/region2 검색용
+  q?: string; // 키워드 검색 (닉네임, 소개글, 관심사)
+  interest?: string; // 특정 관심사 태그 필터
+  limit?: number;
 };
 
 function yearsAgo(base: Date, years: number) {
@@ -67,17 +70,49 @@ export class DiscoverService {
       where.dob = dob;
     }
 
-    if (filters.region) {
-      where.OR = [
-        { region1: { contains: filters.region } },
-        { region2: { contains: filters.region } },
-      ];
+    const andConditions: Prisma.UserWhereInput[] = [];
+
+    if (filters.region?.trim()) {
+      const region = filters.region.trim();
+      andConditions.push({
+        OR: [
+          { region1: { contains: region, mode: Prisma.QueryMode.insensitive } },
+          { region2: { contains: region, mode: Prisma.QueryMode.insensitive } },
+        ],
+      });
     }
+
+    if (filters.q?.trim()) {
+      const q = filters.q.trim();
+      andConditions.push({
+        OR: [
+          { displayName: { contains: q, mode: Prisma.QueryMode.insensitive } },
+          { profile: { nickname: { contains: q, mode: Prisma.QueryMode.insensitive } } },
+          { profile: { bio: { contains: q, mode: Prisma.QueryMode.insensitive } } },
+          { profile: { headline: { contains: q, mode: Prisma.QueryMode.insensitive } } },
+          { profile: { interests: { has: q } } },
+        ],
+      });
+    }
+
+    if (filters.interest?.trim()) {
+      andConditions.push({
+        profile: {
+          interests: { has: filters.interest.trim() },
+        },
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
+    }
+
+    const take = Math.min(100, Math.max(1, filters.limit ?? 50));
 
     const users = await this.prisma.user.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      take: 50,
+      take,
       select: {
         id: true,
         displayName: true,

@@ -510,6 +510,17 @@ export const apiClient = {
     }
   },
 
+  async searchUsers(query = '', params = {}) {
+    try {
+      const { data } = await client.get('/users/search', {
+        params: { q: query, ...params },
+      });
+      return data?.data ?? data?.items ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
   async getChats() {
     try {
       const { data } = await client.get('/chats');
