@@ -52,6 +52,7 @@ export default function SettingsScreen({ navigation }) {
   const [fontLoading, setFontLoading] = useState(false);
   const [fontMessage, setFontMessage] = useState('');
   const [blockedCount, setBlockedCount] = useState(null);
+  const [friendsCount, setFriendsCount] = useState(null);
 
   const dynamicFont = useMemo(() => {
     if (selectedFont === 'system') {
@@ -113,27 +114,43 @@ export default function SettingsScreen({ navigation }) {
     useCallback(() => {
       let active = true;
 
-      const loadBlockedCount = async () => {
+      const loadCounts = async () => {
         try {
-          const response = await apiClient.getBlockedUsers();
-          const blockedItems = Array.isArray(response?.data)
-            ? response.data
-            : Array.isArray(response?.items)
-            ? response.items
-            : [];
+          const [blockedRes, friendsRes] = await Promise.allSettled([
+            apiClient.getBlockedUsers(),
+            apiClient.getFriendships(),
+          ]);
 
-          if (active) {
+          if (!active) return;
+
+          if (blockedRes.status === 'fulfilled') {
+            const blockedItems = Array.isArray(blockedRes.value?.data)
+              ? blockedRes.value.data
+              : Array.isArray(blockedRes.value?.items)
+              ? blockedRes.value.items
+              : [];
             setBlockedCount(blockedItems.length);
-          }
-        } catch (error) {
-          console.warn('Failed to load blocked user count', error);
-          if (active) {
+          } else {
             setBlockedCount(null);
           }
+
+          if (friendsRes.status === 'fulfilled') {
+            const rawFriends = Array.isArray(friendsRes.value?.data)
+              ? friendsRes.value.data
+              : Array.isArray(friendsRes.value)
+              ? friendsRes.value
+              : [];
+            const accepted = rawFriends.filter((f) => f.status === 'accepted');
+            setFriendsCount(accepted.length);
+          } else {
+            setFriendsCount(null);
+          }
+        } catch (error) {
+          console.warn('Failed to load counts in settings', error);
         }
       };
 
-      loadBlockedCount();
+      loadCounts();
 
       return () => {
         active = false;
@@ -142,6 +159,13 @@ export default function SettingsScreen({ navigation }) {
   );
 
   const supportLinks = [
+    {
+      key: 'friends',
+      icon: 'people-outline',
+      label: '친구 목록 및 친구 관리',
+      value: friendsCount === null ? undefined : String(friendsCount) + '명',
+      onPress: () => navigation.navigate('Friends'),
+    },
     { key: 'blocked', icon: 'ban-outline', label: '내가 차단한 회원', value: blockedCount === null ? undefined : String(blockedCount) + '명', onPress: () => navigation.navigate('BlockedUsers') },
     { key: 'faq', icon: 'help-circle-outline', label: '자주 묻는 질문' },
     { key: 'support', icon: 'chatbubble-ellipses-outline', label: '영자언니에게 문의하기' },

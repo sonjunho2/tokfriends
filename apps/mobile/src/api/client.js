@@ -925,6 +925,59 @@ export const apiClient = {
       // quiet fallback
     }
   },
+
+  async sendFriendRequest({ addresseeId, targetAccountId } = {}) {
+    if (!addresseeId && !targetAccountId) {
+      throw normalizeError(new Error('친구 요청 대상이 필요합니다.'));
+    }
+    const { data } = await client.post('/friendships', {
+      ...(addresseeId ? { addresseeId: String(addresseeId).trim() } : {}),
+      ...(targetAccountId ? { targetAccountId: String(targetAccountId).trim() } : {}),
+    });
+    return data?.data ?? data;
+  },
+
+  async acceptFriendRequest(id) {
+    if (!id) throw normalizeError(new Error('요청 ID가 필요합니다.'));
+    const { data } = await client.post(`/friendships/${encodeURIComponent(id)}/accept`);
+    return data?.data ?? data;
+  },
+
+  async declineFriendRequest(id) {
+    if (!id) throw normalizeError(new Error('요청 ID가 필요합니다.'));
+    const { data } = await client.post(`/friendships/${encodeURIComponent(id)}/decline`);
+    return data?.data ?? data;
+  },
+
+  async cancelFriendRequest(id) {
+    if (!id) throw normalizeError(new Error('요청 ID가 필요합니다.'));
+    const { data } = await client.post(`/friendships/${encodeURIComponent(id)}/cancel`);
+    return data?.data ?? data;
+  },
+
+  async getFriendships() {
+    try {
+      const { data } = await client.get('/friendships');
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async getFriendshipStatus({ targetUserId, targetAccountId } = {}) {
+    if (!targetUserId && !targetAccountId) {
+      return { status: 'none' };
+    }
+    try {
+      const params = {};
+      if (targetUserId) params.targetUserId = String(targetUserId).trim();
+      if (targetAccountId) params.targetAccountId = String(targetAccountId).trim();
+      const { data } = await client.get('/friendships/status', { params });
+      return data?.data ?? { status: 'none' };
+    } catch {
+      return { status: 'none' };
+    }
+  },
 };
 
 export default client;

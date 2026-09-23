@@ -12,18 +12,45 @@ const MAX_TRANSACTION_RETRIES = 3;
 export class FriendshipsService {
   constructor(private prisma: PrismaService) {}
 
-  async sendRequest(requesterId: string, addresseeId: string) {
+  async sendRequest(
+    requesterId: string,
+    addresseeId?: string,
+    targetAccountId?: string,
+  ) {
     if (!requesterId) {
       throw new BadRequestException("Missing authenticated user");
     }
 
-    if (requesterId === addresseeId) {
+    let resolvedAddresseeId = addresseeId?.trim() ?? "";
+    if (!resolvedAddresseeId && targetAccountId?.trim()) {
+      const targetAccount = await this.prisma.activityAccount.findFirst({
+        where: {
+          id: targetAccountId.trim(),
+          status: "active",
+          owner: {
+            status: "active",
+            legacyUserId: { not: null },
+            legacyUser: { status: "active" },
+          },
+        },
+        select: {
+          owner: { select: { legacyUserId: true } },
+        },
+      });
+      resolvedAddresseeId = targetAccount?.owner.legacyUserId ?? "";
+    }
+
+    if (!resolvedAddresseeId) {
+      throw new BadRequestException("Target user information is required");
+    }
+
+    if (requesterId === resolvedAddresseeId) {
       throw new BadRequestException("Cannot send a friend request to yourself");
     }
 
     const addressee = await this.prisma.user.findFirst({
       where: {
-        id: addresseeId,
+        id: resolvedAddresseeId,
         status: "active",
       },
       select: { id: true },
@@ -34,12 +61,12 @@ export class FriendshipsService {
     }
 
     const userPair = [
-      { requesterId, addresseeId },
-      { requesterId: addresseeId, addresseeId: requesterId },
+      { requesterId, addresseeId: resolvedAddresseeId },
+      { requesterId: resolvedAddresseeId, addresseeId: requesterId },
     ];
     const blockPair = [
-      { userId: requesterId, blockedUserId: addresseeId },
-      { userId: addresseeId, blockedUserId: requesterId },
+      { userId: requesterId, blockedUserId: resolvedAddresseeId },
+      { userId: resolvedAddresseeId, blockedUserId: requesterId },
     ];
 
     for (let retryCount = 0; ; retryCount += 1) {
@@ -84,7 +111,7 @@ export class FriendshipsService {
             return transaction.friendship.create({
               data: {
                 requesterId,
-                addresseeId,
+                addresseeId: resolvedAddresseeId,
                 status: "requested",
               },
             });
@@ -211,6 +238,51 @@ export class FriendshipsService {
         where: {
           OR: [{ requesterId: currentUserId }, { addresseeId: currentUserId }],
         },
+        include: {
+          requester: {
+            select: {
+              id: true,
+              displayName: true,
+              profile: {
+                select: {
+                  nickname: true,
+                  avatarUri: true,
+                  bio: true,
+                  headline: true,
+                },
+              },
+              activityAccountBridge: {
+                select: {
+                  id: true,
+                  handle: true,
+                  displayName: true,
+                },
+              },
+            },
+          },
+          addressee: {
+            select: {
+              id: true,
+              displayName: true,
+              profile: {
+                select: {
+                  nickname: true,
+                  avatarUri: true,
+                  bio: true,
+                  headline: true,
+                },
+              },
+              activityAccountBridge: {
+                select: {
+                  id: true,
+                  handle: true,
+                  displayName: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
       }),
       this.prisma.block.findMany({
         where: {
@@ -229,12 +301,96 @@ export class FriendshipsService {
       ),
     );
 
-    return friendships.filter((friendship) => {
-      const otherUserId =
-        friendship.requesterId === currentUserId
-          ? friendship.addresseeId
-          : friendship.requesterId;
-      return !blockedUserIds.has(otherUserId);
+    return friendships
+      .filter((friendship) => {
+        const otherUserId =
+          friendship.requesterId === currentUserId
+            ? friendship.addresseeId
+            : friendship.requesterId;
+        return !blockedUserIds.has(otherUserId);
+      })
+      .map((friendship) => {
+        const isRequester = friendship.requesterId === currentUserId;
+        const otherUser = isRequester
+          ? friendship.addressee
+          : friendship.requester;
+        return {
+          id: friendship.id,
+          status: friendship.status,
+          createdAt: friendship.createdAt,
+          isRequester,
+          user: {
+            id: otherUser.id,
+            name:
+              otherUser.profile?.nickname ||
+              otherUser.displayName ||
+              "친구",
+            avatar: otherUser.profile?.avatarUri || null,
+            bio:
+              otherUser.profile?.bio ||
+              otherUser.profile?.headline ||
+              null,
+            targetAccountId: otherUser.activityAccountBridge?.id || null,
+          },
+        };
+      });
+  }
+
+  async getStatus(
+    currentUserId: string,
+    targetUserId?: string,
+    targetAccountId?: string,
+  ): Promise<{ status: "accepted" | "requested_by_me" | "requested_to_me" | "none" }> {
+    if (!currentUserId) return { status: "none" };
+
+    let resolvedTargetId = targetUserId?.trim() ?? "";
+    if (!resolvedTargetId && targetAccountId?.trim()) {
+      const targetAccount = await this.prisma.activityAccount.findFirst({
+        where: {
+          id: targetAccountId.trim(),
+          status: "active",
+          owner: {
+            status: "active",
+            legacyUserId: { not: null },
+            legacyUser: { status: "active" },
+          },
+        },
+        select: {
+          owner: { select: { legacyUserId: true } },
+        },
+      });
+      resolvedTargetId = targetAccount?.owner.legacyUserId ?? "";
+    }
+
+    if (!resolvedTargetId || resolvedTargetId === currentUserId) {
+      return { status: "none" };
+    }
+
+    const friendship = await this.prisma.friendship.findFirst({
+      where: {
+        OR: [
+          { requesterId: currentUserId, addresseeId: resolvedTargetId },
+          { requesterId: resolvedTargetId, addresseeId: currentUserId },
+        ],
+      },
+      select: {
+        status: true,
+        requesterId: true,
+      },
     });
+
+    if (!friendship) return { status: "none" };
+
+    if (friendship.status === "accepted") return { status: "accepted" };
+    if (friendship.status === "requested") {
+      return {
+        status:
+          friendship.requesterId === currentUserId
+            ? "requested_by_me"
+            : "requested_to_me",
+      };
+    }
+
+    return { status: "none" };
   }
 }

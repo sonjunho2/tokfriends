@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { FriendshipsService } from './friendships.service';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -9,6 +9,24 @@ import { SendFriendRequestDto } from './dto';
 @Controller('friendships')
 export class FriendshipsController {
   constructor(private readonly friendships: FriendshipsService) {}
+
+  @Get('status')
+  async getStatus(
+    @CurrentUser() user: any,
+    @Query('targetUserId') targetUserId?: string,
+    @Query('targetAccountId') targetAccountId?: string,
+  ) {
+    const currentUserId = user?.id ?? user?.sub;
+
+    return {
+      ok: true,
+      data: await this.friendships.getStatus(
+        currentUserId,
+        targetUserId,
+        targetAccountId,
+      ),
+    };
+  }
 
   @Post()
   async send(
@@ -22,6 +40,7 @@ export class FriendshipsController {
       data: await this.friendships.sendRequest(
         currentUserId,
         dto.addresseeId,
+        dto.targetAccountId,
       ),
     };
   }

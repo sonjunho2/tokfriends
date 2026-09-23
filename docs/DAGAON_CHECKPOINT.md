@@ -1786,20 +1786,24 @@ MOBILE SOCIAL GRAPH & PROFILE INTEGRATION — IN PROGRESS.
 Social Follow & Interest integration on Mobile ProfileDetailScreen (ActivityAccount social graph wiring):
 COMPLETE (AppModule FollowsModule/InterestsModule/ProfileVisitsModule global registration, Mobile apiClient followAccount/unfollowAccount/getFollowStatus/sendInterest/removeInterest/getInterestStatus/recordProfileVisit, ProfileDetailScreen auto visit recording, interactive interest toggle with heart icon, and dynamic follow/unfollow toggle with status feedback).
 
+Mobile Friendship / Friends list & bilateral request management integration:
+COMPLETE (AppModule FriendshipsModule global registration, SendFriendRequestDto targetAccountId support and legacy User bridge resolution, FriendshipsController GET /friendships/status, Mobile apiClient friendship methods, dedicated FriendsScreen with tabs for accepted friends, incoming requests with accept/decline, and outgoing requests with cancel, RootNavigator registration across Home/Chat/My stacks, SettingsScreen friends counter link, and ProfileDetailScreen interactive friend request status button).
+
 Next implementation phase:
-MOBILE SOCIAL GRAPH & FRIENDSHIPS — IN PROGRESS.
+MOBILE COMMUNITY & TOPIC FEED INTEGRATION — IN PROGRESS.
 
 ## Immediate Next Task
 
-Mobile Friendship / Friends list & bilateral request management integration.
+Mobile Community / Topic feed, post list, and interactive creation & comment flow.
 
 Status: OPEN.
 
 Goals:
-- inspect Friendship APIs (POST /friendships/request, POST /friendships/respond, GET /friendships)
-- wire friendship list and incoming/outgoing request management to Mobile UI
-- verify bilateral block safeguards (cannot request/accept friendship if blocked in either direction)
-- preserve backward compatibility with legacy User identities while respecting ActivityAccount boundaries
+- inspect Community / Topic & Post APIs (GET /topics, GET /posts, POST /posts)
+- connect Mobile Home / Community feed with backend Topics & Posts
+- preserve backward compatibility with legacy User and ActivityAccount author identities
+- support report & block integration on community posts
+
 
 
 

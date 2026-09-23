@@ -19,6 +19,7 @@ import { GiftsModule } from './gifts/gifts.module';
 import { FollowsModule } from './follows/follows.module';
 import { InterestsModule } from './interests/interests.module';
 import { ProfileVisitsModule } from './profile-visits/profile-visits.module';
+import { FriendshipsModule } from './friendships/friendships.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { ProfileVisitsModule } from './profile-visits/profile-visits.module';
     FollowsModule,
     InterestsModule,
     ProfileVisitsModule,
+    FriendshipsModule,
     ReportsModule,
     MetricsModule,
     StoreModule,

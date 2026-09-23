@@ -15,6 +15,7 @@ import ShopScreen from '../screens/shop/ShopScreen';
 import SettingsScreen from '../screens/my/SettingsScreen';
 import ProfileEditScreen from '../screens/my/ProfileEditScreen';
 import BlockedUsersScreen from '../screens/my/BlockedUsersScreen';
+import FriendsScreen from '../screens/my/FriendsScreen';
 
 // ===== 서브 =====
 import HotRecommendScreen from '../screens/recommend/HotRecommendScreen';
@@ -66,6 +67,11 @@ function HomeStack() {
         component={ProfileDetailScreen}
         options={{ animation: 'slide_from_right' }}
       />
+      <HomeStackNav.Screen
+        name="Friends"
+        component={FriendsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
     </HomeStackNav.Navigator>
   );
 }
@@ -81,6 +87,11 @@ function ChatsStack() {
       <ChatsStackNav.Screen
         name="ChatRoom"
         component={ChatRoomScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <ChatsStackNav.Screen
+        name="Friends"
+        component={FriendsScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </ChatsStackNav.Navigator>
@@ -105,6 +116,11 @@ function MyPageStack() {
       <MyPageStackNav.Screen
         name="BlockedUsers"
         component={BlockedUsersScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="Friends"
+        component={FriendsScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </MyPageStackNav.Navigator>

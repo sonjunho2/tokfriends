@@ -23,31 +23,41 @@ export default function ProfileDetailScreen({ navigation, route }) {
 
   const targetAccountId =
     typeof profile?.targetAccountId === 'string' ? profile.targetAccountId.trim() : '';
+  const targetUserId =
+    typeof profile?.targetUserId === 'string'
+      ? profile.targetUserId.trim()
+      : typeof profile?.id === 'string' && !profile.id.startsWith('acc_')
+      ? profile.id.trim()
+      : '';
 
   const [following, setFollowing] = useState(false);
   const [interested, setInterested] = useState(false);
+  const [friendStatus, setFriendStatus] = useState('none');
   const [updatingFollow, setUpdatingFollow] = useState(false);
   const [updatingInterest, setUpdatingInterest] = useState(false);
+  const [updatingFriend, setUpdatingFriend] = useState(false);
 
   useEffect(() => {
     let mounted = true;
-    if (targetAccountId && !isSelf) {
-      apiClient.recordProfileVisit(targetAccountId);
+    if ((targetAccountId || targetUserId) && !isSelf) {
+      if (targetAccountId) apiClient.recordProfileVisit(targetAccountId);
       Promise.all([
-        apiClient.getFollowStatus(targetAccountId),
-        apiClient.getInterestStatus(targetAccountId),
+        targetAccountId ? apiClient.getFollowStatus(targetAccountId) : Promise.resolve({ following: false }),
+        targetAccountId ? apiClient.getInterestStatus(targetAccountId) : Promise.resolve({ interested: false }),
+        apiClient.getFriendshipStatus({ targetUserId, targetAccountId }),
       ])
-        .then(([followRes, interestRes]) => {
+        .then(([followRes, interestRes, friendRes]) => {
           if (!mounted) return;
           setFollowing(Boolean(followRes?.following));
           setInterested(Boolean(interestRes?.interested));
+          setFriendStatus(friendRes?.status || 'none');
         })
         .catch(() => {});
     }
     return () => {
       mounted = false;
     };
-  }, [targetAccountId, isSelf]);
+  }, [targetAccountId, targetUserId, isSelf]);
 
   const data = useMemo(() => {
     const location = profile?.location || '지역 미설정';
@@ -136,6 +146,58 @@ export default function ProfileDetailScreen({ navigation, route }) {
     }
   };
 
+  const handleFriendAction = async () => {
+    if (!targetAccountId && !targetUserId) {
+      Alert.alert('안내', '친구 요청을 보낼 회원 정보가 없습니다.');
+      return;
+    }
+    if (updatingFriend) return;
+
+    if (friendStatus === 'accepted') {
+      Alert.alert('친구', `${data.name}님과 이미 친구 사이입니다.`);
+      return;
+    }
+
+    if (friendStatus === 'requested_by_me') {
+      Alert.alert(
+        '친구 요청 대기 중',
+        `${data.name}님의 수락을 기다리고 있습니다.\n친구 관리 화면에서 취소할 수 있습니다.`,
+        [
+          { text: '닫기' },
+          { text: '친구 관리로 이동', onPress: () => navigation.navigate('Friends') },
+        ],
+      );
+      return;
+    }
+
+    if (friendStatus === 'requested_to_me') {
+      Alert.alert(
+        '친구 요청 수락',
+        `${data.name}님의 친구 요청을 관리 화면에서 확인하시겠습니까?`,
+        [
+          { text: '닫기' },
+          { text: '친구 관리로 이동', onPress: () => navigation.navigate('Friends') },
+        ],
+      );
+      return;
+    }
+
+    // friendStatus === 'none'
+    setUpdatingFriend(true);
+    try {
+      await apiClient.sendFriendRequest({
+        targetAccountId: targetAccountId || undefined,
+        addresseeId: targetUserId || undefined,
+      });
+      setFriendStatus('requested_by_me');
+      Alert.alert('친구 요청 완료', `${data.name}님에게 친구 요청을 보냈습니다.`);
+    } catch (error) {
+      Alert.alert('친구 요청 실패', error?.message || '친구 요청을 보내지 못했습니다.');
+    } finally {
+      setUpdatingFriend(false);
+    }
+  };
+
   const handleMessage = async () => {
     if (sending) return;
     const targetUserId =
@@ -184,6 +246,39 @@ export default function ProfileDetailScreen({ navigation, route }) {
       preferredFont,
     });
   };
+
+  const friendButtonConfig = useMemo(() => {
+    switch (friendStatus) {
+      case 'accepted':
+        return {
+          label: '친구',
+          icon: 'people',
+          color: colors.primary,
+          active: true,
+        };
+      case 'requested_by_me':
+        return {
+          label: '친구 요청 대기중',
+          icon: 'time-outline',
+          color: '#F59E0B',
+          active: true,
+        };
+      case 'requested_to_me':
+        return {
+          label: '친구 요청 수락하기',
+          icon: 'mail-outline',
+          color: colors.primary,
+          active: true,
+        };
+      default:
+        return {
+          label: '친구 요청',
+          icon: 'person-add-outline',
+          color: colors.textSecondary,
+          active: false,
+        };
+    }
+  }, [friendStatus]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -302,6 +397,31 @@ export default function ProfileDetailScreen({ navigation, route }) {
                   </TouchableOpacity>
                 </View>
               )}
+
+              <TouchableOpacity
+                style={[
+                  styles.friendButton,
+                  friendButtonConfig.active && styles.friendButtonActive,
+                  updatingFriend && { opacity: 0.6 },
+                ]}
+                onPress={handleFriendAction}
+                activeOpacity={0.85}
+                disabled={updatingFriend}
+              >
+                <Ionicons
+                  name={friendButtonConfig.icon}
+                  size={20}
+                  color={friendButtonConfig.color}
+                />
+                <Text
+                  style={[
+                    styles.friendButtonText,
+                    friendButtonConfig.active && { color: friendButtonConfig.color },
+                  ]}
+                >
+                  {friendButtonConfig.label}
+                </Text>
+              </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.primaryButton, sending && { opacity: 0.6 }]}
@@ -500,5 +620,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: colors.primary,
+  },
+  friendButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: 24,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  friendButtonActive: {
+    borderColor: colors.primary,
+    backgroundColor: '#F0ECFF',
+  },
+  friendButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textSecondary,
   },
 });
