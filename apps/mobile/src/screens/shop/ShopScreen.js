@@ -36,7 +36,7 @@ export default function ShopScreen() {
   const [purchaseProcessing, setPurchaseProcessing] = useState(false);
 
   const balance = useMemo(() => {
-    const p = user?.points ?? user?.balance ?? 0;
+    const p = user?.pointsBalance ?? user?.points ?? user?.balance ?? 0;
     return typeof p === 'number' ? p : parseInt(String(p).replace(/\D/g, ''), 10) || 0;
   }, [user]);
 

@@ -84,7 +84,16 @@ const normalizeHistoryMessage = (message, currentActivityAccountId) => {
     backendType === 'video' ||
     (typeof message.content === 'string' &&
       (message.content.includes('.mp4') || message.content.includes('.mov')));
-  const resolvedType = isMedia ? 'media' : 'text';
+  const isGift = backendType === 'gift';
+  let giftData = null;
+  if (isGift) {
+    try {
+      giftData = JSON.parse(message.content);
+    } catch {
+      giftData = { name: '선물', amount: 0, description: message.content };
+    }
+  }
+  const resolvedType = isMedia ? 'media' : (isGift ? 'gift' : 'text');
   const mediaType = isVideo ? 'video' : 'image';
 
   return {
@@ -92,12 +101,13 @@ const normalizeHistoryMessage = (message, currentActivityAccountId) => {
     chatId: message.chatId,
     sender,
     senderAccountId: senderAccountId ?? null,
-    text: isMedia ? '' : message.content,
+    text: isMedia || isGift ? '' : message.content,
     timestamp: formatMessageTime(message.createdAt),
     readAt: message.readAt ?? null,
     type: resolvedType,
     mediaType,
     media: isMedia ? { uri: message.content } : null,
+    gift: giftData,
     backendType,
   };
 };
@@ -760,13 +770,43 @@ export default function ChatRoomScreen({ route, navigation }) {
   }, [navigation, route?.params, user.name]);
 
   const handleSendGift = useCallback(
-    (gift) => {
-      if (!gift) return;
-      appendMessage({ type: 'gift', gift });
+    async (gift) => {
+      if (!gift?.id || !chatId || !currentActivityAccountId) return;
+      const clientMessageId = uuid.v4();
       setGiftSheetVisible(false);
-      Alert.alert('선물 전송 완료', `${formatPoints(gift.amount)}P를 선물했습니다.`);
+
+      try {
+        const response = await apiClient.sendChatGift({
+          chatId,
+          giftId: gift.id,
+          clientMessageId,
+        });
+
+        const confirmedMessage = response?.message;
+        if (confirmedMessage) {
+          const normalized = normalizeHistoryMessage(
+            confirmedMessage,
+            currentActivityAccountId,
+          );
+          appendUniquePersistedMessage(normalized);
+        }
+
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+
+        Alert.alert(
+          '선물 전송 완료',
+          `${gift.name} (${formatPoints(gift.amount)}P)을(를) 선물했습니다.`,
+        );
+      } catch (error) {
+        Alert.alert(
+          '선물 전송 실패',
+          error?.message || '선물을 전송하지 못했습니다. 보유 포인트를 확인해 주세요.',
+        );
+      }
     },
-    [appendMessage, formatPoints]
+    [chatId, currentActivityAccountId, appendUniquePersistedMessage, formatPoints]
   );
 
   const loadGiftOptions = useCallback(async () => {

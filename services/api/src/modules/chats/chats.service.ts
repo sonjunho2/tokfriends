@@ -14,8 +14,14 @@ import {
   ChatRealtimeMessage,
   ChatRealtimePublisher,
 } from "./chat-realtime-publisher.service";
-import { ChatMessagesQueryDto, DirectChatDto, SendMessageDto } from "./dto";
+import {
+  ChatMessagesQueryDto,
+  DirectChatDto,
+  SendGiftDto,
+  SendMessageDto,
+} from "./dto";
 import { NotificationsService } from "../notifications/notifications.service";
+import { GiftsService } from "../gifts/gifts.service";
 
 const MAX_TRANSACTION_RETRIES = 3;
 
@@ -121,6 +127,7 @@ export class ChatsService {
     private readonly prisma: PrismaService,
     private readonly chatRealtimePublisher: ChatRealtimePublisher,
     private readonly notificationsService: NotificationsService,
+    private readonly giftsService: GiftsService,
   ) {}
 
   async list(
@@ -886,6 +893,367 @@ export class ChatsService {
           }
           continue;
         }
+        if (!isTransactionConflict(error)) throw error;
+      }
+    }
+    throw new ConflictException("Chat is unavailable");
+  }
+
+  async sendGift(
+    currentUserId: string | undefined,
+    actorAccountId: string | null | undefined,
+    dto: SendGiftDto,
+  ): Promise<{ ok: boolean; message: ChatRealtimeMessage; spendableBalance: number }> {
+    if (!currentUserId)
+      throw new BadRequestException("Missing authenticated user");
+    if (!actorAccountId)
+      throw new ForbiddenException("Active activity account required");
+
+    const gift = await this.giftsService.getGiftById(dto.giftId);
+    if (!gift) throw new NotFoundException("Gift not found");
+
+    for (let attempt = 0; attempt < MAX_TRANSACTION_RETRIES; attempt += 1) {
+      try {
+        const result = await this.prisma.$transaction(
+          async (tx) => {
+            const actor = await tx.activityAccount.findFirst({
+              where: {
+                id: actorAccountId,
+                status: "active",
+                owner: {
+                  status: "active",
+                  legacyUserId: currentUserId,
+                  legacyUser: { status: "active" },
+                },
+              },
+              select: directAccountSelect,
+            });
+            if (!actor?.owner.legacyUserId)
+              throw new ForbiddenException("Active activity account required");
+
+            const chat = await tx.chat.findFirst({
+              where: {
+                id: dto.chatId,
+                OR: [
+                  {
+                    accountAId: actorAccountId,
+                    userAId: actor.owner.legacyUserId,
+                    accountBId: { not: null },
+                    accountB: {
+                      is: {
+                        status: "active",
+                        owner: {
+                          status: "active",
+                          legacyUserId: { not: null },
+                          legacyUser: { status: "active" },
+                        },
+                      },
+                    },
+                  },
+                  {
+                    accountBId: actorAccountId,
+                    userBId: actor.owner.legacyUserId,
+                    accountAId: { not: null },
+                    accountA: {
+                      is: {
+                        status: "active",
+                        owner: {
+                          status: "active",
+                          legacyUserId: { not: null },
+                          legacyUser: { status: "active" },
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+              select: {
+                id: true,
+                userAId: true,
+                userBId: true,
+                accountAId: true,
+                accountBId: true,
+                accountA: {
+                  select: {
+                    id: true,
+                    ownerId: true,
+                    owner: { select: { legacyUserId: true } },
+                  },
+                },
+                accountB: {
+                  select: {
+                    id: true,
+                    ownerId: true,
+                    owner: { select: { legacyUserId: true } },
+                  },
+                },
+              },
+            });
+            if (!chat) throw new NotFoundException("Chat not found");
+
+            const counterpart =
+              chat.accountAId === actorAccountId
+                ? chat.accountB
+                : chat.accountA;
+            const counterpartUserId = counterpart?.owner.legacyUserId;
+            const aligned =
+              chat.accountAId === actorAccountId
+                ? chat.userBId === counterpartUserId
+                : chat.userAId === counterpartUserId;
+
+            if (
+              !counterpartUserId ||
+              !aligned ||
+              counterpart.ownerId === actor.ownerId ||
+              counterpartUserId === actor.owner.legacyUserId
+            )
+              throw new ConflictException("Chat is unavailable");
+
+            const block = await tx.block.findFirst({
+              where: {
+                OR: [
+                  {
+                    userId: actor.owner.legacyUserId,
+                    blockedUserId: counterpartUserId,
+                  },
+                  {
+                    userId: counterpartUserId,
+                    blockedUserId: actor.owner.legacyUserId,
+                  },
+                ],
+              },
+              select: { id: true },
+            });
+            if (block) throw new ForbiddenException("Chat is unavailable");
+
+            const clientMessageId =
+              dto.clientMessageId ||
+              `gift_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+            if (dto.clientMessageId) {
+              const existingMessage = await tx.message.findFirst({
+                where: {
+                  senderAccountId: actor.id,
+                  clientMessageId: dto.clientMessageId,
+                },
+                select: {
+                  id: true,
+                  chatId: true,
+                  senderAccountId: true,
+                  type: true,
+                  content: true,
+                  translatedContent: true,
+                  createdAt: true,
+                },
+              });
+              if (existingMessage) {
+                const currentWallet = await tx.wallet.findUnique({
+                  where: { activityAccountId: actor.id },
+                  select: { spendableBalance: true },
+                });
+                return {
+                  message: {
+                    ...existingMessage,
+                    senderAccountId: actor.id,
+                  },
+                  spendableBalance: currentWallet?.spendableBalance ?? 0,
+                  created: false,
+                  recipientUserId: undefined as string | undefined,
+                  senderDisplayName: undefined as string | undefined,
+                };
+              }
+            }
+
+            let senderWallet = await tx.wallet.findUnique({
+              where: { activityAccountId: actor.id },
+            });
+            if (!senderWallet) {
+              const legacyUser = await tx.user.findUnique({
+                where: { id: actor.owner.legacyUserId },
+                select: { pointsBalance: true },
+              });
+              senderWallet = await tx.wallet.create({
+                data: {
+                  activityAccountId: actor.id,
+                  spendableBalance: legacyUser?.pointsBalance ?? 0,
+                  redeemableBalance: 0,
+                  pendingEarnings: 0,
+                  status: "active",
+                },
+              });
+            }
+
+            if (senderWallet.spendableBalance < gift.amount) {
+              throw new BadRequestException(
+                "포인트가 부족합니다. 충전 후 다시 시도해 주세요.",
+              );
+            }
+
+            let recipientWallet = await tx.wallet.findUnique({
+              where: { activityAccountId: counterpart.id },
+            });
+            if (!recipientWallet) {
+              const recipientLegacyUser = await tx.user.findUnique({
+                where: { id: counterpartUserId },
+                select: { pointsBalance: true },
+              });
+              recipientWallet = await tx.wallet.create({
+                data: {
+                  activityAccountId: counterpart.id,
+                  spendableBalance: recipientLegacyUser?.pointsBalance ?? 0,
+                  redeemableBalance: 0,
+                  pendingEarnings: 0,
+                  status: "active",
+                },
+              });
+            }
+
+            const newSenderBalance = senderWallet.spendableBalance - gift.amount;
+            const newRecipientBalance = recipientWallet.spendableBalance + gift.amount;
+
+            await tx.wallet.update({
+              where: { id: senderWallet.id },
+              data: { spendableBalance: newSenderBalance },
+            });
+
+            await tx.user.update({
+              where: { id: actor.owner.legacyUserId },
+              data: { pointsBalance: newSenderBalance },
+            });
+
+            await tx.wallet.update({
+              where: { id: recipientWallet.id },
+              data: { spendableBalance: newRecipientBalance },
+            });
+
+            await tx.user.update({
+              where: { id: counterpartUserId },
+              data: { pointsBalance: newRecipientBalance },
+            });
+
+            const senderLedgerKey = `chat-gift:${dto.chatId}:${clientMessageId}:sender`;
+            const recipientLedgerKey = `chat-gift:${dto.chatId}:${clientMessageId}:recipient`;
+
+            await tx.walletLedgerEntry.create({
+              data: {
+                walletId: senderWallet.id,
+                kind: "debit",
+                source: "chat_gift",
+                deltaSpendable: -gift.amount,
+                deltaRedeemable: 0,
+                deltaPending: 0,
+                spendableAfter: newSenderBalance,
+                redeemableAfter: senderWallet.redeemableBalance,
+                pendingAfter: senderWallet.pendingEarnings,
+                idempotencyKey: senderLedgerKey,
+                referenceType: "Chat",
+                referenceId: dto.chatId,
+                metadata: {
+                  giftId: gift.id,
+                  giftName: gift.name,
+                  amount: gift.amount,
+                  recipientAccountId: counterpart.id,
+                },
+              },
+            });
+
+            await tx.walletLedgerEntry.create({
+              data: {
+                walletId: recipientWallet.id,
+                kind: "credit",
+                source: "chat_gift",
+                deltaSpendable: gift.amount,
+                deltaRedeemable: 0,
+                deltaPending: 0,
+                spendableAfter: newRecipientBalance,
+                redeemableAfter: recipientWallet.redeemableBalance,
+                pendingAfter: recipientWallet.pendingEarnings,
+                idempotencyKey: recipientLedgerKey,
+                referenceType: "Chat",
+                referenceId: dto.chatId,
+                metadata: {
+                  giftId: gift.id,
+                  giftName: gift.name,
+                  amount: gift.amount,
+                  senderAccountId: actor.id,
+                },
+              },
+            });
+
+            const giftContent = JSON.stringify({
+              id: gift.id,
+              name: gift.name,
+              amount: gift.amount,
+              description: gift.description ?? "",
+            });
+
+            const now = new Date();
+            const message = await tx.message.create({
+              data: {
+                chatId: dto.chatId,
+                senderId: actor.owner.legacyUserId,
+                senderAccountId: actor.id,
+                clientMessageId,
+                type: "gift",
+                content: giftContent,
+                createdAt: now,
+              },
+              select: {
+                id: true,
+                chatId: true,
+                senderAccountId: true,
+                type: true,
+                content: true,
+                translatedContent: true,
+                createdAt: true,
+              },
+            });
+
+            await tx.chat.update({
+              where: { id: chat.id },
+              data: { lastMessageAt: now },
+            });
+
+            return {
+              message: {
+                ...message,
+                senderAccountId: actor.id,
+              },
+              spendableBalance: newSenderBalance,
+              created: true,
+              recipientUserId: counterpartUserId,
+              senderDisplayName: actor.displayName || actor.handle || "사용자",
+            };
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+
+        if (result.created) {
+          this.chatRealtimePublisher.publish(result.message);
+          if (result.recipientUserId) {
+            this.notificationsService
+              .sendChatPush({
+                recipientUserId: result.recipientUserId,
+                senderDisplayName: result.senderDisplayName || "새 메시지",
+                content: `${gift.name} 선물을 보냈습니다.`,
+                type: "gift",
+                chatId: dto.chatId,
+                messageId: result.message.id,
+              })
+              .catch((err) => {
+                this.logger.warn(
+                  `Failed to dispatch gift push: ${err instanceof Error ? err.message : err}`,
+                );
+              });
+          }
+        }
+
+        return {
+          ok: true,
+          message: result.message,
+          spendableBalance: result.spendableBalance,
+        };
+      } catch (error: unknown) {
         if (!isTransactionConflict(error)) throw error;
       }
     }

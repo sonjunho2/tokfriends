@@ -15,6 +15,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/jwt.guard';
 import { AliasModule } from './alias/alias.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { GiftsModule } from './gifts/gifts.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     UsersModule,
     ChatsModule,
     NotificationsModule,
+    GiftsModule,
     ReportsModule,
     MetricsModule,
     StoreModule,

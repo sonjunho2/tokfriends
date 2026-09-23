@@ -30,9 +30,33 @@ const formatTime = (isoString) => {
   }
 };
 
+const formatLastMessage = (content) => {
+  if (!content) return '대화가 시작되었습니다.';
+  if (typeof content === 'string') {
+    if (
+      content.startsWith('{"id"') ||
+      content.startsWith('{"name"') ||
+      content.includes('"amount":')
+    ) {
+      try {
+        const parsed = JSON.parse(content);
+        return `🎁 ${parsed.name || '선물'} (${parsed.amount ?? 0}P)`;
+      } catch {
+        return '🎁 선물을 보냈습니다.';
+      }
+    }
+    if (content.startsWith('http') || content.startsWith('data:')) {
+      if (content.includes('.mp4') || content.includes('.mov')) return '🎥 동영상';
+      return '📷 사진';
+    }
+  }
+  return content;
+};
+
 export default function ChatListItem({ item, onPress }) {
   const timeText = formatTime(item.lastMessageAt);
   const unreadCount = Number(item.unreadCount) || 0;
+  const lastMessageText = formatLastMessage(item.lastMessage);
 
   return (
     <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.row}>
@@ -48,7 +72,7 @@ export default function ChatListItem({ item, onPress }) {
 
         <View style={styles.bottomRow}>
           <Text numberOfLines={1} style={styles.lastMessage}>
-            {item.lastMessage || '대화가 시작되었습니다.'}
+            {lastMessageText}
           </Text>
           {unreadCount > 0 && (
             <View style={styles.badge}>

@@ -838,6 +838,18 @@ export const apiClient = {
     const { data } = await client.get('/notifications/devices');
     return data;
   },
+
+  async sendChatGift({ chatId, giftId, clientMessageId }) {
+    if (!chatId || !giftId) {
+      throw normalizeError(new Error('채팅방 및 선물 정보가 필요합니다.'));
+    }
+    const { data } = await client.post('/chats/gift', {
+      chatId: String(chatId).trim(),
+      giftId: String(giftId).trim(),
+      ...(clientMessageId ? { clientMessageId: String(clientMessageId).trim() } : {}),
+    });
+    return data;
+  },
 };
 
 export default client;

@@ -1777,18 +1777,25 @@ COMPLETE FOR LOCAL 1:1 CHAT PATH (Device schema migration 20260923032500_add_dev
 Next implementation phase:
 REAL CHAT & IN-ROOM GIFT TRANSACTIONS — IN PROGRESS.
 
+Chat in-room financial Gift sending transaction foundation (Wallet/Ledger integration):
+COMPLETE FOR LOCAL 1:1 CHAT PATH (POST /chats/gift, GiftsService catalog with points, atomic Serializable WalletLedgerEntry debit/credit for sender/recipient, User.pointsBalance synchronization, idempotency, realtime socket broadcast, push dispatch, and Mobile ChatRoomScreen real gift sending & persistence).
+
+Next implementation phase:
+MOBILE SOCIAL GRAPH & PROFILE INTEGRATION — IN PROGRESS.
+
 ## Immediate Next Task
 
-Chat in-room financial Gift sending transaction foundation (Wallet/Ledger integration).
+Social Follow & Interest integration on Mobile ProfileDetailScreen (ActivityAccount social graph wiring).
 
 Status: OPEN.
 
 Goals:
-- inspect current Gifts catalog and in-chat gift UI in Mobile ChatRoomScreen
-- verify wallet spendable balance check and atomic WalletLedgerEntry debit for sender
-- credit recipient wallet or pending balance via ledger entry
-- deliver server-authoritative 'gift' message type in 1:1 chat room with realtime event
-- preserve idempotency and prevent double-spending
+- inspect ProfileDetailScreen and discover navigation contracts
+- wire existing backend PUT/DELETE /follows/:targetAccountId and Interest APIs to ProfileDetailScreen
+- render dynamic Follow/Interest state and toggles for other users' profiles
+- verify bilateral block safeguards and self-target guards
+- ensure smooth UI feedback and backward compatibility with targetUserId fallback
+
 
 
 First commands to run when resuming:

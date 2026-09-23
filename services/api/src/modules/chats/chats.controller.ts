@@ -3,7 +3,7 @@ import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { ChatsService } from "./chats.service";
 import { CurrentUser } from "../auth/current-user.decorator";
-import { ChatMessagesQueryDto, DirectChatDto, SendMessageDto } from "./dto";
+import { ChatMessagesQueryDto, DirectChatDto, SendGiftDto, SendMessageDto } from "./dto";
 
 type CurrentRequestUser = { id?: string; activityAccountId?: string | null };
 
@@ -29,6 +29,11 @@ export class ChatsController {
   @Post("message")
   send(@CurrentUser() user: CurrentRequestUser, @Body() dto: SendMessageDto) {
     return this.chats.send(user?.id, user?.activityAccountId, dto);
+  }
+
+  @Post("gift")
+  sendGift(@CurrentUser() user: CurrentRequestUser, @Body() dto: SendGiftDto) {
+    return this.chats.sendGift(user?.id, user?.activityAccountId, dto);
   }
 
   @Post("direct")

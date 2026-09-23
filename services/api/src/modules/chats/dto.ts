@@ -49,3 +49,19 @@ export class ChatMessagesQueryDto {
   @Type(() => Number)
   limit?: number;
 }
+
+export class SendGiftDto {
+  @IsString()
+  @IsNotEmpty()
+  chatId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  giftId: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(128)
+  clientMessageId?: string;
+}
