@@ -1815,18 +1815,19 @@ COMMUNITY POST COMMENTS & DISCUSSION THREAD FLOW:
 COMPLETE (Prisma migration 20260923044851_add_post_comment_foundation with PostComment model, PostsService comment count enrichment, listComments with bilateral block filtering, createComment, and deleteComment with author/post owner authorization, PostsController /posts/:id/comments endpoints, Mobile apiClient getPostComments/createPostComment/deletePostComment methods, and CommunityFeedScreen interactive comments bottom sheet with real-time thread viewing, comment submission, and deletion).
 
 Next implementation phase:
-MOBILE USER PROFILE CUSTOMIZATION & SEARCH/FILTER DISCOVERY FLOW — READY.
+MOBILE USER PROFILE CUSTOMIZATION & SEARCH/FILTER DISCOVERY FLOW:
+COMPLETE (DiscoverService extended with q/interest/limit filters and AND-condition region/keyword search, UsersService search enriched with headline/bio/interests/region/ownerBridge, UsersController search response includes targetAccountId, client.js searchUsers() method added, ProfileEditScreen interests multi-select chip UI with direct input + 14 preset tags wired to updateUser interests[], HotRecommendScreen collapsible filter panel with debounced keyword/region/interest-chip API calls to getDiscover(), ProfileDetailScreen interests displayed as pink pill tags, and HomeScreen search button navigates to HotRecommend with filter auto-opened. Backend: feat commit 7185727, Mobile: feat commit f0a56e0).
 
 ## Immediate Next Task
 
-Mobile Profile Customization & Discovery Search/Filter Enhancement.
+Admin API Management & Notification Center.
 
 Status: READY.
 
 Goals:
-- enhance profile editing (bio, region, tags/interests, MBTI) and synchronize with User & ActivityAccount
-- enhance Discover / Search filters (region, interest tags, age/distance) in Mobile and API
-- verify mobile UI and backend build integrity
+- Admin API manager UI: per-endpoint monitoring, request logs, rate-limit overrides, enable/disable toggles
+- Notification center: admin-to-user broadcast push, scheduled announcements, per-role targeting
+- Verify admin Next.js build and API build integrity
 
 cd C:\Users\ION\Downloads\work\tokfriends
 git branch --show-current
