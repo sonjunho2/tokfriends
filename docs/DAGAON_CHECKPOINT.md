@@ -1818,16 +1818,20 @@ Next implementation phase:
 MOBILE USER PROFILE CUSTOMIZATION & SEARCH/FILTER DISCOVERY FLOW:
 COMPLETE (DiscoverService extended with q/interest/limit filters and AND-condition region/keyword search, UsersService search enriched with headline/bio/interests/region/ownerBridge, UsersController search response includes targetAccountId, client.js searchUsers() method added, ProfileEditScreen interests multi-select chip UI with direct input + 14 preset tags wired to updateUser interests[], HotRecommendScreen collapsible filter panel with debounced keyword/region/interest-chip API calls to getDiscover(), ProfileDetailScreen interests displayed as pink pill tags, and HomeScreen search button navigates to HotRecommend with filter auto-opened. Backend: feat commit 7185727, Mobile: feat commit f0a56e0).
 
+Next implementation phase:
+ADMIN API MANAGEMENT & NOTIFICATION CENTER:
+COMPLETE (NotificationsService sendBroadcast with 500-token chunked FCM multicast and invalid token auto-cleanup, NotificationsController POST /notifications/broadcast admin-only endpoint with role/limit query params and GET /notifications/broadcast/history device stats, Admin notifications/page.tsx broadcast center UI with template messages, role targeting, device stats, and send history, Admin api-manager/page.tsx endpoint list with enable/disable toggle, rate-limit editing, module filter, keyword search, and admin layout.tsx Notifications and API Manager nav items. Backend: feat commit f9bea5d, Admin: feat commit d2af8d2).
+
 ## Immediate Next Task
 
-Admin API Management & Notification Center.
+Admin Reports & Safety — Full Implementation.
 
 Status: READY.
 
 Goals:
-- Admin API manager UI: per-endpoint monitoring, request logs, rate-limit overrides, enable/disable toggles
-- Notification center: admin-to-user broadcast push, scheduled announcements, per-role targeting
-- Verify admin Next.js build and API build integrity
+- Fully implement reports-safety admin page (신고 목록, 상태 관리, 신고 유저 차단/제재)
+- Connect to existing Reports API and Block/User management
+- Verify admin Next.js build integrity
 
 cd C:\Users\ION\Downloads\work\tokfriends
 git branch --show-current
