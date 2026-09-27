@@ -1834,15 +1834,19 @@ Next implementation phase:
 ADMIN LIVE ROOM MANAGEMENT & MODERATION — FULL IMPLEMENTATION:
 COMPLETE (LiveService getAdminSummary with live room / viewer / gift point aggregates, listAdminRooms with status filter & pagination, forceEndRoom with status update & AuditLog creation, LiveController GET /live/admin/summary, GET /live/admin/rooms, POST /live/admin/rooms/:id/force-end, Admin api.ts live management functions, and live/page.tsx full UI with real-time KPI cards, rooms table, chat message log modal, and force-end confirmation modal. API build ✅ Admin build 30 pages ✅ Commit 8bc6281).
 
+Next implementation phase:
+ADMIN PERMISSIONS & HIGH-RISK DUAL-CONTROL APPROVAL CENTER — FULL IMPLEMENTATION:
+COMPLETE (AdminSecurityController GET /admin/approvals/audit-logs with Actor select, GET /admin/approvals/profiles, PATCH /admin/approvals/profiles/:userId with audit logging, existing 4-eyes dual-control decision & request endpoints, Admin api.ts permissions/approvals/audit-log functions, and admin-permissions/page.tsx full UI with KPI cards, 4-eyes approval list with approve/reject modal and new request dialog, admin profile & permissions matrix editor, and security audit log stream. API build ✅ Admin build 30 pages ✅ Commit 6c47d35).
+
 ## Immediate Next Task
 
-Admin Permissions & High-Risk Dual-Control Approval Center — Full Implementation.
+Admin Ads & Rewards Management — Full Implementation.
 
 Status: READY.
 
 Goals:
-- Fully implement admin-permissions/page.tsx (관리자 목록 및 역할/권한 관리, 4-eyes dual-control 결재 승인 요청 목록 및 승인/거절 처리, 감사 로그 스트림)
-- Connect to existing AdminProfile, AdminApprovalRequest, and AuditLog Prisma models and endpoints
+- Implement ads-rewards/page.tsx (보상형 광고 캠페인 관리, 리워드 적립 정책 설정, 일일 보상 지급 내역 및 통계 모니터링)
+- Connect to existing WalletLedger reward sources and Campaign models/settings
 - Verify admin Next.js build integrity
 
 cd C:\Users\ION\Downloads\work\tokfriends
