@@ -367,4 +367,177 @@ export class AdminController {
       return updated;
     });
   }
+
+  @AdminPermissions('settings.manage')
+  @Get('ads-rewards/overview')
+  async getAdsRewardsOverview() {
+    const [rewardEntries, totalPointsDistributed, totalUsersRewarded, recentRewards] = await Promise.all([
+      this.prisma.walletLedgerEntry.count({
+        where: {
+          OR: [
+            { kind: { contains: 'reward', mode: 'insensitive' } },
+            { source: { contains: 'reward', mode: 'insensitive' } },
+            { source: { contains: 'ad', mode: 'insensitive' } },
+          ],
+        },
+      }),
+      this.prisma.walletLedgerEntry.aggregate({
+        where: {
+          OR: [
+            { kind: { contains: 'reward', mode: 'insensitive' } },
+            { source: { contains: 'reward', mode: 'insensitive' } },
+            { source: { contains: 'ad', mode: 'insensitive' } },
+          ],
+        },
+        _sum: { deltaSpendable: true },
+      }),
+      this.prisma.wallet.count(),
+      this.prisma.walletLedgerEntry.findMany({
+        where: {
+          OR: [
+            { kind: { contains: 'reward', mode: 'insensitive' } },
+            { source: { contains: 'reward', mode: 'insensitive' } },
+            { source: { contains: 'ad', mode: 'insensitive' } },
+          ],
+        },
+        take: 20,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          wallet: {
+            select: {
+              activityAccountId: true,
+              activityAccount: {
+                select: { displayName: true, handle: true },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const settingRows = await this.prisma.adminIntegrationSetting.findMany({
+      where: {
+        id: {
+          in: [
+            'ad_reward_daily_limit',
+            'ad_reward_points_per_view',
+            'ad_network_admob_app_id',
+            'ad_network_admob_unit_id',
+            'attendance_reward_points',
+            'referral_reward_points',
+          ],
+        },
+      },
+    });
+
+    const settingsMap = new Map(settingRows.map((r) => [r.id, r.placeholder || r.encryptedValue || '']));
+
+    return {
+      ok: true,
+      data: {
+        stats: {
+          totalRewardEvents: rewardEntries,
+          totalPointsDistributed: totalPointsDistributed._sum.deltaSpendable ?? 0,
+          totalEligibleUsers: totalUsersRewarded,
+          activeCampaignsCount: 3,
+        },
+        policies: {
+          dailyAdLimit: parseInt(settingsMap.get('ad_reward_daily_limit') || '5', 10),
+          pointsPerAd: parseInt(settingsMap.get('ad_reward_points_per_view') || '10', 10),
+          admobAppId: settingsMap.get('ad_network_admob_app_id') || 'ca-app-pub-3940256099942544~3347511713',
+          admobUnitId: settingsMap.get('ad_network_admob_unit_id') || 'ca-app-pub-3940256099942544/5224354917',
+          attendancePoints: parseInt(settingsMap.get('attendance_reward_points') || '5', 10),
+          referralPoints: parseInt(settingsMap.get('referral_reward_points') || '50', 10),
+          enabled: true,
+        },
+        recentRewards,
+      },
+    };
+  }
+
+  @AdminPermissions('settings.manage')
+  @Patch('ads-rewards/policies')
+  async updateAdsRewardsPolicies(
+    @CurrentUser() user: any,
+    @Body() dto: {
+      dailyAdLimit?: number;
+      pointsPerAd?: number;
+      admobAppId?: string;
+      admobUnitId?: string;
+      attendancePoints?: number;
+      referralPoints?: number;
+    },
+  ) {
+    const actorId = user?.id ?? user?.sub;
+
+    const upserts = [];
+    if (dto.dailyAdLimit !== undefined) {
+      upserts.push(
+        this.prisma.adminIntegrationSetting.upsert({
+          where: { id: 'ad_reward_daily_limit' },
+          update: { placeholder: String(dto.dailyAdLimit) },
+          create: { id: 'ad_reward_daily_limit', label: '일일 광고 시청 제한', placeholder: String(dto.dailyAdLimit) },
+        }),
+      );
+    }
+    if (dto.pointsPerAd !== undefined) {
+      upserts.push(
+        this.prisma.adminIntegrationSetting.upsert({
+          where: { id: 'ad_reward_points_per_view' },
+          update: { placeholder: String(dto.pointsPerAd) },
+          create: { id: 'ad_reward_points_per_view', label: '광고 1회 시청 보상 포인트', placeholder: String(dto.pointsPerAd) },
+        }),
+      );
+    }
+    if (dto.admobAppId !== undefined) {
+      upserts.push(
+        this.prisma.adminIntegrationSetting.upsert({
+          where: { id: 'ad_network_admob_app_id' },
+          update: { placeholder: dto.admobAppId },
+          create: { id: 'ad_network_admob_app_id', label: 'AdMob 앱 ID', placeholder: dto.admobAppId },
+        }),
+      );
+    }
+    if (dto.admobUnitId !== undefined) {
+      upserts.push(
+        this.prisma.adminIntegrationSetting.upsert({
+          where: { id: 'ad_network_admob_unit_id' },
+          update: { placeholder: dto.admobUnitId },
+          create: { id: 'ad_network_admob_unit_id', label: 'AdMob 보상형 광고 단위 ID', placeholder: dto.admobUnitId },
+        }),
+      );
+    }
+    if (dto.attendancePoints !== undefined) {
+      upserts.push(
+        this.prisma.adminIntegrationSetting.upsert({
+          where: { id: 'attendance_reward_points' },
+          update: { placeholder: String(dto.attendancePoints) },
+          create: { id: 'attendance_reward_points', label: '출석체크 보상 포인트', placeholder: String(dto.attendancePoints) },
+        }),
+      );
+    }
+    if (dto.referralPoints !== undefined) {
+      upserts.push(
+        this.prisma.adminIntegrationSetting.upsert({
+          where: { id: 'referral_reward_points' },
+          update: { placeholder: String(dto.referralPoints) },
+          create: { id: 'referral_reward_points', label: '친구 초대 보상 포인트', placeholder: String(dto.referralPoints) },
+        }),
+      );
+    }
+
+    await Promise.all(upserts);
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorId,
+        target: 'settings:ads-rewards',
+        action: 'UPDATE_ADS_REWARDS_POLICIES',
+        reason: 'Updated ads & rewards policies',
+        context: dto,
+      },
+    });
+
+    return { ok: true, data: dto };
+  }
 }

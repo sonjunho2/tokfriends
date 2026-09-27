@@ -36,7 +36,7 @@ export function clearAuthStorage() {
 
 let logoutInProgress = false
 
-/** ?��? 로그?�웃: ?�버 ?�션�?기존 브라?��? ?�증 ?�보�??�리????/login ?�동 */
+/** ?��? 로그?�웃: ?�버 ?�션�?기존 브라?��? ?�증 ?�보�??�리????/login ?�동 */
 export async function logoutToLogin() {
   if (typeof window === 'undefined' || logoutInProgress) return
   logoutInProgress = true
@@ -49,7 +49,7 @@ export async function logoutToLogin() {
       cache: 'no-store',
     })
   } catch {
-    // 로그?�웃 ?�청 ?�패?� 관계없??로그???�면?�로 ?�동?�니??
+    // 로그?�웃 ?�청 ?�패?� 관계없??로그???�면?�로 ?�동?�니??
   }
 
   window.location.href = '/login'
@@ -70,13 +70,13 @@ api.interceptors.response.use(
     const status = error.response?.status
     const message = (error.response?.data as any)?.message || error.message || ''
 
-    // ?�전?�게 ?�체 URL 구성 (strict 모드 ?�??
+    // ?�전?�게 ?�체 URL 구성 (strict 모드 ?�??
     const fullUrl = `${error.config?.baseURL ?? ''}${error.config?.url ?? ''}`
 
     if (status === 401) {
       // eslint-disable-next-line no-console
       console.warn('[TokFriends Admin] 401 from', fullUrl, '| message =', message)
-      // refresh ?�로?��? ?�다�?즉시 ?�로그인
+      // refresh ?�로?��? ?�다�?즉시 ?�로그인
       logoutToLogin()
     } else {
       if (typeof window !== 'undefined') {
@@ -88,7 +88,7 @@ api.interceptors.response.use(
   }
 )
 
-// 공통 POST ?�퍼??export function postJson<T = any>(url: string, data?: any, config?: AxiosRequestConfig<T>) {
+export function postJson<T = any>(url: string, data?: any, config?: AxiosRequestConfig<T>) {
   return api.post<T>(url, data, {
     headers: { 'Content-Type': 'application/json' },
     ...(config || {}),
@@ -105,7 +105,7 @@ export function postForm<T = any>(url: string, data?: Record<string, any>, confi
 }
 
 
-// ?�?�보??메트�?��
+// ?�?�보??메트�?��
 export async function getDashboardMetrics() {
   const route = buildRoutePath('dashboard.metrics')
   const res = await api.get(route)
@@ -113,7 +113,7 @@ export async function getDashboardMetrics() {
 }
 
 // ---------------------------------------------------------------------------
-// ?�증 & ?�스체크
+// ?�증 & ?�스체크
 // ---------------------------------------------------------------------------
 
 export interface LoginWithEmailRequest {
@@ -146,11 +146,11 @@ export async function checkHealth() {
 }
 
 // ---------------------------------------------------------------------------
-// ?�틸리티
+// ?�틸리티
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// ?�용??// ---------------------------------------------------------------------------
+// ?�용??// ---------------------------------------------------------------------------
 
 export interface UserSearchParams {
   query?: string
@@ -262,7 +262,7 @@ export async function updateUserStatus(userId: string, status: string) {
 }
 
 // ---------------------------------------------------------------------------
-// ?�고 / 차단
+// ?�고 / 차단
 // ---------------------------------------------------------------------------
 
 export interface ReportPayload {
@@ -322,7 +322,7 @@ export function submitUserBlock(payload: BlockPayload) {
 }
 
 // ---------------------------------------------------------------------------
-// ?�픽 / 게시글
+// ?�픽 / 게시글
 // ---------------------------------------------------------------------------
 
 export interface TopicQuery {
@@ -379,7 +379,7 @@ export async function deletePost(postId: string) {
 }
 
 // ---------------------------------------------------------------------------
-// 공�? / 배너
+// 공�? / 배너
 // ---------------------------------------------------------------------------
 
 export interface AnnouncementWritePayload {
@@ -437,7 +437,7 @@ export async function updateAnnouncement(announcementId: string, payload: Announ
 }
 
 // ---------------------------------------------------------------------------
-// ?�물 / ?�이??// ---------------------------------------------------------------------------
+// ?�물 / ?�이??// ---------------------------------------------------------------------------
 
 export interface Gift {
   id: string
@@ -481,7 +481,7 @@ export async function deleteGift(giftId: string) {
 }
 
 // ---------------------------------------------------------------------------
-// ?��? / ?�책 문서
+// ?��? / ?�책 문서
 // ---------------------------------------------------------------------------
 
 export interface LegalDocumentVersion {
@@ -606,7 +606,7 @@ export async function saveLegalDocument(slug: string, payload: LegalDocumentPayl
 }
 
 // ---------------------------------------------------------------------------
-// ?��????�증
+// ?��????�증
 // ---------------------------------------------------------------------------
 
 export interface PhoneOtpLog {
@@ -665,7 +665,7 @@ export function completePhoneVerificationProfile(payload: ManualProfileCompletio
 }
 
 // ---------------------------------------------------------------------------
-// ?�인???�품
+// ?�인???�품
 // ---------------------------------------------------------------------------
 
 export interface PointProduct {
@@ -751,7 +751,7 @@ export async function syncPointProductOrder(items: PointProductOrderInput[]) {
 }
 
 // ---------------------------------------------------------------------------
-// 매칭 & ?�색
+// 매칭 & ?�색
 // ---------------------------------------------------------------------------
 
 export interface MatchQueueStat {
@@ -1020,7 +1020,7 @@ export async function saveMatchHeatMemo(payload: { memo: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// 채팅 & ?�전
+// 채팅 & ?�전
 // ---------------------------------------------------------------------------
 
 export interface ChatRoomSummary {
@@ -1279,7 +1279,7 @@ export async function createAnalyticsExport(payload: Record<string, unknown>) {
 }
 
 // ---------------------------------------------------------------------------
-// ?�정 & ?�합
+// ?�정 & ?�합
 // ---------------------------------------------------------------------------
 
 export interface AdminTeamMember {
@@ -1504,17 +1504,17 @@ export interface ApiManagerSnapshot {
 }
 
 const FALLBACK_ENDPOINTS: ApiEndpointInfo[] = [
-  { id: 'ep-discover', method: 'GET', path: '/discover', module: 'Discover', description: '?�용???�색 (?�터: q, interest, region)', rateLimitPerMin: 60, enabled: true },
-  { id: 'ep-users-search', method: 'GET', path: '/users/search', module: 'Users', description: '?�용??검??, rateLimitPerMin: 30, enabled: true },
-  { id: 'ep-posts', method: 'GET', path: '/posts', module: 'Posts', description: '커�??�티 글 목록', rateLimitPerMin: 60, enabled: true },
-  { id: 'ep-chats-direct', method: 'POST', path: '/chats/direct', module: 'Chats', description: '1:1 채팅�?개설', rateLimitPerMin: 20, enabled: true },
-  { id: 'ep-chats-message', method: 'POST', path: '/chats/message', module: 'Chats', description: '채팅 메시지 ?�송', rateLimitPerMin: 120, enabled: true },
-  { id: 'ep-follows', method: 'PUT', path: '/follows/:id', module: 'Follows', description: '?�로??, rateLimitPerMin: 30, enabled: true },
-  { id: 'ep-interests', method: 'PUT', path: '/interests/:id', module: 'Interests', description: '관??보내�?, rateLimitPerMin: 20, enabled: true },
-  { id: 'ep-live', method: 'POST', path: '/live/rooms', module: 'Live', description: '?�이�?�??�성', rateLimitPerMin: 5, enabled: true },
-  { id: 'ep-broadcast', method: 'POST', path: '/notifications/broadcast', module: 'Notifications', description: '관리자 브로?�캐?�트 ?�시', rateLimitPerMin: 10, enabled: true },
-  { id: 'ep-store-products', method: 'GET', path: '/store/point-products', module: 'Store', description: '?�인???�품 목록', rateLimitPerMin: 60, enabled: true },
-]
+  { id: 'ep-discover', method: 'GET', path: '/discover', module: 'Discover', description: 'User discovery search & filter', rateLimitPerMin: 60, enabled: true },
+  { id: 'ep-users-search', method: 'GET', path: '/users/search', module: 'Users', description: 'User search', rateLimitPerMin: 30, enabled: true },
+  { id: 'ep-posts', method: 'GET', path: '/posts', module: 'Posts', description: 'Community posts feed', rateLimitPerMin: 60, enabled: true },
+  { id: 'ep-chats-direct', method: 'POST', path: '/chats/direct', module: 'Chats', description: '1:1 direct chat room', rateLimitPerMin: 20, enabled: true },
+  { id: 'ep-chats-message', method: 'POST', path: '/chats/message', module: 'Chats', description: 'Send chat message', rateLimitPerMin: 120, enabled: true },
+  { id: 'ep-follows', method: 'PUT', path: '/follows/:id', module: 'Follows', description: 'Follow user', rateLimitPerMin: 30, enabled: true },
+  { id: 'ep-interests', method: 'PUT', path: '/interests/:id', module: 'Interests', description: 'Send interest', rateLimitPerMin: 20, enabled: true },
+  { id: 'ep-live', method: 'POST', path: '/live/rooms', module: 'Live', description: 'Create live room', rateLimitPerMin: 5, enabled: true },
+  { id: 'ep-broadcast', method: 'POST', path: '/notifications/broadcast', module: 'Notifications', description: 'Admin broadcast push', rateLimitPerMin: 10, enabled: true },
+  { id: 'ep-store-products', method: 'GET', path: '/store/point-products', module: 'Store', description: 'Point products list', rateLimitPerMin: 60, enabled: true },
+];
 
 export async function getApiManagerSnapshot(): Promise<ApiManagerSnapshot> {
   try {
@@ -1951,4 +1951,72 @@ export async function updateAdminProfile(
 ): Promise<AdminProfileItem> {
   const response = await api.patch(`/admin/approvals/profiles/${userId}`, payload)
   return (response.data as any)?.data ?? response.data
+}
+
+
+// =============================================
+// Admin Ads & Rewards
+// =============================================
+
+export interface AdsRewardsStats {
+  totalRewardEvents: number;
+  totalPointsDistributed: number;
+  totalEligibleUsers: number;
+  activeCampaignsCount: number;
+}
+
+export interface AdsRewardsPolicies {
+  dailyAdLimit: number;
+  pointsPerAd: number;
+  admobAppId: string;
+  admobUnitId: string;
+  attendancePoints: number;
+  referralPoints: number;
+  enabled: boolean;
+}
+
+export interface AdsRewardsOverviewResponse {
+  stats: AdsRewardsStats;
+  policies: AdsRewardsPolicies;
+  recentRewards: {
+    id: string;
+    deltaSpendable: number;
+    createdAt: string;
+    kind: string;
+    source: string;
+    wallet?: {
+      activityAccount?: {
+        displayName?: string;
+        handle?: string;
+      } | null;
+    } | null;
+  }[];
+}
+
+export async function getAdsRewardsOverview(): Promise<AdsRewardsOverviewResponse> {
+  const response = await api.get('/admin/ads-rewards/overview');
+  const d = (response.data as any)?.data ?? {};
+  return {
+    stats: {
+      totalRewardEvents: Number(d.stats?.totalRewardEvents ?? 0),
+      totalPointsDistributed: Number(d.stats?.totalPointsDistributed ?? 0),
+      totalEligibleUsers: Number(d.stats?.totalEligibleUsers ?? 0),
+      activeCampaignsCount: Number(d.stats?.activeCampaignsCount ?? 0),
+    },
+    policies: {
+      dailyAdLimit: Number(d.policies?.dailyAdLimit ?? 5),
+      pointsPerAd: Number(d.policies?.pointsPerAd ?? 10),
+      admobAppId: String(d.policies?.admobAppId ?? ''),
+      admobUnitId: String(d.policies?.admobUnitId ?? ''),
+      attendancePoints: Number(d.policies?.attendancePoints ?? 5),
+      referralPoints: Number(d.policies?.referralPoints ?? 50),
+      enabled: Boolean(d.policies?.enabled ?? true),
+    },
+    recentRewards: Array.isArray(d.recentRewards) ? d.recentRewards : [],
+  };
+}
+
+export async function updateAdsRewardsPolicies(payload: Partial<AdsRewardsPolicies>): Promise<any> {
+  const response = await api.patch('/admin/ads-rewards/policies', payload);
+  return (response.data as any)?.data ?? response.data;
 }
