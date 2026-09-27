@@ -5,8 +5,10 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Noto_Sans_KR } from 'next/font/google'
 import {
   BarChart3,
+  Bell,
   CircleDollarSign,
   Clapperboard,
+  Code2,
   Coins,
   FileWarning,
   LayoutDashboard,
@@ -109,6 +111,20 @@ const NAV_ITEMS: AppShellNavItem[] = [
     description: '서비스 지표와 정기 리포트',
     group: 'Operations',
     icon: BarChart3,
+  },
+  {
+    label: 'Notifications',
+    href: '/notifications',
+    description: '푸시 알림 브로드캐스트 센터',
+    group: 'Operations',
+    icon: Bell,
+  },
+  {
+    label: 'API Manager',
+    href: '/api-manager',
+    description: '엔드포인트 상태 및 Rate Limit 관리',
+    group: 'System',
+    icon: Code2,
   },
   {
     label: 'Admin & Permissions',

@@ -1425,3 +1425,123 @@ export async function saveAdminAuditMemo(payload: { memo: string }) {
   const response = await api.post('/admin/settings/audit-log', payload)
   return (response.data as { memo?: string } | undefined)?.memo ?? payload.memo
 }
+
+// =============================================
+// Admin Notification Broadcast
+// =============================================
+
+export interface BroadcastResult {
+  sent: number
+  failed: number
+  total: number
+  reason?: string
+}
+
+export interface BroadcastDeviceStats {
+  totalRegisteredDevices: number
+  platformBreakdown: { platform: string; count: number }[]
+}
+
+export async function sendAdminBroadcast(payload: {
+  title: string
+  body: string
+  role?: string
+  data?: Record<string, string>
+}): Promise<BroadcastResult> {
+  const { role, ...body } = payload
+  const params: Record<string, string> = {}
+  if (role) params.role = role
+  const response = await api.post('/notifications/broadcast', body, { params })
+  const d = (response.data as any) ?? {}
+  return {
+    sent: typeof d.sent === 'number' ? d.sent : 0,
+    failed: typeof d.failed === 'number' ? d.failed : 0,
+    total: typeof d.total === 'number' ? d.total : 0,
+    reason: typeof d.reason === 'string' ? d.reason : undefined,
+  }
+}
+
+export async function getAdminBroadcastStats(): Promise<BroadcastDeviceStats> {
+  try {
+    const response = await api.get('/notifications/broadcast/history')
+    const d = (response.data as any)?.data ?? {}
+    return {
+      totalRegisteredDevices: typeof d.totalRegisteredDevices === 'number' ? d.totalRegisteredDevices : 0,
+      platformBreakdown: Array.isArray(d.platformBreakdown)
+        ? d.platformBreakdown.map((p: any) => ({ platform: String(p.platform ?? 'unknown'), count: Number(p.count ?? 0) }))
+        : [],
+    }
+  } catch {
+    return { totalRegisteredDevices: 0, platformBreakdown: [] }
+  }
+}
+
+// =============================================
+// Admin API Manager
+// =============================================
+
+export interface ApiEndpointInfo {
+  id: string
+  method: string
+  path: string
+  module: string
+  description: string
+  rateLimitPerMin: number
+  enabled: boolean
+}
+
+export interface ApiRequestLog {
+  id: string
+  method: string
+  path: string
+  statusCode: number
+  durationMs: number
+  timestamp: string
+  userId?: string
+}
+
+export interface ApiManagerSnapshot {
+  endpoints: ApiEndpointInfo[]
+  recentLogs: ApiRequestLog[]
+  totalRequests24h: number
+  errorRate24h: number
+}
+
+const FALLBACK_ENDPOINTS: ApiEndpointInfo[] = [
+  { id: 'ep-discover', method: 'GET', path: '/discover', module: 'Discover', description: '사용자 탐색 (필터: q, interest, region)', rateLimitPerMin: 60, enabled: true },
+  { id: 'ep-users-search', method: 'GET', path: '/users/search', module: 'Users', description: '사용자 검색', rateLimitPerMin: 30, enabled: true },
+  { id: 'ep-posts', method: 'GET', path: '/posts', module: 'Posts', description: '커뮤니티 글 목록', rateLimitPerMin: 60, enabled: true },
+  { id: 'ep-chats-direct', method: 'POST', path: '/chats/direct', module: 'Chats', description: '1:1 채팅방 개설', rateLimitPerMin: 20, enabled: true },
+  { id: 'ep-chats-message', method: 'POST', path: '/chats/message', module: 'Chats', description: '채팅 메시지 전송', rateLimitPerMin: 120, enabled: true },
+  { id: 'ep-follows', method: 'PUT', path: '/follows/:id', module: 'Follows', description: '팔로우', rateLimitPerMin: 30, enabled: true },
+  { id: 'ep-interests', method: 'PUT', path: '/interests/:id', module: 'Interests', description: '관심 보내기', rateLimitPerMin: 20, enabled: true },
+  { id: 'ep-live', method: 'POST', path: '/live/rooms', module: 'Live', description: '라이브 방 생성', rateLimitPerMin: 5, enabled: true },
+  { id: 'ep-broadcast', method: 'POST', path: '/notifications/broadcast', module: 'Notifications', description: '관리자 브로드캐스트 푸시', rateLimitPerMin: 10, enabled: true },
+  { id: 'ep-store-products', method: 'GET', path: '/store/point-products', module: 'Store', description: '포인트 상품 목록', rateLimitPerMin: 60, enabled: true },
+]
+
+export async function getApiManagerSnapshot(): Promise<ApiManagerSnapshot> {
+  try {
+    const response = await api.get('/metrics/dashboard')
+    const d = (response.data as any)?.data ?? {}
+    return {
+      endpoints: FALLBACK_ENDPOINTS,
+      recentLogs: [],
+      totalRequests24h: typeof d.totalRequests24h === 'number' ? d.totalRequests24h : 0,
+      errorRate24h: typeof d.errorRate24h === 'number' ? d.errorRate24h : 0,
+    }
+  } catch {
+    return { endpoints: FALLBACK_ENDPOINTS, recentLogs: [], totalRequests24h: 0, errorRate24h: 0 }
+  }
+}
+
+export async function updateApiEndpoint(
+  id: string,
+  payload: Partial<Pick<ApiEndpointInfo, 'enabled' | 'rateLimitPerMin'>>,
+): Promise<ApiEndpointInfo> {
+  // In a real system this would call PATCH /admin/api-manager/endpoints/:id
+  // For now it's a client-side optimistic update stub
+  await new Promise((r) => setTimeout(r, 200))
+  const found = FALLBACK_ENDPOINTS.find((ep) => ep.id === id)
+  return { ...(found ?? FALLBACK_ENDPOINTS[0]), ...payload } as ApiEndpointInfo
+}
