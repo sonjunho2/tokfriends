@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Avatar from '../../components/Avatar';
+import ReportModal from '../../components/ReportModal';
 import colors from '../../theme/colors';
 import { apiClient } from '../../api/client';
 
@@ -36,6 +37,8 @@ export default function ProfileDetailScreen({ navigation, route }) {
   const [updatingFollow, setUpdatingFollow] = useState(false);
   const [updatingInterest, setUpdatingInterest] = useState(false);
   const [updatingFriend, setUpdatingFriend] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [blocking, setBlocking] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -248,6 +251,80 @@ export default function ProfileDetailScreen({ navigation, route }) {
     });
   };
 
+  const handleOpenSafetyMenu = () => {
+    Alert.alert(
+      `${data.name} 님 관리`,
+      '원하시는 작업을 선택하세요.',
+      [
+        {
+          text: '신고하기',
+          style: 'destructive',
+          onPress: () => setReportModalVisible(true),
+        },
+        {
+          text: '차단하기',
+          style: 'destructive',
+          onPress: confirmBlockUser,
+        },
+        {
+          text: '취소',
+          style: 'cancel',
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const confirmBlockUser = () => {
+    Alert.alert(
+      '회원 차단',
+      `정말 ${data.name}님을 차단하시겠습니까?\n차단하면 상대방의 프로필 및 게시물을 볼 수 없으며 대화가 차단됩니다.`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '차단하기',
+          style: 'destructive',
+          onPress: handleBlockUser,
+        },
+      ]
+    );
+  };
+
+  const handleBlockUser = async () => {
+    if (blocking) return;
+    if (!targetAccountId && !targetUserId) {
+      Alert.alert('오류', '차단할 회원 정보가 없습니다.');
+      return;
+    }
+    setBlocking(true);
+    try {
+      if (targetAccountId) {
+        await apiClient.blockUser({ targetAccountId });
+      } else {
+        await apiClient.blockUser({ blockedUserId: targetUserId });
+      }
+      Alert.alert('차단 완료', `${data.name}님이 차단되었습니다.`, [
+        { text: '확인', onPress: () => navigation.goBack() },
+      ]);
+    } catch (err) {
+      Alert.alert('차단 실패', err?.message || '회원 차단에 실패했습니다.');
+    } finally {
+      setBlocking(false);
+    }
+  };
+
+  const handleReportSubmit = async ({ category, reason }) => {
+    if (!targetAccountId && !targetUserId) {
+      throw new Error('신고할 회원 정보가 없습니다.');
+    }
+    if (targetAccountId) {
+      await apiClient.reportUser({ targetAccountId, reason });
+    } else {
+      await apiClient.reportUser({ targetUserId, reason });
+    }
+    Alert.alert('신고 접수 완료', '신고가 정상 접수되었습니다. 운영팀 검토 후 조치됩니다.');
+  };
+
   const friendButtonConfig = useMemo(() => {
     switch (friendStatus) {
       case 'accepted':
@@ -299,7 +376,17 @@ export default function ProfileDetailScreen({ navigation, route }) {
               >
                 <Ionicons name="chevron-back" size={26} color={colors.textInverse} />
               </TouchableOpacity>
-              <View style={styles.headerSpacer} />
+              {!isSelf ? (
+                <TouchableOpacity
+                  style={styles.headerButton}
+                  onPress={handleOpenSafetyMenu}
+                  hitSlop={8}
+                >
+                  <Ionicons name="ellipsis-vertical" size={20} color={colors.textInverse} />
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.headerSpacer} />
+              )}
             </View>
             <View style={styles.avatarWrapper}>
               <Avatar
@@ -447,6 +534,14 @@ export default function ProfileDetailScreen({ navigation, route }) {
           )}
         </View>
       </ScrollView>
+
+      <ReportModal
+        visible={reportModalVisible}
+        targetName={data.name}
+        targetType="user"
+        onClose={() => setReportModalVisible(false)}
+        onSubmit={handleReportSubmit}
+      />
     </SafeAreaView>
   );
 }

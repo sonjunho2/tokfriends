@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
+import ReportModal from '../../components/ReportModal';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 
@@ -32,6 +33,9 @@ export default function LiveRoomScreen({ navigation, route }) {
   const [sending, setSending] = useState(false);
   const [likeCount, setLikeCount] = useState(initialRoom?.totalLikes || 0);
   const [viewerCount, setViewerCount] = useState(initialRoom?.viewerCount || 1);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportTarget, setReportTarget] = useState(null);
+  const [blocking, setBlocking] = useState(false);
 
   const flatListRef = useRef(null);
 
@@ -171,23 +175,144 @@ export default function LiveRoomScreen({ navigation, route }) {
     ]);
   };
 
+  const handleOpenRoomSafetyMenu = () => {
+    const hostName = room?.host?.name || '호스트';
+    const hostId = room?.host?.id;
+
+    Alert.alert(
+      '방송 및 호스트 관리',
+      '원하시는 작업을 선택하세요.',
+      [
+        {
+          text: '방송 및 호스트 신고하기',
+          style: 'destructive',
+          onPress: () => {
+            setReportTarget({
+              type: 'room',
+              name: room?.title || `${hostName}님의 방송`,
+              userId: hostId,
+            });
+            setReportModalVisible(true);
+          },
+        },
+        ...(hostId
+          ? [
+              {
+                text: '호스트 차단하기',
+                style: 'destructive',
+                onPress: () => confirmBlockUser(hostId, hostName, true),
+              },
+            ]
+          : []),
+        { text: '취소', style: 'cancel' },
+      ],
+      { cancelable: true },
+    );
+  };
+
+  const handleMessagePress = (item) => {
+    const senderId = item?.sender?.id;
+    const senderName = item?.sender?.name || '참여자';
+    if (!senderId || String(senderId) === String(currentUser?.id)) {
+      return;
+    }
+
+    Alert.alert(
+      `${senderName} 님 관리`,
+      '원하시는 작업을 선택하세요.',
+      [
+        {
+          text: '참여자 신고하기',
+          style: 'destructive',
+          onPress: () => {
+            setReportTarget({
+              type: 'user',
+              name: senderName,
+              userId: senderId,
+            });
+            setReportModalVisible(true);
+          },
+        },
+        {
+          text: '참여자 차단하기',
+          style: 'destructive',
+          onPress: () => confirmBlockUser(senderId, senderName, false),
+        },
+        { text: '취소', style: 'cancel' },
+      ],
+      { cancelable: true },
+    );
+  };
+
+  const confirmBlockUser = (userId, userName, shouldExit = false) => {
+    Alert.alert(
+      '회원 차단',
+      `정말 ${userName}님을 차단하시겠습니까?\n차단하면 상대방의 대화 및 게시물이 차단됩니다.`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '차단하기',
+          style: 'destructive',
+          onPress: async () => {
+            if (blocking) return;
+            setBlocking(true);
+            try {
+              await apiClient.blockUser({ blockedUserId: userId });
+              Alert.alert('차단 완료', `${userName}님이 차단되었습니다.`, [
+                {
+                  text: '확인',
+                  onPress: () => {
+                    if (shouldExit) {
+                      navigation.goBack();
+                    } else {
+                      setMessages((prev) =>
+                        prev.filter((m) => String(m.sender?.id) !== String(userId)),
+                      );
+                    }
+                  },
+                },
+              ]);
+            } catch (err) {
+              Alert.alert('차단 실패', err?.message || '차단 처리에 실패했습니다.');
+            } finally {
+              setBlocking(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleReportSubmit = async ({ reason }) => {
+    if (!reportTarget?.userId) {
+      throw new Error('신고 대상 정보가 없습니다.');
+    }
+    await apiClient.reportUser({
+      targetUserId: reportTarget.userId,
+      reason: `[LiveRoom:${roomId}] ${reason}`,
+    });
+    Alert.alert('신고 접수 완료', '신고가 정상 접수되었습니다. 운영팀 검토 후 조치됩니다.');
+  };
+
   const renderMessageItem = ({ item }) => {
     const isGift = item.type === 'gift';
     const isLike = item.type === 'like';
 
     return (
-      <View
+      <TouchableOpacity
         style={[
           styles.chatBubble,
           isGift && styles.giftBubble,
           isLike && styles.likeBubble,
         ]}
+        onPress={() => handleMessagePress(item)}
+        activeOpacity={0.8}
       >
         <Text style={styles.chatAuthor}>{item.sender?.name || '참여자'}</Text>
         <Text style={[styles.chatContent, isGift && styles.giftContent]}>
           {item.content}
         </Text>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -241,6 +366,15 @@ export default function LiveRoomScreen({ navigation, route }) {
             <Ionicons name="eye" size={14} color="#FFFFFF" />
             <Text style={styles.viewerBadgeText}>{viewerCount}</Text>
           </View>
+          {!isHost && (
+            <TouchableOpacity
+              style={styles.safetyButton}
+              onPress={handleOpenRoomSafetyMenu}
+              hitSlop={8}
+            >
+              <Ionicons name="ellipsis-vertical" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={styles.closeButton}
             onPress={() => navigation.goBack()}
@@ -327,6 +461,14 @@ export default function LiveRoomScreen({ navigation, route }) {
           )}
         </View>
       </KeyboardAvoidingView>
+
+      <ReportModal
+        visible={reportModalVisible}
+        targetName={reportTarget?.name || '방송'}
+        targetType={reportTarget?.type || 'room'}
+        onClose={() => setReportModalVisible(false)}
+        onSubmit={handleReportSubmit}
+      />
     </SafeAreaView>
   );
 }
@@ -439,6 +581,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  safetyButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   closeButton: {
     width: 34,
