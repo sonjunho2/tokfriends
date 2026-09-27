@@ -1826,15 +1826,19 @@ Next implementation phase:
 ADMIN REPORTS & SAFETY — FULL IMPLEMENTATION:
 COMPLETE (ReportsService updateStatus with Prisma report.update and blockReportedUser with Block upsert + AuditLog creation + Report RESOLVED auto-mark, AdminReportsController PATCH /admin/reports/:id/status and POST /admin/reports/:id/block-user admin-only endpoints, Admin api.ts getAdminReports/updateAdminReportStatus/blockReportedUser functions, and reports-safety/page.tsx full UI with paginated report list, status filter, keyword search, inline status action buttons REVIEWING/RESOLVED/REJECTED, and block confirmation modal. API build ✅ Admin build 30 pages ✅ Commit 70e399b).
 
+Next implementation phase:
+ADMIN SETTLEMENT & REFUND MANAGEMENT — FULL IMPLEMENTATION:
+COMPLETE (AdminController GET /admin/settlement/summary, GET /admin/settlement/purchases with platform filter & pagination, GET /admin/settlement/ledger stream, enriched GET /admin/refunds with User relations, PATCH /admin/refunds/:id/approve & deny with audit logging, Admin api.ts settlement and refund functions, and settlement/page.tsx full UI with KPI cards, refund request table with approve/deny actions, point purchase history with platform filtering, and wallet ledger stream. API build ✅ Admin build 30 pages ✅ Commit 32eb3cf).
+
 ## Immediate Next Task
 
-Admin Settlement & Refund Management — Full Implementation.
+Admin Live Room Management & Moderation — Full Implementation.
 
 Status: READY.
 
 Goals:
-- Fully implement settlement/page.tsx (정산 현황, 포인트 구매 내역, 환불 요청 목록/처리)
-- Connect to existing RefundRequest API and WalletLedger
+- Implement admin live room management in live/page.tsx (실시간 방송 모니터링, 방송 강제 종료, 시청자 수/선물 포인트 집계, 라이브 메시지 내역 조회)
+- Connect to existing LiveRoom and LiveMessage Prisma models and API endpoints
 - Verify admin Next.js build integrity
 
 cd C:\Users\ION\Downloads\work\tokfriends
