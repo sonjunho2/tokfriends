@@ -36,7 +36,7 @@ export function clearAuthStorage() {
 
 let logoutInProgress = false
 
-/** 표준 로그아웃: 서버 세션과 기존 브라우저 인증 정보를 정리한 후 /login 이동 */
+/** ?��? 로그?�웃: ?�버 ?�션�?기존 브라?��? ?�증 ?�보�??�리????/login ?�동 */
 export async function logoutToLogin() {
   if (typeof window === 'undefined' || logoutInProgress) return
   logoutInProgress = true
@@ -49,7 +49,7 @@ export async function logoutToLogin() {
       cache: 'no-store',
     })
   } catch {
-    // 로그아웃 요청 실패와 관계없이 로그인 화면으로 이동합니다.
+    // 로그?�웃 ?�청 ?�패?� 관계없??로그???�면?�로 ?�동?�니??
   }
 
   window.location.href = '/login'
@@ -70,13 +70,13 @@ api.interceptors.response.use(
     const status = error.response?.status
     const message = (error.response?.data as any)?.message || error.message || ''
 
-    // 안전하게 전체 URL 구성 (strict 모드 대응)
+    // ?�전?�게 ?�체 URL 구성 (strict 모드 ?�??
     const fullUrl = `${error.config?.baseURL ?? ''}${error.config?.url ?? ''}`
 
     if (status === 401) {
       // eslint-disable-next-line no-console
       console.warn('[TokFriends Admin] 401 from', fullUrl, '| message =', message)
-      // refresh 플로우가 없다면 즉시 재로그인
+      // refresh ?�로?��? ?�다�?즉시 ?�로그인
       logoutToLogin()
     } else {
       if (typeof window !== 'undefined') {
@@ -88,8 +88,7 @@ api.interceptors.response.use(
   }
 )
 
-// 공통 POST 헬퍼들
-export function postJson<T = any>(url: string, data?: any, config?: AxiosRequestConfig<T>) {
+// 공통 POST ?�퍼??export function postJson<T = any>(url: string, data?: any, config?: AxiosRequestConfig<T>) {
   return api.post<T>(url, data, {
     headers: { 'Content-Type': 'application/json' },
     ...(config || {}),
@@ -106,7 +105,7 @@ export function postForm<T = any>(url: string, data?: Record<string, any>, confi
 }
 
 
-// 대시보드 메트릭스
+// ?�?�보??메트�?��
 export async function getDashboardMetrics() {
   const route = buildRoutePath('dashboard.metrics')
   const res = await api.get(route)
@@ -114,7 +113,7 @@ export async function getDashboardMetrics() {
 }
 
 // ---------------------------------------------------------------------------
-// 인증 & 헬스체크
+// ?�증 & ?�스체크
 // ---------------------------------------------------------------------------
 
 export interface LoginWithEmailRequest {
@@ -147,12 +146,11 @@ export async function checkHealth() {
 }
 
 // ---------------------------------------------------------------------------
-// 유틸리티
+// ?�틸리티
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// 사용자
-// ---------------------------------------------------------------------------
+// ?�용??// ---------------------------------------------------------------------------
 
 export interface UserSearchParams {
   query?: string
@@ -264,7 +262,7 @@ export async function updateUserStatus(userId: string, status: string) {
 }
 
 // ---------------------------------------------------------------------------
-// 신고 / 차단
+// ?�고 / 차단
 // ---------------------------------------------------------------------------
 
 export interface ReportPayload {
@@ -324,7 +322,7 @@ export function submitUserBlock(payload: BlockPayload) {
 }
 
 // ---------------------------------------------------------------------------
-// 토픽 / 게시글
+// ?�픽 / 게시글
 // ---------------------------------------------------------------------------
 
 export interface TopicQuery {
@@ -381,7 +379,7 @@ export async function deletePost(postId: string) {
 }
 
 // ---------------------------------------------------------------------------
-// 공지 / 배너
+// 공�? / 배너
 // ---------------------------------------------------------------------------
 
 export interface AnnouncementWritePayload {
@@ -439,8 +437,7 @@ export async function updateAnnouncement(announcementId: string, payload: Announ
 }
 
 // ---------------------------------------------------------------------------
-// 선물 / 아이템
-// ---------------------------------------------------------------------------
+// ?�물 / ?�이??// ---------------------------------------------------------------------------
 
 export interface Gift {
   id: string
@@ -484,7 +481,7 @@ export async function deleteGift(giftId: string) {
 }
 
 // ---------------------------------------------------------------------------
-// 약관 / 정책 문서
+// ?��? / ?�책 문서
 // ---------------------------------------------------------------------------
 
 export interface LegalDocumentVersion {
@@ -609,7 +606,7 @@ export async function saveLegalDocument(slug: string, payload: LegalDocumentPayl
 }
 
 // ---------------------------------------------------------------------------
-// 휴대폰 인증
+// ?��????�증
 // ---------------------------------------------------------------------------
 
 export interface PhoneOtpLog {
@@ -668,7 +665,7 @@ export function completePhoneVerificationProfile(payload: ManualProfileCompletio
 }
 
 // ---------------------------------------------------------------------------
-// 포인트 상품
+// ?�인???�품
 // ---------------------------------------------------------------------------
 
 export interface PointProduct {
@@ -754,7 +751,7 @@ export async function syncPointProductOrder(items: PointProductOrderInput[]) {
 }
 
 // ---------------------------------------------------------------------------
-// 매칭 & 탐색
+// 매칭 & ?�색
 // ---------------------------------------------------------------------------
 
 export interface MatchQueueStat {
@@ -1023,7 +1020,7 @@ export async function saveMatchHeatMemo(payload: { memo: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// 채팅 & 안전
+// 채팅 & ?�전
 // ---------------------------------------------------------------------------
 
 export interface ChatRoomSummary {
@@ -1167,8 +1164,7 @@ export async function saveChatSafetyMemo(payload: { memo: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// 분석 & 리포트
-// ---------------------------------------------------------------------------
+// 분석 & 리포??// ---------------------------------------------------------------------------
 
 export interface AnalyticsMetric {
   id: string
@@ -1283,7 +1279,7 @@ export async function createAnalyticsExport(payload: Record<string, unknown>) {
 }
 
 // ---------------------------------------------------------------------------
-// 설정 & 통합
+// ?�정 & ?�합
 // ---------------------------------------------------------------------------
 
 export interface AdminTeamMember {
@@ -1508,16 +1504,16 @@ export interface ApiManagerSnapshot {
 }
 
 const FALLBACK_ENDPOINTS: ApiEndpointInfo[] = [
-  { id: 'ep-discover', method: 'GET', path: '/discover', module: 'Discover', description: '사용자 탐색 (필터: q, interest, region)', rateLimitPerMin: 60, enabled: true },
-  { id: 'ep-users-search', method: 'GET', path: '/users/search', module: 'Users', description: '사용자 검색', rateLimitPerMin: 30, enabled: true },
-  { id: 'ep-posts', method: 'GET', path: '/posts', module: 'Posts', description: '커뮤니티 글 목록', rateLimitPerMin: 60, enabled: true },
-  { id: 'ep-chats-direct', method: 'POST', path: '/chats/direct', module: 'Chats', description: '1:1 채팅방 개설', rateLimitPerMin: 20, enabled: true },
-  { id: 'ep-chats-message', method: 'POST', path: '/chats/message', module: 'Chats', description: '채팅 메시지 전송', rateLimitPerMin: 120, enabled: true },
-  { id: 'ep-follows', method: 'PUT', path: '/follows/:id', module: 'Follows', description: '팔로우', rateLimitPerMin: 30, enabled: true },
-  { id: 'ep-interests', method: 'PUT', path: '/interests/:id', module: 'Interests', description: '관심 보내기', rateLimitPerMin: 20, enabled: true },
-  { id: 'ep-live', method: 'POST', path: '/live/rooms', module: 'Live', description: '라이브 방 생성', rateLimitPerMin: 5, enabled: true },
-  { id: 'ep-broadcast', method: 'POST', path: '/notifications/broadcast', module: 'Notifications', description: '관리자 브로드캐스트 푸시', rateLimitPerMin: 10, enabled: true },
-  { id: 'ep-store-products', method: 'GET', path: '/store/point-products', module: 'Store', description: '포인트 상품 목록', rateLimitPerMin: 60, enabled: true },
+  { id: 'ep-discover', method: 'GET', path: '/discover', module: 'Discover', description: '?�용???�색 (?�터: q, interest, region)', rateLimitPerMin: 60, enabled: true },
+  { id: 'ep-users-search', method: 'GET', path: '/users/search', module: 'Users', description: '?�용??검??, rateLimitPerMin: 30, enabled: true },
+  { id: 'ep-posts', method: 'GET', path: '/posts', module: 'Posts', description: '커�??�티 글 목록', rateLimitPerMin: 60, enabled: true },
+  { id: 'ep-chats-direct', method: 'POST', path: '/chats/direct', module: 'Chats', description: '1:1 채팅�?개설', rateLimitPerMin: 20, enabled: true },
+  { id: 'ep-chats-message', method: 'POST', path: '/chats/message', module: 'Chats', description: '채팅 메시지 ?�송', rateLimitPerMin: 120, enabled: true },
+  { id: 'ep-follows', method: 'PUT', path: '/follows/:id', module: 'Follows', description: '?�로??, rateLimitPerMin: 30, enabled: true },
+  { id: 'ep-interests', method: 'PUT', path: '/interests/:id', module: 'Interests', description: '관??보내�?, rateLimitPerMin: 20, enabled: true },
+  { id: 'ep-live', method: 'POST', path: '/live/rooms', module: 'Live', description: '?�이�?�??�성', rateLimitPerMin: 5, enabled: true },
+  { id: 'ep-broadcast', method: 'POST', path: '/notifications/broadcast', module: 'Notifications', description: '관리자 브로?�캐?�트 ?�시', rateLimitPerMin: 10, enabled: true },
+  { id: 'ep-store-products', method: 'GET', path: '/store/point-products', module: 'Store', description: '?�인???�품 목록', rateLimitPerMin: 60, enabled: true },
 ]
 
 export async function getApiManagerSnapshot(): Promise<ApiManagerSnapshot> {
@@ -1850,4 +1846,109 @@ export async function getAdminLiveMessages(roomId: string, limit = 50): Promise<
   const response = await api.get(`/live/rooms/${roomId}/messages`, { params: { limit } })
   const d = (response.data as any)?.data
   return Array.isArray(d) ? d : []
+}
+
+// =============================================
+// Admin Permissions, Approvals & Audit
+// =============================================
+
+export interface AdminApprovalItem {
+  id: string
+  action: string
+  target: string
+  reason: string
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
+  createdAt: string
+  decidedAt?: string | null
+  decisionReason?: string | null
+  expiresAt?: string | null
+  requestedBy: {
+    id: string
+    email: string
+    displayName?: string
+  }
+  decidedBy?: {
+    id: string
+    email: string
+    displayName?: string
+  } | null
+}
+
+export interface AdminAuditLogItem {
+  id: string
+  action: string
+  target: string
+  reason?: string | null
+  notes?: string | null
+  createdAt: string
+  actor?: {
+    id: string
+    email: string
+    displayName?: string
+  } | null
+  context?: any
+}
+
+export interface AdminProfileItem {
+  userId: string
+  role: 'SUPER_ADMIN' | 'MANAGER' | 'MODERATOR' | 'SUPPORT' | 'EDITOR' | 'VIEWER' | string
+  status: 'ACTIVE' | 'SUSPENDED' | string
+  permissions: string[]
+  twoFactorEnabled: boolean
+  lastLoginAt?: string | null
+  createdAt: string
+  user?: {
+    id: string
+    email?: string
+    displayName?: string
+    status: string
+    role: string
+  } | null
+}
+
+export async function getAdminApprovals(status?: string): Promise<AdminApprovalItem[]> {
+  const response = await api.get('/admin/approvals', { params: { status } })
+  const d = response.data as any
+  return Array.isArray(d?.items) ? d.items : Array.isArray(d?.data) ? d.data : []
+}
+
+export async function createAdminApprovalRequest(payload: {
+  action: string
+  target: string
+  reason: string
+  context?: any
+  metadata?: any
+  expiresAt?: string
+}): Promise<AdminApprovalItem> {
+  const response = await api.post('/admin/approvals', payload)
+  return (response.data as any)?.data ?? response.data
+}
+
+export async function decideAdminApproval(
+  id: string,
+  decision: 'APPROVED' | 'REJECTED',
+  reason?: string,
+): Promise<AdminApprovalItem> {
+  const response = await api.patch(`/admin/approvals/${id}/decision`, { decision, reason })
+  return (response.data as any)?.data ?? response.data
+}
+
+export async function getAdminAuditLogs(limit = 50): Promise<AdminAuditLogItem[]> {
+  const response = await api.get('/admin/approvals/audit-logs', { params: { limit } })
+  const d = response.data as any
+  return Array.isArray(d?.items) ? d.items : []
+}
+
+export async function getAdminProfiles(): Promise<AdminProfileItem[]> {
+  const response = await api.get('/admin/approvals/profiles')
+  const d = response.data as any
+  return Array.isArray(d?.items) ? d.items : []
+}
+
+export async function updateAdminProfile(
+  userId: string,
+  payload: { role?: string; status?: string; permissions?: string[] },
+): Promise<AdminProfileItem> {
+  const response = await api.patch(`/admin/approvals/profiles/${userId}`, payload)
+  return (response.data as any)?.data ?? response.data
 }
