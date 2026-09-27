@@ -1545,3 +1545,78 @@ export async function updateApiEndpoint(
   const found = FALLBACK_ENDPOINTS.find((ep) => ep.id === id)
   return { ...(found ?? FALLBACK_ENDPOINTS[0]), ...payload } as ApiEndpointInfo
 }
+
+// =============================================
+// Admin Reports & Safety
+// =============================================
+
+export type ReportStatus = 'PENDING' | 'REVIEWING' | 'RESOLVED' | 'REJECTED'
+
+export interface ReportItem {
+  id: number
+  reason: string
+  status: ReportStatus
+  createdAt: string
+  reporter: { id: string; email?: string; displayName?: string } | null
+  reported: { id: string; email?: string; displayName?: string } | null
+}
+
+export interface ReportListResponse {
+  ok: boolean
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  items: ReportItem[]
+}
+
+function normalizeReportItem(raw: any): ReportItem {
+  return {
+    id: typeof raw?.id === 'number' ? raw.id : Number(raw?.id ?? 0),
+    reason: typeof raw?.reason === 'string' ? raw.reason : '',
+    status: (raw?.status ?? 'PENDING') as ReportStatus,
+    createdAt: raw?.createdAt ?? raw?.created_at ?? new Date().toISOString(),
+    reporter: raw?.reporter ?? null,
+    reported: raw?.reported ?? null,
+  }
+}
+
+export async function getAdminReports(params: {
+  status?: string
+  page?: number
+  limit?: number
+} = {}): Promise<ReportListResponse> {
+  const response = await api.get('/admin/reports', { params })
+  const d = response.data as any
+  const items = (d?.items ?? d?.data ?? []).map(normalizeReportItem)
+  return {
+    ok: true,
+    page: d?.page ?? 1,
+    limit: d?.limit ?? 20,
+    total: d?.total ?? items.length,
+    totalPages: d?.totalPages ?? 1,
+    items,
+  }
+}
+
+export async function updateAdminReportStatus(
+  id: number,
+  status: Exclude<ReportStatus, 'PENDING'>,
+): Promise<ReportItem> {
+  const response = await api.patch(`/admin/reports/${id}/status`, { status })
+  const d = (response.data as any)?.data ?? response.data
+  return normalizeReportItem(d)
+}
+
+export async function blockReportedUser(
+  id: number,
+  reason?: string,
+): Promise<{ reportId: number; reportedId: string; blocked: boolean }> {
+  const response = await api.post(`/admin/reports/${id}/block-user`, { reason })
+  const d = (response.data as any)?.data ?? response.data
+  return {
+    reportId: typeof d?.reportId === 'number' ? d.reportId : id,
+    reportedId: String(d?.reportedId ?? ''),
+    blocked: Boolean(d?.blocked ?? true),
+  }
+}
