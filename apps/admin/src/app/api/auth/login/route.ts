@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   if (!origin || origin !== request.nextUrl.origin) {
     return NextResponse.json({ message: 'Invalid request origin.' }, { status: 403, headers: { 'Cache-Control': 'no-store' } })
   }
-  const apiBase = process.env.TOK_API_BASE_URL?.replace(/\/+$/, '')
+  const apiBase = process.env.TOK_API_BASE_URL?.replace(/\/+$/, '').replace(/\/v1$/, '')
 
   if (!apiBase) {
     return NextResponse.json({ message: 'Admin API configuration is missing.' }, { status: 500, headers: { 'Cache-Control': 'no-store' } })

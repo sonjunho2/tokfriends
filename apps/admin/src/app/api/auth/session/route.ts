@@ -4,7 +4,7 @@ const SESSION_COOKIE = 'tokfriends_admin_session'
 const UPSTREAM_TIMEOUT_MS = 10_000
 
 export async function GET(request: NextRequest) {
-  const apiBase = process.env.TOK_API_BASE_URL?.replace(/\/+$/, '')
+  const apiBase = process.env.TOK_API_BASE_URL?.replace(/\/+$/, '').replace(/\/v1$/, '')
   const token = request.cookies.get(SESSION_COOKIE)?.value
 
   if (!apiBase) {
