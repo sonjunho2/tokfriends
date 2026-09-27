@@ -1830,15 +1830,19 @@ Next implementation phase:
 ADMIN SETTLEMENT & REFUND MANAGEMENT — FULL IMPLEMENTATION:
 COMPLETE (AdminController GET /admin/settlement/summary, GET /admin/settlement/purchases with platform filter & pagination, GET /admin/settlement/ledger stream, enriched GET /admin/refunds with User relations, PATCH /admin/refunds/:id/approve & deny with audit logging, Admin api.ts settlement and refund functions, and settlement/page.tsx full UI with KPI cards, refund request table with approve/deny actions, point purchase history with platform filtering, and wallet ledger stream. API build ✅ Admin build 30 pages ✅ Commit 32eb3cf).
 
+Next implementation phase:
+ADMIN LIVE ROOM MANAGEMENT & MODERATION — FULL IMPLEMENTATION:
+COMPLETE (LiveService getAdminSummary with live room / viewer / gift point aggregates, listAdminRooms with status filter & pagination, forceEndRoom with status update & AuditLog creation, LiveController GET /live/admin/summary, GET /live/admin/rooms, POST /live/admin/rooms/:id/force-end, Admin api.ts live management functions, and live/page.tsx full UI with real-time KPI cards, rooms table, chat message log modal, and force-end confirmation modal. API build ✅ Admin build 30 pages ✅ Commit 8bc6281).
+
 ## Immediate Next Task
 
-Admin Live Room Management & Moderation — Full Implementation.
+Admin Permissions & High-Risk Dual-Control Approval Center — Full Implementation.
 
 Status: READY.
 
 Goals:
-- Implement admin live room management in live/page.tsx (실시간 방송 모니터링, 방송 강제 종료, 시청자 수/선물 포인트 집계, 라이브 메시지 내역 조회)
-- Connect to existing LiveRoom and LiveMessage Prisma models and API endpoints
+- Fully implement admin-permissions/page.tsx (관리자 목록 및 역할/권한 관리, 4-eyes dual-control 결재 승인 요청 목록 및 승인/거절 처리, 감사 로그 스트림)
+- Connect to existing AdminProfile, AdminApprovalRequest, and AuditLog Prisma models and endpoints
 - Verify admin Next.js build integrity
 
 cd C:\Users\ION\Downloads\work\tokfriends
