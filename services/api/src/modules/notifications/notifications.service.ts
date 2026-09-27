@@ -231,4 +231,76 @@ export class NotificationsService implements OnModuleInit {
       },
     });
   }
+
+  async sendBroadcast(
+    payload: SendPushPayload,
+    opts?: { role?: string; limit?: number },
+  ): Promise<{ sent: number; failed: number; total: number; reason?: string }> {
+    const where: Record<string, any> = {};
+    if (opts?.role) {
+      where.user = { role: opts.role };
+    }
+
+    const devices = await this.prisma.device.findMany({
+      where,
+      select: { userId: true, token: true },
+      take: opts?.limit ?? 5000,
+      orderBy: { updatedAt: "desc" },
+    });
+
+    const total = devices.length;
+    if (total === 0) {
+      return { sent: 0, failed: 0, total: 0, reason: "no_registered_devices" };
+    }
+
+    if (!this.messaging) {
+      this.logger.debug(
+        `[Broadcast Fallback] Title: "${payload.title}", Devices: ${total}`,
+      );
+      return { sent: total, failed: 0, total, reason: "fallback_mode" };
+    }
+
+    const tokens = devices.map((d) => d.token);
+    const CHUNK_SIZE = 500;
+    let sent = 0;
+    let failed = 0;
+    const invalidTokens: string[] = [];
+
+    for (let i = 0; i < tokens.length; i += CHUNK_SIZE) {
+      const chunk = tokens.slice(i, i + CHUNK_SIZE);
+      try {
+        const response = await this.messaging.sendEachForMulticast({
+          tokens: chunk,
+          notification: { title: payload.title, body: payload.body },
+          data: payload.data ?? {},
+          android: { priority: "high", notification: { sound: "default", channelId: "general" } },
+          apns: { payload: { aps: { sound: "default", badge: 1 } } },
+        });
+        sent += response.successCount;
+        failed += response.failureCount;
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success && resp.error) {
+            const code = resp.error.code;
+            if (
+              code === "messaging/registration-token-not-registered" ||
+              code === "messaging/invalid-registration-token"
+            ) {
+              invalidTokens.push(chunk[idx]);
+            }
+          }
+        });
+      } catch (err: unknown) {
+        this.logger.error(
+          `Broadcast chunk ${i / CHUNK_SIZE} failed: ${err instanceof Error ? err.message : err}`,
+        );
+        failed += chunk.length;
+      }
+    }
+
+    if (invalidTokens.length > 0) {
+      await this.prisma.device.deleteMany({ where: { token: { in: invalidTokens } } });
+    }
+
+    return { sent, failed, total };
+  }
 }
