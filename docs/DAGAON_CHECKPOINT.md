@@ -1838,16 +1838,21 @@ Next implementation phase:
 ADMIN PERMISSIONS & HIGH-RISK DUAL-CONTROL APPROVAL CENTER — FULL IMPLEMENTATION:
 COMPLETE (AdminSecurityController GET /admin/approvals/audit-logs with Actor select, GET /admin/approvals/profiles, PATCH /admin/approvals/profiles/:userId with audit logging, existing 4-eyes dual-control decision & request endpoints, Admin api.ts permissions/approvals/audit-log functions, and admin-permissions/page.tsx full UI with KPI cards, 4-eyes approval list with approve/reject modal and new request dialog, admin profile & permissions matrix editor, and security audit log stream. API build ✅ Admin build 30 pages ✅ Commit 6c47d35).
 
+Next implementation phase:
+ADMIN ADS & REWARDS MANAGEMENT — FULL IMPLEMENTATION:
+COMPLETE (AdminController GET /admin/ads-rewards/overview with WalletLedger aggregated stats & settings retrieval, PATCH /admin/ads-rewards/policies with AdminIntegrationSetting upserts & audit logging, Admin api.ts ads-rewards functions, and ads-rewards/page.tsx full UI with KPI cards, AdMob & reward policy editor with save action, active campaigns overview, and recent reward ledger stream. API build ✅ Admin build 30 pages ✅ Commit 27bdc23).
+
 ## Immediate Next Task
 
-Admin Ads & Rewards Management — Full Implementation.
+Mobile Rewarded Ads & Daily Attendance / Referral Reward Flow.
 
 Status: READY.
 
 Goals:
-- Implement ads-rewards/page.tsx (보상형 광고 캠페인 관리, 리워드 적립 정책 설정, 일일 보상 지급 내역 및 통계 모니터링)
-- Connect to existing WalletLedger reward sources and Campaign models/settings
-- Verify admin Next.js build integrity
+- Mobile rewarded ad viewing flow connected to AdMob / fallback simulator giving user points
+- Daily attendance check-in trigger on mobile (Home/MyScreen) with reward points
+- Referral code display & sharing action on mobile
+- Verify mobile bundle export integrity
 
 cd C:\Users\ION\Downloads\work\tokfriends
 git branch --show-current
