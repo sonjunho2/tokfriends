@@ -174,9 +174,15 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
-      {/* 상단 앱명(가운데) + 검색 */}
+      {/* 상단 앱명(가운데) + 검색 + 무료포인트 */}
       <View style={styles.appbar}>
-        <View style={{ width: 24 }} />
+        <TouchableOpacity
+          hitSlop={8}
+          style={styles.giftBtn}
+          onPress={() => navigation.navigate('Shop')}
+        >
+          <Ionicons name="gift-outline" size={22} color={colors.primary} />
+        </TouchableOpacity>
         <Text style={styles.appTitle}>DAGAON</Text>
         <TouchableOpacity
           hitSlop={8}
@@ -203,6 +209,24 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
           <View style={styles.greenBadge}><Text style={styles.greenBadgeTxt}>1/1</Text></View>
         </Card>
+
+        {/* 무료 포인트 충전소 배너 */}
+        <TouchableOpacity
+          style={styles.rewardBanner}
+          activeOpacity={0.88}
+          onPress={() => navigation.navigate('Shop')}
+        >
+          <View style={styles.rewardBannerLeft}>
+            <View style={styles.rewardBadgeIcon}>
+              <Ionicons name="sparkles" size={16} color="#D97706" />
+            </View>
+            <View>
+              <Text style={styles.rewardBannerTitle}>매일 무료 포인트 충전소</Text>
+              <Text style={styles.rewardBannerDesc}>출석체크 +5P · 광고시청 +10P · 친구초대 +50P</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#D97706" />
+        </TouchableOpacity>
 
         {/* 빠른 필터 - 2×4 아이콘 그리드 */}
         <View style={styles.grid}>
@@ -439,6 +463,48 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   greenBadgeTxt: { color: '#2D6B39', fontWeight: '700', fontSize: 11 },
+  giftBtn: {
+    padding: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rewardBanner: {
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 4,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  rewardBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  rewardBadgeIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rewardBannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  rewardBannerDesc: {
+    fontSize: 11,
+    color: '#B45309',
+    marginTop: 1,
+  },
 
   grid: {
     flexDirection: 'row',

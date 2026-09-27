@@ -482,6 +482,47 @@ export const apiClient = {
     throw normalizeError(lastErr || new Error('구매 확인에 실패했습니다.'));
   },
 
+  async getRewardsStatus() {
+    if (USE_DUMMY_AUTH) {
+      return {
+        attendance: { checkedInToday: false, rewardPoints: 5 },
+        adReward: { todayWatchCount: 0, dailyLimit: 5, rewardPoints: 10, canWatch: true },
+        referral: { referralCode: 'DUMMY1', rewardPoints: 50 },
+        balance: 100,
+      };
+    }
+    try {
+      const { data } = await client.get('/store/rewards/status');
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async claimAttendanceReward() {
+    if (USE_DUMMY_AUTH) {
+      return { success: true, balance: 105, creditedPoints: 5, message: '출석체크 완료! 5P가 적립되었습니다.' };
+    }
+    try {
+      const { data } = await client.post('/store/rewards/attendance');
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async claimAdReward() {
+    if (USE_DUMMY_AUTH) {
+      return { success: true, balance: 110, creditedPoints: 10, todayWatchCount: 1, dailyLimit: 5, message: '광고 시청 완료! 10P가 적립되었습니다.' };
+    }
+    try {
+      const { data } = await client.post('/store/rewards/ad-watch');
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
   async getMe() {
         // When dummy auth is enabled, return a fake user profile
     if (USE_DUMMY_AUTH) {

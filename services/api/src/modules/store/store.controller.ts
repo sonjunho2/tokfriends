@@ -23,4 +23,22 @@ export class StoreController {
     const userId = user?.sub ?? user?.id;
     return this.store.confirmPointPurchase(userId, dto);
   }
+
+  @Get('rewards/status')
+  getRewardsStatus(@CurrentUser() user: any) {
+    const userId = user?.sub ?? user?.id;
+    return this.store.getRewardsStatus(userId);
+  }
+
+  @Post('rewards/attendance')
+  claimAttendance(@CurrentUser() user: any) {
+    const userId = user?.sub ?? user?.id;
+    return this.store.claimAttendanceReward(userId);
+  }
+
+  @Post('rewards/ad-watch')
+  claimAdWatch(@CurrentUser() user: any) {
+    const userId = user?.sub ?? user?.id;
+    return this.store.claimAdReward(userId);
+  }
 }
