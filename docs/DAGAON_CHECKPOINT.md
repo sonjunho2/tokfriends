@@ -1842,17 +1842,20 @@ Next implementation phase:
 ADMIN ADS & REWARDS MANAGEMENT — FULL IMPLEMENTATION:
 COMPLETE (AdminController GET /admin/ads-rewards/overview with WalletLedger aggregated stats & settings retrieval, PATCH /admin/ads-rewards/policies with AdminIntegrationSetting upserts & audit logging, Admin api.ts ads-rewards functions, and ads-rewards/page.tsx full UI with KPI cards, AdMob & reward policy editor with save action, active campaigns overview, and recent reward ledger stream. API build ✅ Admin build 30 pages ✅ Commit 27bdc23).
 
+Next implementation phase:
+MOBILE REWARDED ADS, DAILY ATTENDANCE & REFERRAL REWARD FLOW:
+COMPLETE (StoreService getRewardsStatus, claimAttendanceReward, claimAdReward with atomic WalletLedger credit & User.pointsBalance sync, StoreController /store/rewards endpoints, Mobile apiClient getRewardsStatus, claimAttendanceReward, claimAdReward with fallback dummy mode, ShopScreen 무료 포인트 충전소 UI with live attendance check, 5-second simulated rewarded video ad modal, React Native Share referral code sharing, HomeScreen reward banner, Mobile export Android 1461/iOS 1466 modules ✅. API build ✅ Mobile export ✅ Commit 3da3bef).
+
 ## Immediate Next Task
 
-Mobile Rewarded Ads & Daily Attendance / Referral Reward Flow.
+Mobile UGC Safety, Profile & Live Room Moderation / Report & Block Flow.
 
-Status: READY.
+Status: IN PROGRESS.
 
 Goals:
-- Mobile rewarded ad viewing flow connected to AdMob / fallback simulator giving user points
-- Daily attendance check-in trigger on mobile (Home/MyScreen) with reward points
-- Referral code display & sharing action on mobile
-- Verify mobile bundle export integrity
+- ProfileDetailScreen: Add top-right safety options menu (3-dots) with Report User (신고하기) modal and Block User (차단하기) action.
+- LiveRoomScreen: Add safety options menu to report stream room or host, and inline action to report/block noisy chat participants.
+- Verify mobile bundle export and API build integrity.
 
 cd C:\Users\ION\Downloads\work\tokfriends
 git branch --show-current
