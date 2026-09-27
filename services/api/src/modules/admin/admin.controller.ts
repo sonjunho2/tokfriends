@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PrismaService } from 'nestjs-prisma';
 import { RolesGuard, Roles } from '../../common/roles.guard';
@@ -138,7 +138,129 @@ export class AdminController {
   @AdminPermissions('refunds.view')
   @Get('refunds')
   async listRefunds() {
-    return this.prisma.refundRequest.findMany({ orderBy: { createdAt: 'desc' } });
+    return this.prisma.refundRequest.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            displayName: true,
+            pointsBalance: true,
+          },
+        },
+      },
+    });
+  }
+
+  @AdminPermissions('refunds.view')
+  @Get('settlement/summary')
+  async getSettlementSummary() {
+    const [
+      totalPurchasesCount,
+      totalPurchasesSum,
+      pendingRefundsCount,
+      walletsStats,
+      recentPurchases,
+    ] = await Promise.all([
+      this.prisma.pointPurchase.count(),
+      this.prisma.pointPurchase.aggregate({ _sum: { points: true } }),
+      this.prisma.refundRequest.count({ where: { status: 'pending' } }),
+      this.prisma.wallet.aggregate({
+        _sum: {
+          spendableBalance: true,
+          redeemableBalance: true,
+          pendingEarnings: true,
+        },
+        _count: { id: true },
+      }),
+      this.prisma.pointPurchase.findMany({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: { id: true, email: true, displayName: true },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      ok: true,
+      data: {
+        totalPurchasesCount,
+        totalPointsPurchased: totalPurchasesSum._sum.points ?? 0,
+        pendingRefundsCount,
+        totalWallets: walletsStats._count.id,
+        totalSpendableBalance: walletsStats._sum.spendableBalance ?? 0,
+        totalRedeemableBalance: walletsStats._sum.redeemableBalance ?? 0,
+        totalPendingEarnings: walletsStats._sum.pendingEarnings ?? 0,
+        recentPurchases,
+      },
+    };
+  }
+
+  @AdminPermissions('refunds.view')
+  @Get('settlement/purchases')
+  async listPurchases(
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
+    @Query('platform') platform?: string,
+  ) {
+    const p = Math.max(1, parseInt(page, 10) || 1);
+    const take = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (p - 1) * take;
+    const where: any = {};
+    if (platform) where.platform = platform;
+
+    const [total, items] = await Promise.all([
+      this.prisma.pointPurchase.count({ where }),
+      this.prisma.pointPurchase.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: { id: true, email: true, displayName: true },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      ok: true,
+      page: p,
+      limit: take,
+      total,
+      totalPages: Math.ceil(total / take) || 1,
+      items,
+    };
+  }
+
+  @AdminPermissions('refunds.view')
+  @Get('settlement/ledger')
+  async listLedger(@Query('take') take = '20') {
+    const n = Math.min(50, Math.max(1, parseInt(take, 10) || 20));
+    const items = await this.prisma.walletLedgerEntry.findMany({
+      take: n,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        wallet: {
+          select: {
+            id: true,
+            activityAccountId: true,
+            activityAccount: {
+              select: {
+                displayName: true,
+                handle: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    return { ok: true, items };
   }
 
   @AdminPermissions('refunds.manage')

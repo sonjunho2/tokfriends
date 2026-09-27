@@ -1620,3 +1620,138 @@ export async function blockReportedUser(
     blocked: Boolean(d?.blocked ?? true),
   }
 }
+
+// =============================================
+// Admin Settlement & Refunds
+// =============================================
+
+export interface AdminRefundRequest {
+  id: string
+  userId: string
+  platform: string
+  productId: string
+  receiptId: string
+  reason?: string | null
+  status: 'pending' | 'approved' | 'denied' | string
+  createdAt: string
+  decidedAt?: string | null
+  user?: {
+    id: string
+    email?: string
+    displayName?: string
+    pointsBalance?: number
+  } | null
+}
+
+export interface SettlementSummary {
+  totalPurchasesCount: number
+  totalPointsPurchased: number
+  pendingRefundsCount: number
+  totalWallets: number
+  totalSpendableBalance: number
+  totalRedeemableBalance: number
+  totalPendingEarnings: number
+  recentPurchases: PointPurchaseItem[]
+}
+
+export interface PointPurchaseItem {
+  id: string
+  userId: string
+  productId: string
+  transactionId: string
+  platform: string
+  points: number
+  status: string
+  createdAt: string
+  user?: {
+    id: string
+    email?: string
+    displayName?: string
+  } | null
+}
+
+export interface SettlementPurchasesResponse {
+  ok: boolean
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  items: PointPurchaseItem[]
+}
+
+export interface WalletLedgerItem {
+  id: string
+  walletId: string
+  kind: string
+  source: string
+  deltaSpendable: number
+  deltaRedeemable: number
+  deltaPending: number
+  spendableAfter: number
+  redeemableAfter: number
+  pendingAfter: number
+  idempotencyKey: string
+  createdAt: string
+  wallet?: {
+    id: string
+    activityAccountId: string
+    activityAccount?: {
+      displayName?: string
+      handle?: string
+    } | null
+  } | null
+}
+
+export async function getAdminRefunds(): Promise<AdminRefundRequest[]> {
+  const response = await api.get('/admin/refunds')
+  const d = response.data
+  return Array.isArray(d) ? d : []
+}
+
+export async function approveAdminRefund(id: string): Promise<AdminRefundRequest> {
+  const response = await api.patch(`/admin/refunds/${id}/approve`)
+  return response.data
+}
+
+export async function denyAdminRefund(id: string): Promise<AdminRefundRequest> {
+  const response = await api.patch(`/admin/refunds/${id}/deny`)
+  return response.data
+}
+
+export async function getSettlementSummary(): Promise<SettlementSummary> {
+  const response = await api.get('/admin/settlement/summary')
+  const d = (response.data as any)?.data ?? {}
+  return {
+    totalPurchasesCount: Number(d.totalPurchasesCount ?? 0),
+    totalPointsPurchased: Number(d.totalPointsPurchased ?? 0),
+    pendingRefundsCount: Number(d.pendingRefundsCount ?? 0),
+    totalWallets: Number(d.totalWallets ?? 0),
+    totalSpendableBalance: Number(d.totalSpendableBalance ?? 0),
+    totalRedeemableBalance: Number(d.totalRedeemableBalance ?? 0),
+    totalPendingEarnings: Number(d.totalPendingEarnings ?? 0),
+    recentPurchases: Array.isArray(d.recentPurchases) ? d.recentPurchases : [],
+  }
+}
+
+export async function getSettlementPurchases(params: {
+  page?: number
+  limit?: number
+  platform?: string
+} = {}): Promise<SettlementPurchasesResponse> {
+  const response = await api.get('/admin/settlement/purchases', { params })
+  const d = response.data as any
+  return {
+    ok: Boolean(d?.ok ?? true),
+    page: Number(d?.page ?? 1),
+    limit: Number(d?.limit ?? 20),
+    total: Number(d?.total ?? 0),
+    totalPages: Number(d?.totalPages ?? 1),
+    items: Array.isArray(d?.items) ? d.items : [],
+  }
+}
+
+export async function getSettlementLedger(take = 20): Promise<WalletLedgerItem[]> {
+  const response = await api.get('/admin/settlement/ledger', { params: { take } })
+  const d = response.data as any
+  return Array.isArray(d?.items) ? d.items : []
+}
