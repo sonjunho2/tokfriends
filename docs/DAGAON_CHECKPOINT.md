@@ -1822,15 +1822,19 @@ Next implementation phase:
 ADMIN API MANAGEMENT & NOTIFICATION CENTER:
 COMPLETE (NotificationsService sendBroadcast with 500-token chunked FCM multicast and invalid token auto-cleanup, NotificationsController POST /notifications/broadcast admin-only endpoint with role/limit query params and GET /notifications/broadcast/history device stats, Admin notifications/page.tsx broadcast center UI with template messages, role targeting, device stats, and send history, Admin api-manager/page.tsx endpoint list with enable/disable toggle, rate-limit editing, module filter, keyword search, and admin layout.tsx Notifications and API Manager nav items. Backend: feat commit f9bea5d, Admin: feat commit d2af8d2).
 
+Next implementation phase:
+ADMIN REPORTS & SAFETY — FULL IMPLEMENTATION:
+COMPLETE (ReportsService updateStatus with Prisma report.update and blockReportedUser with Block upsert + AuditLog creation + Report RESOLVED auto-mark, AdminReportsController PATCH /admin/reports/:id/status and POST /admin/reports/:id/block-user admin-only endpoints, Admin api.ts getAdminReports/updateAdminReportStatus/blockReportedUser functions, and reports-safety/page.tsx full UI with paginated report list, status filter, keyword search, inline status action buttons REVIEWING/RESOLVED/REJECTED, and block confirmation modal. API build ✅ Admin build 30 pages ✅ Commit 70e399b).
+
 ## Immediate Next Task
 
-Admin Reports & Safety — Full Implementation.
+Admin Settlement & Refund Management — Full Implementation.
 
 Status: READY.
 
 Goals:
-- Fully implement reports-safety admin page (신고 목록, 상태 관리, 신고 유저 차단/제재)
-- Connect to existing Reports API and Block/User management
+- Fully implement settlement/page.tsx (정산 현황, 포인트 구매 내역, 환불 요청 목록/처리)
+- Connect to existing RefundRequest API and WalletLedger
 - Verify admin Next.js build integrity
 
 cd C:\Users\ION\Downloads\work\tokfriends
