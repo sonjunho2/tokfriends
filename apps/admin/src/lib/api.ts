@@ -1755,3 +1755,99 @@ export async function getSettlementLedger(take = 20): Promise<WalletLedgerItem[]
   const d = response.data as any
   return Array.isArray(d?.items) ? d.items : []
 }
+
+// =============================================
+// Admin Live Rooms & Moderation
+// =============================================
+
+export interface AdminLiveRoom {
+  id: string
+  title: string
+  category: string
+  status: string
+  viewerCount: number
+  totalLikes: number
+  totalGiftsPoints: number
+  coverUri: string | null
+  startedAt: string
+  endedAt: string | null
+  host: {
+    id: string
+    name: string
+    avatar: string | null
+    region: string
+    headline: string | null
+    targetAccountId?: string | null
+  }
+}
+
+export interface AdminLiveSummary {
+  totalRooms: number
+  activeLiveRooms: number
+  totalGiftPoints: number
+  totalLikes: number
+  currentViewers: number
+}
+
+export interface AdminLiveRoomsResponse {
+  ok: boolean
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  items: AdminLiveRoom[]
+}
+
+export interface AdminLiveMessage {
+  id: string
+  roomId: string
+  type: string
+  content: string
+  giftPoints: number | null
+  createdAt: string
+  sender: {
+    id: string
+    name: string
+    avatar: string | null
+  }
+}
+
+export async function getAdminLiveSummary(): Promise<AdminLiveSummary> {
+  const response = await api.get('/live/admin/summary')
+  const d = (response.data as any)?.data ?? {}
+  return {
+    totalRooms: Number(d.totalRooms ?? 0),
+    activeLiveRooms: Number(d.activeLiveRooms ?? 0),
+    totalGiftPoints: Number(d.totalGiftPoints ?? 0),
+    totalLikes: Number(d.totalLikes ?? 0),
+    currentViewers: Number(d.currentViewers ?? 0),
+  }
+}
+
+export async function getAdminLiveRooms(params: {
+  status?: string
+  page?: number
+  limit?: number
+} = {}): Promise<AdminLiveRoomsResponse> {
+  const response = await api.get('/live/admin/rooms', { params })
+  const d = response.data as any
+  return {
+    ok: Boolean(d?.ok ?? true),
+    page: Number(d?.page ?? 1),
+    limit: Number(d?.limit ?? 20),
+    total: Number(d?.total ?? 0),
+    totalPages: Number(d?.totalPages ?? 1),
+    items: Array.isArray(d?.items) ? d.items : [],
+  }
+}
+
+export async function forceEndAdminLiveRoom(id: string, reason?: string): Promise<AdminLiveRoom> {
+  const response = await api.post(`/live/admin/rooms/${id}/force-end`, { reason })
+  return (response.data as any)?.data ?? response.data
+}
+
+export async function getAdminLiveMessages(roomId: string, limit = 50): Promise<AdminLiveMessage[]> {
+  const response = await api.get(`/live/rooms/${roomId}/messages`, { params: { limit } })
+  const d = (response.data as any)?.data
+  return Array.isArray(d) ? d : []
+}

@@ -113,4 +113,53 @@ export class LiveController {
       data,
     };
   }
+
+  @Get('admin/summary')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async getAdminSummary() {
+    const data = await this.liveService.getAdminSummary();
+    return {
+      ok: true,
+      data,
+    };
+  }
+
+  @Get('admin/rooms')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async listAdminRooms(
+    @Query('status') status?: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
+  ) {
+    const p = Math.max(1, parseInt(page, 10) || 1);
+    const take = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (p - 1) * take;
+    const data = await this.liveService.listAdminRooms({ status, skip, take });
+    return {
+      ok: true,
+      page: p,
+      limit: take,
+      total: data.total,
+      totalPages: Math.ceil(data.total / take) || 1,
+      items: data.items,
+    };
+  }
+
+  @Post('admin/rooms/:id/force-end')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async forceEndRoom(
+    @CurrentUser() user: any,
+    @Param('id') roomId: string,
+    @Body('reason') reason?: string,
+  ) {
+    const adminId = user?.id ?? user?.sub;
+    const data = await this.liveService.forceEndRoom(adminId, roomId, reason);
+    return {
+      ok: true,
+      data,
+    };
+  }
 }

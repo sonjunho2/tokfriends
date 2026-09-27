@@ -308,4 +308,82 @@ export class LiveService {
         },
       }));
   }
+
+  async getAdminSummary() {
+    const [totalRooms, activeLiveRooms, totalGiftPoints, currentViewers] = await Promise.all([
+      this.prisma.liveRoom.count(),
+      this.prisma.liveRoom.count({ where: { status: 'live' } }),
+      this.prisma.liveRoom.aggregate({ _sum: { totalGiftsPoints: true, totalLikes: true } }),
+      this.prisma.liveRoom.aggregate({
+        where: { status: 'live' },
+        _sum: { viewerCount: true },
+      }),
+    ]);
+
+    return {
+      totalRooms,
+      activeLiveRooms,
+      totalGiftPoints: totalGiftPoints._sum.totalGiftsPoints ?? 0,
+      totalLikes: totalGiftPoints._sum.totalLikes ?? 0,
+      currentViewers: currentViewers._sum.viewerCount ?? 0,
+    };
+  }
+
+  async listAdminRooms(opts: { status?: string; skip: number; take: number }) {
+    const where: any = {};
+    if (opts.status && opts.status !== 'all') {
+      where.status = opts.status;
+    }
+
+    const [total, rooms] = await Promise.all([
+      this.prisma.liveRoom.count({ where }),
+      this.prisma.liveRoom.findMany({
+        where,
+        skip: opts.skip,
+        take: opts.take,
+        orderBy: { startedAt: 'desc' },
+        include: HOST_INCLUDE,
+      }),
+    ]);
+
+    return {
+      total,
+      items: rooms.map(formatRoom),
+    };
+  }
+
+  async forceEndRoom(adminId: string, roomId: string, reason?: string) {
+    const room = await this.prisma.liveRoom.findUnique({
+      where: { id: roomId },
+    });
+
+    if (!room) {
+      throw new NotFoundException('라이브 룸을 찾을 수 없습니다.');
+    }
+
+    const updated = await this.prisma.liveRoom.update({
+      where: { id: roomId },
+      data: {
+        status: 'ended',
+        endedAt: new Date(),
+        viewerCount: 0,
+      },
+      include: HOST_INCLUDE,
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorId: adminId || null,
+        target: `liveRoom:${roomId}`,
+        action: 'ADMIN_FORCE_END_LIVE_ROOM',
+        reason: reason || '관리자 권한 강제 종료',
+        context: {
+          hostId: room.hostId,
+          totalGiftsPoints: room.totalGiftsPoints,
+        },
+      },
+    });
+
+    return formatRoom(updated);
+  }
 }
