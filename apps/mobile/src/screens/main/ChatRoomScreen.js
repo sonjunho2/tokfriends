@@ -161,7 +161,7 @@ export default function ChatRoomScreen({ route, navigation }) {
     ? ''
     : routeCounterpartAccountId || userCounterpartAccountId;
   const { user: authUser, token: authToken } = useAuth();
-  const currentActivityAccountId = authUser?.activityAccountId;
+  const currentActivityAccountId = authUser?.activityAccountId || authUser?.id || 'dummy-user';
   const [messages, setMessages] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState('');

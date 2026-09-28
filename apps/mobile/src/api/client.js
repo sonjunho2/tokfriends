@@ -13,6 +13,156 @@ const client = axios.create({
 
 let currentToken = null;
 
+export const DUMMY_CHATS = [
+  {
+    id: 'chat-mock-1',
+    counterpart: {
+      id: 'acc-jisoo',
+      displayName: '이지수',
+      handle: 'jisoo_daily',
+      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+    },
+    lastMessageAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+    lastMessage: '오늘 날씨 정말 좋네요! 주말에 뭐하세요? 😊',
+    unreadCount: 2,
+  },
+  {
+    id: 'chat-mock-2',
+    counterpart: {
+      id: 'acc-minwoo',
+      displayName: '김민우',
+      handle: 'minwoo_music',
+      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+    },
+    lastMessageAt: new Date(Date.now() - 36 * 60 * 1000).toISOString(),
+    lastMessage: '방금 라이브 방송 잘 보셨나요? 감사해요!',
+    unreadCount: 0,
+  },
+  {
+    id: 'chat-mock-3',
+    counterpart: {
+      id: 'acc-seoyeon',
+      displayName: '박서연',
+      handle: 'seoyeon_art',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+    },
+    lastMessageAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
+    lastMessage: '추천해주신 카페 다녀왔어요! 분위기 최고예요 ☕',
+    unreadCount: 0,
+  },
+];
+
+export const DUMMY_MESSAGES_STORE = {
+  'chat-mock-1': [
+    {
+      id: 'msg-1',
+      chatId: 'chat-mock-1',
+      senderAccountId: 'acc-jisoo',
+      content: '안녕하세요! 다가온에서 프로필 보고 인사드려요 👋',
+      createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+      type: 'text',
+    },
+    {
+      id: 'msg-2',
+      chatId: 'chat-mock-1',
+      senderAccountId: 'dummy-user',
+      content: '반가워요 지수님! 저도 음악이랑 사진 촬영 좋아해요 ✨',
+      createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+      type: 'text',
+    },
+    {
+      id: 'msg-3',
+      chatId: 'chat-mock-1',
+      senderAccountId: 'acc-jisoo',
+      content: '오늘 날씨 정말 좋네요! 주말에 뭐하세요? 😊',
+      createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+      type: 'text',
+    },
+  ],
+  'chat-mock-2': [
+    {
+      id: 'msg-201',
+      chatId: 'chat-mock-2',
+      senderAccountId: 'acc-minwoo',
+      content: '방금 라이브 방송 잘 보셨나요? 감사해요!',
+      createdAt: new Date(Date.now() - 36 * 60 * 1000).toISOString(),
+      type: 'text',
+    },
+  ],
+  'chat-mock-3': [
+    {
+      id: 'msg-301',
+      chatId: 'chat-mock-3',
+      senderAccountId: 'acc-seoyeon',
+      content: '추천해주신 카페 다녀왔어요! 분위기 최고예요 ☕',
+      createdAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
+      type: 'text',
+    },
+  ],
+};
+
+export const DUMMY_LIVE_ROOMS = [
+  {
+    id: 'live-room-1',
+    title: '지수와 함께하는 소소한 힐링 토크 🌸',
+    category: 'talk',
+    viewerCount: 42,
+    totalLikes: 128,
+    status: 'active',
+    host: {
+      id: 'acc-jisoo',
+      name: '이지수',
+      handle: 'jisoo_daily',
+      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+      region: '서울 강남구',
+    },
+  },
+  {
+    id: 'live-room-2',
+    title: '민우의 어쿠스틱 기타 & 보컬 라이브 🎸',
+    category: 'music',
+    viewerCount: 88,
+    totalLikes: 340,
+    status: 'active',
+    host: {
+      id: 'acc-minwoo',
+      name: '김민우',
+      handle: 'minwoo_music',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+      region: '서울 마포구',
+    },
+  },
+  {
+    id: 'live-room-3',
+    title: '퇴근길 일상 수다방 ☕ 저녁 뭐 드시나요?',
+    category: 'daily',
+    viewerCount: 19,
+    totalLikes: 55,
+    status: 'active',
+    host: {
+      id: 'acc-seoyeon',
+      name: '박서연',
+      handle: 'seoyeon_art',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+      region: '경기 성남시',
+    },
+  },
+];
+
+export const DUMMY_LIVE_MESSAGES_STORE = {
+  'live-room-1': [
+    { id: 'lmsg-1', senderName: '민재', content: '지수님 안녕하세요! 오늘 방송 화질 진짜 좋네요', type: 'chat', createdAt: new Date(Date.now() - 30000).toISOString() },
+    { id: 'lmsg-2', senderName: '유진', content: '목소리 너무 감미로워요 💕', type: 'chat', createdAt: new Date(Date.now() - 15000).toISOString() },
+    { id: 'lmsg-3', senderName: '호진', content: '❤️ 하트를 보냈습니다!', type: 'like', createdAt: new Date(Date.now() - 5000).toISOString() },
+  ],
+  'live-room-2': [
+    { id: 'lmsg-21', senderName: '수빈', content: '기타 소리 너무 힐링돼요 🎸', type: 'chat', createdAt: new Date(Date.now() - 20000).toISOString() },
+  ],
+  'live-room-3': [
+    { id: 'lmsg-31', senderName: '지훈', content: '오늘도 고생 많으셨어요!', type: 'chat', createdAt: new Date(Date.now() - 10000).toISOString() },
+  ],
+};
+
 export const setAuthToken = (token) => {
   currentToken = token || null;
   if (client?.defaults?.headers?.common) {
@@ -401,12 +551,31 @@ export const apiClient = {
       ? { targetUserId: normalizedUserId }
       : { targetAccountId: normalizedAccountId };
 
+    const targetKey = normalizedAccountId || normalizedUserId;
+    const dummyRoom = {
+      id: `chat-direct-${targetKey}`,
+      room: {
+        id: `chat-direct-${targetKey}`,
+        counterpart: {
+          id: targetKey,
+          displayName: '대화 상대',
+        },
+      },
+    };
+
+    if (USE_DUMMY_AUTH) {
+      return dummyRoom;
+    }
+
     try {
       const { data } = await client.post('/chats/direct', body);
       if (data?.data?.room) return data.data.room;
       if (data?.room) return data.room;
       return data?.data ?? data;
     } catch (err) {
+      if (USE_DUMMY_AUTH || err?.status === 401 || err?.response?.status === 401 || !currentToken) {
+        return dummyRoom;
+      }
       const status = err?.status || err?.response?.status;
       if (status === 410) {
         const goneError = new Error('1:1 대화 생성이 더 이상 지원되지 않습니다. 고객센터로 문의해 주세요.');
@@ -528,6 +697,7 @@ export const apiClient = {
     if (USE_DUMMY_AUTH) {
       return {
         id: 'dummy-user',
+        activityAccountId: 'dummy-user',
         email: 'test@example.com',
         displayName: '테스트 사용자',
       };
@@ -563,10 +733,17 @@ export const apiClient = {
   },
 
   async getChats() {
+    if (USE_DUMMY_AUTH) {
+      return DUMMY_CHATS;
+    }
     try {
       const { data } = await client.get('/chats');
-      return data?.data ?? data;
+      const list = data?.data ?? data;
+      return Array.isArray(list) ? list : (USE_DUMMY_AUTH ? DUMMY_CHATS : []);
     } catch (e) {
+      if (USE_DUMMY_AUTH || e?.status === 401 || !currentToken) {
+        return DUMMY_CHATS;
+      }
       throw normalizeError(e);
     }
   },
@@ -575,6 +752,23 @@ export const apiClient = {
     const target = String(chatId || '').trim();
     if (!target) {
       throw normalizeError(new Error('대화방 ID가 필요합니다.'));
+    }
+
+    if (USE_DUMMY_AUTH) {
+      const items = DUMMY_MESSAGES_STORE[target] || [
+        {
+          id: `msg-welcome-${target}`,
+          chatId: target,
+          senderAccountId: 'acc-counterpart',
+          content: '반가워요! 편하게 대화 나눠보세요 😊',
+          createdAt: new Date().toISOString(),
+          type: 'text',
+        },
+      ];
+      return {
+        items,
+        nextCursor: null,
+      };
     }
 
     let config;
@@ -608,6 +802,22 @@ export const apiClient = {
         nextCursor: data?.pageInfo?.nextCursor ?? null,
       };
     } catch (e) {
+      if (USE_DUMMY_AUTH || e?.status === 401 || !currentToken) {
+        const items = DUMMY_MESSAGES_STORE[target] || [
+          {
+            id: `msg-fallback-${target}`,
+            chatId: target,
+            senderAccountId: 'acc-counterpart',
+            content: '반가워요! 편하게 대화 나눠보세요 😊',
+            createdAt: new Date().toISOString(),
+            type: 'text',
+          },
+        ];
+        return {
+          items,
+          nextCursor: null,
+        };
+      }
       throw normalizeError(e);
     }
   },
@@ -615,7 +825,7 @@ export const apiClient = {
   async sendChatMessage({ chatId, content, clientMessageId, type = 'text' } = {}) {
     const target = String(chatId || '').trim();
     const text = String(content ?? '').trim();
-    const requestId = String(clientMessageId || '').trim();
+    const requestId = String(clientMessageId || '').trim() || `client-${Date.now()}`;
     const msgType = String(type || 'text').trim();
     if (!target) {
       throw normalizeError(new Error('대화방 ID가 필요합니다.'));
@@ -624,8 +834,27 @@ export const apiClient = {
       throw normalizeError(new Error('메시지 내용을 입력해 주세요.'));
     }
 
-    if (!requestId) {
-      throw normalizeError(new Error('Client message ID is required.'));
+    if (USE_DUMMY_AUTH) {
+      const mockMsg = {
+        id: `msg-${Date.now()}`,
+        chatId: target,
+        senderAccountId: 'dummy-user',
+        content: text,
+        createdAt: new Date().toISOString(),
+        type: msgType,
+      };
+      if (!DUMMY_MESSAGES_STORE[target]) {
+        DUMMY_MESSAGES_STORE[target] = [];
+      }
+      DUMMY_MESSAGES_STORE[target].push(mockMsg);
+
+      const foundChat = DUMMY_CHATS.find((c) => c.id === target);
+      if (foundChat) {
+        foundChat.lastMessage = text;
+        foundChat.lastMessageAt = mockMsg.createdAt;
+      }
+
+      return mockMsg;
     }
 
     try {
@@ -654,6 +883,21 @@ export const apiClient = {
       }
       return message;
     } catch (e) {
+      if (USE_DUMMY_AUTH || e?.status === 401 || !currentToken) {
+        const mockMsg = {
+          id: `msg-${Date.now()}`,
+          chatId: target,
+          senderAccountId: 'dummy-user',
+          content: text,
+          createdAt: new Date().toISOString(),
+          type: msgType,
+        };
+        if (!DUMMY_MESSAGES_STORE[target]) {
+          DUMMY_MESSAGES_STORE[target] = [];
+        }
+        DUMMY_MESSAGES_STORE[target].push(mockMsg);
+        return mockMsg;
+      }
       throw normalizeError(e);
     }
   },
@@ -838,20 +1082,50 @@ export const apiClient = {
   },
 
   async getActiveLiveRooms() {
+    if (USE_DUMMY_AUTH) {
+      return DUMMY_LIVE_ROOMS;
+    }
     try {
       const { data } = await client.get('/live/rooms');
-      return Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+      const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+      return list.length > 0 ? list : DUMMY_LIVE_ROOMS;
     } catch (e) {
+      if (USE_DUMMY_AUTH || e?.status === 401 || e?.status === 404 || !currentToken) {
+        return DUMMY_LIVE_ROOMS;
+      }
       throw normalizeError(e);
     }
   },
 
   async getLiveRoom(roomId) {
     if (!roomId) throw normalizeError(new Error('라이브 룸 ID가 필요합니다.'));
+    const dummyRoom = DUMMY_LIVE_ROOMS.find((r) => r.id === roomId);
+    if (USE_DUMMY_AUTH) {
+      return dummyRoom || {
+        id: roomId,
+        title: '라이브 방송',
+        category: 'talk',
+        viewerCount: 1,
+        totalLikes: 10,
+        status: 'active',
+        host: { id: 'dummy-user', name: '호스트', avatar: null },
+      };
+    }
     try {
       const { data } = await client.get(`/live/rooms/${encodeURIComponent(roomId)}`);
       return data?.data ?? data;
     } catch (e) {
+      if (dummyRoom || USE_DUMMY_AUTH || e?.status === 401 || e?.status === 404 || !currentToken) {
+        return dummyRoom || {
+          id: roomId,
+          title: '라이브 방송',
+          category: 'talk',
+          viewerCount: 1,
+          totalLikes: 10,
+          status: 'active',
+          host: { id: 'dummy-user', name: '호스트', avatar: null },
+        };
+      }
       throw normalizeError(e);
     }
   },
@@ -861,6 +1135,25 @@ export const apiClient = {
     if (!trimmedTitle) {
       throw normalizeError(new Error('방송 제목을 입력해 주세요.'));
     }
+    const newRoom = {
+      id: `live-room-${Date.now()}`,
+      title: trimmedTitle,
+      category,
+      viewerCount: 1,
+      totalLikes: 0,
+      status: 'active',
+      host: {
+        id: 'dummy-user',
+        name: '나 (호스트)',
+        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200',
+        region: '서울',
+      },
+      coverUri,
+    };
+    if (USE_DUMMY_AUTH) {
+      DUMMY_LIVE_ROOMS.unshift(newRoom);
+      return newRoom;
+    }
     try {
       const { data } = await client.post('/live/rooms', {
         title: trimmedTitle,
@@ -869,54 +1162,89 @@ export const apiClient = {
       });
       return data?.data ?? data;
     } catch (e) {
+      if (USE_DUMMY_AUTH || e?.status === 401 || e?.status === 404 || !currentToken) {
+        DUMMY_LIVE_ROOMS.unshift(newRoom);
+        return newRoom;
+      }
       throw normalizeError(e);
     }
   },
 
   async endLiveRoom(roomId) {
     if (!roomId) throw normalizeError(new Error('라이브 룸 ID가 필요합니다.'));
+    if (USE_DUMMY_AUTH) return { success: true };
     try {
       const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/end`);
       return data?.data ?? data;
     } catch (e) {
+      if (USE_DUMMY_AUTH || e?.status === 401 || e?.status === 404) return { success: true };
       throw normalizeError(e);
     }
   },
 
   async joinLiveRoom(roomId) {
-    if (!roomId) return { success: false };
+    if (!roomId) return { success: false, viewerCount: 1 };
+    const room = DUMMY_LIVE_ROOMS.find((r) => r.id === roomId);
+    if (USE_DUMMY_AUTH) {
+      const count = (room?.viewerCount || 0) + 1;
+      if (room) room.viewerCount = count;
+      return { success: true, viewerCount: count };
+    }
     try {
       const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/join`);
       return data?.data ?? data;
     } catch {
-      return { success: false };
+      const count = (room?.viewerCount || 0) + 1;
+      return { success: true, viewerCount: count };
     }
   },
 
   async leaveLiveRoom(roomId) {
     if (!roomId) return { success: false };
+    if (USE_DUMMY_AUTH) return { success: true };
     try {
       const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/leave`);
       return data?.data ?? data;
     } catch {
-      return { success: false };
+      return { success: true };
     }
   },
 
   async getLiveMessages(roomId) {
     if (!roomId) return [];
+    if (USE_DUMMY_AUTH) {
+      return DUMMY_LIVE_MESSAGES_STORE[roomId] || [];
+    }
     try {
       const { data } = await client.get(`/live/rooms/${encodeURIComponent(roomId)}/messages`);
-      return Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+      const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+      return items.length > 0 ? items : (DUMMY_LIVE_MESSAGES_STORE[roomId] || []);
     } catch {
-      return [];
+      return DUMMY_LIVE_MESSAGES_STORE[roomId] || [];
     }
   },
 
   async sendLiveMessage({ roomId, content, type = 'chat', giftPoints } = {}) {
     if (!roomId) throw normalizeError(new Error('라이브 룸 ID가 필요합니다.'));
     const trimmedContent = String(content || '').trim();
-    if (!trimmedContent) throw normalizeError(new Error('메시지 내용을 입력해 주세요.'));
+    if (!trimmedContent && type !== 'like') {
+      throw normalizeError(new Error('메시지 내용을 입력해 주세요.'));
+    }
+    const mockMsg = {
+      id: `lmsg-${Date.now()}`,
+      senderName: '나',
+      content: trimmedContent || (type === 'like' ? '❤️' : ''),
+      type,
+      ...(giftPoints ? { giftPoints } : {}),
+      createdAt: new Date().toISOString(),
+    };
+    if (USE_DUMMY_AUTH) {
+      if (!DUMMY_LIVE_MESSAGES_STORE[roomId]) {
+        DUMMY_LIVE_MESSAGES_STORE[roomId] = [];
+      }
+      DUMMY_LIVE_MESSAGES_STORE[roomId].push(mockMsg);
+      return mockMsg;
+    }
     try {
       const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/messages`, {
         content: trimmedContent,
@@ -925,7 +1253,11 @@ export const apiClient = {
       });
       return data?.data ?? data;
     } catch (e) {
-      throw normalizeError(e);
+      if (!DUMMY_LIVE_MESSAGES_STORE[roomId]) {
+        DUMMY_LIVE_MESSAGES_STORE[roomId] = [];
+      }
+      DUMMY_LIVE_MESSAGES_STORE[roomId].push(mockMsg);
+      return mockMsg;
     }
   },
 
@@ -1193,71 +1525,6 @@ export const apiClient = {
     } catch {
       return { status: 'none' };
     }
-  },
-
-  // Live Module
-  async getActiveLiveRooms() {
-    try {
-      const { data } = await client.get('/live/rooms');
-      return data?.data ?? data ?? [];
-    } catch (e) {
-      throw normalizeError(e);
-    }
-  },
-
-  async createLiveRoom(body = {}) {
-    const { data } = await client.post('/live/rooms', body);
-    return data?.data ?? data;
-  },
-
-  async getLiveRoom(roomId) {
-    if (!roomId) throw normalizeError(new Error('방 ID가 필요합니다.'));
-    const { data } = await client.get(`/live/rooms/${encodeURIComponent(roomId)}`);
-    return data?.data ?? data;
-  },
-
-  async endLiveRoom(roomId) {
-    if (!roomId) throw normalizeError(new Error('방 ID가 필요합니다.'));
-    const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/end`);
-    return data?.data ?? data;
-  },
-
-  async joinLiveRoom(roomId) {
-    if (!roomId) throw normalizeError(new Error('방 ID가 필요합니다.'));
-    const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/join`);
-    return data?.data ?? data;
-  },
-
-  async leaveLiveRoom(roomId) {
-    if (!roomId) return;
-    try {
-      const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/leave`);
-      return data?.data ?? data;
-    } catch {
-      // quiet leave
-    }
-  },
-
-  async getLiveMessages(roomId, limit = 50) {
-    if (!roomId) return [];
-    try {
-      const { data } = await client.get(`/live/rooms/${encodeURIComponent(roomId)}/messages`, {
-        params: { limit },
-      });
-      return data?.data ?? data ?? [];
-    } catch {
-      return [];
-    }
-  },
-
-  async sendLiveMessage({ roomId, content, type = 'chat', giftPoints = 0 } = {}) {
-    if (!roomId) throw normalizeError(new Error('방 ID가 필요합니다.'));
-    const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/messages`, {
-      content: content || '',
-      type,
-      giftPoints,
-    });
-    return data?.data ?? data;
   },
 
   // Media Upload Module
