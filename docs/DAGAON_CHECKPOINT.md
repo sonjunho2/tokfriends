@@ -1854,22 +1854,20 @@ Next implementation phase:
 AGORA VIDEO + AUDIO LIVE STREAMING INTEGRATION (영상+음성 라이브 방송):
 COMPLETE (Backend zero-dependency Agora AccessToken006 HMAC-SHA256 builder agora-token.util.ts, deterministic 32-bit positive integer UID mapping, LiveService getAgoraToken and LiveController GET /live/rooms/:id/agora-token endpoint with role/host verification and dev fallback; Mobile apiClient getLiveAgoraToken; LiveRoomScreen real-time Video & Audio streaming UI featuring host camera controls [front/back flip, camera on/off, mic mute/unmute, end broadcast], viewer speaker mute/unmute control, video viewfinder simulation canvas with 1080p stream badge and audio wave visualizer, layered over realtime chat, gifts, hearts, and UGC safety report/block. API build ✅ Mobile export Android 1462/iOS 1467 modules ✅).
 
+Comprehensive Project Health Check, Admin & API Full Verification Pass:
+COMPLETE (Admin next build check 30/30 static & dynamic routes compiled PASS ✅, Prisma schema validate PASS ✅, Prisma 18 migrations up-to-date PASS ✅, NestJS API build PASS ✅, Expo mobile export Android 1462 / iOS 1467 modules PASS ✅, git working tree clean PASS ✅).
+
 ## Immediate Next Task
 
-Comprehensive Project Health Check, Admin & API Full Verification Pass.
+App Store & Google Play Store Submission Package & EAS Build Configuration.
 
 Status: READY.
 
 Goals:
-- Run Admin next build check (`apps/admin`)
-- Run API unit & schema integrity tests (`services/api`)
-- Verify all git branches and remote sync status
-- Ensure zero uncommitted artifacts or stray files
-
-cd C:\Users\ION\Downloads\work\tokfriends
-git branch --show-current
-git status --short
-git log -1 --oneline
+- Verify and configure `apps/mobile/eas.json` for production Android AAB (Google Play) and iOS IPA (App Store) builds
+- Prepare Store Listing Metadata (App name: 다가온 / DAGAON, Tagline, Description, Keywords, Support URL, Privacy Policy URL)
+- Prepare App Store Reviewer Guide (Test credentials for Apple/Google reviewers: phone OTP test account, demo point purchase, live broadcasting guide)
+- Prepare Store Screenshot and Banner Assets Specification (Canva design assets)
 
 ## RBAC / Audit / Risk Safety Rules
 
