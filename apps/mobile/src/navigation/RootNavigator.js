@@ -1,6 +1,6 @@
 // src/navigation/RootNavigator.js
 import React from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Platform } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -169,25 +169,36 @@ function MainTabs() {
       initialRouteName="Home"
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: '#6D4AFF',
+        tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle: {
-          backgroundColor: colors.backgroundSecondary,
-          borderTopColor: colors.border,
+          backgroundColor: '#FFFFFF',
+          borderTopColor: colors.borderLight,
           borderTopWidth: 1,
-          height: 60,
+          height: Platform.OS === 'ios' ? 84 : 64,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          paddingTop: 8,
+          elevation: 8,
+          shadowColor: colors.shadowColor,
+          shadowOffset: { width: 0, height: -3 },
+          shadowOpacity: 0.04,
+          shadowRadius: 10,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '700',
+          marginTop: 2,
+        },
         tabBarIcon: ({ focused, color, size }) => {
           const iconMap = {
             Home: focused ? 'home' : 'home-outline',
             Live: focused ? 'radio' : 'radio-outline',
-            Chat: focused ? 'chatbubbles' : 'chatbubbles-outline',
-            Points: focused ? 'diamond' : 'diamond-outline',
+            Chat: focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline',
+            Points: focused ? 'sparkles' : 'sparkles-outline',
             My: focused ? 'person' : 'person-outline',
           };
           const name = iconMap[route.name] || (focused ? 'ellipse' : 'ellipse-outline');
-          return <Ionicons name={name} size={size} color={color} />;
+          return <Ionicons name={name} size={22} color={color} />;
         },
       })}
     >
@@ -195,11 +206,9 @@ function MainTabs() {
       <Tab.Screen
         name="Home"
         component={HomeStack}
-        options={{ tabBarLabel: 'Home' }}
+        options={{ tabBarLabel: '홈' }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
-            // 기본 동작(탭 전환)으로 홈 스택의 현재 화면을 유지하면
-            // 다른 페이지에 머무르게 되므로 명시적으로 초기 화면으로 이동시킨다.
             e.preventDefault();
             navigation.navigate('Home', { screen: 'HomeMain' });
           },
@@ -209,13 +218,12 @@ function MainTabs() {
         name="Live"
         component={LiveStack}
         options={{
-          tabBarLabel: 'Live',
-          tabBarActiveTintColor: '#FF3B6B',
+          tabBarLabel: '라이브',
         }}
       />
-      <Tab.Screen name="Chat" component={ChatsStack} options={{ tabBarLabel: 'Chat' }} />
-      <Tab.Screen name="Points" component={ShopScreen} options={{ tabBarLabel: 'Points' }} />
-      <Tab.Screen name="My" component={MyPageStack} options={{ tabBarLabel: 'My' }} />
+      <Tab.Screen name="Chat" component={ChatsStack} options={{ tabBarLabel: '대화' }} />
+      <Tab.Screen name="Points" component={ShopScreen} options={{ tabBarLabel: '충전소' }} />
+      <Tab.Screen name="My" component={MyPageStack} options={{ tabBarLabel: '마이' }} />
     </Tab.Navigator>
   );
 }

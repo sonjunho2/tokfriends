@@ -147,7 +147,7 @@ export default function LiveScreen({ navigation }) {
       {/* Top Header */}
       <View style={styles.header}>
         <View style={styles.brandRow}>
-          <Text style={styles.brand}>DAGAON</Text>
+          <Text style={styles.brand}>다가온</Text>
           <View style={styles.liveHeaderBadge}>
             <View style={styles.liveDot} />
             <Text style={styles.liveHeaderBadgeText}>LIVE</Text>
@@ -159,7 +159,7 @@ export default function LiveScreen({ navigation }) {
           onPress={() => setModalVisible(true)}
           activeOpacity={0.85}
         >
-          <Ionicons name="videocam" size={16} color="#FFFFFF" />
+          <Ionicons name="videocam" size={15} color="#FFFFFF" />
           <Text style={styles.startLiveBtnText}>방송하기</Text>
         </TouchableOpacity>
       </View>
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: colors.backgroundSecondary,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.borderLight,
   },
   brandRow: {
     flexDirection: 'row',
@@ -345,49 +345,49 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   brand: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '900',
-    color: colors.text,
-    letterSpacing: 0.4,
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
   },
   liveHeaderBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 59, 107, 0.1)',
+    paddingVertical: 3,
+    borderRadius: 8,
+    backgroundColor: colors.primaryLight,
   },
   liveDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: LIVE_COLOR,
+    backgroundColor: colors.primary,
   },
   liveHeaderBadgeText: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: LIVE_COLOR,
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.primary,
   },
   startLiveBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: LIVE_COLOR,
+    gap: 5,
+    backgroundColor: colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 16,
   },
   startLiveBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
     color: '#FFFFFF',
   },
   categoryBar: {
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.borderLight,
   },
   categoryScroll: {
     paddingHorizontal: 16,
@@ -396,23 +396,23 @@ const styles = StyleSheet.create({
   },
   categoryChip: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: colors.pillBg,
+    paddingVertical: 7,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderLight,
   },
   categoryChipActive: {
-    backgroundColor: 'rgba(255, 59, 107, 0.1)',
-    borderColor: LIVE_COLOR,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   categoryChipText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.textSecondary,
   },
   categoryChipTextActive: {
-    color: LIVE_COLOR,
+    color: '#FFFFFF',
     fontWeight: '800',
   },
   center: {
@@ -434,16 +434,16 @@ const styles = StyleSheet.create({
   },
   roomCard: {
     width: '48%',
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: colors.shadowColor,
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
     elevation: 2,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderLight,
   },
   cardCover: {
     height: 130,

@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { apiClient } from '../../api/client';
@@ -79,17 +80,17 @@ export default function ChatsScreen({ navigation }) {
   const canGoBack = navigation.canGoBack();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       {/* 헤더 */}
       <View style={styles.header}>
         <View style={styles.headerSide}>
           {canGoBack && (
             <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8}>
-              <Ionicons name="chevron-back" size={24} color={colors.text} />
+              <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
           )}
         </View>
-        <Text style={styles.headerTitle}>Chat</Text>
+        <Text style={styles.headerTitle}>대화</Text>
         <View style={styles.headerSideRight} />
       </View>
 
@@ -126,40 +127,53 @@ export default function ChatsScreen({ navigation }) {
           }
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
-              <Text style={styles.emptyTitle}>대화가 없어요</Text>
-              <Text style={styles.emptySubtitle}>새로운 대화를 시작하면 여기에 표시됩니다.</Text>
+              <View style={styles.emptyIconWrap}>
+                <Ionicons name="chatbubbles-outline" size={36} color={colors.textTertiary} />
+              </View>
+              <Text style={styles.emptyTitle}>대화가 아직 없어요</Text>
+              <Text style={styles.emptySubtitle}>
+                새로운 친구를 찾고 첫 인사를 건네보세요.
+              </Text>
             </View>
           }
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
   header: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.backgroundSecondary,
+    paddingHorizontal: 18,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.borderLight,
   },
   headerSide: { width: 40, alignItems: 'flex-start', justifyContent: 'center' },
   headerSideRight: { minWidth: 40, alignItems: 'flex-end', justifyContent: 'center' },
-  headerTitle: { fontSize: 22, fontWeight: '900', color: colors.text },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
+  },
   list: {
     flex: 1,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: '#FFFFFF',
   },
   listContent: {
     paddingHorizontal: 16,
     paddingBottom: 32,
     paddingTop: 8,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: '#FFFFFF',
   },
   emptyListContent: {
     flexGrow: 1,
@@ -169,7 +183,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: '#FFFFFF',
   },
   stateMessage: {
     marginTop: 10,
@@ -180,7 +194,7 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.text,
+    color: colors.textPrimary,
   },
   retryButton: {
     marginTop: 20,
@@ -190,7 +204,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   retryButtonText: {
-    color: colors.textInverse,
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
   },
@@ -199,14 +213,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
   emptyTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.text,
+    color: colors.textPrimary,
   },
   emptySubtitle: {
     marginTop: 6,
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textTertiary,
   },
 });

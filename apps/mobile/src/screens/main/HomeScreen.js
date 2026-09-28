@@ -22,7 +22,7 @@ const GRID = [
   { key: '40대이상', label: '40대이상' },
 ];
 
-const CARD_H = 190;
+const CARD_H = 200;
 
 function mapHomeDiscoverUser(user) {
   const profile = user?.profile ?? {};
@@ -98,9 +98,7 @@ export default function HomeScreen({ navigation }) {
           setRecentPosts(items);
         }
       } catch {
-        if (active) {
-          setDiscoverUsers([]);
-        }
+        // silent fallback
       }
     };
 
@@ -111,23 +109,16 @@ export default function HomeScreen({ navigation }) {
     };
   }, []);
 
-  // 캐러셀 타이머
   useEffect(() => {
-    if (discoverUsers.length <= 1) return undefined;
+    const len = discoverUsers.length;
+    if (len === 0) return;
 
-    const t1 = setInterval(
-      () => setIdxNew((i) => (i + 1) % discoverUsers.length),
-      3000,
-    );
-    const t2 = setInterval(
-      () => setIdxBest((i) => (i + 1) % discoverUsers.length),
-      3200,
-    );
+    const interval = setInterval(() => {
+      setIdxNew((prev) => (prev + 1) % len);
+      setIdxBest((prev) => (prev + 1) % len);
+    }, 4500);
 
-    return () => {
-      clearInterval(t1);
-      clearInterval(t2);
-    };
+    return () => clearInterval(interval);
   }, [discoverUsers.length]);
 
   const newItem =
@@ -174,40 +165,53 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
-      {/* 상단 앱명(가운데) + 검색 + 무료포인트 */}
+      {/* 상단 앱바: 브랜드 로고 + 빠른 액션(충전소/검색) */}
       <View style={styles.appbar}>
-        <TouchableOpacity
-          hitSlop={8}
-          style={styles.giftBtn}
-          onPress={() => navigation.navigate('Shop')}
-        >
-          <Ionicons name="gift-outline" size={22} color={colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.appTitle}>DAGAON</Text>
-        <TouchableOpacity
-          hitSlop={8}
-          style={styles.searchBtn}
-          onPress={() => navigation.navigate('HotRecommend', { openFilter: true })}
-        >
-          <Ionicons name="search" size={20} color={colors.text} />
-        </TouchableOpacity>
+        <View style={styles.brandContainer}>
+          <Text style={styles.brandTitle}>다가온</Text>
+          <View style={styles.brandDot} />
+        </View>
+        <View style={styles.appbarRightActions}>
+          <TouchableOpacity
+            hitSlop={8}
+            style={styles.appbarIconBtn}
+            onPress={() => navigation.navigate('Shop')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="sparkles" size={17} color="#D97706" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            hitSlop={8}
+            style={styles.appbarIconBtn}
+            onPress={() => navigation.navigate('HotRecommend', { openFilter: true })}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="search" size={18} color={colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 110 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* 초록 배너 */}
-        <Card style={styles.greenCard} noPadding>
-          <View style={{ padding: 14, paddingRight: 120 }}>
-            <Text style={styles.greenTitle}>오직 첫 가입자만!</Text>
-            <Text style={styles.greenDesc}>30분 내 프로필 완성 시{'\n'}50포인트 지급</Text>
+        {/* 첫 가입자 이벤트 배너 */}
+        <Card style={styles.greenCard}>
+          <View style={{ paddingRight: 110 }}>
+            <View style={styles.greenTagRow}>
+              <View style={styles.greenBadge}>
+                <Text style={styles.greenBadgeTxt}>EVENT</Text>
+              </View>
+              <Text style={styles.greenTitle}>오직 첫 가입자만!</Text>
+            </View>
+            <Text style={styles.greenDesc}>
+              30분 내 프로필 완성 시{'\n'}50포인트 즉시 지급
+            </Text>
           </View>
-          <TouchableOpacity style={styles.timerBtn} activeOpacity={0.9}>
+          <TouchableOpacity style={styles.timerBtn} activeOpacity={0.88}>
             <Text style={styles.timerTxt}>{leftStr}</Text>
-            <Ionicons name="arrow-forward" size={18} color="#fff" />
+            <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
           </TouchableOpacity>
-          <View style={styles.greenBadge}><Text style={styles.greenBadgeTxt}>1/1</Text></View>
         </Card>
 
         {/* 무료 포인트 충전소 배너 */}
@@ -218,39 +222,43 @@ export default function HomeScreen({ navigation }) {
         >
           <View style={styles.rewardBannerLeft}>
             <View style={styles.rewardBadgeIcon}>
-              <Ionicons name="sparkles" size={16} color="#D97706" />
+              <Ionicons name="gift" size={16} color="#D97706" />
             </View>
             <View>
               <Text style={styles.rewardBannerTitle}>매일 무료 포인트 충전소</Text>
-              <Text style={styles.rewardBannerDesc}>출석체크 +5P · 광고시청 +10P · 친구초대 +50P</Text>
+              <Text style={styles.rewardBannerDesc}>
+                출석체크 +5P · 광고시청 +10P · 친구초대 +50P
+              </Text>
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#D97706" />
+          <Ionicons name="chevron-forward" size={16} color="#D97706" />
         </TouchableOpacity>
 
-        {/* 빠른 필터 - 2×4 아이콘 그리드 */}
-        <View style={styles.grid}>
+        {/* 빠른 필터 캡슐 탭 바 */}
+        <View style={styles.filterChipRow}>
           {GRID.map((g) => (
             <TouchableOpacity
               key={g.key}
-              style={styles.gridItem}
-              activeOpacity={0.9}
+              style={styles.filterChip}
+              activeOpacity={0.85}
               onPress={() => {
                 navigation.navigate('HotRecommend', { selected: g.label });
               }}
             >
-              <View style={styles.gridIcon}>
-                <Text style={styles.gridIconText}>{g.label}</Text>
-              </View>
+              <Text style={styles.filterChipText}>{g.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* 나에게 관심있는 친구들 */}
+        {/* 나에게 관심있는 친구들 바로가기 카드 */}
         <Card style={styles.wideCard}>
           <View style={styles.wideRow}>
-            <Text style={styles.wideTitle}>나에게{'\n'}관심있는 친구들</Text>
+            <View>
+              <Text style={styles.wideTitle}>나에게 관심있는 친구들</Text>
+              <Text style={styles.wideSub}>내 프로필을 방문하고 하트를 보낸 친구</Text>
+            </View>
             <TouchableOpacity
+              style={styles.linkPill}
               onPress={() => {
                 const parentNav = navigation.getParent?.();
                 if (parentNav && typeof parentNav.navigate === 'function') {
@@ -259,31 +267,49 @@ export default function HomeScreen({ navigation }) {
                   navigation.navigate('Chat');
                 }
               }}
+              activeOpacity={0.8}
             >
-              <Text style={styles.link}>확인하기 ›</Text>
+              <Text style={styles.linkText}>확인하기 ›</Text>
             </TouchableOpacity>
           </View>
         </Card>
 
-        {/* 새로운 친구 / 추천 친구 */}
+        {/* 새로운 친구 / 추천 친구 듀얼 쇼케이스 */}
         <View style={styles.dualRow}>
           {/* 새로운 친구 */}
           <View style={styles.dualCol}>
             <View style={styles.dualHeader}>
               <Text style={styles.dualTitle}>새로운 친구</Text>
+              <View style={styles.newBadge}>
+                <Text style={styles.newBadgeText}>NEW</Text>
+              </View>
             </View>
             <TouchableOpacity
-              activeOpacity={0.9}
+              activeOpacity={0.92}
               onPress={() => handleHighlightPress(newItem)}
             >
               <Card style={[styles.dualCard, { height: CARD_H }]}>
-                <View style={styles.imageWrap}>
-                  {newItem?.avatar ? (
+                {newItem?.avatar ? (
+                  <View style={styles.cardImageContainer}>
                     <Image source={{ uri: newItem.avatar }} style={styles.image} />
-                  ) : (
-                    <Text style={styles.dualTitle}>{newItem?.name || '회원 없음'}</Text>
-                  )}
-                </View>
+                    <View style={styles.imageScrim} />
+                    <View style={styles.cardOverlayMeta}>
+                      <Text style={styles.cardOverlayName} numberOfLines={1}>
+                        {newItem.name}
+                        {newItem.age ? `, ${newItem.age}` : ''}
+                      </Text>
+                      <Text style={styles.cardOverlayLoc} numberOfLines={1}>
+                        {newItem.location}
+                      </Text>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.placeholderCardContent}>
+                    <Avatar size={54} name={newItem?.name || '새친구'} />
+                    <Text style={styles.placeholderCardName}>{newItem?.name || '새로운 친구'}</Text>
+                    <Text style={styles.placeholderCardLoc}>{newItem?.location || '방금 가입'}</Text>
+                  </View>
+                )}
               </Card>
             </TouchableOpacity>
           </View>
@@ -292,19 +318,36 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.dualCol}>
             <View style={styles.dualHeader}>
               <Text style={styles.dualTitle}>추천 친구</Text>
+              <View style={styles.bestBadge}>
+                <Text style={styles.bestBadgeText}>HOT</Text>
+              </View>
             </View>
             <TouchableOpacity
-              activeOpacity={0.9}
+              activeOpacity={0.92}
               onPress={() => handleHighlightPress(bestItem)}
             >
               <Card style={[styles.dualCard, { height: CARD_H }]}>
-                <View style={styles.imageWrap}>
-                  {bestItem?.avatar ? (
+                {bestItem?.avatar ? (
+                  <View style={styles.cardImageContainer}>
                     <Image source={{ uri: bestItem.avatar }} style={styles.image} />
-                  ) : (
-                    <Text style={styles.dualTitle}>{bestItem?.name || '회원 없음'}</Text>
-                  )}
-                </View>
+                    <View style={styles.imageScrim} />
+                    <View style={styles.cardOverlayMeta}>
+                      <Text style={styles.cardOverlayName} numberOfLines={1}>
+                        {bestItem.name}
+                        {bestItem.age ? `, ${bestItem.age}` : ''}
+                      </Text>
+                      <Text style={styles.cardOverlayLoc} numberOfLines={1}>
+                        {bestItem.location}
+                      </Text>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.placeholderCardContent}>
+                    <Avatar size={54} name={bestItem?.name || '추천'} />
+                    <Text style={styles.placeholderCardName}>{bestItem?.name || '추천 친구'}</Text>
+                    <Text style={styles.placeholderCardLoc}>{bestItem?.location || '매력적인 인연'}</Text>
+                  </View>
+                )}
               </Card>
             </TouchableOpacity>
           </View>
@@ -378,7 +421,7 @@ export default function HomeScreen({ navigation }) {
               onPress={() => handleOpenCommunity()}
               activeOpacity={0.85}
             >
-              <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.primary} />
+              <Ionicons name="chatbubble-ellipses-outline" size={20} color={colors.primary} />
               <Text style={styles.emptyPostPromptText}>
                 첫 이야기를 남기고 이웃들과 소통을 시작해보세요!
               </Text>
@@ -390,11 +433,13 @@ export default function HomeScreen({ navigation }) {
         {/* 다가온 안심 서비스 안내 */}
         <Card style={styles.guideCard}>
           <View style={styles.guideHeader}>
-            <Ionicons name="shield-checkmark" size={20} color={colors.primary} />
-            <Text style={styles.guideTitle}>다가온 안심 서비스 안내</Text>
+            <View style={styles.guideShieldIcon}>
+              <Ionicons name="shield-checkmark" size={18} color={colors.primary} />
+            </View>
+            <Text style={styles.guideTitle}>다가온 안심 케어 시스템</Text>
           </View>
           <Text style={styles.guideSub}>
-            철저한 본인 인증과 24시간 모니터링으로 안전하고 깨끗한 만남을 지원합니다.
+            철저한 본인 인증과 24시간 실시간 AI 모니터링으로 안전하고 깨끗한 소통 문화를 지원합니다.
           </Text>
         </Card>
       </ScrollView>
@@ -403,79 +448,112 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   appbar: {
-    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingVertical: 12,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.borderLight,
   },
-  appTitle: {
-    fontSize: 20,
+  brandContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  brandTitle: {
+    fontSize: 22,
     fontWeight: '900',
-    color: colors.text,
-    textAlign: 'center',
-    flex: 1,
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
   },
-  searchBtn: { width: 24, alignItems: 'flex-end' },
-
+  brandDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+    marginTop: 6,
+  },
+  appbarRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  appbarIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   greenCard: {
     marginHorizontal: 16,
     marginTop: 12,
-    backgroundColor: '#E8FAD8',
-    borderRadius: 14,
+    backgroundColor: '#F0FDF4',
+    borderColor: '#DCFCE7',
+    borderWidth: 1,
+    padding: 16,
     position: 'relative',
   },
-  greenTitle: { color: '#14853E', fontWeight: '900', fontSize: 14 },
-  greenDesc: {
-    color: '#1D4C2B',
-    fontWeight: '700',
-    fontSize: 16,
-    lineHeight: 22,
-    marginTop: 2,
-  },
-  timerBtn: {
-    position: 'absolute',
-    right: 10,
-    top: 10,
-    backgroundColor: '#2FB75E',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+  greenTagRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    marginBottom: 4,
   },
-  timerTxt: { color: '#fff', fontWeight: '900', fontSize: 12 },
   greenBadge: {
-    position: 'absolute',
-    right: 10,
-    bottom: 8,
-    backgroundColor: '#DDF0CB',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    backgroundColor: '#DCFCE7',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
-  greenBadgeTxt: { color: '#2D6B39', fontWeight: '700', fontSize: 11 },
-  giftBtn: {
-    padding: 4,
-    justifyContent: 'center',
+  greenBadgeTxt: {
+    color: '#15803D',
+    fontWeight: '800',
+    fontSize: 10,
+  },
+  greenTitle: {
+    color: '#166534',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  greenDesc: {
+    color: '#14532D',
+    fontWeight: '700',
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  timerBtn: {
+    position: 'absolute',
+    right: 14,
+    top: 18,
+    backgroundColor: '#16A34A',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
+  },
+  timerTxt: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 11,
   },
   rewardBanner: {
     marginHorizontal: 16,
     marginTop: 10,
-    marginBottom: 4,
     backgroundColor: '#FFFBEB',
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    borderRadius: 18,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -486,6 +564,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    flex: 1,
   },
   rewardBadgeIcon: {
     width: 32,
@@ -505,38 +584,30 @@ const styles = StyleSheet.create({
     color: '#B45309',
     marginTop: 1,
   },
-
-  grid: {
+  filterChipRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 14,
+    gap: 8,
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 14,
   },
-  gridItem: { width: '22%', alignItems: 'center' },
-  gridIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 16,
-    backgroundColor: '#fff',
-    borderWidth: 1.5,
-    borderColor: colors.border,
+  filterChip: {
+    flex: 1,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
   },
-  gridIconText: {
+  filterChipText: {
     fontSize: 13,
-    fontWeight: '800',
-    color: colors.text,
-    textAlign: 'center',
-    lineHeight: 18,
+    fontWeight: '700',
+    color: colors.textSecondary,
   },
-
   wideCard: {
     marginHorizontal: 16,
     marginTop: 12,
-    borderRadius: 14,
     padding: 16,
   },
   wideRow: {
@@ -544,76 +615,163 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  wideTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
-  link: { color: colors.primary, fontWeight: '800' },
-
+  wideTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  wideSub: {
+    fontSize: 12,
+    color: colors.textTertiary,
+    marginTop: 3,
+  },
+  linkPill: {
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  linkText: {
+    color: colors.primary,
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  link: {
+    color: colors.primary,
+    fontWeight: '800',
+    fontSize: 12,
+  },
   dualRow: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 12,
     paddingHorizontal: 16,
-    marginTop: 20,
+    marginTop: 16,
   },
-  dualCol: { flex: 1 },
-
+  dualCol: {
+    flex: 1,
+  },
+  dualHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    paddingHorizontal: 2,
+  },
+  dualTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  newBadge: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  newBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#2563EB',
+  },
+  bestBadge: {
+    backgroundColor: colors.primaryLight,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  bestBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.primary,
+  },
   dualCard: {
-    borderRadius: 18,
-    justifyContent: 'center',
     overflow: 'hidden',
     padding: 0,
   },
-  dualHeader: {
-    marginBottom: 10,
-    paddingHorizontal: 4,
-  },
-  imageWrap: {
+  cardImageContainer: {
     flex: 1,
-    borderRadius: 18,
-    overflow: 'hidden',
-    backgroundColor: '#eee',
+    position: 'relative',
   },
   image: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
-  dualTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: colors.text,
+  imageScrim: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 70,
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
-
-  // Community Section
+  cardOverlayMeta: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    right: 10,
+  },
+  cardOverlayName: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  cardOverlayLoc: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 2,
+  },
+  placeholderCardContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    padding: 12,
+  },
+  placeholderCardName: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    marginTop: 4,
+  },
+  placeholderCardLoc: {
+    fontSize: 11,
+    color: colors.textTertiary,
+  },
   communitySection: {
-    marginTop: 24,
+    marginTop: 22,
     paddingHorizontal: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.text,
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.textPrimary,
   },
   sectionSub: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.textTertiary,
     marginTop: 2,
   },
   topicChipScroll: {
     gap: 8,
-    paddingBottom: 10,
+    paddingBottom: 8,
   },
   homeTopicChip: {
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
+    paddingVertical: 7,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderLight,
   },
   homeTopicChipText: {
     fontSize: 12,
@@ -621,14 +779,15 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   recentPostsList: {
-    gap: 10,
+    gap: 8,
+    marginTop: 2,
   },
   postPreviewCard: {
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: 14,
-    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderLight,
   },
   previewTop: {
     flexDirection: 'row',
@@ -639,47 +798,44 @@ const styles = StyleSheet.create({
   previewAuthor: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.text,
+    color: colors.textPrimary,
     flex: 1,
   },
   previewTopicBadge: {
-    backgroundColor: colors.pillActiveBg,
-    paddingHorizontal: 6,
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
   },
   previewTopicText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.primary,
   },
   previewContent: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.text,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textSecondary,
   },
   emptyPostPrompt: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderLight,
   },
   emptyPostPromptText: {
     flex: 1,
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textTertiary,
     fontWeight: '600',
   },
-
-  // Guide card
   guideCard: {
     marginHorizontal: 16,
-    marginTop: 20,
-    borderRadius: 14,
+    marginTop: 18,
     padding: 16,
   },
   guideHeader: {
@@ -687,11 +843,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  guideTitle: { fontSize: 16, fontWeight: '800', color: colors.text },
+  guideShieldIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guideTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
   guideSub: {
     marginTop: 6,
-    color: colors.textSecondary,
-    fontSize: 13,
+    color: colors.textTertiary,
+    fontSize: 12,
     lineHeight: 18,
   },
 });
