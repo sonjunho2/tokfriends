@@ -91,6 +91,11 @@ function HomeStack() {
         component={ShopScreen}
         options={{ animation: 'slide_from_right' }}
       />
+      <HomeStackNav.Screen
+        name="Shop"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
     </HomeStackNav.Navigator>
   );
 }
@@ -115,6 +120,11 @@ function CommunityStack() {
       />
       <CommunityStackNav.Screen
         name="Points"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <CommunityStackNav.Screen
+        name="Shop"
         component={ShopScreen}
         options={{ animation: 'slide_from_right' }}
       />
@@ -162,6 +172,11 @@ function ChatsStack() {
         component={ShopScreen}
         options={{ animation: 'slide_from_right' }}
       />
+      <ChatsStackNav.Screen
+        name="Shop"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
     </ChatsStackNav.Navigator>
   );
 }
@@ -201,6 +216,11 @@ function MyPageStack() {
         component={ShopScreen}
         options={{ animation: 'slide_from_right' }}
       />
+      <MyPageStackNav.Screen
+        name="Shop"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
     </MyPageStackNav.Navigator>
   );
 }
@@ -228,7 +248,7 @@ function MainTabs() {
           shadowRadius: 10,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: '700',
           marginTop: 2,
         },
@@ -238,10 +258,11 @@ function MainTabs() {
             Community: focused ? 'people' : 'people-outline',
             Live: focused ? 'radio' : 'radio-outline',
             Chat: focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline',
+            Points: focused ? 'sparkles' : 'sparkles-outline',
             My: focused ? 'person' : 'person-outline',
           };
           const name = iconMap[route.name] || (focused ? 'ellipse' : 'ellipse-outline');
-          return <Ionicons name={name} size={22} color={color} />;
+          return <Ionicons name={name} size={20} color={color} />;
         },
       })}
     >
@@ -276,6 +297,7 @@ function MainTabs() {
         }}
       />
       <Tab.Screen name="Chat" component={ChatsStack} options={{ tabBarLabel: '대화' }} />
+      <Tab.Screen name="Points" component={ShopScreen} options={{ tabBarLabel: '충전소' }} />
       <Tab.Screen name="My" component={MyPageStack} options={{ tabBarLabel: '마이' }} />
     </Tab.Navigator>
   );

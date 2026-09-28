@@ -691,8 +691,12 @@ export const apiClient = {
         // In dummy mode, return a static set of products without network calls
     if (USE_DUMMY_AUTH) {
       return [
-        { id: 'dummy1', name: '테스트 상품 1', price: 0 },
-        { id: 'dummy2', name: '테스트 상품 2', price: 1000 },
+        { id: 'points_100', productId: 'com.company.points.100', label: '100P', points: 100, price: 1900, priceText: '₩1,900' },
+        { id: 'points_300', productId: 'com.company.points.300', label: '300P', points: 300, price: 5500, priceText: '₩5,500' },
+        { id: 'points_500', productId: 'com.company.points.500', label: '500P', points: 500, price: 8900, priceText: '₩8,900' },
+        { id: 'points_1000', productId: 'com.company.points.1000', label: '1,000P', points: 1000, price: 17000, priceText: '₩17,000', recommended: true },
+        { id: 'points_3000', productId: 'com.company.points.3000', label: '3,000P', points: 3000, price: 49000, priceText: '₩49,000' },
+        { id: 'points_5000', productId: 'com.company.points.5000', label: '5,000P', points: 5000, price: 79000, priceText: '₩79,000' },
       ];
     }
 

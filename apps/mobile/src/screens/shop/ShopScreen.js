@@ -30,7 +30,7 @@ const FALLBACK_PACKAGES = [
   { id: 'com.company.points.5000', productId: 'com.company.points.5000', label: '5,000P', price: '₩79,000', points: 5000 },
 ];
 
-export default function ShopScreen() {
+export default function ShopScreen({ navigation }) {
   const { user, refreshMe } = useAuth();
   const [packages, setPackages] = useState([]);
   const [iapProducts, setIapProducts] = useState([]);
@@ -314,10 +314,21 @@ export default function ShopScreen() {
     }
   };
 
+  const navState = navigation?.getState?.();
+  const isStack = navState?.type === 'stack';
+  const canGoBack = isStack && (navState?.index ?? 0) > 0;
+
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Points</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {canGoBack && (
+            <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8}>
+              <Ionicons name="chevron-back" size={24} color={colors.textPrimary || '#111827'} />
+            </TouchableOpacity>
+          )}
+          <Text style={styles.title}>포인트 충전소</Text>
+        </View>
         <View style={styles.pointBadge}>
           <Text style={styles.pointIcon}>P</Text>
           <Text style={styles.pointText}>{balance}</Text>
