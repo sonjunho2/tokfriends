@@ -454,27 +454,27 @@ export default function CommunityFeedScreen({ navigation, route }) {
   const canGoBack = (navigation.getState()?.index ?? 0) > 0;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       {/* Top Header */}
       <View style={styles.header}>
-        {canGoBack ? (
-          <TouchableOpacity
-            style={styles.headerIconButton}
-            onPress={() => navigation.goBack()}
-            hitSlop={8}
-          >
-            <Ionicons name="chevron-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-        ) : (
-          <View style={{ width: 40 }} />
-        )}
-        <Text style={styles.headerTitle}>커뮤니티</Text>
+        <View style={styles.headerLeft}>
+          {canGoBack && (
+            <TouchableOpacity
+              style={styles.headerIconButton}
+              onPress={() => navigation.goBack()}
+              hitSlop={8}
+            >
+              <Ionicons name="chevron-back" size={24} color={colors.textPrimary || '#111827'} />
+            </TouchableOpacity>
+          )}
+          <Text style={styles.headerTitle}>커뮤니티</Text>
+        </View>
         <TouchableOpacity
           style={styles.writeButton}
           onPress={() => setModalVisible(true)}
           activeOpacity={0.8}
         >
-          <Ionicons name="create-outline" size={18} color={colors.textInverse} />
+          <Ionicons name="create-outline" size={17} color={colors.textInverse || '#FFFFFF'} />
           <Text style={styles.writeButtonText}>글쓰기</Text>
         </TouchableOpacity>
       </View>
@@ -770,7 +770,7 @@ export default function CommunityFeedScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
   },
   header: {
     height: 56,
@@ -778,20 +778,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.borderLight,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   headerIconButton: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
-    color: colors.text,
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
   },
   writeButton: {
     flexDirection: 'row',

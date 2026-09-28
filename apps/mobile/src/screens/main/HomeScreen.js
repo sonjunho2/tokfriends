@@ -167,7 +167,7 @@ export default function HomeScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       {/* 상단 앱바: 브랜드 로고 + 빠른 액션(충전소/검색) */}
       <View style={styles.appbar}>
         <View style={styles.brandContainer}>
@@ -195,6 +195,7 @@ export default function HomeScreen({ navigation }) {
       </View>
 
       <ScrollView
+        style={{ flex: 1, backgroundColor: colors.background }}
         contentContainerStyle={{ paddingBottom: 110 }}
         showsVerticalScrollIndicator={false}
       >
@@ -453,14 +454,14 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
   },
   appbar: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
@@ -471,7 +472,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   brandTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
     color: colors.textPrimary,
     letterSpacing: -0.5,

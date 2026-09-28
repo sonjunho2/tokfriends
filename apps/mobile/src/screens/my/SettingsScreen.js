@@ -348,21 +348,28 @@ export default function SettingsScreen({ navigation }) {
     });
   };
 
+  const canGoBack = (navigation.getState()?.index ?? 0) > 0;
+
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => navigation.goBack()}
-          hitSlop={8}
-        >
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, dynamicFont.heading]}>My</Text>
-        <View style={styles.headerButton} />
+        <View style={styles.headerLeft}>
+          {canGoBack && (
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => navigation.goBack()}
+              hitSlop={8}
+            >
+              <Ionicons name="chevron-back" size={24} color={colors.textPrimary || '#111827'} />
+            </TouchableOpacity>
+          )}
+          <Text style={[styles.headerTitle, dynamicFont.heading]}>마이</Text>
+        </View>
+        <View style={styles.headerRight} />
       </View>
 
       <ScrollView
+        style={{ flex: 1, backgroundColor: colors.background }}
         contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
       >
@@ -596,18 +603,24 @@ export default function SettingsScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
   },
   header: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    backgroundColor: colors.backgroundSecondary,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.borderLight,
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  headerRight: { width: 32 },
   headerButton: {
     width: 32,
     height: 32,
@@ -618,7 +631,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: colors.text,
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
   },
   profileCard: {
     marginTop: 16,

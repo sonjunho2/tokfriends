@@ -83,15 +83,15 @@ export default function ChatsScreen({ navigation }) {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       {/* 헤더 */}
       <View style={styles.header}>
-        <View style={styles.headerSide}>
+        <View style={styles.headerLeft}>
           {canGoBack && (
             <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8}>
               <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
           )}
+          <Text style={styles.headerTitle}>대화</Text>
         </View>
-        <Text style={styles.headerTitle}>대화</Text>
-        <View style={styles.headerSideRight} />
+        <View style={styles.headerRight} />
       </View>
 
       {loading ? (
@@ -152,16 +152,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
-  headerSide: { width: 40, alignItems: 'flex-start', justifyContent: 'center' },
-  headerSideRight: { minWidth: 40, alignItems: 'flex-end', justifyContent: 'center' },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  headerRight: { width: 32 },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '900',
+    fontSize: 20,
+    fontWeight: '800',
     color: colors.textPrimary,
     letterSpacing: -0.5,
   },

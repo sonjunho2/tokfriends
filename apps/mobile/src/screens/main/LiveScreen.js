@@ -327,15 +327,15 @@ export default function LiveScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
   },
   header: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    backgroundColor: colors.backgroundSecondary,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   brand: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
     color: colors.textPrimary,
     letterSpacing: -0.5,

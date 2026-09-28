@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { apiClient, saveToken, clearToken, getStoredToken } from '../api/client';
+import { USE_DUMMY_AUTH } from '../config/env';
 import {
   registerPushNotifications,
   unregisterPushNotifications,
@@ -26,7 +27,11 @@ export const AuthProvider = ({ children }) => {
     (async () => {
       try {
         try { await apiClient.health(); } catch {}
-        const stored = await getStoredToken();
+        let stored = await getStoredToken();
+        if (!stored && USE_DUMMY_AUTH) {
+          stored = 'dummy_token';
+          await saveToken(stored);
+        }
         if (stored) {
           setState((s) => ({ ...s, token: stored }));
           const me = await apiClient.getMe();
@@ -34,7 +39,9 @@ export const AuthProvider = ({ children }) => {
           registerPushNotifications().catch(() => {});
         }
       } catch (e) {
-        await clearToken();
+        if (!USE_DUMMY_AUTH) {
+          await clearToken();
+        }
         setState({ user: null, token: null, initializing: false });
         return;
       }

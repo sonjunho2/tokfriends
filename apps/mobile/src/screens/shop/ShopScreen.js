@@ -12,6 +12,7 @@ import {
   Modal,
   Share,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -319,7 +320,7 @@ export default function ShopScreen({ navigation }) {
   const canGoBack = isStack && (navState?.index ?? 0) > 0;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.headerRow}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           {canGoBack && (
@@ -574,7 +575,7 @@ export default function ShopScreen({ navigation }) {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -583,20 +584,23 @@ const RADIUS = 16;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bg || '#F7F7FA',
+    backgroundColor: '#FFFFFF',
   },
   headerRow: {
-    paddingHorizontal: 16,
-    paddingTop: 6,
-    paddingBottom: 8,
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.textPrimary || '#222',
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.textPrimary || '#111827',
+    letterSpacing: -0.5,
   },
   pointBadge: {
     flexDirection: 'row',
