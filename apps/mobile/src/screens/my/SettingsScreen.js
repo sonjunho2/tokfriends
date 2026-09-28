@@ -9,6 +9,7 @@ import {
   Switch,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -57,6 +58,35 @@ export default function SettingsScreen({ navigation }) {
   const [fontMessage, setFontMessage] = useState('');
   const [blockedCount, setBlockedCount] = useState(null);
   const [friendsCount, setFriendsCount] = useState(null);
+  const [legalModalVisible, setLegalModalVisible] = useState(false);
+  const [legalTitle, setLegalTitle] = useState('');
+  const [legalBody, setLegalBody] = useState('');
+  const [legalLoading, setLegalLoading] = useState(false);
+
+  const openLegalDocument = useCallback(async (slug, title) => {
+    setLegalTitle(title);
+    setLegalModalVisible(true);
+    setLegalLoading(true);
+    setLegalBody('');
+    try {
+      const response = await apiClient.getLegalDocument(slug);
+      const content =
+        response?.content ||
+        response?.html ||
+        response?.body ||
+        response?.data?.content ||
+        response?.text;
+      if (typeof content === 'string' && content.trim()) {
+        setLegalBody(content.trim());
+      } else {
+        setLegalBody('등록된 약관 내용을 불러오지 못했습니다.');
+      }
+    } catch {
+      setLegalBody('약관 내용을 불러오는 중 오류가 발생했습니다.');
+    } finally {
+      setLegalLoading(false);
+    }
+  }, []);
 
   const dynamicFont = useMemo(() => {
     if (selectedFont === 'system') {
@@ -107,7 +137,7 @@ export default function SettingsScreen({ navigation }) {
       label: '출석체크',
       value: '매일 도전해요',
       accent: '#3B82F6',
-      onPress: () => Alert.alert('출석체크', '오늘의 출석이 완료되었습니다! (+10P)'),
+      onPress: () => navigation.navigate('Shop'),
     },
     {
       key: 'push',
@@ -180,9 +210,39 @@ export default function SettingsScreen({ navigation }) {
       value: friendsCount === null ? undefined : String(friendsCount) + '명',
       onPress: () => navigation.navigate('Friends'),
     },
-    { key: 'blocked', icon: 'ban-outline', label: '내가 차단한 회원', value: blockedCount === null ? undefined : String(blockedCount) + '명', onPress: () => navigation.navigate('BlockedUsers') },
-    { key: 'faq', icon: 'help-circle-outline', label: '자주 묻는 질문' },
-    { key: 'support', icon: 'chatbubble-ellipses-outline', label: '영자언니에게 문의하기' },
+    {
+      key: 'blocked',
+      icon: 'ban-outline',
+      label: '내가 차단한 회원',
+      value: blockedCount === null ? undefined : String(blockedCount) + '명',
+      onPress: () => navigation.navigate('BlockedUsers'),
+    },
+    {
+      key: 'terms',
+      icon: 'document-text-outline',
+      label: '서비스 이용약관',
+      onPress: () => openLegalDocument('terms-of-service', '서비스 이용약관'),
+    },
+    {
+      key: 'privacy',
+      icon: 'shield-checkmark-outline',
+      label: '개인정보 처리방침',
+      onPress: () => openLegalDocument('privacy-policy', '개인정보 처리방침'),
+    },
+    {
+      key: 'location',
+      icon: 'location-outline',
+      label: '위치기반서비스 이용약관',
+      onPress: () => openLegalDocument('location-based-service', '위치기반서비스 이용약관'),
+    },
+    {
+      key: 'version',
+      icon: 'information-circle-outline',
+      label: '앱 버전 정보',
+      value: 'v1.0.0',
+      onPress: () =>
+        Alert.alert('버전 정보', '다가온(DAGAON) v1.0.0\n최신 정식 버전이 설치되어 있습니다.'),
+    },
   ];
 
     const handleSelectFont = useCallback((value) => {
@@ -496,6 +556,39 @@ export default function SettingsScreen({ navigation }) {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <Modal
+        visible={legalModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setLegalModalVisible(false)}
+      >
+        <View style={styles.legalModalBackdrop}>
+          <View style={styles.legalModalContainer}>
+            <View style={styles.legalModalHeader}>
+              <Text style={styles.legalModalTitle}>{legalTitle}</Text>
+              <TouchableOpacity
+                onPress={() => setLegalModalVisible(false)}
+                hitSlop={8}
+                style={styles.legalCloseBtn}
+              >
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.legalModalBody} showsVerticalScrollIndicator={false}>
+              {legalLoading ? (
+                <ActivityIndicator
+                  size="small"
+                  color={colors.primary}
+                  style={{ marginTop: 40 }}
+                />
+              ) : (
+                <Text style={styles.legalModalText}>{legalBody}</Text>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -775,5 +868,42 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: colors.text,
+  },
+  legalModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  legalModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+    paddingBottom: 30,
+  },
+  legalModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  legalModalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  legalCloseBtn: {
+    padding: 4,
+  },
+  legalModalBody: {
+    padding: 20,
+  },
+  legalModalText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 22,
   },
 });

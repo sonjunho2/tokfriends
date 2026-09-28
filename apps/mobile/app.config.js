@@ -26,9 +26,41 @@ module.exports = ({ config }) => {
 
   return {
     ...resolvedConfig,
+    name: '다가온 (DAGAON)',
+    slug: 'dagaon',
+    version: '1.0.0',
+    orientation: 'portrait',
+    icon: './assets/icon.png',
+    scheme: 'dagaon',
+    splash: {
+      image: './assets/splash.png',
+      resizeMode: 'contain',
+      backgroundColor: '#FFFFFF',
+    },
     android: {
       ...(resolvedConfig.android ?? {}),
       package: 'com.sonjunho.ddakchin',
+      adaptiveIcon: {
+        foregroundImage: './assets/adaptive-icon.png',
+        backgroundColor: '#FFFFFF',
+      },
+      permissions: [
+        'android.permission.CAMERA',
+        'android.permission.RECORD_AUDIO',
+        'android.permission.MODIFY_AUDIO_SETTINGS',
+        'android.permission.INTERNET',
+        'android.permission.ACCESS_NETWORK_STATE',
+      ],
+    },
+    ios: {
+      ...(resolvedConfig.ios ?? {}),
+      bundleIdentifier: 'com.sonjunho.ddakchin',
+      supportsTablet: false,
+      infoPlist: {
+        NSCameraUsageDescription: '프로필 사진 등록 및 라이브 영상 방송 진행을 위해 카메라 권한이 필요합니다.',
+        NSMicrophoneUsageDescription: '라이브 방송 시 음성을 전달하기 위해 마이크 권한이 필요합니다.',
+        NSPhotoLibraryUsageDescription: '프로필 사진 등록 및 채팅 사진 전송을 위해 사진 보관함 접근 권한이 필요합니다.',
+      },
     },
     updates: {
       ...(resolvedConfig.updates ?? {}),
