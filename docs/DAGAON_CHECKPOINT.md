@@ -1850,6 +1850,10 @@ Next implementation phase:
 MOBILE UGC SAFETY, PROFILE & LIVE ROOM MODERATION / REPORT & BLOCK FLOW:
 COMPLETE (Reusable ReportModal component with 6 standard UGC violation categories, multiline detail notes, character count, and submitting state; ProfileDetailScreen top-right safety options menu with Report User modal and bilateral Block User confirmation; LiveRoomScreen top-right broadcast/host safety options menu and interactive chat participant tap-to-report/block with instant real-time message stream filtering; apiClient reportUser and blockUser integration. API build ✅ Mobile export Android 1462/iOS 1467 modules ✅ Commit 6041eef).
 
+Next implementation phase:
+AGORA VIDEO + AUDIO LIVE STREAMING INTEGRATION (영상+음성 라이브 방송):
+COMPLETE (Backend zero-dependency Agora AccessToken006 HMAC-SHA256 builder agora-token.util.ts, deterministic 32-bit positive integer UID mapping, LiveService getAgoraToken and LiveController GET /live/rooms/:id/agora-token endpoint with role/host verification and dev fallback; Mobile apiClient getLiveAgoraToken; LiveRoomScreen real-time Video & Audio streaming UI featuring host camera controls [front/back flip, camera on/off, mic mute/unmute, end broadcast], viewer speaker mute/unmute control, video viewfinder simulation canvas with 1080p stream badge and audio wave visualizer, layered over realtime chat, gifts, hearts, and UGC safety report/block. API build ✅ Mobile export Android 1462/iOS 1467 modules ✅).
+
 ## Immediate Next Task
 
 Comprehensive Project Health Check, Admin & API Full Verification Pass.

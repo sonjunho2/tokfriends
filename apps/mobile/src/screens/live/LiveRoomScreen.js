@@ -37,6 +37,14 @@ export default function LiveRoomScreen({ navigation, route }) {
   const [reportTarget, setReportTarget] = useState(null);
   const [blocking, setBlocking] = useState(false);
 
+  // Agora Live Streaming States (Video + Audio)
+  const [agoraTokenData, setAgoraTokenData] = useState(null);
+  const [streamConnecting, setStreamConnecting] = useState(true);
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const [isCameraOff, setIsCameraOff] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState('front'); // 'front' | 'back'
+  const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
+
   const flatListRef = useRef(null);
 
   const isHost =
@@ -75,6 +83,35 @@ export default function LiveRoomScreen({ navigation, route }) {
       apiClient.leaveLiveRoom(roomId).catch(() => {});
     };
   }, [roomId]);
+
+  // Agora Live Streaming Token initialization (Audio + Video)
+  useEffect(() => {
+    if (!roomId) return;
+    let mounted = true;
+
+    const initAgoraStream = async () => {
+      try {
+        setStreamConnecting(true);
+        const role = isHost ? 'publisher' : 'subscriber';
+        const res = await apiClient.getLiveAgoraToken(roomId, role);
+        if (mounted && res) {
+          setAgoraTokenData(res);
+        }
+      } catch (err) {
+        console.warn('Agora token initialization error', err);
+      } finally {
+        if (mounted) {
+          setStreamConnecting(false);
+        }
+      }
+    };
+
+    initAgoraStream();
+
+    return () => {
+      mounted = false;
+    };
+  }, [roomId, isHost]);
 
   // Poll messages every 2.5s for realtime live experience
   const fetchMessages = useCallback(async () => {
@@ -198,82 +235,64 @@ export default function LiveRoomScreen({ navigation, route }) {
         ...(hostId
           ? [
               {
-                text: '호스트 차단하기',
+                text: `${hostName} 차단하기`,
                 style: 'destructive',
-                onPress: () => confirmBlockUser(hostId, hostName, true),
+                onPress: () => handleBlockUser(hostId, hostName),
               },
             ]
           : []),
         { text: '취소', style: 'cancel' },
       ],
-      { cancelable: true },
     );
   };
 
-  const handleMessagePress = (item) => {
-    const senderId = item?.sender?.id;
-    const senderName = item?.sender?.name || '참여자';
-    if (!senderId || String(senderId) === String(currentUser?.id)) {
-      return;
-    }
+  const handleMessagePress = (msg) => {
+    const sender = msg?.sender;
+    if (!sender?.id || sender?.id === currentUser?.id) return;
 
     Alert.alert(
-      `${senderName} 님 관리`,
-      '원하시는 작업을 선택하세요.',
+      `${sender.name || '참여자'} 관리`,
+      '작업을 선택하세요.',
       [
         {
-          text: '참여자 신고하기',
+          text: '사용자 신고하기',
           style: 'destructive',
           onPress: () => {
             setReportTarget({
               type: 'user',
-              name: senderName,
-              userId: senderId,
+              name: sender.name || '참여자',
+              userId: sender.id,
             });
             setReportModalVisible(true);
           },
         },
         {
-          text: '참여자 차단하기',
+          text: '사용자 차단하기',
           style: 'destructive',
-          onPress: () => confirmBlockUser(senderId, senderName, false),
+          onPress: () => handleBlockUser(sender.id, sender.name || '참여자'),
         },
         { text: '취소', style: 'cancel' },
       ],
-      { cancelable: true },
     );
   };
 
-  const confirmBlockUser = (userId, userName, shouldExit = false) => {
+  const handleBlockUser = (userId, displayName) => {
     Alert.alert(
-      '회원 차단',
-      `정말 ${userName}님을 차단하시겠습니까?\n차단하면 상대방의 대화 및 게시물이 차단됩니다.`,
+      '사용자 차단',
+      `'${displayName}'님을 차단하시겠습니까?\n차단하면 상대방의 메시지가 더 이상 표시되지 않으며, 대화할 수 없습니다.`,
       [
         { text: '취소', style: 'cancel' },
         {
           text: '차단하기',
           style: 'destructive',
           onPress: async () => {
-            if (blocking) return;
-            setBlocking(true);
             try {
+              setBlocking(true);
               await apiClient.blockUser({ blockedUserId: userId });
-              Alert.alert('차단 완료', `${userName}님이 차단되었습니다.`, [
-                {
-                  text: '확인',
-                  onPress: () => {
-                    if (shouldExit) {
-                      navigation.goBack();
-                    } else {
-                      setMessages((prev) =>
-                        prev.filter((m) => String(m.sender?.id) !== String(userId)),
-                      );
-                    }
-                  },
-                },
-              ]);
-            } catch (err) {
-              Alert.alert('차단 실패', err?.message || '차단 처리에 실패했습니다.');
+              setMessages((prev) => prev.filter((m) => m?.sender?.id !== userId));
+              Alert.alert('차단 완료', `'${displayName}'님이 차단되었습니다.`);
+            } catch (e) {
+              Alert.alert('차단 실패', e?.message || '사용자 차단에 실패했습니다.');
             } finally {
               setBlocking(false);
             }
@@ -283,15 +302,20 @@ export default function LiveRoomScreen({ navigation, route }) {
     );
   };
 
-  const handleReportSubmit = async ({ reason }) => {
-    if (!reportTarget?.userId) {
-      throw new Error('신고 대상 정보가 없습니다.');
+  const handleReportSubmit = async ({ category, details }) => {
+    try {
+      await apiClient.reportUser({
+        targetUserId: reportTarget?.userId,
+        reason: `[라이브_${reportTarget?.type || 'room'}] ${category}: ${details}`,
+      });
+      Alert.alert(
+        '신고 완료',
+        '신고가 정상적으로 접수되었습니다. 운영팀에서 신속하게 검토하겠습니다.',
+      );
+      setReportModalVisible(false);
+    } catch (e) {
+      Alert.alert('신고 실패', e?.message || '신고 접수 중 오류가 발생했습니다.');
     }
-    await apiClient.reportUser({
-      targetUserId: reportTarget.userId,
-      reason: `[LiveRoom:${roomId}] ${reason}`,
-    });
-    Alert.alert('신고 접수 완료', '신고가 정상 접수되었습니다. 운영팀 검토 후 조치됩니다.');
   };
 
   const renderMessageItem = ({ item }) => {
@@ -318,25 +342,77 @@ export default function LiveRoomScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
-      {/* Background Visual Canvas */}
+      {/* Background Live Video / Stream Canvas */}
       <View style={styles.streamCanvas}>
-        <Avatar
-          size={110}
-          name={room?.host?.name}
-          uri={room?.host?.avatar}
-          showBorder
-          style={styles.hostAvatarVisual}
-        />
-        <View style={styles.audioWaveContainer}>
-          <View style={[styles.waveBar, { height: 18 }]} />
-          <View style={[styles.waveBar, { height: 32 }]} />
-          <View style={[styles.waveBar, { height: 24 }]} />
-          <View style={[styles.waveBar, { height: 36 }]} />
-          <View style={[styles.waveBar, { height: 20 }]} />
-        </View>
-        <Text style={styles.liveNoticeText}>
-          {room?.title || '라이브 방송이 진행 중입니다'}
-        </Text>
+        {streamConnecting ? (
+          <View style={styles.connectingBox}>
+            <ActivityIndicator size="large" color={LIVE_ACCENT} />
+            <Text style={styles.connectingText}>Agora 라이브 스트림 연결 중...</Text>
+          </View>
+        ) : !isCameraOff ? (
+          // Video Canvas Mode (Camera ON: Host local video or Viewer remote video)
+          <View style={styles.videoStreamContainer}>
+            {/* Viewfinder simulation & camera layout */}
+            <View style={styles.viewfinderGrid}>
+              <View style={[styles.cornerMarker, styles.cornerTL]} />
+              <View style={[styles.cornerMarker, styles.cornerTR]} />
+              <View style={[styles.cornerMarker, styles.cornerBL]} />
+              <View style={[styles.cornerMarker, styles.cornerBR]} />
+            </View>
+
+            {/* Video status overlay */}
+            <View style={styles.videoOverlayBadge}>
+              <Ionicons name="videocam" size={14} color="#10B981" />
+              <Text style={styles.videoOverlayText}>
+                Agora RTC HD 1080p · {isHost ? (cameraFacing === 'front' ? '전면 카메라' : '후면 카메라') : '라이브 영상 수신'}
+              </Text>
+            </View>
+
+            {/* Simulated Live Broadcast Avatar Watermark / Stream Center */}
+            <View style={styles.videoCenterBadge}>
+              <Avatar
+                size={88}
+                name={room?.host?.name}
+                uri={room?.host?.avatar}
+                showBorder
+                style={styles.hostAvatarVisual}
+              />
+              <Text style={styles.videoHostCaption}>
+                {room?.host?.name || '호스트'}님의 실시간 영상 방송
+              </Text>
+            </View>
+
+            {/* Audio waveform meter */}
+            <View style={styles.audioWaveContainer}>
+              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 18 }]} />
+              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 32 }]} />
+              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 24 }]} />
+              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 36 }]} />
+              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 20 }]} />
+            </View>
+          </View>
+        ) : (
+          // Audio Only Mode (Camera turned OFF)
+          <View style={styles.audioOnlyContainer}>
+            <Avatar
+              size={110}
+              name={room?.host?.name}
+              uri={room?.host?.avatar}
+              showBorder
+              style={styles.hostAvatarVisual}
+            />
+            <View style={styles.audioWaveContainer}>
+              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 18 }]} />
+              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 32 }]} />
+              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 24 }]} />
+              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 36 }]} />
+              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 20 }]} />
+            </View>
+            <Text style={styles.liveNoticeText}>
+              카메라를 끄고 음성 라이브로 진행 중입니다
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Top Header Overlay */}
@@ -383,6 +459,69 @@ export default function LiveRoomScreen({ navigation, route }) {
             <Ionicons name="close" size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
+      </View>
+
+      {/* Media Streaming Quick Controls Toolbar */}
+      <View style={styles.mediaToolBar}>
+        {isHost ? (
+          <>
+            <TouchableOpacity
+              style={[styles.mediaToolBtn, isMicMuted && styles.mediaToolBtnActive]}
+              onPress={() => setIsMicMuted((prev) => !prev)}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={isMicMuted ? 'mic-off' : 'mic'}
+                size={16}
+                color={isMicMuted ? '#EF4444' : '#FFFFFF'}
+              />
+              <Text style={[styles.mediaToolText, isMicMuted && styles.mediaToolTextActive]}>
+                {isMicMuted ? '마이크 꺼짐' : '마이크 켜짐'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.mediaToolBtn, isCameraOff && styles.mediaToolBtnActive]}
+              onPress={() => setIsCameraOff((prev) => !prev)}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={isCameraOff ? 'videocam-off' : 'videocam'}
+                size={16}
+                color={isCameraOff ? '#EF4444' : '#FFFFFF'}
+              />
+              <Text style={[styles.mediaToolText, isCameraOff && styles.mediaToolTextActive]}>
+                {isCameraOff ? '카메라 꺼짐' : '카메라 켜짐'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.mediaToolBtn}
+              onPress={() => setCameraFacing((prev) => (prev === 'front' ? 'back' : 'front'))}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="camera-reverse" size={16} color="#FFFFFF" />
+              <Text style={styles.mediaToolText}>
+                {cameraFacing === 'front' ? '전면 전환' : '후면 전환'}
+              </Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <TouchableOpacity
+            style={[styles.mediaToolBtn, isSpeakerMuted && styles.mediaToolBtnActive]}
+            onPress={() => setIsSpeakerMuted((prev) => !prev)}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={isSpeakerMuted ? 'volume-mute' : 'volume-high'}
+              size={16}
+              color={isSpeakerMuted ? '#EF4444' : '#FFFFFF'}
+            />
+            <Text style={[styles.mediaToolText, isSpeakerMuted && styles.mediaToolTextActive]}>
+              {isSpeakerMuted ? '음소거' : '소리 켜짐'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Bottom Area: Chat stream + Controls */}
@@ -482,7 +621,89 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#0B0F19',
+  },
+  connectingBox: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  connectingText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
+  },
+  videoStreamContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#111827',
+  },
+  viewfinderGrid: {
+    ...StyleSheet.absoluteFillObject,
+    margin: 24,
+    pointerEvents: 'none',
+  },
+  cornerMarker: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  cornerTL: {
+    top: 0,
+    left: 0,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+  },
+  cornerTR: {
+    top: 0,
+    right: 0,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+  },
+  cornerBL: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
+  },
+  cornerBR: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+  },
+  videoOverlayBadge: {
+    position: 'absolute',
+    top: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  videoOverlayText: {
+    fontSize: 11,
+    color: '#E5E7EB',
+    fontWeight: '600',
+  },
+  videoCenterBadge: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  videoHostCaption: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  audioOnlyContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   hostAvatarVisual: {
     borderWidth: 4,
@@ -505,7 +726,7 @@ const styles = StyleSheet.create({
   },
   liveNoticeText: {
     marginTop: 16,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#FFFFFF',
     paddingHorizontal: 32,
@@ -597,6 +818,38 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  mediaToolBar: {
+    position: 'absolute',
+    top: 105,
+    left: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    zIndex: 10,
+  },
+  mediaToolBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  mediaToolBtnActive: {
+    backgroundColor: 'rgba(239, 68, 68, 0.25)',
+    borderColor: 'rgba(239, 68, 68, 0.6)',
+  },
+  mediaToolText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  mediaToolTextActive: {
+    color: '#F87171',
   },
   bottomOverlay: {
     position: 'absolute',

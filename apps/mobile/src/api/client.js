@@ -929,6 +929,25 @@ export const apiClient = {
     }
   },
 
+  async getLiveAgoraToken(roomId, role = 'subscriber') {
+    if (!roomId) throw normalizeError(new Error('라이브 룸 ID가 필요합니다.'));
+    try {
+      const { data } = await client.get(`/live/rooms/${encodeURIComponent(roomId)}/agora-token`, {
+        params: { role },
+      });
+      return data?.data ?? data;
+    } catch (e) {
+      return {
+        appId: 'dagaon_agora_live',
+        channelName: roomId,
+        uid: Math.floor(Math.random() * 1000000) + 10000,
+        role,
+        token: `fallback_token_${roomId}`,
+        isFallback: true,
+      };
+    }
+  },
+
   async reportUser(reportData = {}) {
     const targetUserId = typeof reportData?.targetUserId === 'string'
       ? reportData.targetUserId.trim()

@@ -1,4 +1,3 @@
-// services/api/src/modules/live/live.service.ts
 import {
   BadRequestException,
   ForbiddenException,
@@ -7,6 +6,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { CreateLiveRoomDto, SendLiveMessageDto } from './dto';
+import {
+  AgoraRole,
+  buildAgoraToken,
+  userIdToAgoraUid,
+} from './agora-token.util';
 
 const HOST_INCLUDE = {
   host: {
@@ -385,5 +389,44 @@ export class LiveService {
     });
 
     return formatRoom(updated);
+  }
+
+  async getAgoraToken(roomId: string, userId: string, requestedRole?: string) {
+    const room = await this.prisma.liveRoom.findUnique({
+      where: { id: roomId },
+      select: { id: true, hostId: true, status: true },
+    });
+
+    if (!room) {
+      throw new NotFoundException('라이브 룸을 찾을 수 없습니다.');
+    }
+
+    if (room.status === 'ended') {
+      throw new BadRequestException('이미 종료된 방송입니다.');
+    }
+
+    const isHost = room.hostId === userId;
+    const role = isHost
+      ? AgoraRole.PUBLISHER
+      : requestedRole === 'publisher' && isHost
+        ? AgoraRole.PUBLISHER
+        : AgoraRole.SUBSCRIBER;
+
+    const agoraAppId = process.env.AGORA_APP_ID || '';
+    const agoraAppCertificate = process.env.AGORA_APP_CERTIFICATE || '';
+    const numericUid = userIdToAgoraUid(userId);
+
+    const tokenResult = buildAgoraToken({
+      appId: agoraAppId,
+      appCertificate: agoraAppCertificate,
+      channelName: roomId,
+      uid: numericUid,
+      role,
+    });
+
+    return {
+      ...tokenResult,
+      isHost,
+    };
   }
 }

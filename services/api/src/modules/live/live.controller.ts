@@ -85,6 +85,26 @@ export class LiveController {
     };
   }
 
+  @Get('rooms/:id/agora-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async getAgoraToken(
+    @CurrentUser() user: any,
+    @Param('id') roomId: string,
+    @Query('role') role?: string,
+  ) {
+    const currentUserId = user?.id ?? user?.sub;
+    const data = await this.liveService.getAgoraToken(
+      roomId,
+      currentUserId,
+      role,
+    );
+    return {
+      ok: true,
+      data,
+    };
+  }
+
   @Get('rooms/:id/messages')
   async listMessages(
     @Param('id') roomId: string,
