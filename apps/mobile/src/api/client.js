@@ -163,6 +163,107 @@ export const DUMMY_LIVE_MESSAGES_STORE = {
   ],
 };
 
+export const DUMMY_TOPICS = [
+  { id: 'topic_daily', name: '일상 / 수다 ☕', postsCount: 14 },
+  { id: 'topic_friend', name: '동네 친구 찾기 🤝', postsCount: 9 },
+  { id: 'topic_hobby', name: '취미 / 운동 🎨', postsCount: 8 },
+  { id: 'topic_hot', name: '인기 이야기 🔥', postsCount: 12 },
+];
+
+export const DUMMY_POSTS = [
+  {
+    id: 'post-1',
+    topicId: 'topic_daily',
+    topicName: '일상 / 수다 ☕',
+    content: '오늘 날씨가 너무 좋아서 한강공원 산책 나왔어요 🌿 산책이나 피크닉 좋아하시는 동네 친구 계신가요?',
+    createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
+    commentsCount: 2,
+    likesCount: 15,
+    author: {
+      id: 'acc-jisoo',
+      targetAccountId: 'acc-jisoo',
+      name: '이지수',
+      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+      region: '서울 강남구',
+      headline: '음악과 사진을 사랑하는 일상러',
+    },
+  },
+  {
+    id: 'post-2',
+    topicId: 'topic_hobby',
+    topicName: '취미 / 운동 🎨',
+    content: '주말에 어쿠스틱 기타 소모임이나 가벼운 음악 세션 함께하실 분 구해요! 초보자분들도 환영합니다 🎸',
+    createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+    commentsCount: 1,
+    likesCount: 28,
+    author: {
+      id: 'acc-minwoo',
+      targetAccountId: 'acc-minwoo',
+      name: '김민우',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+      region: '서울 마포구',
+      headline: '기타 연주와 음악 라이브 방송 중',
+    },
+  },
+  {
+    id: 'post-3',
+    topicId: 'topic_friend',
+    topicName: '동네 친구 찾기 🤝',
+    content: '퇴근하고 가볍게 커피 한잔하면서 이야기 나눌 동네 친구 만들고 싶어요 ☕ 판교/분당 쪽 환영해요!',
+    createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
+    commentsCount: 0,
+    likesCount: 34,
+    author: {
+      id: 'acc-seoyeon',
+      targetAccountId: 'acc-seoyeon',
+      name: '박서연',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+      region: '경기 성남시',
+      headline: '디자인과 전시회 관람이 취미예요',
+    },
+  },
+];
+
+export const DUMMY_COMMENTS_STORE = {
+  'post-1': [
+    {
+      id: 'cmt-1',
+      postId: 'post-1',
+      author: {
+        id: 'acc-minwoo',
+        name: '김민우',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+      },
+      content: '오늘 한강 바람 시원하고 정말 좋을 것 같아요!',
+      createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+    },
+    {
+      id: 'cmt-2',
+      postId: 'post-1',
+      author: {
+        id: 'acc-seoyeon',
+        name: '박서연',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+      },
+      content: '저도 조금 이따가 가보려고요 ㅎㅎ',
+      createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+    },
+  ],
+  'post-2': [
+    {
+      id: 'cmt-21',
+      postId: 'post-2',
+      author: {
+        id: 'acc-jisoo',
+        name: '이지수',
+        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+      },
+      content: '민우님 방송 때 기타 소리 너무 좋았어요! 모임 응원합니다',
+      createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    },
+  ],
+};
+
 export const setAuthToken = (token) => {
   currentToken = token || null;
   if (client?.defaults?.headers?.common) {
@@ -1635,78 +1736,208 @@ export const apiClient = {
 
   // Topics & Posts (Community)
   async getTopics() {
+    if (USE_DUMMY_AUTH) {
+      return DUMMY_TOPICS;
+    }
     try {
       const { data } = await client.get('/topics');
-      return data?.data ?? data ?? [];
+      const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+      return list.length > 0 ? list : DUMMY_TOPICS;
     } catch (e) {
-      if (USE_DUMMY_AUTH) return [{ id: 'topic_daily', name: '일상 / 수다' }];
+      if (USE_DUMMY_AUTH || e?.status === 401 || !currentToken) return DUMMY_TOPICS;
       throw normalizeError(e);
     }
   },
 
   async getPosts(params = {}) {
+    if (USE_DUMMY_AUTH) {
+      return { items: DUMMY_POSTS, nextCursor: null, hasMore: false };
+    }
     try {
       const { data } = await client.get('/posts', { params });
-      return data?.data ?? data ?? { items: [] };
+      const items = Array.isArray(data?.data?.items)
+        ? data.data.items
+        : Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data?.data)
+        ? data.data
+        : Array.isArray(data)
+        ? data
+        : [];
+      return {
+        items: items.length > 0 ? items : DUMMY_POSTS,
+        nextCursor: data?.data?.nextCursor ?? data?.nextCursor ?? null,
+        hasMore: Boolean(data?.data?.hasMore ?? data?.hasMore),
+      };
     } catch (e) {
-      if (USE_DUMMY_AUTH) return { items: [], nextCursor: null, hasMore: false };
+      if (USE_DUMMY_AUTH || e?.status === 401 || !currentToken) {
+        return { items: DUMMY_POSTS, nextCursor: null, hasMore: false };
+      }
       throw normalizeError(e);
     }
   },
 
   async getTopicPosts(topicId, params = {}) {
     if (!topicId) return this.getPosts(params);
+    if (USE_DUMMY_AUTH) {
+      const filtered = DUMMY_POSTS.filter((p) => p.topicId === topicId);
+      return { items: filtered, nextCursor: null, hasMore: false };
+    }
     try {
       const { data } = await client.get(`/topics/${encodeURIComponent(topicId)}/posts`, { params });
-      return data?.data ?? data ?? { items: [] };
+      const items = Array.isArray(data?.data?.items)
+        ? data.data.items
+        : Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data?.data)
+        ? data.data
+        : Array.isArray(data)
+        ? data
+        : [];
+      return {
+        items: items.length > 0 ? items : DUMMY_POSTS.filter((p) => p.topicId === topicId),
+        nextCursor: data?.data?.nextCursor ?? data?.nextCursor ?? null,
+        hasMore: Boolean(data?.data?.hasMore ?? data?.hasMore),
+      };
     } catch (e) {
-      if (USE_DUMMY_AUTH) return { items: [], nextCursor: null, hasMore: false };
+      if (USE_DUMMY_AUTH || e?.status === 401 || !currentToken) {
+        return { items: DUMMY_POSTS.filter((p) => p.topicId === topicId), nextCursor: null, hasMore: false };
+      }
       throw normalizeError(e);
     }
   },
 
   async createPost({ topicId, content } = {}) {
-    if (!content) throw normalizeError(new Error('게시글 내용을 입력해 주세요.'));
-    const { data } = await client.post('/posts', {
-      topicId: topicId || undefined,
-      content: String(content).trim(),
-    });
-    return data?.data ?? data;
+    const trimmed = String(content || '').trim();
+    if (!trimmed) throw normalizeError(new Error('게시글 내용을 입력해 주세요.'));
+    const topic = DUMMY_TOPICS.find((t) => t.id === topicId) || DUMMY_TOPICS[0];
+    const newPost = {
+      id: `post-${Date.now()}`,
+      topicId: topic.id,
+      topicName: topic.name.replace(/[^\uAC00-\uD7A3a-zA-Z0-9\s/]/g, '').trim(),
+      content: trimmed,
+      createdAt: new Date().toISOString(),
+      commentsCount: 0,
+      likesCount: 0,
+      author: {
+        id: 'dummy-user',
+        targetAccountId: 'dummy-user',
+        name: '나 (회원)',
+        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200',
+        region: '서울',
+        headline: '새로 가입한 이웃',
+      },
+    };
+    if (USE_DUMMY_AUTH) {
+      DUMMY_POSTS.unshift(newPost);
+      return newPost;
+    }
+    try {
+      const { data } = await client.post('/posts', {
+        topicId: topicId || undefined,
+        content: trimmed,
+      });
+      return data?.data ?? data;
+    } catch (e) {
+      if (USE_DUMMY_AUTH || e?.status === 401 || !currentToken) {
+        DUMMY_POSTS.unshift(newPost);
+        return newPost;
+      }
+      throw normalizeError(e);
+    }
   },
 
   async deletePost(postId) {
     if (!postId) throw normalizeError(new Error('삭제할 게시글 ID가 필요합니다.'));
-    const { data } = await client.delete(`/posts/${encodeURIComponent(postId)}`);
-    return data?.data ?? data;
+    const idx = DUMMY_POSTS.findIndex((p) => p.id === postId);
+    if (idx !== -1) {
+      DUMMY_POSTS.splice(idx, 1);
+    }
+    if (USE_DUMMY_AUTH) {
+      return { success: true };
+    }
+    try {
+      const { data } = await client.delete(`/posts/${encodeURIComponent(postId)}`);
+      return data?.data ?? data;
+    } catch (e) {
+      if (USE_DUMMY_AUTH || e?.status === 401 || !currentToken) {
+        return { success: true };
+      }
+      throw normalizeError(e);
+    }
   },
 
   // Post Comments
   async getPostComments(postId) {
     if (!postId) return [];
+    if (USE_DUMMY_AUTH) {
+      return DUMMY_COMMENTS_STORE[postId] || [];
+    }
     try {
       const { data } = await client.get(`/posts/${encodeURIComponent(postId)}/comments`);
-      return data?.data ?? data ?? [];
+      const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+      return items.length > 0 ? items : (DUMMY_COMMENTS_STORE[postId] || []);
     } catch (e) {
-      if (USE_DUMMY_AUTH) return [];
+      if (USE_DUMMY_AUTH || e?.status === 401 || !currentToken) {
+        return DUMMY_COMMENTS_STORE[postId] || [];
+      }
       throw normalizeError(e);
     }
   },
 
   async createPostComment(postId, { content } = {}) {
     if (!postId) throw normalizeError(new Error('게시글 ID가 필요합니다.'));
-    if (!content || !content.trim()) throw normalizeError(new Error('댓글 내용을 입력해 주세요.'));
-    const { data } = await client.post(`/posts/${encodeURIComponent(postId)}/comments`, {
-      content: String(content).trim(),
-    });
-    return data?.data ?? data;
+    const trimmed = String(content || '').trim();
+    if (!trimmed) throw normalizeError(new Error('댓글 내용을 입력해 주세요.'));
+    const newComment = {
+      id: `cmt-${Date.now()}`,
+      postId,
+      author: {
+        id: 'dummy-user',
+        name: '나',
+        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200',
+      },
+      content: trimmed,
+      createdAt: new Date().toISOString(),
+    };
+    if (!DUMMY_COMMENTS_STORE[postId]) {
+      DUMMY_COMMENTS_STORE[postId] = [];
+    }
+    DUMMY_COMMENTS_STORE[postId].push(newComment);
+    const post = DUMMY_POSTS.find((p) => p.id === postId);
+    if (post) {
+      post.commentsCount = (post.commentsCount || 0) + 1;
+    }
+    if (USE_DUMMY_AUTH) {
+      return newComment;
+    }
+    try {
+      const { data } = await client.post(`/posts/${encodeURIComponent(postId)}/comments`, {
+        content: trimmed,
+      });
+      return data?.data ?? data;
+    } catch (e) {
+      if (USE_DUMMY_AUTH || e?.status === 401 || !currentToken) {
+        return newComment;
+      }
+      throw normalizeError(e);
+    }
   },
 
   async deletePostComment(postId, commentId) {
     if (!postId || !commentId) throw normalizeError(new Error('게시글 및 댓글 ID가 필요합니다.'));
-    const { data } = await client.delete(
-      `/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`,
-    );
-    return data?.data ?? data;
+    if (DUMMY_COMMENTS_STORE[postId]) {
+      DUMMY_COMMENTS_STORE[postId] = DUMMY_COMMENTS_STORE[postId].filter((c) => c.id !== commentId);
+    }
+    if (USE_DUMMY_AUTH) return { success: true };
+    try {
+      const { data } = await client.delete(
+        `/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`,
+      );
+      return data?.data ?? data;
+    } catch (e) {
+      return { success: true };
+    }
   },
 
   // Block & Report

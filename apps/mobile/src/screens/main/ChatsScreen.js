@@ -77,7 +77,7 @@ export default function ChatsScreen({ navigation }) {
     [navigation]
   );
 
-  const canGoBack = navigation.canGoBack();
+  const canGoBack = (navigation.getState()?.index ?? 0) > 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>

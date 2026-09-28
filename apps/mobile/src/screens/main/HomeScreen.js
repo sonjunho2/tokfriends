@@ -160,7 +160,10 @@ export default function HomeScreen({ navigation }) {
   };
 
   const handleOpenCommunity = (topicId = null) => {
-    navigation.navigate('CommunityFeed', { initialTopicId: topicId });
+    navigation.navigate('Community', {
+      screen: 'CommunityMain',
+      params: { initialTopicId: topicId },
+    });
   };
 
   return (

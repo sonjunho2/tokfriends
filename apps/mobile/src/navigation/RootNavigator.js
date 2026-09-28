@@ -33,6 +33,7 @@ import ProfileRegistrationScreen from '../screens/auth/ProfileRegistrationScreen
 
 const AuthStack = createNativeStackNavigator();
 const HomeStackNav = createNativeStackNavigator();
+const CommunityStackNav = createNativeStackNavigator();
 const LiveStackNav = createNativeStackNavigator();
 const ChatsStackNav = createNativeStackNavigator();
 const MyPageStackNav = createNativeStackNavigator();
@@ -85,7 +86,39 @@ function HomeStack() {
         component={LiveRoomScreen}
         options={{ animation: 'slide_from_bottom' }}
       />
+      <HomeStackNav.Screen
+        name="Points"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
     </HomeStackNav.Navigator>
+  );
+}
+
+/** ===== 커뮤니티 탭 안의 스택 ===== */
+function CommunityStack() {
+  return (
+    <CommunityStackNav.Navigator
+      initialRouteName="CommunityMain"
+      screenOptions={{ headerShown: false }}
+    >
+      <CommunityStackNav.Screen name="CommunityMain" component={CommunityFeedScreen} />
+      <CommunityStackNav.Screen
+        name="ProfileDetail"
+        component={ProfileDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <CommunityStackNav.Screen
+        name="ChatRoom"
+        component={ChatRoomScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <CommunityStackNav.Screen
+        name="Points"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+    </CommunityStackNav.Navigator>
   );
 }
 
@@ -124,6 +157,11 @@ function ChatsStack() {
         component={FriendsScreen}
         options={{ animation: 'slide_from_right' }}
       />
+      <ChatsStackNav.Screen
+        name="Points"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
     </ChatsStackNav.Navigator>
   );
 }
@@ -156,6 +194,11 @@ function MyPageStack() {
       <MyPageStackNav.Screen
         name="CommunityFeed"
         component={CommunityFeedScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="Points"
+        component={ShopScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </MyPageStackNav.Navigator>
@@ -192,9 +235,9 @@ function MainTabs() {
         tabBarIcon: ({ focused, color, size }) => {
           const iconMap = {
             Home: focused ? 'home' : 'home-outline',
+            Community: focused ? 'people' : 'people-outline',
             Live: focused ? 'radio' : 'radio-outline',
             Chat: focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline',
-            Points: focused ? 'sparkles' : 'sparkles-outline',
             My: focused ? 'person' : 'person-outline',
           };
           const name = iconMap[route.name] || (focused ? 'ellipse' : 'ellipse-outline');
@@ -215,6 +258,17 @@ function MainTabs() {
         })}
       />
       <Tab.Screen
+        name="Community"
+        component={CommunityStack}
+        options={{ tabBarLabel: '커뮤니티' }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate('Community', { screen: 'CommunityMain' });
+          },
+        })}
+      />
+      <Tab.Screen
         name="Live"
         component={LiveStack}
         options={{
@@ -222,7 +276,6 @@ function MainTabs() {
         }}
       />
       <Tab.Screen name="Chat" component={ChatsStack} options={{ tabBarLabel: '대화' }} />
-      <Tab.Screen name="Points" component={ShopScreen} options={{ tabBarLabel: '충전소' }} />
       <Tab.Screen name="My" component={MyPageStack} options={{ tabBarLabel: '마이' }} />
     </Tab.Navigator>
   );

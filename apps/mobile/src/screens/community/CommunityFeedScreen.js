@@ -451,17 +451,23 @@ export default function CommunityFeedScreen({ navigation, route }) {
     );
   };
 
+  const canGoBack = (navigation.getState()?.index ?? 0) > 0;
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
       {/* Top Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerIconButton}
-          onPress={() => navigation.goBack()}
-          hitSlop={8}
-        >
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
-        </TouchableOpacity>
+        {canGoBack ? (
+          <TouchableOpacity
+            style={styles.headerIconButton}
+            onPress={() => navigation.goBack()}
+            hitSlop={8}
+          >
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
         <Text style={styles.headerTitle}>커뮤니티</Text>
         <TouchableOpacity
           style={styles.writeButton}
