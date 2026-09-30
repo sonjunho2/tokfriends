@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Image,
   Keyboard,
+  StatusBar,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
