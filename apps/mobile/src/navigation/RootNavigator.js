@@ -1,6 +1,6 @@
-// src/navigation/RootNavigator.js
 import React from 'react';
 import { View, ActivityIndicator, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -239,6 +239,14 @@ function MyPageStack() {
 
 /** ===== 하단 탭 (5개 표준: 홈, 커뮤니티, 라이브, 대화, 마이) ===== */
 function MainTabs() {
+  const insets = useSafeAreaInsets();
+  // 안드로이드 3버튼 소프트키(48~56dp) 및 아이폰 홈 인디케이터에 맞춘 안전 영역 확보
+  const bottomPadding = Math.max(
+    insets.bottom,
+    Platform.OS === 'android' ? 16 : 24
+  );
+  const tabHeight = 56 + bottomPadding;
+
   return (
     <Tab.Navigator
       initialRouteName="Home"
@@ -250,13 +258,13 @@ function MainTabs() {
           backgroundColor: '#FFFFFF',
           borderTopColor: colors.borderLight,
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 84 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          height: tabHeight,
+          paddingBottom: bottomPadding,
           paddingTop: 8,
-          elevation: 8,
+          elevation: 12,
           shadowColor: colors.shadowColor,
           shadowOffset: { width: 0, height: -3 },
-          shadowOpacity: 0.04,
+          shadowOpacity: 0.08,
           shadowRadius: 10,
         },
         tabBarLabelStyle: {

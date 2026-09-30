@@ -38,6 +38,10 @@ Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작�
 - **`RootNavigator.js`**: `AuthFlow`에 `Login` 스크린 추가 등록 완료.
 - **구문 검사**: 모든 모바일 파일 `node -c` 검사 통과 (exit code 0).
 
+### 6. 안드로이드 소프트키 네비게이션 바 겹침 해결 (Safe Area Insets 보정)
+- **원인 분석**: 안드로이드 기기에서 3버튼 소프트키(홈, 뒤로가기, 최근 앱)가 켜진 상태에서 `tabBarStyle`의 높이와 하단 패딩이 고정값(64, 8)으로 지정되어 탭 바가 시스템 바 뒤에 가려져 터치되지 않던 문제.
+- **수정 내용**: `RootNavigator.js`의 `MainTabs`에서 `useSafeAreaInsets`를 연동하여 기기별 소프트키 바 높이(`insets.bottom`)를 동적으로 반영(`bottomPadding = Math.max(insets.bottom, Platform.OS === 'android' ? 16 : 24)`, `tabHeight = 56 + bottomPadding`), 5개 탭 바가 소프트키 바로 위에 완벽하게 떠올라 편안하게 터치되도록 조치 완료.
+
 ---
 
 ## 2026-09-30 Checkpoint 1: 상용 출시급 전체 UX/UI & 선물·광고·대시보드 고도화 (완료)
