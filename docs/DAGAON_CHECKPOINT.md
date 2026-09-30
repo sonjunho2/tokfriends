@@ -129,11 +129,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-5ac89e3549644a557a4359b234d02b9398eb56c3
-feat(dagaon): 상용 출시급 3D 선물 시스템, 관리자 포털, 광고 연동 및 다가온 브랜드 고도화
+4e5796c14115454644a557a4359b234d02b9398eb
+feat(auth): 피그마/캔바 감각 온보딩 스플래시 & 5대 소셜 로그인 + 테스트 간편 로그인 연동
 
 Remote GitHub branch HEAD verified:
-5ac89e3549644a557a4359b234d02b9398eb56c3
+4e5796c14115454644a557a4359b234d02b9398eb
 
 Parent commit:
 11ba835b8502aa92c97302575306e5aa83093c5d
