@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { LiveService } from './live.service';
-import { CreateLiveRoomDto, SendLiveMessageDto } from './dto';
+import { CreateLiveRoomDto, SendLiveGiftDto, SendLiveMessageDto } from './dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
@@ -18,6 +18,22 @@ import { CurrentUser } from '../auth/current-user.decorator';
 @Controller('live')
 export class LiveController {
   constructor(private readonly liveService: LiveService) {}
+
+  @Post('rooms/:id/gift')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async sendGift(
+    @CurrentUser() user: any,
+    @Param('id') roomId: string,
+    @Body() dto: SendLiveGiftDto,
+  ) {
+    const currentUserId = user?.id ?? user?.sub;
+    const data = await this.liveService.sendGiftToRoom(currentUserId, roomId, dto);
+    return {
+      ok: true,
+      data,
+    };
+  }
 
   @Get('rooms')
   async listActiveRooms() {

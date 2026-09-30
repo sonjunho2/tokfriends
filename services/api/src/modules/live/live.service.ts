@@ -5,12 +5,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
-import { CreateLiveRoomDto, SendLiveMessageDto } from './dto';
 import {
   AgoraRole,
   buildAgoraToken,
   userIdToAgoraUid,
 } from './agora-token.util';
+import { GiftsService } from '../gifts/gifts.service';
+import { CreateLiveRoomDto, SendLiveGiftDto, SendLiveMessageDto } from './dto';
 
 const HOST_INCLUDE = {
   host: {
@@ -67,7 +68,10 @@ function formatRoom(room: any) {
 
 @Injectable()
 export class LiveService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly giftsService: GiftsService,
+  ) {}
 
   async createRoom(hostUserId: string, dto: CreateLiveRoomDto) {
     if (!hostUserId) {
@@ -429,4 +433,261 @@ export class LiveService {
       isHost,
     };
   }
+
+  async sendGiftToRoom(
+    senderUserId: string,
+    roomId: string,
+    dto: SendLiveGiftDto,
+  ) {
+    if (!senderUserId) {
+      throw new BadRequestException('로그인이 필요합니다.');
+    }
+
+    const room = await this.prisma.liveRoom.findUnique({
+      where: { id: roomId },
+      include: {
+        host: {
+          select: {
+            id: true,
+            displayName: true,
+            pointsBalance: true,
+          },
+        },
+      },
+    });
+
+    if (!room || room.status !== 'live') {
+      throw new NotFoundException('진행 중인 라이브 방송을 찾을 수 없습니다.');
+    }
+
+    if (room.hostId === senderUserId) {
+      throw new BadRequestException('호스트 자신에게는 선물을 보낼 수 없습니다.');
+    }
+
+    const gift = await this.giftsService.getGiftById(dto.giftId);
+    if (!gift || !gift.isActive || !gift.liveEnabled) {
+      throw new NotFoundException('유효하지 않거나 라이브에서 전송할 수 없는 선물입니다.');
+    }
+
+    const senderAccount = await this.prisma.activityAccount.findFirst({
+      where: { legacyUserId: senderUserId, status: 'active' },
+      include: { wallet: true },
+    });
+
+    if (!senderAccount) {
+      throw new BadRequestException('발신자 계정을 찾을 수 없습니다.');
+    }
+
+    let senderWallet = senderAccount.wallet;
+    if (!senderWallet) {
+      senderWallet = await this.prisma.wallet.create({
+        data: { activityAccountId: senderAccount.id },
+      });
+    }
+
+    if (senderWallet.spendableBalance < gift.pricePoints) {
+      throw new BadRequestException(
+        `포인트가 부족합니다. (필요: ${gift.pricePoints}P, 보유: ${senderWallet.spendableBalance}P)`,
+      );
+    }
+
+    let hostAccount = await this.prisma.activityAccount.findFirst({
+      where: { legacyUserId: room.hostId, status: 'active' },
+      include: { wallet: true },
+    });
+
+    if (!hostAccount) {
+      const owner = await this.prisma.owner.upsert({
+        where: { legacyUserId: room.hostId },
+        update: {},
+        create: { legacyUserId: room.hostId },
+      });
+      hostAccount = await this.prisma.activityAccount.create({
+        data: {
+          ownerId: owner.id,
+          legacyUserId: room.hostId,
+          isPrimary: true,
+        },
+        include: { wallet: true },
+      });
+    }
+
+    let hostWallet = hostAccount.wallet;
+    if (!hostWallet) {
+      hostWallet = await this.prisma.wallet.create({
+        data: { activityAccountId: hostAccount.id },
+      });
+    }
+
+    const clientTxId =
+      dto.idempotencyKey ||
+      `live_gift_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+    const existingTx = await this.prisma.giftTransaction.findUnique({
+      where: { idempotencyKey: `gift-tx:live:${roomId}:${clientTxId}` },
+    });
+    if (existingTx) {
+      return {
+        ok: true,
+        alreadyProcessed: true,
+        transactionId: existingTx.id,
+        gift,
+        totalGiftsPoints: room.totalGiftsPoints,
+      };
+    }
+
+    const senderUser = await this.prisma.user.findUnique({
+      where: { id: senderUserId },
+      include: { profile: true },
+    });
+    const senderNickname =
+      senderUser?.profile?.nickname || senderUser?.displayName || '시청자';
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const newSenderBalance = senderWallet.spendableBalance - gift.pricePoints;
+      await tx.wallet.update({
+        where: { id: senderWallet.id },
+        data: { spendableBalance: newSenderBalance },
+      });
+      await tx.user.update({
+        where: { id: senderUserId },
+        data: { pointsBalance: newSenderBalance },
+      });
+
+      const newHostBalance = hostWallet.spendableBalance + gift.pricePoints;
+      await tx.wallet.update({
+        where: { id: hostWallet.id },
+        data: {
+          spendableBalance: newHostBalance,
+          redeemableBalance: { increment: gift.pricePoints },
+        },
+      });
+      await tx.user.update({
+        where: { id: room.hostId },
+        data: { pointsBalance: newHostBalance },
+      });
+
+      await tx.walletLedgerEntry.create({
+        data: {
+          walletId: senderWallet.id,
+          kind: 'debit',
+          source: 'live_gift',
+          deltaSpendable: -gift.pricePoints,
+          spendableAfter: newSenderBalance,
+          redeemableAfter: senderWallet.redeemableBalance,
+          pendingAfter: senderWallet.pendingEarnings,
+          idempotencyKey: `live-gift:${roomId}:${clientTxId}:sender`,
+          referenceType: 'LiveRoom',
+          referenceId: roomId,
+          metadata: {
+            giftId: gift.id,
+            giftName: gift.name,
+            points: gift.pricePoints,
+            recipientAccountId: hostAccount.id,
+          },
+        },
+      });
+
+      await tx.walletLedgerEntry.create({
+        data: {
+          walletId: hostWallet.id,
+          kind: 'credit',
+          source: 'live_gift',
+          deltaSpendable: gift.pricePoints,
+          deltaRedeemable: gift.pricePoints,
+          spendableAfter: newHostBalance,
+          redeemableAfter: hostWallet.redeemableBalance + gift.pricePoints,
+          pendingAfter: hostWallet.pendingEarnings,
+          idempotencyKey: `live-gift:${roomId}:${clientTxId}:recipient`,
+          referenceType: 'LiveRoom',
+          referenceId: roomId,
+          metadata: {
+            giftId: gift.id,
+            giftName: gift.name,
+            points: gift.pricePoints,
+            senderAccountId: senderAccount.id,
+          },
+        },
+      });
+
+      const transaction = await tx.giftTransaction.create({
+        data: {
+          giftId: gift.id,
+          senderAccountId: senderAccount.id,
+          recipientAccountId: hostAccount.id,
+          contextType: 'live',
+          liveRoomId: roomId,
+          points: gift.pricePoints,
+          idempotencyKey: `gift-tx:live:${roomId}:${clientTxId}`,
+          message: dto.message || `${senderNickname}님이 ${gift.name}을(를) 선물했습니다.`,
+        },
+      });
+
+      const updatedRoom = await tx.liveRoom.update({
+        where: { id: roomId },
+        data: { totalGiftsPoints: { increment: gift.pricePoints } },
+      });
+
+      const giftMessageContent = JSON.stringify({
+        giftId: gift.id,
+        code: gift.code,
+        giftName: gift.name,
+        pricePoints: gift.pricePoints,
+        animationUrl: gift.animationUrl,
+        animationType: gift.animationType,
+        senderNickname,
+        message: dto.message || '',
+      });
+
+      const liveMessage = await tx.liveMessage.create({
+        data: {
+          roomId,
+          senderId: senderUserId,
+          senderAccountId: senderAccount.id,
+          type: 'gift',
+          content: giftMessageContent,
+          giftPoints: gift.pricePoints,
+        },
+        include: {
+          sender: {
+            select: {
+              id: true,
+              displayName: true,
+              profile: {
+                select: {
+                  nickname: true,
+                  avatarUri: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return {
+        transaction,
+        updatedRoom,
+        liveMessage,
+        newBalance: newSenderBalance,
+      };
+    });
+
+    return {
+      ok: true,
+      transactionId: result.transaction.id,
+      gift: {
+        id: gift.id,
+        code: gift.code,
+        name: gift.name,
+        pricePoints: gift.pricePoints,
+        animationUrl: gift.animationUrl,
+        animationType: gift.animationType,
+      },
+      senderNickname,
+      totalGiftsPoints: result.updatedRoom.totalGiftsPoints,
+      newBalance: result.newBalance,
+      message: result.liveMessage,
+    };
+  }
 }
+

@@ -93,6 +93,8 @@ model ActivityAccount {
   chatMessagesSent      Message[]      @relation("MessageSenderAccount")
   liveRoomsHostedAsAccount LiveRoom[]    @relation("LiveRoomHostAccount")
   liveMessagesAsAccount    LiveMessage[] @relation("LiveMessageSenderAccount")
+  giftsSent                GiftTransaction[] @relation("GiftSenderAccount")
+  giftsReceived            GiftTransaction[] @relation("GiftRecipientAccount")
 
   @@index([ownerId])
   @@index([ownerId, isPrimary])
@@ -585,4 +587,72 @@ enum ReportStatus {
   REVIEWING
   RESOLVED
   REJECTED
+}
+
+model Gift {
+  id            String            @id @default(cuid())
+  code          String            @unique
+  name          String
+  description   String?
+  pricePoints   Int
+  thumbnailUrl  String?
+  animationUrl  String?
+  animationType String            @default("alpha_video")
+  category      String            @default("general")
+  sortOrder     Int               @default(0)
+  isActive      Boolean           @default(true)
+  chatEnabled   Boolean           @default(true)
+  liveEnabled   Boolean           @default(true)
+  isNew         Boolean           @default(false)
+  startsAt      DateTime?
+  endsAt        DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  transactions  GiftTransaction[]
+
+  @@index([isActive, sortOrder])
+  @@index([category, isActive])
+}
+
+model GiftTransaction {
+  id                 String          @id @default(cuid())
+  giftId             String
+  gift               Gift            @relation(fields: [giftId], references: [id], onDelete: Restrict)
+  senderAccountId    String
+  senderAccount      ActivityAccount @relation("GiftSenderAccount", fields: [senderAccountId], references: [id], onDelete: Restrict)
+  recipientAccountId String
+  recipientAccount   ActivityAccount @relation("GiftRecipientAccount", fields: [recipientAccountId], references: [id], onDelete: Restrict)
+  contextType        String
+  chatId             String?
+  liveRoomId         String?
+  points             Int
+  idempotencyKey     String          @unique
+  message            String?
+  createdAt          DateTime        @default(now())
+
+  @@index([senderAccountId, createdAt])
+  @@index([recipientAccountId, createdAt])
+  @@index([contextType, liveRoomId])
+  @@index([contextType, chatId])
+}
+
+model Advertisement {
+  id              String    @id @default(cuid())
+  title           String
+  description     String?
+  imageUrl        String
+  targetUrl       String?
+  placement       String    @default("HOME_BANNER")
+  priority        Int       @default(0)
+  isActive        Boolean   @default(true)
+  rewardPoints    Int       @default(0)
+  clickCount      Int       @default(0)
+  impressionCount Int       @default(0)
+  startsAt        DateTime?
+  endsAt          DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([placement, isActive, priority])
+  @@index([isActive, startsAt, endsAt])
 }

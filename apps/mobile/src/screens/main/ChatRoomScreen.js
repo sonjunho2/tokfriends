@@ -27,6 +27,8 @@ import colors from '../../theme/colors';
 import { listGiftOptions } from '../../api/gifts';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import GiftEffectOverlay from '../../components/GiftEffectOverlay';
+import GiftPickerSheet from '../../components/GiftPickerSheet';
 import {
   CHAT_SOCKET_EVENTS,
   createChatSocket,
@@ -191,14 +193,30 @@ export default function ChatRoomScreen({ route, navigation }) {
   const [blocking, setBlocking] = useState(false);
   const [attachSheetVisible, setAttachSheetVisible] = useState(false);
   const [cameraModeVisible, setCameraModeVisible] = useState(false);
-  const [giftSheetVisible, setGiftSheetVisible] = useState(false);
-  const [giftOptions, setGiftOptions] = useState([]);
-  const [loadingGifts, setLoadingGifts] = useState(false);
-  const [giftError, setGiftError] = useState(null);
+  const [giftPickerVisible, setGiftPickerVisible] = useState(false);
+  const [myPoints, setMyPoints] = useState(0);
+  const giftOverlayRef = useRef(null);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [isFavorite, setIsFavorite] = useState(route?.params?.isFavorite ?? false);
   const insets = useSafeAreaInsets();
+
+  const fetchMyPoints = useCallback(async () => {
+    try {
+      const res = await apiClient.getPointBalance();
+      if (res?.balance !== undefined) {
+        setMyPoints(Number(res.balance));
+      }
+    } catch (e) {
+      console.log('포인트 조회 실패:', e?.message);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchMyPoints();
+    }, [fetchMyPoints])
+  );
 
   const appendUniquePersistedMessage = useCallback((nextMessage) => {
     if (!nextMessage?.id) return;
@@ -453,6 +471,18 @@ export default function ChatRoomScreen({ route, navigation }) {
               socket.emit(CHAT_SOCKET_EVENTS.READ, { chatId });
             }
           } catch {}
+
+          if (nextMessage.type === 'gift' || nextMessage.backendType === 'gift') {
+            const g = nextMessage.gift;
+            giftOverlayRef.current?.enqueueGift({
+              name: g?.name || '선물',
+              amount: g?.amount || 0,
+              animationUrl: g?.animationUrl || null,
+              animationType: g?.animationType || 'BANNER',
+              icon: g?.icon || '🎁',
+              senderName: user?.name || '상대방',
+            });
+          }
         }
 
         setTimeout(() => {
@@ -752,10 +782,12 @@ export default function ChatRoomScreen({ route, navigation }) {
   }, []);
 
   const handleOpenGiftSheet = useCallback(() => {
+    Keyboard.dismiss();
     setKeyboardVisible(false);
     setAttachSheetVisible(false);
-    setGiftSheetVisible(true);
-  }, []);
+    fetchMyPoints();
+    setGiftPickerVisible(true);
+  }, [fetchMyPoints]);
 
     const handleToggleFavorite = useCallback(() => {
     setOptionsVisible(false);
@@ -777,7 +809,6 @@ export default function ChatRoomScreen({ route, navigation }) {
     async (gift) => {
       if (!gift?.id || !chatId || !currentActivityAccountId) return;
       const clientMessageId = uuid.v4();
-      setGiftSheetVisible(false);
 
       try {
         const response = await apiClient.sendChatGift({
@@ -795,14 +826,22 @@ export default function ChatRoomScreen({ route, navigation }) {
           appendUniquePersistedMessage(normalized);
         }
 
+        setMyPoints((prev) => Math.max(0, prev - (gift.amount || 0)));
+        setGiftPickerVisible(false);
+
+        // 로컬 3D 이펙트 렌더링
+        giftOverlayRef.current?.enqueueGift({
+          name: gift.name,
+          amount: gift.amount,
+          animationUrl: gift.animationUrl,
+          animationType: gift.animationType,
+          icon: gift.icon,
+          senderName: '나',
+        });
+
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
         }, 100);
-
-        Alert.alert(
-          '선물 전송 완료',
-          `${gift.name} (${formatPoints(gift.amount)}P)을(를) 선물했습니다.`,
-        );
       } catch (error) {
         Alert.alert(
           '선물 전송 실패',
@@ -810,32 +849,8 @@ export default function ChatRoomScreen({ route, navigation }) {
         );
       }
     },
-    [chatId, currentActivityAccountId, appendUniquePersistedMessage, formatPoints]
+    [chatId, currentActivityAccountId, appendUniquePersistedMessage]
   );
-
-  const loadGiftOptions = useCallback(async () => {
-    setLoadingGifts(true);
-    setGiftError(null);
-    try {
-      const gifts = await listGiftOptions();
-      setGiftOptions(gifts);
-      if (gifts.length === 0) {
-        setGiftError('선물 기능이 준비 중입니다.');
-      }
-    } catch (error) {
-      console.error('Failed to load gift options:', error);
-      setGiftOptions([]);
-      setGiftError('선물 기능이 준비 중입니다.');
-    } finally {
-      setLoadingGifts(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (giftSheetVisible) {
-      loadGiftOptions();
-    }
-  }, [giftSheetVisible, loadGiftOptions]);
 
   const sendMessage = async () => {
     if (sendingMessage) return;
@@ -1425,59 +1440,18 @@ export default function ChatRoomScreen({ route, navigation }) {
         </TouchableWithoutFeedback>
       </Modal>
 
-      <Modal
-        transparent
-        visible={giftSheetVisible}
-        animationType="fade"
-        onRequestClose={() => setGiftSheetVisible(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setGiftSheetVisible(false)}>
-          <View style={styles.bottomSheetBackdrop}>
-            <TouchableWithoutFeedback onPress={() => {}}>
-              <View style={[styles.bottomSheetContainer, styles.giftSheetContainer, { paddingBottom: insets.bottom + 16 }]}>
-                <View style={styles.giftSheetHeader}>
-                  <Text style={styles.sheetTitle}>선물하기</Text>
-                  <View style={styles.giftSheetHeaderActions}>
-                    <TouchableOpacity
-                      style={[styles.giftHeaderButton, loadingGifts && styles.giftHeaderButtonDisabled]}
-                      onPress={loadGiftOptions}
-                      disabled={loadingGifts}
-                    >
-                      <Ionicons
-                        name="refresh"
-                        size={20}
-                        color={loadingGifts ? colors.textTertiary : colors.primary}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                {loadingGifts ? (
-                  <View style={styles.giftLoadingContainer}>
-                    <ActivityIndicator size="small" color={colors.primary} />
-                    <Text style={styles.giftLoadingText}>선물 목록을 불러오는 중...</Text>
-                  </View>
-                ) : giftOptions.length > 0 ? (
-                  <FlatList
-                    data={giftOptions}
-                    keyExtractor={(item) => item.id}
-                    renderItem={renderGiftOption}
-                    contentContainerStyle={styles.giftList}
-                    ItemSeparatorComponent={() => <View style={styles.giftSeparator} />}
-                    showsVerticalScrollIndicator={false}
-                  />
-                ) : (
-                  <View style={styles.giftErrorContainer}>
-                    <Text style={styles.giftErrorText}>{giftError || '선물 기능이 준비 중입니다.'}</Text>
-                    <TouchableOpacity style={styles.giftRetryButton} onPress={loadGiftOptions}>
-                      <Text style={styles.giftRetryText}>다시 시도</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+      {/* Fullscreen 3D Gift Effect Overlay (FIFO Queue) */}
+      <GiftEffectOverlay ref={giftOverlayRef} />
+
+      {/* Gift Picker Bottom Sheet */}
+      <GiftPickerSheet
+        visible={giftPickerVisible}
+        onClose={() => setGiftPickerVisible(false)}
+        onSendGift={handleSendGift}
+        myPoints={myPoints}
+        onGoToShop={() => navigation.navigate('Shop')}
+        context="chat"
+      />
       
       <Modal
         transparent

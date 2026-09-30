@@ -2020,3 +2020,120 @@ export async function updateAdsRewardsPolicies(payload: Partial<AdsRewardsPolici
   const response = await api.patch('/admin/ads-rewards/policies', payload);
   return (response.data as any)?.data ?? response.data;
 }
+
+// ===== 선물(Gift) 관리 API =====
+export interface AdminGiftItem {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  thumbnailUrl?: string | null;
+  animationUrl?: string | null;
+  animationType: string;
+  category: string;
+  sortOrder: number;
+  amount: number;
+  points: number;
+  pricePoints: number;
+  isActive: boolean;
+  chatEnabled: boolean;
+  liveEnabled: boolean;
+  isNew: boolean;
+}
+
+export interface AdminGiftStats {
+  totalGifts: number;
+  activeGifts: number;
+  totalTransactions: number;
+  totalPointsSent: number;
+}
+
+export async function getAdminGifts(): Promise<AdminGiftItem[]> {
+  const response = await api.get('/gifts/admin/list');
+  const d = response.data;
+  return Array.isArray(d?.data) ? d.data : Array.isArray(d?.items) ? d.items : [];
+}
+
+export async function getAdminGiftStats(): Promise<AdminGiftStats> {
+  const response = await api.get('/gifts/admin/stats');
+  return (response.data as any)?.data ?? {
+    totalGifts: 0,
+    activeGifts: 0,
+    totalTransactions: 0,
+    totalPointsSent: 0,
+  };
+}
+
+export async function createAdminGift(payload: Partial<AdminGiftItem>): Promise<AdminGiftItem> {
+  const response = await api.post('/gifts/admin', payload);
+  return (response.data as any)?.data ?? response.data;
+}
+
+export async function updateAdminGift(id: string, payload: Partial<AdminGiftItem>): Promise<AdminGiftItem> {
+  const response = await api.patch(`/gifts/admin/${id}`, payload);
+  return (response.data as any)?.data ?? response.data;
+}
+
+export async function deleteAdminGift(id: string): Promise<boolean> {
+  const response = await api.delete(`/gifts/admin/${id}`);
+  return (response.data as any)?.ok ?? true;
+}
+
+// ===== 자체 광고(Advertisement) 관리 API =====
+export interface AdminAdvertisementItem {
+  id: string;
+  title: string;
+  description?: string | null;
+  imageUrl: string;
+  targetUrl?: string | null;
+  placement: string;
+  priority: number;
+  isActive: boolean;
+  rewardPoints: number;
+  clickCount: number;
+  impressionCount: number;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AdminAdStats {
+  totalAds: number;
+  activeAds: number;
+  totalClicks: number;
+  totalImpressions: number;
+}
+
+export async function getAdminAds(placement?: string): Promise<AdminAdvertisementItem[]> {
+  const params = placement && placement !== 'ALL' ? { placement } : {};
+  const response = await api.get('/advertisements/admin/list', { params });
+  const d = response.data;
+  return Array.isArray(d?.data) ? d.data : Array.isArray(d?.items) ? d.items : [];
+}
+
+export async function getAdminAdStats(): Promise<AdminAdStats> {
+  const response = await api.get('/advertisements/admin/stats');
+  return (response.data as any)?.data ?? {
+    totalAds: 0,
+    activeAds: 0,
+    totalClicks: 0,
+    totalImpressions: 0,
+  };
+}
+
+export async function createAdminAd(payload: Partial<AdminAdvertisementItem>): Promise<AdminAdvertisementItem> {
+  const response = await api.post('/advertisements/admin', payload);
+  return (response.data as any)?.data ?? response.data;
+}
+
+export async function updateAdminAd(id: string, payload: Partial<AdminAdvertisementItem>): Promise<AdminAdvertisementItem> {
+  const response = await api.patch(`/advertisements/admin/${id}`, payload);
+  return (response.data as any)?.data ?? response.data;
+}
+
+export async function deleteAdminAd(id: string): Promise<boolean> {
+  const response = await api.delete(`/advertisements/admin/${id}`);
+  return (response.data as any)?.ok ?? true;
+}
+

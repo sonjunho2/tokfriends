@@ -17,6 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
 import ReportModal from '../../components/ReportModal';
+import GiftEffectOverlay from '../../components/GiftEffectOverlay';
+import GiftPickerSheet from '../../components/GiftPickerSheet';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 
@@ -36,6 +38,12 @@ export default function LiveRoomScreen({ navigation, route }) {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
   const [blocking, setBlocking] = useState(false);
+
+  // 3D Gift System States
+  const giftOverlayRef = useRef(null);
+  const [giftPickerVisible, setGiftPickerVisible] = useState(false);
+  const [myPoints, setMyPoints] = useState(currentUser?.pointsBalance || 0);
+  const processedGiftMessageIdsRef = useRef(new Set());
 
   // Agora Live Streaming States (Video + Audio)
   const [agoraTokenData, setAgoraTokenData] = useState(null);
@@ -119,6 +127,39 @@ export default function LiveRoomScreen({ navigation, route }) {
     try {
       const msgs = await apiClient.getLiveMessages(roomId);
       setMessages(msgs);
+
+      // 수신된 3D 선물 메시지 자동 감지 및 FIFO 큐 재생
+      if (Array.isArray(msgs)) {
+        msgs.forEach((msg) => {
+          if (msg.type === 'gift' && msg.id && !processedGiftMessageIdsRef.current.has(msg.id)) {
+            processedGiftMessageIdsRef.current.add(msg.id);
+            try {
+              const giftMeta = JSON.parse(msg.content);
+              giftOverlayRef.current?.enqueueGift({
+                giftId: giftMeta.giftId,
+                giftName: giftMeta.giftName,
+                pricePoints: giftMeta.pricePoints || msg.giftPoints,
+                senderNickname:
+                  giftMeta.senderNickname ||
+                  msg.sender?.profile?.nickname ||
+                  msg.sender?.displayName ||
+                  '시청자',
+                animationUrl: giftMeta.animationUrl,
+                animationType: giftMeta.animationType || 'alpha_video',
+                thumbnailUrl: giftMeta.thumbnailUrl,
+              });
+            } catch {
+              giftOverlayRef.current?.enqueueGift({
+                giftId: 'gift',
+                giftName: '선물',
+                pricePoints: msg.giftPoints,
+                senderNickname:
+                  msg.sender?.profile?.nickname || msg.sender?.displayName || '시청자',
+              });
+            }
+          }
+        });
+      }
     } catch {
       // quiet fallback
     }
@@ -164,32 +205,38 @@ export default function LiveRoomScreen({ navigation, route }) {
     }
   };
 
-  const handleSendGift = (giftPoints) => {
-    Alert.alert(
-      '선물 보내기',
-      `${giftPoints}P 선물을 호스트에게 보내시겠습니까?`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '보내기',
-          onPress: async () => {
-            try {
-              const newMsg = await apiClient.sendLiveMessage({
-                roomId,
-                content: `🎁 ${giftPoints}P 선물을 보냈습니다!`,
-                type: 'gift',
-                giftPoints,
-              });
-              setMessages((prev) => [...prev, newMsg]);
-              Alert.alert('선물 완료', `${giftPoints}P 선물이 전달되었습니다!`);
-              fetchMessages();
-            } catch (e) {
-              Alert.alert('선물 실패', e?.message || '선물 보내기에 실패했습니다.');
-            }
-          },
-        },
-      ],
-    );
+  const handleOpenGiftPicker = () => {
+    setGiftPickerVisible(true);
+  };
+
+  const handleSendGiftItem = async (gift) => {
+    if (!gift || !roomId) return;
+    try {
+      const idempotencyKey = `live_${roomId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const res = await apiClient.sendLiveGift(roomId, {
+        giftId: gift.id,
+        idempotencyKey,
+      });
+
+      if (res?.data?.newBalance !== undefined) {
+        setMyPoints(res.data.newBalance);
+      }
+
+      // 내 화면에서도 3D 투명 비디오/애니메이션 이펙트 큐에 즉시 삽입
+      giftOverlayRef.current?.enqueueGift({
+        giftId: gift.id,
+        giftName: gift.name,
+        pricePoints: gift.pricePoints,
+        senderNickname: currentUser?.displayName || '나',
+        animationUrl: gift.animationUrl,
+        animationType: gift.animationType || 'alpha_video',
+        thumbnailUrl: gift.thumbnailUrl,
+      });
+
+      fetchMessages();
+    } catch (e) {
+      Alert.alert('선물 실패', e?.message || '선물 보내기에 실패했습니다.');
+    }
   };
 
   const handleEndBroadcast = () => {
@@ -568,10 +615,10 @@ export default function LiveRoomScreen({ navigation, route }) {
             </TouchableOpacity>
           ) : (
             <View style={styles.reactionRow}>
-              {/* Gift 50P Button */}
+              {/* Gift Picker Button */}
               <TouchableOpacity
                 style={styles.giftIconBtn}
-                onPress={() => handleSendGift(50)}
+                onPress={handleOpenGiftPicker}
                 activeOpacity={0.8}
               >
                 <Ionicons name="gift" size={20} color="#FBBF24" />
@@ -607,6 +654,19 @@ export default function LiveRoomScreen({ navigation, route }) {
         targetType={reportTarget?.type || 'room'}
         onClose={() => setReportModalVisible(false)}
         onSubmit={handleReportSubmit}
+      />
+
+      {/* Fullscreen 3D Gift Effect Overlay (FIFO Queue) */}
+      <GiftEffectOverlay ref={giftOverlayRef} />
+
+      {/* Gift Picker Bottom Sheet */}
+      <GiftPickerSheet
+        visible={giftPickerVisible}
+        onClose={() => setGiftPickerVisible(false)}
+        onSendGift={handleSendGiftItem}
+        myPoints={myPoints}
+        onGoToShop={() => navigation.navigate('Shop')}
+        context="live"
       />
     </SafeAreaView>
   );

@@ -31,3 +31,18 @@ export class SendLiveMessageDto {
   @Min(1)
   giftPoints?: number;
 }
+
+export class SendLiveGiftDto {
+  @IsString()
+  @IsNotEmpty()
+  giftId: string;
+
+  @IsString()
+  @IsOptional()
+  idempotencyKey?: string;
+
+  @IsString()
+  @IsOptional()
+  message?: string;
+}
+

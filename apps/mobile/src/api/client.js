@@ -1979,6 +1979,49 @@ export const apiClient = {
     });
     return data?.data ?? data;
   },
+
+  // ===== Gifts & 3D Effects =====
+  async getGifts({ category, context } = {}) {
+    try {
+      const params = {};
+      if (category && category !== 'all') params.category = category;
+      if (context) params.context = context;
+      const { data } = await client.get('/gifts', { params });
+      return data?.data ?? data?.items ?? data ?? [];
+    } catch {
+      return [];
+    }
+  },
+
+  async sendLiveGift(roomId, { giftId, idempotencyKey, message } = {}) {
+    if (!roomId) throw normalizeError(new Error('라이브 룸 ID가 필요합니다.'));
+    if (!giftId) throw normalizeError(new Error('선물 ID가 필요합니다.'));
+    const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/gift`, {
+      giftId: String(giftId).trim(),
+      idempotencyKey: idempotencyKey || `live_gift_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      message: message ? String(message).trim() : undefined,
+    });
+    return data?.data ?? data;
+  },
+
+  // ===== Advertisements & Banners =====
+  async getAdvertisements({ placement = 'HOME_BANNER' } = {}) {
+    try {
+      const { data } = await client.get('/advertisements', { params: { placement } });
+      return data?.data ?? data?.items ?? data ?? [];
+    } catch {
+      return [];
+    }
+  },
+
+  async recordAdClick(adId) {
+    if (!adId) return;
+    try {
+      await client.post(`/advertisements/${encodeURIComponent(adId)}/click`);
+    } catch {
+      // silent
+    }
+  },
 };
 
 export default client;

@@ -52,6 +52,10 @@ export default function HomeScreen({ navigation }) {
   const [discoverUsers, setDiscoverUsers] = useState([]);
   const [communityTopics, setCommunityTopics] = useState([]);
   const [recentPosts, setRecentPosts] = useState([]);
+  const [banners, setBanners] = useState([]);
+  const [activeBannerIdx, setActiveBannerIdx] = useState(0);
+  const [liveRooms, setLiveRooms] = useState([]);
+  const [myPoints, setMyPoints] = useState(0);
 
   useEffect(() => {
     const t = setInterval(() => setLeftSec((s) => (s > 0 ? s - 1 : 0)), 1000);
@@ -64,15 +68,34 @@ export default function HomeScreen({ navigation }) {
     return `${m}분 ${s}초`;
   }, [leftSec]);
 
+  // 배너 자동 롤링
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveBannerIdx((prev) => (prev + 1) % banners.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [banners.length]);
+
   useEffect(() => {
     let active = true;
 
     const loadData = async () => {
       try {
-        const [discoverResult, topicsResult, postsResult] = await Promise.allSettled([
+        const [
+          discoverResult,
+          topicsResult,
+          postsResult,
+          bannersResult,
+          liveResult,
+          balanceResult,
+        ] = await Promise.allSettled([
           apiClient.getDiscover(),
           apiClient.getTopics(),
           apiClient.getPosts({ take: 3 }),
+          apiClient.getAdvertisements({ placement: 'HOME_BANNER' }),
+          apiClient.getLiveRooms(),
+          apiClient.getPointBalance(),
         ]);
 
         if (!active) return;
@@ -96,6 +119,24 @@ export default function HomeScreen({ navigation }) {
             ? postsResult.value
             : [];
           setRecentPosts(items);
+        }
+
+        if (bannersResult.status === 'fulfilled') {
+          const ads = Array.isArray(bannersResult.value) ? bannersResult.value : [];
+          setBanners(ads);
+        }
+
+        if (liveResult.status === 'fulfilled') {
+          const rooms = Array.isArray(liveResult.value)
+            ? liveResult.value
+            : Array.isArray(liveResult.value?.items)
+            ? liveResult.value.items
+            : [];
+          setLiveRooms(rooms.filter((r) => r.status === 'ACTIVE' || r.status === 'LIVE' || !r.status));
+        }
+
+        if (balanceResult.status === 'fulfilled' && balanceResult.value?.balance !== undefined) {
+          setMyPoints(Number(balanceResult.value.balance));
         }
       } catch {
         // silent fallback
@@ -166,23 +207,44 @@ export default function HomeScreen({ navigation }) {
     });
   };
 
+  const handleBannerPress = (banner) => {
+    if (!banner) return;
+    if (banner.id) {
+      apiClient.recordAdClick(banner.id).catch(() => {});
+    }
+    if (banner.linkUrl) {
+      if (banner.linkUrl.startsWith('route:')) {
+        const routeName = banner.linkUrl.replace('route:', '');
+        navigation.navigate(routeName);
+      } else {
+        navigation.navigate('Shop');
+      }
+    } else {
+      navigation.navigate('Shop');
+    }
+  };
+
+  const currentBanner = banners.length > 0 ? banners[activeBannerIdx % banners.length] : null;
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      {/* 상단 앱바: 브랜드 로고 + 빠른 액션(충전소/검색) */}
+      {/* 상단 앱바: 브랜드 로고 + 내 포인트 잔액 칩 + 빠른 액션 */}
       <View style={styles.appbar}>
         <View style={styles.brandContainer}>
           <Text style={styles.brandTitle}>다가온</Text>
           <View style={styles.brandDot} />
         </View>
         <View style={styles.appbarRightActions}>
+          {/* 내 포인트 칩 */}
           <TouchableOpacity
-            hitSlop={8}
-            style={styles.appbarIconBtn}
+            style={styles.pointChip}
             onPress={() => navigation.navigate('Shop')}
             activeOpacity={0.8}
           >
-            <Ionicons name="sparkles" size={17} color="#D97706" />
+            <Ionicons name="sparkles" size={13} color="#F59E0B" />
+            <Text style={styles.pointChipText}>{myPoints.toLocaleString()}P</Text>
           </TouchableOpacity>
+
           <TouchableOpacity
             hitSlop={8}
             style={styles.appbarIconBtn}
@@ -199,24 +261,133 @@ export default function HomeScreen({ navigation }) {
         contentContainerStyle={{ paddingBottom: 110 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* 첫 가입자 이벤트 배너 */}
-        <Card style={styles.greenCard}>
-          <View style={{ paddingRight: 110 }}>
-            <View style={styles.greenTagRow}>
-              <View style={styles.greenBadge}>
-                <Text style={styles.greenBadgeTxt}>EVENT</Text>
+        {/* 상단 프로모션/광고 배너 (동적 배너 or 이벤트 배너) */}
+        {currentBanner ? (
+          <TouchableOpacity
+            style={styles.adBannerCard}
+            activeOpacity={0.9}
+            onPress={() => handleBannerPress(currentBanner)}
+          >
+            {currentBanner.imageUrl ? (
+              <Image source={{ uri: currentBanner.imageUrl }} style={styles.adBannerImage} />
+            ) : null}
+            <View style={styles.adBannerOverlay}>
+              <View style={styles.adBadgeRow}>
+                <View style={styles.adBadge}>
+                  <Text style={styles.adBadgeText}>EVENT</Text>
+                </View>
+                {banners.length > 1 && (
+                  <View style={styles.bannerPageBadge}>
+                    <Text style={styles.bannerPageText}>
+                      {(activeBannerIdx % banners.length) + 1} / {banners.length}
+                    </Text>
+                  </View>
+                )}
               </View>
-              <Text style={styles.greenTitle}>오직 첫 가입자만!</Text>
+              <Text style={styles.adBannerTitle} numberOfLines={1}>
+                {currentBanner.title}
+              </Text>
+              {currentBanner.description ? (
+                <Text style={styles.adBannerDesc} numberOfLines={1}>
+                  {currentBanner.description}
+                </Text>
+              ) : null}
             </View>
-            <Text style={styles.greenDesc}>
-              30분 내 프로필 완성 시{'\n'}50포인트 즉시 지급
-            </Text>
-          </View>
-          <TouchableOpacity style={styles.timerBtn} activeOpacity={0.88}>
-            <Text style={styles.timerTxt}>{leftStr}</Text>
-            <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
           </TouchableOpacity>
-        </Card>
+        ) : (
+          <Card style={styles.greenCard}>
+            <View style={{ paddingRight: 110 }}>
+              <View style={styles.greenTagRow}>
+                <View style={styles.greenBadge}>
+                  <Text style={styles.greenBadgeTxt}>EVENT</Text>
+                </View>
+                <Text style={styles.greenTitle}>오직 첫 가입자만!</Text>
+              </View>
+              <Text style={styles.greenDesc}>
+                30분 내 프로필 완성 시{'\n'}50포인트 즉시 지급
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.timerBtn} activeOpacity={0.88}>
+              <Text style={styles.timerTxt}>{leftStr}</Text>
+              <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
+            </TouchableOpacity>
+          </Card>
+        )}
+
+        {/* HOT 실시간 라이브 방송 섹션 */}
+        {liveRooms.length > 0 && (
+          <View style={styles.liveSection}>
+            <View style={styles.liveSectionHeader}>
+              <View style={styles.liveTitleRow}>
+                <View style={styles.liveDot} />
+                <Text style={styles.liveSectionTitle}>실시간 LIVE</Text>
+                <View style={styles.liveCountBadge}>
+                  <Text style={styles.liveCountText}>{liveRooms.length}</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Live')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.link}>전체보기 ›</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.liveScrollContent}
+            >
+              {liveRooms.map((room) => (
+                <TouchableOpacity
+                  key={room.id}
+                  style={styles.liveCard}
+                  activeOpacity={0.88}
+                  onPress={() =>
+                    navigation.navigate('Live', {
+                      screen: 'LiveRoom',
+                      params: {
+                        roomId: room.id,
+                        roomTitle: room.title,
+                        hostName: room.host?.displayName || '호스트',
+                        hostAvatar: room.host?.avatarUrl,
+                      },
+                    })
+                  }
+                >
+                  <View style={styles.liveThumbContainer}>
+                    {room.thumbnailUrl ? (
+                      <Image source={{ uri: room.thumbnailUrl }} style={styles.liveThumb} />
+                    ) : (
+                      <View style={styles.liveThumbPlaceholder}>
+                        <Ionicons name="radio" size={32} color="#EF4444" />
+                      </View>
+                    )}
+                    <View style={styles.liveBadgeTop}>
+                      <View style={styles.liveOnAirPill}>
+                        <Text style={styles.liveOnAirText}>ON AIR</Text>
+                      </View>
+                      <View style={styles.liveViewerPill}>
+                        <Ionicons name="eye" size={11} color="#FFFFFF" />
+                        <Text style={styles.liveViewerText}>
+                          {room.viewerCount || 0}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.liveCardMeta}>
+                    <Text style={styles.liveCardTitle} numberOfLines={1}>
+                      {room.title || '즐거운 실시간 방송'}
+                    </Text>
+                    <Text style={styles.liveHostName} numberOfLines={1}>
+                      {room.host?.displayName || '호스트'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* 무료 포인트 충전소 배너 */}
         <TouchableOpacity
@@ -489,6 +660,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  pointChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  pointChipText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#92400E',
+  },
   appbarIconBtn: {
     width: 36,
     height: 36,
@@ -496,6 +683,186 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // 광고 배너 스타일
+  adBannerCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    height: 120,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#1E293B',
+    position: 'relative',
+    justifyContent: 'flex-end',
+  },
+  adBannerImage: {
+    ...StyleSheet.absoluteFillObject,
+    resizeMode: 'cover',
+  },
+  adBannerOverlay: {
+    padding: 14,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+  },
+  adBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  adBadge: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  adBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  bannerPageBadge: {
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  bannerPageText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  adBannerTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  adBannerDesc: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  // 실시간 라이브 섹션 스타일
+  liveSection: {
+    marginTop: 20,
+  },
+  liveSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginBottom: 10,
+  },
+  liveTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+  },
+  liveSectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    letterSpacing: -0.3,
+  },
+  liveCountBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  liveCountText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#EF4444',
+  },
+  liveScrollContent: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  liveCard: {
+    width: 160,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  liveThumbContainer: {
+    width: '100%',
+    height: 110,
+    backgroundColor: '#1E293B',
+    position: 'relative',
+  },
+  liveThumb: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  liveThumbPlaceholder: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0F172A',
+  },
+  liveBadgeTop: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    right: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  liveOnAirPill: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  liveOnAirText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  liveViewerPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  liveViewerText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  liveCardMeta: {
+    padding: 10,
+  },
+  liveCardTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  liveHostName: {
+    fontSize: 11,
+    color: colors.textTertiary,
   },
   greenCard: {
     marginHorizontal: 16,

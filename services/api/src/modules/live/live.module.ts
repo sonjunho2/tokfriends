@@ -4,7 +4,10 @@ import { PrismaService } from 'nestjs-prisma';
 import { LiveController } from './live.controller';
 import { LiveService } from './live.service';
 
+import { GiftsModule } from '../gifts/gifts.module';
+
 @Module({
+  imports: [GiftsModule],
   controllers: [LiveController],
   providers: [LiveService, PrismaService],
   exports: [LiveService],

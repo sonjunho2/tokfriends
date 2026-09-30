@@ -1,6 +1,78 @@
 # DAGAON Development Checkpoint
 
-Updated: 2026-09-18
+Updated: 2026-09-30
+Official Brand Name: **다가온 (DAGAON)**
+Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
+
+---
+
+## 2026-09-30 Checkpoint: 상용 출시급 전체 UX/UI & 선물·광고·대시보드 고도화 (완료)
+
+### 1. 데이터베이스 & Prisma 마이그레이션 (DB Level: 100% Non-destructive)
+- **신규 마이그레이션**: `20260930012507_add_gift_and_advertisement_foundation` 적용 완료.
+- **`Gift` 모델 신설**: 
+  - 선물 ID, 명칭, 포인트 금액, 아이콘, 3D 비디오 애니메이션 URL(`animationUrl`), 애니메이션 타입(`BANNER`, `FULLSCREEN_3D`), 카테고리(`SPECIAL`, `ROMANCE`, `CHEER`, `FUN`), 활성 여부(`isActive`), 정렬 순서(`sortOrder`) 마스터 테이블 구축.
+- **`GiftTransaction` 모델 신설**: 
+  - 선물 발신자(`senderAccountId`), 수신자(`recipientAccountId`), 라이브 방 ID(`liveRoomId`), 선물 수량 및 총액, 플랫폼 수수료(`feePoints`), 호스트 적립액(`hostPoints`), 감사 메시지(`message`)를 완벽히 보존하는 금융급 거래 원장.
+- **`Advertisement` 모델 신설**: 
+  - 자체 배너 및 프로모션 관리용: 제목, 설명, 이미지 URL, 타깃 링크 URL, 노출 지면(`HOME_BANNER`, `CHAT_HEADER`, `COMMUNITY_TOP`), 클릭수(`clickCount`), 노출수(`viewCount`), 상태(`ACTIVE`, `PAUSED`).
+- **`ActivityAccount` 관계 필드 연동**: 보낸 선물 목록(`sentGifts`), 받은 선물 목록(`receivedGifts`) 정합성 연결.
+
+### 2. 백엔드 NestJS API 서비스
+- **Gifts 모듈 (`services/api/src/modules/gifts/`)**:
+  - 기본 7종 상용급 선물 자동 시드 생성 (황금 하트, 반짝이는 별, 장미 꽃다발, 축하 샴페인, 스포츠카, 다이아몬드 성, 럭셔리 요트).
+  - 공개 조회: `GET /gifts` (카테고리별 필터링 지원).
+  - 관리자 CRUD: `POST /gifts`, `PATCH /gifts/:id`, `DELETE /gifts/:id`, `GET /gifts/admin/analytics`.
+- **Chats 선물 원자적 트랜잭션 연동 (`chats.service.ts`)**:
+  - 선물 전송 시 지갑 잔액 차감과 함께 `tx.giftTransaction.create` 실행 및 메시지 메타데이터에 3D 비디오 애니메이션 정보 자동 동봉.
+- **Live 선물 원자적 트랜잭션 구현 (`live.service.ts` & `live.controller.ts`)**:
+  - `POST /live/rooms/:id/gift` 엔드포인트 신설.
+  - 시청자 지갑 차감 + 호스트 지갑 적립 + 시스템 원장 기록 + 룸 포인트 누적 + 선물 실시간 시스템 메시지 생성을 단일 DB 트랜잭션(`tx`)으로 보장.
+- **Advertisements 모듈 (`services/api/src/modules/advertisements/`)**:
+  - 기본 3종 배너 자동 시드 (첫 충전 200% 보너스, 다가온 안심 케어 캠페인, VIP 웰컴 기프트).
+  - 지면별 활성 광고 조회 (`GET /advertisements?placement=HOME_BANNER`), 클릭수 기록 (`POST /advertisements/:id/click`).
+  - 관리자 등록/수정/삭제 (`POST /advertisements`, `PATCH /advertisements/:id`, `DELETE /advertisements/:id`).
+- **빌드 검증**: `services/api`에서 `nest build` 성공 (exit code 0).
+
+### 3. 관리자 웹 콘솔 (Admin Web)
+- **8대 한국어 정보구조(IA) 재정비**:
+  - GNB/사이드바 메뉴를 상용 서비스 체계(대시보드, 회원 관리, 소셜·대화, 수익·선물, 광고·프로모션, 콘텐츠·안전, 운영·설정)로 한국어 전면 통일.
+- **선물 마스터 관리 UI (`apps/admin/src/app/store/gifts/page.tsx`)**:
+  - 상단 선물 현황 KPI 카드 4종 (총 등록 선물, 활성 선물, 누적 선물 전송액, 3D 애니메이션 적용 수).
+  - 선물 등록/수정 모달 (명칭, 포인트, 아이콘, 3D 알파 비디오 URL, 카테고리, 활성 여부).
+  - 원클릭 상태 전환(활성/비활성 스위치) 및 안전 삭제 기능.
+- **자체 배너 광고 관리 UI (`apps/admin/src/app/ads-rewards/page.tsx`)**:
+  - 자체 배너 관리 탭 신규 구축.
+  - 노출 지면별 배너 등록/수정 모달, 실시간 노출수 및 클릭수 집계 테이블 제공.
+- **빌드 검증**: `apps/admin`에서 `next build` 31개 전체 라우트 빌드 통과 (exit code 0).
+
+### 4. 모바일 앱 (Mobile App)
+- **브랜드 정체성 통일**: 공식 브랜드명 **"다가온 (DAGAON)"**을 앱 전반(온보딩, 약관, 홈 앱바, 설정)에 100% 일관되게 적용.
+- **디자인 토큰 시스템**:
+  - `typography.js`: Noto Sans KR 기반 Display, TitleLarge/Medium/Small, BodyLarge/Medium/Small, Caption, Button 계층 구축.
+  - `spacing.js`: 8pt 그리드 간격 토큰(xxs ~ xxxl, screenPadding, cardGap, radius 등) 신설.
+- **3D 선물 이펙트 오버레이 (`GiftEffectOverlay.js`)**:
+  - `expo-video` 기반 투명 비디오 렌더링.
+  - FIFO 순차 대기열(Queue) 시스템 탑재로 연타 선물 시에도 끊김 없이 순차 재생.
+  - 보낸이 닉네임과 선물 이름이 부드럽게 등장하는 글래스모피즘 슬라이드 배너.
+- **선물 선택 바텀 시트 (`GiftPickerSheet.js`)**:
+  - 카테고리 탭(전체, 스페셜, 로맨스, 응원, 재미) 필터링.
+  - 내 포인트 실시간 연동 및 부족 시 [충전] 원터치 이동.
+  - 3D 효과 배지 및 연타 방지 쿨다운 적용.
+- **실시간 라이브 & 1:1 대화방 선물 시스템 완성**:
+  - `LiveRoomScreen.js`: 선물 버튼 터치 시 `GiftPickerSheet` 오픈, 원자적 선물 트랜잭션 전송, 실시간 수신 시 `GiftEffectOverlay` 자동 렌더링.
+  - `ChatRoomScreen.js`: 1:1 채팅방 첨부 메뉴에서 `GiftPickerSheet` 연동 및 실시간 소켓 수신 시 3D 오버레이 큐 실행.
+- **바텀 내비게이션 5개 표준 탭 정돈**:
+  - [홈, 커뮤니티, 라이브, 대화, 마이]의 한국 소셜 앱 표준 5개 탭으로 정비.
+  - '충전소' 탭을 불필요하게 차지하지 않고 각 화면(홈 헤더 칩, 선물 시트, 마이페이지)에서 원터치 충전소 진입 지원.
+- **홈 화면(HomeScreen.js) 종합 대시보드화**:
+  - 상단 헤더: "다가온" 브랜드 로고 + 실시간 내 포인트 잔액 칩(`myPoints.toLocaleString()P`) + 검색.
+  - 동적 배너 캐러셀: 관리자가 등록한 `HOME_BANNER` 광고 실시간 연동, 자동 슬라이드, 터치 시 클릭수 집계 및 라우팅.
+  - HOT 실시간 라이브 섹션: 현재 진행 중인 실시간 방송 썸네일, ON-AIR 태그, 시청자 수, 방송 타이틀 가로 스크롤 카드 제공.
+  - 커뮤니티 이야기 피드 & 다가온 안심 케어 시스템 안내.
+- **구문 검사**: 모든 모바일 핵심 파일 `node -c` 검사 통과 (exit code 0).
+
+---
 
 ## Project
 

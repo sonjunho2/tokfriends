@@ -145,6 +145,16 @@ function LiveStack() {
         component={LiveRoomScreen}
         options={{ animation: 'slide_from_bottom' }}
       />
+      <LiveStackNav.Screen
+        name="Points"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <LiveStackNav.Screen
+        name="Shop"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
     </LiveStackNav.Navigator>
   );
 }
@@ -225,7 +235,7 @@ function MyPageStack() {
   );
 }
 
-/** ===== 하단 탭 ===== */
+/** ===== 하단 탭 (5개 표준: 홈, 커뮤니티, 라이브, 대화, 마이) ===== */
 function MainTabs() {
   return (
     <Tab.Navigator
@@ -258,7 +268,6 @@ function MainTabs() {
             Community: focused ? 'people' : 'people-outline',
             Live: focused ? 'radio' : 'radio-outline',
             Chat: focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline',
-            Points: focused ? 'sparkles' : 'sparkles-outline',
             My: focused ? 'person' : 'person-outline',
           };
           const name = iconMap[route.name] || (focused ? 'ellipse' : 'ellipse-outline');
@@ -297,7 +306,6 @@ function MainTabs() {
         }}
       />
       <Tab.Screen name="Chat" component={ChatsStack} options={{ tabBarLabel: '대화' }} />
-      <Tab.Screen name="Points" component={ShopScreen} options={{ tabBarLabel: '충전소' }} />
       <Tab.Screen name="My" component={MyPageStack} options={{ tabBarLabel: '마이' }} />
     </Tab.Navigator>
   );

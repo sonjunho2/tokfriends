@@ -7,8 +7,8 @@ import colors from '../../theme/colors';
 export default function WelcomeScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
-      <Text style={styles.title}>MJ톡에 오신 걸 환영해요!</Text>
-      <Text style={styles.sub}>새로운 친구, 지금 바로 시작해볼까요?</Text>
+      <Text style={styles.title}>다가온에 오신 걸 환영해요!</Text>
+      <Text style={styles.sub}>새로운 인연, 지금 바로 시작해볼까요?</Text>
 
       <TouchableOpacity
         style={[styles.btn, styles.primary]}

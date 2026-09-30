@@ -1180,11 +1180,27 @@ export class ChatsService {
               },
             });
 
+            await tx.giftTransaction.create({
+              data: {
+                giftId: gift.id,
+                senderAccountId: actor.id,
+                recipientAccountId: counterpart.id,
+                contextType: "chat",
+                chatId: dto.chatId,
+                points: gift.amount,
+                idempotencyKey: `gift-tx:chat:${dto.chatId}:${clientMessageId}`,
+                message: `${gift.name} 선물`,
+              },
+            });
+
             const giftContent = JSON.stringify({
               id: gift.id,
+              code: gift.code,
               name: gift.name,
               amount: gift.amount,
               description: gift.description ?? "",
+              animationUrl: gift.animationUrl ?? "",
+              animationType: gift.animationType ?? "none",
             });
 
             const now = new Date();

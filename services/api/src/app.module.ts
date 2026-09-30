@@ -19,6 +19,8 @@ import { TopicsModule } from "./modules/topics/topics.module";
 import { CommunityModule } from "./modules/community/community.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { GiftsModule } from "./modules/gifts/gifts.module";
+import { LiveModule } from "./modules/live/live.module";
+import { AdvertisementsModule } from "./modules/advertisements/advertisements.module";
 import { StoreModule } from "./modules/store/store.module";
 import { LegalDocumentsModule } from "./modules/legal-documents/legal-documents.module";
 import { MediaModule } from "./modules/media/media.module";
@@ -48,6 +50,8 @@ import { ProfileVisitsModule } from "./modules/profile-visits/profile-visits.mod
     DiscoverModule,
     AdminModule,
     GiftsModule,
+    LiveModule,
+    AdvertisementsModule,
     StoreModule,
     LegalDocumentsModule,
     MediaModule,
