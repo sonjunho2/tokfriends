@@ -26,6 +26,7 @@ import LiveRoomScreen from '../screens/live/LiveRoomScreen';
 
 // ===== 인증 =====
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
 import PhoneEntryScreen from '../screens/auth/PhoneEntryScreen';
 import PhoneVerificationScreen from '../screens/auth/PhoneVerificationScreen';
 import AgreementScreen from '../screens/auth/AgreementScreen';
@@ -47,6 +48,7 @@ function AuthFlow() {
       screenOptions={{ headerShown: false }}
     >
       <AuthStack.Screen name="Welcome" component={WelcomeScreen} />
+      <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="PhoneEntry" component={PhoneEntryScreen} />
       <AuthStack.Screen name="PhoneVerification" component={PhoneVerificationScreen} />
       <AuthStack.Screen name="Agreement" component={AgreementScreen} />

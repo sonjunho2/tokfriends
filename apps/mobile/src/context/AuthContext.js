@@ -13,6 +13,7 @@ const AuthContext = createContext({
   setUser: () => {},
   login: async () => ({ success: false }),
   signup: async () => ({ success: false }),
+  testLogin: async () => ({ success: false }),
   authenticateWithToken: async () => ({ success: false }),
   logout: async () => {},
   refreshMe: async () => {},
@@ -80,11 +81,22 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const res = await apiClient.login(email, password);
-      const token = res?.access_token;
+      const token = res?.access_token || res?.token;
       if (!token) throw new Error('토큰 응답이 비어 있습니다.');
       return await authenticateWithToken(token);
     } catch (e) {
       return { success: false, error: e?.message || '아이디 또는 비밀번호를 확인해 주세요.' };
+    }
+  };
+
+  const testLogin = async () => {
+    try {
+      const res = await apiClient.testLogin();
+      const token = res?.access_token || res?.token;
+      if (!token) throw new Error('테스트 로그인 토큰 발급에 실패했습니다.');
+      return await authenticateWithToken(token, res?.user);
+    } catch (e) {
+      return { success: false, error: e?.message || '테스트 로그인에 실패했습니다.' };
     }
   };
 
@@ -131,6 +143,7 @@ export const AuthProvider = ({ children }) => {
         setUser,
         login,
         signup,
+        testLogin,
         authenticateWithToken,
         logout,
         refreshMe,

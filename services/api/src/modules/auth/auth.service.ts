@@ -620,4 +620,62 @@ export class AuthService {
 
     return user.id;
   }
+
+  async testLogin() {
+    const testEmail = 'test_user@dagaon.com';
+    let user = await this.prisma.user.findUnique({
+      where: { email: testEmail },
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+        role: true,
+        status: true,
+        pointsBalance: true,
+      },
+    });
+
+    if (!user) {
+      const hashed = await argon2.hash('DagaonTest2026!');
+      user = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.user.create({
+          data: {
+            email: testEmail,
+            provider: 'email',
+            passwordHash: hashed,
+            displayName: '다가온테스터',
+            dob: new Date('1998-01-01'),
+            gender: 'other',
+            pointsBalance: 1000,
+            profile: {
+              create: {
+                nickname: '다가온테스터',
+                headline: '다가온 공식 테스트 계정입니다 ✨',
+                bio: '다가온 서비스를 원활하게 테스트하고 탐색하는 공식 계정입니다.',
+                avatarUri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
+              },
+            },
+          },
+          select: {
+            id: true,
+            email: true,
+            displayName: true,
+            role: true,
+            status: true,
+            pointsBalance: true,
+          },
+        });
+        await this.ensureConsumerFoundation(tx, created);
+        return created;
+      });
+    }
+
+    const token = await this.makeToken(user.id);
+    const serialized = await this.serializeAuthUser(user.id);
+    return {
+      access_token: token,
+      token,
+      user: serialized,
+    };
+  }
 }

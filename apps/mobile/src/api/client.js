@@ -463,6 +463,27 @@ export const apiClient = {
     }
   },
 
+  async testLogin() {
+    try {
+      const { data } = await client.post('/auth/test-login', {}, unauthConfig());
+      return data;
+    } catch (err) {
+      if (USE_DUMMY_AUTH) {
+        return {
+          token: 'dummy-token',
+          access_token: 'dummy-token',
+          user: {
+            id: 'dummy-user',
+            displayName: '다가온테스터',
+            email: 'test_user@dagaon.com',
+            activityAccountId: 'dummy-account',
+          },
+        };
+      }
+      throw normalizeError(err);
+    }
+  },
+
   async signup(userData) {
         // In dummy mode, mimic a successful signup by returning an empty object
     if (USE_DUMMY_AUTH) {

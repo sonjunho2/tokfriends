@@ -80,4 +80,11 @@ export class AuthController {
   completePhoneProfile(@Body() dto: CompletePhoneProfileDto) {
     return this.auth.completePhoneProfile(dto);
   }
+
+  @Public()
+  @Post('test-login')
+  @ApiOperation({ summary: 'Instant test login for development/testing' })
+  testLogin() {
+    return this.auth.testLogin();
+  }
 }
