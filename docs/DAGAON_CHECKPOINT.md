@@ -95,11 +95,11 @@ Last known working branch:
 chore/mobile-sdk57-upgrade
 
 Last verified project commit:
-6a55defb16bb81b15b9691657adb4e45536cff3c
-feat: add chat message idempotency
+5ac89e3549644a557a4359b234d02b9398eb56c3
+feat(dagaon): 상용 출시급 3D 선물 시스템, 관리자 포털, 광고 연동 및 다가온 브랜드 고도화
 
 Remote GitHub branch HEAD verified:
-6a55defb16bb81b15b9691657adb4e45536cff3c
+5ac89e3549644a557a4359b234d02b9398eb56c3
 
 Parent commit:
 11ba835b8502aa92c97302575306e5aa83093c5d
