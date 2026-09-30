@@ -1,6 +1,7 @@
 // src/components/ChatListItem.js
 import React from 'react';
 import { Text, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Avatar from './Avatar';
 import colors from '../theme/colors';
 
 const formatTime = (isoString) => {
@@ -22,9 +23,25 @@ const formatTime = (isoString) => {
       return `${ampm} ${hours}:${minutes}`;
     }
 
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    return `${month}월 ${day}일`;
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday =
+      date.getFullYear() === yesterday.getFullYear() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getDate() === yesterday.getDate();
+
+    if (isYesterday) {
+      return '어제';
+    }
+
+    const isThisYear = date.getFullYear() === now.getFullYear();
+    if (isThisYear) {
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      return `${month}월 ${day}일`;
+    }
+
+    return `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`;
   } catch {
     return '';
   }
@@ -40,7 +57,7 @@ const formatLastMessage = (content) => {
     ) {
       try {
         const parsed = JSON.parse(content);
-        return `🎁 ${parsed.name || '선물'} (${parsed.amount ?? 0}P)`;
+        return `🎁 선물: ${parsed.name || '선물'} (${parsed.amount ?? 0}P)`;
       } catch {
         return '🎁 선물을 보냈습니다.';
       }
@@ -57,9 +74,23 @@ export default function ChatListItem({ item, onPress }) {
   const timeText = formatTime(item.lastMessageAt);
   const unreadCount = Number(item.unreadCount) || 0;
   const lastMessageText = formatLastMessage(item.lastMessage);
+  const avatarUri = item.avatar || item.counterpart?.avatar || item.counterpartAvatar;
 
   return (
-    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.row}>
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={onPress}
+      style={styles.container}
+    >
+      <View style={styles.avatarWrap}>
+        <Avatar
+          name={item.title}
+          uri={avatarUri}
+          size={52}
+          shape="circle"
+        />
+      </View>
+
       <View style={styles.contentWrap}>
         <View style={styles.topRow}>
           <Text numberOfLines={1} style={styles.title}>
@@ -71,7 +102,7 @@ export default function ChatListItem({ item, onPress }) {
         </View>
 
         <View style={styles.bottomRow}>
-          <Text numberOfLines={1} style={styles.lastMessage}>
+          <Text numberOfLines={2} style={styles.lastMessage}>
             {lastMessageText}
           </Text>
           {unreadCount > 0 && (
@@ -88,13 +119,16 @@ export default function ChatListItem({ item, onPress }) {
 }
 
 const styles = StyleSheet.create({
-  row: {
+  container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  avatarWrap: {
+    position: 'relative',
+    marginRight: 14,
   },
   contentWrap: {
     flex: 1,
@@ -108,39 +142,43 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: '800',
-    color: colors.text,
+    fontWeight: '700',
+    color: '#191919',
     flex: 1,
     marginRight: 8,
+    letterSpacing: -0.3,
   },
   timeText: {
-    fontSize: 12,
-    color: colors.textMuted || '#8A92A6',
+    fontSize: 11,
+    color: '#8E8E93',
     fontWeight: '500',
   },
   bottomRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
   lastMessage: {
-    fontSize: 14,
-    color: colors.textSecondary || '#6B7280',
+    fontSize: 13,
+    color: '#71717A',
+    lineHeight: 18,
     flex: 1,
-    marginRight: 8,
+    marginRight: 10,
+    letterSpacing: -0.2,
   },
   badge: {
-    backgroundColor: '#FF3B30',
-    borderRadius: 11,
-    minWidth: 22,
-    height: 22,
-    paddingHorizontal: 6,
+    backgroundColor: '#F04438',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 5,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 2,
   },
   badgeText: {
     color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 });

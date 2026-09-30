@@ -1087,35 +1087,40 @@ export default function ChatRoomScreen({ route, navigation }) {
       );
     };
  
-    return (
-      <View
-        style={[
-          styles.messageContainer,
-          isMe ? styles.myMessageContainer : styles.otherMessageContainer,
-        ]}
-      >
-        {item.sender === 'other' && (
-          <Avatar
-            name={user.name}
-            size={40}
-            shape="circle"
-            style={styles.messageAvatar}
-          />
-        )}
-        <View style={styles.messageContent}>
-          <View style={bubbleStyles}>{renderBubbleContent()}</View>
-          <View style={[styles.messageFooterRow, isMe && styles.myMessageFooterRow]}>
-            {isMe && !item.readAt && (
-              <Text style={styles.unreadCountBadge}>1</Text>
+    if (isMe) {
+      return (
+        <View style={styles.myMessageContainer}>
+          <View style={styles.myTimeBadgeCol}>
+            {!item.readAt && (
+              <Text style={styles.kakaoUnreadNum}>1</Text>
             )}
-            <Text
-              style={[
-                styles.messageTime,
-                isMe ? styles.myMessageTime : styles.otherMessageTime,
-              ]}
-            >
-              {item.timestamp}
-            </Text>
+            <Text style={styles.kakaoTimeText}>{item.timestamp}</Text>
+          </View>
+          <View style={[styles.messageBubble, styles.myMessageBubble]}>
+            {renderBubbleContent()}
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.otherMessageContainer}>
+        <Avatar
+          name={user.name}
+          size={38}
+          shape="circle"
+          uri={user.avatar}
+          style={styles.messageAvatar}
+        />
+        <View style={styles.otherMessageCol}>
+          <Text style={styles.otherAuthorName}>{user.name}</Text>
+          <View style={styles.otherBubbleRow}>
+            <View style={[styles.messageBubble, styles.otherMessageBubble]}>
+              {renderBubbleContent()}
+            </View>
+            <View style={styles.otherTimeBadgeCol}>
+              <Text style={styles.kakaoTimeText}>{item.timestamp}</Text>
+            </View>
           </View>
         </View>
       </View>
@@ -1139,8 +1144,12 @@ export default function ChatRoomScreen({ route, navigation }) {
   );
 
   return (
-    <LinearGradient colors={['#DCE6FF', '#F5F6FB']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.gradient}>
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#B2C7DA" />
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        {/* =================================================================
+            1. 카카오톡 채팅방 헤더
+            ================================================================= */}
         <View
           style={styles.header}
           onLayout={(event) => {
@@ -1150,208 +1159,199 @@ export default function ChatRoomScreen({ route, navigation }) {
             }
           }}
         >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#202436" />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            hitSlop={8}
+          >
+            <Ionicons name="arrow-back" size={24} color="#191919" />
+          </TouchableOpacity>
 
-        <View style={styles.headerCenter}>
-          <Avatar
-            name={user.name}
-            size={46}
-            shape="circle"
-            style={styles.headerAvatar}
-          />
-          <View style={styles.headerInfo}>
-            <Text style={styles.headerName}>{user.name}</Text>
-            <View style={styles.onlineStatus}>
-              <View style={styles.onlineDot} />
-              <Text style={styles.onlineText}>
-                {isCounterpartTyping ? '입력 중...' : '온라인'}
-              </Text>
-            </View>
+          <View style={styles.headerTitleWrap}>
+            <Text style={styles.headerTitle} numberOfLines={1}>{user.name}</Text>
+            {isCounterpartTyping ? (
+              <Text style={styles.typingIndicatorText}>입력 중...</Text>
+            ) : null}
+          </View>
+
+          <View style={styles.headerRightActions}>
+            <TouchableOpacity
+              style={styles.headerActionBtn}
+              onPress={handleToggleFavorite}
+              hitSlop={8}
+            >
+              <Ionicons
+                name={isFavorite ? 'star' : 'star-outline'}
+                size={22}
+                color={isFavorite ? '#F59E0B' : '#191919'}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerActionBtn}
+              onPress={() => setOptionsVisible(true)}
+              hitSlop={8}
+            >
+              <Ionicons name="menu-outline" size={26} color="#191919" />
+            </TouchableOpacity>
           </View>
         </View>
 
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={[
-              styles.favoriteButton,
-              isFavorite && styles.favoriteButtonActive,
+        <KeyboardAvoidingView
+          behavior={Platform.select({ ios: 'padding', android: 'height' })}
+          enabled={Platform.OS === 'ios' ? true : isKeyboardVisible}
+          style={styles.chatContainer}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
+        >
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderMessage}
+            keyExtractor={(item) => item.id}
+            style={styles.messagesListContainer}
+            contentContainerStyle={[
+              styles.messagesList,
+              { paddingBottom: composerHeight + 16 },
             ]}
-            onPress={handleToggleFavorite}
-            hitSlop={8}
-            activeOpacity={0.85}
-          >
-            <Ionicons
-              name={isFavorite ? 'star' : 'star-outline'}
-              size={22}
-              color={isFavorite ? '#FFC93D' : '#202436'}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.moreButton}
-            onPress={() => setOptionsVisible(true)}
-            hitSlop={8}
-          >
-            <Ionicons name="ellipsis-vertical" size={20} color="#202436" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <KeyboardAvoidingView
-        behavior={Platform.select({ ios: 'padding', android: 'height' })}
-        enabled={Platform.OS === 'ios' ? true : isKeyboardVisible}
-        style={styles.chatContainer}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
-      >
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
-          style={styles.messagesListContainer}
-          contentContainerStyle={[
-            styles.messagesList,
-            { paddingBottom: composerHeight + 16 },
-          ]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
-          onContentSizeChange={() => {
-            if (!shouldScrollToEndRef.current) return;
-            shouldScrollToEndRef.current = false;
-            flatListRef.current?.scrollToEnd({ animated: false });
-          }}
-          ListHeaderComponent={
-            messages.length > 0 && (nextCursor || loadingOlder || olderHistoryError) ? (
-              <View style={styles.olderHistoryContainer}>
-                {loadingOlder ? (
-                  <>
-                    <ActivityIndicator size="small" color={colors.primary} />
-                    <Text style={styles.olderHistoryText}>이전 대화를 불러오는 중...</Text>
-                  </>
-                ) : olderHistoryError ? (
-                  <>
-                    <Text style={styles.olderHistoryErrorText}>{olderHistoryError}</Text>
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+            onContentSizeChange={() => {
+              if (!shouldScrollToEndRef.current) return;
+              shouldScrollToEndRef.current = false;
+              flatListRef.current?.scrollToEnd({ animated: false });
+            }}
+            ListHeaderComponent={
+              messages.length > 0 && (nextCursor || loadingOlder || olderHistoryError) ? (
+                <View style={styles.olderHistoryContainer}>
+                  {loadingOlder ? (
+                    <>
+                      <ActivityIndicator size="small" color="#FEE500" />
+                      <Text style={styles.olderHistoryText}>이전 대화를 불러오는 중...</Text>
+                    </>
+                  ) : olderHistoryError ? (
+                    <>
+                      <Text style={styles.olderHistoryErrorText}>{olderHistoryError}</Text>
+                      <TouchableOpacity
+                        style={styles.olderHistoryButton}
+                        onPress={loadOlderHistory}
+                      >
+                        <Text style={styles.olderHistoryButtonText}>다시 시도</Text>
+                      </TouchableOpacity>
+                    </>
+                  ) : (
                     <TouchableOpacity
                       style={styles.olderHistoryButton}
                       onPress={loadOlderHistory}
                     >
-                      <Text style={styles.olderHistoryButtonText}>다시 시도</Text>
+                      <Text style={styles.olderHistoryButtonText}>이전 대화 불러오기</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ) : null
+            }
+            ListEmptyComponent={
+              <View style={styles.historyStateContainer}>
+                {historyLoading ? (
+                  <>
+                    <ActivityIndicator size="small" color="#FEE500" />
+                    <Text style={styles.historyStateText}>대화 내역을 불러오는 중...</Text>
+                  </>
+                ) : historyError ? (
+                  <>
+                    <Text style={styles.historyStateText}>{historyError}</Text>
+                    <TouchableOpacity style={styles.historyRetryButton} onPress={loadHistory}>
+                      <Text style={styles.historyRetryText}>다시 시도</Text>
                     </TouchableOpacity>
                   </>
                 ) : (
-                  <TouchableOpacity
-                    style={styles.olderHistoryButton}
-                    onPress={loadOlderHistory}
-                  >
-                    <Text style={styles.olderHistoryButtonText}>이전 대화 불러오기</Text>
-                  </TouchableOpacity>
+                  <View style={styles.emptyPromptBox}>
+                    <Text style={styles.emptyPromptText}>따뜻한 첫 인사를 건네보세요 ✨</Text>
+                  </View>
                 )}
               </View>
-            ) : null
-          }
-          ListEmptyComponent={
-            <View style={styles.historyStateContainer}>
-              {historyLoading ? (
-                <>
-                  <ActivityIndicator size="small" color={colors.primary} />
-                  <Text style={styles.historyStateText}>대화 내역을 불러오는 중...</Text>
-                </>
-              ) : historyError ? (
-                <>
-                  <Text style={styles.historyStateText}>{historyError}</Text>
-                  <TouchableOpacity style={styles.historyRetryButton} onPress={loadHistory}>
-                    <Text style={styles.historyRetryText}>다시 시도</Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <Text style={styles.historyStateText}>아직 메시지가 없어요</Text>
-              )}
-            </View>
-          }
-        />
-
-        {uploadingMedia ? (
-          <View style={styles.uploadingBar}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={styles.uploadingText}>사진/동영상을 전송하고 있습니다...</Text>
-          </View>
-        ) : null}
-
-        <View
-          style={[
-            styles.inputContainer,
-            { paddingBottom: insets.bottom + 8 },
-          ]}
-          onLayout={(event) => {
-            const nextHeight = event.nativeEvent.layout.height;
-            if (nextHeight !== composerHeight) {
-              setComposerHeight(nextHeight);
             }
-          }}
-        >
-          <TouchableOpacity
-            style={styles.attachButton}
-            onPress={() => {
-              Keyboard.dismiss();
-              setKeyboardVisible(false);
-              setAttachSheetVisible(true);
+          />
+
+          {uploadingMedia ? (
+            <View style={styles.uploadingBar}>
+              <ActivityIndicator size="small" color="#191919" />
+              <Text style={styles.uploadingText}>사진/동영상을 전송하고 있습니다...</Text>
+            </View>
+          ) : null}
+
+          {/* =================================================================
+              카카오톡 하단 메시지 입력창
+              ================================================================= */}
+          <View
+            style={[
+              styles.inputContainer,
+              { paddingBottom: Math.max(insets.bottom, 8) },
+            ]}
+            onLayout={(event) => {
+              const nextHeight = event.nativeEvent.layout.height;
+              if (nextHeight !== composerHeight) {
+                setComposerHeight(nextHeight);
+              }
             }}
           >
-            <Ionicons name="add-circle-outline" size={28} color="#8E97B5" />
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.attachButton}
+              onPress={() => {
+                Keyboard.dismiss();
+                setKeyboardVisible(false);
+                setAttachSheetVisible(true);
+              }}
+              hitSlop={6}
+            >
+              <Ionicons name="add" size={28} color="#707070" />
+            </TouchableOpacity>
 
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.textInput}
-              placeholder="메시지 입력..."
-              placeholderTextColor={colors.textTertiary}
-              value={inputText}
-              onChangeText={handleInputTextChange}
-              multiline
-              maxLength={500}
-            />
-          </View>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.textInput}
+                placeholder="메시지 입력"
+                placeholderTextColor="#999999"
+                value={inputText}
+                onChangeText={handleInputTextChange}
+                multiline
+                maxLength={500}
+              />
+              <TouchableOpacity
+                style={styles.emoticonButton}
+                onPress={handleOpenGiftSheet}
+                hitSlop={6}
+              >
+                <Ionicons name="gift-outline" size={22} color="#707070" />
+              </TouchableOpacity>
+            </View>
 
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              (
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                inputText.trim() ? styles.sendButtonActive : styles.sendButtonInactive,
+              ]}
+              onPress={sendMessage}
+              disabled={
                 inputText.trim() === '' ||
                 sendingMessage ||
                 historyLoading ||
                 !!historyError ||
                 !chatId ||
                 !currentActivityAccountId
-              ) && styles.sendButtonDisabled
-            ]}
-            onPress={sendMessage}
-            disabled={
-              inputText.trim() === '' ||
-              sendingMessage ||
-              historyLoading ||
-              !!historyError ||
-              !chatId ||
-              !currentActivityAccountId
-            }
-          >
-            {sendingMessage ? (
-              <ActivityIndicator size="small" color="#2B230A" />
-            ) : (
-              <Ionicons
-               name="paper-plane"
-                size={20}
-                color={inputText.trim() ? '#2B230A' : colors.textTertiary}
-              />
-            )}
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
+              }
+            >
+              {sendingMessage ? (
+                <ActivityIndicator size="small" color="#191919" />
+              ) : (
+                <Ionicons
+                  name="arrow-up"
+                  size={20}
+                  color={inputText.trim() ? '#191919' : '#B8B8B8'}
+                />
+              )}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
 
               <Modal
         transparent
@@ -1546,97 +1546,54 @@ export default function ChatRoomScreen({ route, navigation }) {
         </TouchableWithoutFeedback>
       </Modal>
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-    gradient: {
-    flex: 1,
-  },
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: '#B2C7DA',
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#B2C7DA',
   },
   header: {
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    backgroundColor: 'rgba(243, 247, 255, 0.92)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(192, 205, 238, 0.65)',
+    paddingHorizontal: 16,
+    backgroundColor: '#B2C7DA',
   },
   backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderWidth: 1,
-    borderColor: 'rgba(204, 214, 244, 0.9)',
-    marginRight: 10,
-  },
-  headerCenter: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  headerAvatar: {
-    marginRight: 0,
-    borderWidth: 2,
-    borderColor: '#D6E0FF',
-    borderRadius: 30,
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  headerName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#202436',
-  },
-  onlineStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  onlineDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#3CCB89',
+    padding: 4,
     marginRight: 6,
   },
-  onlineText: {
-    fontSize: 12,
-    color: '#4D7A64',
+  headerTitleWrap: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#191919',
+    letterSpacing: -0.3,
+  },
+  typingIndicatorText: {
+    fontSize: 11,
+    color: '#3A506B',
+    marginTop: 2,
     fontWeight: '600',
   },
-  headerActions: {
+  headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 14,
   },
-  favoriteButton: {
-    padding: 6,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderWidth: 1,
-    borderColor: 'rgba(204, 214, 244, 0.8)',
-  },
-  favoriteButtonActive: {
-    backgroundColor: 'rgba(255, 213, 96, 0.28)',
-  },
-  moreButton: {
-    padding: 6,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderWidth: 1,
-    borderColor: 'rgba(204, 214, 244, 0.8)',
+  headerActionBtn: {
+    padding: 4,
   },
   chatContainer: {
     flex: 1,
@@ -1645,8 +1602,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messagesList: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingHorizontal: 14,
+    paddingTop: 12,
   },
   historyStateContainer: {
     alignItems: 'center',
@@ -1656,194 +1613,218 @@ const styles = StyleSheet.create({
   },
   historyStateText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: '#4B5563',
     textAlign: 'center',
+  },
+  emptyPromptBox: {
+    backgroundColor: 'rgba(0,0,0,0.14)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    alignSelf: 'center',
+  },
+  emptyPromptText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   historyRetryButton: {
     paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderWidth: 1,
-    borderColor: '#E2E8F5',
+    backgroundColor: '#FEE500',
   },
   historyRetryText: {
     fontSize: 13,
-    fontWeight: '700',
-    color: colors.primary,
+    fontWeight: '800',
+    color: '#191919',
   },
   olderHistoryContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingBottom: 20,
+    paddingBottom: 16,
     gap: 8,
   },
   olderHistoryText: {
-    fontSize: 13,
-    color: colors.textSecondary,
+    fontSize: 12,
+    color: '#4B5563',
   },
   olderHistoryErrorText: {
-    fontSize: 13,
-    color: colors.textSecondary,
+    fontSize: 12,
+    color: '#EF4444',
     textAlign: 'center',
   },
   olderHistoryButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderWidth: 1,
-    borderColor: '#E2E8F5',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.85)',
   },
   olderHistoryButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    color: colors.primary,
+    color: '#191919',
   },
-  messageContainer: {
-    marginBottom: 14,
+  // 카카오톡 메시지 컨테이너 & 배치
+  myMessageContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+    marginBottom: 8,
+    alignSelf: 'flex-end',
+    maxWidth: '82%',
+  },
+  myTimeBadgeCol: {
+    alignItems: 'flex-end',
+    marginRight: 5,
+    marginBottom: 2,
+  },
+  kakaoUnreadNum: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#FEE500',
+    marginBottom: 2,
+    textShadowColor: 'rgba(0,0,0,0.15)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+  },
+  kakaoTimeText: {
+    fontSize: 10,
+    color: '#556677',
+    fontWeight: '500',
+  },
+  otherMessageContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+    alignSelf: 'flex-start',
+    maxWidth: '82%',
+  },
+  messageAvatar: {
+    marginRight: 8,
+    marginTop: 2,
+  },
+  otherMessageCol: {
+    flex: 1,
+  },
+  otherAuthorName: {
+    fontSize: 12,
+    color: '#374151',
+    marginBottom: 4,
+    fontWeight: '600',
+  },
+  otherBubbleRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
   },
-  myMessageContainer: {
-    justifyContent: 'flex-end',
-    alignSelf: 'flex-end',
-    flexDirection: 'row-reverse',
-  },
-  otherMessageContainer: {
-    justifyContent: 'flex-start',
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-  },
-  messageAvatar: {
-    marginHorizontal: 10,
-    marginBottom: 4,
-  },
-  messageContent: {
-    maxWidth: '82%',
+  otherTimeBadgeCol: {
+    marginLeft: 5,
+    marginBottom: 2,
   },
   daySeparator: {
     alignSelf: 'center',
-    marginVertical: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 6,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.7)',
-    borderWidth: 1,
-    borderColor: 'rgba(206, 214, 234, 0.6)',
+    marginVertical: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0, 0, 0, 0.16)',
   },
   daySeparatorText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    color: '#75809D',
+    color: '#FFFFFF',
   },
   messageBubble: {
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 14,
   },
   mediaMessageBubble: {
     paddingHorizontal: 0,
     paddingVertical: 0,
-    borderRadius: 20,
+    borderRadius: 14,
     backgroundColor: 'transparent',
-    borderWidth: 0,
+    overflow: 'hidden',
   },
   giftMessageBubble: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
+  // 카카오톡 옐로우 말풍선 (우측 상단 꼬리)
   myMessageBubble: {
-    backgroundColor: '#FFE27A',
-    borderBottomRightRadius: 8,
-    borderWidth: 0,
+    backgroundColor: '#FEE500',
+    borderTopRightRadius: 2,
   },
+  // 카카오톡 화이트 말풍선 (좌측 상단 꼬리)
   otherMessageBubble: {
-    backgroundColor: '#EEF1F8',
-    borderBottomLeftRadius: 8,
-    borderWidth: 0,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 2,
   },
   messageText: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: -0.2,
   },
   myMessageText: {
-    color: '#2F2608',
-    fontWeight: '600',
+    color: '#191919',
+    fontWeight: '500',
   },
   otherMessageText: {
-    color: '#20263A',
+    color: '#191919',
+    fontWeight: '500',
   },
-  messageFooterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    paddingHorizontal: 4,
-  },
-  myMessageFooterRow: {
-    justifyContent: 'flex-end',
-  },
-  unreadCountBadge: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#FF9500',
-    marginRight: 4,
-  },
-  messageTime: {
-    fontSize: 11,
-  },
-  myMessageTime: {
-    color: 'rgba(44, 34, 6, 0.55)',
-  },
-  otherMessageTime: {
-    color: '#8D96B5',
-  },
+  // 카카오톡 하단 입력창
   inputContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    backgroundColor: 'rgba(243, 247, 255, 0.95)',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(202, 212, 235, 0.7)',
+    borderTopColor: '#E8EAED',
   },
   attachButton: {
-    padding: 6,
-    marginBottom: 4,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 4,
   },
   inputWrapper: {
     flex: 1,
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: 'rgba(200, 210, 236, 0.85)',
-    marginHorizontal: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    minHeight: 46,
-    maxHeight: 140,
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: Platform.OS === 'ios' ? 8 : 4,
+    minHeight: 38,
+    maxHeight: 110,
   },
   textInput: {
     flex: 1,
-    fontSize: 15,
-    color: '#202436',
-    paddingTop: 0,
-    paddingBottom: 0,
-    maxHeight: 120,
+    fontSize: 14,
+    color: '#191919',
+    paddingVertical: 0,
+    maxHeight: 90,
   },
-  sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFE27A',
-    alignItems: 'center',
-    justifyContent: 'center',
+  emoticonButton: {
+    padding: 4,
     marginLeft: 4,
   },
-  sendButtonDisabled: {
-    opacity: 0.55,
+  sendButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
+  },
+  sendButtonActive: {
+    backgroundColor: '#FEE500',
+  },
+  sendButtonInactive: {
+    backgroundColor: '#EBEBEB',
   },
   bottomSheetBackdrop: {
     flex: 1,
@@ -1866,7 +1847,7 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1F2A44',
+    color: '#191919',
   },
   sheetActionsRow: {
     flexDirection: 'row',
@@ -1879,22 +1860,22 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F5',
-    backgroundColor: '#F8FAFF',
+    borderColor: '#E8EAED',
+    backgroundColor: '#F7F8FA',
     gap: 8,
   },
   sheetActionIcon: {
     width: 48,
     height: 48,
-    borderRadius: 16,
-    backgroundColor: 'rgba(243,108,147,0.18)',
+    borderRadius: 24,
+    backgroundColor: '#FEE500',
     alignItems: 'center',
     justifyContent: 'center',    
   },
   sheetActionLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1F2A44',
+    color: '#191919',
   },
   sheetOptionButton: {
     flexDirection: 'row',
@@ -1902,11 +1883,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F5',
+    borderColor: '#E8EAED',
     paddingHorizontal: 14,
     marginTop: 4,
     gap: 12,
-    backgroundColor: '#F8FAFF',
+    backgroundColor: '#FFFFFF',
   },
   sheetOptionIcon: {
     width: 28,
@@ -1915,7 +1896,7 @@ const styles = StyleSheet.create({
   sheetOptionLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2A44',
+    color: '#191919',
   },
   giftSheetContainer: {
     gap: 16,
