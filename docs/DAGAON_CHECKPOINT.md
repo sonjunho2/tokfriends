@@ -42,6 +42,9 @@ Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작�
   - 전송 버튼: 텍스트 입력 시 **카카오 옐로우 원형 버튼 `#FEE500`** 및 선명한 화살표 아이콘 활성화.
 - **첨부 메뉴 바텀시트**:
   - 카카오 옐로우 원형 아이콘과 라운드 카드 기반의 사진/동영상, 카메라, 선물하기 시트 적용.
+- **안드로이드 하단 거대 흰색 여백 제거 및 밀착 맞춤 (완료)**:
+  - **원인**: `SafeAreaView edges={['bottom']}`과 `inputContainer`의 `insets.bottom` 중복 적용, 그리고 안드로이드에서 `KeyboardAvoidingView behavior="height"` 충돌로 인해 입력창 아래에 120dp 상당의 거대한 흰색 공백이 발생하던 문제.
+  - **조치**: `SafeAreaView`의 `edges`를 상단 노치(`['top']`)로만 한정하고, `KeyboardAvoidingView`의 `behavior`를 iOS 전용으로 분기(`Platform.OS === 'ios' ? 'padding' : undefined`), 안드로이드의 `inputContainer` 하단 패딩을 `8dp`로 최적화하여 카카오톡처럼 안드로이드 소프트키 네비게이션 바 바로 위에 군더더기 없이 딱 맞춤 정렬되도록 수정 완료.
 
 ---
 

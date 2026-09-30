@@ -1147,7 +1147,7 @@ export default function ChatRoomScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#B2C7DA" />
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         {/* =================================================================
             1. 카카오톡 채팅방 헤더
             ================================================================= */}
@@ -1198,8 +1198,7 @@ export default function ChatRoomScreen({ route, navigation }) {
         </View>
 
         <KeyboardAvoidingView
-          behavior={Platform.select({ ios: 'padding', android: 'height' })}
-          enabled={Platform.OS === 'ios' ? true : isKeyboardVisible}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.chatContainer}
           keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
         >
@@ -1211,7 +1210,7 @@ export default function ChatRoomScreen({ route, navigation }) {
             style={styles.messagesListContainer}
             contentContainerStyle={[
               styles.messagesList,
-              { paddingBottom: composerHeight + 16 },
+              { paddingBottom: 16 },
             ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -1286,7 +1285,11 @@ export default function ChatRoomScreen({ route, navigation }) {
           <View
             style={[
               styles.inputContainer,
-              { paddingBottom: Math.max(insets.bottom, 8) },
+              {
+                paddingBottom: Platform.OS === 'ios'
+                  ? Math.max(insets.bottom, 8)
+                  : 8,
+              },
             ]}
             onLayout={(event) => {
               const nextHeight = event.nativeEvent.layout.height;
