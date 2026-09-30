@@ -190,19 +190,14 @@ export default function WelcomeScreen({ navigation }) {
             onPress={handleNext}
             activeOpacity={0.88}
           >
-            <LinearGradient
-              colors={[colors.primary || '#D97706', '#B45309']}
-              style={styles.gradientBtn}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
+            <View style={styles.gradientBtn}>
               <Text style={styles.primaryButtonText}>
                 {currentIndex === ONBOARDING_SLIDES.length - 1
                   ? '다가온 시작하기'
                   : '다음으로'}
               </Text>
-              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-            </LinearGradient>
+              <Ionicons name="arrow-forward" size={18} color="#191919" />
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -358,7 +353,7 @@ const styles = StyleSheet.create({
   },
   dotActive: {
     width: 24,
-    backgroundColor: '#F59E0B',
+    backgroundColor: '#FEE500',
   },
   dotInactive: {
     width: 8,
@@ -371,11 +366,12 @@ const styles = StyleSheet.create({
   primaryButton: {
     borderRadius: 18,
     overflow: 'hidden',
-    shadowColor: '#B45309',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 4,
+    backgroundColor: '#FEE500',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   gradientBtn: {
     flexDirection: 'row',
@@ -385,9 +381,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: '#191919',
     fontSize: 17,
-    fontWeight: '800',
+    fontWeight: '900',
     letterSpacing: -0.3,
   },
   loginLink: {

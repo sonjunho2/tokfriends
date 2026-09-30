@@ -252,19 +252,19 @@ function MainTabs() {
       initialRouteName="Home"
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textTertiary,
+        tabBarActiveTintColor: '#191919',
+        tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
-          borderTopColor: colors.borderLight,
+          borderTopColor: '#F2F3F5',
           borderTopWidth: 1,
           height: tabHeight,
           paddingBottom: bottomPadding,
           paddingTop: 8,
           elevation: 12,
-          shadowColor: colors.shadowColor,
+          shadowColor: '#000000',
           shadowOffset: { width: 0, height: -3 },
-          shadowOpacity: 0.08,
+          shadowOpacity: 0.06,
           shadowRadius: 10,
         },
         tabBarLabelStyle: {
@@ -281,7 +281,9 @@ function MainTabs() {
             My: focused ? 'person' : 'person-outline',
           };
           const name = iconMap[route.name] || (focused ? 'ellipse' : 'ellipse-outline');
-          return <Ionicons name={name} size={20} color={color} />;
+          const isLiveTab = route.name === 'Live';
+          const iconColor = isLiveTab && focused ? '#EF4444' : color;
+          return <Ionicons name={name} size={21} color={iconColor} />;
         },
       })}
     >
