@@ -1147,7 +1147,7 @@ export default function ChatRoomScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#B2C7DA" />
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         {/* =================================================================
             1. 카카오톡 채팅방 헤더
             ================================================================= */}
@@ -1283,14 +1283,7 @@ export default function ChatRoomScreen({ route, navigation }) {
               카카오톡 하단 메시지 입력창
               ================================================================= */}
           <View
-            style={[
-              styles.inputContainer,
-              {
-                paddingBottom: Platform.OS === 'ios'
-                  ? Math.max(insets.bottom, 8)
-                  : 8,
-              },
-            ]}
+            style={styles.inputContainer}
             onLayout={(event) => {
               const nextHeight = event.nativeEvent.layout.height;
               if (nextHeight !== composerHeight) {
