@@ -10,6 +10,9 @@ export class TopicsController {
 
   @Get()
   async findAll() {
-    return this.topicsService.findAll();
+    return {
+      ok: true,
+      data: await this.topicsService.findAll(),
+    };
   }
 }

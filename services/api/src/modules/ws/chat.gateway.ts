@@ -1,56 +1,165 @@
-import { WebSocketGateway, WebSocketServer, OnGatewayConnection, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
+import { OnModuleDestroy } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
+import { WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayInit, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
-import { containsBadWord } from '../../common/badwords';
-import { logEvent } from '../analytics/analytics.service';
+import { isCorsOriginAllowed, parseCorsOrigins } from '../../common/cors-origins';
+import { AuthenticatedUserContextService } from '../auth/authenticated-user-context.service';
+import { Public } from '../auth/public.decorator';
+import { ChatRealtimePublisher } from '../chats/chat-realtime-publisher.service';
+import { ChatsService } from '../chats/chats.service';
 
-const prisma = new PrismaClient();
+@Public()
+@SkipThrottle({ default: true })
+@WebSocketGateway({
+  cors: {
+    origin: (origin, callback) => {
+      const allowedOrigins = parseCorsOrigins(
+        process.env.CORS_ORIGIN?.trim(),
+      );
 
-@WebSocketGateway({ cors: { origin: process.env.WS_ALLOWED_ORIGINS || '*' } })
-export class ChatGateway implements OnGatewayConnection {
+      if (!origin || isCorsOriginAllowed(origin, allowedOrigins)) {
+        return callback(null, true);
+      }
+
+      callback(new Error(`CORS blocked: ${origin}`), false);
+    },
+  },
+})
+export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModuleDestroy {
   @WebSocketServer() server: Server;
+  private readonly jwtSecret: string;
+  private unsubscribeRealtime?: () => void;
+  private unsubscribeRead?: () => void;
+
+  constructor(
+    private readonly authenticatedUserContext: AuthenticatedUserContextService,
+    private readonly chatsService: ChatsService,
+    private readonly chatRealtimePublisher: ChatRealtimePublisher,
+  ) {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET is required');
+    }
+    this.jwtSecret = jwtSecret;
+  }
+
+  afterInit(server: Server) {
+    this.unsubscribeRealtime?.();
+    this.unsubscribeRealtime = this.chatRealtimePublisher.subscribe((message) => {
+      server.to(`chat:${message.chatId}`).emit('chat:message', message);
+    });
+    this.unsubscribeRead?.();
+    this.unsubscribeRead = this.chatRealtimePublisher.subscribeRead((event) => {
+      server.to(`chat:${event.chatId}`).emit('chat:read', {
+        chatId: event.chatId,
+        readerAccountId: event.readerAccountId,
+        readAt: event.readAt.toISOString(),
+      });
+    });
+  }
+
+  onModuleDestroy(): void {
+    this.unsubscribeRealtime?.();
+    this.unsubscribeRealtime = undefined;
+    this.unsubscribeRead?.();
+    this.unsubscribeRead = undefined;
+  }
 
   async handleConnection(client: Socket) {
     try {
-      const token = (client.handshake.auth && client.handshake.auth.token) || (client.handshake.query && (client.handshake.query['token'] as string));
-      if (!token) { client.disconnect(true); return; }
-      const payload: any = jwt.verify(token, process.env.JWT_SECRET || 'dev');
-      (client as any).userId = payload.sub;
-      client.emit('connected', { ok: true, userId: payload.sub });
+      const token = client.handshake.auth?.token;
+      if (typeof token !== 'string' || !token.trim()) {
+        client.disconnect(true);
+        return;
+      }
+      const payload = jwt.verify(token, this.jwtSecret);
+      const context =
+        await this.authenticatedUserContext.resolveFromPayload(payload);
+      if (!context) {
+        client.disconnect(true);
+        return;
+      }
+      client.data.userId = context.id;
+      client.data.activityAccountId = context.activityAccountId;
+      client.emit('connected', { ok: true });
     } catch (e) {
       client.disconnect(true);
     }
   }
 
-  @SubscribeMessage('join')
+  @SubscribeMessage('chat:join')
   async join(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string }) {
-    const userId = (client as any).userId as string;
-    const chat = await prisma.chat.findUnique({ where: { id: data.chatId } });
-    if (!chat) return { ok: false, error: 'NO_CHAT' };
-    if (![chat.userAId, chat.userBId].includes(userId)) return { ok: false, error: 'NOT_MEMBER' };
-    client.join(`chat:${data.chatId}`);
+    const userId = client.data.userId;
+    const chatId = typeof data?.chatId === 'string' ? data.chatId.trim() : '';
+    if (typeof userId !== 'string' || !userId.trim() || !chatId) {
+      return { ok: false, error: 'CHAT_UNAVAILABLE' };
+    }
+    try {
+      const authorized = await this.chatsService.authorizeRealtimeRoom(
+        userId,
+        client.data.activityAccountId,
+        chatId,
+      );
+      client.join(`chat:${authorized.chatId}`);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: 'CHAT_UNAVAILABLE' };
+    }
+  }
+
+  @SubscribeMessage('chat:leave')
+  async leave(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string }) {
+    const userId = client.data.userId;
+    const chatId = typeof data?.chatId === 'string' ? data.chatId.trim() : '';
+    if (typeof userId !== 'string' || !userId.trim() || !chatId) {
+      return { ok: false, error: 'CHAT_UNAVAILABLE' };
+    }
+    await client.leave(`chat:${chatId}`);
     return { ok: true };
   }
 
-  @SubscribeMessage('typing')
+  @SubscribeMessage('chat:typing')
   async typing(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string, typing: boolean }) {
-    const userId = (client as any).userId as string;
-    this.server.to(`chat:${data.chatId}`).emit('typing', { chatId: data.chatId, userId, typing: data.typing });
-    return { ok: true };
+    const userId = client.data.userId;
+    const chatId = typeof data?.chatId === 'string' ? data.chatId.trim() : '';
+    if (typeof userId !== 'string' || !userId.trim() || !chatId || typeof data?.typing !== 'boolean') {
+      return { ok: false, error: 'CHAT_UNAVAILABLE' };
+    }
+    try {
+      const authorized = await this.chatsService.authorizeRealtimeRoom(
+        userId,
+        client.data.activityAccountId,
+        chatId,
+      );
+      this.server.to(`chat:${authorized.chatId}`).emit('chat:typing', {
+        chatId: authorized.chatId,
+        senderAccountId: client.data.activityAccountId,
+        typing: data.typing,
+      });
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: 'CHAT_UNAVAILABLE' };
+    }
   }
 
-  @SubscribeMessage('message:send')
-  async messageSend(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string, content: string }) {
-    const userId = (client as any).userId as string;
-    if (containsBadWord(data.content)) return { ok: false, error: 'CONTENT_FLAGGED' };
-    const chat = await prisma.chat.findUnique({ where: { id: data.chatId } });
-    if (!chat) return { ok: false, error: 'NO_CHAT' };
-    if (![chat.userAId, chat.userBId].includes(userId)) return { ok: false, error: 'NOT_MEMBER' };
-    const msg = await prisma.message.create({ data: { chatId: data.chatId, senderId: userId, content: data.content } });
-    await prisma.chat.update({ where: { id: data.chatId }, data: { lastMessageAt: new Date() } });
-    this.server.to(`chat:${data.chatId}`).emit('message:new', { chatId: data.chatId, msg });
-    await logEvent('message_sent_ws', { chatId: data.chatId }, userId);
-    return { ok: true };
+  @SubscribeMessage('chat:read')
+  async read(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string }) {
+    const userId = client.data.userId;
+    const chatId = typeof data?.chatId === 'string' ? data.chatId.trim() : '';
+    if (typeof userId !== 'string' || !userId.trim() || !chatId) {
+      return { ok: false, error: 'CHAT_UNAVAILABLE' };
+    }
+    try {
+      const result = await this.chatsService.markAsRead(
+        userId,
+        client.data.activityAccountId,
+        chatId,
+      );
+      return { ok: true, data: result };
+    } catch (e) {
+      return { ok: false, error: 'CHAT_UNAVAILABLE' };
+    }
   }
+
 }

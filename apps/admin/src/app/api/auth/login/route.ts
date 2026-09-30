@@ -1,0 +1,106 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+
+const SESSION_COOKIE = 'tokfriends_admin_session'
+const UPSTREAM_TIMEOUT_MS = 10_000
+const adminLoginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+}).strict()
+
+export async function POST(request: NextRequest) {
+  const origin = request.headers.get('origin')
+
+  if (!origin || origin !== request.nextUrl.origin) {
+    return NextResponse.json({ message: 'Invalid request origin.' }, { status: 403, headers: { 'Cache-Control': 'no-store' } })
+  }
+  const apiBase = process.env.TOK_API_BASE_URL?.replace(/\/+$/, '').replace(/\/v1$/, '')
+
+  if (!apiBase) {
+    return NextResponse.json({ message: 'Admin API configuration is missing.' }, { status: 500, headers: { 'Cache-Control': 'no-store' } })
+  }
+
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ message: 'Invalid JSON request body.' }, { status: 400, headers: { 'Cache-Control': 'no-store' } })
+  }
+
+  const parsedBody = adminLoginSchema.safeParse(body)
+  if (!parsedBody.success) {
+    return NextResponse.json({ message: 'Invalid login request.' }, { status: 400, headers: { 'Cache-Control': 'no-store' } })
+  }
+
+  let loginResponse: Response
+  try {
+    loginResponse = await fetch(`${apiBase}/v1/auth/login/email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(parsedBody.data),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+    })
+  } catch (error) {
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      return NextResponse.json({ message: 'Admin API request timed out.' }, { status: 504, headers: { 'Cache-Control': 'no-store' } })
+    }
+    return NextResponse.json({ message: 'Admin API is unavailable.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
+  }
+
+  const loginData = await loginResponse.json().catch(() => null)
+
+  if (loginResponse.status >= 500) {
+    return NextResponse.json({ message: 'Admin API returned a server error.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
+  }
+
+  if (!loginResponse.ok) {
+    return NextResponse.json(loginData ?? { message: 'Login failed.' }, { status: loginResponse.status, headers: { 'Cache-Control': 'no-store' } })
+  }
+
+  const token = loginData?.token || loginData?.access_token
+
+  if (!token) {
+    return NextResponse.json({ message: 'Login response did not contain an access token.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
+  }
+
+  let meResponse: Response
+  try {
+    meResponse = await fetch(`${apiBase}/v1/users/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+    })
+  } catch (error) {
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      return NextResponse.json({ message: 'Admin API request timed out.' }, { status: 504, headers: { 'Cache-Control': 'no-store' } })
+    }
+    return NextResponse.json({ message: 'Admin API is unavailable.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
+  }
+
+  const meData = await meResponse.json().catch(() => null)
+  const currentUser = meData?.data
+
+  if (meResponse.status >= 500) {
+    return NextResponse.json({ message: 'Admin API returned a server error.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
+  }
+
+  if (!meResponse.ok || currentUser?.role !== 'admin') {
+    return NextResponse.json({ message: 'Admin access is required.' }, { status: 403, headers: { 'Cache-Control': 'no-store' } })
+  }
+
+  const response = NextResponse.json({ ok: true, user: currentUser })
+  response.headers.set('Cache-Control', 'no-store')
+
+  response.cookies.set({
+    name: SESSION_COOKIE,
+    value: token,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 7,
+  })
+
+  return response
+}

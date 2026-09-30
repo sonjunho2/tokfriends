@@ -1,140 +1,1529 @@
-// services/api/src/modules/chats/chats.service.ts
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import { PrismaService } from 'nestjs-prisma';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import { isISO8601 } from "class-validator";
+import { PrismaService } from "nestjs-prisma";
+import { buildDefaultActivityAccountSelection } from "../../common/activity-account-selection";
+import {
+  ChatRealtimeMessage,
+  ChatRealtimePublisher,
+} from "./chat-realtime-publisher.service";
+import {
+  ChatMessagesQueryDto,
+  DirectChatDto,
+  SendGiftDto,
+  SendMessageDto,
+} from "./dto";
+import { NotificationsService } from "../notifications/notifications.service";
+import { GiftsService } from "../gifts/gifts.service";
 
-const chatWithUsersInclude = Prisma.validator<Prisma.ChatInclude>()({
-  userA: {
+const MAX_TRANSACTION_RETRIES = 3;
+
+function isAccountPairUniqueConflict(error: unknown): boolean {
+  if (
+    !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+    error.code !== "P2002"
+  ) {
+    return false;
+  }
+  const target = (error.meta as { target?: string | string[] } | undefined)
+    ?.target;
+  if (Array.isArray(target)) {
+    return target.includes("accountAId") && target.includes("accountBId");
+  }
+  return (
+    typeof target === "string" &&
+    ((target.includes("accountAId") && target.includes("accountBId")) ||
+      target.includes("Chat_accountAId_accountBId_key"))
+  );
+}
+function isTransactionConflict(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2034"
+  );
+}
+function isMessageIdempotencyUniqueConflict(error: unknown): boolean {
+  if (
+    !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+    error.code !== "P2002"
+  ) {
+    return false;
+  }
+  const target = (error.meta as { target?: string | string[] } | undefined)
+    ?.target;
+  if (Array.isArray(target)) {
+    return (
+      target.includes("senderAccountId") &&
+      target.includes("clientMessageId")
+    );
+  }
+  return (
+    typeof target === "string" &&
+    ((target.includes("senderAccountId") &&
+      target.includes("clientMessageId")) ||
+      target.includes("Message_senderAccountId_clientMessageId_key"))
+  );
+}
+
+const chatInclude = Prisma.validator<Prisma.ChatInclude>()({
+  userA: { select: { id: true } },
+  userB: { select: { id: true } },
+  accountA: { select: { id: true, handle: true, displayName: true } },
+  accountB: { select: { id: true, handle: true, displayName: true } },
+});
+type ChatWithRelations = Prisma.ChatGetPayload<{ include: typeof chatInclude }>;
+const directAccountSelect = Prisma.validator<Prisma.ActivityAccountSelect>()({
+  id: true,
+  ownerId: true,
+  handle: true,
+  displayName: true,
+  owner: {
     select: {
-      id: true,
-      displayName: true,
-      profile: { select: { nickname: true, avatarUri: true } },
-    },
-  },
-  userB: {
-    select: {
-      id: true,
-      displayName: true,
-      profile: { select: { nickname: true, avatarUri: true } },
+      legacyUserId: true,
+      legacyUser: { select: { status: true } },
     },
   },
 });
-
-type ChatWithUsers = Prisma.ChatGetPayload<{ include: typeof chatWithUsersInclude }>;
-
+type DirectAccount = Prisma.ActivityAccountGetPayload<{
+  select: typeof directAccountSelect;
+}>;
 type DirectRoomResponse = {
   id: string;
   title: string;
   participants: Array<{
     id: string;
+    handle: string | null;
     displayName: string | null;
-    nickname: string | null;
-    avatarUri: string | null;
   }>;
+};
+type SendMessageResponse = ChatRealtimeMessage;
+type ChatMessageHistoryItem = {
+  id: string;
+  chatId: string;
+  senderAccountId: string | null;
+  type: string;
+  content: string;
+  translatedContent: string | null;
+  readAt: Date | null;
+  createdAt: Date;
+};
+type ChatMessageHistoryResponse = {
+  items: ChatMessageHistoryItem[];
+  nextCursor: { createdAt: string; id: string } | null;
 };
 
 @Injectable()
 export class ChatsService {
-    constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(ChatsService.name);
 
-  private readonly chatInclude = chatWithUsersInclude;
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly chatRealtimePublisher: ChatRealtimePublisher,
+    private readonly notificationsService: NotificationsService,
+    private readonly giftsService: GiftsService,
+  ) {}
 
-  async list() {
-    return this.prisma.chat.findMany({ take: 20, orderBy: { lastMessageAt: 'desc' } });
-  }
-
-  async send(dto: { chatId: string; senderId: string; content: string }) {
-    const msg = await this.prisma.message.create({
-      data: { chatId: dto.chatId, senderId: dto.senderId, content: dto.content },
-    });
-    await this.prisma.chat.update({ where: { id: dto.chatId }, data: { lastMessageAt: new Date() } });
-    return msg;
-  }
-
-  async createRoom(dto: { userAId: string; userBId: string; title?: string; category?: string }) {
-    const chat = await this.prisma.chat.create({
-      data: {
-        userAId: dto.userAId,
-        userBId: dto.userBId,
-        lastMessageAt: new Date(),
+  async list(
+    currentUserId: string | undefined,
+    actorAccountId?: string | null,
+  ) {
+    if (!currentUserId)
+      throw new BadRequestException("Missing authenticated user");
+    if (!actorAccountId)
+      throw new ForbiddenException("Active activity account required");
+    const actor = await this.prisma.activityAccount.findFirst({
+      where: {
+        id: actorAccountId,
+        status: "active",
+        owner: {
+          status: "active",
+          legacyUserId: currentUserId,
+          legacyUser: { status: "active" },
+        },
+      },
+      select: {
+        id: true,
+        ownerId: true,
+        owner: { select: { legacyUserId: true } },
       },
     });
+    if (!actor?.owner.legacyUserId)
+      throw new ForbiddenException("Active activity account required");
+    const blocks = await this.prisma.block.findMany({
+      where: {
+        OR: [
+          { userId: actor.owner.legacyUserId },
+          { blockedUserId: actor.owner.legacyUserId },
+        ],
+      },
+      select: { userId: true, blockedUserId: true },
+    });
+    const blocked = blocks.map((b) =>
+      b.userId === actor.owner.legacyUserId ? b.blockedUserId : b.userId,
+    );
+    const chats = await this.prisma.chat.findMany({
+      where: {
+        OR: [
+          {
+            accountAId: actorAccountId,
+            userAId: actor.owner.legacyUserId,
+            accountBId: { not: null },
+            accountB: {
+              is: {
+                status: "active",
+                owner: {
+                  status: "active",
+                  legacyUserId: blocked.length
+                    ? { notIn: blocked }
+                    : { not: null },
+                  legacyUser: { status: "active" },
+                },
+              },
+            },
+          },
+          {
+            accountBId: actorAccountId,
+            userBId: actor.owner.legacyUserId,
+            accountAId: { not: null },
+            accountA: {
+              is: {
+                status: "active",
+                owner: {
+                  status: "active",
+                  legacyUserId: blocked.length
+                    ? { notIn: blocked }
+                    : { not: null },
+                  legacyUser: { status: "active" },
+                },
+              },
+            },
+          },
+        ],
+      },
+      take: 20,
+      orderBy: [{ lastMessageAt: "desc" }, { id: "desc" }],
+      include: {
+        accountA: {
+          select: {
+            id: true,
+            handle: true,
+            displayName: true,
+            status: true,
+            owner: {
+              select: {
+                status: true,
+                legacyUserId: true,
+                legacyUser: { select: { status: true } },
+              },
+            },
+          },
+        },
+        accountB: {
+          select: {
+            id: true,
+            handle: true,
+            displayName: true,
+            status: true,
+            owner: {
+              select: {
+                status: true,
+                legacyUserId: true,
+                legacyUser: { select: { status: true } },
+              },
+            },
+          },
+        },
+        messages: {
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          take: 1,
+          select: {
+            content: true,
+            type: true,
+            createdAt: true,
+          },
+        },
+        _count: {
+          select: {
+            messages: {
+              where: {
+                senderAccountId: { not: actorAccountId },
+                readAt: null,
+              },
+            },
+          },
+        },
+      },
+    });
+    return chats.flatMap((chat) => {
+      const counterpart =
+        chat.accountAId === actorAccountId ? chat.accountB : chat.accountA;
+      const counterpartUserId = counterpart?.owner.legacyUserId;
+      if (!counterpart || !counterpartUserId) return [];
+      const aligned =
+        chat.accountAId === actorAccountId
+          ? chat.userAId === actor.owner.legacyUserId &&
+            chat.userBId === counterpartUserId
+          : chat.userBId === actor.owner.legacyUserId &&
+            chat.userAId === counterpartUserId;
+      if (!aligned) return [];
+      return [
+        {
+          id: chat.id,
+          counterpart: {
+            id: counterpart.id,
+            handle: counterpart.handle,
+            displayName: counterpart.displayName,
+          },
+          lastMessageAt: chat.lastMessageAt,
+          lastMessage: chat.messages?.[0]?.content ?? null,
+          unreadCount: chat._count?.messages ?? 0,
+        },
+      ];
+    });
+  }
+
+  async authorizeRealtimeRoom(
+    currentUserId: string | undefined,
+    actorAccountId: string | null | undefined,
+    chatId: string,
+  ): Promise<{ chatId: string }> {
+    if (!currentUserId)
+      throw new BadRequestException("Missing authenticated user");
+    if (!actorAccountId)
+      throw new ForbiddenException("Active activity account required");
+    const actor = await this.prisma.activityAccount.findFirst({
+      where: {
+        id: actorAccountId,
+        status: "active",
+        owner: {
+          status: "active",
+          legacyUserId: currentUserId,
+          legacyUser: { status: "active" },
+        },
+      },
+      select: directAccountSelect,
+    });
+    if (!actor?.owner.legacyUserId)
+      throw new ForbiddenException("Active activity account required");
+    const chat = await this.prisma.chat.findFirst({
+      where: {
+        id: chatId,
+        OR: [
+          {
+            accountAId: actorAccountId,
+            userAId: actor.owner.legacyUserId,
+            accountBId: { not: null },
+            accountB: {
+              is: {
+                status: "active",
+                owner: {
+                  status: "active",
+                  legacyUserId: { not: null },
+                  legacyUser: { status: "active" },
+                },
+              },
+            },
+          },
+          {
+            accountBId: actorAccountId,
+            userBId: actor.owner.legacyUserId,
+            accountAId: { not: null },
+            accountA: {
+              is: {
+                status: "active",
+                owner: {
+                  status: "active",
+                  legacyUserId: { not: null },
+                  legacyUser: { status: "active" },
+                },
+              },
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        userAId: true,
+        userBId: true,
+        accountAId: true,
+        accountBId: true,
+        accountA: {
+          select: {
+            id: true,
+            ownerId: true,
+            owner: { select: { legacyUserId: true } },
+          },
+        },
+        accountB: {
+          select: {
+            id: true,
+            ownerId: true,
+            owner: { select: { legacyUserId: true } },
+          },
+        },
+      },
+    });
+    if (!chat) throw new NotFoundException("Chat not found");
+    const counterpart =
+      chat.accountAId === actorAccountId ? chat.accountB : chat.accountA;
+    const counterpartUserId = counterpart?.owner.legacyUserId;
+    const aligned =
+      chat.accountAId === actorAccountId
+        ? chat.userBId === counterpartUserId
+        : chat.userAId === counterpartUserId;
+    if (
+      !counterpartUserId ||
+      !aligned ||
+      counterpart.ownerId === actor.ownerId ||
+      counterpartUserId === actor.owner.legacyUserId
+    )
+      throw new NotFoundException("Chat not found");
+    const block = await this.prisma.block.findFirst({
+      where: {
+        OR: [
+          {
+            userId: actor.owner.legacyUserId,
+            blockedUserId: counterpartUserId,
+          },
+          {
+            userId: counterpartUserId,
+            blockedUserId: actor.owner.legacyUserId,
+          },
+        ],
+      },
+      select: { id: true },
+    });
+    if (block) throw new NotFoundException("Chat not found");
+    return { chatId: chat.id };
+  }
+
+  async history(
+    currentUserId: string | undefined,
+    actorAccountId: string | null | undefined,
+    chatId: string,
+    query: ChatMessagesQueryDto,
+  ): Promise<ChatMessageHistoryResponse> {
+    if (!currentUserId)
+      throw new BadRequestException("Missing authenticated user");
+    if (!actorAccountId)
+      throw new ForbiddenException("Active activity account required");
+    const hasCursorCreatedAt = query.cursorCreatedAt !== undefined;
+    const hasCursorId = query.cursorId !== undefined;
+    if (hasCursorCreatedAt !== hasCursorId)
+      throw new BadRequestException("Invalid message cursor");
+    const limit = query.limit ?? 30;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 50)
+      throw new BadRequestException("Invalid message limit");
+    let cursorDate: Date | null = null;
+    if (hasCursorCreatedAt) {
+      if (
+        typeof query.cursorCreatedAt !== "string" ||
+        !query.cursorCreatedAt ||
+        !isISO8601(query.cursorCreatedAt) ||
+        typeof query.cursorId !== "string" ||
+        !query.cursorId
+      )
+        throw new BadRequestException("Invalid message cursor");
+      cursorDate = new Date(query.cursorCreatedAt);
+    }
+    const actor = await this.prisma.activityAccount.findFirst({
+      where: {
+        id: actorAccountId,
+        status: "active",
+        owner: {
+          status: "active",
+          legacyUserId: currentUserId,
+          legacyUser: { status: "active" },
+        },
+      },
+      select: directAccountSelect,
+    });
+    if (!actor?.owner.legacyUserId)
+      throw new ForbiddenException("Active activity account required");
+    const chat = await this.prisma.chat.findFirst({
+      where: {
+        id: chatId,
+        OR: [
+          {
+            accountAId: actorAccountId,
+            userAId: actor.owner.legacyUserId,
+            accountBId: { not: null },
+            accountB: {
+              is: {
+                status: "active",
+                owner: {
+                  status: "active",
+                  legacyUserId: { not: null },
+                  legacyUser: { status: "active" },
+                },
+              },
+            },
+          },
+          {
+            accountBId: actorAccountId,
+            userBId: actor.owner.legacyUserId,
+            accountAId: { not: null },
+            accountA: {
+              is: {
+                status: "active",
+                owner: {
+                  status: "active",
+                  legacyUserId: { not: null },
+                  legacyUser: { status: "active" },
+                },
+              },
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        userAId: true,
+        userBId: true,
+        accountAId: true,
+        accountBId: true,
+        accountA: {
+          select: {
+            id: true,
+            ownerId: true,
+            owner: { select: { legacyUserId: true } },
+          },
+        },
+        accountB: {
+          select: {
+            id: true,
+            ownerId: true,
+            owner: { select: { legacyUserId: true } },
+          },
+        },
+      },
+    });
+    if (!chat) throw new NotFoundException("Chat not found");
+    const counterpart =
+      chat.accountAId === actorAccountId ? chat.accountB : chat.accountA;
+    const counterpartUserId = counterpart?.owner.legacyUserId;
+    const aligned =
+      chat.accountAId === actorAccountId
+        ? chat.userBId === counterpartUserId
+        : chat.userAId === counterpartUserId;
+    if (
+      !counterpartUserId ||
+      !aligned ||
+      counterpart.ownerId === actor.ownerId ||
+      counterpartUserId === actor.owner.legacyUserId
+    )
+      throw new NotFoundException("Chat not found");
+    const block = await this.prisma.block.findFirst({
+      where: {
+        OR: [
+          {
+            userId: actor.owner.legacyUserId,
+            blockedUserId: counterpartUserId,
+          },
+          {
+            userId: counterpartUserId,
+            blockedUserId: actor.owner.legacyUserId,
+          },
+        ],
+      },
+      select: { id: true },
+    });
+    if (block) throw new NotFoundException("Chat not found");
+    const messages = await this.prisma.message.findMany({
+      where: {
+        chatId: chat.id,
+        ...(cursorDate
+          ? {
+              OR: [
+                { createdAt: { lt: cursorDate } },
+                { createdAt: cursorDate, id: { lt: query.cursorId! } },
+              ],
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        chatId: true,
+        senderAccountId: true,
+        type: true,
+        content: true,
+        translatedContent: true,
+        readAt: true,
+        createdAt: true,
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+    });
+    const hasMore = messages.length > limit;
+    const page = messages.slice(0, limit);
+    const oldest = page[page.length - 1];
     return {
-      ok: true,
-      id: chat.id,
-      userAId: chat.userAId,
-      userBId: chat.userBId,
-      title: dto.title ?? '',
-      category: dto.category ?? '',
+      items: page
+        .map((message) => ({
+          ...message,
+          senderAccountId:
+            message.senderAccountId === chat.accountAId ||
+            message.senderAccountId === chat.accountBId
+              ? message.senderAccountId
+              : null,
+          readAt: message.readAt,
+        }))
+        .reverse(),
+      nextCursor:
+        hasMore && oldest
+          ? { createdAt: oldest.createdAt.toISOString(), id: oldest.id }
+          : null,
     };
   }
 
-  async ensureDirectRoom(currentUserId: string, targetUserId: string): Promise<DirectRoomResponse> {
-    if (!currentUserId) {
-      throw new BadRequestException('Missing authenticated user');
-    }
+  async markAsRead(
+    currentUserId: string | undefined,
+    actorAccountId: string | null | undefined,
+    chatId: string,
+  ): Promise<{ chatId: string; readCount: number; readAt: string }> {
+    if (!currentUserId)
+      throw new BadRequestException("Missing authenticated user");
+    if (!actorAccountId)
+      throw new ForbiddenException("Active activity account required");
 
-    if (!targetUserId) {
-      throw new BadRequestException('targetUserId is required');
-    }
+    const actor = await this.prisma.activityAccount.findFirst({
+      where: {
+        id: actorAccountId,
+        status: "active",
+        owner: {
+          status: "active",
+          legacyUserId: currentUserId,
+          legacyUser: { status: "active" },
+        },
+      },
+      select: directAccountSelect,
+    });
+    if (!actor?.owner.legacyUserId)
+      throw new ForbiddenException("Active activity account required");
 
-    if (currentUserId === targetUserId) {
-      throw new BadRequestException('Cannot create a conversation with yourself');
-    }
+    const chat = await this.prisma.chat.findFirst({
+      where: {
+        id: chatId,
+        OR: [
+          { accountAId: actorAccountId, userAId: actor.owner.legacyUserId },
+          { accountBId: actorAccountId, userBId: actor.owner.legacyUserId },
+        ],
+      },
+      select: { id: true, accountAId: true, accountBId: true },
+    });
+    if (!chat) throw new NotFoundException("Chat not found");
 
-    const target = await this.prisma.user.findUnique({
-      where: { id: targetUserId },
-      select: { id: true },
+    const now = new Date();
+    const updateResult = await this.prisma.message.updateMany({
+      where: {
+        chatId: chat.id,
+        senderAccountId: { not: actorAccountId },
+        readAt: null,
+      },
+      data: {
+        readAt: now,
+      },
     });
 
-    if (!target) {
-      throw new NotFoundException('Target user not found');
+    if (updateResult.count > 0) {
+      this.chatRealtimePublisher.publishRead({
+        chatId: chat.id,
+        readerAccountId: actorAccountId,
+        readAt: now,
+      });
     }
-
-    const chat = await this.prisma.$transaction(async (tx) => {
-      const existing = await tx.chat.findFirst({
-        where: {
-          OR: [
-            { userAId: currentUserId, userBId: targetUserId },
-            { userAId: targetUserId, userBId: currentUserId },
-          ],
-        },
-        include: this.chatInclude,
-      });
-
-      if (existing) {
-        return existing;
-      }
-
-      return tx.chat.create({
-        data: {
-          userAId: currentUserId,
-          userBId: targetUserId,
-          lastMessageAt: new Date(),
-        },
-        include: this.chatInclude,
-      });
-    });
-
-    return this.serializeDirectChat(chat, currentUserId);
-  }
-
-  private serializeDirectChat(chat: ChatWithUsers, currentUserId: string): DirectRoomResponse {
-    const userA = chat.userA;
-    const userB = chat.userB;
-
-    const titleSource = chat.userAId === currentUserId ? userB : userA;
-    const makeDisplayName = (participant: ChatWithUsers['userA']) =>
-      participant.displayName || participant.profile?.nickname || null;
 
     return {
+      chatId: chat.id,
+      readCount: updateResult.count,
+      readAt: now.toISOString(),
+    };
+  }
+
+  async send(
+    currentUserId: string | undefined,
+    actorAccountId: string | null | undefined,
+    dto: SendMessageDto,
+  ): Promise<SendMessageResponse> {
+    if (!currentUserId)
+      throw new BadRequestException("Missing authenticated user");
+    if (!actorAccountId)
+      throw new ForbiddenException("Active activity account required");
+    for (let attempt = 0; attempt < MAX_TRANSACTION_RETRIES; attempt += 1) {
+      try {
+        const result = await this.prisma.$transaction(
+          async (tx) => {
+            const actor = await tx.activityAccount.findFirst({
+              where: {
+                id: actorAccountId,
+                status: "active",
+                owner: {
+                  status: "active",
+                  legacyUserId: currentUserId,
+                  legacyUser: { status: "active" },
+                },
+              },
+              select: directAccountSelect,
+            });
+            if (!actor?.owner.legacyUserId)
+              throw new ForbiddenException("Active activity account required");
+            const chat = await tx.chat.findFirst({
+              where: {
+                id: dto.chatId,
+                OR: [
+                  {
+                    accountAId: actorAccountId,
+                    userAId: actor.owner.legacyUserId,
+                    accountBId: { not: null },
+                    accountB: {
+                      is: {
+                        status: "active",
+                        owner: {
+                          status: "active",
+                          legacyUserId: { not: null },
+                          legacyUser: { status: "active" },
+                        },
+                      },
+                    },
+                  },
+                  {
+                    accountBId: actorAccountId,
+                    userBId: actor.owner.legacyUserId,
+                    accountAId: { not: null },
+                    accountA: {
+                      is: {
+                        status: "active",
+                        owner: {
+                          status: "active",
+                          legacyUserId: { not: null },
+                          legacyUser: { status: "active" },
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+              select: {
+                id: true,
+                userAId: true,
+                userBId: true,
+                accountAId: true,
+                accountBId: true,
+                accountA: {
+                  select: {
+                    id: true,
+                    ownerId: true,
+                    owner: { select: { legacyUserId: true } },
+                  },
+                },
+                accountB: {
+                  select: {
+                    id: true,
+                    ownerId: true,
+                    owner: { select: { legacyUserId: true } },
+                  },
+                },
+              },
+            });
+            if (!chat) throw new NotFoundException("Chat not found");
+            const counterpart =
+              chat.accountAId === actorAccountId
+                ? chat.accountB
+                : chat.accountA;
+            const counterpartUserId = counterpart?.owner.legacyUserId;
+            const aligned =
+              chat.accountAId === actorAccountId
+                ? chat.userBId === counterpartUserId
+                : chat.userAId === counterpartUserId;
+            if (
+              !counterpartUserId ||
+              !aligned ||
+              counterpart.ownerId === actor.ownerId ||
+              counterpartUserId === actor.owner.legacyUserId
+            )
+              throw new ConflictException("Chat is unavailable");
+            const block = await tx.block.findFirst({
+              where: {
+                OR: [
+                  {
+                    userId: actor.owner.legacyUserId,
+                    blockedUserId: counterpartUserId,
+                  },
+                  {
+                    userId: counterpartUserId,
+                    blockedUserId: actor.owner.legacyUserId,
+                  },
+                ],
+              },
+              select: { id: true },
+            });
+            if (block) throw new ForbiddenException("Chat is unavailable");
+            if (dto.clientMessageId) {
+              const existingMessage = await tx.message.findFirst({
+                where: {
+                  senderAccountId: actor.id,
+                  clientMessageId: dto.clientMessageId,
+                },
+                select: {
+                  id: true,
+                  chatId: true,
+                  senderAccountId: true,
+                  type: true,
+                  content: true,
+                  translatedContent: true,
+                  createdAt: true,
+                },
+              });
+              if (existingMessage) {
+                if (
+                  existingMessage.chatId !== dto.chatId ||
+                  existingMessage.content !== dto.content ||
+                  (dto.type && existingMessage.type !== dto.type)
+                ) {
+                  throw new ConflictException(
+                    "Message request conflicts with an existing message",
+                  );
+                }
+                return {
+                  message: {
+                    ...existingMessage,
+                    senderAccountId: actor.id,
+                  },
+                  created: false,
+                  recipientUserId: undefined as string | undefined,
+                  senderDisplayName: undefined as string | undefined,
+                };
+              }
+            }
+            const now = new Date();
+            const message = await tx.message.create({
+              data: {
+                chatId: dto.chatId,
+                senderId: actor.owner.legacyUserId,
+                senderAccountId: actor.id,
+                clientMessageId: dto.clientMessageId,
+                type: dto.type || "text",
+                content: dto.content,
+                createdAt: now,
+              },
+              select: {
+                id: true,
+                chatId: true,
+                senderAccountId: true,
+                type: true,
+                content: true,
+                translatedContent: true,
+                createdAt: true,
+              },
+            });
+            await tx.chat.update({
+              where: { id: chat.id },
+              data: { lastMessageAt: now },
+            });
+            return {
+              message: {
+                ...message,
+                senderAccountId: actor.id,
+              },
+              created: true,
+              recipientUserId: counterpartUserId,
+              senderDisplayName: actor.displayName || actor.handle || "사용자",
+            };
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+        if (result.created) {
+          this.chatRealtimePublisher.publish(result.message);
+          if (result.recipientUserId) {
+            this.notificationsService
+              .sendChatPush({
+                recipientUserId: result.recipientUserId,
+                senderDisplayName: result.senderDisplayName || "새 메시지",
+                content: result.message.content,
+                type: result.message.type,
+                chatId: result.message.chatId,
+                messageId: result.message.id,
+              })
+              .catch((err) => {
+                this.logger.warn(
+                  `Failed to dispatch chat push: ${err instanceof Error ? err.message : err}`,
+                );
+              });
+          }
+        }
+        return result.message;
+      } catch (error: unknown) {
+        if (isMessageIdempotencyUniqueConflict(error) && dto.clientMessageId) {
+          const existingMessage = await this.prisma.message.findFirst({
+            where: {
+              senderAccountId: actorAccountId,
+              clientMessageId: dto.clientMessageId,
+            },
+            select: {
+              id: true,
+              chatId: true,
+              senderAccountId: true,
+              type: true,
+              content: true,
+              translatedContent: true,
+              createdAt: true,
+            },
+          });
+          if (existingMessage) {
+            if (
+              existingMessage.chatId !== dto.chatId ||
+              existingMessage.content !== dto.content ||
+              (dto.type && existingMessage.type !== dto.type)
+            ) {
+              throw new ConflictException(
+                "Message request conflicts with an existing message",
+              );
+            }
+            return {
+              ...existingMessage,
+              senderAccountId: actorAccountId,
+            };
+          }
+          continue;
+        }
+        if (!isTransactionConflict(error)) throw error;
+      }
+    }
+    throw new ConflictException("Chat is unavailable");
+  }
+
+  async sendGift(
+    currentUserId: string | undefined,
+    actorAccountId: string | null | undefined,
+    dto: SendGiftDto,
+  ): Promise<{ ok: boolean; message: ChatRealtimeMessage; spendableBalance: number }> {
+    if (!currentUserId)
+      throw new BadRequestException("Missing authenticated user");
+    if (!actorAccountId)
+      throw new ForbiddenException("Active activity account required");
+
+    const gift = await this.giftsService.getGiftById(dto.giftId);
+    if (!gift) throw new NotFoundException("Gift not found");
+
+    for (let attempt = 0; attempt < MAX_TRANSACTION_RETRIES; attempt += 1) {
+      try {
+        const result = await this.prisma.$transaction(
+          async (tx) => {
+            const actor = await tx.activityAccount.findFirst({
+              where: {
+                id: actorAccountId,
+                status: "active",
+                owner: {
+                  status: "active",
+                  legacyUserId: currentUserId,
+                  legacyUser: { status: "active" },
+                },
+              },
+              select: directAccountSelect,
+            });
+            if (!actor?.owner.legacyUserId)
+              throw new ForbiddenException("Active activity account required");
+
+            const chat = await tx.chat.findFirst({
+              where: {
+                id: dto.chatId,
+                OR: [
+                  {
+                    accountAId: actorAccountId,
+                    userAId: actor.owner.legacyUserId,
+                    accountBId: { not: null },
+                    accountB: {
+                      is: {
+                        status: "active",
+                        owner: {
+                          status: "active",
+                          legacyUserId: { not: null },
+                          legacyUser: { status: "active" },
+                        },
+                      },
+                    },
+                  },
+                  {
+                    accountBId: actorAccountId,
+                    userBId: actor.owner.legacyUserId,
+                    accountAId: { not: null },
+                    accountA: {
+                      is: {
+                        status: "active",
+                        owner: {
+                          status: "active",
+                          legacyUserId: { not: null },
+                          legacyUser: { status: "active" },
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+              select: {
+                id: true,
+                userAId: true,
+                userBId: true,
+                accountAId: true,
+                accountBId: true,
+                accountA: {
+                  select: {
+                    id: true,
+                    ownerId: true,
+                    owner: { select: { legacyUserId: true } },
+                  },
+                },
+                accountB: {
+                  select: {
+                    id: true,
+                    ownerId: true,
+                    owner: { select: { legacyUserId: true } },
+                  },
+                },
+              },
+            });
+            if (!chat) throw new NotFoundException("Chat not found");
+
+            const counterpart =
+              chat.accountAId === actorAccountId
+                ? chat.accountB
+                : chat.accountA;
+            const counterpartUserId = counterpart?.owner.legacyUserId;
+            const aligned =
+              chat.accountAId === actorAccountId
+                ? chat.userBId === counterpartUserId
+                : chat.userAId === counterpartUserId;
+
+            if (
+              !counterpartUserId ||
+              !aligned ||
+              counterpart.ownerId === actor.ownerId ||
+              counterpartUserId === actor.owner.legacyUserId
+            )
+              throw new ConflictException("Chat is unavailable");
+
+            const block = await tx.block.findFirst({
+              where: {
+                OR: [
+                  {
+                    userId: actor.owner.legacyUserId,
+                    blockedUserId: counterpartUserId,
+                  },
+                  {
+                    userId: counterpartUserId,
+                    blockedUserId: actor.owner.legacyUserId,
+                  },
+                ],
+              },
+              select: { id: true },
+            });
+            if (block) throw new ForbiddenException("Chat is unavailable");
+
+            const clientMessageId =
+              dto.clientMessageId ||
+              `gift_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+            if (dto.clientMessageId) {
+              const existingMessage = await tx.message.findFirst({
+                where: {
+                  senderAccountId: actor.id,
+                  clientMessageId: dto.clientMessageId,
+                },
+                select: {
+                  id: true,
+                  chatId: true,
+                  senderAccountId: true,
+                  type: true,
+                  content: true,
+                  translatedContent: true,
+                  createdAt: true,
+                },
+              });
+              if (existingMessage) {
+                const currentWallet = await tx.wallet.findUnique({
+                  where: { activityAccountId: actor.id },
+                  select: { spendableBalance: true },
+                });
+                return {
+                  message: {
+                    ...existingMessage,
+                    senderAccountId: actor.id,
+                  },
+                  spendableBalance: currentWallet?.spendableBalance ?? 0,
+                  created: false,
+                  recipientUserId: undefined as string | undefined,
+                  senderDisplayName: undefined as string | undefined,
+                };
+              }
+            }
+
+            let senderWallet = await tx.wallet.findUnique({
+              where: { activityAccountId: actor.id },
+            });
+            if (!senderWallet) {
+              const legacyUser = await tx.user.findUnique({
+                where: { id: actor.owner.legacyUserId },
+                select: { pointsBalance: true },
+              });
+              senderWallet = await tx.wallet.create({
+                data: {
+                  activityAccountId: actor.id,
+                  spendableBalance: legacyUser?.pointsBalance ?? 0,
+                  redeemableBalance: 0,
+                  pendingEarnings: 0,
+                  status: "active",
+                },
+              });
+            }
+
+            if (senderWallet.spendableBalance < gift.amount) {
+              throw new BadRequestException(
+                "포인트가 부족합니다. 충전 후 다시 시도해 주세요.",
+              );
+            }
+
+            let recipientWallet = await tx.wallet.findUnique({
+              where: { activityAccountId: counterpart.id },
+            });
+            if (!recipientWallet) {
+              const recipientLegacyUser = await tx.user.findUnique({
+                where: { id: counterpartUserId },
+                select: { pointsBalance: true },
+              });
+              recipientWallet = await tx.wallet.create({
+                data: {
+                  activityAccountId: counterpart.id,
+                  spendableBalance: recipientLegacyUser?.pointsBalance ?? 0,
+                  redeemableBalance: 0,
+                  pendingEarnings: 0,
+                  status: "active",
+                },
+              });
+            }
+
+            const newSenderBalance = senderWallet.spendableBalance - gift.amount;
+            const newRecipientBalance = recipientWallet.spendableBalance + gift.amount;
+
+            await tx.wallet.update({
+              where: { id: senderWallet.id },
+              data: { spendableBalance: newSenderBalance },
+            });
+
+            await tx.user.update({
+              where: { id: actor.owner.legacyUserId },
+              data: { pointsBalance: newSenderBalance },
+            });
+
+            await tx.wallet.update({
+              where: { id: recipientWallet.id },
+              data: { spendableBalance: newRecipientBalance },
+            });
+
+            await tx.user.update({
+              where: { id: counterpartUserId },
+              data: { pointsBalance: newRecipientBalance },
+            });
+
+            const senderLedgerKey = `chat-gift:${dto.chatId}:${clientMessageId}:sender`;
+            const recipientLedgerKey = `chat-gift:${dto.chatId}:${clientMessageId}:recipient`;
+
+            await tx.walletLedgerEntry.create({
+              data: {
+                walletId: senderWallet.id,
+                kind: "debit",
+                source: "chat_gift",
+                deltaSpendable: -gift.amount,
+                deltaRedeemable: 0,
+                deltaPending: 0,
+                spendableAfter: newSenderBalance,
+                redeemableAfter: senderWallet.redeemableBalance,
+                pendingAfter: senderWallet.pendingEarnings,
+                idempotencyKey: senderLedgerKey,
+                referenceType: "Chat",
+                referenceId: dto.chatId,
+                metadata: {
+                  giftId: gift.id,
+                  giftName: gift.name,
+                  amount: gift.amount,
+                  recipientAccountId: counterpart.id,
+                },
+              },
+            });
+
+            await tx.walletLedgerEntry.create({
+              data: {
+                walletId: recipientWallet.id,
+                kind: "credit",
+                source: "chat_gift",
+                deltaSpendable: gift.amount,
+                deltaRedeemable: 0,
+                deltaPending: 0,
+                spendableAfter: newRecipientBalance,
+                redeemableAfter: recipientWallet.redeemableBalance,
+                pendingAfter: recipientWallet.pendingEarnings,
+                idempotencyKey: recipientLedgerKey,
+                referenceType: "Chat",
+                referenceId: dto.chatId,
+                metadata: {
+                  giftId: gift.id,
+                  giftName: gift.name,
+                  amount: gift.amount,
+                  senderAccountId: actor.id,
+                },
+              },
+            });
+
+            await tx.giftTransaction.create({
+              data: {
+                giftId: gift.id,
+                senderAccountId: actor.id,
+                recipientAccountId: counterpart.id,
+                contextType: "chat",
+                chatId: dto.chatId,
+                points: gift.amount,
+                idempotencyKey: `gift-tx:chat:${dto.chatId}:${clientMessageId}`,
+                message: `${gift.name} 선물`,
+              },
+            });
+
+            const giftContent = JSON.stringify({
+              id: gift.id,
+              code: gift.code,
+              name: gift.name,
+              amount: gift.amount,
+              description: gift.description ?? "",
+              animationUrl: gift.animationUrl ?? "",
+              animationType: gift.animationType ?? "none",
+            });
+
+            const now = new Date();
+            const message = await tx.message.create({
+              data: {
+                chatId: dto.chatId,
+                senderId: actor.owner.legacyUserId,
+                senderAccountId: actor.id,
+                clientMessageId,
+                type: "gift",
+                content: giftContent,
+                createdAt: now,
+              },
+              select: {
+                id: true,
+                chatId: true,
+                senderAccountId: true,
+                type: true,
+                content: true,
+                translatedContent: true,
+                createdAt: true,
+              },
+            });
+
+            await tx.chat.update({
+              where: { id: chat.id },
+              data: { lastMessageAt: now },
+            });
+
+            return {
+              message: {
+                ...message,
+                senderAccountId: actor.id,
+              },
+              spendableBalance: newSenderBalance,
+              created: true,
+              recipientUserId: counterpartUserId,
+              senderDisplayName: actor.displayName || actor.handle || "사용자",
+            };
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+
+        if (result.created) {
+          this.chatRealtimePublisher.publish(result.message);
+          if (result.recipientUserId) {
+            this.notificationsService
+              .sendChatPush({
+                recipientUserId: result.recipientUserId,
+                senderDisplayName: result.senderDisplayName || "새 메시지",
+                content: `${gift.name} 선물을 보냈습니다.`,
+                type: "gift",
+                chatId: dto.chatId,
+                messageId: result.message.id,
+              })
+              .catch((err) => {
+                this.logger.warn(
+                  `Failed to dispatch gift push: ${err instanceof Error ? err.message : err}`,
+                );
+              });
+          }
+        }
+
+        return {
+          ok: true,
+          message: result.message,
+          spendableBalance: result.spendableBalance,
+        };
+      } catch (error: unknown) {
+        if (!isTransactionConflict(error)) throw error;
+      }
+    }
+    throw new ConflictException("Chat is unavailable");
+  }
+
+  async ensureDirectRoom(
+    currentUserId: string,
+    actorAccountId: string | undefined,
+    dto: DirectChatDto,
+  ): Promise<DirectRoomResponse> {
+    if (!currentUserId)
+      throw new BadRequestException("Missing authenticated user");
+    if (!actorAccountId)
+      throw new ForbiddenException("Active activity account required");
+    if (!dto.targetAccountId && !dto.targetUserId)
+      throw new BadRequestException("Chat target is invalid");
+    for (let attempt = 0; attempt < MAX_TRANSACTION_RETRIES; attempt += 1) {
+      try {
+        return await this.prisma.$transaction(
+          async (tx) => {
+            const actor = await tx.activityAccount.findFirst({
+              where: {
+                id: actorAccountId,
+                status: "active",
+                owner: { status: "active", legacyUserId: currentUserId },
+              },
+              select: {
+                id: true,
+                ownerId: true,
+                handle: true,
+                displayName: true,
+                owner: {
+                  select: {
+                    legacyUserId: true,
+                    legacyUser: { select: { status: true } },
+                  },
+                },
+              },
+            });
+            if (!actor?.owner.legacyUserId)
+              throw new ForbiddenException("Active activity account required");
+            const target = dto.targetAccountId
+              ? await tx.activityAccount.findFirst({
+                  where: {
+                    id: dto.targetAccountId,
+                    status: "active",
+                    owner: { status: "active" },
+                  },
+                  select: {
+                    id: true,
+                    ownerId: true,
+                    handle: true,
+                    displayName: true,
+                    owner: {
+                      select: {
+                        legacyUserId: true,
+                        legacyUser: { select: { status: true } },
+                      },
+                    },
+                  },
+                })
+              : await this.resolveLegacyTarget(tx, dto.targetUserId!);
+            if (!target)
+              throw new NotFoundException("Activity account not found");
+            if (!target.owner.legacyUserId)
+              throw new BadRequestException("Chat is unavailable");
+            if (
+              !target.owner.legacyUser ||
+              target.owner.legacyUser.status !== "active"
+            )
+              throw new NotFoundException("Activity account not found");
+            if (
+              dto.targetAccountId &&
+              dto.targetUserId &&
+              target.owner.legacyUserId !== dto.targetUserId
+            )
+              throw new BadRequestException("Chat target is invalid");
+            if (
+              actor.id === target.id ||
+              actor.ownerId === target.ownerId ||
+              actor.owner.legacyUserId === target.owner.legacyUserId
+            )
+              throw new BadRequestException(
+                "Cannot create a conversation with yourself",
+              );
+            const blocked = await tx.block.findFirst({
+              where: {
+                OR: [
+                  {
+                    userId: actor.owner.legacyUserId,
+                    blockedUserId: target.owner.legacyUserId,
+                  },
+                  {
+                    userId: target.owner.legacyUserId,
+                    blockedUserId: actor.owner.legacyUserId,
+                  },
+                ],
+              },
+              select: { id: true },
+            });
+            if (blocked) throw new ForbiddenException("Chat is unavailable");
+            const [a, b] = [actor, target].sort((x, y) =>
+              x.id.localeCompare(y.id),
+            );
+            const userAId = a.owner.legacyUserId!;
+            const userBId = b.owner.legacyUserId!;
+            const rooms = await tx.chat.findMany({
+              where: {
+                OR: [
+                  { accountAId: a.id, accountBId: b.id },
+                  { accountAId: b.id, accountBId: a.id },
+                ],
+              },
+              include: chatInclude,
+              take: 2,
+            });
+            if (rooms.length > 1)
+              throw new ConflictException("Chat is unavailable");
+            let room = rooms[0];
+            if (room) {
+              if (
+                !room.accountA ||
+                !room.accountB ||
+                new Set([room.userAId, room.userBId]).size !== 2 ||
+                ![room.userAId, room.userBId].includes(userAId) ||
+                ![room.userAId, room.userBId].includes(userBId)
+              )
+                throw new ConflictException("Chat is unavailable");
+            } else {
+              const legacy = await tx.chat.findMany({
+                where: {
+                  accountAId: null,
+                  accountBId: null,
+                  OR: [
+                    { userAId, userBId },
+                    { userAId: userBId, userBId: userAId },
+                  ],
+                },
+                include: chatInclude,
+                take: 2,
+              });
+              if (legacy.length > 1)
+                throw new ConflictException("Chat is unavailable");
+              room = legacy[0]
+                ? await tx.chat.update({
+                    where: { id: legacy[0].id },
+                    data: {
+                      accountAId: a.id,
+                      accountBId: b.id,
+                      userAId,
+                      userBId,
+                    },
+                    include: chatInclude,
+                  })
+                : await tx.chat.create({
+                    data: {
+                      accountAId: a.id,
+                      accountBId: b.id,
+                      userAId,
+                      userBId,
+                      lastMessageAt: new Date(),
+                    },
+                    include: chatInclude,
+                  });
+            }
+            return this.serializeDirectChat(room, actorAccountId);
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+      } catch (error: unknown) {
+        const retryablePairConflict = isAccountPairUniqueConflict(error);
+        if (retryablePairConflict && attempt === MAX_TRANSACTION_RETRIES - 1) {
+          throw new ConflictException("Chat is unavailable");
+        }
+        if (!isTransactionConflict(error) && !retryablePairConflict) {
+          throw error;
+        }
+      }
+    }
+    throw new ConflictException("Chat is unavailable");
+  }
+
+  private async resolveLegacyTarget(
+    tx: Prisma.TransactionClient,
+    targetUserId: string,
+  ): Promise<DirectAccount | null> {
+    const user = await tx.user.findFirst({
+      where: { id: targetUserId, status: "active" },
+      select: {
+        ownerBridge: {
+          select: {
+            status: true,
+            legacyUserId: true,
+            activityAccounts: {
+              ...buildDefaultActivityAccountSelection(targetUserId),
+              take: 1,
+              select: {
+                id: true,
+                ownerId: true,
+                handle: true,
+                displayName: true,
+                owner: {
+                  select: {
+                    legacyUserId: true,
+                    legacyUser: { select: { status: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    const owner = user?.ownerBridge;
+    if (
+      !owner ||
+      owner.status !== "active" ||
+      owner.legacyUserId !== targetUserId
+    )
+      return null;
+    return owner.activityAccounts[0] ?? null;
+  }
+
+  private async ensureUsersCanChat(userId: string, targetUserId: string) {
+    const block = await this.prisma.block.findFirst({
+      where: {
+        OR: [
+          { userId, blockedUserId: targetUserId },
+          { userId: targetUserId, blockedUserId: userId },
+        ],
+      },
+      select: { id: true },
+    });
+    if (block)
+      throw new ForbiddenException("Chat is unavailable for blocked users.");
+  }
+
+  private serializeDirectChat(
+    chat: ChatWithRelations,
+    actorAccountId: string,
+  ): DirectRoomResponse {
+    if (!chat.accountA || !chat.accountB)
+      throw new ConflictException("Chat is unavailable");
+    const participants = [chat.accountA, chat.accountB];
+    const target =
+      participants.find((p) => p.id !== actorAccountId) ?? participants[0];
+    return {
       id: chat.id,
-      title: makeDisplayName(titleSource) ?? '대화',
-      participants: [userA, userB].map((participant) => ({
-        id: participant.id,
-        displayName: participant.displayName ?? null,
-        nickname: participant.profile?.nickname ?? null,
-        avatarUri: participant.profile?.avatarUri ?? null,
+      title: target.displayName || target.handle || "대화",
+      participants: participants.map((p) => ({
+        id: p.id,
+        handle: p.handle,
+        displayName: p.displayName,
       })),
     };
   }

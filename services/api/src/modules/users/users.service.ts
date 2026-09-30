@@ -31,28 +31,105 @@ export class UsersService {
     });
   }
 
+  async byPublicId(id: string) {
+    return this.prisma.user.findFirst({
+      where: { id, status: 'active' },
+      select: {
+        id: true,
+        displayName: true,
+        region1: true,
+        region2: true,
+        profile: {
+          select: {
+            nickname: true,
+            bio: true,
+            headline: true,
+            avatarUri: true,
+            interests: true,
+            badges: true,
+          },
+        },
+      },
+    });
+  }
   async search(term: string, take: number = 20) {
     const trimmed = term.trim();
     if (!trimmed) return [];
 
-    const users = await this.searchUsers({ keyword: trimmed, limit: take });
-
-    return users.map((user) => ({
-      id: user.id,
-      email: user.email,
-      displayName: user.displayName,
-      status: user.status,
-      createdAt: user.createdAt,
-      profile: user.profile
-        ? {
-            nickname: user.profile.nickname,
-            bio: user.profile.bio,
-            interests: user.profile.interests,
-          }
-        : null,
-    }));
+    return this.prisma.user.findMany({
+      where: {
+        status: 'active',
+        role: 'user',
+        OR: [
+          {
+            displayName: {
+              contains: trimmed,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+          {
+            profile: {
+              nickname: {
+                contains: trimmed,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          },
+          {
+            profile: {
+              headline: {
+                contains: trimmed,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          },
+          {
+            profile: {
+              bio: {
+                contains: trimmed,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          },
+          {
+            profile: {
+              interests: {
+                has: trimmed,
+              },
+            },
+          },
+        ],
+      },
+      take: Math.min(50, Math.max(1, take)),
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        displayName: true,
+        region1: true,
+        region2: true,
+        profile: {
+          select: {
+            nickname: true,
+            bio: true,
+            headline: true,
+            avatarUri: true,
+            interests: true,
+          },
+        },
+        ownerBridge: {
+          select: {
+            status: true,
+            legacyUserId: true,
+            activityAccounts: {
+              where: { status: 'active', isPrimary: true },
+              take: 1,
+              select: { id: true },
+            },
+          },
+        },
+      },
+    });
   }
-
   async searchUsers(filters: UserSearchFilters) {
     const where: Prisma.UserWhereInput = {};
     const or: Prisma.UserWhereInput['OR'] = [];
@@ -213,7 +290,7 @@ export class UsersService {
       };
     }
 
-    return this.prisma.user.update({
+    const updatedUser = await this.prisma.user.update({
       where: { id },
       data: updateData,
       include: {
@@ -227,6 +304,21 @@ export class UsersService {
         },
       },
     });
+
+    const newName = payload.nickname ?? payload.displayName;
+    if (newName) {
+      await this.prisma.activityAccount.updateMany({
+        where: { legacyUserId: id, isPrimary: true },
+        data: { displayName: newName },
+      }).catch(() => {});
+    }
+
+    return updatedUser;
+  }
+
+  phoneHashForSearch(phone?: string) {
+    const phoneDigits = this.normalizePhone(phone);
+    return phoneDigits ? this.hashPhone(phoneDigits) : undefined;
   }
 
   private normalizePhone(phone?: string) {

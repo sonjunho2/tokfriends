@@ -11,8 +11,8 @@
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "url": { "raw": "{{API_BASE}}/auth/login/email", "host": ["{{API_BASE}}"], "path": ["auth", "login", "email"] },
-        "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"your-password\"\n}" }
+        "url": { "raw": "{{API_BASE}}/v1/auth/login/email", "host": ["{{API_BASE}}"], "path": ["v1", "auth", "login", "email"] },
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{ADMIN_EMAIL}}\",\n  \"password\": \"{{ADMIN_PASSWORD}}\"\n}" }
       }
     },
     {
@@ -20,7 +20,7 @@
       "request": {
         "method": "GET",
         "header": [{ "key": "Authorization", "value": "Bearer {{JWT}}" }],
-        "url": { "raw": "{{API_BASE}}/metrics", "host": ["{{API_BASE}}"], "path": ["metrics"] }
+        "url": { "raw": "{{API_BASE}}/v1/metrics", "host": ["{{API_BASE}}"], "path": ["v1", "metrics"] }
       }
     },
     {
@@ -28,7 +28,7 @@
       "request": {
         "method": "GET",
         "header": [{ "key": "Authorization", "value": "Bearer {{JWT}}" }],
-        "url": { "raw": "{{API_BASE}}/admin/announcements", "host": ["{{API_BASE}}"], "path": ["admin", "announcements"] }
+        "url": { "raw": "{{API_BASE}}/v1/admin/announcements", "host": ["{{API_BASE}}"], "path": ["v1", "admin", "announcements"] }
       }
     },
     {
@@ -36,12 +36,14 @@
       "request": {
         "method": "GET",
         "header": [{ "key": "Authorization", "value": "Bearer {{JWT}}" }],
-        "url": { "raw": "{{API_BASE}}/admin/reports?status=PENDING", "host": ["{{API_BASE}}"], "path": ["admin", "reports"], "query": [{"key": "status", "value": "PENDING"}] }
+        "url": { "raw": "{{API_BASE}}/v1/admin/reports?status=PENDING", "host": ["{{API_BASE}}"], "path": ["v1", "admin", "reports"], "query": [{"key": "status", "value": "PENDING"}] }
       }
     }
   ],
   "variable": [
     { "key": "API_BASE", "value": "https://tok-friends-api.onrender.com" },
+    { "key": "ADMIN_EMAIL", "value": "" },
+    { "key": "ADMIN_PASSWORD", "value": "" },
     { "key": "JWT", "value": "" }
   ]
 }

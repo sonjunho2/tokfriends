@@ -1,5 +1,5 @@
 // src/screens/main/ProfileDetailScreen.js
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,11 +12,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Avatar from '../../components/Avatar';
+import ReportModal from '../../components/ReportModal';
 import colors from '../../theme/colors';
 import { apiClient } from '../../api/client';
-
-const FALLBACK_IMAGE =
-  'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=1080&q=80';
 
 export default function ProfileDetailScreen({ navigation, route }) {
   const profile = route?.params?.profile;
@@ -24,24 +22,63 @@ export default function ProfileDetailScreen({ navigation, route }) {
   const isSelf = Boolean(route?.params?.isSelf);
   const [sending, setSending] = useState(false);
 
+  const targetAccountId =
+    typeof profile?.targetAccountId === 'string' ? profile.targetAccountId.trim() : '';
+  const targetUserId =
+    typeof profile?.targetUserId === 'string'
+      ? profile.targetUserId.trim()
+      : typeof profile?.id === 'string' && !profile.id.startsWith('acc_')
+      ? profile.id.trim()
+      : '';
+
+  const [following, setFollowing] = useState(false);
+  const [interested, setInterested] = useState(false);
+  const [friendStatus, setFriendStatus] = useState('none');
+  const [updatingFollow, setUpdatingFollow] = useState(false);
+  const [updatingInterest, setUpdatingInterest] = useState(false);
+  const [updatingFriend, setUpdatingFriend] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [blocking, setBlocking] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    if ((targetAccountId || targetUserId) && !isSelf) {
+      if (targetAccountId) apiClient.recordProfileVisit(targetAccountId);
+      Promise.all([
+        targetAccountId ? apiClient.getFollowStatus(targetAccountId) : Promise.resolve({ following: false }),
+        targetAccountId ? apiClient.getInterestStatus(targetAccountId) : Promise.resolve({ interested: false }),
+        apiClient.getFriendshipStatus({ targetUserId, targetAccountId }),
+      ])
+        .then(([followRes, interestRes, friendRes]) => {
+          if (!mounted) return;
+          setFollowing(Boolean(followRes?.following));
+          setInterested(Boolean(interestRes?.interested));
+          setFriendStatus(friendRes?.status || 'none');
+        })
+        .catch(() => {});
+    }
+    return () => {
+      mounted = false;
+    };
+  }, [targetAccountId, targetUserId, isSelf]);
+
   const data = useMemo(() => {
-    const location = profile?.location || '서울 · 5km 이내';
+    const location = profile?.location || '지역 미설정';
     return {
-      name: profile?.name || '회원님',
+      name: profile?.name || '회원',
       location,
-      title: profile?.title || '오늘 가입한 회원입니다',
-      bio:
-        profile?.bio ||
-        '새로운 인연을 기다리고 있어요. 반려견과 드라이브하는 것을 좋아해요!',
+      title: profile?.title || '한줄 소개가 없습니다.',
+      bio: profile?.bio || '소개가 없습니다.',
       avatar: profile?.avatar || null,
-      coverImage: profile?.coverImage || FALLBACK_IMAGE,
+      coverImage: profile?.coverImage || profile?.avatar || null,
       age: profile?.age,
       distanceKm: profile?.distanceKm ?? profile?.distance,
       points: profile?.points,
+      interests: Array.isArray(profile?.interests) ? profile.interests : [],
     };
   }, [profile]);
 
-    const dynamicFont = useMemo(() => {
+  const dynamicFont = useMemo(() => {
     if (!preferredFont || preferredFont === 'system') {
       return { heading: null, body: null };
     }
@@ -65,24 +102,134 @@ export default function ProfileDetailScreen({ navigation, route }) {
     return items;
   }, [data.age, data.distanceKm, data.points]);
 
+  const handleToggleFollow = async () => {
+    if (!targetAccountId) {
+      Alert.alert('안내', '팔로우할 수 있는 계정 정보가 없습니다.');
+      return;
+    }
+    if (updatingFollow) return;
+    setUpdatingFollow(true);
+    try {
+      if (following) {
+        await apiClient.unfollowAccount(targetAccountId);
+        setFollowing(false);
+        Alert.alert('알림', `${data.name}님의 팔로우를 취소했습니다.`);
+      } else {
+        await apiClient.followAccount(targetAccountId);
+        setFollowing(true);
+        Alert.alert('알림', `${data.name}님을 팔로우했습니다.`);
+      }
+    } catch (error) {
+      Alert.alert('팔로우 실패', error?.message || '처리에 실패했습니다.');
+    } finally {
+      setUpdatingFollow(false);
+    }
+  };
+
+  const handleToggleInterest = async () => {
+    if (!targetAccountId) {
+      Alert.alert('안내', '관심을 보낼 수 있는 계정 정보가 없습니다.');
+      return;
+    }
+    if (updatingInterest) return;
+    setUpdatingInterest(true);
+    try {
+      if (interested) {
+        await apiClient.removeInterest(targetAccountId);
+        setInterested(false);
+        Alert.alert('알림', `${data.name}님에게 보낸 관심을 취소했습니다.`);
+      } else {
+        await apiClient.sendInterest(targetAccountId);
+        setInterested(true);
+        Alert.alert('알림', `${data.name}님에게 관심을 보냈습니다!`);
+      }
+    } catch (error) {
+      Alert.alert('관심 처리 실패', error?.message || '처리에 실패했습니다.');
+    } finally {
+      setUpdatingInterest(false);
+    }
+  };
+
+  const handleFriendAction = async () => {
+    if (!targetAccountId && !targetUserId) {
+      Alert.alert('안내', '친구 요청을 보낼 회원 정보가 없습니다.');
+      return;
+    }
+    if (updatingFriend) return;
+
+    if (friendStatus === 'accepted') {
+      Alert.alert('친구', `${data.name}님과 이미 친구 사이입니다.`);
+      return;
+    }
+
+    if (friendStatus === 'requested_by_me') {
+      Alert.alert(
+        '친구 요청 대기 중',
+        `${data.name}님의 수락을 기다리고 있습니다.\n친구 관리 화면에서 취소할 수 있습니다.`,
+        [
+          { text: '닫기' },
+          { text: '친구 관리로 이동', onPress: () => navigation.navigate('Friends') },
+        ],
+      );
+      return;
+    }
+
+    if (friendStatus === 'requested_to_me') {
+      Alert.alert(
+        '친구 요청 수락',
+        `${data.name}님의 친구 요청을 관리 화면에서 확인하시겠습니까?`,
+        [
+          { text: '닫기' },
+          { text: '친구 관리로 이동', onPress: () => navigation.navigate('Friends') },
+        ],
+      );
+      return;
+    }
+
+    // friendStatus === 'none'
+    setUpdatingFriend(true);
+    try {
+      await apiClient.sendFriendRequest({
+        targetAccountId: targetAccountId || undefined,
+        addresseeId: targetUserId || undefined,
+      });
+      setFriendStatus('requested_by_me');
+      Alert.alert('친구 요청 완료', `${data.name}님에게 친구 요청을 보냈습니다.`);
+    } catch (error) {
+      Alert.alert('친구 요청 실패', error?.message || '친구 요청을 보내지 못했습니다.');
+    } finally {
+      setUpdatingFriend(false);
+    }
+  };
+
   const handleMessage = async () => {
     if (sending) return;
-    const targetId = profile?.id || profile?._id;
-    if (!targetId) {
+    const targetUserId =
+      typeof profile?.targetUserId === 'string' ? profile.targetUserId.trim() : '';
+    if (!targetUserId && !targetAccountId) {
       Alert.alert('안내', '대화할 회원 정보를 찾을 수 없습니다.');
+      return;
+    }
+    if (targetUserId && targetAccountId) {
+      Alert.alert('안내', '대화 상대 식별 정보가 올바르지 않습니다.');
       return;
     }
     setSending(true);
     try {
-      const room = await apiClient.ensureDirectRoom(targetId, { title: data.name });
-      const roomId = room?.id || room?._id || Date.now();
+      const room = await apiClient.ensureDirectRoom(
+        targetUserId ? { targetUserId } : { targetAccountId },
+      );
+      const roomId = room?.id || room?._id;
+      if (!roomId) {
+        throw new Error('채팅방 정보를 확인할 수 없습니다.');
+      }
       const participant = {
-        id: targetId,
+        ...(targetUserId ? { id: targetUserId, targetUserId } : { targetAccountId }),
         name: data.name,
         avatar: data.avatar,
         headline: data.title,
       };
-      navigation.navigate('Chats', {
+      navigation.navigate('Chat', {
         screen: 'ChatRoom',
         params: {
           id: roomId,
@@ -97,19 +244,126 @@ export default function ProfileDetailScreen({ navigation, route }) {
     }
   };
 
-    const handleEditProfile = () => {
+  const handleEditProfile = () => {
     navigation.navigate('ProfileEdit', {
       profile: profile || data,
       preferredFont,
     });
   };
 
+  const handleOpenSafetyMenu = () => {
+    Alert.alert(
+      `${data.name} 님 관리`,
+      '원하시는 작업을 선택하세요.',
+      [
+        {
+          text: '신고하기',
+          style: 'destructive',
+          onPress: () => setReportModalVisible(true),
+        },
+        {
+          text: '차단하기',
+          style: 'destructive',
+          onPress: confirmBlockUser,
+        },
+        {
+          text: '취소',
+          style: 'cancel',
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const confirmBlockUser = () => {
+    Alert.alert(
+      '회원 차단',
+      `정말 ${data.name}님을 차단하시겠습니까?\n차단하면 상대방의 프로필 및 게시물을 볼 수 없으며 대화가 차단됩니다.`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '차단하기',
+          style: 'destructive',
+          onPress: handleBlockUser,
+        },
+      ]
+    );
+  };
+
+  const handleBlockUser = async () => {
+    if (blocking) return;
+    if (!targetAccountId && !targetUserId) {
+      Alert.alert('오류', '차단할 회원 정보가 없습니다.');
+      return;
+    }
+    setBlocking(true);
+    try {
+      if (targetAccountId) {
+        await apiClient.blockUser({ targetAccountId });
+      } else {
+        await apiClient.blockUser({ blockedUserId: targetUserId });
+      }
+      Alert.alert('차단 완료', `${data.name}님이 차단되었습니다.`, [
+        { text: '확인', onPress: () => navigation.goBack() },
+      ]);
+    } catch (err) {
+      Alert.alert('차단 실패', err?.message || '회원 차단에 실패했습니다.');
+    } finally {
+      setBlocking(false);
+    }
+  };
+
+  const handleReportSubmit = async ({ category, reason }) => {
+    if (!targetAccountId && !targetUserId) {
+      throw new Error('신고할 회원 정보가 없습니다.');
+    }
+    if (targetAccountId) {
+      await apiClient.reportUser({ targetAccountId, reason });
+    } else {
+      await apiClient.reportUser({ targetUserId, reason });
+    }
+    Alert.alert('신고 접수 완료', '신고가 정상 접수되었습니다. 운영팀 검토 후 조치됩니다.');
+  };
+
+  const friendButtonConfig = useMemo(() => {
+    switch (friendStatus) {
+      case 'accepted':
+        return {
+          label: '친구',
+          icon: 'people',
+          color: colors.primary,
+          active: true,
+        };
+      case 'requested_by_me':
+        return {
+          label: '친구 요청 대기중',
+          icon: 'time-outline',
+          color: '#F59E0B',
+          active: true,
+        };
+      case 'requested_to_me':
+        return {
+          label: '친구 요청 수락하기',
+          icon: 'mail-outline',
+          color: colors.primary,
+          active: true,
+        };
+      default:
+        return {
+          label: '친구 요청',
+          icon: 'person-add-outline',
+          color: colors.textSecondary,
+          active: false,
+        };
+    }
+  }, [friendStatus]);
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.heroWrapper}>
           <ImageBackground
-            source={{ uri: data.coverImage }}
+            source={data.coverImage ? { uri: data.coverImage } : undefined}
             style={styles.cover}
             imageStyle={styles.coverImage}
           >
@@ -122,7 +376,17 @@ export default function ProfileDetailScreen({ navigation, route }) {
               >
                 <Ionicons name="chevron-back" size={26} color={colors.textInverse} />
               </TouchableOpacity>
-              <View style={styles.headerSpacer} />
+              {!isSelf ? (
+                <TouchableOpacity
+                  style={styles.headerButton}
+                  onPress={handleOpenSafetyMenu}
+                  hitSlop={8}
+                >
+                  <Ionicons name="ellipsis-vertical" size={20} color={colors.textInverse} />
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.headerSpacer} />
+              )}
             </View>
             <View style={styles.avatarWrapper}>
               <Avatar
@@ -157,6 +421,16 @@ export default function ProfileDetailScreen({ navigation, route }) {
             <Text style={[styles.infoText, dynamicFont.body]}>{data.bio}</Text>
           </View>
 
+          {data.interests.length > 0 && (
+            <View style={styles.interestsRow}>
+              {data.interests.map((tag) => (
+                <View key={tag} style={styles.interestPill}>
+                  <Text style={styles.interestPillText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
           {isSelf ? (
             <TouchableOpacity
               style={styles.editButton}
@@ -167,18 +441,107 @@ export default function ProfileDetailScreen({ navigation, route }) {
               <Text style={[styles.editButtonText, dynamicFont.heading]}>프로필 수정</Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity
-              style={[styles.primaryButton, sending && { opacity: 0.6 }]}
-              onPress={handleMessage}
-              activeOpacity={0.85}
-              disabled={sending}
-            >
-              <Ionicons name="chatbubble-ellipses-outline" size={20} color={colors.textInverse} />
-              <Text style={styles.primaryButtonText}>메시지 보내기</Text>
-            </TouchableOpacity>
+            <View style={styles.actionButtonGroup}>
+              {Boolean(targetAccountId) && (
+                <View style={styles.actionRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.secondaryActionButton,
+                      interested && styles.secondaryActionButtonActive,
+                      updatingInterest && { opacity: 0.6 },
+                    ]}
+                    onPress={handleToggleInterest}
+                    activeOpacity={0.85}
+                    disabled={updatingInterest}
+                  >
+                    <Ionicons
+                      name={interested ? 'heart' : 'heart-outline'}
+                      size={20}
+                      color={interested ? '#FF3B6B' : colors.textSecondary}
+                    />
+                    <Text
+                      style={[
+                        styles.secondaryActionText,
+                        interested && styles.secondaryActionTextActive,
+                      ]}
+                    >
+                      {interested ? '관심 보냄' : '관심 보내기'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.secondaryActionButton,
+                      following && styles.followingActionButton,
+                      updatingFollow && { opacity: 0.6 },
+                    ]}
+                    onPress={handleToggleFollow}
+                    activeOpacity={0.85}
+                    disabled={updatingFollow}
+                  >
+                    <Ionicons
+                      name={following ? 'checkmark-circle-outline' : 'person-add-outline'}
+                      size={20}
+                      color={following ? colors.primary : colors.textSecondary}
+                    />
+                    <Text
+                      style={[
+                        styles.secondaryActionText,
+                        following && styles.followingActionText,
+                      ]}
+                    >
+                      {following ? '팔로잉' : '팔로우'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={[
+                  styles.friendButton,
+                  friendButtonConfig.active && styles.friendButtonActive,
+                  updatingFriend && { opacity: 0.6 },
+                ]}
+                onPress={handleFriendAction}
+                activeOpacity={0.85}
+                disabled={updatingFriend}
+              >
+                <Ionicons
+                  name={friendButtonConfig.icon}
+                  size={20}
+                  color={friendButtonConfig.color}
+                />
+                <Text
+                  style={[
+                    styles.friendButtonText,
+                    friendButtonConfig.active && { color: friendButtonConfig.color },
+                  ]}
+                >
+                  {friendButtonConfig.label}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.primaryButton, sending && { opacity: 0.6 }]}
+                onPress={handleMessage}
+                activeOpacity={0.85}
+                disabled={sending}
+              >
+                <Ionicons name="chatbubble-ellipses-outline" size={20} color={colors.textInverse} />
+                <Text style={styles.primaryButtonText}>메시지 보내기</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </ScrollView>
+
+      <ReportModal
+        visible={reportModalVisible}
+        targetName={data.name}
+        targetType="user"
+        onClose={() => setReportModalVisible(false)}
+        onSubmit={handleReportSubmit}
+      />
     </SafeAreaView>
   );
 }
@@ -195,6 +558,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   cover: {
+    backgroundColor: colors.backgroundSecondary,
     height: 360,
     justifyContent: 'flex-end',
   },
@@ -295,6 +659,44 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 22,
   },
+  actionButtonGroup: {
+    gap: 12,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  secondaryActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: 24,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  secondaryActionButtonActive: {
+    borderColor: '#FF3B6B',
+    backgroundColor: '#FFF0F3',
+  },
+  secondaryActionText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  secondaryActionTextActive: {
+    color: '#FF3B6B',
+  },
+  followingActionButton: {
+    borderColor: colors.primary,
+    backgroundColor: '#F0ECFF',
+  },
+  followingActionText: {
+    color: colors.primary,
+  },
   primaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -324,5 +726,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: colors.primary,
-  },            
+  },
+  friendButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: 24,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  friendButtonActive: {
+    borderColor: colors.primary,
+    backgroundColor: '#F0ECFF',
+  },
+  friendButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  interestsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  interestPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: colors.primaryLight,
+  },
+  interestPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primaryDark,
+  },
 });

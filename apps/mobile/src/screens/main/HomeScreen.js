@@ -1,380 +1,1438 @@
+// apps/mobile/src/screens/main/HomeScreen.js
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  Dimensions,
+  StatusBar,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import colors from '../../theme/colors';
-import Card from '../../components/Card';
+import Avatar from '../../components/Avatar';
+import { apiClient } from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
 
-const GRID = [
-  { key: 'HOT추천', label: 'HOT추천' },
-  { key: '접속중', label: '접속중' },
-  { key: '가까운', label: '가까운' },
-  { key: '20대', label: '20대' },
-  { key: '30대', label: '30대' },
-  { key: '40대이상', label: '40대이상' },
-  { key: '이성친구', label: '이성친구' },
-  { key: '즉석만남', label: '즉석만남' },
-];
+const { width } = Dimensions.get('window');
 
-const CARD_H = 190; // 두 박스 동일 높이
-
-// 더미 데이터 (TODO: API로 대체)
-const best10 = [
+// 라이브 기본 추천 목업 (서버 방이 없을 때도 생동감 넘치게 노출)
+const DEFAULT_HOT_LIVES = [
   {
-    id: 'b0',
-    name: '윤아',
-    age: 27,
-    img: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80',
-    avatar: 'https://i.pravatar.cc/150?img=11',
-    location: '서울 강남구',
-    bio: '따뜻한 커피와 산책을 좋아해요. 주말엔 전시 보러 가요.',
-    title: '오늘의 베스트 추천',
-    distanceKm: 3,
-    points: 120,
+    id: 'live-default-1',
+    title: '🎵 힐링 어쿠스틱 라이브 & 소통',
+    viewerCount: 142,
+    hostName: '민우',
+    hostAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+    coverUri: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600',
+    tag: '음악·소통',
   },
   {
-    id: 'b1',
-    name: '수아',
-    age: 25,
-    img: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=900&q=80',
-    avatar: 'https://i.pravatar.cc/150?img=22',
-    location: '서울 마포구',
-    bio: '즉흥 여행과 사진 찍기를 사랑하는 수아예요.',
-    title: '감성 가득한 친구',
-    distanceKm: 7,
-    points: 98,
+    id: 'live-default-2',
+    title: '☕ 퇴근길 소소한 동네 수다방',
+    viewerCount: 98,
+    hostName: '지수',
+    hostAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+    coverUri: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600',
+    tag: '동네·일상',
   },
   {
-    id: 'b2',
-    name: '나리',
-    age: 33,
-    img: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=900&q=80',
-    avatar: 'https://i.pravatar.cc/150?img=35',
-    location: '경기 성남시',
-    bio: '차분한 대화를 좋아하고 드라이브를 즐겨요.',
-    title: '차분한 대화 메이트',
-    distanceKm: 12,
-    points: 76,
-  },
-  {
-    id: 'b3',
-    name: '은채',
-    age: 29,
-    img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80',
-    avatar: 'https://i.pravatar.cc/150?img=5',
-    location: '부산 해운대구',
-    bio: '바다 보며 수다 떠는 걸 가장 좋아해요.',
-    title: '늘 웃는 바다 친구',
-    distanceKm: 220,
-    points: 88,
-  },
-  {
-    id: 'b4',
-    name: '다인',
-    age: 31,
-    img: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=900&q=80',
-    avatar: 'https://i.pravatar.cc/150?img=45',
-    location: '대전 서구',
-    bio: '새로운 도전을 좋아하는 활발한 성격이에요.',
-    title: '활발한 드라이브 파트너',
-    distanceKm: 150,
-    points: 64,
+    id: 'live-default-3',
+    title: '🎨 일러스트 드로잉 & 고민 나눔',
+    viewerCount: 76,
+    hostName: '서연',
+    hostAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+    coverUri: 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=600',
+    tag: '취미·예술',
   },
 ];
 
-const todayNew = [
-  {
-    id: 'n0',
-    name: '유리',
-    age: 24,
-    img: 'https://images.unsplash.com/photo-1521579971123-1192931a1452?auto=format&fit=crop&w=900&q=80',
-    avatar: 'https://i.pravatar.cc/150?img=16',
-    location: '서울 송파구',
-    bio: '헬스와 요리를 즐기는 유리에요. 새로운 레시피를 공유해요.',
-    title: '오늘 가입한 따끈한 친구',
-    distanceKm: 5,
-    points: 45,
-  },
-  {
-    id: 'n1',
-    name: '연우',
-    age: 28,
-    img: 'https://images.unsplash.com/photo-1504593811423-6dd665756598?auto=format&fit=crop&w=900&q=80',
-    avatar: 'https://i.pravatar.cc/150?img=26',
-    location: '인천 연수구',
-    bio: '독서모임을 운영 중이고 진솔한 대화를 좋아합니다.',
-    title: '생각을 나누는 사람',
-    distanceKm: 24,
-    points: 52,
-  },
-  {
-    id: 'n2',
-    name: '하린',
-    age: 26,
-    img: 'https://images.unsplash.com/photo-1463453091185-61582044d556?auto=format&fit=crop&w=900&q=80',
-    avatar: 'https://i.pravatar.cc/150?img=39',
-    location: '광주 서구',
-    bio: '노래 듣고 기타 연주하면서 하루를 마무리해요.',
-    title: '음악을 나누는 친구',
-    distanceKm: 180,
-    points: 38,
-  },
-  {
-    id: 'n3',
-    name: '세린',
-    age: 27,
-    img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=900&q=80',
-    avatar: 'https://i.pravatar.cc/150?img=56',
-    location: '대구 수성구',
-    bio: '맛집 탐방과 사진 찍기를 좋아하는 세린입니다.',
-    title: '오늘의 맛집 투어러',
-    distanceKm: 90,
-    points: 41,
-  },
-];
+function mapHomeDiscoverUser(user) {
+  const profile = user?.profile ?? {};
+  const targetAccountId =
+    typeof user?.targetAccountId === 'string'
+      ? user.targetAccountId.trim()
+      : '';
+
+  return {
+    id: user?.id,
+    targetUserId: user?.id,
+    targetAccountId: targetAccountId || undefined,
+    name: profile?.nickname || user?.displayName || '회원',
+    age: typeof user?.age === 'number' ? user.age : undefined,
+    avatar: profile?.avatarUri || undefined,
+    location:
+      [user?.region1, user?.region2].filter(Boolean).join(' · ') || '지역 미설정',
+    bio: profile?.bio || profile?.headline || '반가워요!',
+    headline: profile?.headline || '새로운 인연을 기다려요',
+  };
+}
 
 export default function HomeScreen({ navigation }) {
-  const [leftSec, setLeftSec] = useState(30 * 60);
-  const [idxNew, setIdxNew] = useState(0);
-  const [idxBest, setIdxBest] = useState(0);
+  const { user: authUser } = useAuth();
+  const [discoverUsers, setDiscoverUsers] = useState([]);
+  const [communityTopics, setCommunityTopics] = useState([]);
+  const [recentPosts, setRecentPosts] = useState([]);
+  const [banners, setBanners] = useState([]);
+  const [activeBannerIdx, setActiveBannerIdx] = useState(0);
+  const [liveRooms, setLiveRooms] = useState([]);
+  const [myPoints, setMyPoints] = useState(0);
+
+  // 배너 자동 롤링 (4초 주기)
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveBannerIdx((prev) => (prev + 1) % banners.length);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [banners.length]);
 
   useEffect(() => {
-    const t = setInterval(() => setLeftSec((s) => (s > 0 ? s - 1 : 0)), 1000);
-    return () => clearInterval(t);
-  }, []);
-  const leftStr = useMemo(() => {
-    const m = Math.floor(leftSec / 60);
-    const s = String(leftSec % 60).padStart(2, '0');
-    return `${m}분 ${s}초`;
-  }, [leftSec]);
+    let active = true;
 
-  // 캐러셀 자동 전환(스크롤 제거, 이미지 1장씩 자동 변경)
-  useEffect(() => {
-    const t1 = setInterval(() => setIdxNew((i) => (i + 1) % (todayNew.length || 1)), 3000);
-    const t2 = setInterval(() => setIdxBest((i) => (i + 1) % (best10.length || 1)), 3200);
+    const loadData = async () => {
+      try {
+        const [
+          discoverResult,
+          topicsResult,
+          postsResult,
+          bannersResult,
+          liveResult,
+          balanceResult,
+        ] = await Promise.allSettled([
+          apiClient.getDiscover(),
+          apiClient.getTopics(),
+          apiClient.getPosts({ take: 3 }),
+          apiClient.getAdvertisements({ placement: 'HOME_BANNER' }),
+          apiClient.getLiveRooms(),
+          apiClient.getPointBalance(),
+        ]);
+
+        if (!active) return;
+
+        if (discoverResult.status === 'fulfilled') {
+          const list = Array.isArray(discoverResult.value) ? discoverResult.value : [];
+          setDiscoverUsers(
+            list.map(mapHomeDiscoverUser).filter((item) => item.id),
+          );
+        }
+
+        if (topicsResult.status === 'fulfilled') {
+          const list = Array.isArray(topicsResult.value) ? topicsResult.value : [];
+          setCommunityTopics(list);
+        }
+
+        if (postsResult.status === 'fulfilled') {
+          const items = Array.isArray(postsResult.value?.items)
+            ? postsResult.value.items
+            : Array.isArray(postsResult.value)
+            ? postsResult.value
+            : [];
+          setRecentPosts(items);
+        }
+
+        if (bannersResult.status === 'fulfilled') {
+          const ads = Array.isArray(bannersResult.value) ? bannersResult.value : [];
+          setBanners(ads);
+        }
+
+        if (liveResult.status === 'fulfilled') {
+          const rooms = Array.isArray(liveResult.value)
+            ? liveResult.value
+            : Array.isArray(liveResult.value?.items)
+            ? liveResult.value.items
+            : [];
+          const activeOnes = rooms.filter(
+            (r) => r.status === 'ACTIVE' || r.status === 'LIVE' || !r.status,
+          );
+          setLiveRooms(activeOnes.length > 0 ? activeOnes : DEFAULT_HOT_LIVES);
+        } else {
+          setLiveRooms(DEFAULT_HOT_LIVES);
+        }
+
+        if (balanceResult.status === 'fulfilled' && balanceResult.value?.balance !== undefined) {
+          setMyPoints(Number(balanceResult.value.balance));
+        }
+      } catch {
+        setLiveRooms(DEFAULT_HOT_LIVES);
+      }
+    };
+
+    loadData();
+
     return () => {
-      clearInterval(t1);
-      clearInterval(t2);
+      active = false;
     };
   }, []);
 
-  const newList = todayNew.length > 0 ? todayNew : best10; // 오늘 없으면 대체
-  const newItem = newList[idxNew % newList.length];
-  const bestItem = best10[idxBest % best10.length];
-
-    const handleHighlightPress = (item) => {
+  const handleProfilePress = (item) => {
     if (!item) return;
+    const targetAccountId =
+      typeof item?.targetAccountId === 'string'
+        ? item.targetAccountId.trim()
+        : '';
+    const targetUserId =
+      typeof item?.targetUserId === 'string' ? item.targetUserId.trim() : '';
+    const targetIdentity = targetAccountId
+      ? { targetAccountId }
+      : targetUserId
+        ? { targetUserId }
+        : {};
     navigation.navigate('ProfileDetail', {
       profile: {
+        id: item.id,
+        ...targetIdentity,
         name: item.name,
         location: item.location,
-        title: item.title,
         bio: item.bio,
         avatar: item.avatar,
-        coverImage: item.img,
+        coverImage: item.avatar,
         age: item.age,
-        distanceKm: item.distanceKm,
-        points: item.points,
       },
     });
   };
 
+  const handleOpenLiveRoom = (room) => {
+    navigation.navigate('Live', {
+      screen: 'LiveRoom',
+      params: {
+        roomId: room.id,
+        roomTitle: room.title,
+        hostName: room.host?.displayName || room.hostName || '호스트',
+        hostAvatar: room.host?.avatarUrl || room.hostAvatar,
+      },
+    });
+  };
+
+  const handleOpenCommunity = (topicId = null) => {
+    navigation.navigate('Community', {
+      screen: 'CommunityMain',
+      params: { initialTopicId: topicId },
+    });
+  };
+
+  const handleBannerPress = (banner) => {
+    if (!banner) return;
+    if (banner.id) {
+      apiClient.recordAdClick(banner.id).catch(() => {});
+    }
+    if (banner.linkUrl) {
+      if (banner.linkUrl.startsWith('route:')) {
+        const routeName = banner.linkUrl.replace('route:', '');
+        navigation.navigate(routeName);
+      } else {
+        navigation.navigate('Shop');
+      }
+    } else {
+      navigation.navigate('Shop');
+    }
+  };
+
+  const currentBanner = banners.length > 0 ? banners[activeBannerIdx % banners.length] : null;
+
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
-      {/* 상단 앱명(가운데/크게) + 검색 */}
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
+      {/* =================================================================
+          1. 카카오톡 스타일 GNB 상단 앱바
+          ================================================================= */}
       <View style={styles.appbar}>
-        <View style={{ width: 24 }} />
-        <Text style={styles.appTitle}>MJ톡</Text>
-        <TouchableOpacity hitSlop={8} style={styles.searchBtn}>
-          <Ionicons name="search" size={20} color={colors.text} />
-        </TouchableOpacity>
+        <View style={styles.brandRow}>
+          <Text style={styles.brandTitle}>다가온</Text>
+          <View style={styles.brandDot} />
+        </View>
+
+        <View style={styles.appbarRightActions}>
+          {/* 내 포인트 잔액 칩 (카카오 옐로우 포인트) */}
+          <TouchableOpacity
+            style={styles.pointChip}
+            onPress={() => navigation.navigate('Shop')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.pointIconBg}>
+              <Ionicons name="sparkles" size={12} color="#191919" />
+            </View>
+            <Text style={styles.pointChipText}>{myPoints.toLocaleString()}P</Text>
+          </TouchableOpacity>
+
+          {/* 검색 아이콘 */}
+          <TouchableOpacity
+            style={styles.appbarIconBtn}
+            onPress={() => navigation.navigate('HotRecommend', { openFilter: true })}
+            hitSlop={8}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="search" size={20} color="#191919" />
+          </TouchableOpacity>
+
+          {/* 알림 아이콘 */}
+          <TouchableOpacity
+            style={styles.appbarIconBtn}
+            onPress={() => navigation.navigate('Chat')}
+            hitSlop={8}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="notifications-outline" size={20} color="#191919" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 120 /* 하단 탭바 가림 방지 */ }}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 초록 배너 */}
-        <Card style={styles.greenCard} noPadding>
-          <View style={{ padding: 14, paddingRight: 120 }}>
-            <Text style={styles.greenTitle}>오직 첫 가입자만!</Text>
-            <Text style={styles.greenDesc}>30분 내 프로필 완성 시{'\n'}50포인트 지급</Text>
+        {/* =================================================================
+            2. 카카오톡 상단 웰컴 & 내 프로필 미니 바
+            ================================================================= */}
+        <TouchableOpacity
+          style={styles.myProfileBanner}
+          activeOpacity={0.9}
+          onPress={() => navigation.navigate('My')}
+        >
+          <View style={styles.myProfileLeft}>
+            <View style={styles.myAvatarWrap}>
+              <Avatar
+                size={46}
+                name={authUser?.displayName || '나'}
+                uri={authUser?.profile?.avatarUri}
+              />
+              <View style={styles.onlineBadge} />
+            </View>
+            <View style={styles.myProfileMeta}>
+              <View style={styles.myProfileNameRow}>
+                <Text style={styles.myProfileName}>
+                  {authUser?.displayName || authUser?.profile?.nickname || '다가온 회원'}
+                </Text>
+                <View style={styles.verifiedTag}>
+                  <Text style={styles.verifiedTagText}>인증회원</Text>
+                </View>
+              </View>
+              <Text style={styles.myProfileStatus} numberOfLines={1}>
+                {authUser?.profile?.headline || '오늘도 다가온에서 새로운 인연을 만나보세요 ✨'}
+              </Text>
+            </View>
           </View>
-          <TouchableOpacity style={styles.timerBtn} activeOpacity={0.9}>
-            <Text style={styles.timerTxt}>{leftStr}</Text>
-            <Ionicons name="arrow-forward" size={18} color="#fff" />
-          </TouchableOpacity>
-          <View style={styles.greenBadge}><Text style={styles.greenBadgeTxt}>1/1</Text></View>
-        </Card>
+          <Ionicons name="chevron-forward" size={18} color="#C7C7CC" />
+        </TouchableOpacity>
 
-        {/* 빠른 필터 - 2×4 아이콘 그리드 */}
-        <View style={styles.grid}>
-          {GRID.map((g) => (
+        {/* =================================================================
+            3. 4대 핵심 숏컷 그리드 (카카오톡 스타일 원터치 포털)
+            ================================================================= */}
+        <View style={styles.shortcutGrid}>
+          {/* 라이브 방송 */}
+          <TouchableOpacity
+            style={styles.shortcutItem}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('Live')}
+          >
+            <View style={[styles.shortcutIconBg, { backgroundColor: '#FEE2E2' }]}>
+              <Ionicons name="radio" size={24} color="#EF4444" />
+              <View style={styles.shortcutPulseDot} />
+            </View>
+            <Text style={styles.shortcutLabel}>실시간 라이브</Text>
+            <Text style={styles.shortcutSub}>HOT 생방송</Text>
+          </TouchableOpacity>
+
+          {/* 동네 커뮤니티 */}
+          <TouchableOpacity
+            style={styles.shortcutItem}
+            activeOpacity={0.8}
+            onPress={() => handleOpenCommunity()}
+          >
+            <View style={[styles.shortcutIconBg, { backgroundColor: '#E0E7FF' }]}>
+              <Ionicons name="people" size={24} color="#4F46E5" />
+            </View>
+            <Text style={styles.shortcutLabel}>동네 피드</Text>
+            <Text style={styles.shortcutSub}>이웃 이야기</Text>
+          </TouchableOpacity>
+
+          {/* 1:1 대화 */}
+          <TouchableOpacity
+            style={styles.shortcutItem}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('Chat')}
+          >
+            <View style={[styles.shortcutIconBg, { backgroundColor: '#FEF3C7' }]}>
+              <Ionicons name="chatbubbles" size={24} color="#D97706" />
+            </View>
+            <Text style={styles.shortcutLabel}>새로운 대화</Text>
+            <Text style={styles.shortcutSub}>실시간 채팅</Text>
+          </TouchableOpacity>
+
+          {/* 무료 충전소 */}
+          <TouchableOpacity
+            style={styles.shortcutItem}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('Shop')}
+          >
+            <View style={[styles.shortcutIconBg, { backgroundColor: '#DCFCE7' }]}>
+              <Ionicons name="gift" size={24} color="#16A34A" />
+            </View>
+            <Text style={styles.shortcutLabel}>무료 포인트</Text>
+            <Text style={styles.shortcutSub}>출석 & 리워드</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* =================================================================
+            4. 🔴 실시간 LIVE HOT 방송 쇼케이스 (가로 스크롤 카드)
+            ================================================================= */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <View style={styles.livePulseDot} />
+              <Text style={styles.sectionTitle}>지금 뜨거운 실시간 LIVE</Text>
+              <View style={styles.sectionBadgeRed}>
+                <Text style={styles.sectionBadgeTextRed}>ON AIR</Text>
+              </View>
+            </View>
             <TouchableOpacity
-              key={g.key}
-              style={styles.gridItem}
-              activeOpacity={0.9}
-              onPress={() => {
-                navigation.navigate('HotRecommend', { selected: g.label });
-              }}
+              onPress={() => navigation.navigate('Live')}
+              activeOpacity={0.7}
             >
-              <View style={styles.gridIcon}>
-                <Text style={styles.gridIconText}>{g.label}</Text>
+              <Text style={styles.sectionMoreLink}>전체보기 ›</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.liveScrollContent}
+          >
+            {liveRooms.map((room) => (
+              <TouchableOpacity
+                key={room.id}
+                style={styles.liveCard}
+                activeOpacity={0.9}
+                onPress={() => handleOpenLiveRoom(room)}
+              >
+                <View style={styles.liveThumbWrap}>
+                  <Image
+                    source={{
+                      uri:
+                        room.coverUri ||
+                        room.thumbnailUrl ||
+                        'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600',
+                    }}
+                    style={styles.liveThumbImage}
+                  />
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0,0,0,0.75)']}
+                    style={styles.liveGradientOverlay}
+                  />
+
+                  {/* 상단 ON AIR 배지 & 시청자 수 */}
+                  <View style={styles.liveTopBadges}>
+                    <View style={styles.liveOnAirPill}>
+                      <Text style={styles.liveOnAirText}>LIVE</Text>
+                    </View>
+                    <View style={styles.liveViewerPill}>
+                      <Ionicons name="eye" size={11} color="#FFFFFF" />
+                      <Text style={styles.liveViewerText}>
+                        {room.viewerCount || 42}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* 하단 호스트 정보 */}
+                  <View style={styles.liveBottomHost}>
+                    <Avatar
+                      size={26}
+                      name={room.host?.displayName || room.hostName}
+                      uri={room.host?.avatarUrl || room.hostAvatar}
+                    />
+                    <Text style={styles.liveHostName} numberOfLines={1}>
+                      {room.host?.displayName || room.hostName || '호스트'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* 카드 제목 */}
+                <View style={styles.liveMeta}>
+                  <Text style={styles.liveTitle} numberOfLines={1}>
+                    {room.title}
+                  </Text>
+                  <Text style={styles.liveTagText}>
+                    #{room.tag || '실시간소통'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+
+            {/* 나도 방송하기 카드 */}
+            <TouchableOpacity
+              style={styles.liveCreateCard}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('Live')}
+            >
+              <LinearGradient
+                colors={['#FEF3C7', '#FDE68A']}
+                style={styles.liveCreateGradient}
+              >
+                <View style={styles.liveCreateIconCircle}>
+                  <Ionicons name="add" size={28} color="#D97706" />
+                </View>
+                <Text style={styles.liveCreateTitle}>라이브 시작하기</Text>
+                <Text style={styles.liveCreateSub}>
+                  이웃들과 소통하고{'\n'}선물 포인트를 받아보세요!
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+
+        {/* =================================================================
+            5. ✨ 지금 접속 중인 친구들 (카카오톡/인스타 스토리 아바타 링)
+            ================================================================= */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <Text style={styles.sectionTitle}>지금 접속 중인 이웃</Text>
+              <View style={styles.onlineCountBadge}>
+                <Text style={styles.onlineCountText}>{discoverUsers.length || 8}명 ON</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('HotRecommend')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.sectionMoreLink}>인연 찾기 ›</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.storyScrollContent}
+          >
+            {discoverUsers.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.storyItem}
+                activeOpacity={0.8}
+                onPress={() => handleProfilePress(item)}
+              >
+                <View style={styles.storyAvatarRing}>
+                  <Avatar size={58} name={item.name} uri={item.avatar} />
+                  <View style={styles.storyActiveDot} />
+                </View>
+                <Text style={styles.storyName} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                <Text style={styles.storyLoc} numberOfLines={1}>
+                  {item.location?.split(' ')[0] || '동네이웃'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* =================================================================
+            6. 🎁 카카오톡 스타일 스마트 프로모션 배너 (동적 슬라이드)
+            ================================================================= */}
+        <View style={styles.bannerSection}>
+          {currentBanner ? (
+            <TouchableOpacity
+              style={styles.adBannerCard}
+              activeOpacity={0.9}
+              onPress={() => handleBannerPress(currentBanner)}
+            >
+              {currentBanner.imageUrl ? (
+                <Image
+                  source={{ uri: currentBanner.imageUrl }}
+                  style={styles.adBannerImage}
+                />
+              ) : null}
+              <View style={styles.adBannerOverlay}>
+                <View style={styles.adBadgeRow}>
+                  <View style={styles.adBadgeKakao}>
+                    <Text style={styles.adBadgeTextKakao}>EVENT</Text>
+                  </View>
+                  {banners.length > 1 && (
+                    <View style={styles.bannerPageBadge}>
+                      <Text style={styles.bannerPageText}>
+                        {(activeBannerIdx % banners.length) + 1} / {banners.length}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.adBannerTitle} numberOfLines={1}>
+                  {currentBanner.title}
+                </Text>
+                {currentBanner.description ? (
+                  <Text style={styles.adBannerDesc} numberOfLines={1}>
+                    {currentBanner.description}
+                  </Text>
+                ) : null}
               </View>
             </TouchableOpacity>
-          ))}
+          ) : (
+            <TouchableOpacity
+              style={styles.defaultBannerCard}
+              activeOpacity={0.88}
+              onPress={() => navigation.navigate('Shop')}
+            >
+              <LinearGradient
+                colors={['#FFFBEB', '#FEF3C7']}
+                style={styles.defaultBannerGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <View style={styles.defaultBannerLeft}>
+                  <View style={styles.defaultBannerBadge}>
+                    <Text style={styles.defaultBannerBadgeText}>SPECIAL</Text>
+                  </View>
+                  <Text style={styles.defaultBannerTitle}>
+                    프로필 완성하고 50P 즉시 받기
+                  </Text>
+                  <Text style={styles.defaultBannerDesc}>
+                    동네 이웃에게 나를 소개하고 포인트를 충전하세요!
+                  </Text>
+                </View>
+                <View style={styles.defaultBannerArrowBtn}>
+                  <Ionicons name="arrow-forward" size={16} color="#191919" />
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* 나에게 관심있는 친구들 */}
-        <Card style={styles.wideCard}>
-          <View style={styles.wideRow}>
-            <Text style={styles.wideTitle}>나에게{'\n'}관심있는 친구들</Text>
-            <TouchableOpacity
-              onPress={() => {
-                const parentNav = navigation.getParent?.();
-                if (parentNav && typeof parentNav.navigate === 'function') {
-                  parentNav.navigate('Chats', { initialSeg: '신규' });
-                } else if (typeof navigation.navigate === 'function') {
-                  navigation.navigate('Chats');
-                }
-              }}
-            >
-              <Text style={styles.link}>확인하기 ›</Text>
-            </TouchableOpacity>
-          </View>
-        </Card>
-
-        {/* 새로운 친구 / 베스트추천 — 동일 높이 + 이미지 1장 자동 전환 + 하단 중앙 정렬 제목 */}
-        <View style={styles.dualRow}>
-          {/* 새로운 친구 */}
-          <View style={styles.dualCol}>
-            <View style={styles.dualHeader}>
-              <Text style={styles.dualTitle}>새로운 친구</Text>
+        {/* =================================================================
+            7. 📰 다가온 동네 커뮤니티 이야기 피드 (생생한 이웃 일상)
+            ================================================================= */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <Text style={styles.sectionTitle}>동네 커뮤니티 이야기</Text>
+              <Text style={styles.sectionSubCount}>실시간</Text>
             </View>
             <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() => handleHighlightPress(newItem)}
+              onPress={() => handleOpenCommunity()}
+              activeOpacity={0.7}
             >
-              <Card style={[styles.dualCard, { height: CARD_H }]}>
-                <View style={styles.imageWrap}>
-                  {!!newItem && <Image source={{ uri: newItem.img }} style={styles.image} />}
-                </View>
-              </Card>
+              <Text style={styles.sectionMoreLink}>피드 더보기 ›</Text>
             </TouchableOpacity>
           </View>
 
-          {/* 베스트추천 */}
-          <View style={styles.dualCol}>
-            <View style={styles.dualHeader}>
-              <Text style={styles.dualTitle}>베스트추천</Text>
-            </View>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() => handleHighlightPress(bestItem)}
+          {/* 토픽 캡슐 칩 */}
+          {communityTopics.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.topicChipScroll}
             >
-              <Card style={[styles.dualCard, { height: CARD_H }]}>
-                <View style={styles.imageWrap}>
-                  {!!bestItem && <Image source={{ uri: bestItem.img }} style={styles.image} />}
-                </View>
-              </Card>
-            </TouchableOpacity>
+              {communityTopics.map((topic) => (
+                <TouchableOpacity
+                  key={topic.id}
+                  style={styles.topicChip}
+                  onPress={() => handleOpenCommunity(topic.id)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.topicChipText}>#{topic.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+
+          {/* 최근 게시글 피드 목록 */}
+          <View style={styles.postList}>
+            {recentPosts.length > 0 ? (
+              recentPosts.map((post) => (
+                <TouchableOpacity
+                  key={post.id}
+                  style={styles.postCard}
+                  activeOpacity={0.85}
+                  onPress={() => handleOpenCommunity(post.topicId)}
+                >
+                  <View style={styles.postTopRow}>
+                    <Avatar
+                      size={32}
+                      name={post.author?.name || '이웃'}
+                      uri={post.author?.avatar}
+                    />
+                    <View style={styles.postAuthorMeta}>
+                      <Text style={styles.postAuthorName}>
+                        {post.author?.name || '동네 이웃'}
+                      </Text>
+                      <Text style={styles.postTime}>
+                        {post.topicName ? `#${post.topicName} · ` : ''}방금 전
+                      </Text>
+                    </View>
+                    <View style={styles.postCategoryBadge}>
+                      <Text style={styles.postCategoryText}>
+                        {post.topicName || '소통'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.postContent} numberOfLines={2}>
+                    {post.content}
+                  </Text>
+
+                  <View style={styles.postBottomRow}>
+                    <View style={styles.postStats}>
+                      <View style={styles.statItem}>
+                        <Ionicons name="heart-outline" size={14} color="#9CA3AF" />
+                        <Text style={styles.statText}>
+                          {post.likesCount || 12}
+                        </Text>
+                      </View>
+                      <View style={styles.statItem}>
+                        <Ionicons
+                          name="chatbubble-ellipses-outline"
+                          size={14}
+                          color="#9CA3AF"
+                        />
+                        <Text style={styles.statText}>
+                          {post.commentsCount || 3}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.postReadMore}>자세히 보기</Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <TouchableOpacity
+                style={styles.emptyPostPrompt}
+                onPress={() => handleOpenCommunity()}
+                activeOpacity={0.85}
+              >
+                <Ionicons
+                  name="create-outline"
+                  size={20}
+                  color="#F59E0B"
+                />
+                <Text style={styles.emptyPostPromptText}>
+                  첫 번째 동네 이야기를 올리고 이웃들과 소통해 보세요!
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
-        {/* MJ톡 안내 (자리) */}
-        <Card style={styles.guideCard}>
-          <Text style={styles.guideTitle}>MJ톡 안내</Text>
-          <Text style={styles.guideSub}>공지/도움말/가이드 영역</Text>
-        </Card>
+        {/* =================================================================
+            8. 🛡️ 다가온 안심 케어 시스템 배너
+            ================================================================= */}
+        <View style={styles.safeCareCard}>
+          <View style={styles.safeCareLeft}>
+            <View style={styles.safeCareIcon}>
+              <Ionicons name="shield-checkmark" size={20} color="#10B981" />
+            </View>
+            <View>
+              <Text style={styles.safeCareTitle}>다가온 24/7 클린 안심 케어</Text>
+              <Text style={styles.safeCareDesc}>
+                100% 본인 인증과 AI 실시간 모니터링으로 안전한 소통을 지원합니다.
+              </Text>
+            </View>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  // 1. 카카오 스타일 상단 앱바
   appbar: {
-    position: 'relative',
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: colors.backgroundSecondary, borderBottomWidth: 1, borderBottomColor: colors.border,
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F3F5',
   },
-  appTitle: { fontSize: 20, fontWeight: '900', color: colors.text, textAlign: 'center', flex: 1 },
-  searchBtn: { width: 24, alignItems: 'flex-end' },
-
-  greenCard: { marginHorizontal: 16, marginTop: 12, backgroundColor: '#E8FAD8', borderRadius: 14, position: 'relative' },
-  greenTitle: { color: '#14853E', fontWeight: '900', fontSize: 14 },
-  greenDesc: { color: '#1D4C2B', fontWeight: '700', fontSize: 16, lineHeight: 22, marginTop: 2 },
-  timerBtn: {
-    position: 'absolute', right: 10, top: 10,
-    backgroundColor: '#2FB75E', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8,
-    flexDirection: 'row', alignItems: 'center', gap: 6,
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  timerTxt: { color: '#fff', fontWeight: '900', fontSize: 12 },
-  greenBadge: { position: 'absolute', right: 10, bottom: 8, backgroundColor: '#DDF0CB', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
-  greenBadgeTxt: { color: '#2D6B39', fontWeight: '700', fontSize: 11 },
-
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, paddingHorizontal: 16, paddingTop: 12 },
-  gridItem: { width: '22%', alignItems: 'center' },
-  gridIcon: {
-    width: 72,
-    height: 72,
+  brandTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#191919',
+    letterSpacing: -0.6,
+  },
+  brandDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FEE500',
+    marginTop: 4,
+  },
+  appbarRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  pointChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#FEE500',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#fff',
-    borderWidth: 1.5,
-    borderColor: colors.border,
+  },
+  pointIconBg: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(0,0,0,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
   },
-  gridIconText: {
-    fontSize: 13,
+  pointChipText: {
+    fontSize: 12,
     fontWeight: '800',
-    color: colors.text,
-    textAlign: 'center',
-    lineHeight: 18,
+    color: '#191919',
   },
-
-  wideCard: { marginHorizontal: 16, marginTop: 12, borderRadius: 14, padding: 16 },
-  wideRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  wideTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
-  link: { color: colors.primary, fontWeight: '800' },
-
-  dualRow: { flexDirection: 'row', gap: 16, paddingHorizontal: 16, marginTop: 20 },
-  dualCol: { flex: 1 },
-
-  dualCard: {
+  appbarIconBtn: {
+    width: 36,
+    height: 36,
     borderRadius: 18,
+    backgroundColor: '#F7F8FA',
+    alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
-        padding: 0,
+  },
+  scrollView: {
+    flex: 1,
+    backgroundColor: '#F7F8FA',
+  },
+  scrollContent: {
+    paddingBottom: 130, // 하단 탭 바 위로 안전 스크롤
   },
 
-  dualHeader: {
-    marginBottom: 10,
-    paddingHorizontal: 4,
-  },
-  // 이미지를 박스에 가득 채우되 부드러운 라운드를 유지
-  imageWrap: {
-    flex: 1,
+  // 2. 카카오톡 상단 웰컴 & 내 프로필 미니 배너
+  myProfileBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 14,
     borderRadius: 18,
-    overflow: 'hidden',
-    backgroundColor: '#eee',
+    borderWidth: 1,
+    borderColor: '#E8EAED',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  image: {
+  myProfileLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  myAvatarWrap: {
+    position: 'relative',
+  },
+  onlineBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#10B981',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  myProfileMeta: {
+    flex: 1,
+  },
+  myProfileNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  myProfileName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#191919',
+  },
+  verifiedTag: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  verifiedTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#B45309',
+  },
+  myProfileStatus: {
+    fontSize: 12,
+    color: '#71717A',
+    marginTop: 2,
+  },
+
+  // 3. 4대 숏컷 그리드
+  shortcutGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E8EAED',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  shortcutItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  shortcutIconBg: {
+    width: 52,
+    height: 52,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    position: 'relative',
+  },
+  shortcutPulseDot: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+  },
+  shortcutLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#191919',
+  },
+  shortcutSub: {
+    fontSize: 10,
+    color: '#8E8E93',
+    marginTop: 1,
+  },
+
+  // 섹션 공통 스타일
+  sectionContainer: {
+    marginTop: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#191919',
+    letterSpacing: -0.4,
+  },
+  livePulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+  },
+  sectionBadgeRed: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  sectionBadgeTextRed: {
+    color: '#EF4444',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  sectionSubCount: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    fontWeight: '600',
+  },
+  sectionMoreLink: {
+    fontSize: 13,
+    color: '#8E8E93',
+    fontWeight: '600',
+  },
+
+  // 4. 실시간 LIVE 방송 쇼케이스
+  liveScrollContent: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  liveCard: {
+    width: 170,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8EAED',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  liveThumbWrap: {
+    width: '100%',
+    height: 120,
+    position: 'relative',
+    backgroundColor: '#1E293B',
+  },
+  liveThumbImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
-
-  dualTitle: {
-    fontSize: 16,
+  liveGradientOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  liveTopBadges: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    right: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  liveOnAirPill: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  liveOnAirText: {
+    color: '#FFFFFF',
+    fontSize: 9,
     fontWeight: '900',
-    color: colors.text,
+    letterSpacing: 0.5,
+  },
+  liveViewerPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  liveViewerText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  liveBottomHost: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  liveHostName: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+    flex: 1,
+  },
+  liveMeta: {
+    padding: 10,
+  },
+  liveTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#191919',
+    marginBottom: 2,
+  },
+  liveTagText: {
+    fontSize: 11,
+    color: '#F59E0B',
+    fontWeight: '600',
+  },
+  liveCreateCard: {
+    width: 150,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  liveCreateGradient: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  liveCreateIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  liveCreateTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#92400E',
+    marginBottom: 4,
+  },
+  liveCreateSub: {
+    fontSize: 10,
+    color: '#B45309',
+    textAlign: 'center',
+    lineHeight: 14,
   },
 
-  guideCard: { marginHorizontal: 16, marginTop: 12, borderRadius: 14, padding: 16 },
-  guideTitle: { fontSize: 16, fontWeight: '800', color: colors.text },
-  guideSub: { marginTop: 6, color: colors.textSecondary },
+  // 5. 지금 접속 중인 친구들
+  onlineCountBadge: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  onlineCountText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#059669',
+  },
+  storyScrollContent: {
+    paddingHorizontal: 16,
+    gap: 14,
+  },
+  storyItem: {
+    alignItems: 'center',
+    width: 66,
+  },
+  storyAvatarRing: {
+    position: 'relative',
+    padding: 2,
+    borderRadius: 33,
+    borderWidth: 2,
+    borderColor: '#FEE500',
+    marginBottom: 6,
+  },
+  storyActiveDot: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#10B981',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  storyName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#191919',
+    textAlign: 'center',
+    width: '100%',
+  },
+  storyLoc: {
+    fontSize: 10,
+    color: '#8E8E93',
+    textAlign: 'center',
+    marginTop: 1,
+  },
+
+  // 6. 배너 영역
+  bannerSection: {
+    marginHorizontal: 16,
+    marginTop: 22,
+  },
+  adBannerCard: {
+    height: 100,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: '#1E293B',
+    position: 'relative',
+    justifyContent: 'flex-end',
+  },
+  adBannerImage: {
+    ...StyleSheet.absoluteFillObject,
+    resizeMode: 'cover',
+  },
+  adBannerOverlay: {
+    padding: 12,
+    backgroundColor: 'rgba(25, 25, 25, 0.65)',
+  },
+  adBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  adBadgeKakao: {
+    backgroundColor: '#FEE500',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  adBadgeTextKakao: {
+    color: '#191919',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  bannerPageBadge: {
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  bannerPageText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '600',
+  },
+  adBannerTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  adBannerDesc: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  defaultBannerCard: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  defaultBannerGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+  },
+  defaultBannerLeft: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  defaultBannerBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#FEE500',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  defaultBannerBadgeText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#191919',
+  },
+  defaultBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#191919',
+  },
+  defaultBannerDesc: {
+    fontSize: 11,
+    color: '#71717A',
+    marginTop: 2,
+  },
+  defaultBannerArrowBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+
+  // 7. 동네 커뮤니티 이야기 피드
+  topicChipScroll: {
+    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 12,
+  },
+  topicChip: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E8EAED',
+  },
+  topicChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#4B5563',
+  },
+  postList: {
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  postCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E8EAED',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  postTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  postAuthorMeta: {
+    marginLeft: 8,
+    flex: 1,
+  },
+  postAuthorName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#191919',
+  },
+  postTime: {
+    fontSize: 11,
+    color: '#8E8E93',
+  },
+  postCategoryBadge: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  postCategoryText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6B7280',
+  },
+  postContent: {
+    fontSize: 13,
+    color: '#374151',
+    lineHeight: 19,
+    marginBottom: 10,
+  },
+  postBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F7F8FA',
+  },
+  postStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statText: {
+    fontSize: 11,
+    color: '#8E8E93',
+    fontWeight: '600',
+  },
+  postReadMore: {
+    fontSize: 11,
+    color: '#D97706',
+    fontWeight: '700',
+  },
+  emptyPostPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E8EAED',
+  },
+  emptyPostPromptText: {
+    fontSize: 13,
+    color: '#4B5563',
+    flex: 1,
+    marginLeft: 8,
+  },
+
+  // 8. 안심 케어 시스템
+  safeCareCard: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    backgroundColor: '#FFFFFF',
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E8EAED',
+  },
+  safeCareLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  safeCareIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#ECFDF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  safeCareTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#191919',
+  },
+  safeCareDesc: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 2,
+    lineHeight: 15,
+  },
 });

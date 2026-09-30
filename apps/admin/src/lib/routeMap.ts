@@ -31,6 +31,13 @@ const routeMap = defineRouteMap({
     method: 'post',
     description: '이메일 아이디 + 비밀번호 기반 관리자 로그인. 백엔드 미구현 시 로컬 슈퍼 관리자 계정을 사용합니다.',
   },
+  'users.me': {
+    key: 'users.me',
+    required: '/users/me',
+    actual: '/users/me',
+    method: 'get',
+    description: '현재 로그인한 사용자 정보를 조회합니다.',
+  },
   'dashboard.metrics': {
     key: 'dashboard.metrics',
     required: '/metrics/dashboard',
@@ -48,7 +55,7 @@ const routeMap = defineRouteMap({
   'users.search': {
     key: 'users.search',
     required: '/users/search',
-    actual: '/users/search',
+    actual: '/admin/users',
     method: 'get',
     description: '관리자 전용 사용자 목록/검색. 정렬/필터/페이지를 모두 지원하는 실제 API로 매핑.',
   },
@@ -69,8 +76,8 @@ const routeMap = defineRouteMap({
   'users.status': {
     key: 'users.status',
     required: '/users/{userId}/status',
-    actual: '/users/:userId/status',
-    method: 'put',
+    actual: '/admin/users/:userId/status',
+    method: 'patch',
     description: '사용자 상태 변경 전용 엔드포인트.',
   },
   'community.report': {
@@ -86,20 +93,6 @@ const routeMap = defineRouteMap({
     actual: '/community/block',
     method: 'post',
     description: '관리자 차단 등록.',
-  },
-  'admin.overrideCodes.list': {
-    key: 'admin.overrideCodes.list',
-    required: '/admin/override-codes',
-    actual: '/admin/override-codes',
-    method: 'get',
-    description: '관리자 비상 인증번호 조회.',
-  },
-  'admin.overrideCodes.update': {
-    key: 'admin.overrideCodes.update',
-    required: '/admin/override-codes',
-    actual: '/admin/override-codes',
-    method: 'put',
-    description: '관리자 비상 인증번호 저장.',
   },
 } as const)
 

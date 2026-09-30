@@ -25,24 +25,20 @@ const linking = {
       Home: {
         screens: {
           HomeMain: 'home',
-          Explore: 'home/explore',
-          UniversalList: 'home/list',
           HotRecommend: 'home/hot',
-          ProfileDetail: 'home/profile',
         },
       },
-      Chats: {
+      Live: 'live',
+      Chat: {
         screens: {
           ChatsMain: 'chats',
           ChatRoom: 'chat/:id',
-          CreateChatRoom: 'chat/create',
         },
       },
-      Shop: 'shop',
-      MyPage: {
+      Points: 'points',
+      My: {
         screens: {
           MyPageMain: 'mypage',
-          ProfileDetail: 'mypage/profile',
           ProfileEdit: 'mypage/edit',
         },
       },

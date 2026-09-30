@@ -1,49 +1,396 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'nestjs-prisma';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import { PrismaService } from "nestjs-prisma";
+
+const MAX_TRANSACTION_RETRIES = 3;
 
 @Injectable()
 export class FriendshipsService {
   constructor(private prisma: PrismaService) {}
 
-  // 친구 요청 생성
-  async sendRequest(requesterId: string, addresseeId: string) {
-    return this.prisma.friendship.create({
-      data: { requesterId, addresseeId, status: 'requested' },
+  async sendRequest(
+    requesterId: string,
+    addresseeId?: string,
+    targetAccountId?: string,
+  ) {
+    if (!requesterId) {
+      throw new BadRequestException("Missing authenticated user");
+    }
+
+    let resolvedAddresseeId = addresseeId?.trim() ?? "";
+    if (!resolvedAddresseeId && targetAccountId?.trim()) {
+      const targetAccount = await this.prisma.activityAccount.findFirst({
+        where: {
+          id: targetAccountId.trim(),
+          status: "active",
+          owner: {
+            status: "active",
+            legacyUserId: { not: null },
+            legacyUser: { status: "active" },
+          },
+        },
+        select: {
+          owner: { select: { legacyUserId: true } },
+        },
+      });
+      resolvedAddresseeId = targetAccount?.owner.legacyUserId ?? "";
+    }
+
+    if (!resolvedAddresseeId) {
+      throw new BadRequestException("Target user information is required");
+    }
+
+    if (requesterId === resolvedAddresseeId) {
+      throw new BadRequestException("Cannot send a friend request to yourself");
+    }
+
+    const addressee = await this.prisma.user.findFirst({
+      where: {
+        id: resolvedAddresseeId,
+        status: "active",
+      },
+      select: { id: true },
     });
+
+    if (!addressee) {
+      throw new NotFoundException("User not found");
+    }
+
+    const userPair = [
+      { requesterId, addresseeId: resolvedAddresseeId },
+      { requesterId: resolvedAddresseeId, addresseeId: requesterId },
+    ];
+    const blockPair = [
+      { userId: requesterId, blockedUserId: resolvedAddresseeId },
+      { userId: resolvedAddresseeId, blockedUserId: requesterId },
+    ];
+
+    for (let retryCount = 0; ; retryCount += 1) {
+      try {
+        return await this.prisma.$transaction(
+          async (transaction) => {
+            const block = await transaction.block.findFirst({
+              where: { OR: blockPair },
+              select: { id: true },
+            });
+
+            if (block) {
+              throw new BadRequestException("Friend request is unavailable");
+            }
+
+            const friendships = await transaction.friendship.findMany({
+              where: { OR: userPair },
+              select: { status: true },
+            });
+
+            if (
+              friendships.some((friendship) => friendship.status === "accepted")
+            ) {
+              throw new BadRequestException("Friendship already exists");
+            }
+
+            if (
+              friendships.some(
+                (friendship) => friendship.status === "requested",
+              )
+            ) {
+              throw new BadRequestException("Friend request already exists");
+            }
+
+            await transaction.friendship.deleteMany({
+              where: {
+                OR: userPair,
+                status: "declined",
+              },
+            });
+
+            return transaction.friendship.create({
+              data: {
+                requesterId,
+                addresseeId: resolvedAddresseeId,
+                status: "requested",
+              },
+            });
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+      } catch (error) {
+        const shouldRetry =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2034" &&
+          retryCount < MAX_TRANSACTION_RETRIES;
+
+        if (!shouldRetry) {
+          throw error;
+        }
+      }
+    }
   }
 
-  // 요청 수락
-  async acceptRequest(id: string) {
+  async acceptRequest(currentUserId: string, id: string) {
+    for (let retryCount = 0; ; retryCount += 1) {
+      try {
+        return await this.prisma.$transaction(
+          async (transaction) => {
+            const request = await transaction.friendship.findFirst({
+              where: {
+                id,
+                addresseeId: currentUserId,
+                status: "requested",
+              },
+              select: { id: true, requesterId: true },
+            });
+
+            if (!request) {
+              throw new NotFoundException("Friend request not found");
+            }
+
+            const block = await transaction.block.findFirst({
+              where: {
+                OR: [
+                  {
+                    userId: request.requesterId,
+                    blockedUserId: currentUserId,
+                  },
+                  {
+                    userId: currentUserId,
+                    blockedUserId: request.requesterId,
+                  },
+                ],
+              },
+              select: { id: true },
+            });
+
+            if (block) {
+              throw new BadRequestException("Friend request is unavailable");
+            }
+
+            return transaction.friendship.update({
+              where: { id },
+              data: { status: "accepted" },
+            });
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+      } catch (error) {
+        const shouldRetry =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2034" &&
+          retryCount < MAX_TRANSACTION_RETRIES;
+
+        if (!shouldRetry) {
+          throw error;
+        }
+      }
+    }
+  }
+
+  async declineRequest(currentUserId: string, id: string) {
+    const request = await this.prisma.friendship.findFirst({
+      where: {
+        id,
+        addresseeId: currentUserId,
+        status: "requested",
+      },
+      select: { id: true },
+    });
+
+    if (!request) {
+      throw new NotFoundException("Friend request not found");
+    }
+
     return this.prisma.friendship.update({
       where: { id },
-      data: { status: 'accepted' },
+      data: { status: "declined" },
     });
   }
 
-  // 요청 거절
-  async declineRequest(id: string) {
-    return this.prisma.friendship.update({
-      where: { id },
-      data: { status: 'declined' },
+  async cancelRequest(currentUserId: string, id: string) {
+    const request = await this.prisma.friendship.findFirst({
+      where: {
+        id,
+        requesterId: currentUserId,
+        status: "requested",
+      },
+      select: { id: true },
     });
-  }
 
-  // 요청 취소/삭제
-  async cancelRequest(id: string) {
+    if (!request) {
+      throw new NotFoundException("Friend request not found");
+    }
+
     return this.prisma.friendship.delete({
       where: { id },
     });
   }
 
-  // 특정 사용자가 주고받은 요청 목록 조회
-  async listRequests(userId: string) {
-    return this.prisma.friendship.findMany({
+  async listRequests(currentUserId: string) {
+    if (!currentUserId) {
+      throw new BadRequestException("Missing authenticated user");
+    }
+
+    const [friendships, blocks] = await Promise.all([
+      this.prisma.friendship.findMany({
+        where: {
+          OR: [{ requesterId: currentUserId }, { addresseeId: currentUserId }],
+        },
+        include: {
+          requester: {
+            select: {
+              id: true,
+              displayName: true,
+              profile: {
+                select: {
+                  nickname: true,
+                  avatarUri: true,
+                  bio: true,
+                  headline: true,
+                },
+              },
+              activityAccountBridge: {
+                select: {
+                  id: true,
+                  handle: true,
+                  displayName: true,
+                },
+              },
+            },
+          },
+          addressee: {
+            select: {
+              id: true,
+              displayName: true,
+              profile: {
+                select: {
+                  nickname: true,
+                  avatarUri: true,
+                  bio: true,
+                  headline: true,
+                },
+              },
+              activityAccountBridge: {
+                select: {
+                  id: true,
+                  handle: true,
+                  displayName: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      this.prisma.block.findMany({
+        where: {
+          OR: [{ userId: currentUserId }, { blockedUserId: currentUserId }],
+        },
+        select: {
+          userId: true,
+          blockedUserId: true,
+        },
+      }),
+    ]);
+
+    const blockedUserIds = new Set(
+      blocks.map((block) =>
+        block.userId === currentUserId ? block.blockedUserId : block.userId,
+      ),
+    );
+
+    return friendships
+      .filter((friendship) => {
+        const otherUserId =
+          friendship.requesterId === currentUserId
+            ? friendship.addresseeId
+            : friendship.requesterId;
+        return !blockedUserIds.has(otherUserId);
+      })
+      .map((friendship) => {
+        const isRequester = friendship.requesterId === currentUserId;
+        const otherUser = isRequester
+          ? friendship.addressee
+          : friendship.requester;
+        return {
+          id: friendship.id,
+          status: friendship.status,
+          createdAt: friendship.createdAt,
+          isRequester,
+          user: {
+            id: otherUser.id,
+            name:
+              otherUser.profile?.nickname ||
+              otherUser.displayName ||
+              "친구",
+            avatar: otherUser.profile?.avatarUri || null,
+            bio:
+              otherUser.profile?.bio ||
+              otherUser.profile?.headline ||
+              null,
+            targetAccountId: otherUser.activityAccountBridge?.id || null,
+          },
+        };
+      });
+  }
+
+  async getStatus(
+    currentUserId: string,
+    targetUserId?: string,
+    targetAccountId?: string,
+  ): Promise<{ status: "accepted" | "requested_by_me" | "requested_to_me" | "none" }> {
+    if (!currentUserId) return { status: "none" };
+
+    let resolvedTargetId = targetUserId?.trim() ?? "";
+    if (!resolvedTargetId && targetAccountId?.trim()) {
+      const targetAccount = await this.prisma.activityAccount.findFirst({
+        where: {
+          id: targetAccountId.trim(),
+          status: "active",
+          owner: {
+            status: "active",
+            legacyUserId: { not: null },
+            legacyUser: { status: "active" },
+          },
+        },
+        select: {
+          owner: { select: { legacyUserId: true } },
+        },
+      });
+      resolvedTargetId = targetAccount?.owner.legacyUserId ?? "";
+    }
+
+    if (!resolvedTargetId || resolvedTargetId === currentUserId) {
+      return { status: "none" };
+    }
+
+    const friendship = await this.prisma.friendship.findFirst({
       where: {
         OR: [
-          { requesterId: userId },
-          { addresseeId: userId },
+          { requesterId: currentUserId, addresseeId: resolvedTargetId },
+          { requesterId: resolvedTargetId, addresseeId: currentUserId },
         ],
       },
+      select: {
+        status: true,
+        requesterId: true,
+      },
     });
+
+    if (!friendship) return { status: "none" };
+
+    if (friendship.status === "accepted") return { status: "accepted" };
+    if (friendship.status === "requested") {
+      return {
+        status:
+          friendship.requesterId === currentUserId
+            ? "requested_by_me"
+            : "requested_to_me",
+      };
+    }
+
+    return { status: "none" };
   }
 }

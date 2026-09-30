@@ -3,6 +3,8 @@ import {
   BadRequestException,
   UnauthorizedException,
   ConflictException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import * as argon2 from 'argon2';
@@ -19,11 +21,95 @@ import {
 } from './dto';
 
 const OTP_EXPIRY_SECONDS = 180;
-const DISABLE_AUTH = process.env.DISABLE_AUTH_AND_PAYMENT === 'true';
+const OTP_REQUEST_COOLDOWN_SECONDS = 60;
+const DISABLE_AUTH =
+  process.env.NODE_ENV !== 'production' &&
+  process.env.DISABLE_AUTH_AND_PAYMENT === 'true';
 
 @Injectable()
 export class AuthService {
   constructor(private prisma: PrismaService) {}
+
+  private async ensureConsumerFoundation(
+    tx: Prisma.TransactionClient,
+    user: {
+      id: string;
+      role: string;
+      status: string;
+      displayName: string | null;
+      pointsBalance: number;
+    },
+  ) {
+    if (user.role !== 'user') {
+      return;
+    }
+
+    const owner = await tx.owner.upsert({
+      where: { legacyUserId: user.id },
+      update: {},
+      create: {
+        legacyUserId: user.id,
+        status: user.status,
+      },
+      select: { id: true },
+    });
+
+    const activityAccount = await tx.activityAccount.upsert({
+      where: { legacyUserId: user.id },
+      update: {},
+      create: {
+        ownerId: owner.id,
+        legacyUserId: user.id,
+        displayName: user.displayName,
+        status: user.status,
+        isPrimary: true,
+      },
+      select: { id: true },
+    });
+
+    const existingWallet = await tx.wallet.findUnique({
+      where: { activityAccountId: activityAccount.id },
+      select: { id: true },
+    });
+
+    if (existingWallet) {
+      return;
+    }
+
+    const wallet = await tx.wallet.create({
+      data: {
+        activityAccountId: activityAccount.id,
+        spendableBalance: user.pointsBalance,
+        redeemableBalance: 0,
+        pendingEarnings: 0,
+        status: 'active',
+      },
+      select: { id: true },
+    });
+
+    if (user.pointsBalance > 0) {
+      await tx.walletLedgerEntry.create({
+        data: {
+          walletId: wallet.id,
+          kind: 'credit',
+          source: 'consumer_foundation_provisioning',
+          deltaSpendable: user.pointsBalance,
+          deltaRedeemable: 0,
+          deltaPending: 0,
+          spendableAfter: user.pointsBalance,
+          redeemableAfter: 0,
+          pendingAfter: 0,
+          idempotencyKey: `consumer-foundation:legacy-balance:${activityAccount.id}`,
+          referenceType: 'User',
+          referenceId: user.id,
+          metadata: {
+            purpose: 'consumer_foundation_provisioning',
+            legacyField: 'User.pointsBalance',
+          },
+        },
+      });
+    }
+  }
 
   private normalizePhone(phone: string) {
     return phone.replace(/[^\d]/g, '');
@@ -82,8 +168,21 @@ export class AuthService {
     return secret;
   }
 
-  private makeToken(payload: any) {
-    return jwtSign(payload, this.getJwtSecret(), { expiresIn: '7d' });
+  private async makeToken(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { tokenVersion: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return jwtSign(
+      { sub: userId, tokenVersion: user.tokenVersion },
+      this.getJwtSecret(),
+      { expiresIn: '7d' },
+    );
   }
 
   async signupEmail(dto: EmailSignupDto) {
@@ -97,20 +196,37 @@ export class AuthService {
 
     const hashed = await argon2.hash(dto.password);
 
-    const user = await this.prisma.user.create({
-      data: {
-        email: dto.email,
-        provider: 'email',
-        // phoneHash: '' // schema가 optional이므로 불필요. 꼭 필요하면 빈문자 유지 가능
-        passwordHash: hashed,
-        displayName: (dto as any).displayName ?? null,
-        dob: new Date(dto.dob),
-        gender: dto.gender,
-      },
-      select: { id: true, email: true, displayName: true },
+    const user = await this.prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          email: dto.email,
+          provider: 'email',
+          // phoneHash: '' // schema가 optional이므로 불필요. 꼭 필요하면 빈문자 유지 가능
+          passwordHash: hashed,
+          displayName: (dto as any).displayName ?? null,
+          dob: new Date(dto.dob),
+          gender: dto.gender,
+        },
+        select: {
+          id: true,
+          email: true,
+          displayName: true,
+          role: true,
+          status: true,
+          pointsBalance: true,
+        },
+      });
+
+      await this.ensureConsumerFoundation(tx, createdUser);
+
+      return {
+        id: createdUser.id,
+        email: createdUser.email,
+        displayName: createdUser.displayName,
+      };
     });
 
-    const token = this.makeToken({ sub: user.id });
+    const token = await this.makeToken(user.id);
     return { user, token, access_token: token }; // 프론트 호환
   }
 
@@ -128,7 +244,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const token = this.makeToken({ sub: user.id });
+    const token = await this.makeToken(user.id);
     return {
       user: { id: user.id, email: user.email, displayName: user.displayName ?? null },
       token,
@@ -146,6 +262,36 @@ export class AuthService {
     }
 
     const { digits, countryCode } = this.formatPhoneKey(dto.phone, dto.countryCode);
+
+    const now = new Date();
+    const recentRequest = await this.prisma.phoneVerification.findFirst({
+      where: {
+        phone: digits,
+        countryCode,
+        createdAt: {
+          gte: new Date(now.getTime() - OTP_REQUEST_COOLDOWN_SECONDS * 1000),
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    });
+
+    if (recentRequest) {
+      const retryAfter = Math.max(
+        1,
+        Math.ceil(
+          (recentRequest.createdAt.getTime() +
+            OTP_REQUEST_COOLDOWN_SECONDS * 1000 -
+            now.getTime()) /
+            1000,
+        ),
+      );
+
+      throw new HttpException(
+        { error: 'OTP_REQUEST_TOO_FREQUENT', retryAfter },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
 
     const code = this.generateOtpCode();
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_SECONDS * 1000);
@@ -185,7 +331,6 @@ export class AuthService {
     if (DISABLE_AUTH) {
       return {
         token: 'dummy-token',
-        adminOverride: true,
         needsProfile: true,
         verificationId: `admin-${Date.now()}`,
       };
@@ -202,6 +347,10 @@ export class AuthService {
 
     if (!request || request.phone !== digits) {
       throw new BadRequestException('Invalid verification request');
+    }
+
+    if (request.verifiedAt) {
+      throw new BadRequestException('Verification code already used');
     }
 
     if (request.expiresAt.getTime() < Date.now()) {
@@ -245,7 +394,7 @@ export class AuthService {
         data: verificationUpdate,
       });
 
-      const token = this.makeToken({ sub: resolvedUserId });
+      const token = await this.makeToken(resolvedUserId);
       const user = await this.serializeAuthUser(resolvedUserId);
       return { token, user };
     }
@@ -258,10 +407,7 @@ export class AuthService {
     return { needsProfile: true, verificationId: request.id };
   }
 
-  async completePhoneProfile(
-    dto: CompletePhoneProfileDto,
-    adminOverride = false,
-  ) {
+  async completePhoneProfile(dto: CompletePhoneProfileDto) {
     const digits = this.normalizePhone(dto.phone);
     if (!digits) {
       throw new BadRequestException('Invalid phone number');
@@ -279,7 +425,7 @@ export class AuthService {
     const avatarUri =
       avatarUriValue && avatarUriValue.length > 0 ? avatarUriValue : undefined;
 
-    if (DISABLE_AUTH || adminOverride) {
+    if (DISABLE_AUTH) {
       const userId = await this.createOrUpdatePhoneUser({
         phoneDigits: digits,
         nickname,
@@ -292,7 +438,7 @@ export class AuthService {
         avatarUri: avatarUri ?? null,
       });
 
-      const token = this.makeToken({ sub: userId });
+      const token = await this.makeToken(userId);
       const user = await this.serializeAuthUser(userId);
       return { token, user };
     }
@@ -310,7 +456,7 @@ export class AuthService {
     }
 
     if (request.completedAt && request.userId) {
-      const token = this.makeToken({ sub: request.userId });
+      const token = await this.makeToken(request.userId);
       const user = await this.serializeAuthUser(request.userId);
       return { token, user };
     }
@@ -330,7 +476,7 @@ export class AuthService {
           completedAt: new Date(),
         },
       });
-      const token = this.makeToken({ sub: existing.id });
+      const token = await this.makeToken(existing.id);
       const user = await this.serializeAuthUser(existing.id);
       return { token, user };
     }
@@ -357,8 +503,16 @@ export class AuthService {
               },
             },
           },
-          select: { id: true },
+          select: {
+            id: true,
+            role: true,
+            status: true,
+            displayName: true,
+            pointsBalance: true,
+          },
         });
+
+        await this.ensureConsumerFoundation(tx, user);
 
         await tx.phoneVerification.update({
           where: { id: request.id },
@@ -371,7 +525,7 @@ export class AuthService {
         return user.id;
       });
 
-      const token = this.makeToken({ sub: result });
+      const token = await this.makeToken(result);
       const user = await this.serializeAuthUser(result);
       return { token, user };
     } catch (error: any) {
@@ -409,36 +563,18 @@ export class AuthService {
       profileUpdate.avatarUri = options.avatarUri;
     }
 
-    const user = await this.prisma.user.upsert({
-      where: { phoneHash },
-      create: {
-        provider: 'phone',
-        phoneHash,
-        displayName: options.nickname,
-        dob: options.dob,
-        gender: options.gender,
-        region1: options.region1 ?? null,
-        region2: options.region2 ?? null,
-        profile: {
-          create: {
-            nickname: options.nickname || '회원',
-            bio: options.bio ?? null,
-            headline: options.headline ?? null,
-            avatarUri: options.avatarUri ?? null,
-            interests: [],
-            badges: [],
-          },
-        },
-      },
-      update: {
-        displayName: options.nickname ?? undefined,
-        dob: options.dob,
-        gender: options.gender,
-        region1: options.region1 ?? null,
-        region2: options.region2 ?? null,
-        profile: {
-          upsert: {
-            update: profileUpdate,
+    const user = await this.prisma.$transaction(async (tx) => {
+      const upsertedUser = await tx.user.upsert({
+        where: { phoneHash },
+        create: {
+          provider: 'phone',
+          phoneHash,
+          displayName: options.nickname,
+          dob: options.dob,
+          gender: options.gender,
+          region1: options.region1 ?? null,
+          region2: options.region2 ?? null,
+          profile: {
             create: {
               nickname: options.nickname || '회원',
               bio: options.bio ?? null,
@@ -449,10 +585,97 @@ export class AuthService {
             },
           },
         },
-      },
-      select: { id: true },
+        update: {
+          displayName: options.nickname ?? undefined,
+          dob: options.dob,
+          gender: options.gender,
+          region1: options.region1 ?? null,
+          region2: options.region2 ?? null,
+          profile: {
+            upsert: {
+              update: profileUpdate,
+              create: {
+                nickname: options.nickname || '회원',
+                bio: options.bio ?? null,
+                headline: options.headline ?? null,
+                avatarUri: options.avatarUri ?? null,
+                interests: [],
+                badges: [],
+              },
+            },
+          },
+        },
+        select: {
+          id: true,
+          role: true,
+          status: true,
+          displayName: true,
+          pointsBalance: true,
+        },
+      });
+
+      await this.ensureConsumerFoundation(tx, upsertedUser);
+      return upsertedUser;
     });
 
     return user.id;
+  }
+
+  async testLogin() {
+    const testEmail = 'test_user@dagaon.com';
+    let user = await this.prisma.user.findUnique({
+      where: { email: testEmail },
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+        role: true,
+        status: true,
+        pointsBalance: true,
+      },
+    });
+
+    if (!user) {
+      const hashed = await argon2.hash('DagaonTest2026!');
+      user = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.user.create({
+          data: {
+            email: testEmail,
+            provider: 'email',
+            passwordHash: hashed,
+            displayName: '다가온테스터',
+            dob: new Date('1998-01-01'),
+            gender: 'other',
+            pointsBalance: 1000,
+            profile: {
+              create: {
+                nickname: '다가온테스터',
+                headline: '다가온 공식 테스트 계정입니다 ✨',
+                bio: '다가온 서비스를 원활하게 테스트하고 탐색하는 공식 계정입니다.',
+                avatarUri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
+              },
+            },
+          },
+          select: {
+            id: true,
+            email: true,
+            displayName: true,
+            role: true,
+            status: true,
+            pointsBalance: true,
+          },
+        });
+        await this.ensureConsumerFoundation(tx, created);
+        return created;
+      });
+    }
+
+    const token = await this.makeToken(user.id);
+    const serialized = await this.serializeAuthUser(user.id);
+    return {
+      access_token: token,
+      token,
+      user: serialized,
+    };
   }
 }

@@ -1,0 +1,58 @@
+{
+  "items": [
+    {
+      "id": "com.company.points.100",
+      "productId": "com.company.points.100",
+      "label": "100P",
+      "priceText": "₩1,900",
+      "points": 100,
+      "recommended": false,
+      "currency": "KRW"
+    },
+    {
+      "id": "com.company.points.300",
+      "productId": "com.company.points.300",
+      "label": "300P",
+      "priceText": "₩5,500",
+      "points": 300,
+      "recommended": false,
+      "currency": "KRW"
+    },
+    {
+      "id": "com.company.points.500",
+      "productId": "com.company.points.500",
+      "label": "500P",
+      "priceText": "₩8,900",
+      "points": 500,
+      "recommended": false,
+      "currency": "KRW"
+    },
+    {
+      "id": "com.company.points.1000",
+      "productId": "com.company.points.1000",
+      "label": "1,000P",
+      "priceText": "₩17,000",
+      "points": 1000,
+      "recommended": true,
+      "currency": "KRW"
+    },
+    {
+      "id": "com.company.points.3000",
+      "productId": "com.company.points.3000",
+      "label": "3,000P",
+      "priceText": "₩49,000",
+      "points": 3000,
+      "recommended": false,
+      "currency": "KRW"
+    },
+    {
+      "id": "com.company.points.5000",
+      "productId": "com.company.points.5000",
+      "label": "5,000P",
+      "priceText": "₩79,000",
+      "points": 5000,
+      "recommended": false,
+      "currency": "KRW"
+    }
+  ]
+}

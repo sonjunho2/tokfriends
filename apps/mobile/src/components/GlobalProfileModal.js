@@ -19,7 +19,6 @@ import Avatar from './Avatar';
 import { useNavigation } from '@react-navigation/native';
 import { apiClient } from '../api/client';
 
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=600&q=80';
 
 export default function GlobalProfileModal() {
   const navigation = useNavigation();
@@ -31,15 +30,18 @@ export default function GlobalProfileModal() {
   const profileData = useMemo(() => {
     if (profile) return profile;
     if (!user) return null;
+
+    const userProfile = user?.profile ?? {};
+    const location =
+      [user?.region1, user?.region2].filter(Boolean).join(' · ') || '지역 미설정';
+
     return {
-      name: user?.nickname || user?.displayName || user?.name || '회원님',
-      location: user?.location || '서울, 27살 여자',
-      title: user?.headline || '오늘 가입한 회원입니다',
-      bio:
-        user?.bio ||
-        '새로운 인연을 기다리고 있어요. 반려견과 드라이브하는 것을 좋아해요!',
-      avatar: user?.avatar || null,
-      coverImage: user?.coverImage || FALLBACK_IMAGE,
+      name: userProfile?.nickname || user?.displayName || '회원님',
+      location,
+      title: userProfile?.headline || '한줄 소개가 없습니다.',
+      bio: userProfile?.bio || '소개가 없습니다.',
+      avatar: userProfile?.avatarUri || null,
+      coverImage: userProfile?.avatarUri || null,
     };
   }, [profile, user]);
 
@@ -50,37 +52,49 @@ export default function GlobalProfileModal() {
   const handleOpenMyPage = () => {
     closeProfile();
     setTimeout(() => {
-      navigation.navigate('MyPage', { screen: 'MyPageMain' });
+      navigation.navigate('My', { screen: 'MyPageMain' });
     }, 0);
   };
 
   const handleOpenSettings = () => {
     closeProfile();
     setTimeout(() => {
-      navigation.navigate('MyPage', { screen: 'MyPageMain' });
+      navigation.navigate('My', { screen: 'MyPageMain' });
     }, 0);
   };
 
   const handleMessage = async () => {
     if (sending) return;
-    const targetId = profile?.id || profile?._id;
-    if (!targetId) {
+    const targetUserId =
+      typeof profile?.targetUserId === 'string' ? profile.targetUserId.trim() : '';
+    const targetAccountId =
+      typeof profile?.targetAccountId === 'string' ? profile.targetAccountId.trim() : '';
+    if (!targetUserId && !targetAccountId) {
       Alert.alert('안내', '대화할 회원 정보를 찾을 수 없습니다.');
+      return;
+    }
+    if (targetUserId && targetAccountId) {
+      Alert.alert('안내', '대화 상대 식별 정보가 올바르지 않습니다.');
       return;
     }
     setSending(true);
     try {
-      const room = await apiClient.ensureDirectRoom(targetId, { title: profileData?.name });
-      const roomId = room?.id || room?._id || Date.now();
+      const room = await apiClient.ensureDirectRoom(
+        targetUserId ? { targetUserId } : { targetAccountId },
+      );
+      const roomId = room?.id || room?._id;
+      if (!roomId) {
+        throw new Error('채팅방 정보를 확인할 수 없습니다.');
+      }
       const participant = {
-        id: targetId,
+        ...(targetUserId ? { id: targetUserId, targetUserId } : { targetAccountId }),
         name: profileData?.name,
         avatar: profileData?.avatar,
         headline: profileData?.title,
       };
       closeProfile();
       setTimeout(() => {
-        navigation.navigate('Chats', {
+        navigation.navigate('Chat', {
           screen: 'ChatRoom',
           params: { id: roomId, room, user: participant },
         });
@@ -102,7 +116,11 @@ export default function GlobalProfileModal() {
       onRequestClose={handleClose}
     >
       <View style={styles.container}>
-        <Image source={{ uri: profileData.coverImage }} style={styles.coverImage} />
+        {profileData.coverImage ? (
+          <Image source={{ uri: profileData.coverImage }} style={styles.coverImage} />
+        ) : (
+          <View style={styles.coverPlaceholder} />
+        )}
 
         <View style={[styles.topBar, { paddingTop: insets.top + 6 }]}> 
           <TouchableOpacity style={styles.topButton} onPress={handleClose} hitSlop={8}>
@@ -168,6 +186,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 320,
+  },
+  coverPlaceholder: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 320,
+    backgroundColor: colors.backgroundSecondary,
   },
   topBar: {
     position: 'absolute',

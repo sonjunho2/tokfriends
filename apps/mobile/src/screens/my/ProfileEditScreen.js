@@ -8,19 +8,71 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
+import { apiClient } from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
+
+const PRESET_INTERESTS = [
+  '음악', '영화', '독서', '카페', '맛집', '여행', '운동',
+  '게임', '요리', '등산', '사진', '반려동물', '패션', '미술',
+];
 
 export default function ProfileEditScreen({ navigation, route }) {
   const profile = route?.params?.profile ?? {};
   const preferredFont = route?.params?.preferredFont;
+  const { user, refreshMe } = useAuth();
+  const userProfile = user?.profile ?? {};
 
-  const [name, setName] = useState(profile?.name ?? '');
-  const [location, setLocation] = useState(profile?.location ?? '');
-  const [title, setTitle] = useState(profile?.title ?? '');
-  const [bio, setBio] = useState(profile?.bio ?? '');
+  const [name, setName] = useState(userProfile?.nickname ?? profile?.name ?? user?.displayName ?? '');
+  const [region1, setRegion1] = useState(user?.region1 ?? '');
+  const [region2, setRegion2] = useState(user?.region2 ?? '');
+  const [title, setTitle] = useState(userProfile?.headline ?? profile?.title ?? '');
+  const [bio, setBio] = useState(userProfile?.bio ?? profile?.bio ?? '');
+  const [avatarUri, setAvatarUri] = useState(
+    userProfile?.avatarUri ?? profile?.avatarUri ?? profile?.image ?? null,
+  );
+  const [avatarAsset, setAvatarAsset] = useState(null);
+  const [interests, setInterests] = useState(
+    Array.isArray(userProfile?.interests) ? userProfile.interests : [],
+  );
+  const [interestInput, setInterestInput] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleAddInterest = () => {
+    const tag = interestInput.trim();
+    if (!tag) return;
+    if (interests.includes(tag)) {
+      setInterestInput('');
+      return;
+    }
+    if (interests.length >= 10) {
+      Alert.alert('관심사', '관심사는 최대 10개까지 추가할 수 있습니다.');
+      return;
+    }
+    setInterests((prev) => [...prev, tag]);
+    setInterestInput('');
+  };
+
+  const handleRemoveInterest = (tag) => {
+    setInterests((prev) => prev.filter((t) => t !== tag));
+  };
+
+  const handleTogglePreset = (tag) => {
+    if (interests.includes(tag)) {
+      handleRemoveInterest(tag);
+    } else {
+      if (interests.length >= 10) {
+        Alert.alert('관심사', '관심사는 최대 10개까지 추가할 수 있습니다.');
+        return;
+      }
+      setInterests((prev) => [...prev, tag]);
+    }
+  };
 
   const previewFontStyle = useMemo(() => {
     if (!preferredFont || preferredFont === 'system') {
@@ -29,17 +81,92 @@ export default function ProfileEditScreen({ navigation, route }) {
     return { fontFamily: preferredFont };
   }, [preferredFont]);
 
-  const handleSave = () => {
-    Alert.alert(
-      '프로필 저장',
-      '입력한 정보가 임시로 저장되었습니다. 실제 저장은 API 연결 후 완료됩니다.',
-      [
+  const handlePickAvatar = async () => {
+    if (saving) return;
+
+    try {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== 'granted') {
+        Alert.alert(
+          '권한 필요',
+          '사진을 선택하려면 갤러리 접근 권한이 필요합니다.',
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.85,
+      });
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setAvatarAsset(result.assets[0]);
+        setAvatarUri(result.assets[0].uri);
+      }
+    } catch {
+      Alert.alert(
+        '프로필 사진',
+        '사진을 선택하지 못했습니다. 다시 시도해 주세요.',
+      );
+    }
+  };
+
+  const handleSave = async () => {
+    if (saving) return;
+
+    if (!user?.id) {
+      Alert.alert('프로필 저장 실패', '로그인 사용자 정보를 확인할 수 없습니다.');
+      return;
+    }
+
+    if (!name.trim()) {
+      Alert.alert('입력 확인', '닉네임을 입력해 주세요.');
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      let nextAvatarUri = avatarUri;
+
+      if (avatarAsset) {
+        const uploadedAvatar = await apiClient.uploadAvatar(avatarAsset);
+        nextAvatarUri = String(uploadedAvatar?.url || '').trim();
+
+        if (!nextAvatarUri) {
+          throw new Error('프로필 사진 저장 정보를 확인하지 못했습니다.');
+        }
+      }
+
+      await apiClient.updateUser(user.id, {
+        nickname: name.trim(),
+        region1: region1.trim(),
+        region2: region2.trim(),
+        headline: title.trim(),
+        bio: bio.trim(),
+        interests,
+        ...(nextAvatarUri ? { avatarUri: nextAvatarUri } : {}),
+      });
+
+      await refreshMe();
+
+      Alert.alert('프로필 저장', '프로필이 저장되었습니다.', [
         {
           text: '확인',
           onPress: () => navigation.goBack(),
         },
-      ],
-    );
+      ]);
+    } catch (error) {
+      Alert.alert(
+        '프로필 저장 실패',
+        error?.message || '프로필을 저장하지 못했습니다.',
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -61,6 +188,40 @@ export default function ProfileEditScreen({ navigation, route }) {
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.avatarSection}>
+          <TouchableOpacity
+            style={styles.avatarButton}
+            activeOpacity={0.85}
+            onPress={handlePickAvatar}
+            disabled={saving}
+          >
+            {avatarUri ? (
+              <Image
+                source={{ uri: avatarUri }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Ionicons
+                  name="person"
+                  size={44}
+                  color={colors.textTertiary}
+                />
+              </View>
+            )}
+
+            <View style={styles.avatarEditBadge}>
+              <Ionicons
+                name="camera"
+                size={17}
+                color={colors.textInverse}
+              />
+            </View>
+          </TouchableOpacity>
+
+          <Text style={styles.avatarHelp}>프로필 사진 변경</Text>
+        </View>
+
         <View style={styles.formCard}>
           <Text style={styles.label}>닉네임</Text>
           <TextInput
@@ -71,12 +232,21 @@ export default function ProfileEditScreen({ navigation, route }) {
             placeholderTextColor={colors.textTertiary}
           />
 
-          <Text style={styles.label}>지역 / 나이</Text>
+          <Text style={styles.label}>지역 1</Text>
           <TextInput
             style={styles.input}
-            value={location}
-            onChangeText={setLocation}
-            placeholder="예) 서울, 여자 27살"
+            value={region1}
+            onChangeText={setRegion1}
+            placeholder="예) 서울"
+            placeholderTextColor={colors.textTertiary}
+          />
+
+          <Text style={styles.label}>지역 2</Text>
+          <TextInput
+            style={styles.input}
+            value={region2}
+            onChangeText={setRegion2}
+            placeholder="예) 강남구"
             placeholderTextColor={colors.textTertiary}
           />
 
@@ -99,13 +269,75 @@ export default function ProfileEditScreen({ navigation, route }) {
             placeholder="나를 소개하는 글을 작성해보세요"
             placeholderTextColor={colors.textTertiary}
           />
+
+          {/* Interests / 관심사 */}
+          <Text style={styles.label}>관심사 ({interests.length}/10)</Text>
+          {interests.length > 0 && (
+            <View style={styles.interestTagRow}>
+              {interests.map((tag) => (
+                <TouchableOpacity
+                  key={tag}
+                  style={styles.interestTag}
+                  onPress={() => handleRemoveInterest(tag)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.interestTagText}>{tag}</Text>
+                  <Ionicons name="close" size={12} color={colors.primary} style={{ marginLeft: 3 }} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          <View style={styles.interestInputRow}>
+            <TextInput
+              style={styles.interestInput}
+              value={interestInput}
+              onChangeText={setInterestInput}
+              placeholder="관심사 직접 입력"
+              placeholderTextColor={colors.textTertiary}
+              returnKeyType="done"
+              onSubmitEditing={handleAddInterest}
+              maxLength={20}
+            />
+            <TouchableOpacity
+              style={styles.interestAddBtn}
+              onPress={handleAddInterest}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="add" size={20} color={colors.textInverse} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.presetLabel}>추천 관심사 (탭하면 추가/제거)</Text>
+          <View style={styles.presetRow}>
+            {PRESET_INTERESTS.map((tag) => (
+              <TouchableOpacity
+                key={tag}
+                style={[
+                  styles.presetTag,
+                  interests.includes(tag) && styles.presetTagActive,
+                ]}
+                onPress={() => handleTogglePreset(tag)}
+                activeOpacity={0.85}
+              >
+                <Text
+                  style={[
+                    styles.presetTagText,
+                    interests.includes(tag) && styles.presetTagTextActive,
+                  ]}
+                >
+                  {tag}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         <View style={styles.previewCard}>
           <Text style={styles.previewTitle}>미리보기</Text>
           <View style={styles.previewBox}>
             <Text style={[styles.previewName, previewFontStyle]}>{name || '회원님'}</Text>
-            <Text style={[styles.previewLocation, previewFontStyle]}>{location || '서울, 여자 27살'}</Text>
+            <Text style={[styles.previewLocation, previewFontStyle]}>{[region1, region2].filter(Boolean).join(' · ') || '지역 미설정'}</Text>
             <Text style={[styles.previewTagline, previewFontStyle]}>{title || '나와 취미가 맞는 사람 찾는 중!'}</Text>
             <Text style={[styles.previewBio, previewFontStyle]}>
               {bio || '좋아하는 음악과 카페에 대해 이야기해요. 진솔한 대화를 좋아합니다.'}
@@ -113,9 +345,9 @@ export default function ProfileEditScreen({ navigation, route }) {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.saveButton} activeOpacity={0.85} onPress={handleSave}>
+        <TouchableOpacity style={styles.saveButton} activeOpacity={0.85} onPress={handleSave} disabled={saving}>
           <Ionicons name="save-outline" size={20} color={colors.textInverse} />
-          <Text style={styles.saveButtonText}>변경사항 저장</Text>
+          <Text style={styles.saveButtonText}>{saving ? '저장 중...' : '변경사항 저장'}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -148,6 +380,51 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
     color: colors.text,
+  },
+  avatarSection: {
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  avatarButton: {
+    position: 'relative',
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+  },
+  avatarImage: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: colors.backgroundSecondary,
+  },
+  avatarPlaceholder: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    right: 0,
+    bottom: 2,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  avatarHelp: {
+    marginTop: 10,
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
   },
   formCard: {
     marginTop: 20,
@@ -239,5 +516,85 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: colors.textInverse,
+  },
+  interestTagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  interestTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.pillActiveBg,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  interestTagText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  interestInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+  interestInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: colors.text,
+    backgroundColor: colors.background,
+  },
+  interestAddBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  presetLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textTertiary,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  presetRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  presetTag: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: colors.pillBg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  presetTagActive: {
+    backgroundColor: colors.pillActiveBg,
+    borderColor: colors.primary,
+  },
+  presetTagText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  presetTagTextActive: {
+    color: colors.primary,
+    fontWeight: '700',
   },
 });

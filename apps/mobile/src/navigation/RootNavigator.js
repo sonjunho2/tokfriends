@@ -1,29 +1,32 @@
-// src/navigation/RootNavigator.js
 import React from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
 import { useAuthStoreSync } from '../store/auth';
-import UniversalListScreen from '../screens/list/UniversalListScreen'; 
 // ===== 메인 =====
 import HomeScreen from '../screens/main/HomeScreen';
-import ExploreScreen from '../screens/explore/ExploreScreen'; 
+import LiveScreen from '../screens/main/LiveScreen';
 import ChatsScreen from '../screens/main/ChatsScreen';
 import ShopScreen from '../screens/shop/ShopScreen';           
 import SettingsScreen from '../screens/my/SettingsScreen';
 import ProfileEditScreen from '../screens/my/ProfileEditScreen';
+import BlockedUsersScreen from '../screens/my/BlockedUsersScreen';
+import FriendsScreen from '../screens/my/FriendsScreen';
+import CommunityFeedScreen from '../screens/community/CommunityFeedScreen';
 
 // ===== 서브 =====
 import HotRecommendScreen from '../screens/recommend/HotRecommendScreen';
 import ChatRoomScreen from '../screens/main/ChatRoomScreen';
 import ProfileDetailScreen from '../screens/main/ProfileDetailScreen';
-import CreateChatRoomScreen from '../screens/chat/CreateChatRoomScreen';
+import LiveRoomScreen from '../screens/live/LiveRoomScreen';
 
 // ===== 인증 =====
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
 import PhoneEntryScreen from '../screens/auth/PhoneEntryScreen';
 import PhoneVerificationScreen from '../screens/auth/PhoneVerificationScreen';
 import AgreementScreen from '../screens/auth/AgreementScreen';
@@ -31,6 +34,8 @@ import ProfileRegistrationScreen from '../screens/auth/ProfileRegistrationScreen
 
 const AuthStack = createNativeStackNavigator();
 const HomeStackNav = createNativeStackNavigator();
+const CommunityStackNav = createNativeStackNavigator();
+const LiveStackNav = createNativeStackNavigator();
 const ChatsStackNav = createNativeStackNavigator();
 const MyPageStackNav = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -43,6 +48,7 @@ function AuthFlow() {
       screenOptions={{ headerShown: false }}
     >
       <AuthStack.Screen name="Welcome" component={WelcomeScreen} />
+      <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="PhoneEntry" component={PhoneEntryScreen} />
       <AuthStack.Screen name="PhoneVerification" component={PhoneVerificationScreen} />
       <AuthStack.Screen name="Agreement" component={AgreementScreen} />
@@ -61,15 +67,97 @@ function HomeStack() {
       screenOptions={{ headerShown: false }}
     >
       <HomeStackNav.Screen name="HomeMain" component={HomeScreen} />
-      <HomeStackNav.Screen name="UniversalList" component={UniversalListScreen} />
-      <HomeStackNav.Screen name="Explore" component={ExploreScreen} />
       <HomeStackNav.Screen name="HotRecommend" component={HotRecommendScreen} />
       <HomeStackNav.Screen
         name="ProfileDetail"
         component={ProfileDetailScreen}
         options={{ animation: 'slide_from_right' }}
       />
+      <HomeStackNav.Screen
+        name="Friends"
+        component={FriendsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <HomeStackNav.Screen
+        name="CommunityFeed"
+        component={CommunityFeedScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <HomeStackNav.Screen
+        name="LiveRoom"
+        component={LiveRoomScreen}
+        options={{ animation: 'slide_from_bottom' }}
+      />
+      <HomeStackNav.Screen
+        name="Points"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <HomeStackNav.Screen
+        name="Shop"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
     </HomeStackNav.Navigator>
+  );
+}
+
+/** ===== 커뮤니티 탭 안의 스택 ===== */
+function CommunityStack() {
+  return (
+    <CommunityStackNav.Navigator
+      initialRouteName="CommunityMain"
+      screenOptions={{ headerShown: false }}
+    >
+      <CommunityStackNav.Screen name="CommunityMain" component={CommunityFeedScreen} />
+      <CommunityStackNav.Screen
+        name="ProfileDetail"
+        component={ProfileDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <CommunityStackNav.Screen
+        name="ChatRoom"
+        component={ChatRoomScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <CommunityStackNav.Screen
+        name="Points"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <CommunityStackNav.Screen
+        name="Shop"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+    </CommunityStackNav.Navigator>
+  );
+}
+
+/** ===== 라이브 탭 안의 스택 ===== */
+function LiveStack() {
+  return (
+    <LiveStackNav.Navigator
+      initialRouteName="LiveMain"
+      screenOptions={{ headerShown: false }}
+    >
+      <LiveStackNav.Screen name="LiveMain" component={LiveScreen} />
+      <LiveStackNav.Screen
+        name="LiveRoom"
+        component={LiveRoomScreen}
+        options={{ animation: 'slide_from_bottom' }}
+      />
+      <LiveStackNav.Screen
+        name="Points"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <LiveStackNav.Screen
+        name="Shop"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+    </LiveStackNav.Navigator>
   );
 }
 
@@ -87,13 +175,19 @@ function ChatsStack() {
         options={{ animation: 'slide_from_right' }}
       />
       <ChatsStackNav.Screen
-        name="CreateChatRoom"
-        component={CreateChatRoomScreen}
-        options={{
-          animation: 'fade',
-          presentation: 'transparentModal',
-          contentStyle: { backgroundColor: 'transparent' },
-        }}
+        name="Friends"
+        component={FriendsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <ChatsStackNav.Screen
+        name="Points"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <ChatsStackNav.Screen
+        name="Shop"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
       />
     </ChatsStackNav.Navigator>
   );
@@ -114,35 +208,82 @@ function MyPageStack() {
         component={ProfileEditScreen}
         options={{ animation: 'slide_from_right' }}
       />
+      <MyPageStackNav.Screen
+        name="BlockedUsers"
+        component={BlockedUsersScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="Friends"
+        component={FriendsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="CommunityFeed"
+        component={CommunityFeedScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="Points"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="Shop"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
     </MyPageStackNav.Navigator>
   );
 }
 
-/** ===== 하단 탭 ===== */
+/** ===== 하단 탭 (5개 표준: 홈, 커뮤니티, 라이브, 대화, 마이) ===== */
 function MainTabs() {
+  const insets = useSafeAreaInsets();
+  // 안드로이드 3버튼 소프트키(48~56dp) 및 아이폰 홈 인디케이터에 맞춘 안전 영역 확보
+  const bottomPadding = Math.max(
+    insets.bottom,
+    Platform.OS === 'android' ? 16 : 24
+  );
+  const tabHeight = 56 + bottomPadding;
+
   return (
     <Tab.Navigator
       initialRouteName="Home"
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textTertiary,
+        tabBarActiveTintColor: '#191919',
+        tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: {
-          backgroundColor: colors.backgroundSecondary,
-          borderTopColor: colors.border,
+          backgroundColor: '#FFFFFF',
+          borderTopColor: '#F2F3F5',
           borderTopWidth: 1,
-          height: 60,
+          height: tabHeight,
+          paddingBottom: bottomPadding,
+          paddingTop: 8,
+          elevation: 12,
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: -3 },
+          shadowOpacity: 0.06,
+          shadowRadius: 10,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '700',
+          marginTop: 2,
+        },
         tabBarIcon: ({ focused, color, size }) => {
           const iconMap = {
-            Home: focused ? 'people' : 'people-outline',
-            Chats: focused ? 'chatbubbles' : 'chatbubbles-outline',
-            Shop: focused ? 'bag' : 'bag-outline',
-            MyPage: focused ? 'person' : 'person-outline',
+            Home: focused ? 'home' : 'home-outline',
+            Community: focused ? 'people' : 'people-outline',
+            Live: focused ? 'radio' : 'radio-outline',
+            Chat: focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline',
+            My: focused ? 'person' : 'person-outline',
           };
           const name = iconMap[route.name] || (focused ? 'ellipse' : 'ellipse-outline');
-          return <Ionicons name={name} size={size} color={color} />;
+          const isLiveTab = route.name === 'Live';
+          const iconColor = isLiveTab && focused ? '#EF4444' : color;
+          return <Ionicons name={name} size={21} color={iconColor} />;
         },
       })}
     >
@@ -153,16 +294,31 @@ function MainTabs() {
         options={{ tabBarLabel: '홈' }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
-            // 기본 동작(탭 전환)으로 홈 스택의 현재 화면을 유지하면
-            // 다른 페이지에 머무르게 되므로 명시적으로 초기 화면으로 이동시킨다.
             e.preventDefault();
             navigation.navigate('Home', { screen: 'HomeMain' });
           },
         })}
       />
-      <Tab.Screen name="Chats" component={ChatsStack} options={{ tabBarLabel: '대화' }} />
-      <Tab.Screen name="Shop" component={ShopScreen} options={{ tabBarLabel: '상점' }} />
-      <Tab.Screen name="MyPage" component={MyPageStack} options={{ tabBarLabel: '마이페이지' }} />
+      <Tab.Screen
+        name="Community"
+        component={CommunityStack}
+        options={{ tabBarLabel: '커뮤니티' }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate('Community', { screen: 'CommunityMain' });
+          },
+        })}
+      />
+      <Tab.Screen
+        name="Live"
+        component={LiveStack}
+        options={{
+          tabBarLabel: '라이브',
+        }}
+      />
+      <Tab.Screen name="Chat" component={ChatsStack} options={{ tabBarLabel: '대화' }} />
+      <Tab.Screen name="My" component={MyPageStack} options={{ tabBarLabel: '마이' }} />
     </Tab.Navigator>
   );
 }

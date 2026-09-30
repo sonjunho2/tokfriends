@@ -16,8 +16,8 @@ model User {
   phoneHash      String?  @unique
   email          String?  @unique
   provider       String
-  dob            DateTime
-  gender         String
+  dob            DateTime?
+  gender         String?
   region1        String?
   region2        String?
   lang           String?
@@ -26,6 +26,7 @@ model User {
   status         String   @default("active")
   role           String   @default("user")
   passwordHash   String?
+  tokenVersion   Int      @default(0)
   displayName    String?
   pointsBalance  Int      @default(0)
 
@@ -42,12 +43,134 @@ model User {
   blocksByMe     Block[]      @relation("blocks_by")
   blocksToMe     Block[]      @relation("blocks_to")
   posts          Post[]
+  postComments   PostComment[]
   subscriptions  Subscription[]
   events         AnalyticsEvent[]
   auditLogs      AuditLog[]   @relation("AuditActor")
   refundRequests RefundRequest[]
   pointPurchases PointPurchase[]
   phoneVerifications PhoneVerification[]
+  adminProfile       AdminProfile?
+  ownerBridge           Owner?           @relation("LegacyOwnerUser")
+  activityAccountBridge ActivityAccount? @relation("LegacyActivityUser")
+  adminApprovalRequests AdminApprovalRequest[] @relation("AdminApprovalRequester")
+  adminApprovalDecisions AdminApprovalRequest[] @relation("AdminApprovalDecider")
+  liveRoomsHosted       LiveRoom[]             @relation("LiveRoomHost")
+  liveMessages          LiveMessage[]          @relation("LiveMessageSender")
+}
+
+model Owner {
+  id               String            @id @default(cuid())
+  legacyUserId     String?           @unique
+  legacyUser       User?             @relation("LegacyOwnerUser", fields: [legacyUserId], references: [id], onDelete: SetNull)
+  status           String            @default("active")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  activityAccounts ActivityAccount[]
+}
+
+model ActivityAccount {
+  id           String   @id @default(cuid())
+  ownerId      String
+  owner        Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  legacyUserId String?  @unique
+  legacyUser   User?    @relation("LegacyActivityUser", fields: [legacyUserId], references: [id], onDelete: SetNull)
+  handle       String?  @unique
+  displayName  String?
+  status       String   @default("active")
+  isPrimary    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  wallet       Wallet?
+  followsSent           Follow[]       @relation("FollowFollower")
+  followsReceived       Follow[]       @relation("FollowFollowing")
+  interestsSent         Interest[]     @relation("InterestSender")
+  interestsReceived     Interest[]     @relation("InterestTarget")
+  profileVisitsMade     ProfileVisit[] @relation("ProfileVisitVisitor")
+  profileVisitsReceived ProfileVisit[] @relation("ProfileVisitVisited")
+  chatsAsAccountA       Chat[]         @relation("ChatAccountA")
+  chatsAsAccountB       Chat[]         @relation("ChatAccountB")
+  chatMessagesSent      Message[]      @relation("MessageSenderAccount")
+  liveRoomsHostedAsAccount LiveRoom[]    @relation("LiveRoomHostAccount")
+  liveMessagesAsAccount    LiveMessage[] @relation("LiveMessageSenderAccount")
+  giftsSent                GiftTransaction[] @relation("GiftSenderAccount")
+  giftsReceived            GiftTransaction[] @relation("GiftRecipientAccount")
+
+  @@index([ownerId])
+  @@index([ownerId, isPrimary])
+}
+
+model Follow {
+  id                 String          @id @default(cuid())
+  followerAccountId  String
+  followingAccountId String
+  followerAccount    ActivityAccount @relation("FollowFollower", fields: [followerAccountId], references: [id], onDelete: Cascade)
+  followingAccount   ActivityAccount @relation("FollowFollowing", fields: [followingAccountId], references: [id], onDelete: Cascade)
+  createdAt          DateTime        @default(now())
+
+  @@unique([followerAccountId, followingAccountId])
+  @@index([followerAccountId, createdAt])
+  @@index([followingAccountId, createdAt])
+}
+
+model Interest {
+  id              String          @id @default(cuid())
+  senderAccountId String
+  targetAccountId String
+  senderAccount   ActivityAccount @relation("InterestSender", fields: [senderAccountId], references: [id], onDelete: Cascade)
+  targetAccount   ActivityAccount @relation("InterestTarget", fields: [targetAccountId], references: [id], onDelete: Cascade)
+  createdAt       DateTime        @default(now())
+
+  @@unique([senderAccountId, targetAccountId])
+  @@index([senderAccountId, createdAt])
+  @@index([targetAccountId, createdAt])
+}
+
+model ProfileVisit {
+  id               String          @id @default(cuid())
+  visitorAccountId String
+  visitedAccountId String
+  visitorAccount   ActivityAccount @relation("ProfileVisitVisitor", fields: [visitorAccountId], references: [id], onDelete: Cascade)
+  visitedAccount   ActivityAccount @relation("ProfileVisitVisited", fields: [visitedAccountId], references: [id], onDelete: Cascade)
+  visitedAt        DateTime        @default(now())
+
+  @@index([visitorAccountId, visitedAt])
+  @@index([visitedAccountId, visitedAt])
+}
+
+model Wallet {
+  id                String   @id @default(cuid())
+  activityAccountId String   @unique
+  activityAccount   ActivityAccount @relation(fields: [activityAccountId], references: [id], onDelete: Restrict)
+  spendableBalance  Int      @default(0)
+  redeemableBalance Int      @default(0)
+  pendingEarnings   Int      @default(0)
+  status            String   @default("active")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  ledgerEntries     WalletLedgerEntry[]
+}
+
+model WalletLedgerEntry {
+  id                String   @id @default(cuid())
+  walletId          String
+  wallet            Wallet   @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  kind              String
+  source            String
+  deltaSpendable    Int      @default(0)
+  deltaRedeemable   Int      @default(0)
+  deltaPending      Int      @default(0)
+  spendableAfter    Int
+  redeemableAfter   Int
+  pendingAfter      Int
+  idempotencyKey    String   @unique
+  referenceType     String?
+  referenceId       String?
+  metadata          Json?
+  createdAt         DateTime @default(now())
+
+  @@index([walletId, createdAt])
+  @@index([referenceType, referenceId])
 }
 
 model Profile {
@@ -118,26 +241,43 @@ model Friendship {
 }
 
 model Chat {
-  id            String   @id @default(cuid())
+  id            String           @id @default(cuid())
   userAId       String
   userBId       String
-  userA         User     @relation("A", fields: [userAId], references: [id])
-  userB         User     @relation("B", fields: [userBId], references: [id])
+  userA         User             @relation("A", fields: [userAId], references: [id])
+  userB         User             @relation("B", fields: [userBId], references: [id])
+  accountAId    String?
+  accountBId    String?
+  accountA      ActivityAccount? @relation("ChatAccountA", fields: [accountAId], references: [id], onDelete: SetNull)
+  accountB      ActivityAccount? @relation("ChatAccountB", fields: [accountBId], references: [id], onDelete: SetNull)
   lastMessageAt DateTime?
   messages      Message[]
+
+  @@unique([accountAId, accountBId])
+  @@index([accountAId, lastMessageAt])
+  @@index([accountBId, lastMessageAt])
 }
 
 model Message {
-  id                 String   @id @default(cuid())
-  chatId             String
-  chat               Chat     @relation(fields: [chatId], references: [id])
-  senderId           String
-  sender             User     @relation(fields: [senderId], references: [id])
-  type               String   @default("text")
-  content            String
-  translatedContent  String?
-  createdAt          DateTime @default(now())
-  isFlagged          Boolean  @default(false)
+  id                String           @id @default(cuid())
+  chatId            String
+  chat              Chat             @relation(fields: [chatId], references: [id])
+  senderId          String
+  sender            User             @relation(fields: [senderId], references: [id])
+  senderAccountId   String?
+  clientMessageId   String?          @db.VarChar(128)
+  senderAccount     ActivityAccount? @relation("MessageSenderAccount", fields: [senderAccountId], references: [id], onDelete: SetNull)
+  type              String           @default("text")
+  content           String
+  translatedContent String?
+  readAt            DateTime?
+  createdAt         DateTime         @default(now())
+  isFlagged         Boolean          @default(false)
+
+  @@unique([senderAccountId, clientMessageId])
+  @@index([senderAccountId, createdAt])
+  @@index([chatId, createdAt, id])
+  @@index([chatId, readAt])
 }
 
 model Topic {
@@ -155,11 +295,26 @@ model Post {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user    User     @relation(fields: [userId], references: [id])
-  topic   Topic    @relation(fields: [topicId], references: [id])
-  reports Report[]
+  user     User          @relation(fields: [userId], references: [id])
+  topic    Topic         @relation(fields: [topicId], references: [id])
+  reports  Report[]
+  comments PostComment[]
 
   @@index([topicId, createdAt])
+}
+
+model PostComment {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postId, createdAt])
+  @@index([userId])
 }
 
 model Report {
@@ -205,9 +360,12 @@ model Device {
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   platform  String
-  token     String
+  token     String   @unique
   locale    String?
+  updatedAt DateTime @default(now()) @updatedAt
   createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Subscription {
@@ -237,6 +395,9 @@ model AuditLog {
   target    String
   action    String
   notes     String?
+  reason    String?
+  context   Json?
+  metadata  Json?
   createdAt DateTime @default(now())
 }
 
@@ -267,9 +428,231 @@ model BannedWord {
   createdAt DateTime @default(now())
 }
 
+enum AdminTeamRole {
+  SUPER_ADMIN
+  MANAGER
+  MODERATOR
+  SUPPORT
+  EDITOR
+  VIEWER
+}
+
+enum AdminTeamStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model AdminProfile {
+  userId           String          @id
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role             AdminTeamRole   @default(MANAGER)
+  status           AdminTeamStatus @default(ACTIVE)
+  permissions      String[]        @default([])
+  twoFactorEnabled Boolean         @default(false)
+  lastLoginAt      DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([role])
+  @@index([status])
+}
+
+enum AdminApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model AdminApprovalRequest {
+  id              String              @id @default(cuid())
+  action          String
+  target          String
+  reason          String
+  context         Json?
+  metadata        Json?
+  status          AdminApprovalStatus @default(PENDING)
+  idempotencyKey  String?             @unique
+  requestedById   String
+  requestedBy     User                @relation("AdminApprovalRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  decidedById     String?
+  decidedBy       User?               @relation("AdminApprovalDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+  decisionReason  String?
+  expiresAt       DateTime?
+  decidedAt       DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([status, createdAt])
+  @@index([requestedById, status])
+  @@index([target, action])
+}
+
+model AdminFeatureFlag {
+  id          String   @id
+  name        String   @unique
+  description String?
+  environment String
+  enabled     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AdminIntegrationSetting {
+  id             String   @id
+  label          String
+  placeholder    String?
+  encryptedValue String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model AdminSettingsState {
+  id        String   @id @default("default")
+  auditMemo String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LegalDocument {
+  slug      String   @id
+  title     String
+  content   String   @db.Text
+  version   Int      @default(1)
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  versions LegalDocumentVersion[]
+}
+
+model LegalDocumentVersion {
+  id           String        @id @default(cuid())
+  documentSlug String
+  document     LegalDocument @relation(fields: [documentSlug], references: [slug], onDelete: Cascade)
+  version      Int
+  title        String
+  content      String        @db.Text
+  updatedBy    String?
+  memo         String?       @db.Text
+  createdAt    DateTime      @default(now())
+
+  @@unique([documentSlug, version])
+  @@index([documentSlug, createdAt])
+}
+
+model LiveRoom {
+  id               String           @id @default(cuid())
+  hostId           String
+  host             User             @relation("LiveRoomHost", fields: [hostId], references: [id])
+  hostAccountId    String?
+  hostAccount      ActivityAccount? @relation("LiveRoomHostAccount", fields: [hostAccountId], references: [id], onDelete: SetNull)
+  title            String
+  category         String           @default("talk")
+  status           String           @default("live")
+  viewerCount      Int              @default(0)
+  totalLikes       Int              @default(0)
+  totalGiftsPoints Int              @default(0)
+  coverUri         String?
+  streamKey        String?
+  startedAt        DateTime         @default(now())
+  endedAt          DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  messages         LiveMessage[]
+
+  @@index([status, startedAt])
+  @@index([hostId, status])
+}
+
+model LiveMessage {
+  id              String           @id @default(cuid())
+  roomId          String
+  room            LiveRoom         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  senderId        String
+  sender          User             @relation("LiveMessageSender", fields: [senderId], references: [id])
+  senderAccountId String?
+  senderAccount   ActivityAccount? @relation("LiveMessageSenderAccount", fields: [senderAccountId], references: [id], onDelete: SetNull)
+  type            String           @default("chat")
+  content         String
+  giftPoints      Int?
+  createdAt       DateTime         @default(now())
+
+  @@index([roomId, createdAt])
+}
+
 enum ReportStatus {
   PENDING
   REVIEWING
   RESOLVED
   REJECTED
+}
+
+model Gift {
+  id            String            @id @default(cuid())
+  code          String            @unique
+  name          String
+  description   String?
+  pricePoints   Int
+  thumbnailUrl  String?
+  animationUrl  String?
+  animationType String            @default("alpha_video")
+  category      String            @default("general")
+  sortOrder     Int               @default(0)
+  isActive      Boolean           @default(true)
+  chatEnabled   Boolean           @default(true)
+  liveEnabled   Boolean           @default(true)
+  isNew         Boolean           @default(false)
+  startsAt      DateTime?
+  endsAt        DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  transactions  GiftTransaction[]
+
+  @@index([isActive, sortOrder])
+  @@index([category, isActive])
+}
+
+model GiftTransaction {
+  id                 String          @id @default(cuid())
+  giftId             String
+  gift               Gift            @relation(fields: [giftId], references: [id], onDelete: Restrict)
+  senderAccountId    String
+  senderAccount      ActivityAccount @relation("GiftSenderAccount", fields: [senderAccountId], references: [id], onDelete: Restrict)
+  recipientAccountId String
+  recipientAccount   ActivityAccount @relation("GiftRecipientAccount", fields: [recipientAccountId], references: [id], onDelete: Restrict)
+  contextType        String
+  chatId             String?
+  liveRoomId         String?
+  points             Int
+  idempotencyKey     String          @unique
+  message            String?
+  createdAt          DateTime        @default(now())
+
+  @@index([senderAccountId, createdAt])
+  @@index([recipientAccountId, createdAt])
+  @@index([contextType, liveRoomId])
+  @@index([contextType, chatId])
+}
+
+model Advertisement {
+  id              String    @id @default(cuid())
+  title           String
+  description     String?
+  imageUrl        String
+  targetUrl       String?
+  placement       String    @default("HOME_BANNER")
+  priority        Int       @default(0)
+  isActive        Boolean   @default(true)
+  rewardPoints    Int       @default(0)
+  clickCount      Int       @default(0)
+  impressionCount Int       @default(0)
+  startsAt        DateTime?
+  endsAt          DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([placement, isActive, priority])
+  @@index([isActive, startsAt, endsAt])
 }

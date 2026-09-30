@@ -6,19 +6,6 @@ import axios, {
   isAxiosError,
 } from 'axios'
 
-import {
-  AdminAuthError,
-  authenticateAdminAccount,
-  createAdminAccount,
-  deleteAdminAccount,
-  ensureDefaultSuperAdminAccount,
-  getAuditMemoSnapshot,
-  listAdminAccounts,
-  saveAuditMemoSnapshot,
-  updateAdminAccount,
-  updateAdminPassword,
-  type AdminAccount,
-} from './admin-auth'
 
 import { buildRoutePath } from './routeMap'
 import {
@@ -28,95 +15,52 @@ import {
   unwrapArray,
 } from './normalize'
 
-const ENV_BASE_CANDIDATES = [
-  process.env.TOK_API_BASE_URL,
-  process.env.NEXT_PUBLIC_API_URL,
-  process.env.NEXT_PUBLIC_API_BASE_URL,
-  process.env.REACT_APP_API_URL,
-  process.env.VITE_API_URL,
-].filter((value): value is string => Boolean(value && value.trim().length > 0))
-
-const RAW_BASE = (ENV_BASE_CANDIDATES[0] ?? '').trim()
-const API_BASE_URL = RAW_BASE.replace(/\/+$/, '')
-const API_ORIGIN =
-  API_BASE_URL && /^https?:\/\//i.test(API_BASE_URL)
-    ? new URL(API_BASE_URL).origin
-    : ''
-const SHOULD_SEND_CREDENTIALS =
-  typeof window !== 'undefined' && API_ORIGIN ? API_ORIGIN === window.location.origin : false
-
-if (!RAW_BASE) {
-  throw new Error(
-    '[TokFriends Admin] API_BASE_URL is undefined. Set NEXT_PUBLIC_API_BASE_URL in your .env file.'
-  )
-} else if (typeof window !== 'undefined') {
-  // eslint-disable-next-line no-console
-  console.log('[TokFriends Admin] API_BASE_URL =', API_BASE_URL, '(env)')
-}
+const API_BASE_URL = '/api/backend'
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: SHOULD_SEND_CREDENTIALS,
+  withCredentials: true,
   timeout: 8000,
 })
 
 const TOKEN_KEY = 'tokfriends_admin_token'
 const ACCESS_KEY = 'access_token'
-const REFRESH_KEY = 'refresh_token'
 
-export function getAccessToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem(TOKEN_KEY) || localStorage.getItem(ACCESS_KEY) || null
-}
-export function setAccessToken(token: string) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(TOKEN_KEY, token)
-  localStorage.setItem(ACCESS_KEY, token)
-}
-export function getRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem(REFRESH_KEY)
-}
-export function setRefreshToken(token: string) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(REFRESH_KEY, token)
-}
 export function clearAuthStorage() {
   if (typeof window === 'undefined') return
   localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem(ACCESS_KEY)
-  localStorage.removeItem(REFRESH_KEY)
+  localStorage.removeItem('refresh_token')
   localStorage.removeItem('user')
 }
 
-/** 표준 로그아웃: 저장 토큰 삭제 후 /login 이동 */
-export function logoutToLogin() {
+let logoutInProgress = false
+
+/** ?��? 로그?�웃: ?�버 ?�션�?기존 브라?��? ?�증 ?�보�??�리????/login ?�동 */
+export async function logoutToLogin() {
+  if (typeof window === 'undefined' || logoutInProgress) return
+  logoutInProgress = true
+
   clearAuthStorage()
-  if (typeof window !== 'undefined') {
-    window.location.href = '/login'
+
+  try {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      cache: 'no-store',
+    })
+  } catch {
+    // 로그?�웃 ?�청 ?�패?� 관계없??로그???�면?�로 ?�동?�니??
   }
+
+  window.location.href = '/login'
 }
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = getAccessToken()
   config.headers = config.headers || {}
-
-  if (token) {
-    config.headers['Authorization'] = `Bearer ${token}`
-  }
-
   if (!config.headers['Accept']) {
     config.headers['Accept'] = config.responseType === 'blob' ? 'application/octet-stream' : 'application/json'
   }
 
-  // 진단 로그: 토큰 부착 여부(앞 10자만)
-  if (typeof window !== 'undefined') {
-    const short = token ? token.slice(0, 10) + '…' : '(no token)'
-    const method = (config.method || 'GET').toUpperCase()
-    const fullUrl = `${config.baseURL ?? ''}${config.url ?? ''}`
-    // eslint-disable-next-line no-console
-    console.info('[TokFriends Admin] ->', method, fullUrl, '| auth =', short)
-  }
   return config
 })
 
@@ -126,13 +70,13 @@ api.interceptors.response.use(
     const status = error.response?.status
     const message = (error.response?.data as any)?.message || error.message || ''
 
-    // 안전하게 전체 URL 구성 (strict 모드 대응)
+    // ?�전?�게 ?�체 URL 구성 (strict 모드 ?�??
     const fullUrl = `${error.config?.baseURL ?? ''}${error.config?.url ?? ''}`
 
     if (status === 401) {
       // eslint-disable-next-line no-console
       console.warn('[TokFriends Admin] 401 from', fullUrl, '| message =', message)
-      // refresh 플로우가 없다면 즉시 재로그인
+      // refresh ?�로?��? ?�다�?즉시 ?�로그인
       logoutToLogin()
     } else {
       if (typeof window !== 'undefined') {
@@ -144,7 +88,6 @@ api.interceptors.response.use(
   }
 )
 
-// 공통 POST 헬퍼들
 export function postJson<T = any>(url: string, data?: any, config?: AxiosRequestConfig<T>) {
   return api.post<T>(url, data, {
     headers: { 'Content-Type': 'application/json' },
@@ -161,19 +104,8 @@ export function postForm<T = any>(url: string, data?: Record<string, any>, confi
   })
 }
 
-export function saveLoginResult(payload: any) {
-  const token = payload?.token || payload?.access_token
-  const refresh = payload?.refresh_token
-  const user = payload?.user
 
-  if (token) setAccessToken(token)
-  if (refresh) setRefreshToken(refresh)
-  if (typeof window !== 'undefined' && user) {
-    localStorage.setItem('user', JSON.stringify(user))
-  }
-}
-
-// 대시보드 메트릭스
+// ?�?�보??메트�?��
 export async function getDashboardMetrics() {
   const route = buildRoutePath('dashboard.metrics')
   const res = await api.get(route)
@@ -181,7 +113,7 @@ export async function getDashboardMetrics() {
 }
 
 // ---------------------------------------------------------------------------
-// 인증 & 헬스체크
+// ?�증 & ?�스체크
 // ---------------------------------------------------------------------------
 
 export interface LoginWithEmailRequest {
@@ -190,43 +122,21 @@ export interface LoginWithEmailRequest {
 }
 
 export interface LoginWithEmailResponse {
-  access_token?: string
-  token?: string
-  refresh_token?: string
-  user?: unknown
-  [key: string]: unknown
+  ok: boolean
+  user: unknown
 }
 
 export async function loginWithEmail(payload: LoginWithEmailRequest) {
-  const route = buildRoutePath('auth.login.email')
-  try {
-    const response = await postJson<LoginWithEmailResponse>(route, payload)
-    return response.data
-  } catch (error) {
-    if (isAxiosError(error)) {
-      try {
-        const result = authenticateAdminAccount(payload.email, payload.password)
-        return {
-          token: result.accessToken,
-          access_token: result.accessToken,
-          refresh_token: result.refreshToken,
-          user: {
-            id: result.account.id,
-            email: result.account.email,
-            name: result.account.name,
-            role: result.account.role,
-            permissions: result.account.permissions,
-            lastLoginAt: result.account.lastLoginAt,
-          },
-        }
-      } catch (authError) {
-        if (authError instanceof AdminAuthError) {
-          throw authError
-        }
-      }
-    }
-    throw error
-  }
+  const response = await axios.post<LoginWithEmailResponse>('/api/auth/login', payload, {
+    headers: { 'Content-Type': 'application/json' },
+  })
+  return response.data
+}
+
+export async function getCurrentUser() {
+  const route = buildRoutePath('users.me')
+  const response = await api.get(route)
+  return response.data
 }
 
 export async function checkHealth() {
@@ -236,12 +146,11 @@ export async function checkHealth() {
 }
 
 // ---------------------------------------------------------------------------
-// 유틸리티
+// ?�틸리티
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// 사용자
-// ---------------------------------------------------------------------------
+// ?�용??// ---------------------------------------------------------------------------
 
 export interface UserSearchParams {
   query?: string
@@ -275,7 +184,7 @@ export type UserUpdatePayload = Record<string, unknown>
 
 function mapAdminUserSearchParams(params: UserSearchParams) {
   const { query, phoneNumber, nickname, status, page, limit, ...rest } = params
-  const searchTerms = [query, phoneNumber, nickname]
+  const searchTerms = [query, nickname]
     .map((value) => (typeof value === 'string' ? value.trim() : ''))
     .filter((value) => value.length > 0)
 
@@ -283,6 +192,10 @@ function mapAdminUserSearchParams(params: UserSearchParams) {
 
   if (searchTerms.length > 0) {
     mapped.search = searchTerms.join(' ')
+  }
+
+  if (typeof phoneNumber === 'string' && phoneNumber.trim().length > 0) {
+    mapped.phone = phoneNumber.trim()
   }
 
   if (status && status.trim().length > 0) {
@@ -343,13 +256,13 @@ export async function updateUserProfile(userId: string, payload: UserUpdatePaylo
 
 export async function updateUserStatus(userId: string, status: string) {
   const route = buildRoutePath('users.status', { userId })
-  const response = await api.put(route, { status })
+  const response = await api.patch(route, { status })
   const normalized = normalizeAdminUserDetail(response.data, userId)
   return normalized as UserDetail
 }
 
 // ---------------------------------------------------------------------------
-// 신고 / 차단
+// ?�고 / 차단
 // ---------------------------------------------------------------------------
 
 export interface ReportPayload {
@@ -409,7 +322,7 @@ export function submitUserBlock(payload: BlockPayload) {
 }
 
 // ---------------------------------------------------------------------------
-// 토픽 / 게시글
+// ?�픽 / 게시글
 // ---------------------------------------------------------------------------
 
 export interface TopicQuery {
@@ -466,7 +379,7 @@ export async function deletePost(postId: string) {
 }
 
 // ---------------------------------------------------------------------------
-// 공지 / 배너
+// 공�? / 배너
 // ---------------------------------------------------------------------------
 
 export interface AnnouncementWritePayload {
@@ -524,8 +437,7 @@ export async function updateAnnouncement(announcementId: string, payload: Announ
 }
 
 // ---------------------------------------------------------------------------
-// 선물 / 아이템
-// ---------------------------------------------------------------------------
+// ?�물 / ?�이??// ---------------------------------------------------------------------------
 
 export interface Gift {
   id: string
@@ -569,7 +481,7 @@ export async function deleteGift(giftId: string) {
 }
 
 // ---------------------------------------------------------------------------
-// 약관 / 정책 문서
+// ?��? / ?�책 문서
 // ---------------------------------------------------------------------------
 
 export interface LegalDocumentVersion {
@@ -694,7 +606,7 @@ export async function saveLegalDocument(slug: string, payload: LegalDocumentPayl
 }
 
 // ---------------------------------------------------------------------------
-// 휴대폰 인증
+// ?��????�증
 // ---------------------------------------------------------------------------
 
 export interface PhoneOtpLog {
@@ -753,7 +665,7 @@ export function completePhoneVerificationProfile(payload: ManualProfileCompletio
 }
 
 // ---------------------------------------------------------------------------
-// 포인트 상품
+// ?�인???�품
 // ---------------------------------------------------------------------------
 
 export interface PointProduct {
@@ -839,7 +751,7 @@ export async function syncPointProductOrder(items: PointProductOrderInput[]) {
 }
 
 // ---------------------------------------------------------------------------
-// 매칭 & 탐색
+// 매칭 & ?�색
 // ---------------------------------------------------------------------------
 
 export interface MatchQueueStat {
@@ -1108,7 +1020,7 @@ export async function saveMatchHeatMemo(payload: { memo: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// 채팅 & 안전
+// 채팅 & ?�전
 // ---------------------------------------------------------------------------
 
 export interface ChatRoomSummary {
@@ -1252,8 +1164,7 @@ export async function saveChatSafetyMemo(payload: { memo: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// 분석 & 리포트
-// ---------------------------------------------------------------------------
+// 분석 & 리포??// ---------------------------------------------------------------------------
 
 export interface AnalyticsMetric {
   id: string
@@ -1368,7 +1279,7 @@ export async function createAnalyticsExport(payload: Record<string, unknown>) {
 }
 
 // ---------------------------------------------------------------------------
-// 설정 & 통합
+// ?�정 & ?�합
 // ---------------------------------------------------------------------------
 
 export interface AdminTeamMember {
@@ -1471,115 +1382,29 @@ const EMPTY_ADMIN_SETTINGS: AdminSettingsSnapshot = {
   auditMemo: '',
 }
 
-function adaptAccountToTeamMember(account: AdminAccount): AdminTeamMember {
-  return {
-    id: account.id,
-    email: account.email,
-    username: account.username,
-    name: account.name,
-    role: account.role,
-    status: account.status,
-    twoFactor: account.twoFactorEnabled,
-    permissions: [...account.permissions],
-    lastLoginAt: account.lastLoginAt,
-  }
-}
-
 export async function getAdminSettingsSnapshot(params: Record<string, unknown> = {}) {
-  try {
-    const response = await api.get('/admin/settings/snapshot', { params })
-    return normalizeAdminSettings(response.data)
-  } catch (error) {
-    if (isAxiosError(error)) {
-      ensureDefaultSuperAdminAccount()
-      const accounts = listAdminAccounts()
-      return {
-        members: accounts.map((account) => adaptAccountToTeamMember(account)),
-        featureFlags: [],
-        integrations: [],
-        auditMemo: getAuditMemoSnapshot(),
-      }
-    }
-    throw error
-  }
+  const response = await api.get('/admin/settings/snapshot', { params })
+  return normalizeAdminSettings(response.data)
 }
 
 export async function createAdminTeamMember(payload: Record<string, unknown>) {
-  try {
-    const response = await api.post('/admin/settings/team', payload)
-    return normalizeAdminSettings({ members: [response.data] }).members[0]
-  } catch (error) {
-    if (isAxiosError(error)) {
-      try {
-        const rawRole = typeof payload.role === 'string' ? payload.role.toUpperCase() : undefined
-        const rawStatus = typeof payload.status === 'string' ? payload.status.toUpperCase() : undefined
-        const created = createAdminAccount({
-          email: String(payload.email ?? payload.username ?? ''),
-          name: typeof payload.name === 'string' ? payload.name : String(payload.displayName ?? payload.email ?? ''),
-          role: (rawRole as any) ?? 'MANAGER',
-          status: (rawStatus as any) ?? 'ACTIVE',
-          password: String(payload.password ?? ''),
-          permissions: Array.isArray(payload.permissions)
-            ? (payload.permissions as unknown[]).map((value) => String(value))
-            : undefined,
-          twoFactorEnabled: Boolean(payload.twoFactor ?? payload.twoFactorEnabled ?? false),
-        })
-        return adaptAccountToTeamMember(created)
-      } catch (fallbackError) {
-        throw fallbackError
-      }
-    }
-    throw error
-  }
+  const response = await api.post('/admin/settings/team', payload)
+  return normalizeAdminSettings({ members: [response.data] }).members[0]
 }
 
 export async function updateAdminTeamMember(memberId: string, payload: Record<string, unknown>) {
-  try {
-    const response = await api.patch(`/admin/settings/team/${memberId}`, payload)
-    return normalizeAdminSettings({ members: [response.data] }).members[0]
-  } catch (error) {
-    if (isAxiosError(error)) {
-      const updated = updateAdminAccount(memberId, {
-        name: typeof payload.name === 'string' ? payload.name : undefined,
-        role: typeof payload.role === 'string' ? (payload.role as string).toUpperCase() as any : undefined,
-        status: typeof payload.status === 'string' ? (payload.status as string).toUpperCase() as any : undefined,
-        permissions: Array.isArray(payload.permissions)
-          ? (payload.permissions as unknown[]).map((value) => String(value))
-          : undefined,
-        twoFactorEnabled: typeof payload.twoFactor === 'boolean' ? payload.twoFactor : undefined,
-        email: typeof payload.email === 'string' ? payload.email : undefined,
-      })
-      return adaptAccountToTeamMember(updated)
-    }
-    throw error
-  }
+  const response = await api.patch(`/admin/settings/team/${memberId}`, payload)
+  return normalizeAdminSettings({ members: [response.data] }).members[0]
 }
 
 export async function deleteAdminTeamMember(memberId: string) {
-  try {
-    await api.delete(`/admin/settings/team/${memberId}`)
-  } catch (error) {
-    if (isAxiosError(error)) {
-      deleteAdminAccount(memberId)
-    } else {
-      throw error
-    }
-  }
+  await api.delete(`/admin/settings/team/${memberId}`)
   return { success: true }
 }
 
 export async function updateAdminTeamMemberPassword(memberId: string, payload: { password: string }) {
-  try {
-    const response = await api.patch(`/admin/settings/team/${memberId}/password`, payload)
-    return normalizeAdminSettings({ members: [response.data] }).members[0]
-  } catch (error) {
-    if (isAxiosError(error)) {
-      updateAdminPassword(memberId, payload.password)
-      const account = listAdminAccounts().find((candidate) => candidate.id === memberId)
-      return account ? adaptAccountToTeamMember(account) : undefined
-    }
-    throw error
-  }
+  const response = await api.patch(`/admin/settings/team/${memberId}/password`, payload)
+  return normalizeAdminSettings({ members: [response.data] }).members[0]
 }
 
 export async function updateAdminFeatureFlag(flagId: string, payload: Record<string, unknown>) {
@@ -1593,50 +1418,722 @@ export async function updateAdminIntegrationSetting(settingId: string, payload: 
 }
 
 export async function saveAdminAuditMemo(payload: { memo: string }) {
+  const response = await api.post('/admin/settings/audit-log', payload)
+  return (response.data as { memo?: string } | undefined)?.memo ?? payload.memo
+}
+
+// =============================================
+// Admin Notification Broadcast
+// =============================================
+
+export interface BroadcastResult {
+  sent: number
+  failed: number
+  total: number
+  reason?: string
+}
+
+export interface BroadcastDeviceStats {
+  totalRegisteredDevices: number
+  platformBreakdown: { platform: string; count: number }[]
+}
+
+export async function sendAdminBroadcast(payload: {
+  title: string
+  body: string
+  role?: string
+  data?: Record<string, string>
+}): Promise<BroadcastResult> {
+  const { role, ...body } = payload
+  const params: Record<string, string> = {}
+  if (role) params.role = role
+  const response = await api.post('/notifications/broadcast', body, { params })
+  const d = (response.data as any) ?? {}
+  return {
+    sent: typeof d.sent === 'number' ? d.sent : 0,
+    failed: typeof d.failed === 'number' ? d.failed : 0,
+    total: typeof d.total === 'number' ? d.total : 0,
+    reason: typeof d.reason === 'string' ? d.reason : undefined,
+  }
+}
+
+export async function getAdminBroadcastStats(): Promise<BroadcastDeviceStats> {
   try {
-    const response = await api.post('/admin/settings/audit-log', payload)
-    return (response.data as { memo?: string } | undefined)?.memo ?? payload.memo
-  } catch (error) {
-    if (isAxiosError(error)) {
-      saveAuditMemoSnapshot(payload.memo)
-      return payload.memo
+    const response = await api.get('/notifications/broadcast/history')
+    const d = (response.data as any)?.data ?? {}
+    return {
+      totalRegisteredDevices: typeof d.totalRegisteredDevices === 'number' ? d.totalRegisteredDevices : 0,
+      platformBreakdown: Array.isArray(d.platformBreakdown)
+        ? d.platformBreakdown.map((p: any) => ({ platform: String(p.platform ?? 'unknown'), count: Number(p.count ?? 0) }))
+        : [],
     }
-    throw error
+  } catch {
+    return { totalRegisteredDevices: 0, platformBreakdown: [] }
   }
 }
 
-function normalizeAdminOverrideCodes(input: unknown): string[] {
-  if (!input) {
-    return []
-  }
+// =============================================
+// Admin API Manager
+// =============================================
 
-  if (Array.isArray(input)) {
-    return input.map((code) => String(code).trim()).filter((code) => code.length > 0)
-  }
-
-  if (typeof input === 'string') {
-    return input
-      .split(',')
-      .map((code) => code.trim())
-      .filter((code) => code.length > 0)
-  }
-
-  if (typeof input === 'object' && input) {
-    const candidate = (input as Record<string, unknown>).codes
-    return normalizeAdminOverrideCodes(candidate)
-  }
-
-  return []
+export interface ApiEndpointInfo {
+  id: string
+  method: string
+  path: string
+  module: string
+  description: string
+  rateLimitPerMin: number
+  enabled: boolean
 }
 
-export async function getAdminOverrideCodes() {
-  const route = buildRoutePath('admin.overrideCodes.list')
-  const response = await api.get(route)
-  return normalizeAdminOverrideCodes(response.data)
+export interface ApiRequestLog {
+  id: string
+  method: string
+  path: string
+  statusCode: number
+  durationMs: number
+  timestamp: string
+  userId?: string
 }
 
-export async function updateAdminOverrideCodes(codes: string[]) {
-  const route = buildRoutePath('admin.overrideCodes.update')
-  const response = await api.put(route, { codes })
-  return normalizeAdminOverrideCodes(response.data)
+export interface ApiManagerSnapshot {
+  endpoints: ApiEndpointInfo[]
+  recentLogs: ApiRequestLog[]
+  totalRequests24h: number
+  errorRate24h: number
 }
+
+const FALLBACK_ENDPOINTS: ApiEndpointInfo[] = [
+  { id: 'ep-discover', method: 'GET', path: '/discover', module: 'Discover', description: 'User discovery search & filter', rateLimitPerMin: 60, enabled: true },
+  { id: 'ep-users-search', method: 'GET', path: '/users/search', module: 'Users', description: 'User search', rateLimitPerMin: 30, enabled: true },
+  { id: 'ep-posts', method: 'GET', path: '/posts', module: 'Posts', description: 'Community posts feed', rateLimitPerMin: 60, enabled: true },
+  { id: 'ep-chats-direct', method: 'POST', path: '/chats/direct', module: 'Chats', description: '1:1 direct chat room', rateLimitPerMin: 20, enabled: true },
+  { id: 'ep-chats-message', method: 'POST', path: '/chats/message', module: 'Chats', description: 'Send chat message', rateLimitPerMin: 120, enabled: true },
+  { id: 'ep-follows', method: 'PUT', path: '/follows/:id', module: 'Follows', description: 'Follow user', rateLimitPerMin: 30, enabled: true },
+  { id: 'ep-interests', method: 'PUT', path: '/interests/:id', module: 'Interests', description: 'Send interest', rateLimitPerMin: 20, enabled: true },
+  { id: 'ep-live', method: 'POST', path: '/live/rooms', module: 'Live', description: 'Create live room', rateLimitPerMin: 5, enabled: true },
+  { id: 'ep-broadcast', method: 'POST', path: '/notifications/broadcast', module: 'Notifications', description: 'Admin broadcast push', rateLimitPerMin: 10, enabled: true },
+  { id: 'ep-store-products', method: 'GET', path: '/store/point-products', module: 'Store', description: 'Point products list', rateLimitPerMin: 60, enabled: true },
+];
+
+export async function getApiManagerSnapshot(): Promise<ApiManagerSnapshot> {
+  try {
+    const response = await api.get('/metrics/dashboard')
+    const d = (response.data as any)?.data ?? {}
+    return {
+      endpoints: FALLBACK_ENDPOINTS,
+      recentLogs: [],
+      totalRequests24h: typeof d.totalRequests24h === 'number' ? d.totalRequests24h : 0,
+      errorRate24h: typeof d.errorRate24h === 'number' ? d.errorRate24h : 0,
+    }
+  } catch {
+    return { endpoints: FALLBACK_ENDPOINTS, recentLogs: [], totalRequests24h: 0, errorRate24h: 0 }
+  }
+}
+
+export async function updateApiEndpoint(
+  id: string,
+  payload: Partial<Pick<ApiEndpointInfo, 'enabled' | 'rateLimitPerMin'>>,
+): Promise<ApiEndpointInfo> {
+  // In a real system this would call PATCH /admin/api-manager/endpoints/:id
+  // For now it's a client-side optimistic update stub
+  await new Promise((r) => setTimeout(r, 200))
+  const found = FALLBACK_ENDPOINTS.find((ep) => ep.id === id)
+  return { ...(found ?? FALLBACK_ENDPOINTS[0]), ...payload } as ApiEndpointInfo
+}
+
+// =============================================
+// Admin Reports & Safety
+// =============================================
+
+export type ReportStatus = 'PENDING' | 'REVIEWING' | 'RESOLVED' | 'REJECTED'
+
+export interface ReportItem {
+  id: number
+  reason: string
+  status: ReportStatus
+  createdAt: string
+  reporter: { id: string; email?: string; displayName?: string } | null
+  reported: { id: string; email?: string; displayName?: string } | null
+}
+
+export interface ReportListResponse {
+  ok: boolean
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  items: ReportItem[]
+}
+
+function normalizeReportItem(raw: any): ReportItem {
+  return {
+    id: typeof raw?.id === 'number' ? raw.id : Number(raw?.id ?? 0),
+    reason: typeof raw?.reason === 'string' ? raw.reason : '',
+    status: (raw?.status ?? 'PENDING') as ReportStatus,
+    createdAt: raw?.createdAt ?? raw?.created_at ?? new Date().toISOString(),
+    reporter: raw?.reporter ?? null,
+    reported: raw?.reported ?? null,
+  }
+}
+
+export async function getAdminReports(params: {
+  status?: string
+  page?: number
+  limit?: number
+} = {}): Promise<ReportListResponse> {
+  const response = await api.get('/admin/reports', { params })
+  const d = response.data as any
+  const items = (d?.items ?? d?.data ?? []).map(normalizeReportItem)
+  return {
+    ok: true,
+    page: d?.page ?? 1,
+    limit: d?.limit ?? 20,
+    total: d?.total ?? items.length,
+    totalPages: d?.totalPages ?? 1,
+    items,
+  }
+}
+
+export async function updateAdminReportStatus(
+  id: number,
+  status: Exclude<ReportStatus, 'PENDING'>,
+): Promise<ReportItem> {
+  const response = await api.patch(`/admin/reports/${id}/status`, { status })
+  const d = (response.data as any)?.data ?? response.data
+  return normalizeReportItem(d)
+}
+
+export async function blockReportedUser(
+  id: number,
+  reason?: string,
+): Promise<{ reportId: number; reportedId: string; blocked: boolean }> {
+  const response = await api.post(`/admin/reports/${id}/block-user`, { reason })
+  const d = (response.data as any)?.data ?? response.data
+  return {
+    reportId: typeof d?.reportId === 'number' ? d.reportId : id,
+    reportedId: String(d?.reportedId ?? ''),
+    blocked: Boolean(d?.blocked ?? true),
+  }
+}
+
+// =============================================
+// Admin Settlement & Refunds
+// =============================================
+
+export interface AdminRefundRequest {
+  id: string
+  userId: string
+  platform: string
+  productId: string
+  receiptId: string
+  reason?: string | null
+  status: 'pending' | 'approved' | 'denied' | string
+  createdAt: string
+  decidedAt?: string | null
+  user?: {
+    id: string
+    email?: string
+    displayName?: string
+    pointsBalance?: number
+  } | null
+}
+
+export interface SettlementSummary {
+  totalPurchasesCount: number
+  totalPointsPurchased: number
+  pendingRefundsCount: number
+  totalWallets: number
+  totalSpendableBalance: number
+  totalRedeemableBalance: number
+  totalPendingEarnings: number
+  recentPurchases: PointPurchaseItem[]
+}
+
+export interface PointPurchaseItem {
+  id: string
+  userId: string
+  productId: string
+  transactionId: string
+  platform: string
+  points: number
+  status: string
+  createdAt: string
+  user?: {
+    id: string
+    email?: string
+    displayName?: string
+  } | null
+}
+
+export interface SettlementPurchasesResponse {
+  ok: boolean
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  items: PointPurchaseItem[]
+}
+
+export interface WalletLedgerItem {
+  id: string
+  walletId: string
+  kind: string
+  source: string
+  deltaSpendable: number
+  deltaRedeemable: number
+  deltaPending: number
+  spendableAfter: number
+  redeemableAfter: number
+  pendingAfter: number
+  idempotencyKey: string
+  createdAt: string
+  wallet?: {
+    id: string
+    activityAccountId: string
+    activityAccount?: {
+      displayName?: string
+      handle?: string
+    } | null
+  } | null
+}
+
+export async function getAdminRefunds(): Promise<AdminRefundRequest[]> {
+  const response = await api.get('/admin/refunds')
+  const d = response.data
+  return Array.isArray(d) ? d : []
+}
+
+export async function approveAdminRefund(id: string): Promise<AdminRefundRequest> {
+  const response = await api.patch(`/admin/refunds/${id}/approve`)
+  return response.data
+}
+
+export async function denyAdminRefund(id: string): Promise<AdminRefundRequest> {
+  const response = await api.patch(`/admin/refunds/${id}/deny`)
+  return response.data
+}
+
+export async function getSettlementSummary(): Promise<SettlementSummary> {
+  const response = await api.get('/admin/settlement/summary')
+  const d = (response.data as any)?.data ?? {}
+  return {
+    totalPurchasesCount: Number(d.totalPurchasesCount ?? 0),
+    totalPointsPurchased: Number(d.totalPointsPurchased ?? 0),
+    pendingRefundsCount: Number(d.pendingRefundsCount ?? 0),
+    totalWallets: Number(d.totalWallets ?? 0),
+    totalSpendableBalance: Number(d.totalSpendableBalance ?? 0),
+    totalRedeemableBalance: Number(d.totalRedeemableBalance ?? 0),
+    totalPendingEarnings: Number(d.totalPendingEarnings ?? 0),
+    recentPurchases: Array.isArray(d.recentPurchases) ? d.recentPurchases : [],
+  }
+}
+
+export async function getSettlementPurchases(params: {
+  page?: number
+  limit?: number
+  platform?: string
+} = {}): Promise<SettlementPurchasesResponse> {
+  const response = await api.get('/admin/settlement/purchases', { params })
+  const d = response.data as any
+  return {
+    ok: Boolean(d?.ok ?? true),
+    page: Number(d?.page ?? 1),
+    limit: Number(d?.limit ?? 20),
+    total: Number(d?.total ?? 0),
+    totalPages: Number(d?.totalPages ?? 1),
+    items: Array.isArray(d?.items) ? d.items : [],
+  }
+}
+
+export async function getSettlementLedger(take = 20): Promise<WalletLedgerItem[]> {
+  const response = await api.get('/admin/settlement/ledger', { params: { take } })
+  const d = response.data as any
+  return Array.isArray(d?.items) ? d.items : []
+}
+
+// =============================================
+// Admin Live Rooms & Moderation
+// =============================================
+
+export interface AdminLiveRoom {
+  id: string
+  title: string
+  category: string
+  status: string
+  viewerCount: number
+  totalLikes: number
+  totalGiftsPoints: number
+  coverUri: string | null
+  startedAt: string
+  endedAt: string | null
+  host: {
+    id: string
+    name: string
+    avatar: string | null
+    region: string
+    headline: string | null
+    targetAccountId?: string | null
+  }
+}
+
+export interface AdminLiveSummary {
+  totalRooms: number
+  activeLiveRooms: number
+  totalGiftPoints: number
+  totalLikes: number
+  currentViewers: number
+}
+
+export interface AdminLiveRoomsResponse {
+  ok: boolean
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  items: AdminLiveRoom[]
+}
+
+export interface AdminLiveMessage {
+  id: string
+  roomId: string
+  type: string
+  content: string
+  giftPoints: number | null
+  createdAt: string
+  sender: {
+    id: string
+    name: string
+    avatar: string | null
+  }
+}
+
+export async function getAdminLiveSummary(): Promise<AdminLiveSummary> {
+  const response = await api.get('/live/admin/summary')
+  const d = (response.data as any)?.data ?? {}
+  return {
+    totalRooms: Number(d.totalRooms ?? 0),
+    activeLiveRooms: Number(d.activeLiveRooms ?? 0),
+    totalGiftPoints: Number(d.totalGiftPoints ?? 0),
+    totalLikes: Number(d.totalLikes ?? 0),
+    currentViewers: Number(d.currentViewers ?? 0),
+  }
+}
+
+export async function getAdminLiveRooms(params: {
+  status?: string
+  page?: number
+  limit?: number
+} = {}): Promise<AdminLiveRoomsResponse> {
+  const response = await api.get('/live/admin/rooms', { params })
+  const d = response.data as any
+  return {
+    ok: Boolean(d?.ok ?? true),
+    page: Number(d?.page ?? 1),
+    limit: Number(d?.limit ?? 20),
+    total: Number(d?.total ?? 0),
+    totalPages: Number(d?.totalPages ?? 1),
+    items: Array.isArray(d?.items) ? d.items : [],
+  }
+}
+
+export async function forceEndAdminLiveRoom(id: string, reason?: string): Promise<AdminLiveRoom> {
+  const response = await api.post(`/live/admin/rooms/${id}/force-end`, { reason })
+  return (response.data as any)?.data ?? response.data
+}
+
+export async function getAdminLiveMessages(roomId: string, limit = 50): Promise<AdminLiveMessage[]> {
+  const response = await api.get(`/live/rooms/${roomId}/messages`, { params: { limit } })
+  const d = (response.data as any)?.data
+  return Array.isArray(d) ? d : []
+}
+
+// =============================================
+// Admin Permissions, Approvals & Audit
+// =============================================
+
+export interface AdminApprovalItem {
+  id: string
+  action: string
+  target: string
+  reason: string
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
+  createdAt: string
+  decidedAt?: string | null
+  decisionReason?: string | null
+  expiresAt?: string | null
+  requestedBy: {
+    id: string
+    email: string
+    displayName?: string
+  }
+  decidedBy?: {
+    id: string
+    email: string
+    displayName?: string
+  } | null
+}
+
+export interface AdminAuditLogItem {
+  id: string
+  action: string
+  target: string
+  reason?: string | null
+  notes?: string | null
+  createdAt: string
+  actor?: {
+    id: string
+    email: string
+    displayName?: string
+  } | null
+  context?: any
+}
+
+export interface AdminProfileItem {
+  userId: string
+  role: 'SUPER_ADMIN' | 'MANAGER' | 'MODERATOR' | 'SUPPORT' | 'EDITOR' | 'VIEWER' | string
+  status: 'ACTIVE' | 'SUSPENDED' | string
+  permissions: string[]
+  twoFactorEnabled: boolean
+  lastLoginAt?: string | null
+  createdAt: string
+  user?: {
+    id: string
+    email?: string
+    displayName?: string
+    status: string
+    role: string
+  } | null
+}
+
+export async function getAdminApprovals(status?: string): Promise<AdminApprovalItem[]> {
+  const response = await api.get('/admin/approvals', { params: { status } })
+  const d = response.data as any
+  return Array.isArray(d?.items) ? d.items : Array.isArray(d?.data) ? d.data : []
+}
+
+export async function createAdminApprovalRequest(payload: {
+  action: string
+  target: string
+  reason: string
+  context?: any
+  metadata?: any
+  expiresAt?: string
+}): Promise<AdminApprovalItem> {
+  const response = await api.post('/admin/approvals', payload)
+  return (response.data as any)?.data ?? response.data
+}
+
+export async function decideAdminApproval(
+  id: string,
+  decision: 'APPROVED' | 'REJECTED',
+  reason?: string,
+): Promise<AdminApprovalItem> {
+  const response = await api.patch(`/admin/approvals/${id}/decision`, { decision, reason })
+  return (response.data as any)?.data ?? response.data
+}
+
+export async function getAdminAuditLogs(limit = 50): Promise<AdminAuditLogItem[]> {
+  const response = await api.get('/admin/approvals/audit-logs', { params: { limit } })
+  const d = response.data as any
+  return Array.isArray(d?.items) ? d.items : []
+}
+
+export async function getAdminProfiles(): Promise<AdminProfileItem[]> {
+  const response = await api.get('/admin/approvals/profiles')
+  const d = response.data as any
+  return Array.isArray(d?.items) ? d.items : []
+}
+
+export async function updateAdminProfile(
+  userId: string,
+  payload: { role?: string; status?: string; permissions?: string[] },
+): Promise<AdminProfileItem> {
+  const response = await api.patch(`/admin/approvals/profiles/${userId}`, payload)
+  return (response.data as any)?.data ?? response.data
+}
+
+
+// =============================================
+// Admin Ads & Rewards
+// =============================================
+
+export interface AdsRewardsStats {
+  totalRewardEvents: number;
+  totalPointsDistributed: number;
+  totalEligibleUsers: number;
+  activeCampaignsCount: number;
+}
+
+export interface AdsRewardsPolicies {
+  dailyAdLimit: number;
+  pointsPerAd: number;
+  admobAppId: string;
+  admobUnitId: string;
+  attendancePoints: number;
+  referralPoints: number;
+  enabled: boolean;
+}
+
+export interface AdsRewardsOverviewResponse {
+  stats: AdsRewardsStats;
+  policies: AdsRewardsPolicies;
+  recentRewards: {
+    id: string;
+    deltaSpendable: number;
+    createdAt: string;
+    kind: string;
+    source: string;
+    wallet?: {
+      activityAccount?: {
+        displayName?: string;
+        handle?: string;
+      } | null;
+    } | null;
+  }[];
+}
+
+export async function getAdsRewardsOverview(): Promise<AdsRewardsOverviewResponse> {
+  const response = await api.get('/admin/ads-rewards/overview');
+  const d = (response.data as any)?.data ?? {};
+  return {
+    stats: {
+      totalRewardEvents: Number(d.stats?.totalRewardEvents ?? 0),
+      totalPointsDistributed: Number(d.stats?.totalPointsDistributed ?? 0),
+      totalEligibleUsers: Number(d.stats?.totalEligibleUsers ?? 0),
+      activeCampaignsCount: Number(d.stats?.activeCampaignsCount ?? 0),
+    },
+    policies: {
+      dailyAdLimit: Number(d.policies?.dailyAdLimit ?? 5),
+      pointsPerAd: Number(d.policies?.pointsPerAd ?? 10),
+      admobAppId: String(d.policies?.admobAppId ?? ''),
+      admobUnitId: String(d.policies?.admobUnitId ?? ''),
+      attendancePoints: Number(d.policies?.attendancePoints ?? 5),
+      referralPoints: Number(d.policies?.referralPoints ?? 50),
+      enabled: Boolean(d.policies?.enabled ?? true),
+    },
+    recentRewards: Array.isArray(d.recentRewards) ? d.recentRewards : [],
+  };
+}
+
+export async function updateAdsRewardsPolicies(payload: Partial<AdsRewardsPolicies>): Promise<any> {
+  const response = await api.patch('/admin/ads-rewards/policies', payload);
+  return (response.data as any)?.data ?? response.data;
+}
+
+// ===== 선물(Gift) 관리 API =====
+export interface AdminGiftItem {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  thumbnailUrl?: string | null;
+  animationUrl?: string | null;
+  animationType: string;
+  category: string;
+  sortOrder: number;
+  amount: number;
+  points: number;
+  pricePoints: number;
+  isActive: boolean;
+  chatEnabled: boolean;
+  liveEnabled: boolean;
+  isNew: boolean;
+}
+
+export interface AdminGiftStats {
+  totalGifts: number;
+  activeGifts: number;
+  totalTransactions: number;
+  totalPointsSent: number;
+}
+
+export async function getAdminGifts(): Promise<AdminGiftItem[]> {
+  const response = await api.get('/gifts/admin/list');
+  const d = response.data;
+  return Array.isArray(d?.data) ? d.data : Array.isArray(d?.items) ? d.items : [];
+}
+
+export async function getAdminGiftStats(): Promise<AdminGiftStats> {
+  const response = await api.get('/gifts/admin/stats');
+  return (response.data as any)?.data ?? {
+    totalGifts: 0,
+    activeGifts: 0,
+    totalTransactions: 0,
+    totalPointsSent: 0,
+  };
+}
+
+export async function createAdminGift(payload: Partial<AdminGiftItem>): Promise<AdminGiftItem> {
+  const response = await api.post('/gifts/admin', payload);
+  return (response.data as any)?.data ?? response.data;
+}
+
+export async function updateAdminGift(id: string, payload: Partial<AdminGiftItem>): Promise<AdminGiftItem> {
+  const response = await api.patch(`/gifts/admin/${id}`, payload);
+  return (response.data as any)?.data ?? response.data;
+}
+
+export async function deleteAdminGift(id: string): Promise<boolean> {
+  const response = await api.delete(`/gifts/admin/${id}`);
+  return (response.data as any)?.ok ?? true;
+}
+
+// ===== 자체 광고(Advertisement) 관리 API =====
+export interface AdminAdvertisementItem {
+  id: string;
+  title: string;
+  description?: string | null;
+  imageUrl: string;
+  targetUrl?: string | null;
+  placement: string;
+  priority: number;
+  isActive: boolean;
+  rewardPoints: number;
+  clickCount: number;
+  impressionCount: number;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AdminAdStats {
+  totalAds: number;
+  activeAds: number;
+  totalClicks: number;
+  totalImpressions: number;
+}
+
+export async function getAdminAds(placement?: string): Promise<AdminAdvertisementItem[]> {
+  const params = placement && placement !== 'ALL' ? { placement } : {};
+  const response = await api.get('/advertisements/admin/list', { params });
+  const d = response.data;
+  return Array.isArray(d?.data) ? d.data : Array.isArray(d?.items) ? d.items : [];
+}
+
+export async function getAdminAdStats(): Promise<AdminAdStats> {
+  const response = await api.get('/advertisements/admin/stats');
+  return (response.data as any)?.data ?? {
+    totalAds: 0,
+    activeAds: 0,
+    totalClicks: 0,
+    totalImpressions: 0,
+  };
+}
+
+export async function createAdminAd(payload: Partial<AdminAdvertisementItem>): Promise<AdminAdvertisementItem> {
+  const response = await api.post('/advertisements/admin', payload);
+  return (response.data as any)?.data ?? response.data;
+}
+
+export async function updateAdminAd(id: string, payload: Partial<AdminAdvertisementItem>): Promise<AdminAdvertisementItem> {
+  const response = await api.patch(`/advertisements/admin/${id}`, payload);
+  return (response.data as any)?.data ?? response.data;
+}
+
+export async function deleteAdminAd(id: string): Promise<boolean> {
+  const response = await api.delete(`/advertisements/admin/${id}`);
+  return (response.data as any)?.ok ?? true;
+}
+

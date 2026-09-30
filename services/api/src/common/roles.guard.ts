@@ -11,10 +11,17 @@ export class RolesGuard implements CanActivate {
       Reflect.getMetadata(ROLES_KEY, ctx.getClass()) ??
       [];
 
-    // 테스트용: 사용자 정보가 없으면 기본 admin으로 간주하여 통과
+    if (handlerRoles.length === 0) {
+      return true;
+    }
+
     const req = ctx.switchToHttp().getRequest();
-    const user = req?.user ?? { role: 'admin' };
-    if (handlerRoles.length === 0) return true;
+    const user = req?.user;
+
+    if (!user?.role) {
+      return false;
+    }
+
     return handlerRoles.includes(user.role);
   }
 }

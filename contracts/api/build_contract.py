@@ -179,11 +179,55 @@ components = {
                 "avatarUri": {"type": "string"},
             },
         },
+        "PublicUserSearchItem": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+                "displayName": {"type": ["string", "null"]},
+                "nickname": {"type": ["string", "null"]},
+                "bio": {"type": ["string", "null"]},
+                "interests": {"type": "array", "items": {"type": "string"}},
+            },
+        },
         "UsersSearchResponse": {
             "type": "object",
             "properties": {
                 "ok": {"type": "boolean"},
-                "data": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "data": {
+                    "type": "array",
+                    "items": {"$ref": "#/components/schemas/PublicUserSearchItem"},
+                },
+                "items": {
+                    "type": "array",
+                    "items": {"$ref": "#/components/schemas/PublicUserSearchItem"},
+                },
+            },
+        },
+        "PublicUserProfile": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+                "displayName": {"type": ["string", "null"]},
+                "region1": {"type": ["string", "null"]},
+                "region2": {"type": ["string", "null"]},
+                "profile": {
+                    "type": ["object", "null"],
+                    "properties": {
+                        "nickname": {"type": ["string", "null"]},
+                        "bio": {"type": ["string", "null"]},
+                        "headline": {"type": ["string", "null"]},
+                        "avatarUri": {"type": ["string", "null"]},
+                        "interests": {"type": "array", "items": {"type": "string"}},
+                        "badges": {"type": "array", "items": {"type": "string"}},
+                    },
+                },
+            },
+        },
+        "PublicUserResponse": {
+            "type": "object",
+            "properties": {
+                "ok": {"type": "boolean"},
+                "data": {"$ref": "#/components/schemas/PublicUserProfile"},
             },
         },
         "AdminUsersListResponse": {
@@ -221,14 +265,12 @@ components = {
             "required": ["note"],
             "properties": {
                 "note": {"type": "string"},
-                "authorId": {"type": "string"},
             },
         },
         "AdminUserAction": {
             "type": "object",
             "properties": {
                 "reason": {"type": "string"},
-                "performedBy": {"type": "string"},
                 "metadata": {"type": "object", "additionalProperties": True},
             },
         },
@@ -281,9 +323,8 @@ components = {
         },
         "FriendshipRequest": {
             "type": "object",
-            "required": ["requesterId", "addresseeId"],
+            "required": ["addresseeId"],
             "properties": {
-                "requesterId": {"type": "string"},
                 "addresseeId": {"type": "string"},
             },
         },
@@ -301,21 +342,17 @@ components = {
         },
         "ChatMessageRequest": {
             "type": "object",
-            "required": ["chatId", "senderId", "content"],
+            "required": ["chatId", "content"],
             "properties": {
                 "chatId": {"type": "string"},
-                "senderId": {"type": "string"},
                 "content": {"type": "string"},
             },
         },
         "ChatRoomRequest": {
             "type": "object",
-            "required": ["userAId", "userBId"],
+            "required": ["targetUserId"],
             "properties": {
-                "userAId": {"type": "string"},
-                "userBId": {"type": "string"},
-                "title": {"type": "string"},
-                "category": {"type": "string"},
+                "targetUserId": {"type": "string"},
             },
         },
         "ChatDirectRequest": {
@@ -651,7 +688,7 @@ endpoints = [
         "tags": ["users"],
         "public": False,
         "responses": {
-            "200": {"description": "User detail", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/UsersMeResponse"}}}},
+            "200": {"description": "User detail", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PublicUserResponse"}}}},
             "404": {"description": "Not found"},
         },
     },
@@ -875,7 +912,7 @@ endpoints = [
         "aliases": ["/chats/chat/rooms", "/chats/chats/rooms", "/chats/conversations"],
         "requestBody": {"schema": {"$ref": "#/components/schemas/ChatRoomRequest"}},
         "responses": {
-            "200": {"description": "Room", "content": {"application/json": {"schema": {"type": "object", "properties": {"ok": {"type": "boolean"}, "id": {"type": "string"}, "userAId": {"type": "string"}, "userBId": {"type": "string"}, "title": {"type": "string"}, "category": {"type": "string"}}}}}},
+            "200": {"description": "Room", "content": {"application/json": {"schema": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}, "participants": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "displayName": {"type": ["string", "null"]}, "nickname": {"type": ["string", "null"]}, "avatarUri": {"type": ["string", "null"]}}}}}}}}},
         },
     },
     {

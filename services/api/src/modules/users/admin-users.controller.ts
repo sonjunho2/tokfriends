@@ -9,14 +9,17 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'nestjs-prisma';
 import { UsersService } from './users.service';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { Roles, RolesGuard } from '../../common/roles.guard';
+import { AdminPermissions } from '../../common/admin-permissions.guard';
+import { AdminUpdateUserDto, AdminUserActionDto, AdminUserNoteDto, AdminUserStatusDto } from './admin-users.dto';
 
-type AdminUserNoteDto = { note: string; authorId?: string };
-type AdminUserActionDto = { reason?: string; performedBy?: string; metadata?: Record<string, any> };
 type ProfileVisibilitySettings = {
   marketingOptIn?: boolean;
   verified?: boolean;
@@ -26,6 +29,9 @@ type ProfileVisibilitySettings = {
 
 @ApiTags('admin/users')
 @ApiBearerAuth()
+@UseGuards(RolesGuard)
+@Roles('admin')
+@AdminPermissions('users.manage')
 @Controller('admin/users')
 export class AdminUsersController {
   constructor(
@@ -37,6 +43,7 @@ export class AdminUsersController {
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'search', required: false, type: String, example: 'kim' })
+  @ApiQuery({ name: 'phone', required: false, type: String, example: '01012345678' })
   @ApiQuery({ name: 'status', required: false, type: String })
   @ApiQuery({ name: 'riskLevel', required: false, type: String, example: 'high' })
   @ApiQuery({ name: 'segment', required: false, type: String })
@@ -47,6 +54,7 @@ export class AdminUsersController {
     @Query('page') page = '1',
     @Query('limit') limit = '10',
     @Query('search') search?: string,
+    @Query('phone') phone?: string,
     @Query('status') status?: string,
     @Query('riskLevel') riskLevel?: string,
     @Query('segment') segment?: string,
@@ -59,6 +67,11 @@ export class AdminUsersController {
     const skip = (p - 1) * take;
 
     const where: Prisma.UserWhereInput = {};
+
+    const phoneHash = this.usersService.phoneHashForSearch(phone);
+    if (phoneHash) {
+      where.phoneHash = phoneHash;
+    }
 
     if (search?.trim()) {
       where.OR = [
@@ -275,7 +288,12 @@ export class AdminUsersController {
   }
 
   @Patch(':id')
-  async updateProfile(@Param('id') id: string, @Body() body: Record<string, any>) {
+  async updateProfile(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: AdminUpdateUserDto,
+  ) {
+    const actorId = user?.id ?? user?.sub;
     await this.ensureUserExists(id);
 
     const existingProfile = await this.prisma.profile.findUnique({
@@ -407,6 +425,7 @@ export class AdminUsersController {
       data: {
         target: `user:${id}`,
         action: 'USER_ACTION:PROFILE_UPDATE',
+        actorId,
         notes: JSON.stringify({ updated: Object.keys(body ?? {}) }),
       },
     });
@@ -416,7 +435,12 @@ export class AdminUsersController {
   }
 
   @Patch(':id/status')
-  async updateStatus(@Param('id') id: string, @Body() body: { status: string; expiresAt?: string }) {
+  async updateStatus(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: AdminUserStatusDto,
+  ) {
+    const actorId = user?.id ?? user?.sub;
     await this.ensureUserExists(id);
     const next = String(body?.status || '').toLowerCase();
     const updated = await this.prisma.user.update({
@@ -429,6 +453,7 @@ export class AdminUsersController {
       data: {
         target: `user:${id}`,
         action: 'USER_ACTION:STATUS_CHANGE',
+        actorId,
         notes: JSON.stringify({ status: next, expiresAt: body?.expiresAt ?? null }),
       },
     });
@@ -437,16 +462,23 @@ export class AdminUsersController {
   }
 
   @Post(':id/notes')
-  async addNote(@Param('id') id: string, @Body() body: AdminUserNoteDto) {
+  async addNote(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: AdminUserNoteDto,
+  ) {
     await this.ensureUserExists(id);
+
+    const actorId = user?.id ?? user?.sub;
     const noteText = body?.note?.trim();
+
     if (!noteText) {
       throw new BadRequestException('note is required');
     }
 
     const entry = await this.prisma.auditLog.create({
       data: {
-        actorId: body?.authorId ?? null,
+        actorId,
         target: `user:${id}`,
         action: 'USER_NOTE',
         notes: noteText,
@@ -464,28 +496,41 @@ export class AdminUsersController {
       },
     };
   }
-
   @Post(':id/actions/resend-verification')
-  async resendVerification(@Param('id') id: string, @Body() body: AdminUserActionDto) {
+  async resendVerification(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: AdminUserActionDto,
+  ) {
     await this.ensureUserExists(id);
-    const entry = await this.logAction(id, 'RESEND_VERIFICATION', body);
+    const actorId = user?.id ?? user?.sub;
+    const entry = await this.logAction(actorId, id, 'RESEND_VERIFICATION', body);
     return { ok: true, data: entry };
   }
 
   @Post(':id/actions/password-reset')
-  async triggerPasswordReset(@Param('id') id: string, @Body() body: AdminUserActionDto) {
+  async triggerPasswordReset(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: AdminUserActionDto,
+  ) {
     await this.ensureUserExists(id);
-    const entry = await this.logAction(id, 'PASSWORD_RESET', body);
+    const actorId = user?.id ?? user?.sub;
+    const entry = await this.logAction(actorId, id, 'PASSWORD_RESET', body);
     return { ok: true, data: entry };
   }
 
   @Post(':id/actions/escalate')
-  async escalate(@Param('id') id: string, @Body() body: AdminUserActionDto) {
+  async escalate(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: AdminUserActionDto,
+  ) {
     await this.ensureUserExists(id);
-    const entry = await this.logAction(id, 'ESCALATE', body);
+    const actorId = user?.id ?? user?.sub;
+    const entry = await this.logAction(actorId, id, 'ESCALATE', body);
     return { ok: true, data: entry };
   }
-
   private resolveRiskFilter(level?: string): Prisma.IntFilter | undefined {
     if (!level) return undefined;
     switch (level.toLowerCase()) {
@@ -554,21 +599,32 @@ export class AdminUsersController {
     }
   }
 
-  private async logAction(userId: string, action: string, body: AdminUserActionDto) {
+  private async logAction(
+    actorId: string,
+    userId: string,
+    action: string,
+    body: AdminUserActionDto,
+  ) {
     const payload = {
       reason: body?.reason ?? null,
-      performedBy: body?.performedBy ?? null,
+      performedBy: actorId,
       metadata: body?.metadata ?? null,
     };
 
     const entry = await this.prisma.auditLog.create({
       data: {
-        actorId: body?.performedBy ?? null,
+        actorId,
         target: `user:${userId}`,
         action: `USER_ACTION:${action}`,
         notes: JSON.stringify(payload),
       },
-      select: { id: true, action: true, notes: true, createdAt: true, actorId: true },
+      select: {
+        id: true,
+        action: true,
+        notes: true,
+        createdAt: true,
+        actorId: true,
+      },
     });
 
     return {
@@ -579,7 +635,6 @@ export class AdminUsersController {
       metadata: this.tryParseJson(entry.notes),
     };
   }
-
   private tryParseJson(raw?: string | null) {
     if (!raw) return null;
     try {

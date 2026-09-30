@@ -1,22 +1,27 @@
-import { Injectable } from '@nestjs/common';
-import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Injectable } from "@nestjs/common";
+import { PassportStrategy } from "@nestjs/passport";
+import { ExtractJwt, Strategy } from "passport-jwt";
+import { AuthenticatedUserContextService } from "./authenticated-user-context.service";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor() {
+  constructor(
+    private readonly authenticatedUserContext: AuthenticatedUserContextService,
+  ) {
+    const jwtSecret = process.env.JWT_SECRET;
+
+    if (!jwtSecret) {
+      throw new Error("JWT_SECRET is required");
+    }
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey:
-        process.env.JWT_SECRET ||
-        process.env.NEXTAUTH_SECRET ||
-        'fallback-dev-secret',
+      secretOrKey: jwtSecret,
     });
   }
 
-  // payload: { sub: userId, iat, exp }
-  async validate(payload: any) {
-    return { id: payload.sub };
+  async validate(payload: unknown) {
+    return this.authenticatedUserContext.resolveFromPayload(payload);
   }
 }

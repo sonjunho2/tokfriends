@@ -1,10 +1,23 @@
 // services/api/src/modules/reports/admin-reports.controller.ts
-import { Controller, Get, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ReportsService } from './reports.service';
+import { AdminPermissions } from '../../common/admin-permissions.guard';
 
 @ApiTags('admin/reports')
 @ApiBearerAuth()
+@AdminPermissions('reports.view')
 @Controller('admin/reports')
 export class AdminReportsController {
   constructor(private readonly reports: ReportsService) {}
@@ -41,5 +54,34 @@ export class AdminReportsController {
     const n = Number(limit ?? 20) || 20;
     const items = await this.reports.listRecent(n);
     return { ok: true, total: items.length, limit: n, data: items, items };
+  }
+
+  @ApiParam({ name: 'id', type: Number })
+  @ApiBody({ schema: { properties: { status: { type: 'string', enum: ['REVIEWING', 'RESOLVED', 'REJECTED'] } } } })
+  @AdminPermissions('reports.view')
+  @Patch(':id/status')
+  async updateStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('status') status: string,
+  ) {
+    if (!['REVIEWING', 'RESOLVED', 'REJECTED'].includes(status?.toUpperCase())) {
+      throw new BadRequestException('status must be one of: REVIEWING, RESOLVED, REJECTED');
+    }
+    const updated = await this.reports.updateStatus(id, status.toUpperCase() as any);
+    if (!updated) throw new NotFoundException(`Report ${id} not found`);
+    return { ok: true, data: updated };
+  }
+
+  @ApiParam({ name: 'id', type: Number })
+  @ApiBody({ schema: { properties: { reason: { type: 'string' } } } })
+  @AdminPermissions('reports.view')
+  @Post(':id/block-user')
+  async blockReportedUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('reason') reason?: string,
+  ) {
+    const result = await this.reports.blockReportedUser(id, reason);
+    if (!result) throw new NotFoundException(`Report ${id} not found or has no reported user`);
+    return { ok: true, data: result };
   }
 }

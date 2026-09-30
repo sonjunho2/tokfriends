@@ -7,7 +7,7 @@ export default function Card({
   onPress,
   padding = 16,
   margin = 0,
-  borderRadius = 16,
+  borderRadius = 18,
   shadow = true,
   style,
   ...props
@@ -28,7 +28,7 @@ export default function Card({
       <TouchableOpacity
         style={cardStyle}
         onPress={onPress}
-        activeOpacity={0.95}
+        activeOpacity={0.92}
         {...props}
       >
         {children}
@@ -45,16 +45,18 @@ export default function Card({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F2F4F6',
   },
   shadow: {
-    shadowColor: colors.shadowColor,
+    shadowColor: '#000000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 3,
     },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
   },
 });

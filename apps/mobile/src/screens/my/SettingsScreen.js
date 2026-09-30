@@ -9,16 +9,21 @@ import {
   Switch,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import * as Font from 'expo-font';
 import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
 import { useAuth } from '../../context/AuthContext';
+import { apiClient } from '../../api/client';
+import {
+  getPushNotificationsEnabled,
+  setPushNotificationsEnabled,
+} from '../../utils/pushNotifications';
 
-const FALLBACK_COVER =
-  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1080&q=80';
 
 const MANAGED_FONT_ENDPOINT = 'https://manage.tokfriends.app/api/fonts/latest';
 
@@ -32,12 +37,13 @@ const FALLBACK_MANAGED_FONTS = [
 ];
 
 export default function SettingsScreen({ navigation }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const userProfile = user?.profile ?? {};
 
-  const nickname = user?.nickname || user?.displayName || user?.name || '회원님';
-  const locationLabel = user?.location || '서울, 여자 27살';
+  const nickname = userProfile?.nickname || user?.displayName || '회원님';
+  const locationLabel = [user?.region1, user?.region2].filter(Boolean).join(' · ') || '지역 미설정';
   const tagline =
-    user?.headline || user?.title || '대화친구 필요하신분? 나이는 상관없어요!';
+    userProfile?.headline || '한줄 소개를 등록해 주세요.';
 
   const [pushEnabled, setPushEnabled] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
@@ -50,6 +56,37 @@ export default function SettingsScreen({ navigation }) {
   const [selectedFont, setSelectedFont] = useState('system');
   const [fontLoading, setFontLoading] = useState(false);
   const [fontMessage, setFontMessage] = useState('');
+  const [blockedCount, setBlockedCount] = useState(null);
+  const [friendsCount, setFriendsCount] = useState(null);
+  const [legalModalVisible, setLegalModalVisible] = useState(false);
+  const [legalTitle, setLegalTitle] = useState('');
+  const [legalBody, setLegalBody] = useState('');
+  const [legalLoading, setLegalLoading] = useState(false);
+
+  const openLegalDocument = useCallback(async (slug, title) => {
+    setLegalTitle(title);
+    setLegalModalVisible(true);
+    setLegalLoading(true);
+    setLegalBody('');
+    try {
+      const response = await apiClient.getLegalDocument(slug);
+      const content =
+        response?.content ||
+        response?.html ||
+        response?.body ||
+        response?.data?.content ||
+        response?.text;
+      if (typeof content === 'string' && content.trim()) {
+        setLegalBody(content.trim());
+      } else {
+        setLegalBody('등록된 약관 내용을 불러오지 못했습니다.');
+      }
+    } catch {
+      setLegalBody('약관 내용을 불러오는 중 오류가 발생했습니다.');
+    } finally {
+      setLegalLoading(false);
+    }
+  }, []);
 
   const dynamicFont = useMemo(() => {
     if (selectedFont === 'system') {
@@ -62,7 +99,7 @@ export default function SettingsScreen({ navigation }) {
   }, [selectedFont]);
 
   const balance = useMemo(() => {
-    const p = user?.points ?? user?.balance ?? 300;
+    const p = user?.pointsBalance ?? 0;
     if (typeof p === 'number') return p;
     const numeric = parseInt(String(p).replace(/\D/g, ''), 10);
     return Number.isFinite(numeric) ? numeric : 0;
@@ -72,15 +109,18 @@ export default function SettingsScreen({ navigation }) {
     () => ({
       name: nickname,
       location: locationLabel,
-      title: user?.joinPhrase || '오늘 가입한 회원입니다',
-      bio:
-        user?.bio ||
-        '새로운 인연을 기다리고 있어요. 반려견과 드라이브하는 것을 좋아해요!',
-      avatar: user?.avatar || null,
-      coverImage: user?.coverImage || FALLBACK_COVER,
+      title: userProfile?.headline || '한줄 소개를 등록해 주세요.',
+      bio: userProfile?.bio || '소개가 없습니다.',
+      avatar: userProfile?.avatarUri || null,
+      coverImage: userProfile?.avatarUri || null,
     }),
     [nickname, locationLabel, user]
   );
+
+  const handleTogglePush = useCallback(async (val) => {
+    setPushEnabled(val);
+    await setPushNotificationsEnabled(val);
+  }, []);
 
   const quickActions = [
     {
@@ -89,7 +129,7 @@ export default function SettingsScreen({ navigation }) {
       label: '충전하기',
       value: `${balance} P`,
       accent: colors.primary,
-      onPress: () => Alert.alert('충전', '포인트 충전 기능을 준비중입니다.'),
+      onPress: () => navigation.navigate('Shop'),
     },
     {
       key: 'attendance',
@@ -97,22 +137,112 @@ export default function SettingsScreen({ navigation }) {
       label: '출석체크',
       value: '매일 도전해요',
       accent: '#3B82F6',
-      onPress: () => Alert.alert('출석체크', '오늘의 출석을 기록해보세요!'),
+      onPress: () => navigation.navigate('Shop'),
     },
     {
       key: 'push',
       icon: 'notifications-outline',
       label: '푸시알림',
-      value: '중요 소식 놓치지 마세요',
+      value: pushEnabled ? '알림 켜짐' : '알림 꺼짐',
       accent: '#A855F7',
-      onPress: () => setPushEnabled((prev) => !prev),
+      onPress: () => handleTogglePush(!pushEnabled),
     },
   ];
 
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      const loadCounts = async () => {
+        try {
+          const [blockedRes, friendsRes, pushPref] = await Promise.allSettled([
+            apiClient.getBlockedUsers(),
+            apiClient.getFriendships(),
+            getPushNotificationsEnabled(),
+          ]);
+
+          if (!active) return;
+
+          if (pushPref.status === 'fulfilled') {
+            setPushEnabled(pushPref.value);
+          }
+
+          if (blockedRes.status === 'fulfilled') {
+            const blockedItems = Array.isArray(blockedRes.value?.data)
+              ? blockedRes.value.data
+              : Array.isArray(blockedRes.value?.items)
+              ? blockedRes.value.items
+              : [];
+            setBlockedCount(blockedItems.length);
+          } else {
+            setBlockedCount(null);
+          }
+
+          if (friendsRes.status === 'fulfilled') {
+            const rawFriends = Array.isArray(friendsRes.value?.data)
+              ? friendsRes.value.data
+              : Array.isArray(friendsRes.value)
+              ? friendsRes.value
+              : [];
+            const accepted = rawFriends.filter((f) => f.status === 'accepted');
+            setFriendsCount(accepted.length);
+          } else {
+            setFriendsCount(null);
+          }
+        } catch (error) {
+          console.warn('Failed to load counts in settings', error);
+        }
+      };
+
+      loadCounts();
+
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+
   const supportLinks = [
-    { key: 'blocked', icon: 'ban-outline', label: '내가 차단한 회원', value: '0명' },
-    { key: 'faq', icon: 'help-circle-outline', label: '자주 묻는 질문' },
-    { key: 'support', icon: 'chatbubble-ellipses-outline', label: '영자언니에게 문의하기' },
+    {
+      key: 'friends',
+      icon: 'people-outline',
+      label: '친구 목록 및 친구 관리',
+      value: friendsCount === null ? undefined : String(friendsCount) + '명',
+      onPress: () => navigation.navigate('Friends'),
+    },
+    {
+      key: 'blocked',
+      icon: 'ban-outline',
+      label: '내가 차단한 회원',
+      value: blockedCount === null ? undefined : String(blockedCount) + '명',
+      onPress: () => navigation.navigate('BlockedUsers'),
+    },
+    {
+      key: 'terms',
+      icon: 'document-text-outline',
+      label: '서비스 이용약관',
+      onPress: () => openLegalDocument('terms-of-service', '서비스 이용약관'),
+    },
+    {
+      key: 'privacy',
+      icon: 'shield-checkmark-outline',
+      label: '개인정보 처리방침',
+      onPress: () => openLegalDocument('privacy-policy', '개인정보 처리방침'),
+    },
+    {
+      key: 'location',
+      icon: 'location-outline',
+      label: '위치기반서비스 이용약관',
+      onPress: () => openLegalDocument('location-based-service', '위치기반서비스 이용약관'),
+    },
+    {
+      key: 'version',
+      icon: 'information-circle-outline',
+      label: '앱 버전 정보',
+      value: 'v1.0.0',
+      onPress: () =>
+        Alert.alert('버전 정보', '다가온(DAGAON) v1.0.0\n최신 정식 버전이 설치되어 있습니다.'),
+    },
   ];
 
     const handleSelectFont = useCallback((value) => {
@@ -194,6 +324,22 @@ export default function SettingsScreen({ navigation }) {
     }
   }, [availableFonts, fontLoading]);
 
+  const handleLogout = () => {
+    Alert.alert(
+      '로그아웃',
+      '로그아웃하시겠어요?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '로그아웃',
+          style: 'destructive',
+          onPress: () => {
+            void logout();
+          },
+        },
+      ],
+    );
+  };
   const handleOpenProfile = () => {
     navigation.navigate('ProfileDetail', {
       profile: profilePayload,
@@ -202,21 +348,28 @@ export default function SettingsScreen({ navigation }) {
     });
   };
 
+  const canGoBack = (navigation.getState()?.index ?? 0) > 0;
+
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => navigation.goBack()}
-          hitSlop={8}
-        >
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, dynamicFont.heading]}>마이페이지</Text>
-        <View style={styles.headerButton} />
+        <View style={styles.headerLeft}>
+          {canGoBack && (
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => navigation.goBack()}
+              hitSlop={8}
+            >
+              <Ionicons name="chevron-back" size={24} color={colors.textPrimary || '#111827'} />
+            </TouchableOpacity>
+          )}
+          <Text style={[styles.headerTitle, dynamicFont.heading]}>마이</Text>
+        </View>
+        <View style={styles.headerRight} />
       </View>
 
       <ScrollView
+        style={{ flex: 1, backgroundColor: colors.background }}
         contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
       >
@@ -225,7 +378,7 @@ export default function SettingsScreen({ navigation }) {
             <Avatar
               size={72}
               name={nickname}
-              uri={user?.avatar}
+              uri={userProfile?.avatarUri}
               showBorder
               style={styles.profileAvatar}
             />
@@ -268,7 +421,7 @@ export default function SettingsScreen({ navigation }) {
               <Text style={[styles.toggleLabel, dynamicFont.body]}>푸시알림</Text>
               <Switch
                 value={pushEnabled}
-                onValueChange={setPushEnabled}
+                onValueChange={handleTogglePush}
                 trackColor={{ true: colors.primaryLight, false: '#E5E7EB' }}
                 thumbColor={pushEnabled ? colors.primary : '#ffffff'}
               />
@@ -369,7 +522,7 @@ export default function SettingsScreen({ navigation }) {
           <Text style={[styles.sectionTitle, dynamicFont.heading]}>도움말</Text>
           <View style={styles.card}>
             {supportLinks.map((item) => (
-              <TouchableOpacity key={item.key} style={styles.supportRow} activeOpacity={0.85}>
+              <TouchableOpacity key={item.key} style={styles.supportRow} activeOpacity={0.85} onPress={item.onPress}>
                 <Ionicons
                   name={item.icon}
                   size={18}
@@ -386,6 +539,19 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </View>
 
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, dynamicFont.heading]}>계정</Text>
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.logoutRow}
+              activeOpacity={0.85}
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out-outline" size={20} color="#DC2626" />
+              <Text style={[styles.logoutLabel, dynamicFont.body]}>로그아웃</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         <TouchableOpacity
           style={styles.footerCard}
           activeOpacity={0.9}
@@ -397,6 +563,39 @@ export default function SettingsScreen({ navigation }) {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <Modal
+        visible={legalModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setLegalModalVisible(false)}
+      >
+        <View style={styles.legalModalBackdrop}>
+          <View style={styles.legalModalContainer}>
+            <View style={styles.legalModalHeader}>
+              <Text style={styles.legalModalTitle}>{legalTitle}</Text>
+              <TouchableOpacity
+                onPress={() => setLegalModalVisible(false)}
+                hitSlop={8}
+                style={styles.legalCloseBtn}
+              >
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.legalModalBody} showsVerticalScrollIndicator={false}>
+              {legalLoading ? (
+                <ActivityIndicator
+                  size="small"
+                  color={colors.primary}
+                  style={{ marginTop: 40 }}
+                />
+              ) : (
+                <Text style={styles.legalModalText}>{legalBody}</Text>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -404,18 +603,24 @@ export default function SettingsScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
   },
   header: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    backgroundColor: colors.backgroundSecondary,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.borderLight,
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  headerRight: { width: 32 },
   headerButton: {
     width: 32,
     height: 32,
@@ -426,7 +631,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: colors.text,
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
   },
   profileCard: {
     marginTop: 16,
@@ -647,6 +853,17 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: '700',
   },
+  logoutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 16,
+  },
+  logoutLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
   footerCard: {
     marginTop: 24,
     marginHorizontal: 18,
@@ -665,5 +882,42 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: colors.text,
+  },
+  legalModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  legalModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+    paddingBottom: 30,
+  },
+  legalModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  legalModalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  legalCloseBtn: {
+    padding: 4,
+  },
+  legalModalBody: {
+    padding: 20,
+  },
+  legalModalText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 22,
   },
 });

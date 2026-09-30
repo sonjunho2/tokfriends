@@ -1,194 +1,399 @@
 // src/screens/main/ChatsScreen.js
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { apiClient } from '../../api/client';
 import colors from '../../theme/colors';
 import ChatListItem from '../../components/ChatListItem';
-import SegmentBar from '../../components/SegmentBar';
 
-const SEGMENTS = ['전체', '읽지 않음', '신규', '즐겨찾기'];
+const normalizeChats = (response) => {
+  if (!Array.isArray(response)) {
+    throw new Error('대화 목록 응답 형식이 올바르지 않습니다.');
+  }
 
-const createInitialChats = () =>
-  Array.from({ length: 12 }, (_, i) => ({
-    id: i + 1,
-    name: ['은별', '아라', '사라', '윤아', '나리', '도윤'][i % 6],
-    age: [22, 27, 31, 29, 34, 26][i % 6],
-    points: [15, 0, 30, 5, 80, 0][i % 6],
-    snippet: '대화해요!',
-    timeLabel: ['방금', '1시간', '17시간', '2일', '6시간', '3일'][i % 6],
-    regionLabel: ['서초', '수서', '대전', '울산', '서울', '부산'][i % 6],
-    distanceKm: [3, 18, 42, 5, 16, 28][i % 6],
-    unread: [0, 1, 0, 2, 0, 3][i % 6],
-    isNew: [false, true, false, false, true, false][i % 6],
-    favorite: [true, false, false, true, false, false][i % 6],
-  }));
-
-export default function ChatsScreen({ navigation, route }) {
-  // route.params.initialSeg 로 초기 탭을 지정할 수 있게 함 (예: '신규', '전체' 등)
-  const initialIndex = Math.max(0, SEGMENTS.findIndex((s) => s === route?.params?.initialSeg));
-  const [seg, setSeg] = useState(SEGMENTS[initialIndex] || SEGMENTS[0]);
-  const [chats, setChats] = useState(createInitialChats);
-
-  // 다른 화면에서 넘어오며 params가 갱신될 때도 반영
-  useEffect(() => {
-    if (route?.params?.initialSeg) {
-      const idx = SEGMENTS.findIndex((s) => s === route.params.initialSeg);
-      if (idx >= 0) setSeg(SEGMENTS[idx]);
+  return response.map((chat) => {
+    if (!chat?.id || !chat?.counterpart?.id) {
+      throw new Error('대화 목록 응답 형식이 올바르지 않습니다.');
     }
-  }, [route?.params?.initialSeg]);
 
-  const filteredData = useMemo(() => {
-    switch (seg) {
-      case '읽지 않음':
-        return chats.filter((chat) => chat.unread > 0);
-      case '신규':
-        return chats.filter((chat) => chat.isNew);
-      case '즐겨찾기':
-        return chats.filter((chat) => chat.favorite);
-      default:
-        return chats;
+    return {
+      id: chat.id,
+      counterpartAccountId: chat.counterpart.id,
+      title: chat.counterpart.displayName || chat.counterpart.handle || '대화',
+      avatar: chat.counterpart.avatarUrl || chat.counterpart.avatarUri || null,
+      lastMessageAt: chat.lastMessageAt ?? null,
+      lastMessage: typeof chat.lastMessage === 'string' ? chat.lastMessage : null,
+      unreadCount: typeof chat.unreadCount === 'number' ? chat.unreadCount : 0,
+    };
+  });
+};
+
+export default function ChatsScreen({ navigation }) {
+  const [chats, setChats] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const loadChats = useCallback(async ({ refresh = false } = {}) => {
+    if (refresh) setRefreshing(true);
+    else setLoading(true);
+    setError('');
+
+    try {
+      const response = await apiClient.getChats();
+      setChats(normalizeChats(response));
+    } catch (requestError) {
+      setError(requestError?.message || '대화 목록을 불러오지 못했습니다.');
+    } finally {
+      if (refresh) setRefreshing(false);
+      else setLoading(false);
     }
-  }, [chats, seg]);
-
-  const updateFavorite = useCallback((chatId, nextFavorite) => {
-    setChats((prev) =>
-      prev.map((chat) =>
-        chat.id === chatId
-          ? {
-              ...chat,
-              favorite: nextFavorite,
-              isNew: nextFavorite ? false : chat.isNew,
-            }
-          : chat
-      )
-    );
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadChats();
+    }, [loadChats])
+  );
 
   const handleOpenChat = useCallback(
     (item) => {
       navigation.navigate('ChatRoom', {
         id: item.id,
-        user: item,
-        isFavorite: item.favorite,
-        onToggleFavorite: (nextFavorite) => updateFavorite(item.id, nextFavorite),
+        chatId: item.id,
+        title: item.title,
+        counterpartAccountId: item.counterpartAccountId,
       });
     },
-    [navigation, updateFavorite]
+    [navigation]
   );
 
-  const canGoBack = navigation.canGoBack();
+  const filteredChats = chats.filter((c) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      c.title?.toLowerCase().includes(q) ||
+      c.lastMessage?.toLowerCase().includes(q)
+    );
+  });
+
+  const canGoBack = (navigation.getState()?.index ?? 0) > 0;
 
   return (
-    <View style={styles.container}>
-      {/* 헤더 */}
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      {/* =================================================================
+          1. 카카오톡 스타일 GNB 헤더 (56px)
+          ================================================================= */}
       <View style={styles.header}>
-        <View style={styles.headerSide}>
+        <View style={styles.headerLeft}>
           {canGoBack && (
-            <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8}>
-              <Ionicons name="chevron-back" size={24} color={colors.text} />
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              hitSlop={8}
+              style={styles.backBtn}
+            >
+              <Ionicons name="chevron-back" size={24} color="#191919" />
             </TouchableOpacity>
           )}
+          <Text style={styles.headerTitle}>대화</Text>
         </View>
-        <Text style={styles.headerTitle}>대화</Text>
-        <View style={styles.headerSideRight}>
+
+        <View style={styles.headerRight}>
+          {/* 검색 아이콘 */}
           <TouchableOpacity
-            onPress={() => navigation.navigate('CreateChatRoom')}
+            style={styles.headerIconBtn}
+            onPress={() => setIsSearchOpen((prev) => !prev)}
             hitSlop={8}
-            style={styles.createBtn}
-            activeOpacity={0.85}
+            activeOpacity={0.7}
           >
-            <Ionicons name="add" size={18} color={colors.textInverse} />
-            <Text style={styles.createBtnTxt}>방 만들기</Text>
+            <Ionicons
+              name={isSearchOpen ? 'close' : 'search'}
+              size={22}
+              color="#191919"
+            />
+          </TouchableOpacity>
+
+          {/* 새 대화 시작 / 인연 찾기 */}
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            onPress={() => navigation.navigate('HotRecommend')}
+            hitSlop={8}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={22} color="#191919" />
+          </TouchableOpacity>
+
+          {/* 설정 아이콘 */}
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            onPress={() => navigation.navigate('My')}
+            hitSlop={8}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="settings-outline" size={21} color="#191919" />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* 세그먼트 */}
-      <SegmentBar
-        segments={SEGMENTS}
-        value={seg}
-        onChange={setSeg}
-        style={styles.segmentBar}
-        contentContainerStyle={{ paddingRight: 12 }}
-      />
-
-      {/* 리스트 */}
-      <FlatList
-        style={styles.list}
-        data={filteredData}
-        keyExtractor={(it) => String(it.id)}
-        renderItem={({ item }) => <ChatListItem item={item} onPress={() => handleOpenChat(item)} />}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyWrap}>
-            <Text style={styles.emptyTitle}>표시할 대화가 없어요</Text>
-            <Text style={styles.emptySubtitle}>새로운 대화를 시작하거나 즐겨찾기를 추가해 보세요.</Text>
+      {/* =================================================================
+          검색바 (토글 시 부드럽게 노출)
+          ================================================================= */}
+      {isSearchOpen && (
+        <View style={styles.searchBarWrap}>
+          <View style={styles.searchInputBox}>
+            <Ionicons name="search" size={16} color="#8E8E93" style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="대화방 또는 메시지 검색"
+              placeholderTextColor="#8E8E93"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoFocus
+              clearButtonMode="while-editing"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={8}>
+                <Ionicons name="close-circle" size={16} color="#8E8E93" />
+              </TouchableOpacity>
+            )}
           </View>
-        }
-      />
-    </View>
+        </View>
+      )}
+
+      {/* =================================================================
+          대화 목록 리스트 (카카오톡 인셋 디바이더)
+          ================================================================= */}
+      {loading ? (
+        <View style={styles.stateWrap}>
+          <ActivityIndicator size="large" color="#FEE500" />
+          <Text style={styles.stateMessage}>대화 목록을 불러오는 중이에요...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.stateWrap}>
+          <Text style={styles.errorTitle}>대화 목록을 불러오지 못했어요</Text>
+          <Text style={styles.stateMessage}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => loadChats()}>
+            <Text style={styles.retryButtonText}>다시 시도</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          style={styles.list}
+          data={filteredChats}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={({ item }) => (
+            <ChatListItem item={item} onPress={() => handleOpenChat(item)} />
+          )}
+          ItemSeparatorComponent={() => <View style={styles.insetDivider} />}
+          contentContainerStyle={[
+            styles.listContent,
+            !filteredChats.length && styles.emptyListContent,
+          ]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => loadChats({ refresh: true })}
+              tintColor="#FEE500"
+              colors={['#FEE500']}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyWrap}>
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="chatbubbles" size={38} color="#D1D5DB" />
+              </View>
+              <Text style={styles.emptyTitle}>
+                {searchQuery ? '검색 결과가 없어요' : '새로운 대화를 시작해 보세요'}
+              </Text>
+              <Text style={styles.emptySubtitle}>
+                {searchQuery
+                  ? '다른 검색어로 다시 시도해 보세요.'
+                  : '관심사가 맞는 동네 이웃에게 따뜻한 첫 인사를 건네보세요.'}
+              </Text>
+              {!searchQuery && (
+                <TouchableOpacity
+                  style={styles.findFriendsBtn}
+                  onPress={() => navigation.navigate('HotRecommend')}
+                  activeOpacity={0.88}
+                >
+                  <Text style={styles.findFriendsBtnText}>새로운 인연 찾기</Text>
+                  <Ionicons name="arrow-forward" size={16} color="#191919" />
+                </TouchableOpacity>
+              )}
+            </View>
+          }
+        />
+      )}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
   header: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: '#F2F3F5',
   },
-  headerSide: { width: 40, alignItems: 'flex-start', justifyContent: 'center' },
-  headerSideRight: { minWidth: 40, alignItems: 'flex-end', justifyContent: 'center' },
-  headerTitle: { fontSize: 22, fontWeight: '900', color: colors.text },
-  createBtn: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
-    shadowColor: '#F36C93',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    gap: 4,
   },
-  createBtnTxt: { color: colors.textInverse, fontWeight: '800', fontSize: 13 },
-  segmentBar: {
+  backBtn: {
+    marginRight: 4,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#191919',
+    letterSpacing: -0.6,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerIconBtn: {
+    padding: 4,
+  },
+  searchBarWrap: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F3F5',
+  },
+  searchInputBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 18,
     paddingHorizontal: 12,
-    paddingBottom: 8,
-    backgroundColor: colors.backgroundSecondary,
+    height: 38,
+  },
+  searchIcon: {
+    marginRight: 6,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#191919',
+    paddingVertical: 0,
   },
   list: {
     flex: 1,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: '#FFFFFF',
   },
   listContent: {
-    paddingHorizontal: 16,
     paddingBottom: 32,
-    paddingTop: 8,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: '#FFFFFF',
   },
-  emptyWrap: {
-    paddingVertical: 80,
+  insetDivider: {
+    height: 1,
+    backgroundColor: '#F2F3F5',
+    marginLeft: 82,
+  },
+  emptyListContent: {
+    flexGrow: 1,
+  },
+  stateWrap: {
+    flex: 1,
+    paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
   },
-  emptyTitle: {
+  stateMessage: {
+    marginTop: 12,
+    fontSize: 13,
+    color: '#71717A',
+    textAlign: 'center',
+  },
+  errorTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.text,
+    color: '#191919',
+  },
+  retryButton: {
+    marginTop: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#FEE500',
+  },
+  retryButtonText: {
+    color: '#191919',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  emptyWrap: {
+    paddingVertical: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#F7F8FA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#191919',
+    marginBottom: 6,
   },
   emptySubtitle: {
-    marginTop: 6,
     fontSize: 13,
-    color: colors.textSecondary,
+    color: '#8E8E93',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 20,
+  },
+  findFriendsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEE500',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 22,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  findFriendsBtnText: {
+    color: '#191919',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });

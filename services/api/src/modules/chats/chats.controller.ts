@@ -1,33 +1,59 @@
 // services/api/src/modules/chats/chats.controller.ts
-import { Controller, Get, Post, Body } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
-import { ChatsService } from './chats.service';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
+import { ApiTags } from "@nestjs/swagger";
+import { ChatsService } from "./chats.service";
+import { CurrentUser } from "../auth/current-user.decorator";
+import { ChatMessagesQueryDto, DirectChatDto, SendGiftDto, SendMessageDto } from "./dto";
 
-@ApiTags('chats')
-@Controller('chats')
+type CurrentRequestUser = { id?: string; activityAccountId?: string | null };
+
+@ApiTags("chats")
+@Controller("chats")
 export class ChatsController {
   constructor(private readonly chats: ChatsService) {}
 
   @Get()
-  list() { return this.chats.list(); }
-
-  @Post('message')
-  send(@Body() dto: { chatId: string; senderId: string; content: string }) {
-    return this.chats.send(dto);
+  list(@CurrentUser() user: CurrentRequestUser) {
+    return this.chats.list(user?.id, user?.activityAccountId);
   }
 
-  @Post(['rooms', 'chat/rooms', 'chats/rooms', 'conversations'])
-  createRoom(@Body() dto: { userAId: string; userBId: string; title?: string; category?: string }) {
-    return this.chats.createRoom(dto);
-  }
-
-  @Post('direct')
-  ensureDirect(
-    @CurrentUser() user: any,
-    @Body() dto: { targetUserId: string },
+  @Get(":chatId/messages")
+  history(
+    @CurrentUser() user: CurrentRequestUser,
+    @Param("chatId") chatId: string,
+    @Query() query: ChatMessagesQueryDto,
   ) {
-    const currentUserId = user?.sub ?? user?.id;
-    return this.chats.ensureDirectRoom(currentUserId, dto.targetUserId);
+    return this.chats.history(user?.id, user?.activityAccountId, chatId, query);
+  }
+
+  @Post("message")
+  send(@CurrentUser() user: CurrentRequestUser, @Body() dto: SendMessageDto) {
+    return this.chats.send(user?.id, user?.activityAccountId, dto);
+  }
+
+  @Post("gift")
+  sendGift(@CurrentUser() user: CurrentRequestUser, @Body() dto: SendGiftDto) {
+    return this.chats.sendGift(user?.id, user?.activityAccountId, dto);
+  }
+
+  @Post("direct")
+  ensureDirect(
+    @CurrentUser() user: CurrentRequestUser,
+    @Body() dto: DirectChatDto,
+  ) {
+    const currentUserId = user?.id;
+    return this.chats.ensureDirectRoom(
+      currentUserId,
+      user?.activityAccountId,
+      dto,
+    );
+  }
+
+  @Post(":chatId/read")
+  markRead(
+    @CurrentUser() user: CurrentRequestUser,
+    @Param("chatId") chatId: string,
+  ) {
+    return this.chats.markAsRead(user?.id, user?.activityAccountId, chatId);
   }
 }

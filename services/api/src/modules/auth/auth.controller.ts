@@ -1,6 +1,7 @@
 // services/api/src/modules/auth/auth.controller.ts
 import { Controller, Post, Body } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { Public } from './public.decorator';
 import { AuthService } from './auth.service';
 import {
@@ -18,6 +19,7 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post(['signup/email', 'signup', 'register', 'users/signup', 'users/register'])
   @ApiOperation({
     summary: 'Sign up with email address',
@@ -28,6 +30,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post(['login/email', 'login'])
   @ApiOperation({
     summary: 'Log in with email address',
@@ -38,6 +41,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('apple')
   @ApiOperation({ summary: 'Authenticate with Apple Sign-In' })
   loginApple(@Body() dto: AppleTokenDto) {
@@ -45,6 +49,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post(['phone/request-otp', 'otp/request', 'otp/send', 'phone/otp/request'])
   @ApiOperation({
     summary: 'Request phone OTP',
@@ -55,6 +60,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post(['phone/verify', 'otp/verify', 'otp/confirm', 'phone/otp/verify'])
   @ApiOperation({
     summary: 'Verify phone OTP',
@@ -65,12 +71,20 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post(['phone/complete-profile', 'otp/complete-profile', 'phone/otp/complete-profile'])
   @ApiOperation({
     summary: 'Complete phone profile after OTP verification',
     description: 'Allows previously deployed clients to finish onboarding without code changes.',
   })
   completePhoneProfile(@Body() dto: CompletePhoneProfileDto) {
-    return this.auth.completePhoneProfile(dto, dto.adminOverride ?? false);
+    return this.auth.completePhoneProfile(dto);
+  }
+
+  @Public()
+  @Post('test-login')
+  @ApiOperation({ summary: 'Instant test login for development/testing' })
+  testLogin() {
+    return this.auth.testLogin();
   }
 }

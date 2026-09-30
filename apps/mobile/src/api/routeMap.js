@@ -4,15 +4,11 @@
 불일치 목록 (대표)
 - /auth/otp/request        -> /auth/phone/request-otp
 - /auth/otp/verify         -> /auth/phone/verify
-- /chat/direct             -> /chats/direct
-- /store/purchases/confirm -> /payments/confirm
 */
 
 export const PATH_MAP = [
   { from: /^\/auth\/otp\/request\/?$/, to: '/auth/phone/request-otp' },
   { from: /^\/auth\/otp\/verify\/?$/,  to: '/auth/phone/verify' },
-  { from: /^\/chat\/direct\/?$/,       to: '/chats/direct' },
-  { from: /^\/store\/purchases\/confirm\/?$/, to: '/payments/confirm' },
 ];
 
 export function mapPath(original) {

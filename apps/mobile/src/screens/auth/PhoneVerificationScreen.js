@@ -58,7 +58,6 @@ export default function PhoneVerificationScreen({ navigation, route }) {
         if (!result.success) {
           throw new Error(result.error || '세션 생성 실패');
         }
-        navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
         return;
       }
       if (needsProfile) {

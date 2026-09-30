@@ -4,8 +4,8 @@
   "private": true,
   "engines": { "node": "20.x" },
   "scripts": {
-    "start": "prisma migrate deploy && prisma db seed && node dist/main.js",
-    "start:prod": "prisma migrate deploy && prisma db seed && node dist/main.js",
+    "start": "prisma migrate deploy && node dist/main.js",
+    "start:prod": "prisma migrate deploy && node dist/main.js",
     "start:dev": "nest start --watch",
     "build": "nest build",
     "postinstall": "prisma generate",
@@ -33,6 +33,7 @@
     "@nestjs/platform-express": "10.4.20",
     "@nestjs/platform-socket.io": "10.4.20",
     "@nestjs/swagger": "7.4.2",
+    "@nestjs/throttler": "6.5.0",
     "@nestjs/websockets": "10.4.20",
     "@prisma/client": "5.22.0",
     "argon2": "0.40.3",

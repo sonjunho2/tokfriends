@@ -47,8 +47,8 @@ const REGION_OPTIONS = [
 ];
 
 export default function ProfileRegistrationScreen({ navigation, route }) {
-  const { authenticateWithToken } = useAuth();
-  const { phone, verificationId: initialVerificationId, adminOverride } = route.params || {};
+  const { authenticateWithToken, setUser } = useAuth();
+  const { phone, verificationId: initialVerificationId } = route.params || {};
 
   const [nickname, setNickname] = useState('');
   const [birthYear, setBirthYear] = useState('');
@@ -57,6 +57,7 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
   const [headline, setHeadline] = useState('');
   const [bio, setBio] = useState('');
   const [imageUri, setImageUri] = useState(null);
+  const [imageAsset, setImageAsset] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [regionModalVisible, setRegionModalVisible] = useState(false);
 
@@ -87,6 +88,7 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
         quality: 0.85,
       });
       if (!res.canceled && res.assets?.[0]?.uri) {
+        setImageAsset(res.assets[0]);
         setImageUri(res.assets[0].uri);
       }
     } catch (error) {
@@ -95,16 +97,14 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
   };
 
   const handleSubmit = async () => {
-    // verificationId와 adminOverride 플래그 결정
+    // verificationId 결정
     let verificationId = initialVerificationId;
-    let overrideFlag = adminOverride;
 
     // 더미 모드에서는 verificationId 없이도 진행
     if (USE_DUMMY_AUTH) {
       if (!verificationId) {
-        verificationId = 'admin-override';  // dummy verificationId
+        verificationId = 'dummy-verification';
       }
-      overrideFlag = true;  // 관리자 우회
     }
 
     if (!verificationId) {
@@ -117,7 +117,6 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
     }
     setSubmitting(true);
     try {
-      const shouldIncludeAvatar = !USE_DUMMY_AUTH && imageUri;
       const payload = {
         verificationId,
         phone,
@@ -127,11 +126,6 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
         region: region.trim() || null,
         headline: headline.trim(),
         bio: bio.trim(),
-        ...(shouldIncludeAvatar ? { avatarUri: imageUri } : {}),
-        // dummy 모드이거나 adminOverride가 true이거나 verificationId 접두사가 'admin-'인 경우 adminOverride 전달
-        ...(overrideFlag || String(verificationId).startsWith('admin-')
-          ? { adminOverride: true }
-          : {}),
       };
       const response = await apiClient.completePhoneSignup(payload);
       const token =
@@ -143,12 +137,36 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
         );
         return;
       }
-      const authResult = await authenticateWithToken(token, response?.user || null);
+      const authResult = await authenticateWithToken(token);
       if (!authResult.success) {
         Alert.alert('로그인 실패', authResult.error || '세션을 생성하지 못했습니다.');
         return;
       }
-      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+      if (!USE_DUMMY_AUTH && imageAsset) {
+        try {
+          const uploadedAvatar = await apiClient.uploadAvatar(imageAsset);
+          const avatarUrl = String(uploadedAvatar?.url || '').trim();
+          const userId = authResult?.user?.id || response?.user?.id;
+
+          if (!avatarUrl || !userId) {
+            throw new Error('프로필 사진 저장 정보를 확인하지 못했습니다.');
+          }
+
+          await apiClient.updateUser(userId, {
+            avatarUri: avatarUrl,
+          });
+
+          const canonicalMe = await apiClient.getMe();
+          await setUser(canonicalMe);
+        } catch (avatarError) {
+          Alert.alert(
+            '프로필 사진',
+            avatarError?.message ||
+              '회원가입은 완료되었지만 프로필 사진을 저장하지 못했습니다. 나중에 다시 등록해 주세요.',
+          );
+        }
+      }
+
     } catch (error) {
       Alert.alert(
         '가입 실패',

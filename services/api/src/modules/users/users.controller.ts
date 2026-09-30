@@ -7,23 +7,15 @@ import {
   Param,
   Patch,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { UpdateUserDto } from './update-user.dto';
 import { CurrentUser } from '../auth/current-user.decorator';
 
-type UpdateUserRequest = {
-  displayName?: string;
-  nickname?: string;
-  bio?: string;
-  region1?: string;
-  region2?: string;
-  interests?: string[] | string;
-  marketingOptIn?: boolean | string;
-  headline?: string;
-  avatarUri?: string;
+type CurrentRequestUser = {
+  id?: string;
+  activityAccountId?: string | null;
 };
 
 @ApiTags('users')
@@ -34,54 +26,50 @@ export class UsersController {
 
   // 내 정보 조회 (JWT 토큰 기반)
   @Get('me')
-  @UseGuards(JwtAuthGuard)
-  async getMe(@CurrentUser() user: any) {
-    const userId = user?.sub ?? user?.id;
+  async getMe(@CurrentUser() user: CurrentRequestUser) {
+    const userId = user?.id;
     const userData = userId ? await this.users.byId(userId) : null;
     if (!userData) throw new NotFoundException('User not found');
-    return { ok: true, data: this.serializeUser(userData) };
+    return {
+      ok: true,
+      data: {
+        ...this.serializeUser(userData),
+        activityAccountId: user?.activityAccountId ?? null,
+      },
+    };
   }
 
   @ApiQuery({ name: 'q', required: false, type: String })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'keyword', required: false, type: String })
-  @ApiQuery({ name: 'phone', required: false, type: String })
-  @ApiQuery({ name: 'status', required: false, type: String })
   @Get('search')
   async search(
     @Query('q') q: string = '',
     @Query('limit') limit?: string,
-    @Query('keyword') keyword?: string,
-    @Query('phone') phone?: string,
-    @Query('status') status?: string,
   ) {
     const take = Math.min(50, Math.max(1, Number(limit ?? 20) || 20));
-    const hasFilters =
-      Boolean(keyword?.trim()) || Boolean(phone?.trim()) || Boolean(status?.trim());
-    if (hasFilters) {
-      const users = await this.users.searchUsers({ keyword, phone, status, limit: take });
-      return { ok: true, data: users, items: users };
-    }
     const results = await this.users.search(q ?? '', take);
+
     const items = results.map((item) => ({
       id: item.id,
-      email: item.email,
       displayName: item.displayName,
       nickname: item.profile?.nickname ?? null,
-      status: item.status,
-      createdAt: item.createdAt,
+      headline: item.profile?.headline ?? null,
       bio: item.profile?.bio ?? null,
+      avatarUri: item.profile?.avatarUri ?? null,
+      region1: item.region1 ?? null,
+      region2: item.region2 ?? null,
       interests: item.profile?.interests ?? [],
+      targetAccountId: item.ownerBridge?.activityAccounts?.[0]?.id ?? null,
     }));
+
     return { ok: true, data: items, items };
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
   async update(
     @Param('id') id: string,
     @CurrentUser() user: any,
-    @Body() body: UpdateUserRequest,
+    @Body() body: UpdateUserDto,
   ) {
     const authId = user?.sub ?? user?.id;
     if (!authId || authId !== id) {
@@ -115,11 +103,29 @@ export class UsersController {
   // 공용/모바일에서 단건 조회 시 사용 예시
   @Get(':id')
   async getUserById(@Param('id') id: string) {
-    const user = await this.users.byId(id);
+    const user = await this.users.byPublicId(id);
     if (!user) throw new NotFoundException('User not found');
-    return { ok: true, data: this.serializeUser(user) };
+    return { ok: true, data: this.serializePublicUser(user) };
   }
 
+  private serializePublicUser(user: any) {
+    return {
+      id: user.id,
+      displayName: user.displayName ?? null,
+      region1: user.region1 ?? null,
+      region2: user.region2 ?? null,
+      profile: user.profile
+        ? {
+            nickname: user.profile.nickname ?? null,
+            bio: user.profile.bio ?? null,
+            headline: user.profile.headline ?? null,
+            avatarUri: user.profile.avatarUri ?? null,
+            interests: user.profile.interests ?? [],
+            badges: user.profile.badges ?? [],
+          }
+        : null,
+    };
+  }
   private serializeUser(user: any) {
     const visibility = user?.profile?.visibility as Record<string, any> | undefined;
     return {
@@ -127,6 +133,7 @@ export class UsersController {
       email: user.email,
       displayName: user.displayName ?? null,
       status: user.status,
+      role: user.role,
       provider: user.provider,
       region1: user.region1 ?? null,
       region2: user.region2 ?? null,
@@ -153,7 +160,7 @@ export class UsersController {
     };
   }
 
-  private normalizeInterests(value: UpdateUserRequest['interests']) {
+  private normalizeInterests(value: UpdateUserDto['interests']) {
     if (Array.isArray(value)) {
       return value
         .map((item) => (typeof item === 'string' ? item.trim() : ''))
@@ -170,7 +177,7 @@ export class UsersController {
     return undefined;
   }
 
-  private normalizeBoolean(value: UpdateUserRequest['marketingOptIn']) {
+  private normalizeBoolean(value: UpdateUserDto['marketingOptIn']) {
     if (value === undefined) return undefined;
     if (typeof value === 'boolean') return value;
     if (typeof value === 'string') {
