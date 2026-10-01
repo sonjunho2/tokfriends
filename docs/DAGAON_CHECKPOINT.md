@@ -4,6 +4,27 @@ Updated: 2026-10-01
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-01 Checkpoint 10: 라이브 방송 실시간 선물 후원 & 시청자 인터랙션 고도화 (완료)
+
+### 1. 라이브 선물 메시지 및 응답 페이로드 완성도 보강 (`live.service.ts`)
+- **선물 썸네일(`thumbnailUrl`) 누락 보완**:
+  - `sendGiftToRoom` 내부 `liveMessage.content` JSON 문자열 및 최종 API 응답 객체에 선물의 대표 이미지(`gift.thumbnailUrl`)를 추가하여, 클라이언트와 웹소켓 구독자가 즉시 이미지와 함께 3D/알파 이펙트를 재생할 수 있도록 데이터 규격 정합성 확보.
+
+### 2. 모바일 실시간 선물 후원 및 잔액 동기화 (`LiveRoomScreen.js`)
+- **실시간 포인트 잔액 자동 동기화 (`fetchMyPoints`)**:
+  - 방 입장 시 및 [선물하기 🎁] 버튼 터치 시 `apiClient.getMe()`를 통해 서버의 최신 포인트 잔액을 조회하여 선물 선택 바텀시트(`GiftPickerSheet`)에 즉시 반영.
+  - 선물 후원 성공 시 서버에서 반환된 `newBalance`를 즉시 반영하고, 호스트의 누적 선물 포인트(`totalGiftsPoints`)를 실시간 업데이트.
+- **실시간 웹소켓 후원 이벤트 연동**:
+  - 시청자가 선물을 후원할 때 웹소켓 `LIVE_SOCKET_EVENTS.MESSAGE`의 `msg.type === 'gift'` 이벤트를 감지하여, 방의 `totalGiftsPoints`를 실시간 가산하고 중복 방지 Set(`processedGiftMessageIdsRef`)을 거쳐 전체화면 3D 이펙트 오버레이(`giftOverlayRef`)에 FIFO 대기열로 인큐.
+
+### 3. 실시간 선물 말풍선 및 상단 누적 후원 배지 UX 고도화
+- **후원 전용 메시지 렌더링 (`renderMessageItem`)**:
+  - 기존의 원문 JSON 문자열 노출을 개선하여, `🎁 [선물명] 후원! (0,000P)` 형태의 골드 톤 후원 배지와 후원자 닉네임 하이라이트 표시.
+- **상단 헤더 누적 후원 카운터 (`giftTotalBadge`)**:
+  - 방송 상단 헤더 우측에 실시간 누적 선물 포인트(예: `🎁 50,000P`) 배지를 신설하여, 호스트와 시청자 모두 현재 방송의 후원 달성 현황을 한눈에 체감할 수 있도록 시각화.
+
+---
+
 ## 2026-10-01 Checkpoint 9: 라이브 스트리밍 아고라(Agora) 관리자 설정 연동 & 토큰 발급 및 실시간 방송 스트림 고도화 (완료)
 
 ### 1. 관리자 시스템 환경설정과 Agora RTC 실시간 연동
