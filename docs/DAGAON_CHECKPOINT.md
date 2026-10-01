@@ -6,6 +6,37 @@ Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작�
 
 ---
 
+## 2026-10-01 Checkpoint 3: 아고라(Agora) 라이브 스트리밍 실시간 WebSocket 브로드캐스팅 및 룸 라이프사이클 동기화 구축 (완료)
+
+### 1. 백엔드 라이브 실시간 브로드캐스터 구축 (`modules/live/live-realtime-publisher.service.ts`)
+- **`LiveRealtimePublisher` 서비스 신설**:
+  - `publishMessage`: 실시간 채팅, 하트(좋아요), 3D 선물 후원 이벤트를 룸 참여자 전체에 브로드캐스트.
+  - `publishViewer`: 방 입장(`joinRoom`) 및 퇴장(`leaveRoom`) 시의 실시간 시청자 수(`viewerCount`) 즉시 동기화.
+  - `publishEnd`: 호스트 종료(`endRoom`) 및 관리자 강제 종료(`forceEndRoom`) 시 종료 사유와 함께 룸 종료 이벤트 전파.
+- **`LiveService` 통합**:
+  - `sendMessage`, `sendGiftToRoom`, `joinRoom`, `leaveRoom`, `endRoom`, `forceEndRoom` 호출 시 자동으로 `LiveRealtimePublisher`를 통해 이벤트 발행.
+
+### 2. WebSocket 게이트웨이 라이브 룸 확장 (`modules/ws/chat.gateway.ts`)
+- **실시간 소켓 이벤트 핸들러 추가**:
+  - `live:join`: 클라이언트가 특정 라이브 룸(`live:${roomId}`) 채널 룸에 조인.
+  - `live:leave`: 클라이언트가 라이브 룸 채널을 나갈 때 룸에서 탈퇴.
+  - `live:message`: 채팅 메시지 및 선물 수신 이벤트 sub-second 실시간 전송.
+  - `live:viewer_count`: 시청자 수 증감 실시간 업데이트.
+  - `live:ended`: 방송 종료 시 시청자들에게 퇴장 알림 및 이전 화면 복귀 유도.
+
+### 3. 모바일 앱 실시간 라이브 연동 (`apps/mobile`)
+- **`realtime/chatSocket.js`**:
+  - `LIVE_SOCKET_EVENTS` (`AUTH_READY`, `JOIN`, `LEAVE`, `MESSAGE`, `VIEWER_COUNT`, `ROOM_ENDED`) 상수 추가.
+- **`LiveRoomScreen.js` (실시간 방송 시청/송출 화면)**:
+  - 라이브 룸 입장 시 자동으로 WebSocket 연결 및 `live:join` 구독.
+  - 실시간 채팅 및 하트 수 실시간 즉시 렌더링.
+  - **3D 선물 후원 수신 시 `GiftEffectOverlay`에 즉시 큐잉되어 화려한 풀스크린 애니메이션 재생**.
+  - 실시간 시청자 수 인디케이터 즉시 갱신.
+  - 호스트 또는 관리자가 방송을 종료하면 즉시 Alert 팝업 후 안전하게 뒤로가기 처리.
+  - 네트워크 단절 대비 5초 간격 백업 폴링 병행.
+
+---
+
 ## 2026-10-01 Checkpoint 2: 크리에이터 출금/환전 신청 및 관리자 정산 승인·원천징수(3.3%) 시스템 구축 (완료)
 
 ### 1. DB 스키마 및 마이그레이션 (`schema.prisma` & `20261001010600_add_settlement_request_foundation`)

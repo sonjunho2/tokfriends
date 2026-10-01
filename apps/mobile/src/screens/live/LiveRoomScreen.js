@@ -21,11 +21,12 @@ import GiftEffectOverlay from '../../components/GiftEffectOverlay';
 import GiftPickerSheet from '../../components/GiftPickerSheet';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { createChatSocket, LIVE_SOCKET_EVENTS } from '../../realtime/chatSocket';
 
 const LIVE_ACCENT = '#FF3B6B';
 
 export default function LiveRoomScreen({ navigation, route }) {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, token: authToken } = useAuth();
   const initialRoom = route?.params?.room;
   const roomId = route?.params?.roomId || initialRoom?.id;
 
@@ -121,7 +122,88 @@ export default function LiveRoomScreen({ navigation, route }) {
     };
   }, [roomId, isHost]);
 
-  // Poll messages every 2.5s for realtime live experience
+  // Realtime Live WebSocket Connection (Sub-second messages, gifts, likes, viewer counts)
+  useEffect(() => {
+    if (!roomId) return;
+    const normalizedToken = typeof authToken === 'string' ? authToken.trim() : '';
+    if (!normalizedToken) return;
+
+    let socket = null;
+    try {
+      socket = createChatSocket(normalizedToken);
+
+      socket.on(LIVE_SOCKET_EVENTS.AUTH_READY, () => {
+        socket.emit(LIVE_SOCKET_EVENTS.JOIN, { roomId });
+      });
+
+      socket.on(LIVE_SOCKET_EVENTS.MESSAGE, (msg) => {
+        if (!msg?.id) return;
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
+
+        if (msg.type === 'like') {
+          setLikeCount((c) => c + 1);
+        } else if (msg.type === 'gift') {
+          if (!processedGiftMessageIdsRef.current.has(msg.id)) {
+            processedGiftMessageIdsRef.current.add(msg.id);
+            try {
+              const giftMeta = JSON.parse(msg.content);
+              giftOverlayRef.current?.enqueueGift({
+                giftId: giftMeta.giftId,
+                giftName: giftMeta.giftName,
+                pricePoints: giftMeta.pricePoints || msg.giftPoints,
+                senderNickname:
+                  giftMeta.senderNickname ||
+                  msg.sender?.name ||
+                  msg.sender?.profile?.nickname ||
+                  '시청자',
+                animationUrl: giftMeta.animationUrl,
+                animationType: giftMeta.animationType || 'alpha_video',
+                thumbnailUrl: giftMeta.thumbnailUrl,
+              });
+            } catch {
+              giftOverlayRef.current?.enqueueGift({
+                giftId: 'gift',
+                giftName: '선물',
+                pricePoints: msg.giftPoints,
+                senderNickname:
+                  msg.sender?.name || msg.sender?.profile?.nickname || '시청자',
+              });
+            }
+          }
+        }
+      });
+
+      socket.on(LIVE_SOCKET_EVENTS.VIEWER_COUNT, (data) => {
+        if (typeof data?.viewerCount === 'number') {
+          setViewerCount(data.viewerCount);
+        }
+      });
+
+      socket.on(LIVE_SOCKET_EVENTS.ROOM_ENDED, (data) => {
+        Alert.alert('방송 종료', data?.reason || '라이브 방송이 종료되었습니다.', [
+          { text: '확인', onPress: () => navigation.goBack() },
+        ]);
+      });
+
+      socket.connect();
+    } catch (e) {
+      console.warn('Live socket connection error', e);
+    }
+
+    return () => {
+      if (socket) {
+        if (socket.connected) {
+          socket.emit(LIVE_SOCKET_EVENTS.LEAVE, { roomId });
+        }
+        socket.disconnect();
+      }
+    };
+  }, [roomId, authToken, navigation]);
+
+  // Initial load and backup polling
   const fetchMessages = useCallback(async () => {
     if (!roomId) return;
     try {
@@ -167,7 +249,7 @@ export default function LiveRoomScreen({ navigation, route }) {
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 2500);
+    const interval = setInterval(fetchMessages, 5000);
     return () => clearInterval(interval);
   }, [fetchMessages]);
 

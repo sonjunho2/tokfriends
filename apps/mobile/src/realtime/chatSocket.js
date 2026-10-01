@@ -10,6 +10,15 @@ export const CHAT_SOCKET_EVENTS = Object.freeze({
   READ: 'chat:read',
 });
 
+export const LIVE_SOCKET_EVENTS = Object.freeze({
+  AUTH_READY: 'connected',
+  JOIN: 'live:join',
+  LEAVE: 'live:leave',
+  MESSAGE: 'live:message',
+  VIEWER_COUNT: 'live:viewer_count',
+  ROOM_ENDED: 'live:ended',
+});
+
 export const createChatSocket = (token) => {
   const normalizedToken =
     typeof token === 'string'
