@@ -51,4 +51,21 @@ export class MediaController {
     const userId = user?.sub ?? user?.id;
     return this.media.uploadChatMedia(userId, file);
   }
+
+  @Post('post')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        files: 1,
+        fileSize: MAX_CHAT_MEDIA_BYTES,
+      },
+    }),
+  )
+  uploadPostMedia(
+    @CurrentUser() user: any,
+    @UploadedFile() file: any,
+  ) {
+    const userId = user?.sub ?? user?.id;
+    return this.media.uploadChatMedia(userId, file);
+  }
 }

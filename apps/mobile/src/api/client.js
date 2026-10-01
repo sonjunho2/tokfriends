@@ -1888,7 +1888,7 @@ export const apiClient = {
     }
   },
 
-  async createPost({ topicId, content } = {}) {
+  async createPost({ topicId, content, mediaUrls = [] } = {}) {
     const trimmed = String(content || '').trim();
     if (!trimmed) throw normalizeError(new Error('게시글 내용을 입력해 주세요.'));
     const topic = DUMMY_TOPICS.find((t) => t.id === topicId) || DUMMY_TOPICS[0];
@@ -1897,9 +1897,11 @@ export const apiClient = {
       topicId: topic.id,
       topicName: topic.name.replace(/[^\uAC00-\uD7A3a-zA-Z0-9\s/]/g, '').trim(),
       content: trimmed,
+      mediaUrls: Array.isArray(mediaUrls) ? mediaUrls : [],
       createdAt: new Date().toISOString(),
       commentsCount: 0,
       likesCount: 0,
+      isLiked: false,
       author: {
         id: 'dummy-user',
         targetAccountId: 'dummy-user',
@@ -1917,6 +1919,7 @@ export const apiClient = {
       const { data } = await client.post('/posts', {
         topicId: topicId || undefined,
         content: trimmed,
+        mediaUrls: Array.isArray(mediaUrls) ? mediaUrls : undefined,
       });
       return data?.data ?? data;
     } catch (e) {
@@ -1925,6 +1928,70 @@ export const apiClient = {
         return newPost;
       }
       throw normalizeError(e);
+    }
+  },
+
+  async togglePostLike(postId) {
+    if (!postId) throw normalizeError(new Error('게시글 ID가 필요합니다.'));
+    const dummyPost = DUMMY_POSTS.find((p) => p.id === postId);
+    if (dummyPost) {
+      dummyPost.isLiked = !dummyPost.isLiked;
+      dummyPost.likesCount = Math.max(0, (dummyPost.likesCount || 0) + (dummyPost.isLiked ? 1 : -1));
+      if (USE_DUMMY_AUTH) {
+        return { isLiked: dummyPost.isLiked, likesCount: dummyPost.likesCount };
+      }
+    }
+    try {
+      const { data } = await client.post(`/posts/${encodeURIComponent(postId)}/like`);
+      return data?.data ?? data;
+    } catch (e) {
+      if (dummyPost || USE_DUMMY_AUTH || e?.status === 401 || !currentToken) {
+        return {
+          isLiked: dummyPost ? dummyPost.isLiked : true,
+          likesCount: dummyPost ? dummyPost.likesCount : 1,
+        };
+      }
+      throw normalizeError(e);
+    }
+  },
+
+  async uploadPostMedia(asset = {}) {
+    const uri = String(asset?.uri || '').trim();
+    if (!uri) {
+      throw normalizeError(new Error('업로드할 사진/동영상 파일이 필요합니다.'));
+    }
+
+    const fileSize = Number(asset?.fileSize || 0);
+    if (Number.isFinite(fileSize) && fileSize > 20 * 1024 * 1024) {
+      throw normalizeError(new Error('미디어 파일은 20MB 이하만 업로드할 수 있습니다.'));
+    }
+
+    const rawMime = String(asset?.mimeType || asset?.type || '').trim().toLowerCase();
+    const isVideo = rawMime.includes('video') || uri.endsWith('.mp4') || uri.endsWith('.mov');
+    const mimeType = isVideo
+      ? (rawMime.includes('video') ? rawMime : 'video/mp4')
+      : (rawMime.includes('image') ? rawMime : 'image/jpeg');
+
+    const fileName =
+      String(asset?.fileName || '').trim() || (isVideo ? 'feed_video.mp4' : 'feed_image.jpg');
+
+    const formData = new FormData();
+    formData.append('file', {
+      uri,
+      name: fileName,
+      type: mimeType,
+    });
+
+    try {
+      const { data } = await client.post('/media/post', formData, {
+        headers: {
+          'Content-Type': false,
+        },
+      });
+      return data?.data?.url || data?.data?.uri || data?.url || uri;
+    } catch (e) {
+      console.warn('Post media upload fallback to uri', e?.message);
+      return uri;
     }
   },
 

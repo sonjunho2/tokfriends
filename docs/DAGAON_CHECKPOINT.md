@@ -4,6 +4,39 @@ Updated: 2026-10-01
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-01 Checkpoint 4: 커뮤니티 피드 사진/미디어 업로드 및 실시간 좋아요(하트) 인터랙션 구축 (완료)
+
+### 1. DB 스키마 및 마이그레이션 (`schema.prisma` & `20261001024500_add_post_likes_and_media`)
+- **`Post` 모델 확장**:
+  - `mediaUrls`: 첨부 사진/미디어 URL 배열 필드 (`TEXT[] @default([])`).
+  - `likesCount`: 캐시된 좋아요 수 (`INTEGER NOT NULL DEFAULT 0`).
+  - `likes`: `PostLike[]` 관계 필드.
+- **`PostLike` 모델 신설**:
+  - `id`: CUID 기본키.
+  - `postId`, `userId`: 외래키 (Cascade 삭제 지원).
+  - 복합 유니크 인덱스: `@@unique([postId, userId])`로 1인 1좋아요 보장.
+  - 인덱스: `@@index([userId])`, `@@index([postId])`.
+- **`User` 모델 관계 확장**:
+  - `postLikes`: `PostLike[]` 1:N 관계 추가.
+
+### 2. 백엔드 NestJS 피드/미디어 모듈 확장
+- **`PostsService` & `PostsController` (`modules/posts/`)**:
+  - `getPostInclude`: 현재 로그인 유저의 좋아요 여부(`isLiked`)와 게시글/댓글 수 즉시 조회.
+  - `create`: 텍스트뿐만 아니라 `mediaUrls` 첨부 지원.
+  - `POST /posts/:id/like` 엔드포인트 신설: `toggleLike` 트랜잭션을 통해 좋아요 등록/취소 및 실시간 `likesCount` 반환.
+- **`MediaController` (`modules/media/media.controller.ts`)**:
+  - `POST /media/post` 엔드포인트 신설: 최대 20MB 피드 이미지 업로드 지원.
+
+### 3. 모바일 앱 커뮤니티 피드 고도화 (`apps/mobile`)
+- **`apiClient` (`api/client.js`)**:
+  - `uploadPostMedia(asset)`: 모바일 갤러리 이미지 업로드.
+  - `togglePostLike(postId)`: 실시간 좋아요 토글 API.
+  - `createPost`: `mediaUrls` 동시 전송 지원.
+- **`CommunityFeedScreen.js`**:
+  - **피드 사진 갤러리 렌더링**: 단일 사진 풀사이즈 및 다중 사진 가로 스크롤 캐러셀 지원.
+  - **원터치 실시간 좋아요(하트)**: 누르는 즉시 낙관적 업데이트(Optimistic UI)로 즉시 빨간 하트 전환 및 좋아요 수 반영.
+  - **사진 첨부 글쓰기 UX**: `expo-image-picker`를 활용하여 최대 5장까지 사진 선택, 미리보기 섬네일 스트립 및 개별 'X' 삭제 지원, 업로드 중 인디케이터 제공.
+
 ---
 
 ## 2026-10-01 Checkpoint 3: 아고라(Agora) 라이브 스트리밍 실시간 WebSocket 브로드캐스팅 및 룸 라이프사이클 동기화 구축 (완료)
