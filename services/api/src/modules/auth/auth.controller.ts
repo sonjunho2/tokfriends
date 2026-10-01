@@ -8,6 +8,9 @@ import {
   EmailSignupDto,
   EmailLoginDto,
   AppleTokenDto,
+  KakaoLoginDto,
+  NaverLoginDto,
+  GoogleLoginDto,
   PhoneRequestOtpDto,
   PhoneVerifyDto,
   CompletePhoneProfileDto,
@@ -46,6 +49,30 @@ export class AuthController {
   @ApiOperation({ summary: 'Authenticate with Apple Sign-In' })
   loginApple(@Body() dto: AppleTokenDto) {
     return this.auth.loginApple(dto);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post('kakao')
+  @ApiOperation({ summary: 'Authenticate with Kakao Sign-In' })
+  loginKakao(@Body() dto: KakaoLoginDto) {
+    return this.auth.loginKakao(dto);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post('naver')
+  @ApiOperation({ summary: 'Authenticate with Naver Sign-In' })
+  loginNaver(@Body() dto: NaverLoginDto) {
+    return this.auth.loginNaver(dto);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post('google')
+  @ApiOperation({ summary: 'Authenticate with Google Sign-In' })
+  loginGoogle(@Body() dto: GoogleLoginDto) {
+    return this.auth.loginGoogle(dto);
   }
 
   @Public()

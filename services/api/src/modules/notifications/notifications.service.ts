@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "nestjs-prisma";
 import * as admin from "firebase-admin";
 import { RegisterDeviceTokenDto } from "./dto";
+import { AdminSettingsService } from "../admin/admin-settings.service";
 
 export interface SendPushPayload {
   title: string;
@@ -27,6 +28,7 @@ export class NotificationsService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly adminSettings: AdminSettingsService,
   ) {}
 
   onModuleInit() {
@@ -83,6 +85,28 @@ export class NotificationsService implements OnModuleInit {
       );
       this.messaging = null;
     }
+  }
+
+  private async getMessagingInstance(): Promise<admin.messaging.Messaging | null> {
+    if (this.messaging) return this.messaging;
+
+    // 관리자 페이지에 등록된 Firebase 서비스 계정 JSON 확인
+    const dynamicKeyJson = await this.adminSettings.getDecryptedSetting('firebase_service_account_json');
+    if (dynamicKeyJson) {
+      try {
+        const parsed = JSON.parse(dynamicKeyJson);
+        const app = admin.apps.length > 0 ? admin.apps[0]! : admin.initializeApp({
+          credential: admin.credential.cert(parsed),
+        });
+        this.messaging = admin.messaging(app);
+        this.logger.log('Firebase messaging initialized with dynamic Admin Integration Setting.');
+        return this.messaging;
+      } catch (err: any) {
+        this.logger.warn(`Failed to parse dynamic firebase_service_account_json: ${err.message}`);
+      }
+    }
+
+    return null;
   }
 
   async registerDeviceToken(
@@ -150,7 +174,9 @@ export class NotificationsService implements OnModuleInit {
       return { sent: 0, failed: 0, reason: "no_registered_devices" };
     }
 
-    if (!this.messaging) {
+    const messaging = await this.getMessagingInstance();
+
+    if (!messaging) {
       this.logger.debug(
         `[Fallback Push] Recipient: ${userId}, Title: "${payload.title}", Body: "${payload.body}", Devices: ${devices.length}`,
       );
@@ -159,7 +185,7 @@ export class NotificationsService implements OnModuleInit {
 
     const tokens = devices.map((d) => d.token);
     try {
-      const response = await this.messaging.sendEachForMulticast({
+      const response = await messaging.sendEachForMulticast({
         tokens,
         notification: {
           title: payload.title,

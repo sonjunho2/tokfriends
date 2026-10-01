@@ -5,5 +5,6 @@ import { AdminSettingsService } from './admin-settings.service';
 @Module({
   controllers: [AdminController],
   providers: [AdminSettingsService],
+  exports: [AdminSettingsService],
 })
 export class AdminModule {}

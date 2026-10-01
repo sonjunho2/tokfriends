@@ -2,7 +2,21 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { Flag, LayoutGrid, PlugZap, ShieldCheck, Users, type LucideIcon } from 'lucide-react'
+import {
+  Flag,
+  LayoutGrid,
+  PlugZap,
+  ShieldCheck,
+  Users,
+  CheckCircle2,
+  AlertCircle,
+  ExternalLink,
+  Key,
+  CreditCard,
+  Bell,
+  Sparkles,
+  type LucideIcon,
+} from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -1030,52 +1044,339 @@ export default function SettingsPage() {
     )}
 
     {isSectionVisible('integrations') && (
-      <section id="settings-integrations" className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>외부 서비스 연동</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              푸시·모니터링·AI 키를 관리합니다. 값을 수정한 뒤 저장 버튼을 눌러 서버에 반영하세요.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="space-y-3">
-              {integrations.map((integration) => (
-                <div key={integration.id} className="space-y-2">
-                  <Label>{integration.label ?? integration.id}</Label>
-                  <Input
-                    type="password"
-                    value={integration.draftValue ?? ''}
-                    placeholder={integration.placeholder ?? ''}
-                    autoComplete="new-password"
-                    onChange={(event) => updateIntegration(integration.id, event.target.value)}
-                    disabled={savingIntegrationId === 'bulk'}
-                  />
-                  {(integration.value ?? '').length > 0 && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => clearIntegration(integration.id)}
-                      disabled={savingIntegrationId === 'bulk'}
-                    >
-                      {integration.clearRequested ? '삭제 취소' : '저장값 삭제'}
-                    </Button>
-                  )}
-                </div>
-              ))}
+      <section id="settings-integrations" className="space-y-6">
+        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-background to-background">
+          <CardHeader className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <PlugZap className="h-5 w-5 text-primary" />
+                  실서비스 외부 연동 관리 (소셜 로그인 · 결제/PG · 푸시)
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  사업자 등록 및 제휴 승인 후 발급받은 키를 등록하면, <strong>서버 재배포 없이 즉시 실서비스와 안전하게 연동</strong>됩니다.
+                </p>
+              </div>
+              <Button
+                onClick={() => void saveIntegrations()}
+                disabled={savingIntegrationId === 'bulk'}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 shadow-sm"
+              >
+                {savingIntegrationId === 'bulk' ? '암호화 저장 중…' : '모든 변경사항 즉시 저장'}
+              </Button>
             </div>
-            <Button size="sm" variant="outline" onClick={() => void saveIntegrations()} disabled={savingIntegrationId === 'bulk'}>
-              변경사항 저장
-            </Button>
-            <Button asChild size="sm" variant="link">
-              <Link href="/settings/legal">약관 및 정책 문서 관리로 이동</Link>
-            </Button>
+
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200 mt-2 flex items-start gap-2">
+              <ShieldCheck className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+              <div>
+                <strong>금융급 보안 암호화 (AES-256-GCM) 적용:</strong> 등록하신 모든 시크릿 키는 데이터베이스에 강력한 양방향 암호화로 보관되며, 화면에는 절대 원본이 노출되지 않습니다.
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* 1. 소셜 로그인 연동 */}
+            <div className="rounded-xl border bg-card p-5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
+                <div className="flex items-center gap-2">
+                  <Key className="h-5 w-5 text-amber-500" />
+                  <h3 className="font-bold text-base text-foreground">1. 소셜 로그인 연동 (OAuth)</h3>
+                  <span className="text-xs text-muted-foreground">카카오, 네이버, 구글, 애플 간편로그인</span>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <a
+                    href="https://developers.kakao.com/console/app"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    카카오 콘솔 <ExternalLink className="h-3 w-3" />
+                  </a>
+                  <span className="text-muted-foreground">·</span>
+                  <a
+                    href="https://developers.naver.com/apps/#/list"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    네이버 콘솔 <ExternalLink className="h-3 w-3" />
+                  </a>
+                  <span className="text-muted-foreground">·</span>
+                  <a
+                    href="https://console.cloud.google.com/apis/credentials"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    구글 콘솔 <ExternalLink className="h-3 w-3" />
+                  </a>
+                  <span className="text-muted-foreground">·</span>
+                  <a
+                    href="https://developer.apple.com/account/resources/identifiers/list"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    애플 개발자 <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {integrations
+                  .filter((item) => item.id.startsWith('oauth_'))
+                  .map((integration) => {
+                    const isConfigured = Boolean((integration.value ?? '').length > 0);
+                    return (
+                      <div key={integration.id} className="rounded-lg border bg-background/50 p-3.5 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="font-semibold text-xs text-foreground flex items-center gap-1.5">
+                            {integration.label ?? integration.id}
+                          </Label>
+                          {isConfigured ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                              <CheckCircle2 className="h-3 w-3" /> 등록됨
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 bg-zinc-500/10 px-2 py-0.5 rounded-full border border-zinc-500/20">
+                              <AlertCircle className="h-3 w-3" /> 미등록
+                            </span>
+                          )}
+                        </div>
+                        <Input
+                          type="password"
+                          value={integration.draftValue ?? ''}
+                          placeholder={isConfigured ? '••••••••  (등록 완료됨, 변경 시 입력)' : (integration.placeholder ?? '발급받은 키를 입력하세요')}
+                          autoComplete="new-password"
+                          onChange={(event) => updateIntegration(integration.id, event.target.value)}
+                          disabled={savingIntegrationId === 'bulk'}
+                          className="text-xs h-9 font-mono"
+                        />
+                        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                          <span className="truncate max-w-[240px]">{integration.placeholder}</span>
+                          {isConfigured && (
+                            <button
+                              type="button"
+                              onClick={() => clearIntegration(integration.id)}
+                              disabled={savingIntegrationId === 'bulk'}
+                              className="text-red-500 hover:text-red-600 underline font-medium"
+                            >
+                              {integration.clearRequested ? '삭제 취소' : '저장값 초기화'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* 2. 결제 및 PG 연동 */}
+            <div className="rounded-xl border bg-card p-5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-indigo-500" />
+                  <h3 className="font-bold text-base text-foreground">2. 결제 및 PG 연동 (포인트 상점)</h3>
+                  <span className="text-xs text-muted-foreground">토스페이먼츠, 포트원(아임포트), 구글/애플 인앱결제</span>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <a
+                    href="https://app.tosspayments.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    토스 콘솔 <ExternalLink className="h-3 w-3" />
+                  </a>
+                  <span className="text-muted-foreground">·</span>
+                  <a
+                    href="https://admin.portone.io"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    포트원 콘솔 <ExternalLink className="h-3 w-3" />
+                  </a>
+                  <span className="text-muted-foreground">·</span>
+                  <a
+                    href="https://appstoreconnect.apple.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    App Store Connect <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {integrations
+                  .filter((item) => item.id.startsWith('toss_') || item.id.startsWith('portone_') || item.id.startsWith('iap_'))
+                  .map((integration) => {
+                    const isConfigured = Boolean((integration.value ?? '').length > 0);
+                    return (
+                      <div key={integration.id} className="rounded-lg border bg-background/50 p-3.5 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="font-semibold text-xs text-foreground flex items-center gap-1.5">
+                            {integration.label ?? integration.id}
+                          </Label>
+                          {isConfigured ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                              <CheckCircle2 className="h-3 w-3" /> 등록됨
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 bg-zinc-500/10 px-2 py-0.5 rounded-full border border-zinc-500/20">
+                              <AlertCircle className="h-3 w-3" /> 미등록
+                            </span>
+                          )}
+                        </div>
+                        <Input
+                          type="password"
+                          value={integration.draftValue ?? ''}
+                          placeholder={isConfigured ? '••••••••  (등록 완료됨, 변경 시 입력)' : (integration.placeholder ?? '발급받은 키를 입력하세요')}
+                          autoComplete="new-password"
+                          onChange={(event) => updateIntegration(integration.id, event.target.value)}
+                          disabled={savingIntegrationId === 'bulk'}
+                          className="text-xs h-9 font-mono"
+                        />
+                        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                          <span className="truncate max-w-[240px]">{integration.placeholder}</span>
+                          {isConfigured && (
+                            <button
+                              type="button"
+                              onClick={() => clearIntegration(integration.id)}
+                              disabled={savingIntegrationId === 'bulk'}
+                              className="text-red-500 hover:text-red-600 underline font-medium"
+                            >
+                              {integration.clearRequested ? '삭제 취소' : '저장값 초기화'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* 3. 실시간 푸시 알림 연동 */}
+            <div className="rounded-xl border bg-card p-5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
+                <div className="flex items-center gap-2">
+                  <Bell className="h-5 w-5 text-rose-500" />
+                  <h3 className="font-bold text-base text-foreground">3. 실시간 푸시 알림 (Push Notifications)</h3>
+                  <span className="text-xs text-muted-foreground">Firebase Cloud Messaging(FCM) & Apple APNs</span>
+                </div>
+                <a
+                  href="https://console.firebase.google.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-primary text-xs hover:underline"
+                >
+                  Firebase Console <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {integrations
+                  .filter((item) => item.id.startsWith('firebase_') || item.id.startsWith('apns_'))
+                  .map((integration) => {
+                    const isConfigured = Boolean((integration.value ?? '').length > 0);
+                    return (
+                      <div key={integration.id} className="rounded-lg border bg-background/50 p-3.5 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="font-semibold text-xs text-foreground flex items-center gap-1.5">
+                            {integration.label ?? integration.id}
+                          </Label>
+                          {isConfigured ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                              <CheckCircle2 className="h-3 w-3" /> 등록됨
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 bg-zinc-500/10 px-2 py-0.5 rounded-full border border-zinc-500/20">
+                              <AlertCircle className="h-3 w-3" /> 미등록
+                            </span>
+                          )}
+                        </div>
+                        <Input
+                          type="password"
+                          value={integration.draftValue ?? ''}
+                          placeholder={isConfigured ? '••••••••  (등록 완료됨, 변경 시 입력)' : (integration.placeholder ?? '발급받은 키를 입력하세요')}
+                          autoComplete="new-password"
+                          onChange={(event) => updateIntegration(integration.id, event.target.value)}
+                          disabled={savingIntegrationId === 'bulk'}
+                          className="text-xs h-9 font-mono"
+                        />
+                        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                          <span className="truncate max-w-[240px]">{integration.placeholder}</span>
+                          {isConfigured && (
+                            <button
+                              type="button"
+                              onClick={() => clearIntegration(integration.id)}
+                              disabled={savingIntegrationId === 'bulk'}
+                              className="text-red-500 hover:text-red-600 underline font-medium"
+                            >
+                              {integration.clearRequested ? '삭제 취소' : '저장값 초기화'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* 4. 기타 광고 및 리워드 설정 (기존 항목 보존) */}
+            {integrations.some((item) => !item.id.startsWith('oauth_') && !item.id.startsWith('toss_') && !item.id.startsWith('portone_') && !item.id.startsWith('iap_') && !item.id.startsWith('firebase_') && !item.id.startsWith('apns_')) && (
+              <div className="rounded-xl border bg-card p-5 space-y-4">
+                <div className="flex items-center gap-2 border-b pb-3">
+                  <Sparkles className="h-5 w-5 text-yellow-500" />
+                  <h3 className="font-bold text-base text-foreground">4. 광고 및 리워드 설정</h3>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {integrations
+                    .filter((item) => !item.id.startsWith('oauth_') && !item.id.startsWith('toss_') && !item.id.startsWith('portone_') && !item.id.startsWith('iap_') && !item.id.startsWith('firebase_') && !item.id.startsWith('apns_'))
+                    .map((integration) => {
+                      const isConfigured = Boolean((integration.value ?? '').length > 0);
+                      return (
+                        <div key={integration.id} className="rounded-lg border bg-background/50 p-3.5 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="font-semibold text-xs text-foreground">
+                              {integration.label ?? integration.id}
+                            </Label>
+                            {isConfigured && (
+                              <span className="text-[11px] font-medium text-emerald-600">등록됨</span>
+                            )}
+                          </div>
+                          <Input
+                            type="text"
+                            value={integration.draftValue ?? ''}
+                            placeholder={isConfigured ? '••••••••' : (integration.placeholder ?? '')}
+                            onChange={(event) => updateIntegration(integration.id, event.target.value)}
+                            disabled={savingIntegrationId === 'bulk'}
+                            className="text-xs h-9"
+                          />
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-4 border-t">
+              <Button asChild size="sm" variant="link" className="text-xs">
+                <Link href="/settings/legal">약관 및 정책 문서 관리로 이동 &rarr;</Link>
+              </Button>
+              <Button
+                onClick={() => void saveIntegrations()}
+                disabled={savingIntegrationId === 'bulk'}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 shadow-sm"
+              >
+                {savingIntegrationId === 'bulk' ? '암호화 저장 중…' : '모든 변경사항 즉시 저장'}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </section>
     )}
     </div>
   )
-
 }

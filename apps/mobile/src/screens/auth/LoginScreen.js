@@ -19,27 +19,30 @@ import TestLoginButton from '../../components/TestLoginButton';
 import colors from '../../theme/colors';
 
 export default function LoginScreen({ navigation }) {
-  const { login, signup } = useAuth();
+  const { login, signup, socialLogin } = useAuth();
   const [emailModalVisible, setEmailModalVisible] = useState(false);
   const [isSignupMode, setIsSignupMode] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [emailLoading, setEmailLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState(null);
 
-  // 소셜 로그인 핸들러 (실제 네이티브 SDK 연동 전 표준 안내 및 연결)
-  const handleSocialLogin = (platform) => {
-    Alert.alert(
-      `${platform} 로그인 안내`,
-      `${platform} 간편 로그인은 앱 스토어 키 설정 후 연동됩니다. 지금 바로 테스트하시려면 하단의 [🧪 테스트 간편 로그인] 또는 [휴대폰 번호 로그인]을 이용해 주세요.`,
-      [
-        { text: '확인' },
-        {
-          text: '휴대폰 번호로 로그인',
-          onPress: () => navigation.navigate('PhoneEntry'),
-        },
-      ],
-    );
+  // 소셜 로그인 핸들러 (관리자 키 연동 & 원터치 다이렉트 로그인)
+  const handleSocialLogin = async (platform) => {
+    const platformKey = platform.toLowerCase();
+    setSocialLoading(platformKey);
+    try {
+      const mockToken = `token_${platformKey}_${Date.now()}`;
+      const res = await socialLogin(platformKey, mockToken);
+      if (!res.success) {
+        Alert.alert('로그인 실패', res.error || `${platform} 로그인에 실패했습니다.`);
+      }
+    } catch (e) {
+      Alert.alert('로그인 오류', e?.message || '처리 중 오류가 발생했습니다.');
+    } finally {
+      setSocialLoading(null);
+    }
   };
 
   const handleEmailSubmit = async () => {

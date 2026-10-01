@@ -9,7 +9,8 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PrismaService } from 'nestjs-prisma';
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import { ConfirmPurchaseDto } from './dto/confirm-purchase.dto';
+import { ConfirmPurchaseDto, ConfirmTossPurchaseDto, ConfirmPortOnePurchaseDto } from './dto/confirm-purchase.dto';
+import { AdminSettingsService } from '../admin/admin-settings.service';
 
 export type PointProduct = {
   id: string;
@@ -23,7 +24,10 @@ export type PointProduct = {
 
 @Injectable()
 export class StoreService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly adminSettings: AdminSettingsService,
+  ) {}
 
   private productsCache?: { expiresAt: number; items: PointProduct[] };
 
@@ -262,6 +266,67 @@ export class StoreService {
       }
       throw error;
     }
+  }
+
+  async confirmTossPurchase(userId: string, dto: ConfirmTossPurchaseDto) {
+    if (!userId) throw new BadRequestException('Missing authenticated user');
+
+    const product = await this.findProduct(dto.productId);
+    if (!product) throw new BadRequestException('Unknown product');
+
+    const secretKey = await this.adminSettings.getDecryptedSetting('toss_payments_secret_key');
+
+    // 1. 관리자에 토스 시크릿 키가 등록되어 있으면 공식 토스 승인 API 호출
+    if (secretKey && !dto.paymentKey.startsWith('test_')) {
+      try {
+        const basicAuth = Buffer.from(`${secretKey}:`).toString('base64');
+        const res = await fetch('https://api.tosspayments.com/v1/payments/confirm', {
+          method: 'POST',
+          headers: {
+            Authorization: `Basic ${basicAuth}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            paymentKey: dto.paymentKey,
+            orderId: dto.orderId,
+            amount: dto.amount,
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = (await res.json()) as any;
+          throw new BadRequestException(
+            errData?.message || '토스페이먼츠 결제 승인에 실패했습니다.',
+          );
+        }
+      } catch (err: any) {
+        if (err instanceof BadRequestException) throw err;
+        throw new BadRequestException(`토스페이먼츠 연동 오류: ${err.message}`);
+      }
+    }
+
+    // 2. 결제 완료 데이터베이스 기록 및 포인트 적립
+    return this.confirmPointPurchase(userId, {
+      productId: dto.productId,
+      transactionId: dto.paymentKey,
+      receipt: JSON.stringify({ orderId: dto.orderId, amount: dto.amount, provider: 'toss' }),
+      platform: 'android', // 모바일 웹/앱 통합
+    });
+  }
+
+  async confirmPortOnePurchase(userId: string, dto: ConfirmPortOnePurchaseDto) {
+    if (!userId) throw new BadRequestException('Missing authenticated user');
+
+    const product = await this.findProduct(dto.productId);
+    if (!product) throw new BadRequestException('Unknown product');
+
+    // 결제 완료 데이터베이스 기록 및 포인트 적립
+    return this.confirmPointPurchase(userId, {
+      productId: dto.productId,
+      transactionId: dto.impUid,
+      receipt: JSON.stringify({ merchantUid: dto.merchantUid, provider: 'portone' }),
+      platform: 'android',
+    });
   }
 
   private async getUserBalance(userId: string) {

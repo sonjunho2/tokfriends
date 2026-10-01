@@ -1,8 +1,46 @@
 # DAGAON Development Checkpoint
 
-Updated: 2026-09-30
+Updated: 2026-10-01
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
+
+---
+
+## 2026-10-01 Checkpoint: 관리자 동적 외부 서비스 연동(소셜 로그인, PG/결제, 푸시 알림) 및 금융급 암호화 관리 시스템 구축 (완료)
+
+### 1. 관리자 웹 설정 센터 (`/settings`) 전면 고도화
+- **무중단 동적 연동**:
+  - 사업자 등록 및 제휴 승인 후 발급받은 API 키·시크릿 키를 관리자 웹에서 등록하면, **서버 재배포 없이 즉시 실서비스에 반영**되는 동적 설정 아키텍처 완성.
+- **금융급 보안 암호화 (AES-256-GCM)**:
+  - 등록된 모든 민감 키는 백엔드 `admin-settings.crypto.ts`를 통해 AES-256-GCM으로 양방향 암호화되어 DB에 저장되며, 웹 화면에는 마스킹(`••••••••`)되어 원본이 절대 유출되지 않음.
+- **3대 핵심 카테고리 IA & 대시보드 개편**:
+  1. 💬 **소셜 로그인 (OAuth)**: 카카오(REST API 키, Secret), 네이버(Client ID, Secret), 구글(Web Client ID, Secret), 애플(Service ID, Team ID, Key ID, AuthKey).
+  2. 💳 **결제 및 PG 연동**: 토스페이먼츠(Client/Secret Key), 포트원(Store ID, API Key, Secret), 인앱결제(Apple Shared Secret, Google Service Account JSON).
+  3. 🔔 **실시간 푸시 알림**: Firebase FCM(프로젝트 ID, 서비스 계정 비공개 키 JSON), Apple APNs(Team ID, Key ID, AuthKey, Bundle ID).
+  4. 🎁 **광고 및 리워드 정책**: AdMob 앱/단위 ID, 일일 시청 한도 및 출석/추천 포인트 보존.
+- **운영자 편의 UX**:
+  - 각 항목별 공식 개발자 센터 바로가기 외부 링크 제공.
+  - 각 키의 실시간 등록 상태 (`🟢 등록됨` vs `⚪ 미등록`) 인디케이터 배지 표시.
+  - 일괄 저장 및 저장값 초기화(안전 삭제) 지원.
+
+### 2. 백엔드 NestJS 동적 연동 모듈 완성
+- **`AdminSettingsService` (`admin-settings.service.ts` & `admin.module.ts`)**:
+  - 9종 기본 연동 키 자동 시드 및 모듈 간 공용 안전 복호화 헬퍼 `getDecryptedSetting(settingId)` 구축.
+  - 다른 모듈(`auth`, `store`, `notifications`)에서 사용할 수 있도록 `AdminModule`에서 export 처리.
+- **`AuthService` & `AuthController` (`auth.service.ts` & `auth.controller.ts`)**:
+  - `POST /auth/kakao`, `POST /auth/naver`, `POST /auth/google`, `POST /auth/apple` 엔드포인트 신설.
+  - 관리자 키가 등록되면 실제 각 사 UserInfo API를 호출해 정품 인증, 미등록 시 개발/심사용 가상 계정 프로비저닝.
+  - 신규 가입 시 단일 트랜잭션으로 User, Owner, ActivityAccount, Wallet 생성 및 1,000P 웰컴 포인트 지급.
+- **`StoreService` & `StoreController` (`store.service.ts` & `store.controller.ts`)**:
+  - `POST /store/purchases/toss/confirm` 및 `POST /store/purchases/portone/confirm` 엔드포인트 신설.
+  - 관리자 등록 토스 시크릿 키 기반으로 공식 승인 API(`api.tosspayments.com/v1/payments/confirm`) 호출 및 금융 원장(`WalletLedgerEntry`) 입금 처리.
+- **`NotificationsService` & `NotificationsModule` (`notifications.service.ts`)**:
+  - 관리자에 등록된 `firebase_service_account_json`을 동적으로 읽어 Firebase Admin SDK 인스턴스를 실시간 초기화 및 FCM 푸시 발송.
+
+### 3. 모바일 앱 연동 (`LoginScreen.js`, `AuthContext.js`, `client.js`)
+- `apiClient`에 `loginKakao`, `loginNaver`, `loginGoogle`, `loginApple` 및 토스/포트원 승인 API 연동.
+- `AuthContext`에 `socialLogin(platform, token)` 통합 래퍼 제공.
+- `LoginScreen.js`의 5대 소셜 로그인 버튼 터치 시 백엔드 엔드포인트 호출 및 자동 세션 수립 연동.
 
 ---
 
