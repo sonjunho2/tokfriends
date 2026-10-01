@@ -901,6 +901,18 @@ export const apiClient = {
     catch (e) { throw normalizeError(e); }
   },
 
+  async deleteAccount() {
+    if (USE_DUMMY_AUTH) {
+      return { ok: true, message: '회원 탈퇴 완료' };
+    }
+    try {
+      const { data } = await client.delete('/users/me');
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
   async getUser(userId) {
     try { const { data } = await client.get(`/users/${userId}`); return data; }
     catch (e) { throw normalizeError(e); }

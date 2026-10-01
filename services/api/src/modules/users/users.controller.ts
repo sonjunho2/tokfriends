@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
   NotFoundException,
@@ -37,6 +38,14 @@ export class UsersController {
         activityAccountId: user?.activityAccountId ?? null,
       },
     };
+  }
+
+  @Delete('me')
+  async deleteMe(@CurrentUser() user: any) {
+    const userId = user?.sub ?? user?.id;
+    if (!userId) throw new ForbiddenException('Authentication required');
+    await this.users.deleteAccount(userId);
+    return { ok: true, message: '회원 탈퇴가 정상적으로 처리되었습니다.' };
   }
 
   @ApiQuery({ name: 'q', required: false, type: String })

@@ -324,6 +324,42 @@ export class UsersService {
     return updatedUser;
   }
 
+  async deleteAccount(userId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.device.deleteMany({ where: { userId } });
+
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          status: 'withdrawn',
+          tokenVersion: { increment: 1 },
+          email: null,
+          phoneHash: null,
+          displayName: '탈퇴한 회원',
+        },
+      });
+
+      await tx.profile.updateMany({
+        where: { userId },
+        data: {
+          nickname: '탈퇴한 회원',
+          headline: null,
+          bio: null,
+          avatarUri: null,
+        },
+      });
+
+      await tx.activityAccount.updateMany({
+        where: { legacyUserId: userId },
+        data: {
+          status: 'withdrawn',
+        },
+      });
+
+      return { success: true };
+    });
+  }
+
   phoneHashForSearch(phone?: string) {
     const phoneDigits = this.normalizePhone(phone);
     return phoneDigits ? this.hashPhone(phoneDigits) : undefined;
