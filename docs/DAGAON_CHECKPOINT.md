@@ -4,6 +4,35 @@ Updated: 2026-10-01
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-01 Checkpoint 6: 인앱 알림 & 공지사항 센터 구축 및 홈 화면 알림 연동 (완료)
+
+### 1. 백엔드 실시간 활동 알림 및 공지 피드 모듈 (`services/api/src/modules/notifications/`)
+- **활동 알림 통합 피드 (`notifications.service.ts` & `notifications.controller.ts`)**:
+  - `GET /notifications/activity` 엔드포인트 신설 (`JwtAuthGuard` 보호).
+  - 유저의 실시간 활동을 단일 타임라인 피드로 정합·정렬하여 반환:
+    - 🎁 **선물 수신 (`GiftTransaction`)**: 선물 보낸 사람 닉네임/아바타, 선물 상품명, 적립 포인트 실시간 안내.
+    - 💳 **출금 상태 변경 (`SettlementRequest`)**: 신청 포인트 금액, 입금 승인 여부, 반려 사유 실시간 안내.
+    - 👀 **프로필 방문 (`ProfileVisit`)**: 방문자 닉네임 및 아바타, 방문 시각 안내.
+  - 날짜 역순(`desc`) 정렬 및 안전한 널 세이프 핸들링 적용.
+
+### 2. 모바일 앱 알림 및 공지사항 센터 화면 (`apps/mobile/src/screens/main/NotificationsScreen.js`)
+- **듀얼 탭 세그먼트 UX**:
+  - 📢 **공지사항 탭**: 중요 공지 레드 배지, 부드러운 아코디언 토글(LayoutAnimation)을 통한 본문 확장/축소, 공지 등록 일시 포맷팅.
+  - 🔔 **활동 알림 탭**: 선물, 출금, 프로필 방문 등 유형별 고유 컬러 아이콘 및 상대방 아바타 표시, 상대적 시간("방금 전", "15분 전" 등) 계산.
+- **인터랙션 & 상태 관리**:
+  - 당겨서 새로고침(Pull-to-refresh) 지원.
+  - 알림 및 공지 미존재 시 세련된 빈 상태(Empty State) 일러스트/아이콘 UI 렌더링.
+
+### 3. 네비게이션 및 홈 화면 연동 (`RootNavigator.js` & `HomeScreen.js`)
+- **GNB 알림 아이콘 터치 연동**:
+  - `HomeScreen.js` 상단 GNB의 종 모양 알림 아이콘 터치 시 `NotificationsScreen`으로 즉시 진입하도록 라우팅 연결.
+- **스택 네비게이션 등록**:
+  - `HomeStackNav` 및 `MyPageStackNav`에 `Notifications` 스크린 정식 등록 (우측 슬라이드 애니메이션 적용).
+- **API 클라이언트 확장 (`client.js`)**:
+  - `apiClient.getAnnouncements()` 및 `apiClient.getActivityNotifications()` 추가 (네트워크 오류 또는 데모 모드 시 안전한 fallback 목업 제공).
+
+---
+
 ## 2026-10-01 Checkpoint 5: 관리자 유해 콘텐츠 제재 및 신고/안전 관리 센터(Safety Center) 고도화 (완료)
 
 ### 1. 백엔드 신고 및 제재 엔진 구축 (`services/api/src/modules/reports/`)
