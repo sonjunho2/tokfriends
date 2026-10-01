@@ -15,6 +15,11 @@ import {
 } from './dto';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AdminSettingsService } from './admin-settings.service';
+import { SettlementService } from '../settlement/settlement.service';
+import {
+  AdminApproveSettlementDto,
+  AdminRejectSettlementDto,
+} from '../settlement/dto/create-settlement-request.dto';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -26,6 +31,7 @@ export class AdminController {
   constructor(
     private readonly adminSettings: AdminSettingsService,
     private readonly prisma: PrismaService,
+    private readonly settlementService: SettlementService,
   ) {}
 
   @Get('settings/snapshot')
@@ -162,6 +168,8 @@ export class AdminController {
       pendingRefundsCount,
       walletsStats,
       recentPurchases,
+      pendingSettlementsCount,
+      pendingSettlementsSum,
     ] = await Promise.all([
       this.prisma.pointPurchase.count(),
       this.prisma.pointPurchase.aggregate({ _sum: { points: true } }),
@@ -183,6 +191,11 @@ export class AdminController {
           },
         },
       }),
+      this.prisma.settlementRequest.count({ where: { status: 'PENDING' } }),
+      this.prisma.settlementRequest.aggregate({
+        where: { status: 'PENDING' },
+        _sum: { pointsAmount: true, netAmount: true },
+      }),
     ]);
 
     return {
@@ -191,6 +204,9 @@ export class AdminController {
         totalPurchasesCount,
         totalPointsPurchased: totalPurchasesSum._sum.points ?? 0,
         pendingRefundsCount,
+        pendingSettlementsCount,
+        pendingSettlementsPoints: pendingSettlementsSum._sum.pointsAmount ?? 0,
+        pendingSettlementsNetAmount: pendingSettlementsSum._sum.netAmount ?? 0,
         totalWallets: walletsStats._count.id,
         totalSpendableBalance: walletsStats._sum.spendableBalance ?? 0,
         totalRedeemableBalance: walletsStats._sum.redeemableBalance ?? 0,
@@ -198,6 +214,44 @@ export class AdminController {
         recentPurchases,
       },
     };
+  }
+
+  @AdminPermissions('refunds.view')
+  @Get('settlement/requests')
+  async listSettlementRequests(
+    @Query('page') page = '1',
+    @Query('limit') limit = '15',
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.settlementService.adminListRequests({
+      page: parseInt(page, 10) || 1,
+      limit: parseInt(limit, 10) || 15,
+      status,
+      search,
+    });
+  }
+
+  @AdminPermissions('refunds.manage')
+  @Post('settlement/requests/:id/approve')
+  async approveSettlementRequest(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() dto: AdminApproveSettlementDto,
+  ) {
+    const actorId = user?.id ?? user?.sub;
+    return this.settlementService.adminApproveRequest(actorId, id, dto);
+  }
+
+  @AdminPermissions('refunds.manage')
+  @Post('settlement/requests/:id/reject')
+  async rejectSettlementRequest(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() dto: AdminRejectSettlementDto,
+  ) {
+    const actorId = user?.id ?? user?.sub;
+    return this.settlementService.adminRejectRequest(actorId, id, dto);
   }
 
   @AdminPermissions('refunds.view')

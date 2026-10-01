@@ -2099,6 +2099,50 @@ export const apiClient = {
       // silent
     }
   },
+
+  // ===== Settlement & Creator Redemption =====
+  async getSettlementOverview() {
+    try {
+      const { data } = await client.get('/settlement/overview');
+      return data?.data ?? data ?? {
+        redeemableBalance: 0,
+        pendingEarnings: 0,
+        spendableBalance: 0,
+        minSettlementPoints: 10000,
+        taxRatePercent: 3.3,
+        recentRequests: [],
+      };
+    } catch (e) {
+      if (USE_DUMMY_AUTH) {
+        return {
+          redeemableBalance: 50000,
+          pendingEarnings: 0,
+          spendableBalance: 12000,
+          minSettlementPoints: 10000,
+          taxRatePercent: 3.3,
+          recentRequests: [],
+        };
+      }
+      throw normalizeError(e);
+    }
+  },
+
+  async requestSettlement({ pointsAmount, bankName, accountNumber, accountHolder, idCardNumberHash } = {}) {
+    if (!pointsAmount || pointsAmount < 10000) {
+      throw normalizeError(new Error('최소 출금 신청 포인트는 10,000P입니다.'));
+    }
+    if (!bankName || !accountNumber || !accountHolder) {
+      throw normalizeError(new Error('은행명, 계좌번호, 예금주명을 모두 입력해 주세요.'));
+    }
+    const { data } = await client.post('/settlement/requests', {
+      pointsAmount: Math.floor(Number(pointsAmount)),
+      bankName: String(bankName).trim(),
+      accountNumber: String(accountNumber).trim(),
+      accountHolder: String(accountHolder).trim(),
+      idCardNumberHash: idCardNumberHash ? String(idCardNumberHash).trim() : undefined,
+    });
+    return data?.data ?? data;
+  },
 };
 
 export default client;

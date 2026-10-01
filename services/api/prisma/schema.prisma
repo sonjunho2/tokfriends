@@ -57,6 +57,7 @@ model User {
   adminApprovalDecisions AdminApprovalRequest[] @relation("AdminApprovalDecider")
   liveRoomsHosted       LiveRoom[]             @relation("LiveRoomHost")
   liveMessages          LiveMessage[]          @relation("LiveMessageSender")
+  settlementsProcessed  SettlementRequest[]    @relation("SettlementProcessedBy")
 }
 
 model Owner {
@@ -95,6 +96,7 @@ model ActivityAccount {
   liveMessagesAsAccount    LiveMessage[] @relation("LiveMessageSenderAccount")
   giftsSent                GiftTransaction[] @relation("GiftSenderAccount")
   giftsReceived            GiftTransaction[] @relation("GiftRecipientAccount")
+  settlementRequests       SettlementRequest[]
 
   @@index([ownerId])
   @@index([ownerId, isPrimary])
@@ -655,4 +657,35 @@ model Advertisement {
 
   @@index([placement, isActive, priority])
   @@index([isActive, startsAt, endsAt])
+}
+
+enum SettlementStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model SettlementRequest {
+  id                String           @id @default(cuid())
+  activityAccountId String
+  activityAccount   ActivityAccount  @relation(fields: [activityAccountId], references: [id], onDelete: Restrict)
+  pointsAmount      Int
+  krwAmount         Int
+  taxAmount         Int              @default(0)
+  netAmount         Int
+  bankName          String
+  accountNumber     String
+  accountHolder     String
+  idCardNumberHash  String?
+  status            SettlementStatus @default(PENDING)
+  adminMemo         String?
+  processedAt       DateTime?
+  processedById     String?
+  processedBy       User?            @relation("SettlementProcessedBy", fields: [processedById], references: [id], onDelete: SetNull)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([activityAccountId, createdAt])
+  @@index([status, createdAt])
 }

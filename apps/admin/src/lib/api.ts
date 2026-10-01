@@ -1643,11 +1643,54 @@ export interface SettlementSummary {
   totalPurchasesCount: number
   totalPointsPurchased: number
   pendingRefundsCount: number
+  pendingSettlementsCount?: number
+  pendingSettlementsPoints?: number
+  pendingSettlementsNetAmount?: number
   totalWallets: number
   totalSpendableBalance: number
   totalRedeemableBalance: number
   totalPendingEarnings: number
   recentPurchases: PointPurchaseItem[]
+}
+
+export interface SettlementRequestItem {
+  id: string
+  activityAccountId: string
+  pointsAmount: number
+  krwAmount: number
+  taxAmount: number
+  netAmount: number
+  bankName: string
+  accountNumber: string
+  accountHolder: string
+  idCardNumberHash?: string | null
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
+  adminMemo?: string | null
+  processedAt?: string | null
+  processedById?: string | null
+  createdAt: string
+  updatedAt: string
+  activityAccount?: {
+    id: string
+    displayName?: string | null
+    handle?: string | null
+    ownerId?: string | null
+    legacyUserId?: string | null
+  } | null
+  processedBy?: {
+    id: string
+    displayName?: string | null
+    email?: string | null
+  } | null
+}
+
+export interface SettlementRequestsResponse {
+  ok: boolean
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  items: SettlementRequestItem[]
 }
 
 export interface PointPurchaseItem {
@@ -1721,6 +1764,9 @@ export async function getSettlementSummary(): Promise<SettlementSummary> {
     totalPurchasesCount: Number(d.totalPurchasesCount ?? 0),
     totalPointsPurchased: Number(d.totalPointsPurchased ?? 0),
     pendingRefundsCount: Number(d.pendingRefundsCount ?? 0),
+    pendingSettlementsCount: Number(d.pendingSettlementsCount ?? 0),
+    pendingSettlementsPoints: Number(d.pendingSettlementsPoints ?? 0),
+    pendingSettlementsNetAmount: Number(d.pendingSettlementsNetAmount ?? 0),
     totalWallets: Number(d.totalWallets ?? 0),
     totalSpendableBalance: Number(d.totalSpendableBalance ?? 0),
     totalRedeemableBalance: Number(d.totalRedeemableBalance ?? 0),
@@ -1750,6 +1796,40 @@ export async function getSettlementLedger(take = 20): Promise<WalletLedgerItem[]
   const response = await api.get('/admin/settlement/ledger', { params: { take } })
   const d = response.data as any
   return Array.isArray(d?.items) ? d.items : []
+}
+
+export async function getSettlementRequests(params: {
+  page?: number
+  limit?: number
+  status?: string
+  search?: string
+} = {}): Promise<SettlementRequestsResponse> {
+  const response = await api.get('/admin/settlement/requests', { params })
+  const d = response.data as any
+  return {
+    ok: Boolean(d?.ok ?? true),
+    page: Number(d?.page ?? 1),
+    limit: Number(d?.limit ?? 15),
+    total: Number(d?.total ?? 0),
+    totalPages: Number(d?.totalPages ?? 1),
+    items: Array.isArray(d?.items) ? d.items : [],
+  }
+}
+
+export async function approveSettlementRequest(
+  id: string,
+  adminMemo?: string,
+): Promise<SettlementRequestItem> {
+  const response = await api.post(`/admin/settlement/requests/${id}/approve`, { adminMemo })
+  return response.data
+}
+
+export async function rejectSettlementRequest(
+  id: string,
+  reason: string,
+): Promise<SettlementRequestItem> {
+  const response = await api.post(`/admin/settlement/requests/${id}/reject`, { reason })
+  return response.data
 }
 
 // =============================================

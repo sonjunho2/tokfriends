@@ -6,6 +6,68 @@ Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작�
 
 ---
 
+## 2026-10-01 Checkpoint 2: 크리에이터 출금/환전 신청 및 관리자 정산 승인·원천징수(3.3%) 시스템 구축 (완료)
+
+### 1. DB 스키마 및 마이그레이션 (`schema.prisma` & `20261001010600_add_settlement_request_foundation`)
+- **`SettlementRequest` 모델 및 `SettlementStatus` 열거형 신설**:
+  - `id`: CUID 기본키.
+  - `activityAccountId`: 신청자 활동 계정 (외래키, `ActivityAccount.settlementRequests`).
+  - `pointsAmount`: 신청 포인트 (1P = 1KRW).
+  - `krwAmount`: 세전 환산 금액.
+  - `taxAmount`: 원천징수 세액 (사업소득세 3% + 지방소득세 0.3% = 3.3% 자동 계산).
+  - `netAmount`: 실수령 지급액 (`krwAmount - taxAmount`).
+  - `bankName`, `accountNumber`, `accountHolder`: 입금 계좌 정보.
+  - `status`: `PENDING`(대기 중), `APPROVED`(승인/송금완료), `REJECTED`(반려됨), `CANCELLED`(취소됨).
+  - `adminMemo`: 관리자 송금 메모 또는 반려 사유.
+  - `processedAt`, `processedById`: 승인/반려 시각 및 처리한 관리자 ID (`User.settlementsProcessed`).
+  - 인덱스: `[activityAccountId, createdAt]`, `[status, createdAt]` 복합 인덱스 적용.
+
+### 2. 백엔드 NestJS 금융 정산 모듈 구축 (`modules/settlement/`)
+- **`SettlementService` (`settlement.service.ts`)**:
+  - **사용자 출금 신청 (`createRequest`)**:
+    - 최소 출금 신청 포인트 10,000P 검증 및 계좌 정보 유효성 검사.
+    - 지갑의 출금 가능 잔액(`redeemableBalance`) 초과 여부 검증.
+    - Prisma `$transaction`으로 `redeemableBalance` 차감 & `pendingEarnings` 가산.
+    - `WalletLedgerEntry`에 `kind: 'debit'`, `source: 'settlement_request'` 금융 원장 무결성 기록.
+  - **관리자 승인 (`adminApproveRequest`)**:
+    - 요청 상태 `PENDING` 검증.
+    - 지갑의 `pendingEarnings` 차감 및 `source: 'settlement_approved'` 금융 원장 기록.
+    - `SettlementRequest` 상태를 `APPROVED`로 변경하고 감사 로그(`AuditLog`) 생성.
+  - **관리자 반려 (`adminRejectRequest`)**:
+    - 요청 상태 `PENDING` 검증 및 반려 사유 입력 필수화.
+    - 대기 잔액 `pendingEarnings`에서 차감 후 크리에이터의 출금 가능 잔액 `redeemableBalance`로 전액 즉시 환원.
+    - `WalletLedgerEntry`에 `kind: 'credit'`, `source: 'settlement_rejected_refund'` 금융 원장 기록.
+    - `SettlementRequest` 상태를 `REJECTED`로 변경하고 사유 기록 및 감사 로그 생성.
+- **`AdminController` & `SettlementController`**:
+  - `GET /settlement/overview`: 유저 출금 가능 잔액, 대기 잔액, 최소 기준, 최근 신청 내역 조회.
+  - `POST /settlement/requests`: 유저 출금 신청 엔드포인트.
+  - `GET /admin/settlement/requests`: 관리자 출금 신청 목록 조회 (상태 필터, 검색, 페이징).
+  - `POST /admin/settlement/requests/:id/approve`: 관리자 송금 승인 처리.
+  - `POST /admin/settlement/requests/:id/reject`: 관리자 출금 반려 및 포인트 환원 처리.
+  - `GET /admin/settlement/summary`: 요약 지표에 대기 신청 건수(`pendingSettlementsCount`) 및 대기 포인트 합계 반영.
+
+### 3. 관리자 웹 정산 센터 전면 확장 (`apps/admin/src/app/settlement/page.tsx`)
+- **출금 신청 전용 탭 신설 (`requests`)**:
+  - KPI 상단 카드에 대기 중인 출금 신청 건수 실시간 배지 표시.
+  - 출금 신청 목록 테이블: 신청일시, 크리에이터(닉네임/@핸들), 입금 계좌(은행, 계좌번호, 예금주), 신청 포인트, 세금(3.3%), 실수령액, 처리 정보.
+  - 실시간 상태별 필터(전체, 대기 중, 승인 완료, 반려됨) 및 검색(예금주, 은행, 계좌번호, 닉네임) 제공.
+- **[송금 승인] 모달 다이얼로그**:
+  - 세전 금액, 원천징수세액(-3.3%), 실 지급액, 계좌 정보를 일목요연하게 확인하고 관리자 송금 메모(이체번호 등) 입력 후 1클릭 승인 처리.
+- **[반려] 모달 다이얼로그**:
+  - 반려 시 대기 잔액이 크리에이터 지갑으로 즉시 안전하게 환원됨을 안내하고 반려 사유 필수 입력 후 처리.
+
+### 4. 모바일 앱 크리에이터 출금 신청 연동 (`apps/mobile`)
+- **`apiClient`**: `getSettlementOverview()`, `requestSettlement(...)` 탑재.
+- **`ShopScreen.js` (포인트 충전소 / 크리에이터 지갑)**:
+  - 상단에 **[크리에이터 출금 / 환전]** 카드 배치: 출금 가능 수익(P)과 정산 심사 대기(P)를 분리 표시.
+  - **[출금 신청]** 터치 시 슬라이드 업 모달 제공:
+    - 출금 가능 잔액 실시간 확인 및 [전액 입력] 원터치 버튼.
+    - 신청 포인트 입력 시 **3.3% 원천징수세액 및 실제 입금 예정액 실시간 자동 계산**.
+    - 입금 은행, 계좌번호, 예금주명 입력 폼.
+    - 최근 신청 내역 및 심사 상태(심사중/승인완료/반려됨) 표시.
+
+---
+
 ## 2026-10-01 Checkpoint: 관리자 동적 외부 서비스 연동(소셜 로그인, PG/결제, 푸시 알림, Agora 라이브) 및 금융급 암호화 관리 시스템 구축 (완료)
 
 ### 1. 관리자 웹 설정 센터 (`/settings`) 전면 고도화
