@@ -229,9 +229,9 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
         ]}
       >
         <View style={styles.bannerAvatarBox}>
-          {currentGift.thumbnailUrl ? (
+          {currentGift.thumbnailUrl || currentGift.icon ? (
             <Image
-              source={{ uri: currentGift.thumbnailUrl }}
+              source={{ uri: currentGift.thumbnailUrl || currentGift.icon }}
               style={styles.bannerThumb}
             />
           ) : (
@@ -240,11 +240,11 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
         </View>
         <View style={styles.bannerTextBox}>
           <Text style={styles.bannerSenderText} numberOfLines={1}>
-            {currentGift.senderNickname || '시청자'}님이
+            {currentGift.senderNickname || currentGift.senderName || '친구'}님이
           </Text>
           <Text style={styles.bannerGiftText} numberOfLines={1}>
-            <Text style={styles.bannerHighlight}>{currentGift.giftName || '선물'}</Text>
-            {currentGift.pricePoints ? ` (${currentGift.pricePoints.toLocaleString()}P)` : ''}을 보냈습니다!
+            <Text style={styles.bannerHighlight}>{currentGift.giftName || currentGift.name || '선물'}</Text>
+            {(currentGift.pricePoints || currentGift.amount) ? ` (${(currentGift.pricePoints || currentGift.amount).toLocaleString()}P)` : ''}을 보냈습니다!
           </Text>
         </View>
       </Animated.View>

@@ -2194,6 +2194,16 @@ export const apiClient = {
     }
   },
 
+  async getPointBalance() {
+    try {
+      const overview = await this.getSettlementOverview();
+      const balance = Number(overview?.spendableBalance ?? 0);
+      return { balance, ok: true };
+    } catch {
+      return { balance: 0, ok: false };
+    }
+  },
+
   async requestSettlement({ pointsAmount, bankName, accountNumber, accountHolder, idCardNumberHash } = {}) {
     if (!pointsAmount || pointsAmount < 10000) {
       throw normalizeError(new Error('최소 출금 신청 포인트는 10,000P입니다.'));

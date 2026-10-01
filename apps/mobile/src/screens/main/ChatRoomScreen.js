@@ -90,10 +90,14 @@ const normalizeHistoryMessage = (message, currentActivityAccountId) => {
   const isGift = backendType === 'gift';
   let giftData = null;
   if (isGift) {
-    try {
-      giftData = JSON.parse(message.content);
-    } catch {
-      giftData = { name: '선물', amount: 0, description: message.content };
+    if (typeof message.content === 'object' && message.content !== null) {
+      giftData = message.content;
+    } else {
+      try {
+        giftData = JSON.parse(message.content);
+      } catch {
+        giftData = { name: '선물', amount: 0, description: message.content };
+      }
     }
   }
   const resolvedType = isMedia ? 'media' : (isGift ? 'gift' : 'text');
@@ -477,12 +481,14 @@ export default function ChatRoomScreen({ route, navigation }) {
             const g = nextMessage.gift;
             giftOverlayRef.current?.enqueueGift({
               name: g?.name || '선물',
-              amount: g?.amount || 0,
+              amount: g?.amount || g?.pricePoints || 0,
               animationUrl: g?.animationUrl || null,
-              animationType: g?.animationType || 'BANNER',
-              icon: g?.icon || '🎁',
-              senderName: user?.name || '상대방',
+              animationType: g?.animationType || 'none',
+              thumbnailUrl: g?.thumbnailUrl || null,
+              icon: g?.icon || null,
+              senderName: user?.name || user?.profile?.nickname || '상대방',
             });
+            fetchMyPoints();
           }
         }
 
@@ -827,15 +833,20 @@ export default function ChatRoomScreen({ route, navigation }) {
           appendUniquePersistedMessage(normalized);
         }
 
-        setMyPoints((prev) => Math.max(0, prev - (gift.amount || 0)));
+        if (response?.spendableBalance !== undefined) {
+          setMyPoints(Number(response.spendableBalance));
+        } else {
+          setMyPoints((prev) => Math.max(0, prev - (gift.amount || gift.pricePoints || 0)));
+        }
         setGiftPickerVisible(false);
 
         // 로컬 3D 이펙트 렌더링
         giftOverlayRef.current?.enqueueGift({
           name: gift.name,
-          amount: gift.amount,
+          amount: gift.amount || gift.pricePoints || 0,
           animationUrl: gift.animationUrl,
           animationType: gift.animationType,
+          thumbnailUrl: gift.thumbnailUrl,
           icon: gift.icon,
           senderName: '나',
         });
@@ -1057,19 +1068,45 @@ export default function ChatRoomScreen({ route, navigation }) {
       if (item.type === 'gift' && item.gift) {
         const giftTextColor = isMe ? '#3F2A00' : colors.text;
         const giftAccentColor = isMe ? '#3F2A00' : colors.primary;
+        const giftAmount = item.gift.amount ?? item.gift.pricePoints ?? item.gift.points ?? 0;
+        const thumbUrl = item.gift.thumbnailUrl || item.gift.icon;
+        const isVip = item.gift.animationType === 'alpha_video';
 
         return (
           <View style={styles.giftContent}>
-            <View style={[styles.giftIconBadge, { borderColor: giftAccentColor }]}>
-              <Ionicons name="gift-outline" size={18} color={giftAccentColor} />
+            <View style={[styles.giftIconBadge, { borderColor: isMe ? 'rgba(63,42,0,0.2)' : 'rgba(243,108,147,0.35)' }]}>
+              {thumbUrl ? (
+                <Image
+                  source={{ uri: thumbUrl }}
+                  style={styles.giftThumbImage}
+                  resizeMode="contain"
+                />
+              ) : (
+                <Ionicons name="gift" size={20} color={giftAccentColor} />
+              )}
             </View>
             <View style={styles.giftTextWrapper}>
-              <Text style={[styles.giftTitle, { color: giftTextColor }]}>{item.gift.name}</Text>
+              <View style={styles.giftTitleRow}>
+                <Text style={[styles.giftTitle, { color: giftTextColor }]}>{item.gift.name}</Text>
+                {isVip && (
+                  <View style={styles.gift3DBadge}>
+                    <Text style={styles.gift3DBadgeText}>3D VIP</Text>
+                  </View>
+                )}
+              </View>
               <Text style={[styles.giftAmount, { color: giftAccentColor }]}>
-                {formatPoints(item.gift.amount)}P 전송
+                {giftAmount ? `${formatPoints(giftAmount)}P ` : ''}선물 {isMe ? '보냄' : '도착'} 🎁
               </Text>
               {item.gift.description ? (
-                <Text style={styles.giftDescription}>{item.gift.description}</Text>
+                <Text
+                  style={[
+                    styles.giftDescription,
+                    isMe ? { color: 'rgba(63, 42, 0, 0.75)' } : { color: colors.textSecondary },
+                  ]}
+                  numberOfLines={2}
+                >
+                  {item.gift.description}
+                </Text>
               ) : null}
             </View>
           </View>
@@ -2029,33 +2066,62 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   giftIconBadge: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(243,108,147,0.35)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFF6FB',
+    overflow: 'hidden',
+  },
+  myGiftIconBadge: {
+    borderColor: 'rgba(63, 42, 0, 0.2)',
+    backgroundColor: '#FFE812',
+  },
+  otherGiftIconBadge: {
+    borderColor: '#FED7AA',
+    backgroundColor: '#FFF7ED',
+  },
+  giftThumbImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
   },
   giftTextWrapper: {
     flex: 1,
   },
+  giftTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   giftTitle: {
     fontSize: 15,
-    fontWeight: '700',    
+    fontWeight: '700',
     color: '#1F2A44',
   },
+  gift3DBadge: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  gift3DBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+  },
   giftAmount: {
-    marginTop: 4,
+    marginTop: 3,
     fontSize: 13,
     fontWeight: '700',
     color: colors.primary,
   },
   giftDescription: {
-    marginTop: 4,
+    marginTop: 3,
     fontSize: 12,
     color: colors.textSecondary,
+    lineHeight: 16,
   },
   optionsBackdrop: {
     flex: 1,
