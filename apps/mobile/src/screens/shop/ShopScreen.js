@@ -11,6 +11,7 @@ import {
   RefreshControl,
   Modal,
   Share,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../../theme/colors';
@@ -47,6 +48,22 @@ export default function ShopScreen({ navigation }) {
   const [rewardProcessing, setRewardProcessing] = useState(false);
   const [adModalVisible, setAdModalVisible] = useState(false);
   const [adCountdown, setAdCountdown] = useState(5);
+
+  // Settlement & Creator Redemption State
+  const [settlementOverview, setSettlementOverview] = useState({
+    redeemableBalance: 0,
+    pendingEarnings: 0,
+    spendableBalance: 0,
+    minSettlementPoints: 10000,
+    taxRatePercent: 3.3,
+    recentRequests: [],
+  });
+  const [settlementModalVisible, setSettlementModalVisible] = useState(false);
+  const [settlementAmount, setSettlementAmount] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [accountHolder, setAccountHolder] = useState('');
+  const [settlementSubmitting, setSettlementSubmitting] = useState(false);
 
   const balance = useMemo(() => {
     const p = user?.pointsBalance ?? user?.points ?? user?.balance ?? 0;
@@ -100,14 +117,63 @@ export default function ShopScreen({ navigation }) {
     }
   }, []);
 
+  const loadSettlementOverview = useCallback(async () => {
+    try {
+      const data = await apiClient.getSettlementOverview();
+      if (data) setSettlementOverview(data);
+    } catch (e) {
+      console.warn('Failed to load settlement overview', e);
+    }
+  }, []);
+
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.allSettled([loadPointProducts(), refreshMe(), loadRewards()]);
+      await Promise.allSettled([loadPointProducts(), refreshMe(), loadRewards(), loadSettlementOverview()]);
     } finally {
       setRefreshing(false);
     }
-  }, [loadPointProducts, refreshMe, loadRewards]);
+  }, [loadPointProducts, refreshMe, loadRewards, loadSettlementOverview]);
+
+  const handleSubmitSettlement = async () => {
+    const pts = parseInt(settlementAmount, 10);
+    if (isNaN(pts) || pts < (settlementOverview.minSettlementPoints || 10000)) {
+      Alert.alert(
+        '출금 신청 안내',
+        `최소 출금 신청 포인트는 ${(settlementOverview.minSettlementPoints || 10000).toLocaleString()}P입니다.`,
+      );
+      return;
+    }
+    if (pts > (settlementOverview.redeemableBalance || 0)) {
+      Alert.alert('출금 신청 오류', '출금 가능한 포인트 잔액을 초과할 수 없습니다.');
+      return;
+    }
+    if (!bankName.trim() || !accountNumber.trim() || !accountHolder.trim()) {
+      Alert.alert('입력 확인', '입금 은행, 계좌번호, 예금주명을 모두 입력해 주세요.');
+      return;
+    }
+
+    try {
+      setSettlementSubmitting(true);
+      await apiClient.requestSettlement({
+        pointsAmount: pts,
+        bankName: bankName.trim(),
+        accountNumber: accountNumber.trim(),
+        accountHolder: accountHolder.trim(),
+      });
+      Alert.alert('신청 완료', '출금 신청이 정상 접수되었습니다.\n관리자 심사 후 등록하신 계좌로 입금 처리됩니다.');
+      setSettlementAmount('');
+      setBankName('');
+      setAccountNumber('');
+      setAccountHolder('');
+      setSettlementModalVisible(false);
+      await Promise.allSettled([loadSettlementOverview(), refreshMe()]);
+    } catch (e) {
+      Alert.alert('출금 신청 실패', e?.message || '출금 신청 중 오류가 발생했습니다.');
+    } finally {
+      setSettlementSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -159,7 +225,7 @@ export default function ShopScreen({ navigation }) {
           );
         }
 
-        await Promise.allSettled([loadPointProducts(), loadRewards()]);
+        await Promise.allSettled([loadPointProducts(), loadRewards(), loadSettlementOverview()]);
       } catch (initError) {
         if (!mounted) return;
         console.warn('Shop init failed', initError);
@@ -180,7 +246,7 @@ export default function ShopScreen({ navigation }) {
         InAppPurchases.disconnectAsync().catch(() => {});
       }
     };
-  }, [loadPointProducts, refreshMe]);
+  }, [loadPointProducts, loadRewards, loadSettlementOverview, refreshMe]);
 
   const displayPackages = useMemo(() => (packages.length > 0 ? packages : FALLBACK_PACKAGES), [packages]);
 
@@ -369,6 +435,39 @@ export default function ShopScreen({ navigation }) {
             <Text style={styles.bannerCtaText}>무통장 스토어{'\n'}바로가기</Text>
             <Text style={styles.bannerCtaArrow}>›</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* 크리에이터 수익금 출금/환전 카드 */}
+        <View style={styles.settlementCard}>
+          <View style={styles.settlementTopRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Ionicons name="wallet-outline" size={20} color="#059669" />
+              <Text style={styles.settlementTitle}>크리에이터 출금 / 환전</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.settlementBtn}
+              activeOpacity={0.85}
+              onPress={() => setSettlementModalVisible(true)}
+            >
+              <Text style={styles.settlementBtnText}>출금 신청</Text>
+              <Ionicons name="chevron-forward" size={14} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.settlementBalanceRow}>
+            <View style={styles.settlementBalanceCol}>
+              <Text style={styles.settlementBalanceLabel}>출금 가능 수익</Text>
+              <Text style={styles.settlementBalanceVal}>
+                {(settlementOverview.redeemableBalance || 0).toLocaleString()}P
+              </Text>
+            </View>
+            <View style={styles.settlementDivider} />
+            <View style={styles.settlementBalanceCol}>
+              <Text style={styles.settlementBalanceLabel}>정산 심사 대기</Text>
+              <Text style={[styles.settlementBalanceVal, { color: '#D97706' }]}>
+                {(settlementOverview.pendingEarnings || 0).toLocaleString()}P
+              </Text>
+            </View>
+          </View>
         </View>
 
         {/* 무료 포인트 충전소 */}
@@ -572,6 +671,158 @@ export default function ShopScreen({ navigation }) {
                 {adCountdown > 0 ? '시청 중 (닫기 불가)' : '보상 10P 받기'}
               </Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Creator Settlement Request Modal */}
+      <Modal visible={settlementModalVisible} transparent animationType="slide">
+        <View style={styles.settlementModalBackdrop}>
+          <View style={styles.settlementModalBox}>
+            <View style={styles.settlementModalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="cash" size={22} color="#059669" />
+                <Text style={styles.settlementModalTitle}>크리에이터 수익금 출금</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setSettlementModalVisible(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={24} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 460 }}>
+              {/* 잔액 요약 카드 */}
+              <View style={styles.modalBalanceBox}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.modalBalanceLabel}>출금 가능 잔액</Text>
+                  <Text style={styles.modalBalanceNum}>
+                    {(settlementOverview.redeemableBalance || 0).toLocaleString()}P
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.modalAllBtn}
+                  onPress={() => setSettlementAmount(String(settlementOverview.redeemableBalance || 0))}
+                >
+                  <Text style={styles.modalAllBtnText}>전액 입력</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* 출금 금액 입력 */}
+              <View style={styles.modalInputGroup}>
+                <Text style={styles.modalInputLabel}>출금 신청 포인트 (최소 10,000P)</Text>
+                <TextInput
+                  style={styles.modalTextInput}
+                  placeholder="예: 50000"
+                  keyboardType="numeric"
+                  value={settlementAmount}
+                  onChangeText={setSettlementAmount}
+                />
+              </View>
+
+              {/* 실시간 계산 박스 */}
+              {(() => {
+                const amt = parseInt(settlementAmount, 10) || 0;
+                const tax = Math.round(amt * 0.033);
+                const net = Math.max(0, amt - tax);
+                return (
+                  <View style={styles.calcBox}>
+                    <View style={styles.calcRow}>
+                      <Text style={styles.calcLabel}>신청 금액 (1P=1원):</Text>
+                      <Text style={styles.calcVal}>{amt.toLocaleString()}원</Text>
+                    </View>
+                    <View style={styles.calcRow}>
+                      <Text style={[styles.calcLabel, { color: '#E11D48' }]}>원천징수세액 (3.3%):</Text>
+                      <Text style={[styles.calcVal, { color: '#E11D48' }]}>-{tax.toLocaleString()}원</Text>
+                    </View>
+                    <View style={[styles.calcRow, { borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 6, marginTop: 4 }]}>
+                      <Text style={[styles.calcLabel, { fontWeight: '700', color: '#0F172A' }]}>실제 입금 예정액:</Text>
+                      <Text style={[styles.calcVal, { fontWeight: '800', color: '#059669', fontSize: 15 }]}>
+                        {net.toLocaleString()}원
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })()}
+
+              {/* 계좌 정보 입력 */}
+              <View style={styles.modalInputGroup}>
+                <Text style={styles.modalInputLabel}>입금 은행</Text>
+                <TextInput
+                  style={styles.modalTextInput}
+                  placeholder="예: 국민은행, 신한은행, 카카오뱅크..."
+                  value={bankName}
+                  onChangeText={setBankName}
+                />
+              </View>
+
+              <View style={styles.modalInputGroup}>
+                <Text style={styles.modalInputLabel}>계좌번호</Text>
+                <TextInput
+                  style={styles.modalTextInput}
+                  placeholder="숫자 및 하이픈(-) 포함 입력"
+                  keyboardType="numeric"
+                  value={accountNumber}
+                  onChangeText={setAccountNumber}
+                />
+              </View>
+
+              <View style={styles.modalInputGroup}>
+                <Text style={styles.modalInputLabel}>예금주 성명</Text>
+                <TextInput
+                  style={styles.modalTextInput}
+                  placeholder="본인 실명 입력"
+                  value={accountHolder}
+                  onChangeText={setAccountHolder}
+                />
+              </View>
+
+              {/* 최근 신청 내역 */}
+              {Array.isArray(settlementOverview.recentRequests) && settlementOverview.recentRequests.length > 0 && (
+                <View style={{ marginTop: 16 }}>
+                  <Text style={[styles.modalInputLabel, { marginBottom: 6 }]}>최근 신청 내역</Text>
+                  {settlementOverview.recentRequests.slice(0, 3).map((r) => {
+                    const statusText =
+                      r.status === 'APPROVED' ? '승인완료' : r.status === 'REJECTED' ? '반려됨' : '심사중';
+                    const statusColor =
+                      r.status === 'APPROVED' ? '#059669' : r.status === 'REJECTED' ? '#E11D48' : '#D97706';
+                    return (
+                      <View key={r.id} style={styles.historyRow}>
+                        <View>
+                          <Text style={styles.historyAmt}>{Number(r.pointsAmount).toLocaleString()}P</Text>
+                          <Text style={styles.historyDate}>
+                            {new Date(r.createdAt).toLocaleDateString('ko-KR')} · {r.bankName}
+                          </Text>
+                        </View>
+                        <Text style={[styles.historyStatus, { color: statusColor }]}>{statusText}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </ScrollView>
+
+            <View style={styles.modalActionRow}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setSettlementModalVisible(false)}
+                disabled={settlementSubmitting}
+              >
+                <Text style={styles.modalCancelBtnText}>닫기</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalSubmitBtn}
+                onPress={handleSubmitSettlement}
+                disabled={settlementSubmitting}
+              >
+                {settlementSubmitting ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.modalSubmitBtnText}>출금 신청 완료</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -889,5 +1140,218 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: 14,
+  },
+  // ===== Settlement Card & Modal Styles =====
+  settlementCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: RADIUS,
+    padding: 16,
+  },
+  settlementTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  settlementTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  settlementBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#059669',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  settlementBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  settlementBalanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  settlementBalanceCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  settlementDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#E2E8F0',
+  },
+  settlementBalanceLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    marginBottom: 2,
+  },
+  settlementBalanceVal: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#059669',
+  },
+  settlementModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  settlementModalBox: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '85%',
+  },
+  settlementModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  settlementModalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  modalBalanceBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  modalBalanceLabel: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  modalBalanceNum: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#059669',
+    marginTop: 2,
+  },
+  modalAllBtn: {
+    backgroundColor: '#E2E8F0',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  modalAllBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  modalInputGroup: {
+    marginBottom: 12,
+  },
+  modalInputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#334155',
+    marginBottom: 4,
+  },
+  modalTextInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#0F172A',
+  },
+  calcBox: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  calcRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 3,
+  },
+  calcLabel: {
+    fontSize: 12,
+    color: '#334155',
+  },
+  calcVal: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  modalActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 13,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalCancelBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  modalSubmitBtn: {
+    flex: 2,
+    backgroundColor: '#059669',
+    paddingVertical: 13,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalSubmitBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  historyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  historyAmt: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  historyDate: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 1,
+  },
+  historyStatus: {
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

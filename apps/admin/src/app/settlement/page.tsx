@@ -5,6 +5,9 @@ import {
   AlertCircle,
   ArrowDownLeft,
   ArrowUpRight,
+  BadgeCheck,
+  Building,
+  Check,
   CheckCircle,
   Coins,
   CreditCard,
@@ -14,6 +17,7 @@ import {
   RefreshCcw,
   Search,
   Wallet,
+  X,
   XCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -21,16 +25,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/use-toast'
 import {
   approveAdminRefund,
+  approveSettlementRequest,
   denyAdminRefund,
   getAdminRefunds,
   getSettlementLedger,
   getSettlementPurchases,
+  getSettlementRequests,
   getSettlementSummary,
+  rejectSettlementRequest,
   type AdminRefundRequest,
   type PointPurchaseItem,
+  type SettlementRequestItem,
   type SettlementSummary,
   type WalletLedgerItem,
 } from '@/lib/api'
@@ -42,6 +58,13 @@ const REFUND_STATUS_STYLES: Record<string, { bg: string; text: string; label: st
   denied: { bg: 'bg-rose-100', text: 'text-rose-700', label: '환불 거절' },
 }
 
+const SETTLEMENT_STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
+  PENDING: { bg: 'bg-amber-100', text: 'text-amber-700', label: '대기 중' },
+  APPROVED: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: '승인 / 송금 완료' },
+  REJECTED: { bg: 'bg-rose-100', text: 'text-rose-700', label: '반려됨' },
+  CANCELLED: { bg: 'bg-slate-100', text: 'text-slate-700', label: '취소됨' },
+}
+
 export default function SettlementPage() {
   const { toast } = useToast()
 
@@ -49,7 +72,26 @@ export default function SettlementPage() {
   const [summary, setSummary] = useState<SettlementSummary | null>(null)
   const [summaryLoading, setSummaryLoading] = useState(true)
 
-  // Tab 1: Refunds
+  // Tab: Settlement Requests (크리에이터 출금 신청)
+  const [requests, setRequests] = useState<SettlementRequestItem[]>([])
+  const [requestsTotal, setRequestsTotal] = useState(0)
+  const [requestsPage, setRequestsPage] = useState(1)
+  const [requestsTotalPages, setRequestsTotalPages] = useState(1)
+  const [requestsStatus, setRequestsStatus] = useState('all')
+  const [requestsSearch, setRequestsSearch] = useState('')
+  const [requestsLoading, setRequestsLoading] = useState(false)
+
+  // Settlement Action Dialogs
+  const [approveModalOpen, setApproveModalOpen] = useState(false)
+  const [selectedRequestForApprove, setSelectedRequestForApprove] = useState<SettlementRequestItem | null>(null)
+  const [approveMemo, setApproveMemo] = useState('')
+
+  const [rejectModalOpen, setRejectModalOpen] = useState(false)
+  const [selectedRequestForReject, setSelectedRequestForReject] = useState<SettlementRequestItem | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
+  const [submittingAction, setSubmittingAction] = useState(false)
+
+  // Tab: Refunds
   const [refunds, setRefunds] = useState<AdminRefundRequest[]>([])
   const [refundsLoading, setRefundsLoading] = useState(false)
   const [refundStatusFilter, setRefundStatusFilter] = useState('all')
@@ -145,12 +187,51 @@ export default function SettlementPage() {
     }
   }, [toast])
 
+  const loadRequests = useCallback(
+    async (page: number, status: string, search: string) => {
+      setRequestsLoading(true)
+      try {
+        const res = await getSettlementRequests({
+          page,
+          limit: 15,
+          status: status === 'all' ? undefined : status,
+          search: search.trim() || undefined,
+        })
+        setRequests(res.items)
+        setRequestsTotal(res.total)
+        setRequestsTotalPages(res.totalPages)
+      } catch (error) {
+        const ax = error as AxiosError | undefined
+        toast({
+          title: '출금 요청 로드 실패',
+          description: (ax?.response?.data as any)?.message || '출금 요청 목록을 불러오지 못했습니다.',
+          variant: 'destructive',
+        })
+      } finally {
+        setRequestsLoading(false)
+      }
+    },
+    [toast],
+  )
+
   useEffect(() => {
     void loadSummary()
+    void loadRequests(requestsPage, requestsStatus, requestsSearch)
     void loadRefunds()
     void loadPurchases(purchasesPage, purchasesPlatform)
     void loadLedger()
-  }, [loadSummary, loadRefunds, loadPurchases, loadLedger, purchasesPage, purchasesPlatform])
+  }, [
+    loadSummary,
+    loadRequests,
+    loadRefunds,
+    loadPurchases,
+    loadLedger,
+    requestsPage,
+    requestsStatus,
+    requestsSearch,
+    purchasesPage,
+    purchasesPlatform,
+  ])
 
   const handleApproveRefund = async (id: string) => {
     setActioningRefundId(id)
@@ -190,6 +271,56 @@ export default function SettlementPage() {
     }
   }
 
+  const handleApproveSettlement = async () => {
+    if (!selectedRequestForApprove) return
+    setSubmittingAction(true)
+    try {
+      await approveSettlementRequest(selectedRequestForApprove.id, approveMemo.trim() || undefined)
+      toast({ title: '출금 승인 완료', description: '출금 요청이 승인 및 송금 완료 처리되었습니다.' })
+      setApproveModalOpen(false)
+      setSelectedRequestForApprove(null)
+      setApproveMemo('')
+      void loadRequests(requestsPage, requestsStatus, requestsSearch)
+      void loadSummary()
+    } catch (error) {
+      const ax = error as AxiosError | undefined
+      toast({
+        title: '승인 처리 실패',
+        description: (ax?.response?.data as any)?.message || '승인 처리에 실패했습니다.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSubmittingAction(false)
+    }
+  }
+
+  const handleRejectSettlement = async () => {
+    if (!selectedRequestForReject) return
+    if (!rejectReason.trim()) {
+      toast({ title: '반려 사유 입력 필요', description: '반려 사유를 입력해 주세요.', variant: 'destructive' })
+      return
+    }
+    setSubmittingAction(true)
+    try {
+      await rejectSettlementRequest(selectedRequestForReject.id, rejectReason.trim())
+      toast({ title: '출금 반려 처리', description: '출금 요청이 반려되고 포인트가 환원되었습니다.' })
+      setRejectModalOpen(false)
+      setSelectedRequestForReject(null)
+      setRejectReason('')
+      void loadRequests(requestsPage, requestsStatus, requestsSearch)
+      void loadSummary()
+    } catch (error) {
+      const ax = error as AxiosError | undefined
+      toast({
+        title: '반려 처리 실패',
+        description: (ax?.response?.data as any)?.message || '반려 처리에 실패했습니다.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSubmittingAction(false)
+    }
+  }
+
   const filteredRefunds = refunds.filter((r) => {
     const matchStatus = refundStatusFilter === 'all' || r.status.toLowerCase() === refundStatusFilter.toLowerCase()
     const q = refundSearch.toLowerCase().trim()
@@ -221,6 +352,7 @@ export default function SettlementPage() {
           variant="outline"
           onClick={() => {
             void loadSummary()
+            void loadRequests(requestsPage, requestsStatus, requestsSearch)
             void loadRefunds()
             void loadPurchases(purchasesPage, purchasesPlatform)
             void loadLedger()
@@ -293,6 +425,11 @@ export default function SettlementPage() {
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   정산 대기 {summary?.totalPendingEarnings.toLocaleString() ?? 0}P
+                  {(summary?.pendingSettlementsCount ?? 0) > 0 && (
+                    <span className="ml-1.5 font-semibold text-amber-600">
+                      ({summary?.pendingSettlementsCount}건 대기)
+                    </span>
+                  )}
                 </p>
               </div>
               <CreditCard className="h-8 w-8 text-emerald-500 opacity-80" />
@@ -302,8 +439,17 @@ export default function SettlementPage() {
       </div>
 
       {/* Main Tabs */}
-      <Tabs defaultValue="refunds" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+      <Tabs defaultValue="requests" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4 max-w-xl">
+          <TabsTrigger value="requests" className="flex items-center gap-1.5">
+            <CreditCard className="h-4 w-4" />
+            출금 신청
+            {summary && (summary.pendingSettlementsCount ?? 0) > 0 && (
+              <span className="ml-1 rounded-full bg-amber-500 px-1.5 py-0.2 text-[10px] text-white">
+                {summary.pendingSettlementsCount}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="refunds" className="flex items-center gap-1.5">
             <AlertCircle className="h-4 w-4" />
             환불 요청
@@ -322,6 +468,219 @@ export default function SettlementPage() {
             원장 로그
           </TabsTrigger>
         </TabsList>
+
+        {/* Tab 0: Settlement Requests */}
+        <TabsContent value="requests" className="space-y-4">
+          <Card>
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-3">
+              <div>
+                <CardTitle className="text-lg">크리에이터 출금 신청 내역</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  수익금 환전 신청을 검토하고 원천징수 세금(3.3%) 확인 후 승인(송금) 또는 반려 처리합니다.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative w-48 sm:w-60">
+                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="예금주, 은행명, 계좌번호, 닉네임..."
+                    value={requestsSearch}
+                    onChange={(e) => setRequestsSearch(e.target.value)}
+                    className="pl-8 h-8 text-xs"
+                  />
+                </div>
+                <Select value={requestsStatus} onValueChange={setRequestsStatus}>
+                  <SelectTrigger className="w-28 h-8 text-xs">
+                    <SelectValue placeholder="상태" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체 상태</SelectItem>
+                    <SelectItem value="PENDING">대기 중</SelectItem>
+                    <SelectItem value="APPROVED">승인 완료</SelectItem>
+                    <SelectItem value="REJECTED">반려됨</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8"
+                  onClick={() => void loadRequests(requestsPage, requestsStatus, requestsSearch)}
+                  disabled={requestsLoading}
+                >
+                  {requestsLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCcw className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {requestsLoading ? (
+                <div className="flex h-40 items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : requests.length === 0 ? (
+                <div className="py-12 text-center text-sm text-muted-foreground">
+                  접수된 출금 신청 내역이 없습니다.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b text-left text-muted-foreground">
+                        <th className="p-2.5 font-medium">신청일시 / ID</th>
+                        <th className="p-2.5 font-medium">크리에이터</th>
+                        <th className="p-2.5 font-medium">입금 계좌 정보</th>
+                        <th className="p-2.5 font-medium text-right">신청 포인트</th>
+                        <th className="p-2.5 font-medium text-right">세금(3.3%)</th>
+                        <th className="p-2.5 font-medium text-right">실지급액(KRW)</th>
+                        <th className="p-2.5 font-medium text-center">상태</th>
+                        <th className="p-2.5 font-medium">처리 정보 / 메모</th>
+                        <th className="p-2.5 font-medium text-right">관리 액션</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {requests.map((item) => {
+                        const style = SETTLEMENT_STATUS_STYLES[item.status] ?? {
+                          bg: 'bg-slate-100',
+                          text: 'text-slate-700',
+                          label: item.status,
+                        }
+                        return (
+                          <tr key={item.id} className="hover:bg-muted/30">
+                            <td className="p-2.5">
+                              <p className="font-medium text-foreground">
+                                {new Date(item.createdAt).toLocaleDateString('ko-KR')}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {new Date(item.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                              <p className="font-mono text-[9px] text-muted-foreground truncate max-w-[90px]">
+                                {item.id}
+                              </p>
+                            </td>
+                            <td className="p-2.5">
+                              <div className="font-medium text-foreground">
+                                {item.activityAccount?.displayName ?? '미지정'}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground">
+                                @{item.activityAccount?.handle ?? item.activityAccountId.slice(0, 8)}
+                              </div>
+                            </td>
+                            <td className="p-2.5">
+                              <div className="flex items-center gap-1 font-semibold text-foreground">
+                                <Building className="h-3 w-3 text-muted-foreground" />
+                                {item.bankName}
+                              </div>
+                              <div className="font-mono text-[11px] text-muted-foreground">
+                                {item.accountNumber}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground">
+                                예금주: <span className="font-medium text-foreground">{item.accountHolder}</span>
+                              </div>
+                            </td>
+                            <td className="p-2.5 text-right font-medium text-foreground">
+                              {item.pointsAmount.toLocaleString()}P
+                            </td>
+                            <td className="p-2.5 text-right text-rose-600 font-medium">
+                              -{item.taxAmount.toLocaleString()}원
+                            </td>
+                            <td className="p-2.5 text-right font-bold text-emerald-600">
+                              {item.netAmount.toLocaleString()}원
+                            </td>
+                            <td className="p-2.5 text-center">
+                              <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${style.bg} ${style.text}`}
+                              >
+                                {style.label}
+                              </span>
+                            </td>
+                            <td className="p-2.5 text-muted-foreground max-w-[160px]">
+                              {item.adminMemo ? (
+                                <p className="truncate text-foreground font-medium text-[11px]" title={item.adminMemo}>
+                                  {item.adminMemo}
+                                </p>
+                              ) : (
+                                <p className="text-[11px] text-muted-foreground">—</p>
+                              )}
+                              {item.processedAt && (
+                                <p className="text-[9px] text-muted-foreground">
+                                  {new Date(item.processedAt).toLocaleDateString('ko-KR')} 처리
+                                </p>
+                              )}
+                            </td>
+                            <td className="p-2.5 text-right">
+                              {item.status === 'PENDING' ? (
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <Button
+                                    size="sm"
+                                    className="h-7 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px]"
+                                    onClick={() => {
+                                      setSelectedRequestForApprove(item)
+                                      setApproveMemo('')
+                                      setApproveModalOpen(true)
+                                    }}
+                                  >
+                                    <Check className="mr-1 h-3 w-3" />
+                                    송금 승인
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 px-2 border-rose-200 text-rose-600 hover:bg-rose-50 text-[11px]"
+                                    onClick={() => {
+                                      setSelectedRequestForReject(item)
+                                      setRejectReason('')
+                                      setRejectModalOpen(true)
+                                    }}
+                                  >
+                                    <X className="mr-1 h-3 w-3" />
+                                    반려
+                                  </Button>
+                                </div>
+                              ) : (
+                                <span className="text-[11px] text-muted-foreground">처리 완료</span>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Pagination */}
+              {requestsTotalPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t mt-4 text-xs">
+                  <span className="text-muted-foreground">
+                    총 {requestsTotal}건 중 {(requestsPage - 1) * 15 + 1}~{Math.min(requestsPage * 15, requestsTotal)}건
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2"
+                      onClick={() => setRequestsPage((p) => Math.max(1, p - 1))}
+                      disabled={requestsPage <= 1}
+                    >
+                      이전
+                    </Button>
+                    <span className="px-2">
+                      {requestsPage} / {requestsTotalPages}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2"
+                      onClick={() => setRequestsPage((p) => Math.min(requestsTotalPages, p + 1))}
+                      disabled={requestsPage >= requestsTotalPages}
+                    >
+                      다음
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Tab 1: Refunds */}
         <TabsContent value="refunds" className="space-y-4">
@@ -668,6 +1027,143 @@ export default function SettlementPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Approve Dialog */}
+      <Dialog open={approveModalOpen} onOpenChange={setApproveModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-emerald-600" />
+              출금 요청 승인 및 송금 완료
+            </DialogTitle>
+            <DialogDescription>
+              아래 송금 정보를 확인 후 승인 처리하세요. 크리에이터의 정산 대기 잔액이 정산 완료로 소진됩니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedRequestForApprove && (
+            <div className="space-y-3 py-2 text-xs">
+              <div className="rounded-lg border bg-muted/40 p-3 space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">크리에이터:</span>
+                  <span className="font-semibold text-foreground">
+                    {selectedRequestForApprove.activityAccount?.displayName ?? '미지정'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">입금 은행:</span>
+                  <span className="font-semibold text-foreground">{selectedRequestForApprove.bankName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">계좌번호:</span>
+                  <span className="font-mono font-semibold text-foreground">{selectedRequestForApprove.accountNumber}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">예금주:</span>
+                  <span className="font-semibold text-foreground">{selectedRequestForApprove.accountHolder}</span>
+                </div>
+                <div className="border-t pt-1.5 flex justify-between">
+                  <span className="text-muted-foreground">신청 포인트:</span>
+                  <span className="font-medium text-foreground">{selectedRequestForApprove.pointsAmount.toLocaleString()}P</span>
+                </div>
+                <div className="flex justify-between text-rose-600">
+                  <span>원천징수세(3.3%):</span>
+                  <span>-{selectedRequestForApprove.taxAmount.toLocaleString()}원</span>
+                </div>
+                <div className="border-t pt-1.5 flex justify-between text-sm font-bold text-emerald-600">
+                  <span>실 지급 송금액:</span>
+                  <span>{selectedRequestForApprove.netAmount.toLocaleString()}원</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-medium text-foreground">관리자 송금 메모 (선택)</label>
+                <Input
+                  placeholder="예: 기업은행 송금 완료 (이체번호: 20261001-001)"
+                  value={approveMemo}
+                  onChange={(e) => setApproveMemo(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" size="sm" onClick={() => setApproveModalOpen(false)} disabled={submittingAction}>
+              취소
+            </Button>
+            <Button
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={() => void handleApproveSettlement()}
+              disabled={submittingAction}
+            >
+              {submittingAction ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-2 h-3.5 w-3.5" />}
+              승인 및 송금 완료 처리
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Dialog */}
+      <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-600">
+              <XCircle className="h-5 w-5" />
+              출금 요청 반려
+            </DialogTitle>
+            <DialogDescription>
+              요청을 반려하면 대기 잔액에서 차감되었던{' '}
+              <strong className="text-foreground">
+                {selectedRequestForReject?.pointsAmount.toLocaleString()}P
+              </strong>
+              가 크리에이터의 출금 가능 잔액으로 즉시 환원됩니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedRequestForReject && (
+            <div className="space-y-3 py-2 text-xs">
+              <div className="rounded-lg border bg-rose-50/50 border-rose-100 p-3 space-y-1">
+                <p className="text-muted-foreground">
+                  신청자: <span className="font-semibold text-foreground">{selectedRequestForReject.activityAccount?.displayName}</span> (
+                  {selectedRequestForReject.bankName} {selectedRequestForReject.accountNumber})
+                </p>
+                <p className="text-muted-foreground">
+                  신청 포인트: <span className="font-bold text-rose-600">{selectedRequestForReject.pointsAmount.toLocaleString()}P</span>
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-medium text-foreground">
+                  반려 사유 <span className="text-rose-500">*</span>
+                </label>
+                <Input
+                  placeholder="예: 예금주명과 본인 확인 명의 불일치 / 계좌번호 오류"
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" size="sm" onClick={() => setRejectModalOpen(false)} disabled={submittingAction}>
+              취소
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => void handleRejectSettlement()}
+              disabled={submittingAction || !rejectReason.trim()}
+            >
+              {submittingAction ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <X className="mr-2 h-3.5 w-3.5" />}
+              반려 및 포인트 환원
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
