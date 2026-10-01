@@ -146,6 +146,16 @@ export default function LiveRoomScreen({ navigation, route }) {
         if (msg.type === 'like') {
           setLikeCount((c) => c + 1);
         } else if (msg.type === 'gift') {
+          if (typeof msg.giftPoints === 'number' && msg.giftPoints > 0) {
+            setRoom((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    totalGiftsPoints: (prev.totalGiftsPoints || 0) + msg.giftPoints,
+                  }
+                : prev,
+            );
+          }
           if (!processedGiftMessageIdsRef.current.has(msg.id)) {
             processedGiftMessageIdsRef.current.add(msg.id);
             try {
@@ -202,6 +212,23 @@ export default function LiveRoomScreen({ navigation, route }) {
       }
     };
   }, [roomId, authToken, navigation]);
+
+  const fetchMyPoints = useCallback(async () => {
+    try {
+      const me = await apiClient.getMe();
+      if (me && typeof me.pointsBalance === 'number') {
+        setMyPoints(me.pointsBalance);
+      } else if (me && typeof me.points === 'number') {
+        setMyPoints(me.points);
+      }
+    } catch {
+      // quiet fallback
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMyPoints();
+  }, [fetchMyPoints]);
 
   // Initial load and backup polling
   const fetchMessages = useCallback(async () => {
@@ -288,6 +315,7 @@ export default function LiveRoomScreen({ navigation, route }) {
   };
 
   const handleOpenGiftPicker = () => {
+    fetchMyPoints();
     setGiftPickerVisible(true);
   };
 
@@ -300,8 +328,13 @@ export default function LiveRoomScreen({ navigation, route }) {
         idempotencyKey,
       });
 
-      if (res?.data?.newBalance !== undefined) {
-        setMyPoints(res.data.newBalance);
+      const updatedBalance = res?.newBalance ?? res?.data?.newBalance;
+      if (updatedBalance !== undefined && updatedBalance !== null) {
+        setMyPoints(Number(updatedBalance));
+      }
+      const updatedTotalGifts = res?.totalGiftsPoints ?? res?.data?.totalGiftsPoints;
+      if (typeof updatedTotalGifts === 'number') {
+        setRoom((prev) => (prev ? { ...prev, totalGiftsPoints: updatedTotalGifts } : prev));
       }
 
       // 내 화면에서도 3D 투명 비디오/애니메이션 이펙트 큐에 즉시 삽입
@@ -309,7 +342,7 @@ export default function LiveRoomScreen({ navigation, route }) {
         giftId: gift.id,
         giftName: gift.name,
         pricePoints: gift.pricePoints,
-        senderNickname: currentUser?.displayName || '나',
+        senderNickname: currentUser?.displayName || currentUser?.name || '나',
         animationUrl: gift.animationUrl,
         animationType: gift.animationType || 'alpha_video',
         thumbnailUrl: gift.thumbnailUrl,
@@ -451,6 +484,27 @@ export default function LiveRoomScreen({ navigation, route }) {
     const isGift = item.type === 'gift';
     const isLike = item.type === 'like';
 
+    let displayContent = item.content;
+    let giftMeta = null;
+
+    if (isGift) {
+      try {
+        giftMeta = typeof item.content === 'string' ? JSON.parse(item.content) : item.content;
+        const giftTitle = giftMeta?.giftName || '선물';
+        const points = giftMeta?.pricePoints || item.giftPoints || 0;
+        const note = giftMeta?.message ? ` "${giftMeta.message}"` : '';
+        displayContent = `🎁 [${giftTitle}] 후원! (${Number(points).toLocaleString()}P)${note}`;
+      } catch {
+        displayContent = `🎁 선물 후원! (${Number(item.giftPoints || 0).toLocaleString()}P)`;
+      }
+    }
+
+    const authorName =
+      (isGift && giftMeta?.senderNickname) ||
+      item.sender?.name ||
+      item.sender?.profile?.nickname ||
+      '참여자';
+
     return (
       <TouchableOpacity
         style={[
@@ -461,9 +515,9 @@ export default function LiveRoomScreen({ navigation, route }) {
         onPress={() => handleMessagePress(item)}
         activeOpacity={0.8}
       >
-        <Text style={styles.chatAuthor}>{item.sender?.name || '참여자'}</Text>
+        <Text style={[styles.chatAuthor, isGift && styles.giftAuthor]}>{authorName}</Text>
         <Text style={[styles.chatContent, isGift && styles.giftContent]}>
-          {item.content}
+          {displayContent}
         </Text>
       </TouchableOpacity>
     );
@@ -571,6 +625,14 @@ export default function LiveRoomScreen({ navigation, route }) {
             <View style={styles.rtcBadge}>
               <View style={styles.rtcDot} />
               <Text style={styles.rtcBadgeText}>RTC HD</Text>
+            </View>
+          )}
+          {Boolean(room?.totalGiftsPoints && room.totalGiftsPoints > 0) && (
+            <View style={styles.giftTotalBadge}>
+              <Ionicons name="gift" size={13} color="#F59E0B" />
+              <Text style={styles.giftTotalBadgeText}>
+                {Number(room.totalGiftsPoints).toLocaleString()}P
+              </Text>
             </View>
           )}
           <View style={styles.viewerBadge}>
@@ -1061,6 +1123,9 @@ const styles = StyleSheet.create({
     color: '#A5B4FC',
     marginBottom: 2,
   },
+  giftAuthor: {
+    color: '#FDE68A',
+  },
   chatContent: {
     fontSize: 13,
     color: '#FFFFFF',
@@ -1068,6 +1133,22 @@ const styles = StyleSheet.create({
   },
   giftContent: {
     color: '#FDE68A',
+    fontWeight: '700',
+  },
+  giftTotalBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(245, 158, 11, 0.25)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  giftTotalBadgeText: {
+    color: '#FDE68A',
+    fontSize: 12,
     fontWeight: '700',
   },
   controlsBar: {

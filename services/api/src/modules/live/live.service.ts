@@ -673,6 +673,7 @@ export class LiveService {
         pricePoints: gift.pricePoints,
         animationUrl: gift.animationUrl,
         animationType: gift.animationType,
+        thumbnailUrl: gift.thumbnailUrl,
         senderNickname,
         message: dto.message || '',
       });
@@ -740,6 +741,7 @@ export class LiveService {
         pricePoints: gift.pricePoints,
         animationUrl: gift.animationUrl,
         animationType: gift.animationType,
+        thumbnailUrl: gift.thumbnailUrl,
       },
       senderNickname,
       totalGiftsPoints: result.updatedRoom.totalGiftsPoints,
