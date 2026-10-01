@@ -329,4 +329,127 @@ export class NotificationsService implements OnModuleInit {
 
     return { sent, failed, total };
   }
+
+  async getActivityNotifications(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { activityAccountBridge: { select: { id: true } } },
+    });
+
+    const accountId = user?.activityAccountBridge?.id;
+    if (!accountId) return [];
+
+    const [gifts, settlements, visits] = await Promise.all([
+      this.prisma.giftTransaction.findMany({
+        where: { recipientAccountId: accountId },
+        orderBy: { createdAt: 'desc' },
+        take: 15,
+        include: {
+          gift: { select: { name: true, thumbnailUrl: true } },
+          senderAccount: {
+            select: {
+              displayName: true,
+              legacyUser: {
+                select: {
+                  profile: { select: { nickname: true, avatarUri: true } },
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.settlementRequest.findMany({
+        where: { activityAccountId: accountId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      this.prisma.profileVisit.findMany({
+        where: { visitedAccountId: accountId },
+        orderBy: { visitedAt: 'desc' },
+        take: 15,
+        include: {
+          visitorAccount: {
+            select: {
+              id: true,
+              displayName: true,
+              legacyUser: {
+                select: {
+                  id: true,
+                  profile: { select: { nickname: true, avatarUri: true } },
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const items: Array<{
+      id: string;
+      type: 'gift' | 'settlement' | 'visit';
+      title: string;
+      body: string;
+      createdAt: Date;
+      avatar?: string | null;
+      data?: any;
+    }> = [];
+
+    for (const g of gifts) {
+      const senderName =
+        g.senderAccount.legacyUser?.profile?.nickname ||
+        g.senderAccount.displayName ||
+        '어떤 이웃';
+      items.push({
+        id: `gift-${g.id}`,
+        type: 'gift',
+        title: `🎁 ${senderName}님에게서 선물이 도착했어요!`,
+        body: `[${g.gift.name}] 선물 (+${g.points.toLocaleString()}P)이 적립되었습니다.`,
+        createdAt: g.createdAt,
+        avatar: g.senderAccount.legacyUser?.profile?.avatarUri || null,
+        data: { points: g.points, giftName: g.gift.name },
+      });
+    }
+
+    for (const s of settlements) {
+      const statusText =
+        s.status === 'APPROVED'
+          ? '승인 및 송금 완료'
+          : s.status === 'REJECTED'
+          ? '반려됨'
+          : '심사 진행 중';
+      items.push({
+        id: `settle-${s.id}`,
+        type: 'settlement',
+        title: `💳 출금 신청 상태 안내 (${statusText})`,
+        body:
+          s.status === 'APPROVED'
+            ? `${s.pointsAmount.toLocaleString()}P 출금 신청이 승인되어 ${s.netAmount.toLocaleString()}원이 입금되었습니다.`
+            : s.status === 'REJECTED'
+            ? `출금 신청이 반려되었습니다. (사유: ${s.adminMemo || '정보 불일치'})`
+            : `${s.pointsAmount.toLocaleString()}P 출금 심사가 접수되어 대기 중입니다.`,
+        createdAt: s.updatedAt || s.createdAt,
+        data: { status: s.status, amount: s.netAmount },
+      });
+    }
+
+    for (const v of visits) {
+      const visitorName =
+        v.visitorAccount.legacyUser?.profile?.nickname ||
+        v.visitorAccount.displayName ||
+        '새로운 이웃';
+      items.push({
+        id: `visit-${v.id}`,
+        type: 'visit',
+        title: `👀 ${visitorName}님이 회원님의 프로필을 확인했어요!`,
+        body: '회원님의 프로필에 관심을 보이고 있어요. 먼저 반갑게 인사를 건네보세요!',
+        createdAt: v.visitedAt,
+        avatar: v.visitorAccount.legacyUser?.profile?.avatarUri || null,
+        data: { visitorId: v.visitorAccount.legacyUser?.id },
+      });
+    }
+
+    items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    return items;
+  }
 }

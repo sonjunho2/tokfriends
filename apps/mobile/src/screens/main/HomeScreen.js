@@ -273,7 +273,7 @@ export default function HomeScreen({ navigation }) {
           {/* 알림 아이콘 */}
           <TouchableOpacity
             style={styles.appbarIconBtn}
-            onPress={() => navigation.navigate('Chat')}
+            onPress={() => navigation.navigate('Notifications')}
             hitSlop={8}
             activeOpacity={0.7}
           >

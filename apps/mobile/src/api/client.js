@@ -2210,6 +2210,72 @@ export const apiClient = {
     });
     return data?.data ?? data;
   },
+
+  async getAnnouncements() {
+    try {
+      const { data } = await client.get('/announcements/active');
+      const list = data?.data?.items || data?.data || data?.items || data;
+      return Array.isArray(list) ? list : [];
+    } catch (e) {
+      if (USE_DUMMY_AUTH) {
+        return [
+          {
+            id: 'ann-1',
+            title: '🎉 다가온 신규 업데이트 안내: 클린 커뮤니티 & 실시간 활동',
+            content: '안녕하세요, 다가온 팀입니다!\n\n회원 여러분의 안전하고 즐거운 소통을 위해 24시간 실시간 모니터링 시스템과 유해 콘텐츠 필터링이 강화되었습니다.\n사진 및 미디어 피드를 통해 일상을 공유하고, 소중한 이웃과 따뜻한 선물을 나누어보세요.\n\n항상 다가온을 이용해 주셔서 감사합니다.',
+            isImportant: true,
+            createdAt: new Date().toISOString(),
+          },
+          {
+            id: 'ann-2',
+            title: '💳 크리에이터 포인트 출금(정산) 정책 개정 안내',
+            content: '크리에이터 포인트 출금은 최소 10,000P부터 신청 가능하며, 매주 화요일 일괄 심사 및 송금이 진행됩니다.\n계좌정보가 정확하지 않을 경우 반려될 수 있으니 등록된 본인 명의 계좌를 다시 한 번 확인해 주시기 바랍니다.',
+            isImportant: false,
+            createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+          },
+        ];
+      }
+      return [];
+    }
+  },
+
+  async getActivityNotifications() {
+    try {
+      const { data } = await client.get('/notifications/activity');
+      const list = data?.data?.items || data?.data || data?.items || data;
+      return Array.isArray(list) ? list : [];
+    } catch (e) {
+      if (USE_DUMMY_AUTH) {
+        return [
+          {
+            id: 'mock-notif-1',
+            type: 'gift',
+            title: '🎁 이지수님에게서 선물이 도착했어요!',
+            body: '[하트 팡팡] 선물 (+500P)이 적립되었습니다.',
+            createdAt: new Date(Date.now() - 15 * 60000).toISOString(),
+            avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+            data: { points: 500, giftName: '하트 팡팡' },
+          },
+          {
+            id: 'mock-notif-2',
+            type: 'visit',
+            title: '👀 새로운 이웃이 프로필을 둘러보았습니다.',
+            body: '김민우님이 회원님의 프로필을 방문했습니다.',
+            createdAt: new Date(Date.now() - 3 * 3600000).toISOString(),
+            avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+          },
+          {
+            id: 'mock-notif-3',
+            type: 'settlement',
+            title: '💳 출금 신청 상태 안내 (승인 완료)',
+            body: '50,000P 출금 신청이 승인되어 48,350원이 등록된 계좌로 입금되었습니다.',
+            createdAt: new Date(Date.now() - 86400000).toISOString(),
+          },
+        ];
+      }
+      return [];
+    }
+  },
 };
 
 export default client;

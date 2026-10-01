@@ -12,6 +12,7 @@ import {
 import { ApiBearerAuth, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { PrismaService } from "nestjs-prisma";
 import { CurrentUser } from "../auth/current-user.decorator";
+import { JwtAuthGuard } from "../auth/jwt.guard";
 import { NotificationsService } from "./notifications.service";
 import { RegisterDeviceTokenDto } from "./dto";
 import { Roles, RolesGuard } from "../../common/roles.guard";
@@ -49,6 +50,16 @@ export class NotificationsController {
   listDevices(@CurrentUser() user: CurrentRequestUser) {
     if (!user?.id) throw new BadRequestException("Missing authenticated user");
     return this.notificationsService.listUserDevices(user.id);
+  }
+
+  @Get("activity")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async getActivityNotifications(@CurrentUser() user: any) {
+    const userId = user?.sub ?? user?.id;
+    if (!userId) throw new BadRequestException("Missing authenticated user");
+    const data = await this.notificationsService.getActivityNotifications(userId);
+    return { ok: true, data };
   }
 
   // Admin: broadcast push

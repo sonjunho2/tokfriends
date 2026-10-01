@@ -23,6 +23,7 @@ import HotRecommendScreen from '../screens/recommend/HotRecommendScreen';
 import ChatRoomScreen from '../screens/main/ChatRoomScreen';
 import ProfileDetailScreen from '../screens/main/ProfileDetailScreen';
 import LiveRoomScreen from '../screens/live/LiveRoomScreen';
+import NotificationsScreen from '../screens/main/NotificationsScreen';
 
 // ===== 인증 =====
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
@@ -96,6 +97,11 @@ function HomeStack() {
       <HomeStackNav.Screen
         name="Shop"
         component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <HomeStackNav.Screen
+        name="Notifications"
+        component={NotificationsScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </HomeStackNav.Navigator>
@@ -231,6 +237,11 @@ function MyPageStack() {
       <MyPageStackNav.Screen
         name="Shop"
         component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="Notifications"
+        component={NotificationsScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </MyPageStackNav.Navigator>
