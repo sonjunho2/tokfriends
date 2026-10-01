@@ -49,6 +49,14 @@ export class UsersService {
             badges: true,
           },
         },
+        ownerBridge: {
+          select: {
+            activityAccounts: {
+              select: { id: true },
+              take: 1,
+            },
+          },
+        },
       },
     });
   }

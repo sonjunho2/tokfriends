@@ -1601,6 +1601,16 @@ export const apiClient = {
     return data?.data ?? data;
   },
 
+  async getUserById(id) {
+    if (!id) return null;
+    try {
+      const { data } = await client.get(`/users/${encodeURIComponent(String(id).trim())}`);
+      return data?.data ?? data;
+    } catch {
+      return null;
+    }
+  },
+
   async getFollowStatus(targetAccountId) {
     if (!targetAccountId) return { following: false };
     try {
