@@ -44,7 +44,10 @@ export class ProfileVisitsService {
 
             const targetAccount = await transaction.activityAccount.findFirst({
               where: {
-                id: targetAccountId,
+                OR: [
+                  { id: targetAccountId },
+                  { owner: { legacyUserId: targetAccountId } },
+                ],
                 status: "active",
                 owner: { status: "active" },
               },

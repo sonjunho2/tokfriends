@@ -124,6 +124,7 @@ export class UsersController {
             badges: user.profile.badges ?? [],
           }
         : null,
+      targetAccountId: user.ownerBridge?.activityAccounts?.[0]?.id ?? null,
     };
   }
   private serializeUser(user: any) {

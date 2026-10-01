@@ -1,5 +1,4 @@
-// src/screens/main/ProfileDetailScreen.js
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,12 +6,17 @@ import {
   TouchableOpacity,
   ScrollView,
   ImageBackground,
+  Image,
+  Modal,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Avatar from '../../components/Avatar';
 import ReportModal from '../../components/ReportModal';
+import GiftPickerSheet from '../../components/GiftPickerSheet';
+import GiftEffectOverlay from '../../components/GiftEffectOverlay';
 import colors from '../../theme/colors';
 import { apiClient } from '../../api/client';
 
@@ -22,7 +26,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
   const isSelf = Boolean(route?.params?.isSelf);
   const [sending, setSending] = useState(false);
 
-  const targetAccountId =
+  const initialTargetAccountId =
     typeof profile?.targetAccountId === 'string' ? profile.targetAccountId.trim() : '';
   const targetUserId =
     typeof profile?.targetUserId === 'string'
@@ -30,6 +34,9 @@ export default function ProfileDetailScreen({ navigation, route }) {
       : typeof profile?.id === 'string' && !profile.id.startsWith('acc_')
       ? profile.id.trim()
       : '';
+
+  const [resolvedAccountId, setResolvedAccountId] = useState(initialTargetAccountId);
+  const targetAccountId = resolvedAccountId || initialTargetAccountId;
 
   const [following, setFollowing] = useState(false);
   const [interested, setInterested] = useState(false);
@@ -40,10 +47,41 @@ export default function ProfileDetailScreen({ navigation, route }) {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [blocking, setBlocking] = useState(false);
 
+  // 선물하기 및 3D 이펙트 상태
+  const [giftPickerVisible, setGiftPickerVisible] = useState(false);
+  const [myPoints, setMyPoints] = useState(0);
+  const giftOverlayRef = useRef(null);
+
+  // 사진 확대 보기 모달 상태
+  const [photoViewerVisible, setPhotoViewerVisible] = useState(false);
+  const [activePhotoUrl, setActivePhotoUrl] = useState(null);
+
+  const fetchMyPoints = useCallback(async () => {
+    try {
+      const res = await apiClient.getPointBalance();
+      if (res?.balance !== undefined) {
+        setMyPoints(Number(res.balance));
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     if ((targetAccountId || targetUserId) && !isSelf) {
-      if (targetAccountId) apiClient.recordProfileVisit(targetAccountId);
+      // 1. 방문자 기록 남기기 (알림 센터와 실시간 연계)
+      apiClient.recordProfileVisit(targetAccountId || targetUserId).catch(() => {});
+
+      // 2. targetAccountId가 없고 targetUserId만 있으면 유저 상세 조회로 accountId 보충
+      if (!targetAccountId && targetUserId) {
+        apiClient.getUserById(targetUserId).then((u) => {
+          if (mounted && u?.targetAccountId) {
+            setResolvedAccountId(u.targetAccountId);
+            apiClient.recordProfileVisit(u.targetAccountId).catch(() => {});
+          }
+        }).catch(() => {});
+      }
+
+      // 3. 상태(팔로우, 관심, 친구) 일괄 조회
       Promise.all([
         targetAccountId ? apiClient.getFollowStatus(targetAccountId) : Promise.resolve({ following: false }),
         targetAccountId ? apiClient.getInterestStatus(targetAccountId) : Promise.resolve({ interested: false }),
@@ -101,6 +139,62 @@ export default function ProfileDetailScreen({ navigation, route }) {
     }
     return items;
   }, [data.age, data.distanceKm, data.points]);
+
+  const handleOpenGiftSheet = () => {
+    fetchMyPoints();
+    setGiftPickerVisible(true);
+  };
+
+  const handleSendGift = async (gift) => {
+    if (!gift?.id) return;
+    if (!targetUserId && !targetAccountId) {
+      Alert.alert('오류', '선물할 대상 회원 정보를 찾을 수 없습니다.');
+      return;
+    }
+
+    try {
+      const room = await apiClient.ensureDirectRoom(
+        targetUserId ? { targetUserId } : { targetAccountId },
+      );
+      const roomId = room?.id || room?._id;
+      if (!roomId) throw new Error('채팅방을 생성하지 못했습니다.');
+
+      const res = await apiClient.sendChatGift({
+        chatId: roomId,
+        giftId: gift.id,
+      });
+
+      if (res?.spendableBalance !== undefined) {
+        setMyPoints(Number(res.spendableBalance));
+      } else {
+        setMyPoints((prev) => Math.max(0, prev - (gift.amount || gift.pricePoints || 0)));
+      }
+      setGiftPickerVisible(false);
+
+      giftOverlayRef.current?.enqueueGift({
+        name: gift.name,
+        amount: gift.amount || gift.pricePoints || 0,
+        animationUrl: gift.animationUrl,
+        animationType: gift.animationType,
+        thumbnailUrl: gift.thumbnailUrl,
+        icon: gift.icon,
+        senderName: '나',
+      });
+
+      Alert.alert(
+        '🎁 선물 전송 완료',
+        `${data.name}님에게 [${gift.name}] 선물을 보냈습니다!`,
+      );
+    } catch (e) {
+      Alert.alert('선물 실패', e?.message || '선물을 보내지 못했습니다. 포인트를 확인해 주세요.');
+    }
+  };
+
+  const handleOpenPhoto = (url) => {
+    if (!url) return;
+    setActivePhotoUrl(url);
+    setPhotoViewerVisible(true);
+  };
 
   const handleToggleFollow = async () => {
     if (!targetAccountId) {
@@ -388,7 +482,11 @@ export default function ProfileDetailScreen({ navigation, route }) {
                 <View style={styles.headerSpacer} />
               )}
             </View>
-            <View style={styles.avatarWrapper}>
+            <TouchableOpacity
+              style={styles.avatarWrapper}
+              activeOpacity={0.9}
+              onPress={() => handleOpenPhoto(data.avatar || data.coverImage)}
+            >
               <Avatar
                 size={96}
                 uri={data.avatar}
@@ -397,7 +495,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
                 shape="circle"
                 style={styles.avatar}
               />
-            </View>
+            </TouchableOpacity>
           </ImageBackground>
         </View>
 
@@ -442,85 +540,99 @@ export default function ProfileDetailScreen({ navigation, route }) {
             </TouchableOpacity>
           ) : (
             <View style={styles.actionButtonGroup}>
-              {Boolean(targetAccountId) && (
-                <View style={styles.actionRow}>
-                  <TouchableOpacity
-                    style={[
-                      styles.secondaryActionButton,
-                      interested && styles.secondaryActionButtonActive,
-                      updatingInterest && { opacity: 0.6 },
-                    ]}
-                    onPress={handleToggleInterest}
-                    activeOpacity={0.85}
-                    disabled={updatingInterest}
-                  >
-                    <Ionicons
-                      name={interested ? 'heart' : 'heart-outline'}
-                      size={20}
-                      color={interested ? '#FF3B6B' : colors.textSecondary}
-                    />
-                    <Text
-                      style={[
-                        styles.secondaryActionText,
-                        interested && styles.secondaryActionTextActive,
-                      ]}
-                    >
-                      {interested ? '관심 보냄' : '관심 보내기'}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.secondaryActionButton,
-                      following && styles.followingActionButton,
-                      updatingFollow && { opacity: 0.6 },
-                    ]}
-                    onPress={handleToggleFollow}
-                    activeOpacity={0.85}
-                    disabled={updatingFollow}
-                  >
-                    <Ionicons
-                      name={following ? 'checkmark-circle-outline' : 'person-add-outline'}
-                      size={20}
-                      color={following ? colors.primary : colors.textSecondary}
-                    />
-                    <Text
-                      style={[
-                        styles.secondaryActionText,
-                        following && styles.followingActionText,
-                      ]}
-                    >
-                      {following ? '팔로잉' : '팔로우'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              <TouchableOpacity
-                style={[
-                  styles.friendButton,
-                  friendButtonConfig.active && styles.friendButtonActive,
-                  updatingFriend && { opacity: 0.6 },
-                ]}
-                onPress={handleFriendAction}
-                activeOpacity={0.85}
-                disabled={updatingFriend}
-              >
-                <Ionicons
-                  name={friendButtonConfig.icon}
-                  size={20}
-                  color={friendButtonConfig.color}
-                />
-                <Text
-                  style={[
-                    styles.friendButtonText,
-                    friendButtonConfig.active && { color: friendButtonConfig.color },
-                  ]}
+              {/* 1행: 선물하기 & 관심 보내기 */}
+              <View style={styles.actionRow}>
+                <TouchableOpacity
+                  style={[styles.secondaryActionButton, styles.giftActionButton]}
+                  onPress={handleOpenGiftSheet}
+                  activeOpacity={0.85}
                 >
-                  {friendButtonConfig.label}
-                </Text>
-              </TouchableOpacity>
+                  <Ionicons name="gift" size={20} color="#EF4444" />
+                  <Text style={[styles.secondaryActionText, styles.giftActionText]}>
+                    선물하기
+                  </Text>
+                </TouchableOpacity>
 
+                <TouchableOpacity
+                  style={[
+                    styles.secondaryActionButton,
+                    interested && styles.secondaryActionButtonActive,
+                    updatingInterest && { opacity: 0.6 },
+                  ]}
+                  onPress={handleToggleInterest}
+                  activeOpacity={0.85}
+                  disabled={updatingInterest}
+                >
+                  <Ionicons
+                    name={interested ? 'heart' : 'heart-outline'}
+                    size={20}
+                    color={interested ? '#FF3B6B' : colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      styles.secondaryActionText,
+                      interested && styles.secondaryActionTextActive,
+                    ]}
+                  >
+                    {interested ? '관심 보냄' : '관심 보내기'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* 2행: 팔로우 & 친구 요청 */}
+              <View style={styles.actionRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.secondaryActionButton,
+                    following && styles.followingActionButton,
+                    updatingFollow && { opacity: 0.6 },
+                  ]}
+                  onPress={handleToggleFollow}
+                  activeOpacity={0.85}
+                  disabled={updatingFollow}
+                >
+                  <Ionicons
+                    name={following ? 'checkmark-circle-outline' : 'person-add-outline'}
+                    size={20}
+                    color={following ? colors.primary : colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      styles.secondaryActionText,
+                      following && styles.followingActionText,
+                    ]}
+                  >
+                    {following ? '팔로잉' : '팔로우'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.secondaryActionButton,
+                    friendButtonConfig.active && styles.friendButtonActive,
+                    updatingFriend && { opacity: 0.6 },
+                  ]}
+                  onPress={handleFriendAction}
+                  activeOpacity={0.85}
+                  disabled={updatingFriend}
+                >
+                  <Ionicons
+                    name={friendButtonConfig.icon}
+                    size={20}
+                    color={friendButtonConfig.color}
+                  />
+                  <Text
+                    style={[
+                      styles.secondaryActionText,
+                      friendButtonConfig.active && { color: friendButtonConfig.color },
+                    ]}
+                  >
+                    {friendButtonConfig.label}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* 3행: 1:1 메시지 보내기 */}
               <TouchableOpacity
                 style={[styles.primaryButton, sending && { opacity: 0.6 }]}
                 onPress={handleMessage}
@@ -528,12 +640,54 @@ export default function ProfileDetailScreen({ navigation, route }) {
                 disabled={sending}
               >
                 <Ionicons name="chatbubble-ellipses-outline" size={20} color={colors.textInverse} />
-                <Text style={styles.primaryButtonText}>메시지 보내기</Text>
+                <Text style={styles.primaryButtonText}>1:1 대화 시작하기</Text>
               </TouchableOpacity>
             </View>
           )}
         </View>
       </ScrollView>
+
+      {/* 3D 선물 이펙트 오버레이 */}
+      <GiftEffectOverlay ref={giftOverlayRef} />
+
+      {/* 선물 선택 바텀 시트 */}
+      <GiftPickerSheet
+        visible={giftPickerVisible}
+        onClose={() => setGiftPickerVisible(false)}
+        onSendGift={handleSendGift}
+        myPoints={myPoints}
+        onGoToShop={() => navigation.navigate('Shop')}
+        context="chat"
+      />
+
+      {/* 프로필 사진 확대 보기 모달 */}
+      <Modal
+        visible={photoViewerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPhotoViewerVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.photoViewerBackdrop}
+          activeOpacity={1}
+          onPress={() => setPhotoViewerVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.photoViewerCloseBtn}
+            onPress={() => setPhotoViewerVisible(false)}
+            hitSlop={12}
+          >
+            <Ionicons name="close" size={28} color="#FFFFFF" />
+          </TouchableOpacity>
+          {activePhotoUrl && (
+            <Image
+              source={{ uri: activePhotoUrl }}
+              style={styles.photoViewerImage}
+              resizeMode="contain"
+            />
+          )}
+        </TouchableOpacity>
+      </Modal>
 
       <ReportModal
         visible={reportModalVisible}
@@ -764,5 +918,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colors.primaryDark,
+  },
+  giftActionButton: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+  },
+  giftActionText: {
+    color: '#EF4444',
+    fontWeight: '700',
+  },
+  photoViewerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.94)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoViewerCloseBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+  },
+  photoViewerImage: {
+    width: '92%',
+    height: '75%',
+    borderRadius: 12,
   },
 });
