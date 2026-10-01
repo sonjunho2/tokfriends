@@ -4,6 +4,25 @@ Updated: 2026-10-01
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-01 Checkpoint 9: 라이브 스트리밍 아고라(Agora) 관리자 설정 연동 & 토큰 발급 및 실시간 방송 스트림 고도화 (완료)
+
+### 1. 관리자 시스템 환경설정과 Agora RTC 실시간 연동
+- **암호화 자격증명 복호화 및 토큰 발급 파이프라인 (`admin-settings.service.ts` & `live.service.ts`)**:
+  - 관리자 웹 시스템 설정(`AdminSettings`)에 안전하게 저장된 `agora_app_id` 및 `agora_app_certificate`를 `this.adminSettings.getDecryptedSetting()`으로 실시간 복호화.
+  - 호스트 방송 개설 및 시청자 입장 시 공식 Agora RTC 규격(006 버전, HMAC-SHA256 암호화 토큰)의 토큰을 채널명(`roomId`)과 숫자 UID(`userIdToAgoraUid`) 기반으로 발급.
+  - 자격증명 미설정 시 안전한 Fallback 개발 토큰 모드를 지원하여 중단 없는 서비스 가용성 보장.
+
+### 2. 라이브 방송 개설 시 Agora Token 통합 반환
+- **방송 시작 대기 시간 단축 (`POST /live/rooms`)**:
+  - `createRoom` API 응답에 생성된 룸 정보와 함께 호스트의 Agora RTC 토큰(`agoraToken`)을 즉시 포함하여 반환함으로써, 방송 개설 후 추가 요청 없이 0초 만에 실시간 스트리밍 송출로 즉시 진입하도록 최적화.
+
+### 3. 모바일 라이브 룸 Agora RTC 상태 표시 고도화 (`LiveRoomScreen.js`)
+- **실시간 스트림 상태 인디케이터**:
+  - 상단 헤더에 `agoraTokenData` 수신 여부에 따라 **`🟢 RTC HD`** 실시간 초저지연 연결 배지 노출.
+  - 호스트의 오디오 파형 미터 및 카메라/마이크 토글 제어 툴바와 실시간 동기화.
+
+---
+
 ## 2026-10-01 Checkpoint 8: 프로필 상세 화면 고도화 & 방문자 기록 및 프로필 선물하기 연동 (완료)
 
 ### 1. 프로필 방문자 실시간 기록 파이프라인
