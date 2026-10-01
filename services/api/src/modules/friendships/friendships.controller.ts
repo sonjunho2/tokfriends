@@ -84,6 +84,19 @@ export class FriendshipsController {
     };
   }
 
+  @Post(':id/remove')
+  async remove(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    const currentUserId = user?.id ?? user?.sub;
+
+    return {
+      ok: true,
+      data: await this.friendships.removeFriend(currentUserId, id),
+    };
+  }
+
   @Get()
   async list(@CurrentUser() user: any) {
     const currentUserId = user?.id ?? user?.sub;

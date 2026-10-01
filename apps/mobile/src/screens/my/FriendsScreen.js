@@ -148,6 +148,33 @@ export default function FriendsScreen({ navigation }) {
     ]);
   };
 
+  const handleRemoveFriend = (friendshipId, userName) => {
+    if (processingId) return;
+    Alert.alert(
+      '친구 끊기',
+      `'${userName || '친구'}'님과 친구 관계를 끊으시겠습니까?\n언제든 다시 친구 요청을 보낼 수 있습니다.`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '친구 끊기',
+          style: 'destructive',
+          onPress: async () => {
+            setProcessingId(friendshipId);
+            try {
+              await apiClient.removeFriend(friendshipId);
+              Alert.alert('완료', '친구 관계가 해제되었습니다.');
+              await loadFriendships();
+            } catch (error) {
+              Alert.alert('삭제 실패', error?.message || '친구 삭제에 실패했습니다.');
+            } finally {
+              setProcessingId(null);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const handleStartChat = async (user) => {
     try {
       const targetUserId = user?.id;
@@ -216,14 +243,25 @@ export default function FriendsScreen({ navigation }) {
 
         <View style={styles.actionContainer}>
           {activeTab === 'friends' && (
-            <TouchableOpacity
-              style={styles.chatButton}
-              onPress={() => handleStartChat(user)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="chatbubble-outline" size={16} color={colors.primary} />
-              <Text style={styles.chatButtonText}>대화하기</Text>
-            </TouchableOpacity>
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={styles.chatButton}
+                onPress={() => handleStartChat(user)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="chatbubble-outline" size={15} color={colors.primary} />
+                <Text style={styles.chatButtonText}>대화하기</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.removeFriendButton}
+                onPress={() => handleRemoveFriend(item.id, user.name)}
+                disabled={isProcessing}
+                activeOpacity={0.8}
+                hitSlop={6}
+              >
+                <Ionicons name="person-remove-outline" size={16} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
           )}
 
           {activeTab === 'received' && (
@@ -505,8 +543,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primary,
   },
+  removeFriendButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   buttonRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
   },
   acceptButton: {

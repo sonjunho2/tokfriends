@@ -228,6 +228,25 @@ export class FriendshipsService {
     });
   }
 
+  async removeFriend(currentUserId: string, id: string) {
+    const friendship = await this.prisma.friendship.findFirst({
+      where: {
+        id,
+        OR: [{ requesterId: currentUserId }, { addresseeId: currentUserId }],
+        status: "accepted",
+      },
+      select: { id: true },
+    });
+
+    if (!friendship) {
+      throw new NotFoundException("Friendship not found");
+    }
+
+    return this.prisma.friendship.delete({
+      where: { id },
+    });
+  }
+
   async listRequests(currentUserId: string) {
     if (!currentUserId) {
       throw new BadRequestException("Missing authenticated user");

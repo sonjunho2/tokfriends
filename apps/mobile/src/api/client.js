@@ -1719,6 +1719,12 @@ export const apiClient = {
     return data?.data ?? data;
   },
 
+  async removeFriend(id) {
+    if (!id) throw normalizeError(new Error('친구 관계 ID가 필요합니다.'));
+    const { data } = await client.post(`/friendships/${encodeURIComponent(id)}/remove`);
+    return data?.data ?? data;
+  },
+
   async getFriendships() {
     try {
       const { data } = await client.get('/friendships');
