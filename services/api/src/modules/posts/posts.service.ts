@@ -7,41 +7,50 @@ import {
 import { PrismaService } from 'nestjs-prisma';
 import { CreatePostDto } from './dto/create-post.dto';
 
-const POST_INCLUDE = {
-  user: {
-    select: {
-      id: true,
-      displayName: true,
-      region1: true,
-      region2: true,
-      profile: {
-        select: {
-          nickname: true,
-          avatarUri: true,
-          headline: true,
+function getPostInclude(currentUserId?: string) {
+  return {
+    user: {
+      select: {
+        id: true,
+        displayName: true,
+        region1: true,
+        region2: true,
+        profile: {
+          select: {
+            nickname: true,
+            avatarUri: true,
+            headline: true,
+          },
+        },
+        activityAccountBridge: {
+          select: {
+            id: true,
+            handle: true,
+            displayName: true,
+          },
         },
       },
-      activityAccountBridge: {
-        select: {
-          id: true,
-          handle: true,
-          displayName: true,
-        },
+    },
+    topic: {
+      select: {
+        id: true,
+        name: true,
       },
     },
-  },
-  topic: {
-    select: {
-      id: true,
-      name: true,
+    _count: {
+      select: {
+        comments: true,
+        likes: true,
+      },
     },
-  },
-  _count: {
-    select: {
-      comments: true,
-    },
-  },
-};
+    likes: currentUserId
+      ? {
+          where: { userId: currentUserId },
+          select: { id: true },
+        }
+      : false,
+  };
+}
 
 const COMMENT_INCLUDE = {
   user: {
@@ -91,13 +100,24 @@ function formatComment(comment: any) {
 }
 
 function formatPost(post: any) {
+  const isLiked = Boolean(Array.isArray(post.likes) && post.likes.length > 0);
+  const likesCount =
+    typeof post._count?.likes === 'number'
+      ? post._count.likes
+      : typeof post.likesCount === 'number'
+      ? post.likesCount
+      : 0;
+
   return {
     id: post.id,
     topicId: post.topicId,
     topicName: post.topic?.name || '일반',
     content: post.content,
+    mediaUrls: Array.isArray(post.mediaUrls) ? post.mediaUrls : [],
     createdAt: post.createdAt,
     commentsCount: post._count?.comments ?? 0,
+    likesCount,
+    isLiked,
     author: {
       id: post.user.id,
       name:
@@ -145,13 +165,18 @@ export class PostsService {
       }
     }
 
+    const mediaUrls = Array.isArray(dto.mediaUrls)
+      ? dto.mediaUrls.filter((u) => typeof u === 'string' && u.trim().length > 0)
+      : [];
+
     const post = await this.prisma.post.create({
       data: {
         userId,
         topicId,
         content: dto.content.trim(),
+        mediaUrls,
       },
-      include: POST_INCLUDE,
+      include: getPostInclude(userId),
     });
 
     return formatPost(post);
@@ -183,7 +208,7 @@ export class PostsService {
       take: take + 1,
       cursor: cursor ? { id: cursor } : undefined,
       orderBy: { createdAt: 'desc' },
-      include: POST_INCLUDE,
+      include: getPostInclude(currentUserId),
     });
 
     const hasMore = posts.length > take;
@@ -216,7 +241,7 @@ export class PostsService {
       take: take + 1,
       cursor: cursor ? { id: cursor } : undefined,
       orderBy: { createdAt: 'desc' },
-      include: POST_INCLUDE,
+      include: getPostInclude(currentUserId),
     });
 
     const hasMore = posts.length > take;
@@ -229,6 +254,77 @@ export class PostsService {
       nextCursor,
       hasMore,
     };
+  }
+
+  async toggleLike(userId: string, postId: string) {
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      select: { id: true, likesCount: true },
+    });
+
+    if (!post) {
+      throw new NotFoundException('게시글을 찾을 수 없습니다.');
+    }
+
+    const existing = await this.prisma.postLike.findUnique({
+      where: {
+        postId_userId: {
+          postId,
+          userId,
+        },
+      },
+    });
+
+    if (existing) {
+      await this.prisma.$transaction([
+        this.prisma.postLike.delete({
+          where: { id: existing.id },
+        }),
+        this.prisma.post.update({
+          where: { id: postId },
+          data: {
+            likesCount: {
+              decrement: 1,
+            },
+          },
+        }),
+      ]);
+
+      const updatedCount = await this.prisma.postLike.count({
+        where: { postId },
+      });
+
+      return {
+        isLiked: false,
+        likesCount: updatedCount,
+      };
+    } else {
+      await this.prisma.$transaction([
+        this.prisma.postLike.create({
+          data: {
+            postId,
+            userId,
+          },
+        }),
+        this.prisma.post.update({
+          where: { id: postId },
+          data: {
+            likesCount: {
+              increment: 1,
+            },
+          },
+        }),
+      ]);
+
+      const updatedCount = await this.prisma.postLike.count({
+        where: { postId },
+      });
+
+      return {
+        isLiked: true,
+        likesCount: updatedCount,
+      };
+    }
   }
 
   async delete(userId: string, postId: string) {

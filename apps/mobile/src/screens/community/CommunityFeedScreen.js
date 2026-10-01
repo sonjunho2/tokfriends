@@ -4,10 +4,12 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,6 +18,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
 import { apiClient } from '../../api/client';
@@ -55,6 +58,7 @@ export default function CommunityFeedScreen({ navigation, route }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostTopicId, setNewPostTopicId] = useState('');
+  const [selectedImages, setSelectedImages] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
   // Comments modal state
@@ -136,26 +140,103 @@ export default function CommunityFeedScreen({ navigation, route }) {
     setNextCursor(null);
   };
 
+  const handlePickImages = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('권한 필요', '사진을 첨부하려면 사진 보관함 접근 권한이 필요합니다.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 0.8,
+        selectionLimit: 5,
+      });
+      if (!result.canceled && Array.isArray(result.assets)) {
+        setSelectedImages((prev) => [...prev, ...result.assets].slice(0, 5));
+      }
+    } catch (e) {
+      console.warn('Pick image error', e);
+      Alert.alert('오류', '사진을 불러오는 중 문제가 발생했습니다.');
+    }
+  };
+
+  const handleRemoveSelectedImage = (index) => {
+    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleCreatePost = async () => {
     const text = newPostContent.trim();
-    if (!text) {
-      Alert.alert('알림', '게시글 내용을 입력해 주세요.');
+    if (!text && selectedImages.length === 0) {
+      Alert.alert('알림', '게시글 내용 또는 사진을 첨부해 주세요.');
       return;
     }
     setSubmitting(true);
     try {
+      const uploadedUrls = [];
+      for (const asset of selectedImages) {
+        const url = await apiClient.uploadPostMedia(asset);
+        if (url) uploadedUrls.push(url);
+      }
+
       await apiClient.createPost({
-        content: text,
+        content: text || '사진을 공유했습니다.',
         topicId: newPostTopicId || undefined,
+        mediaUrls: uploadedUrls,
       });
       setModalVisible(false);
       setNewPostContent('');
+      setSelectedImages([]);
       Alert.alert('등록 완료', '게시글이 성공적으로 등록되었습니다.');
       onRefresh();
     } catch (e) {
       Alert.alert('등록 실패', e?.message || '게시글 등록에 실패했습니다.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleToggleLike = async (post) => {
+    if (!post?.id) return;
+    const currentLiked = Boolean(post.isLiked);
+    const currentCount = post.likesCount || 0;
+    const nextLiked = !currentLiked;
+    const nextCount = Math.max(0, currentCount + (nextLiked ? 1 : -1));
+
+    // Optimistic UI update
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === post.id
+          ? { ...p, isLiked: nextLiked, likesCount: nextCount }
+          : p,
+      ),
+    );
+
+    try {
+      const res = await apiClient.togglePostLike(post.id);
+      if (res && typeof res.isLiked === 'boolean') {
+        setPosts((prev) =>
+          prev.map((p) =>
+            p.id === post.id
+              ? {
+                  ...p,
+                  isLiked: res.isLiked,
+                  likesCount: typeof res.likesCount === 'number' ? res.likesCount : nextCount,
+                }
+              : p,
+          ),
+        );
+      }
+    } catch (e) {
+      // Rollback on failure
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === post.id
+            ? { ...p, isLiked: currentLiked, likesCount: currentCount }
+            : p,
+        ),
+      );
     }
   };
 
@@ -421,20 +502,70 @@ export default function CommunityFeedScreen({ navigation, route }) {
         </View>
 
         {/* Post Content */}
-        <Text style={styles.postContent}>{item.content}</Text>
+        {Boolean(item.content) && <Text style={styles.postContent}>{item.content}</Text>}
+
+        {/* Post Media Attachment */}
+        {Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0 && (
+          <View style={styles.postMediaContainer}>
+            {item.mediaUrls.length === 1 ? (
+              <Image
+                source={{ uri: item.mediaUrls[0] }}
+                style={styles.singlePostImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.postMediaScroll}
+              >
+                {item.mediaUrls.map((url, idx) => (
+                  <Image
+                    key={`feed-img-${idx}-${url}`}
+                    source={{ uri: url }}
+                    style={styles.multiPostImage}
+                    resizeMode="cover"
+                  />
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        )}
 
         {/* Post Bottom Bar */}
         <View style={styles.postFooter}>
-          <TouchableOpacity
-            style={styles.footerCommentButton}
-            onPress={() => handleOpenComments(item)}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="chatbubbles-outline" size={15} color={colors.textSecondary} />
-            <Text style={styles.footerCommentText}>
-              댓글 {item.commentsCount > 0 ? item.commentsCount : ''}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.footerActionsLeft}>
+            <TouchableOpacity
+              style={styles.footerActionButton}
+              onPress={() => handleToggleLike(item)}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={item.isLiked ? 'heart' : 'heart-outline'}
+                size={16}
+                color={item.isLiked ? '#EF4444' : colors.textSecondary}
+              />
+              <Text
+                style={[
+                  styles.footerActionText,
+                  item.isLiked && styles.footerActionTextLiked,
+                ]}
+              >
+                좋아요 {item.likesCount > 0 ? item.likesCount : ''}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.footerActionButton}
+              onPress={() => handleOpenComments(item)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="chatbubble-outline" size={15} color={colors.textSecondary} />
+              <Text style={styles.footerActionText}>
+                댓글 {item.commentsCount > 0 ? item.commentsCount : ''}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {!isMine && (
             <TouchableOpacity
@@ -442,8 +573,8 @@ export default function CommunityFeedScreen({ navigation, route }) {
               onPress={() => handleStartChat(author)}
               activeOpacity={0.85}
             >
-              <Ionicons name="chatbubble-outline" size={15} color={colors.primary} />
-              <Text style={styles.footerChatText}>1:1 대화하기</Text>
+              <Ionicons name="chatbubble-outline" size={14} color={colors.primary} />
+              <Text style={styles.footerChatText}>1:1 대화</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -572,19 +703,24 @@ export default function CommunityFeedScreen({ navigation, route }) {
           >
             <View style={styles.modalHeader}>
               <TouchableOpacity
-                onPress={() => setModalVisible(false)}
+                onPress={() => {
+                  setModalVisible(false);
+                  setSelectedImages([]);
+                }}
                 hitSlop={8}
                 style={styles.modalCloseButton}
+                disabled={submitting}
               >
                 <Text style={styles.modalCancelText}>취소</Text>
               </TouchableOpacity>
               <Text style={styles.modalTitle}>새 글 작성</Text>
               <TouchableOpacity
                 onPress={handleCreatePost}
-                disabled={submitting || !newPostContent.trim()}
+                disabled={submitting || (!newPostContent.trim() && selectedImages.length === 0)}
                 style={[
                   styles.modalSubmitButton,
-                  (!newPostContent.trim() || submitting) && styles.modalSubmitButtonDisabled,
+                  ((!newPostContent.trim() && selectedImages.length === 0) || submitting) &&
+                    styles.modalSubmitButtonDisabled,
                 ]}
               >
                 {submitting ? (
@@ -644,6 +780,48 @@ export default function CommunityFeedScreen({ navigation, route }) {
               <Text style={styles.charCounter}>
                 {newPostContent.length} / 1000
               </Text>
+            </View>
+
+            {/* Selected Images Preview Strip */}
+            {selectedImages.length > 0 && (
+              <View style={styles.modalImageStrip}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
+                >
+                  {selectedImages.map((asset, idx) => (
+                    <View key={`selected-img-${idx}`} style={styles.modalImageThumbWrapper}>
+                      <Image source={{ uri: asset.uri }} style={styles.modalImageThumb} />
+                      <TouchableOpacity
+                        style={styles.modalImageRemoveBtn}
+                        onPress={() => handleRemoveSelectedImage(idx)}
+                        hitSlop={6}
+                      >
+                        <Ionicons name="close" size={13} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Bottom Toolbar: Add Photos */}
+            <View style={styles.modalBottomBar}>
+              <TouchableOpacity
+                style={styles.modalAddPhotoBtn}
+                onPress={handlePickImages}
+                disabled={submitting || selectedImages.length >= 5}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="camera-outline" size={20} color={colors.primary} />
+                <Text style={styles.modalAddPhotoText}>
+                  사진 첨부 ({selectedImages.length}/5)
+                </Text>
+              </TouchableOpacity>
+              {submitting && (
+                <Text style={styles.modalUploadingHint}>사진 업로드 및 등록 중...</Text>
+              )}
             </View>
           </KeyboardAvoidingView>
         </SafeAreaView>
@@ -932,6 +1110,26 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: colors.text,
   },
+  postMediaContainer: {
+    marginTop: 12,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  singlePostImage: {
+    width: '100%',
+    height: 220,
+    borderRadius: 14,
+    backgroundColor: '#F3F4F6',
+  },
+  postMediaScroll: {
+    gap: 8,
+  },
+  multiPostImage: {
+    width: 180,
+    height: 180,
+    borderRadius: 14,
+    backgroundColor: '#F3F4F6',
+  },
   postFooter: {
     marginTop: 12,
     flexDirection: 'row',
@@ -940,6 +1138,29 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
     paddingTop: 10,
+  },
+  footerActionsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  footerActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+  },
+  footerActionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  footerActionTextLiked: {
+    color: '#EF4444',
+    fontWeight: '700',
   },
   footerCommentButton: {
     flexDirection: 'row',
@@ -1093,6 +1314,66 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textTertiary,
     marginTop: 8,
+  },
+  modalImageStrip: {
+    paddingVertical: 10,
+    backgroundColor: colors.backgroundSecondary,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  modalImageThumbWrapper: {
+    position: 'relative',
+    width: 68,
+    height: 68,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalImageThumb: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  modalImageRemoveBtn: {
+    position: 'absolute',
+    top: 3,
+    right: 3,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    borderRadius: 10,
+    width: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBottomBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.backgroundSecondary,
+  },
+  modalAddPhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    backgroundColor: colors.pillActiveBg,
+  },
+  modalAddPhotoText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  modalUploadingHint: {
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: '600',
   },
   // Comments modal styles
   commentsModalContainer: {

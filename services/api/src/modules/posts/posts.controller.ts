@@ -81,6 +81,18 @@ export class PostsController {
     };
   }
 
+  @Post('posts/:id/like')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async toggleLike(@CurrentUser() user: any, @Param('id') postId: string) {
+    const currentUserId = user?.id ?? user?.sub;
+    const result = await this.postsService.toggleLike(currentUserId, postId);
+    return {
+      ok: true,
+      data: result,
+    };
+  }
+
   @Get('posts/:id/comments')
   async listComments(
     @CurrentUser() user: any,
