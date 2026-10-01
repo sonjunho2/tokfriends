@@ -874,6 +874,18 @@ export const apiClient = {
     }
   },
 
+  async getPurchaseHistory() {
+    if (USE_DUMMY_AUTH) {
+      return [];
+    }
+    try {
+      const { data } = await client.get('/store/purchases/history');
+      return data?.items ?? data?.data ?? data ?? [];
+    } catch {
+      return [];
+    }
+  },
+
   async getMe() {
         // When dummy auth is enabled, return a fake user profile
     if (USE_DUMMY_AUTH) {

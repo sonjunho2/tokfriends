@@ -36,6 +36,12 @@ export class StoreController {
     return this.store.confirmPortOnePurchase(userId, dto);
   }
 
+  @Get('purchases/history')
+  getPurchaseHistory(@CurrentUser() user: any) {
+    const userId = user?.sub ?? user?.id;
+    return this.store.listPurchaseHistory(userId);
+  }
+
   @Get('rewards/status')
   getRewardsStatus(@CurrentUser() user: any) {
     const userId = user?.sub ?? user?.id;
