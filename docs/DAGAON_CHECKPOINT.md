@@ -4,6 +4,30 @@ Updated: 2026-10-01
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-01 Checkpoint 7: 1:1 채팅방 내 선물 보내기 모달 & 실시간 선물 수신 및 3D 이펙트 연동 (완료)
+
+### 1. 1:1 채팅 선물 전송 & 실시간 수신 파이프라인
+- **`ChatRoomScreen.js` 선물 전송 및 수신 고도화**:
+  - `handleSendGift`: 백엔드 `POST /chats/gift` 트랜잭션 호출 후 반환된 최신 잔액(`response.spendableBalance`)으로 내 보유 포인트를 즉시 갱신하고 화면 내 3D 이펙트 큐(`giftOverlayRef.current.enqueueGift`) 발동.
+  - `handleRealtimeMessage`: 실시간 웹소켓(`chat:message`)으로 상대방이 보낸 선물 메시지 수신 시, 상대방 닉네임, 선물명, 포인트 및 3D 비디오/썸네일 이펙트를 FIFO 대기열에 자동 인큐하여 상단 배너와 함께 화면 전체에 애니메이션 연출.
+  - 수신과 동시에 `fetchMyPoints()`를 즉시 호출하여 후원받은 포인트 잔액을 실시간 동기화.
+
+### 2. 선물 메시지 전용 말풍선 렌더링 업그레이드
+- **시각적 완성도 및 가독성 극대화**:
+  - 선물 실제 썸네일 이미지(`thumbnailUrl` / `icon`) 인라인 렌더링.
+  - 3D 비디오 VIP 선물인 경우 `3D VIP` 전용 배지 부착.
+  - 전송 상태 구분: 내가 보낸 경우 "○○P 선물 보냄 🎁" (노란색 말풍선 맞춤 스타일), 상대방이 보낸 경우 "○○P 선물 도착 🎁" (흰색 말풍선 맞춤 스타일).
+  - 선물 상세 설명 텍스트를 정돈된 줄간격과 가독성 높은 색상으로 노출.
+
+### 3. 선물 모달 및 오버레이 컴포넌트 안전성 보강
+- **`GiftPickerSheet.js` & `apiClient` (`client.js`)**:
+  - `apiClient.getPointBalance()`를 공식 추가하여 유저 지갑의 실시간 사용 가능 포인트(`spendableBalance`)를 언제나 안전하게 불러오도록 연동.
+  - 선물 바텀시트에서 보유 포인트와 선택한 선물의 가격을 정확히 비교하여 포인트 부족 시 충전 샵으로 즉시 유도.
+- **`GiftEffectOverlay.js`**:
+  - `senderNickname`/`senderName`, `giftName`/`name`, `pricePoints`/`amount`, `thumbnailUrl`/`icon` 등 다양한 페이로드 키에 대해 완벽한 fallback 처리 적용.
+
+---
+
 ## 2026-10-01 Checkpoint 6: 인앱 알림 & 공지사항 센터 구축 및 홈 화면 알림 연동 (완료)
 
 ### 1. 백엔드 실시간 활동 알림 및 공지 피드 모듈 (`services/api/src/modules/notifications/`)
