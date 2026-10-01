@@ -3,6 +3,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Param,
@@ -82,6 +83,43 @@ export class AdminReportsController {
   ) {
     const result = await this.reports.blockReportedUser(id, reason);
     if (!result) throw new NotFoundException(`Report ${id} not found or has no reported user`);
+    return { ok: true, data: result };
+  }
+
+  @ApiParam({ name: 'id', type: Number })
+  @ApiBody({
+    schema: {
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['WARNING', 'SUSPEND_7D', 'SUSPEND_30D', 'PERMANENT_BAN'],
+        },
+        reason: { type: 'string' },
+      },
+      required: ['action'],
+    },
+  })
+  @AdminPermissions('reports.view')
+  @Post(':id/sanction-user')
+  async sanctionReportedUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('action') action: 'WARNING' | 'SUSPEND_7D' | 'SUSPEND_30D' | 'PERMANENT_BAN',
+    @Body('reason') reason?: string,
+  ) {
+    if (!['WARNING', 'SUSPEND_7D', 'SUSPEND_30D', 'PERMANENT_BAN'].includes(action)) {
+      throw new BadRequestException(
+        'action must be one of: WARNING, SUSPEND_7D, SUSPEND_30D, PERMANENT_BAN',
+      );
+    }
+    const result = await this.reports.sanctionReportedUser(id, action, reason);
+    return { ok: true, data: result };
+  }
+
+  @ApiParam({ name: 'id', type: Number })
+  @AdminPermissions('reports.view')
+  @Delete(':id/delete-post')
+  async deleteReportedPost(@Param('id', ParseIntPipe) id: number) {
+    const result = await this.reports.deleteReportedPost(id);
     return { ok: true, data: result };
   }
 }
