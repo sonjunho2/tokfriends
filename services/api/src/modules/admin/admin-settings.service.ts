@@ -47,6 +47,10 @@ export const DEFAULT_INTEGRATION_SETTINGS: DefaultIntegrationSettingDef[] = [
   { id: 'apns_key_id', label: 'Apple APNs Key ID', placeholder: '10자리 APNs 인증키 Key ID' },
   { id: 'apns_auth_key', label: 'Apple APNs AuthKey (.p8 파일 내용)', placeholder: '-----BEGIN PRIVATE KEY----- ...' },
   { id: 'apns_bundle_id', label: 'Apple APNs Bundle ID', placeholder: '예: com.sonjunho.ddakchin' },
+
+  // 4. 라이브 스트리밍 (Agora RTC)
+  { id: 'agora_app_id', label: 'Agora 라이브 App ID', placeholder: 'Agora 콘솔 > 프로젝트 관리 > App ID' },
+  { id: 'agora_app_certificate', label: 'Agora 라이브 App Certificate (기본 인증서)', placeholder: 'Agora 콘솔 > 기본 인증서(Primary Certificate)' },
 ];
 
 const adminProfileArgs = Prisma.validator<Prisma.AdminProfileDefaultArgs>()({
