@@ -567,6 +567,12 @@ export default function LiveRoomScreen({ navigation, route }) {
         </View>
 
         <View style={styles.topHeaderRight}>
+          {agoraTokenData && (
+            <View style={styles.rtcBadge}>
+              <View style={styles.rtcDot} />
+              <Text style={styles.rtcBadgeText}>RTC HD</Text>
+            </View>
+          )}
           <View style={styles.viewerBadge}>
             <Ionicons name="eye" size={14} color="#FFFFFF" />
             <Text style={styles.viewerBadgeText}>{viewerCount}</Text>
@@ -930,6 +936,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  rtcBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.25)',
+    paddingHorizontal: 7,
+    paddingVertical: 3.5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.45)',
+    gap: 4,
+  },
+  rtcDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  rtcBadgeText: {
+    color: '#A7F3D0',
+    fontSize: 10,
+    fontWeight: '800',
   },
   viewerBadge: {
     flexDirection: 'row',

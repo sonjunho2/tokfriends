@@ -119,7 +119,13 @@ export class LiveService {
       include: HOST_INCLUDE,
     });
 
-    return formatRoom(room);
+    const formatted = formatRoom(room);
+    const agoraToken = await this.getAgoraToken(room.id, hostUserId, 'publisher').catch(() => null);
+
+    return {
+      ...formatted,
+      agoraToken,
+    };
   }
 
   async listActiveRooms() {
