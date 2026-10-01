@@ -6,11 +6,12 @@ import { LiveService } from './live.service';
 
 import { GiftsModule } from '../gifts/gifts.module';
 import { AdminModule } from '../admin/admin.module';
+import { LiveRealtimePublisher } from './live-realtime-publisher.service';
 
 @Module({
   imports: [GiftsModule, AdminModule],
   controllers: [LiveController],
-  providers: [LiveService, PrismaService],
-  exports: [LiveService],
+  providers: [LiveService, PrismaService, LiveRealtimePublisher],
+  exports: [LiveService, LiveRealtimePublisher],
 })
 export class LiveModule {}

@@ -8,6 +8,7 @@ import { AuthenticatedUserContextService } from '../auth/authenticated-user-cont
 import { Public } from '../auth/public.decorator';
 import { ChatRealtimePublisher } from '../chats/chat-realtime-publisher.service';
 import { ChatsService } from '../chats/chats.service';
+import { LiveRealtimePublisher } from '../live/live-realtime-publisher.service';
 
 @Public()
 @SkipThrottle({ default: true })
@@ -31,11 +32,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModule
   private readonly jwtSecret: string;
   private unsubscribeRealtime?: () => void;
   private unsubscribeRead?: () => void;
+  private unsubscribeLiveMessage?: () => void;
+  private unsubscribeLiveViewer?: () => void;
+  private unsubscribeLiveEnd?: () => void;
 
   constructor(
     private readonly authenticatedUserContext: AuthenticatedUserContextService,
     private readonly chatsService: ChatsService,
     private readonly chatRealtimePublisher: ChatRealtimePublisher,
+    private readonly liveRealtimePublisher: LiveRealtimePublisher,
   ) {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
@@ -57,6 +62,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModule
         readAt: event.readAt.toISOString(),
       });
     });
+
+    this.unsubscribeLiveMessage?.();
+    this.unsubscribeLiveMessage = this.liveRealtimePublisher.subscribeMessage((event) => {
+      server.to(`live:${event.roomId}`).emit('live:message', event.message);
+    });
+    this.unsubscribeLiveViewer?.();
+    this.unsubscribeLiveViewer = this.liveRealtimePublisher.subscribeViewer((event) => {
+      server.to(`live:${event.roomId}`).emit('live:viewer_count', {
+        roomId: event.roomId,
+        viewerCount: event.viewerCount,
+      });
+    });
+    this.unsubscribeLiveEnd?.();
+    this.unsubscribeLiveEnd = this.liveRealtimePublisher.subscribeEnd((event) => {
+      server.to(`live:${event.roomId}`).emit('live:ended', {
+        roomId: event.roomId,
+        reason: event.reason,
+      });
+    });
   }
 
   onModuleDestroy(): void {
@@ -64,6 +88,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModule
     this.unsubscribeRealtime = undefined;
     this.unsubscribeRead?.();
     this.unsubscribeRead = undefined;
+    this.unsubscribeLiveMessage?.();
+    this.unsubscribeLiveMessage = undefined;
+    this.unsubscribeLiveViewer?.();
+    this.unsubscribeLiveViewer = undefined;
+    this.unsubscribeLiveEnd?.();
+    this.unsubscribeLiveEnd = undefined;
   }
 
   async handleConnection(client: Socket) {
@@ -162,4 +192,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModule
     }
   }
 
+  @SubscribeMessage('live:join')
+  async liveJoin(@ConnectedSocket() client: Socket, @MessageBody() data: { roomId: string }) {
+    const roomId = typeof data?.roomId === 'string' ? data.roomId.trim() : '';
+    if (!roomId) return { ok: false, error: 'INVALID_ROOM' };
+    client.join(`live:${roomId}`);
+    return { ok: true, roomId };
+  }
+
+  @SubscribeMessage('live:leave')
+  async liveLeave(@ConnectedSocket() client: Socket, @MessageBody() data: { roomId: string }) {
+    const roomId = typeof data?.roomId === 'string' ? data.roomId.trim() : '';
+    if (!roomId) return { ok: false, error: 'INVALID_ROOM' };
+    client.leave(`live:${roomId}`);
+    return { ok: true, roomId };
+  }
 }

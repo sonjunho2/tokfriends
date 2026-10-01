@@ -13,6 +13,7 @@ import {
 import { GiftsService } from '../gifts/gifts.service';
 import { CreateLiveRoomDto, SendLiveGiftDto, SendLiveMessageDto } from './dto';
 import { AdminSettingsService } from '../admin/admin-settings.service';
+import { LiveRealtimePublisher } from './live-realtime-publisher.service';
 
 const HOST_INCLUDE = {
   host: {
@@ -73,6 +74,7 @@ export class LiveService {
     private readonly prisma: PrismaService,
     private readonly giftsService: GiftsService,
     private readonly adminSettings: AdminSettingsService,
+    private readonly livePublisher: LiveRealtimePublisher,
   ) {}
 
   async createRoom(hostUserId: string, dto: CreateLiveRoomDto) {
@@ -166,6 +168,11 @@ export class LiveService {
       include: HOST_INCLUDE,
     });
 
+    this.livePublisher.publishEnd({
+      roomId,
+      reason: '호스트가 방송을 종료했습니다.',
+    });
+
     return formatRoom(updated);
   }
 
@@ -182,6 +189,11 @@ export class LiveService {
       where: { id: roomId },
       data: { viewerCount: { increment: 1 } },
       select: { viewerCount: true },
+    });
+
+    this.livePublisher.publishViewer({
+      roomId,
+      viewerCount: updated.viewerCount,
     });
 
     return { success: true, viewerCount: updated.viewerCount };
@@ -203,7 +215,13 @@ export class LiveService {
       select: { viewerCount: true },
     });
 
-    return { success: true, viewerCount: Math.max(0, updated.viewerCount) };
+    const count = Math.max(0, updated.viewerCount);
+    this.livePublisher.publishViewer({
+      roomId,
+      viewerCount: count,
+    });
+
+    return { success: true, viewerCount: count };
   }
 
   async sendMessage(senderUserId: string, roomId: string, dto: SendLiveMessageDto) {
@@ -260,7 +278,7 @@ export class LiveService {
       },
     });
 
-    return {
+    const result = {
       id: message.id,
       roomId: message.roomId,
       type: message.type,
@@ -276,6 +294,10 @@ export class LiveService {
         avatar: message.sender.profile?.avatarUri || null,
       },
     };
+
+    this.livePublisher.publishMessage({ roomId, message: result });
+
+    return result;
   }
 
   async listMessages(roomId: string, limit: number = 40) {
@@ -379,6 +401,11 @@ export class LiveService {
         viewerCount: 0,
       },
       include: HOST_INCLUDE,
+    });
+
+    this.livePublisher.publishEnd({
+      roomId,
+      reason: reason || '관리자 권한 강제 종료',
     });
 
     await this.prisma.auditLog.create({
@@ -675,6 +702,26 @@ export class LiveService {
         liveMessage,
         newBalance: newSenderBalance,
       };
+    });
+
+    this.livePublisher.publishMessage({
+      roomId,
+      message: {
+        id: result.liveMessage.id,
+        roomId: result.liveMessage.roomId,
+        type: result.liveMessage.type,
+        content: result.liveMessage.content,
+        giftPoints: result.liveMessage.giftPoints,
+        createdAt: result.liveMessage.createdAt,
+        sender: {
+          id: result.liveMessage.sender.id,
+          name:
+            result.liveMessage.sender.profile?.nickname ||
+            result.liveMessage.sender.displayName ||
+            senderNickname,
+          avatar: result.liveMessage.sender.profile?.avatarUri || null,
+        },
+      },
     });
 
     return {
