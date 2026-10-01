@@ -1553,8 +1553,24 @@ export interface ReportItem {
   reason: string
   status: ReportStatus
   createdAt: string
-  reporter: { id: string; email?: string; displayName?: string } | null
-  reported: { id: string; email?: string; displayName?: string } | null
+  reporter: { id: string; email?: string; displayName?: string; nickname?: string; avatarUri?: string } | null
+  reported: {
+    id: string
+    email?: string
+    displayName?: string
+    nickname?: string
+    avatarUri?: string
+    status?: string
+    trustScore?: number
+  } | null
+  post: {
+    id: string
+    content: string
+    mediaUrls?: string[]
+    topicId?: string
+    createdAt?: string
+    authorName?: string
+  } | null
 }
 
 export interface ReportListResponse {
@@ -1574,6 +1590,7 @@ function normalizeReportItem(raw: any): ReportItem {
     createdAt: raw?.createdAt ?? raw?.created_at ?? new Date().toISOString(),
     reporter: raw?.reporter ?? null,
     reported: raw?.reported ?? null,
+    post: raw?.post ?? null,
   }
 }
 
@@ -1615,6 +1632,26 @@ export async function blockReportedUser(
     reportedId: String(d?.reportedId ?? ''),
     blocked: Boolean(d?.blocked ?? true),
   }
+}
+
+export async function sanctionReportedUser(
+  id: number,
+  data: {
+    action: 'WARNING' | 'SUSPEND_7D' | 'SUSPEND_30D' | 'PERMANENT_BAN'
+    reason?: string
+  },
+): Promise<{ reportId: number; reportedId: string; action: string; success: boolean }> {
+  const response = await api.post(`/admin/reports/${id}/sanction-user`, data)
+  const d = (response.data as any)?.data ?? response.data
+  return d
+}
+
+export async function deleteReportedPost(
+  id: number,
+): Promise<{ reportId: number; postId: string; deleted: boolean }> {
+  const response = await api.delete(`/admin/reports/${id}/delete-post`)
+  const d = (response.data as any)?.data ?? response.data
+  return d
 }
 
 // =============================================
