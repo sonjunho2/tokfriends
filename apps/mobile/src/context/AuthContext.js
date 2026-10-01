@@ -14,6 +14,7 @@ const AuthContext = createContext({
   login: async () => ({ success: false }),
   signup: async () => ({ success: false }),
   testLogin: async () => ({ success: false }),
+  socialLogin: async () => ({ success: false }),
   authenticateWithToken: async () => ({ success: false }),
   logout: async () => {},
   refreshMe: async () => {},
@@ -134,6 +135,23 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const socialLogin = async (platform, tokenPayload) => {
+    try {
+      let res;
+      if (platform === 'kakao') res = await apiClient.loginKakao(tokenPayload);
+      else if (platform === 'naver') res = await apiClient.loginNaver(tokenPayload);
+      else if (platform === 'google') res = await apiClient.loginGoogle(tokenPayload);
+      else if (platform === 'apple') res = await apiClient.loginApple(tokenPayload);
+      else throw new Error(`지원하지 않는 로그인 방식입니다: ${platform}`);
+
+      const token = res?.access_token || res?.token;
+      if (!token) throw new Error('토큰 발급에 실패했습니다.');
+      return await authenticateWithToken(token, res?.user);
+    } catch (e) {
+      return { success: false, error: e?.message || `${platform} 로그인에 실패했습니다.` };
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -144,6 +162,7 @@ export const AuthProvider = ({ children }) => {
         login,
         signup,
         testLogin,
+        socialLogin,
         authenticateWithToken,
         logout,
         refreshMe,

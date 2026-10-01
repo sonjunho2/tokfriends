@@ -484,6 +484,62 @@ export const apiClient = {
     }
   },
 
+  async loginKakao(accessToken) {
+    try {
+      const { data } = await client.post('/auth/kakao', { accessToken }, unauthJsonConfig());
+      return data;
+    } catch (err) {
+      throw normalizeError(err);
+    }
+  },
+
+  async loginNaver(accessToken) {
+    try {
+      const { data } = await client.post('/auth/naver', { accessToken }, unauthJsonConfig());
+      return data;
+    } catch (err) {
+      throw normalizeError(err);
+    }
+  },
+
+  async loginGoogle(idToken, accessToken) {
+    try {
+      const { data } = await client.post('/auth/google', { idToken, accessToken }, unauthJsonConfig());
+      return data;
+    } catch (err) {
+      throw normalizeError(err);
+    }
+  },
+
+  async loginApple(tokenPayload) {
+    try {
+      const payload = typeof tokenPayload === 'string' ? { token: tokenPayload } : tokenPayload;
+      const { data } = await client.post('/auth/apple', payload, unauthJsonConfig());
+      return data;
+    } catch (err) {
+      throw normalizeError(err);
+    }
+  },
+
+  async confirmTossPurchase({ paymentKey, orderId, amount, productId }) {
+    const { data } = await client.post('/store/purchases/toss/confirm', {
+      paymentKey,
+      orderId,
+      amount,
+      productId,
+    });
+    return data;
+  },
+
+  async confirmPortOnePurchase({ impUid, merchantUid, productId }) {
+    const { data } = await client.post('/store/purchases/portone/confirm', {
+      impUid,
+      merchantUid,
+      productId,
+    });
+    return data;
+  },
+
   async signup(userData) {
         // In dummy mode, mimic a successful signup by returning an empty object
     if (USE_DUMMY_AUTH) {

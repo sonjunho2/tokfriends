@@ -29,12 +29,24 @@ export class EmailLoginDto {
 }
 
 export class AppleTokenDto {
-  // 서비스에서 dto.token 을 읽는 경우를 대비해 token을 필수로.
   @IsString() token: string;
-
-  // 필요 시 함께 전달될 수 있는 값들 (선택)
   @IsOptional() @IsString() idToken?: string;
   @IsOptional() @IsString() authorizationCode?: string;
+  @IsOptional() @IsString() email?: string;
+  @IsOptional() @IsString() fullName?: string;
+}
+
+export class KakaoLoginDto {
+  @IsString() accessToken: string;
+}
+
+export class NaverLoginDto {
+  @IsString() accessToken: string;
+}
+
+export class GoogleLoginDto {
+  @IsString() idToken: string;
+  @IsOptional() @IsString() accessToken?: string;
 }
 
 export class PhoneRequestOtpDto {
