@@ -4,6 +4,24 @@ Updated: 2026-10-01
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-01 Checkpoint 12: 마이페이지 설정 & 회원 탈퇴/고객센터/보안 및 운영정책 연동 고도화 (완료)
+
+### 1. 백엔드 회원 탈퇴(계정 삭제) 트랜잭션 파이프라인 (`users.controller.ts` & `users.service.ts`)
+- **앱스토어/구글플레이 및 개인정보보호법 준수 회원 탈퇴 (`DELETE /users/me`)**:
+  - `deleteAccount` 트랜잭션을 통해 디바이스 푸시 토큰(`Device`) 삭제, 계정 상태 비활성화(`status: 'withdrawn'`), 세션 토큰 무효화(`tokenVersion` 증가), 식별 정보(`email`, `phoneHash`, `displayName`, `profile`) 익명화 및 `ActivityAccount` 비활성화를 일괄 원자적 처리.
+
+### 2. 모바일 회원 탈퇴 다중 확인 다이얼로그 및 세션 만료 (`SettingsScreen.js`)
+- **2단계 안전 탈퇴 워크플로우 (`handleDeleteAccount`)**:
+  - 오작동 방지를 위한 2단계 확인 다이얼로그(탈퇴 시 데이터/포인트 소멸 안내 -> 최종 확인)를 제공하고, 확인 시 `apiClient.deleteAccount()` 실행 후 즉시 클라이언트 세션을 종료하고 로그인 화면으로 안전하게 복귀.
+- **계정 관리 섹션 UI 분리**:
+  - 기존 로그아웃 버튼 아래에 은은한 톤의 [회원 탈퇴] 버튼을 정돈된 구분선과 함께 배치하여 앱스토어 심사 기준을 100% 충족.
+
+### 3. 고객센터 및 커뮤니티 운영정책 연동
+- **고객센터 및 운영정책 모달 연동**:
+  - 도움말 섹션에 [고객센터 및 운영정책] 항목을 추가하여 `community-guidelines` 법적 문서를 팝업 모달로 즉시 열람할 수 있도록 지원.
+
+---
+
 ## 2026-10-01 Checkpoint 11: 포인트 충전 상점 (Shop) & 결제 내역/법적 고지 및 브랜드 연동 고도화 (완료)
 
 ### 1. 백엔드 포인트 충전 내역 조회 API 신설 (`store.controller.ts` & `store.service.ts`)

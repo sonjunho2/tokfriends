@@ -218,6 +218,12 @@ export default function SettingsScreen({ navigation }) {
       onPress: () => navigation.navigate('BlockedUsers'),
     },
     {
+      key: 'support',
+      icon: 'help-circle-outline',
+      label: '고객센터 및 운영정책',
+      onPress: () => openLegalDocument('community-guidelines', '커뮤니티 가이드라인 및 운영정책'),
+    },
+    {
       key: 'terms',
       icon: 'document-text-outline',
       label: '서비스 이용약관',
@@ -340,6 +346,43 @@ export default function SettingsScreen({ navigation }) {
       ],
     );
   };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      '회원 탈퇴',
+      '정말로 다가온 서비스를 탈퇴하시겠습니까?\n\n탈퇴 시 모든 개인정보 및 프로필, 보유 포인트가 소멸되며 복구할 수 없습니다.',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '탈퇴하기',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              '최종 확인',
+              '탈퇴 처리 후 즉시 계정이 비활성화되고 로그아웃됩니다. 계속 진행하시겠습니까?',
+              [
+                { text: '취소', style: 'cancel' },
+                {
+                  text: '확인 및 탈퇴',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await apiClient.deleteAccount();
+                      Alert.alert('탈퇴 완료', '회원 탈퇴가 정상적으로 완료되었습니다. 이용해 주셔서 감사합니다.');
+                      await logout();
+                    } catch (e) {
+                      Alert.alert('탈퇴 실패', e?.message || '회원 탈퇴 처리 중 오류가 발생했습니다.');
+                    }
+                  },
+                },
+              ],
+            );
+          },
+        },
+      ],
+    );
+  };
+
   const handleOpenProfile = () => {
     navigation.navigate('ProfileDetail', {
       profile: profilePayload,
@@ -549,6 +592,17 @@ export default function SettingsScreen({ navigation }) {
             >
               <Ionicons name="log-out-outline" size={20} color="#DC2626" />
               <Text style={[styles.logoutLabel, dynamicFont.body]}>로그아웃</Text>
+            </TouchableOpacity>
+
+            <View style={styles.accountDivider} />
+
+            <TouchableOpacity
+              style={styles.deleteAccountRow}
+              activeOpacity={0.85}
+              onPress={handleDeleteAccount}
+            >
+              <Ionicons name="trash-outline" size={18} color="#94A3B8" />
+              <Text style={[styles.deleteAccountLabel, dynamicFont.body]}>회원 탈퇴</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -919,5 +973,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     lineHeight: 22,
+  },
+  accountDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginHorizontal: 16,
+  },
+  deleteAccountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  deleteAccountLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#94A3B8',
   },
 });
