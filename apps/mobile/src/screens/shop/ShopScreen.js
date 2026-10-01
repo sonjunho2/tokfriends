@@ -65,6 +65,11 @@ export default function ShopScreen({ navigation }) {
   const [accountHolder, setAccountHolder] = useState('');
   const [settlementSubmitting, setSettlementSubmitting] = useState(false);
 
+  // Point Purchase History State
+  const [purchaseHistory, setPurchaseHistory] = useState([]);
+  const [purchaseHistoryLoading, setPurchaseHistoryLoading] = useState(false);
+  const [purchaseHistoryModalVisible, setPurchaseHistoryModalVisible] = useState(false);
+
   const balance = useMemo(() => {
     const p = user?.pointsBalance ?? user?.points ?? user?.balance ?? 0;
     return typeof p === 'number' ? p : parseInt(String(p).replace(/\D/g, ''), 10) || 0;
@@ -126,14 +131,39 @@ export default function ShopScreen({ navigation }) {
     }
   }, []);
 
+  const loadPurchaseHistory = useCallback(async () => {
+    try {
+      setPurchaseHistoryLoading(true);
+      const items = await apiClient.getPurchaseHistory();
+      if (Array.isArray(items)) {
+        setPurchaseHistory(items);
+      }
+    } catch (e) {
+      console.warn('Failed to load purchase history', e);
+    } finally {
+      setPurchaseHistoryLoading(false);
+    }
+  }, []);
+
+  const handleOpenPurchaseHistory = () => {
+    loadPurchaseHistory();
+    setPurchaseHistoryModalVisible(true);
+  };
+
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.allSettled([loadPointProducts(), refreshMe(), loadRewards(), loadSettlementOverview()]);
+      await Promise.allSettled([
+        loadPointProducts(),
+        refreshMe(),
+        loadRewards(),
+        loadSettlementOverview(),
+        loadPurchaseHistory(),
+      ]);
     } finally {
       setRefreshing(false);
     }
-  }, [loadPointProducts, refreshMe, loadRewards, loadSettlementOverview]);
+  }, [loadPointProducts, refreshMe, loadRewards, loadSettlementOverview, loadPurchaseHistory]);
 
   const handleSubmitSettlement = async () => {
     const pts = parseInt(settlementAmount, 10);
@@ -202,7 +232,7 @@ export default function ShopScreen({ navigation }) {
                           platform: Platform.OS,
                         });
                         await InAppPurchases.finishTransactionAsync(purchase, false);
-                        await refreshMe();
+                        await Promise.allSettled([refreshMe(), loadPurchaseHistory()]);
                         Alert.alert('구매 완료', '결제가 정상적으로 처리되었습니다.');
                       } catch (confirmError) {
                         Alert.alert(
@@ -290,7 +320,7 @@ export default function ShopScreen({ navigation }) {
                     receipt: `receipt_${txId}`,
                     platform: Platform.OS || 'android',
                   });
-                  await refreshMe();
+                  await Promise.allSettled([refreshMe(), loadPurchaseHistory()]);
                   const newBal = res?.balance ?? '반영 완료';
                   Alert.alert('충전 완료', `${item.label} 포인트 충전이 완료되었습니다.\n(현재 잔액: ${newBal}P)`);
                 } catch (err) {
@@ -371,10 +401,10 @@ export default function ShopScreen({ navigation }) {
     const code =
       rewards.referral?.referralCode ||
       user?.id?.substring(Math.max(0, (user?.id?.length || 6) - 6)).toUpperCase() ||
-      'TOK123';
+      'DAGAON1';
     try {
       await Share.share({
-        message: `[톡프렌즈] 새로운 동네 친구를 만나보세요!\n가입 시 추천인 코드 [${code}]를 입력하면 ${rewards.referral?.rewardPoints || 50}P를 무료 충전해 드립니다!`,
+        message: `[다가온] 새로운 사람이 다가오고, 새로운 이야기가 시작됩니다!\n가입 시 추천인 코드 [${code}]를 입력하면 ${rewards.referral?.rewardPoints || 50}P를 무료 충전해 드립니다!`,
       });
     } catch (e) {
       console.warn('Share error', e);
@@ -396,9 +426,20 @@ export default function ShopScreen({ navigation }) {
           )}
           <Text style={styles.title}>포인트 충전소</Text>
         </View>
-        <View style={styles.pointBadge}>
-          <Text style={styles.pointIcon}>P</Text>
-          <Text style={styles.pointText}>{balance}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity
+            style={styles.historyBtn}
+            onPress={handleOpenPurchaseHistory}
+            hitSlop={6}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="receipt-outline" size={15} color="#475569" />
+            <Text style={styles.historyBtnText}>충전 내역</Text>
+          </TouchableOpacity>
+          <View style={styles.pointBadge}>
+            <Text style={styles.pointIcon}>P</Text>
+            <Text style={styles.pointText}>{balance.toLocaleString()}</Text>
+          </View>
         </View>
       </View>
 
@@ -630,6 +671,15 @@ export default function ShopScreen({ navigation }) {
             </View>
           ))}
         </View>
+
+        {/* 포인트 상품 충전 안내 및 부가세 고지 */}
+        <View style={styles.legalNoticeBox}>
+          <Ionicons name="information-circle-outline" size={18} color="#64748B" />
+          <Text style={styles.legalNoticeText}>
+            모든 결제 금액은 VAT(부가세 10%) 포함 금액입니다.{'\n'}
+            충전된 포인트는 다가온 앱 내 선물 및 소통 기능 이용에 사용되며, 미사용 포인트의 청약철회 및 환불은 전자상거래법 및 앱마켓 규정에 따라 처리됩니다.
+          </Text>
+        </View>
       </ScrollView>
 
       {/* Rewarded Video Ad Modal */}
@@ -826,6 +876,100 @@ export default function ShopScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      {/* Point Purchase History Modal */}
+      <Modal visible={purchaseHistoryModalVisible} transparent animationType="slide">
+        <View style={styles.settlementModalBackdrop}>
+          <View style={styles.settlementModalBox}>
+            <View style={styles.settlementModalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="receipt" size={22} color={colors.primary} />
+                <Text style={styles.settlementModalTitle}>포인트 충전 내역</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setPurchaseHistoryModalVisible(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={24} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            {purchaseHistoryLoading ? (
+              <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={{ marginTop: 12, color: '#64748B', fontSize: 13 }}>
+                  충전 내역을 불러오는 중...
+                </Text>
+              </View>
+            ) : purchaseHistory.length === 0 ? (
+              <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+                <Ionicons name="folder-open-outline" size={44} color="#CBD5E1" />
+                <Text style={{ marginTop: 12, color: '#64748B', fontSize: 14, fontWeight: '600' }}>
+                  충전 내역이 없습니다.
+                </Text>
+                <Text style={{ marginTop: 4, color: '#94A3B8', fontSize: 12 }}>
+                  포인트를 충전하시면 여기에 내역이 표시됩니다.
+                </Text>
+              </View>
+            ) : (
+              <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
+                <View style={{ gap: 10, paddingVertical: 8 }}>
+                  {purchaseHistory.map((item) => {
+                    const dateStr = item?.createdAt
+                      ? new Date(item.createdAt).toLocaleDateString('ko-KR', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : '-';
+
+                    const platformLabel =
+                      item.platform === 'ios'
+                        ? 'App Store'
+                        : item.platform === 'android'
+                        ? 'Google Play'
+                        : item.platform === 'toss'
+                        ? '토스페이'
+                        : item.platform === 'portone'
+                        ? '포트원'
+                        : item.platform || '인앱 결제';
+
+                    return (
+                      <View key={item.id} style={styles.purchaseHistoryCard}>
+                        <View style={{ flex: 1 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                            <Text style={styles.purchaseHistoryPoints}>
+                              +{Number(item.points).toLocaleString()}P 충전
+                            </Text>
+                            <View style={styles.platformBadge}>
+                              <Text style={styles.platformBadgeText}>{platformLabel}</Text>
+                            </View>
+                          </View>
+                          <Text style={styles.purchaseHistoryDate}>{dateStr}</Text>
+                        </View>
+                        <View style={styles.purchaseHistoryStatusBadge}>
+                          <Text style={styles.purchaseHistoryStatusText}>결제 완료</Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+            )}
+
+            <View style={{ marginTop: 16 }}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setPurchaseHistoryModalVisible(false)}
+              >
+                <Text style={styles.modalCancelBtnText}>닫기</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -872,6 +1016,78 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.primary || '#7B61FF',
+  },
+  historyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+  },
+  historyBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  purchaseHistoryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  purchaseHistoryPoints: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  platformBadge: {
+    backgroundColor: '#EDE9FE',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  platformBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6D28D9',
+  },
+  purchaseHistoryDate: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  purchaseHistoryStatusBadge: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  purchaseHistoryStatusText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#15803D',
+  },
+  legalNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 18,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  legalNoticeText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 18,
   },
   scroll: {
     paddingHorizontal: 16,

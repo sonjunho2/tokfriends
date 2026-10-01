@@ -537,6 +537,29 @@ export class StoreService {
     });
   }
 
+  async listPurchaseHistory(userId: string) {
+    if (!userId) {
+      throw new BadRequestException('Missing authenticated user');
+    }
+
+    const items = await this.prisma.pointPurchase.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        productId: true,
+        transactionId: true,
+        platform: true,
+        points: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+
+    return { items };
+  }
+
   private getStartOfTodayKST(): Date {
     const now = new Date();
     const kstOffset = 9 * 60 * 60 * 1000;
