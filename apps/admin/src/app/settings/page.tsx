@@ -15,6 +15,7 @@ import {
   CreditCard,
   Bell,
   Sparkles,
+  Video,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -1324,16 +1325,83 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* 4. 기타 광고 및 리워드 설정 (기존 항목 보존) */}
-            {integrations.some((item) => !item.id.startsWith('oauth_') && !item.id.startsWith('toss_') && !item.id.startsWith('portone_') && !item.id.startsWith('iap_') && !item.id.startsWith('firebase_') && !item.id.startsWith('apns_')) && (
+            {/* 4. 실시간 라이브 스트리밍 연동 (Agora RTC) */}
+            <div className="rounded-xl border bg-card p-5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
+                <div className="flex items-center gap-2">
+                  <Video className="h-5 w-5 text-sky-500" />
+                  <h3 className="font-bold text-base text-foreground">4. 실시간 라이브 스트리밍 (Agora RTC)</h3>
+                  <span className="text-xs text-muted-foreground">초저지연 비디오/오디오 방송 송출 & 시청</span>
+                </div>
+                <a
+                  href="https://console.agora.io"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-primary text-xs hover:underline"
+                >
+                  Agora Console <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {integrations
+                  .filter((item) => item.id.startsWith('agora_'))
+                  .map((integration) => {
+                    const isConfigured = Boolean((integration.value ?? '').length > 0);
+                    return (
+                      <div key={integration.id} className="rounded-lg border bg-background/50 p-3.5 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="font-semibold text-xs text-foreground flex items-center gap-1.5">
+                            {integration.label ?? integration.id}
+                          </Label>
+                          {isConfigured ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                              <CheckCircle2 className="h-3 w-3" /> 등록됨
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 bg-zinc-500/10 px-2 py-0.5 rounded-full border border-zinc-500/20">
+                              <AlertCircle className="h-3 w-3" /> 미등록
+                            </span>
+                          )}
+                        </div>
+                        <Input
+                          type="password"
+                          value={integration.draftValue ?? ''}
+                          placeholder={isConfigured ? '••••••••  (등록 완료됨, 변경 시 입력)' : (integration.placeholder ?? '발급받은 키를 입력하세요')}
+                          autoComplete="new-password"
+                          onChange={(event) => updateIntegration(integration.id, event.target.value)}
+                          disabled={savingIntegrationId === 'bulk'}
+                          className="text-xs h-9 font-mono"
+                        />
+                        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                          <span className="truncate max-w-[240px]">{integration.placeholder}</span>
+                          {isConfigured && (
+                            <button
+                              type="button"
+                              onClick={() => clearIntegration(integration.id)}
+                              disabled={savingIntegrationId === 'bulk'}
+                              className="text-red-500 hover:text-red-600 underline font-medium"
+                            >
+                              {integration.clearRequested ? '삭제 취소' : '저장값 초기화'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* 5. 기타 광고 및 리워드 설정 (기존 항목 보존) */}
+            {integrations.some((item) => !item.id.startsWith('oauth_') && !item.id.startsWith('toss_') && !item.id.startsWith('portone_') && !item.id.startsWith('iap_') && !item.id.startsWith('firebase_') && !item.id.startsWith('apns_') && !item.id.startsWith('agora_')) && (
               <div className="rounded-xl border bg-card p-5 space-y-4">
                 <div className="flex items-center gap-2 border-b pb-3">
                   <Sparkles className="h-5 w-5 text-yellow-500" />
-                  <h3 className="font-bold text-base text-foreground">4. 광고 및 리워드 설정</h3>
+                  <h3 className="font-bold text-base text-foreground">5. 광고 및 리워드 설정</h3>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   {integrations
-                    .filter((item) => !item.id.startsWith('oauth_') && !item.id.startsWith('toss_') && !item.id.startsWith('portone_') && !item.id.startsWith('iap_') && !item.id.startsWith('firebase_') && !item.id.startsWith('apns_'))
+                    .filter((item) => !item.id.startsWith('oauth_') && !item.id.startsWith('toss_') && !item.id.startsWith('portone_') && !item.id.startsWith('iap_') && !item.id.startsWith('firebase_') && !item.id.startsWith('apns_') && !item.id.startsWith('agora_'))
                     .map((integration) => {
                       const isConfigured = Boolean((integration.value ?? '').length > 0);
                       return (

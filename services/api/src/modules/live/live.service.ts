@@ -12,6 +12,7 @@ import {
 } from './agora-token.util';
 import { GiftsService } from '../gifts/gifts.service';
 import { CreateLiveRoomDto, SendLiveGiftDto, SendLiveMessageDto } from './dto';
+import { AdminSettingsService } from '../admin/admin-settings.service';
 
 const HOST_INCLUDE = {
   host: {
@@ -71,6 +72,7 @@ export class LiveService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly giftsService: GiftsService,
+    private readonly adminSettings: AdminSettingsService,
   ) {}
 
   async createRoom(hostUserId: string, dto: CreateLiveRoomDto) {
@@ -416,8 +418,11 @@ export class LiveService {
         ? AgoraRole.PUBLISHER
         : AgoraRole.SUBSCRIBER;
 
-    const agoraAppId = process.env.AGORA_APP_ID || '';
-    const agoraAppCertificate = process.env.AGORA_APP_CERTIFICATE || '';
+    const dynamicAppId = await this.adminSettings.getDecryptedSetting('agora_app_id');
+    const dynamicCert = await this.adminSettings.getDecryptedSetting('agora_app_certificate');
+
+    const agoraAppId = dynamicAppId || process.env.AGORA_APP_ID || '';
+    const agoraAppCertificate = dynamicCert || process.env.AGORA_APP_CERTIFICATE || '';
     const numericUid = userIdToAgoraUid(userId);
 
     const tokenResult = buildAgoraToken({
