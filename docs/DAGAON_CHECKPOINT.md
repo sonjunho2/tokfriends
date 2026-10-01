@@ -4,6 +4,22 @@ Updated: 2026-10-01
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-01 Checkpoint 13: 친구 관리 화면 고도화 & 친구 삭제(끊기) 파이프라인 연동 (완료)
+
+### 1. 백엔드 친구 삭제(Unfriend) 트랜잭션 API 신설 (`friendships.controller.ts` & `friendships.service.ts`)
+- **친구 관계 해제 파이프라인 (`POST /friendships/:id/remove`)**:
+  - `status: 'accepted'` 상태인 기존 친구 관계를 사용자가 직접 해제할 수 있는 공식 엔드포인트 신설.
+  - 요청자(`requesterId`) 또는 수신자(`addresseeId`) 본인 검증을 거쳐 `Friendship` 레코드를 안전하게 원자적 제거.
+
+### 2. 모바일 친구 목록 친구 끊기 액션 및 확인 다이얼로그 (`FriendsScreen.js`)
+- **친구 끊기 액션 버튼 및 안전 확인**:
+  - [친구 목록] 탭의 각 친구 카드 우측 [대화하기] 버튼 옆에 [친구 끊기 (`person-remove-outline`)] 아이콘 액션 버튼 신설.
+  - 터치 시 안내 다이얼로그("'{이름}'님과 친구 관계를 끊으시겠습니까? 언제든 다시 친구 요청을 보낼 수 있습니다.")를 띄워 실수로 인한 해제를 방지하고, 확인 시 `apiClient.removeFriend(id)`를 호출하여 목록을 실시간 갱신.
+- **차단 회원 관리 (`BlockedUsersScreen.js`) 연계 점검**:
+  - 차단 해제(`handleUnblock`) 및 프로필 아바타/지역 표시 상태를 점검하여 친구/차단 관리 흐름의 정합성을 완벽하게 동기화.
+
+---
+
 ## 2026-10-01 Checkpoint 12: 마이페이지 설정 & 회원 탈퇴/고객센터/보안 및 운영정책 연동 고도화 (완료)
 
 ### 1. 백엔드 회원 탈퇴(계정 삭제) 트랜잭션 파이프라인 (`users.controller.ts` & `users.service.ts`)
