@@ -488,7 +488,7 @@ export default function ShopScreen({ navigation }) {
             <TouchableOpacity
               style={styles.settlementBtn}
               activeOpacity={0.85}
-              onPress={() => setSettlementModalVisible(true)}
+              onPress={() => navigation.navigate('Settlement')}
             >
               <Text style={styles.settlementBtnText}>출금 신청</Text>
               <Ionicons name="chevron-forward" size={14} color="#FFFFFF" />

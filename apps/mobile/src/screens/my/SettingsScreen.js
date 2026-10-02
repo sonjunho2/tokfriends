@@ -245,6 +245,12 @@ export default function SettingsScreen({ navigation }) {
       onPress: () => navigation.navigate('Follows'),
     },
     {
+      key: 'settlement',
+      icon: 'cash-outline',
+      label: '크리에이터 수익금 출금',
+      onPress: () => navigation.navigate('Settlement'),
+    },
+    {
       key: 'friends',
       icon: 'people-outline',
       label: '친구 목록 및 친구 관리',

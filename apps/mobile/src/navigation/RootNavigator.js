@@ -20,6 +20,7 @@ import VisitorsScreen from '../screens/my/VisitorsScreen';
 import FollowsScreen from '../screens/my/FollowsScreen';
 import CommunityFeedScreen from '../screens/community/CommunityFeedScreen';
 import PostDetailScreen from '../screens/community/PostDetailScreen';
+import SettlementScreen from '../screens/my/SettlementScreen';
 
 // ===== 서브 =====
 import HotRecommendScreen from '../screens/recommend/HotRecommendScreen';
@@ -110,6 +111,11 @@ function HomeStack() {
       <HomeStackNav.Screen
         name="Shop"
         component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <HomeStackNav.Screen
+        name="Settlement"
+        component={SettlementScreen}
         options={{ animation: 'slide_from_right' }}
       />
       <HomeStackNav.Screen
@@ -270,6 +276,11 @@ function MyPageStack() {
       <MyPageStackNav.Screen
         name="Shop"
         component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="Settlement"
+        component={SettlementScreen}
         options={{ animation: 'slide_from_right' }}
       />
       <MyPageStackNav.Screen

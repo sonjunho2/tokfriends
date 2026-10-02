@@ -4,6 +4,31 @@ Updated: 2026-10-02
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-02 Checkpoint 18: 크리에이터 포인트 정산 신청 및 내역 관리 센터(Settlement) 구축 (완료)
+
+### 1. 전용 정산 화면 신설 (`apps/mobile/src/screens/my/SettlementScreen.js`)
+- **실시간 수익금 현황 헤더 카드**:
+  - 출금 가능 수익 포인트(`redeemableBalance`), 심사 대기 포인트(`pendingEarnings`) 실시간 표시.
+  - 1P = 1원 기준 및 최소 출금 신청 포인트(10,000P) 안내.
+- **상단 듀얼 탭 전환 (`[출금 신청하기]`, `[신청 내역 N]`)**:
+  - **탭 1: 출금 신청 양식**:
+    - 포인트 전액 입력 원터치 버튼.
+    - 실시간 원천징수 세액(3.3%) 및 실제 입금 예정액 자동 계산기.
+    - 국내 8대 주요 은행(국민, 신한, 우리, 하나, 카카오, 토스, 농협, 기업) 원터치 칩 선택 및 직접 입력.
+    - 계좌번호, 본인 명의 예금주 성명 실명 확인 안내.
+    - 2단계 최종 신청 확인 다이얼로그 (신청 포인트, 공제 세액, 실 입금액, 계좌 안내).
+  - **탭 2: 출금 신청 내역**:
+    - 심사중(`PENDING`), 승인완료(`APPROVED`), 반려됨(`REJECTED`) 상태별 세련된 배지.
+    - 신청일자, 입금 계좌, 관리자 메모 및 반려 사유 실시간 안내.
+- **당겨서 새로고침(Pull-to-refresh)**: 최신 잔액 및 심사 상태 즉시 갱신.
+
+### 2. 마이페이지 및 스토어 연동 (`SettingsScreen.js` & `ShopScreen.js`)
+- **`SettingsScreen.js`**: 도움말/활동 링크 목록에 `[크리에이터 수익금 출금]` 메뉴 추가.
+- **`ShopScreen.js`**: 크리에이터 출금/환전 카드에서 [출금 신청] 터치 시 전용 `SettlementScreen`으로 즉시 네비게이션.
+- **`RootNavigator.js`**: `HomeStackNav` 및 `MyPageStackNav`에 `SettlementScreen` 완벽 등록.
+
+---
+
 ## 2026-10-02 Checkpoint 17: 커뮤니티 동네생활 게시글 상세(PostDetail) 및 실시간 댓글 시스템 고도화 (완료)
 
 ### 1. 모바일 클라이언트 단일 게시글 조회 API 신설 (`apps/mobile/src/api/client.js`)
