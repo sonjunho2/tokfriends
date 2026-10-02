@@ -39,6 +39,58 @@ function formatRelativeTime(dateString) {
   return `${date.getMonth() + 1}월 ${date.getDate()}일`;
 }
 
+const ACTIVITY_TYPE_CONFIG = {
+  gift: {
+    iconName: 'gift',
+    iconBg: '#FEF2F2',
+    iconColor: '#EF4444',
+    badgeText: '선물',
+    actionHint: '선물·정산 확인',
+  },
+  settlement: {
+    iconName: 'card',
+    iconBg: '#EFF6FF',
+    iconColor: '#3B82F6',
+    badgeText: '정산',
+    actionHint: '정산 내역 확인',
+  },
+  visit: {
+    iconName: 'eye',
+    iconBg: '#ECFDF5',
+    iconColor: '#10B981',
+    badgeText: '방문',
+    actionHint: '방문자 확인',
+  },
+  follow: {
+    iconName: 'person-add',
+    iconBg: '#F5F3FF',
+    iconColor: '#8B5CF6',
+    badgeText: '팔로우',
+    actionHint: '팔로우 목록',
+  },
+  chat: {
+    iconName: 'chatbubble-ellipses',
+    iconBg: '#FEF9C3',
+    iconColor: '#CA8A04',
+    badgeText: '대화',
+    actionHint: '대화방 바로가기',
+  },
+  post_comment: {
+    iconName: 'chatbox-ellipses',
+    iconBg: '#FFF7ED',
+    iconColor: '#EA580C',
+    badgeText: '댓글',
+    actionHint: '게시물 확인',
+  },
+  post_like: {
+    iconName: 'heart',
+    iconBg: '#FDF2F8',
+    iconColor: '#EC4899',
+    badgeText: '공감',
+    actionHint: '게시물 확인',
+  },
+};
+
 export default function NotificationsScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('announcements'); // 'announcements' | 'activity'
   const [announcements, setAnnouncements] = useState([]);
@@ -77,6 +129,72 @@ export default function NotificationsScreen({ navigation }) {
   const toggleAccordion = (id) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpandedAnnounceId((prev) => (prev === id ? null : id));
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setActivities((prev) => prev.map((a) => ({ ...a, isRead: true })));
+      await apiClient.markAllNotificationsAsRead();
+    } catch (e) {
+      console.warn('모두 읽음 처리 중 오류:', e);
+    }
+  };
+
+  const handleNotificationPress = (item) => {
+    // 읽음 상태로 업데이트
+    setActivities((prev) =>
+      prev.map((a) => (a.id === item.id ? { ...a, isRead: true } : a))
+    );
+
+    switch (item.type) {
+      case 'visit':
+        navigation.navigate('Visitors');
+        break;
+      case 'follow':
+        navigation.navigate('Follows', { initialTab: 'followers' });
+        break;
+      case 'settlement':
+      case 'gift':
+        navigation.navigate('Settlement');
+        break;
+      case 'chat':
+        if (item.data?.chatId) {
+          navigation.navigate('ChatRoom', {
+            chatId: item.data.chatId,
+            counterpartAccountId: item.data?.senderAccountId || item.senderAccountId,
+            counterpartNickname: item.data?.senderNickname || '대화 상대',
+            counterpartAvatar: item.avatar,
+          });
+        } else {
+          navigation.navigate('ChatsMain');
+        }
+        break;
+      case 'post':
+      case 'post_comment':
+      case 'post_like':
+        if (item.data?.postId) {
+          navigation.navigate('PostDetail', { postId: item.data.postId });
+        } else {
+          navigation.navigate('CommunityFeed');
+        }
+        break;
+      default:
+        if (item.data?.targetScreen) {
+          navigation.navigate(item.data.targetScreen, item.data?.params || {});
+        }
+        break;
+    }
+  };
+
+  const handleAvatarPress = (item) => {
+    const targetAccountId =
+      item.data?.senderAccountId || item.data?.visitorId || item.senderAccountId;
+    if (targetAccountId) {
+      navigation.navigate('ProfileDetail', { accountId: targetAccountId });
+    } else {
+      handleNotificationPress(item);
+    }
   };
 
   const renderAnnouncementItem = ({ item }) => {
@@ -120,55 +238,72 @@ export default function NotificationsScreen({ navigation }) {
   };
 
   const renderActivityItem = ({ item }) => {
-    let iconName = 'notifications';
-    let iconBg = '#F3F4F6';
-    let iconColor = '#4B5563';
+    const config = ACTIVITY_TYPE_CONFIG[item.type] || {
+      iconName: 'notifications',
+      iconBg: '#F3F4F6',
+      iconColor: '#4B5563',
+      badgeText: '알림',
+      actionHint: '자세히 보기',
+    };
 
-    if (item.type === 'gift') {
-      iconName = 'gift';
-      iconBg = '#FEF2F2';
-      iconColor = '#EF4444';
-    } else if (item.type === 'settlement') {
-      iconName = 'card';
-      iconBg = '#EFF6FF';
-      iconColor = '#3B82F6';
-    } else if (item.type === 'visit') {
-      iconName = 'eye';
-      iconBg = '#ECFDF5';
-      iconColor = '#10B981';
-    }
+    const isUnread = item.isRead === false;
 
     return (
-      <View style={styles.activityCard}>
-        <View style={styles.activityAvatarBox}>
+      <TouchableOpacity
+        style={[styles.activityCard, isUnread && styles.activityCardUnread]}
+        activeOpacity={0.7}
+        onPress={() => handleNotificationPress(item)}
+      >
+        <TouchableOpacity
+          style={styles.activityAvatarBox}
+          activeOpacity={0.8}
+          onPress={() => handleAvatarPress(item)}
+        >
           {item.avatar ? (
             <Image source={{ uri: item.avatar }} style={styles.activityAvatar} />
           ) : (
-            <View style={[styles.activityIconCircle, { backgroundColor: iconBg }]}>
-              <Ionicons name={iconName} size={20} color={iconColor} />
+            <View style={[styles.activityIconCircle, { backgroundColor: config.iconBg }]}>
+              <Ionicons name={config.iconName} size={20} color={config.iconColor} />
             </View>
           )}
           {item.avatar && (
-            <View style={[styles.activitySubBadge, { backgroundColor: iconBg }]}>
-              <Ionicons name={iconName} size={11} color={iconColor} />
+            <View style={[styles.activitySubBadge, { backgroundColor: config.iconBg }]}>
+              <Ionicons name={config.iconName} size={11} color={config.iconColor} />
             </View>
           )}
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.activityContent}>
           <View style={styles.activityHeaderRow}>
-            <Text style={styles.activityTitle} numberOfLines={1}>
-              {item.title}
-            </Text>
+            <View style={styles.activityTitleRow}>
+              <View style={[styles.activityTypeBadge, { backgroundColor: config.iconBg }]}>
+                <Text style={[styles.activityTypeBadgeText, { color: config.iconColor }]}>
+                  {config.badgeText}
+                </Text>
+              </View>
+              <Text style={styles.activityTitle} numberOfLines={1}>
+                {item.title}
+              </Text>
+              {isUnread && <View style={styles.unreadDot} />}
+            </View>
             <Text style={styles.activityTime}>{formatRelativeTime(item.createdAt)}</Text>
           </View>
-          <Text style={styles.activityBody}>{item.body}</Text>
+          <Text style={styles.activityBody} numberOfLines={2}>
+            {item.body}
+          </Text>
+          <View style={styles.activityActionRow}>
+            <Text style={[styles.activityActionText, { color: config.iconColor }]}>
+              {config.actionHint}
+            </Text>
+            <Ionicons name="chevron-forward" size={13} color={config.iconColor} />
+          </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
   const currentList = activeTab === 'announcements' ? announcements : activities;
+  const hasUnreadActivities = activities.some((a) => a.isRead === false);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -184,7 +319,19 @@ export default function NotificationsScreen({ navigation }) {
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.navTitle}>알림 및 소식</Text>
-        <View style={styles.navRightPlaceholder} />
+        {activeTab === 'activity' && hasUnreadActivities ? (
+          <TouchableOpacity
+            style={styles.markAllBtn}
+            onPress={handleMarkAllAsRead}
+            hitSlop={8}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="checkmark-done" size={15} color="#4B5563" style={{ marginRight: 3 }} />
+            <Text style={styles.markAllText}>모두 읽음</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.navRightPlaceholder} />
+        )}
       </View>
 
       {/* 세그먼트 탭 */}
@@ -221,12 +368,15 @@ export default function NotificationsScreen({ navigation }) {
           onPress={() => setActiveTab('activity')}
           activeOpacity={0.8}
         >
-          <Ionicons
-            name="notifications-outline"
-            size={16}
-            color={activeTab === 'activity' ? colors.primary : '#6B7280'}
-            style={styles.segmentIcon}
-          />
+          <View style={styles.tabIconWrapper}>
+            <Ionicons
+              name="notifications-outline"
+              size={16}
+              color={activeTab === 'activity' ? colors.primary : '#6B7280'}
+              style={styles.segmentIcon}
+            />
+            {hasUnreadActivities && <View style={styles.tabBadgeDot} />}
+          </View>
           <Text
             style={[
               styles.segmentText,
@@ -317,6 +467,19 @@ const styles = StyleSheet.create({
   navRightPlaceholder: {
     width: 32,
   },
+  markAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  markAllText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
   segmentContainer: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
@@ -339,6 +502,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF0F2',
     borderWidth: 1,
     borderColor: '#FED7AA',
+  },
+  tabIconWrapper: {
+    position: 'relative',
+  },
+  tabBadgeDot: {
+    position: 'absolute',
+    top: -2,
+    right: 3,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#EF4444',
   },
   segmentIcon: {
     marginRight: 6,
@@ -434,6 +609,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F3F4F6',
   },
+  activityCardUnread: {
+    backgroundColor: '#FFFEF7',
+    borderColor: '#FDE68A',
+    borderWidth: 1.2,
+  },
   activityAvatarBox: {
     position: 'relative',
     marginRight: 12,
@@ -471,12 +651,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
   },
+  activityTitleRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  activityTypeBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  activityTypeBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  unreadDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EF4444',
+    marginLeft: 6,
+  },
   activityTitle: {
     flex: 1,
     fontSize: 14,
     fontWeight: '700',
     color: '#111827',
-    marginRight: 8,
   },
   activityTime: {
     fontSize: 11,
@@ -486,6 +688,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#4B5563',
     lineHeight: 18,
+  },
+  activityActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  activityActionText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    marginRight: 2,
   },
   centerContainer: {
     flex: 1,

@@ -133,6 +133,11 @@ function HomeStack() {
         component={FollowsScreen}
         options={{ animation: 'slide_from_right' }}
       />
+      <HomeStackNav.Screen
+        name="ChatRoom"
+        component={ChatRoomScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
     </HomeStackNav.Navigator>
   );
 }

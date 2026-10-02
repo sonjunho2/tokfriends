@@ -4,6 +4,39 @@ Updated: 2026-10-02
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-02 Checkpoint 21: 알림 센터(Notification Center) 액션 딥링크 & 인터랙티브 활동 피드 고도화 (완료)
+
+### 1. 알림 유형별 스마트 딥링크 네비게이션 (`NotificationsScreen.js`)
+- **원터치 액션 인터랙션**:
+  - 알림 카드 터치 시 즉시 읽음 처리 및 알림 유형(`item.type`)에 따른 적절한 화면으로 부드럽게 네비게이션:
+    - `visit` (프로필 방문) ➔ `VisitorsScreen` (방문자 목록 화면)
+    - `follow` (새 팔로워) ➔ `FollowsScreen` (팔로워/팔로잉 관리 화면)
+    - `chat` (1:1 대화 수신) ➔ `ChatRoomScreen` (해당 대화방으로 직행 및 상대 프로필 정보 주입)
+    - `post` / `post_comment` / `post_like` (댓글·공감) ➔ `PostDetailScreen` (해당 피드 게시물 화면)
+    - `gift` / `settlement` (선물 적립·출금 승인) ➔ `SettlementScreen` (수익금 및 정산 내역 화면)
+- **아바타 터치 시 상대 프로필(`ProfileDetail`) 직행**:
+  - 알림 내 유저 프로필 아바타 터치 시 해당 유저의 프로필 상세 화면으로 직접 이동.
+
+### 2. 다가온 브랜드 아이덴티티 카드 UI 및 상태 인터랙션
+- **카테고리별 컬러 배지 & 아이콘**:
+  - 선물(로즈 레드), 정산(스카이 블루), 방문(에메랄드 그린), 팔로우(바이올렛), 대화(앰버 옐로우), 댓글(오렌지), 공감(소프트 핑크) 등 시각적 구분 최적화.
+- **미확인 알림 인디케이터 & 소프트 하이라이트**:
+  - 읽지 않은 알림 카드는 은은한 옐로우 틴트 백그라운드 및 붉은색 언리드 인디케이터 점(`unreadDot`) 노출.
+  - 상단 "활동 알림" 탭 버튼에 미확인 알림 존재 시 빨간 알림 닷 배지(`tabBadgeDot`) 표시.
+- **헤더 "모두 읽음" 원터치 액션**:
+  - 미확인 알림이 존재할 때 상단 헤더 우측에 `[모두 읽음]` 버튼 노출 및 `apiClient.markAllNotificationsAsRead()` 연동.
+- **우측 액션 가이드 힌트 및 셰브론**:
+  - 카드 우측 하단에 `대화방 바로가기 >`, `방문자 확인 >`, `선물·정산 확인 >` 등 사용자 유도 문구와 셰브론 제공.
+
+### 3. 네비게이션 및 API 확장 (`RootNavigator.js` & `client.js`)
+- **`RootNavigator.js`**:
+  - `HomeStackNav`에 `ChatRoomScreen`을 추가 등록하여 홈 탭 스택 내부에서도 알림 딥링크로 1:1 대화방 진입 지원.
+- **`client.js`**:
+  - `getActivityNotifications()`에 채팅, 팔로우, 댓글, 공감 등 다채로운 실감형 알림 목데이터 및 파라미터 보강.
+  - `markAllNotificationsAsRead()` API 메소드 신설.
+
+---
+
 ## 2026-10-02 Checkpoint 20: 1:1 대화방 고화질 미디어 뷰어 & 상대 프로필 원터치 연동 고도화 (완료)
 
 ### 1. 대화방 미디어 풀스크린 확대 뷰어 모달 신설 (`apps/mobile/src/screens/main/ChatRoomScreen.js`)

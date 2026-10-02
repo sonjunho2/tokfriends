@@ -2451,26 +2451,80 @@ export const apiClient = {
             body: '[하트 팡팡] 선물 (+500P)이 적립되었습니다.',
             createdAt: new Date(Date.now() - 15 * 60000).toISOString(),
             avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
-            data: { points: 500, giftName: '하트 팡팡' },
+            data: { points: 500, giftName: '하트 팡팡', senderAccountId: 'usr_mock_1' },
+            isRead: false,
           },
           {
             id: 'mock-notif-2',
-            type: 'visit',
-            title: '👀 새로운 이웃이 프로필을 둘러보았습니다.',
-            body: '김민우님이 회원님의 프로필을 방문했습니다.',
-            createdAt: new Date(Date.now() - 3 * 3600000).toISOString(),
-            avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+            type: 'chat',
+            title: '💬 이지수님이 새로운 메시지를 보냈습니다',
+            body: '오늘 저녁에 혹시 시간 괜찮으신가요? 차 한잔 해요!',
+            createdAt: new Date(Date.now() - 45 * 60000).toISOString(),
+            avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+            data: { chatId: 'c1', senderAccountId: 'usr_mock_1', senderNickname: '이지수' },
+            isRead: false,
           },
           {
             id: 'mock-notif-3',
+            type: 'follow',
+            title: '✨ 박서아님이 회원님을 팔로우하기 시작했습니다',
+            body: '새로운 소식과 일상을 공유하는 소중한 이웃이 생겼어요.',
+            createdAt: new Date(Date.now() - 2 * 3600000).toISOString(),
+            avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+            data: { senderAccountId: 'usr_mock_3', senderNickname: '박서아' },
+            isRead: false,
+          },
+          {
+            id: 'mock-notif-4',
+            type: 'post_comment',
+            title: '💬 정다은님이 게시물에 댓글을 남겼습니다',
+            body: '"사진 분위기가 너무 따뜻하고 멋져요! 어디서 찍으셨나요? 📸"',
+            createdAt: new Date(Date.now() - 5 * 3600000).toISOString(),
+            avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200',
+            data: { postId: 'post-1', senderAccountId: 'usr_mock_4', senderNickname: '정다은' },
+            isRead: true,
+          },
+          {
+            id: 'mock-notif-5',
+            type: 'visit',
+            title: '👀 새로운 이웃이 프로필을 둘러보았습니다',
+            body: '김민우님이 회원님의 프로필을 방문하여 관심을 표현했습니다.',
+            createdAt: new Date(Date.now() - 7 * 3600000).toISOString(),
+            avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+            data: { senderAccountId: 'usr_mock_2', senderNickname: '김민우' },
+            isRead: true,
+          },
+          {
+            id: 'mock-notif-6',
+            type: 'post_like',
+            title: '❤️ 강태호님이 회원님의 일상 피드를 좋아합니다',
+            body: '봄맞이 산책 스냅 게시물에 하트 공감을 남겼습니다.',
+            createdAt: new Date(Date.now() - 12 * 3600000).toISOString(),
+            avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200',
+            data: { postId: 'post-2', senderAccountId: 'usr_mock_5', senderNickname: '강태호' },
+            isRead: true,
+          },
+          {
+            id: 'mock-notif-7',
             type: 'settlement',
             title: '💳 출금 신청 상태 안내 (승인 완료)',
             body: '50,000P 출금 신청이 승인되어 48,350원이 등록된 계좌로 입금되었습니다.',
             createdAt: new Date(Date.now() - 86400000).toISOString(),
+            data: { status: 'APPROVED', netAmount: 48350 },
+            isRead: true,
           },
         ];
       }
       return [];
+    }
+  },
+
+  async markAllNotificationsAsRead() {
+    try {
+      const { data } = await client.post('/notifications/read-all');
+      return data?.data || { success: true };
+    } catch (e) {
+      return { success: true };
     }
   },
 };
