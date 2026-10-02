@@ -203,6 +203,7 @@ export default function ChatRoomScreen({ route, navigation }) {
   const giftOverlayRef = useRef(null);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [previewImageUri, setPreviewImageUri] = useState(null);
   const [isFavorite, setIsFavorite] = useState(route?.params?.isFavorite ?? false);
   const insets = useSafeAreaInsets();
 
@@ -1057,11 +1058,16 @@ export default function ChatRoomScreen({ route, navigation }) {
         }
 
         return (
-          <Image
-            source={{ uri: item.media.uri }}
-            style={styles.imageAttachment}
-            resizeMode="cover"
-          />
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => setPreviewImageUri(item.media.uri)}
+          >
+            <Image
+              source={{ uri: item.media.uri }}
+              style={styles.imageAttachment}
+              resizeMode="cover"
+            />
+          </TouchableOpacity>
         );
       }
 
@@ -1143,15 +1149,53 @@ export default function ChatRoomScreen({ route, navigation }) {
 
     return (
       <View style={styles.otherMessageContainer}>
-        <Avatar
-          name={user.name}
-          size={38}
-          shape="circle"
-          uri={user.avatar}
-          style={styles.messageAvatar}
-        />
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => {
+            if (user?.id || counterpartAccountId) {
+              navigation.navigate('ProfileDetail', {
+                profile: {
+                  id: user.id || counterpartAccountId,
+                  targetUserId: user.id || counterpartAccountId,
+                  targetAccountId: counterpartAccountId,
+                  name: user.name,
+                  avatar: user.avatar,
+                  location: user.location,
+                  headline: user.headline,
+                },
+              });
+            }
+          }}
+        >
+          <Avatar
+            name={user.name}
+            size={38}
+            shape="circle"
+            uri={user.avatar}
+            style={styles.messageAvatar}
+          />
+        </TouchableOpacity>
         <View style={styles.otherMessageCol}>
-          <Text style={styles.otherAuthorName}>{user.name}</Text>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => {
+              if (user?.id || counterpartAccountId) {
+                navigation.navigate('ProfileDetail', {
+                  profile: {
+                    id: user.id || counterpartAccountId,
+                    targetUserId: user.id || counterpartAccountId,
+                    targetAccountId: counterpartAccountId,
+                    name: user.name,
+                    avatar: user.avatar,
+                    location: user.location,
+                    headline: user.headline,
+                  },
+                });
+              }
+            }}
+          >
+            <Text style={styles.otherAuthorName}>{user.name}</Text>
+          </TouchableOpacity>
           <View style={styles.otherBubbleRow}>
             <View style={[styles.messageBubble, styles.otherMessageBubble]}>
               {renderBubbleContent()}
@@ -1205,12 +1249,30 @@ export default function ChatRoomScreen({ route, navigation }) {
             <Ionicons name="arrow-back" size={24} color="#191919" />
           </TouchableOpacity>
 
-          <View style={styles.headerTitleWrap}>
+          <TouchableOpacity
+            style={styles.headerTitleWrap}
+            activeOpacity={0.8}
+            onPress={() => {
+              if (user?.id || counterpartAccountId) {
+                navigation.navigate('ProfileDetail', {
+                  profile: {
+                    id: user.id || counterpartAccountId,
+                    targetUserId: user.id || counterpartAccountId,
+                    targetAccountId: counterpartAccountId,
+                    name: user.name,
+                    avatar: user.avatar,
+                    location: user.location,
+                    headline: user.headline,
+                  },
+                });
+              }
+            }}
+          >
             <Text style={styles.headerTitle} numberOfLines={1}>{user.name}</Text>
             {isCounterpartTyping ? (
               <Text style={styles.typingIndicatorText}>입력 중...</Text>
             ) : null}
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.headerRightActions}>
             <TouchableOpacity
@@ -1476,6 +1538,31 @@ export default function ChatRoomScreen({ route, navigation }) {
 
       {/* Fullscreen 3D Gift Effect Overlay (FIFO Queue) */}
       <GiftEffectOverlay ref={giftOverlayRef} />
+
+      {/* Fullscreen Image Preview Modal */}
+      <Modal
+        visible={Boolean(previewImageUri)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewImageUri(null)}
+      >
+        <View style={styles.imagePreviewModalBackdrop}>
+          <TouchableOpacity
+            style={styles.imagePreviewCloseBtn}
+            onPress={() => setPreviewImageUri(null)}
+            hitSlop={12}
+          >
+            <Ionicons name="close" size={28} color="#FFFFFF" />
+          </TouchableOpacity>
+          {previewImageUri ? (
+            <Image
+              source={{ uri: previewImageUri }}
+              style={styles.fullscreenPreviewImage}
+              resizeMode="contain"
+            />
+          ) : null}
+        </View>
+      </Modal>
 
       {/* Gift Picker Bottom Sheet */}
       <GiftPickerSheet
@@ -2236,5 +2323,27 @@ const styles = StyleSheet.create({
   primaryBtnTxt: {
     color: colors.textInverse,
     fontWeight: '800',
+  },
+  imagePreviewModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imagePreviewCloseBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullscreenPreviewImage: {
+    width: '100%',
+    height: '85%',
   },
 });

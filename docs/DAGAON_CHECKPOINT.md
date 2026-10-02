@@ -4,6 +4,21 @@ Updated: 2026-10-02
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-02 Checkpoint 20: 1:1 대화방 고화질 미디어 뷰어 & 상대 프로필 원터치 연동 고도화 (완료)
+
+### 1. 대화방 미디어 풀스크린 확대 뷰어 모달 신설 (`apps/mobile/src/screens/main/ChatRoomScreen.js`)
+- **채팅 이미지 첨부 터치 인터랙션**:
+  - 대화 말풍선 내 사진 터치 시 `previewImageUri` 상태 활성화 및 딥블랙 백드롭 풀스크린 모달 팝업.
+  - 고해상도 `contain` 비율 렌더링 및 우측 상단 닫기(`close`) 원터치 버튼 제공.
+
+### 2. 대화 상대 프로필 상세 보기(`ProfileDetailScreen`) 완벽 연동
+- **헤더 타이틀 터치**:
+  - 상단 상대 닉네임 영역 터치 시 `ProfileDetail` 화면으로 부드럽게 네비게이션.
+- **수신 말풍선 아바타 및 닉네임 터치**:
+  - 상대방이 보낸 메시지 좌측 프로필 사진(Avatar) 및 닉네임 터치 시 프로필 상세 보기로 다이렉트 이동.
+
+---
+
 ## 2026-10-02 Checkpoint 19: 라이브 방송 뷰어 실시간 반응/플로팅 하트 및 3D 선물 고도화 (완료)
 
 ### 1. 플로팅 하트 애니메이션 오버레이 신설 (`apps/mobile/src/components/FloatingHeartsOverlay.js`)
