@@ -41,6 +41,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
   const [following, setFollowing] = useState(false);
   const [interested, setInterested] = useState(false);
   const [friendStatus, setFriendStatus] = useState('none');
+  const [friendshipId, setFriendshipId] = useState(null);
   const [updatingFollow, setUpdatingFollow] = useState(false);
   const [updatingInterest, setUpdatingInterest] = useState(false);
   const [updatingFriend, setUpdatingFriend] = useState(false);
@@ -92,6 +93,9 @@ export default function ProfileDetailScreen({ navigation, route }) {
           setFollowing(Boolean(followRes?.following));
           setInterested(Boolean(interestRes?.interested));
           setFriendStatus(friendRes?.status || 'none');
+          if (friendRes?.friendshipId) {
+            setFriendshipId(friendRes.friendshipId);
+          }
         })
         .catch(() => {});
     }
@@ -252,17 +256,96 @@ export default function ProfileDetailScreen({ navigation, route }) {
     if (updatingFriend) return;
 
     if (friendStatus === 'accepted') {
-      Alert.alert('친구', `${data.name}님과 이미 친구 사이입니다.`);
+      Alert.alert(
+        '친구 관계 관리',
+        `'${data.name}'님과 이미 친구 사이입니다.\n친구 관계를 끊으시겠습니까?`,
+        [
+          { text: '닫기' },
+          {
+            text: '친구 끊기',
+            style: 'destructive',
+            onPress: async () => {
+              if (updatingFriend) return;
+              setUpdatingFriend(true);
+              try {
+                if (friendshipId) {
+                  await apiClient.removeFriend(friendshipId);
+                } else {
+                  const allRes = await apiClient.getFriendships();
+                  const allFriends = Array.isArray(allRes?.data)
+                    ? allRes.data
+                    : Array.isArray(allRes)
+                    ? allRes
+                    : [];
+                  const found = allFriends.find(
+                    (f) =>
+                      f.status === 'accepted' &&
+                      (f.targetAccountId === targetAccountId ||
+                        f.userId === targetUserId ||
+                        f.id === friendshipId),
+                  );
+                  if (found?.id) {
+                    await apiClient.removeFriend(found.id);
+                  } else {
+                    throw new Error('친구 관계 정보를 찾지 못했습니다.');
+                  }
+                }
+                setFriendStatus('none');
+                setFriendshipId(null);
+                Alert.alert('친구 끊기 완료', `'${data.name}'님과 친구 관계가 해제되었습니다.`);
+              } catch (err) {
+                Alert.alert('친구 끊기 실패', err?.message || '처리에 실패했습니다.');
+              } finally {
+                setUpdatingFriend(false);
+              }
+            },
+          },
+        ],
+      );
       return;
     }
 
     if (friendStatus === 'requested_by_me') {
       Alert.alert(
-        '친구 요청 대기 중',
-        `${data.name}님의 수락을 기다리고 있습니다.\n친구 관리 화면에서 취소할 수 있습니다.`,
+        '보낸 친구 요청',
+        `'${data.name}'님에게 보낸 친구 요청을 취소하시겠습니까?`,
         [
           { text: '닫기' },
-          { text: '친구 관리로 이동', onPress: () => navigation.navigate('Friends') },
+          {
+            text: '요청 취소하기',
+            style: 'destructive',
+            onPress: async () => {
+              if (updatingFriend) return;
+              setUpdatingFriend(true);
+              try {
+                if (friendshipId) {
+                  await apiClient.cancelFriendRequest(friendshipId);
+                } else {
+                  const allRes = await apiClient.getFriendships();
+                  const allFriends = Array.isArray(allRes?.data)
+                    ? allRes.data
+                    : Array.isArray(allRes)
+                    ? allRes
+                    : [];
+                  const found = allFriends.find(
+                    (f) =>
+                      f.status === 'requested' &&
+                      (f.targetAccountId === targetAccountId || f.userId === targetUserId),
+                  );
+                  if (found?.id) {
+                    await apiClient.cancelFriendRequest(found.id);
+                  }
+                }
+                setFriendStatus('none');
+                setFriendshipId(null);
+                Alert.alert('완료', '친구 요청이 취소되었습니다.');
+              } catch (err) {
+                Alert.alert('취소 실패', err?.message || '요청 취소에 실패했습니다.');
+              } finally {
+                setUpdatingFriend(false);
+              }
+            },
+          },
         ],
       );
       return;
@@ -271,10 +354,42 @@ export default function ProfileDetailScreen({ navigation, route }) {
     if (friendStatus === 'requested_to_me') {
       Alert.alert(
         '친구 요청 수락',
-        `${data.name}님의 친구 요청을 관리 화면에서 확인하시겠습니까?`,
+        `'${data.name}'님의 친구 요청을 수락하시겠습니까?`,
         [
           { text: '닫기' },
-          { text: '친구 관리로 이동', onPress: () => navigation.navigate('Friends') },
+          {
+            text: '수락하기',
+            onPress: async () => {
+              if (updatingFriend) return;
+              setUpdatingFriend(true);
+              try {
+                if (friendshipId) {
+                  await apiClient.acceptFriendRequest(friendshipId);
+                } else {
+                  const allRes = await apiClient.getFriendships();
+                  const allFriends = Array.isArray(allRes?.data)
+                    ? allRes.data
+                    : Array.isArray(allRes)
+                    ? allRes
+                    : [];
+                  const found = allFriends.find(
+                    (f) =>
+                      f.status === 'requested' &&
+                      (f.targetAccountId === targetAccountId || f.userId === targetUserId),
+                  );
+                  if (found?.id) {
+                    await apiClient.acceptFriendRequest(found.id);
+                  }
+                }
+                setFriendStatus('accepted');
+                Alert.alert('친구 수락 완료', `'${data.name}'님과 친구가 되었습니다!`);
+              } catch (err) {
+                Alert.alert('수락 실패', err?.message || '친구 수락에 실패했습니다.');
+              } finally {
+                setUpdatingFriend(false);
+              }
+            },
+          },
         ],
       );
       return;
@@ -283,11 +398,12 @@ export default function ProfileDetailScreen({ navigation, route }) {
     // friendStatus === 'none'
     setUpdatingFriend(true);
     try {
-      await apiClient.sendFriendRequest({
+      const res = await apiClient.sendFriendRequest({
         targetAccountId: targetAccountId || undefined,
         addresseeId: targetUserId || undefined,
       });
       setFriendStatus('requested_by_me');
+      if (res?.id) setFriendshipId(res.id);
       Alert.alert('친구 요청 완료', `${data.name}님에게 친구 요청을 보냈습니다.`);
     } catch (error) {
       Alert.alert('친구 요청 실패', error?.message || '친구 요청을 보내지 못했습니다.');

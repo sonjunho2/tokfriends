@@ -16,7 +16,10 @@ import SettingsScreen from '../screens/my/SettingsScreen';
 import ProfileEditScreen from '../screens/my/ProfileEditScreen';
 import BlockedUsersScreen from '../screens/my/BlockedUsersScreen';
 import FriendsScreen from '../screens/my/FriendsScreen';
+import VisitorsScreen from '../screens/my/VisitorsScreen';
+import FollowsScreen from '../screens/my/FollowsScreen';
 import CommunityFeedScreen from '../screens/community/CommunityFeedScreen';
+import PostDetailScreen from '../screens/community/PostDetailScreen';
 
 // ===== 서브 =====
 import HotRecommendScreen from '../screens/recommend/HotRecommendScreen';
@@ -75,6 +78,11 @@ function HomeStack() {
         options={{ animation: 'slide_from_right' }}
       />
       <HomeStackNav.Screen
+        name="ProfileEdit"
+        component={ProfileEditScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <HomeStackNav.Screen
         name="Friends"
         component={FriendsScreen}
         options={{ animation: 'slide_from_right' }}
@@ -82,6 +90,11 @@ function HomeStack() {
       <HomeStackNav.Screen
         name="CommunityFeed"
         component={CommunityFeedScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <HomeStackNav.Screen
+        name="PostDetail"
+        component={PostDetailScreen}
         options={{ animation: 'slide_from_right' }}
       />
       <HomeStackNav.Screen
@@ -104,6 +117,16 @@ function HomeStack() {
         component={NotificationsScreen}
         options={{ animation: 'slide_from_right' }}
       />
+      <HomeStackNav.Screen
+        name="Visitors"
+        component={VisitorsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <HomeStackNav.Screen
+        name="Follows"
+        component={FollowsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
     </HomeStackNav.Navigator>
   );
 }
@@ -116,6 +139,11 @@ function CommunityStack() {
       screenOptions={{ headerShown: false }}
     >
       <CommunityStackNav.Screen name="CommunityMain" component={CommunityFeedScreen} />
+      <CommunityStackNav.Screen
+        name="PostDetail"
+        component={PostDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
       <CommunityStackNav.Screen
         name="ProfileDetail"
         component={ProfileDetailScreen}
@@ -230,6 +258,11 @@ function MyPageStack() {
         options={{ animation: 'slide_from_right' }}
       />
       <MyPageStackNav.Screen
+        name="PostDetail"
+        component={PostDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
         name="Points"
         component={ShopScreen}
         options={{ animation: 'slide_from_right' }}
@@ -242,6 +275,21 @@ function MyPageStack() {
       <MyPageStackNav.Screen
         name="Notifications"
         component={NotificationsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="Visitors"
+        component={VisitorsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="Follows"
+        component={FollowsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="ChatRoom"
+        component={ChatRoomScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </MyPageStackNav.Navigator>

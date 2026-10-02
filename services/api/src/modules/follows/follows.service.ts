@@ -189,6 +189,20 @@ export class FollowsService {
             id: true,
             handle: true,
             displayName: true,
+            legacyUser: {
+              select: {
+                id: true,
+                region1: true,
+                region2: true,
+                profile: {
+                  select: {
+                    nickname: true,
+                    headline: true,
+                    avatarUri: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -198,7 +212,15 @@ export class FollowsService {
       items: rows.slice(0, query.limit).map((row) => ({
         id: row.followerAccount.id,
         handle: row.followerAccount.handle,
-        displayName: row.followerAccount.displayName,
+        displayName:
+          row.followerAccount.displayName ||
+          row.followerAccount.legacyUser?.profile?.nickname ||
+          '회원',
+        avatarUri: row.followerAccount.legacyUser?.profile?.avatarUri || null,
+        region1: row.followerAccount.legacyUser?.region1 || null,
+        region2: row.followerAccount.legacyUser?.region2 || null,
+        headline: row.followerAccount.legacyUser?.profile?.headline || null,
+        userId: row.followerAccount.legacyUser?.id || null,
         followedAt: row.createdAt,
       })),
       offset: query.offset,
@@ -233,6 +255,20 @@ export class FollowsService {
             id: true,
             handle: true,
             displayName: true,
+            legacyUser: {
+              select: {
+                id: true,
+                region1: true,
+                region2: true,
+                profile: {
+                  select: {
+                    nickname: true,
+                    headline: true,
+                    avatarUri: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -242,7 +278,15 @@ export class FollowsService {
       items: rows.slice(0, query.limit).map((row) => ({
         id: row.followingAccount.id,
         handle: row.followingAccount.handle,
-        displayName: row.followingAccount.displayName,
+        displayName:
+          row.followingAccount.displayName ||
+          row.followingAccount.legacyUser?.profile?.nickname ||
+          '회원',
+        avatarUri: row.followingAccount.legacyUser?.profile?.avatarUri || null,
+        region1: row.followingAccount.legacyUser?.region1 || null,
+        region2: row.followingAccount.legacyUser?.region2 || null,
+        headline: row.followingAccount.legacyUser?.profile?.headline || null,
+        userId: row.followingAccount.legacyUser?.id || null,
         followedAt: row.createdAt,
       })),
       offset: query.offset,

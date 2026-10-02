@@ -501,36 +501,41 @@ export default function CommunityFeedScreen({ navigation, route }) {
           </View>
         </View>
 
-        {/* Post Content */}
-        {Boolean(item.content) && <Text style={styles.postContent}>{item.content}</Text>}
+        {/* Post Content & Media - Tap to open PostDetail */}
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => navigation.navigate('PostDetail', { post: item, postId: item.id })}
+        >
+          {Boolean(item.content) && <Text style={styles.postContent}>{item.content}</Text>}
 
-        {/* Post Media Attachment */}
-        {Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0 && (
-          <View style={styles.postMediaContainer}>
-            {item.mediaUrls.length === 1 ? (
-              <Image
-                source={{ uri: item.mediaUrls[0] }}
-                style={styles.singlePostImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.postMediaScroll}
-              >
-                {item.mediaUrls.map((url, idx) => (
-                  <Image
-                    key={`feed-img-${idx}-${url}`}
-                    source={{ uri: url }}
-                    style={styles.multiPostImage}
-                    resizeMode="cover"
-                  />
-                ))}
-              </ScrollView>
-            )}
-          </View>
-        )}
+          {/* Post Media Attachment */}
+          {Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0 && (
+            <View style={styles.postMediaContainer}>
+              {item.mediaUrls.length === 1 ? (
+                <Image
+                  source={{ uri: item.mediaUrls[0] }}
+                  style={styles.singlePostImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.postMediaScroll}
+                >
+                  {item.mediaUrls.map((url, idx) => (
+                    <Image
+                      key={`feed-img-${idx}-${url}`}
+                      source={{ uri: url }}
+                      style={styles.multiPostImage}
+                      resizeMode="cover"
+                    />
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+          )}
+        </TouchableOpacity>
 
         {/* Post Bottom Bar */}
         <View style={styles.postFooter}>

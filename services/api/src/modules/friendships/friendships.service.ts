@@ -359,7 +359,7 @@ export class FriendshipsService {
     currentUserId: string,
     targetUserId?: string,
     targetAccountId?: string,
-  ): Promise<{ status: "accepted" | "requested_by_me" | "requested_to_me" | "none" }> {
+  ): Promise<{ status: "accepted" | "requested_by_me" | "requested_to_me" | "none"; friendshipId?: string }> {
     if (!currentUserId) return { status: "none" };
 
     let resolvedTargetId = targetUserId?.trim() ?? "";
@@ -393,6 +393,7 @@ export class FriendshipsService {
         ],
       },
       select: {
+        id: true,
         status: true,
         requesterId: true,
       },
@@ -400,13 +401,16 @@ export class FriendshipsService {
 
     if (!friendship) return { status: "none" };
 
-    if (friendship.status === "accepted") return { status: "accepted" };
+    if (friendship.status === "accepted") {
+      return { status: "accepted", friendshipId: friendship.id };
+    }
     if (friendship.status === "requested") {
       return {
         status:
           friendship.requesterId === currentUserId
             ? "requested_by_me"
             : "requested_to_me",
+        friendshipId: friendship.id,
       };
     }
 

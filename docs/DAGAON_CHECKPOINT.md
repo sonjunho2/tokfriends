@@ -1,8 +1,147 @@
 # DAGAON Development Checkpoint
 
-Updated: 2026-10-01
+Updated: 2026-10-02
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
+
+## 2026-10-02 Checkpoint 17: 커뮤니티 동네생활 게시글 상세(PostDetail) 및 실시간 댓글 시스템 고도화 (완료)
+
+### 1. 모바일 클라이언트 단일 게시글 조회 API 신설 (`apps/mobile/src/api/client.js`)
+- **`getPost(postId)` 메서드 구현**:
+  - `GET /posts/:postId` 엔드포인트 연동.
+  - 네트워크 단절 및 목데이터 모드 시 로컬 메모리 스토어(`DUMMY_POSTS`) 안전 fallback 제공.
+
+### 2. 커뮤니티 게시글 상세 화면 신설 (`apps/mobile/src/screens/community/PostDetailScreen.js`)
+- **다가온 브랜드 기반 카드 레이아웃**:
+  - 작성자 프로필 헤더 (아바타, 닉네임, 지역, 작성 시간 경과 표시, 내 글 뱃지).
+  - 토픽 태그 배지 (`#동네 소식`, `#취미 / 운동` 등).
+  - 게시글 본문 텍스트 및 다중 미디어 이미지 갤러리 렌더링.
+  - 상단 옵션 메뉴: 공유하기(`Share.share`), 게시글 신고, 작성자 차단, 내 글 삭제.
+- **실시간 인터랙션 바**:
+  - 낙관적 UI(Optimistic UI) 기반 좋아요 토글 (`apiClient.togglePostLike`).
+  - 작성자와 즉시 1:1 대화 연결 (`ensureDirectRoom` -> `ChatRoom`).
+  - 작성자 프로필 상세 네비게이션 (`ProfileDetailScreen`).
+- **댓글(Comments) 피드 및 입력 시스템**:
+  - 실시간 댓글 개수 및 상대 시간("방금 전", "10분 전") 표기.
+  - 내 댓글 즉시 삭제 기능 (`apiClient.deletePostComment`).
+  - 빈 댓글 상태 일러스트 안내 ("따뜻한 첫 댓글을 남겨 이웃과 이야기를 시작해보세요!").
+  - 하단 인터랙티브 댓글 입력 바 (`TextInput`, 카카오 옐로우 전송 버튼, 전송 중 로딩 스피너).
+  - 당겨서 새로고침(Pull-to-refresh) 지원.
+
+### 3. 네비게이션 및 피드 연동 (`RootNavigator.js` & `CommunityFeedScreen.js`)
+- **`RootNavigator.js` 등록**:
+  - `CommunityStackNav`, `HomeStackNav`, `MyPageStackNav`에 `PostDetail` 스크린 완벽 등록.
+- **`CommunityFeedScreen.js` 터치 인터랙션 연동**:
+  - 피드 내 게시글 카드 본문 및 미디어 터치 시 `PostDetailScreen`으로 부드러운 전환 지원.
+
+---
+
+## 2026-10-02 Checkpoint 16: 내 프로필 방문자(Visitors) & 팔로워/팔로잉(Follows) 센터 구축 (완료)
+
+### 1. 백엔드 소셜 프로필 상세 조인 엔리치먼트 (`profile-visits.service.ts` & `follows.service.ts`)
+- **프로필 방문자 목록 API 엔리치먼트 (`profile-visits.service.ts`)**:
+  - `listReceived` / `listSent` 조회 시 방문자 계정의 `legacyUser` (`profile: { nickname, headline, avatarUri }`, `region1`, `region2`, `id`) 정보를 다이렉트로 조인 및 플랫 매핑.
+  - 모바일 클라이언트에서 추가적인 유저 조회 왕복 통신 없이도 방문자 닉네임, 지역, 아바타, 한줄소개를 즉각 렌더링.
+- **팔로워 / 팔로잉 목록 API 엔리치먼트 (`follows.service.ts`)**:
+  - `listFollowers` / `listFollowing` 조회 시 대상 계정의 `legacyUser` 프로필 및 지역 정보를 자동 엔리치먼트하여 반환.
+
+### 2. 모바일 클라이언트 API 함수 신설 (`apps/mobile/src/api/client.js`)
+- **`getProfileVisits({ type, limit, offset })`**:
+  - 나를 방문한 유저 및 내가 방문한 유저 목록 조회 (네트워크 오프라인 시 목데이터 fallback 탑재).
+- **`getFollowers(accountId, { limit, offset })` & `getFollowing(accountId, { limit, offset })`**:
+  - 특정 계정의 팔로워/팔로잉 목록 페이징 조회 함수 신설.
+
+### 3. 방문자 관리 화면 신설 (`apps/mobile/src/screens/my/VisitorsScreen.js`)
+- **다가온 브랜드 아이덴티티 카드 UI**:
+  - 카카오 옐로우 `#FEE500` 안내 배너 ("나에게 관심을 보인 소중한 인연들이에요").
+  - 상대적 방문 시간 계산기 ("방금 전", "15분 전", "3시간 전", "어제" 등).
+  - 방문자 아바타, 닉네임, 지역(`서울 강남구`), 한줄 소개 표시.
+  - [1:1 대화] 버튼 터치 시 `ensureDirectRoom`을 통해 즉시 채팅방 개설 및 이동.
+  - 방문자 카드 터치 시 `ProfileDetail` 상세 보기로 부드럽게 네비게이션.
+  - 당겨서 새로고침(Pull-to-refresh) 및 방문자 없을 시 산뜻한 빈 화면 안내.
+
+### 4. 팔로워 / 팔로잉 관리 화면 신설 (`apps/mobile/src/screens/my/FollowsScreen.js`)
+- **상단 듀얼 탭 전환 (`[팔로워 N]`, `[팔로잉 N]`)**:
+  - 실시간 카운터 배지와 탭 인디케이터 제공.
+  - 맞팔 여부 감지 및 즉각적인 팔로우/언팔로우 액션 (`apiClient.followAccount`, `apiClient.unfollowAccount`).
+  - 당겨서 새로고침(Pull-to-refresh) 및 회원 프로필 상세 연동.
+
+### 5. 마이페이지(SettingsScreen) 소셜 관계 허브 연동 & 네비게이션 등록
+- **프로필 하단 소셜 카운터 바 (방문자 / 팔로워 / 팔로잉 / 친구) 신설**:
+  - 실시간 방문자 수, 팔로워 수, 팔로잉 수, 친구 수를 한눈에 볼 수 있는 카운터 바 배치 및 원터치 이동 지원.
+- **도움말/활동 링크 목록에 추가**:
+  - [프로필 방문자], [팔로워 / 팔로잉 관리] 메뉴 아이템 신설.
+- **`RootNavigator.js` 등록**:
+  - `HomeStackNav` 및 `MyPageStackNav`에 `Visitors`, `Follows`, `ChatRoom` 스크린 완벽 등록.
+
+---
+
+## 2026-10-02 Checkpoint 15: 회원가입 온보딩 프로필 등록(ProfileRegistration) 고도화 & 닉네임 중복검사 및 관심사 연동 (완료)
+
+### 1. 백엔드 가입 온보딩 관심사(Interests) & 아바타 파이프라인 확장 (`dto.ts` & `auth.service.ts`)
+- **`CompletePhoneProfileDto` 필드 확장 (`services/api/src/modules/auth/dto.ts`)**:
+  - `interests?: string[]` 유효성 검증 필드(`@IsArray`, `@IsString`) 신설.
+- **`completePhoneProfile` 온보딩 트랜잭션 연동 (`auth.service.ts`)**:
+  - 가입 시 클라이언트가 선택한 관심사 배열을 받아 신규 회원 프로필 생성(`tx.user.create -> profile.create`) 시 `interests` 필드에 즉시 원자적 영구 저장.
+
+### 2. 모바일 가입 온보딩 프로필 등록 화면 전면 개편 (`ProfileRegistrationScreen.js`)
+- **닉네임 실시간 중복 확인 인터랙션**:
+  - 닉네임 인풋 우측에 카카오 옐로우 `#FEE500` [중복확인] 액션 버튼 배치 및 상태 배지(확인 전, 사용 가능, 중복/금칙어) 연동.
+  - 가입 버튼 터치 시 닉네임 중복 확인 미완료 상태인 경우 선제 자동 검증 수행.
+- **온보딩 관심사(Interests) 칩 선택 섹션 신설**:
+  - 음악, 영화, 카페, 맛집, 여행, 운동, 게임, 요리, 반려동물 등 16종 인기 추천 태그를 카카오 감성 토글 칩으로 제공.
+  - 최대 10개 선택 제한 및 가입 시 서버로 직접 동봉 전송.
+- **성별 & 출생연도 UI 고도화**:
+  - 여성/남성 아이콘 라디오 카드 UI 제공 (활성화 시 카카오 옐로우 `#FEE500` + 볼드 차콜 `#191919`).
+  - 출생연도 유효성 실시간 안내.
+- **17개 시/도 지역 선택 모달 (Region Picker)**:
+  - 지역 1(시/도) 터치 시 17개 특별·광역·도 선택 모달 팝업 제공 및 지역 2(시/군/구) 입력 결합.
+- **글자 수 카운터 및 자기소개 UX**:
+  - 한줄 소개 (최대 40자, `N/40`), 자기소개 (다줄 입력, 최대 300자, `N/300`).
+- **사진 업로드 & 안전한 가입 트랜잭션**:
+  - 갤러리 접근 권한 요청 및 사진 선택, 미리보기.
+  - 가입 진행 시 `uploadAvatar` 선제 실행 및 가입 완료 시 `authenticateWithToken`을 통한 원활한 자동 로그인 수립.
+
+---
+
+## 2026-10-02 Checkpoint 14: 내 프로필 수정 화면(ProfileEdit) 고도화 & 닉네임 실시간 중복검사 및 프로필 연동 (완료)
+
+### 1. 백엔드 닉네임 유효성 및 중복 검사 API 신설 (`users.controller.ts` & `users.service.ts`)
+- **실시간 닉네임 검사 엔드포인트 (`GET /users/check-nickname`)**:
+  - `nickname` 파라미터 수신 및 2~12자 길이, 특수문자 제한 정규식 검증.
+  - `BannedWord` 금칙어 테이블과 연동하여 비속어/음란어 등 유해 단어 포함 여부 원천 차단.
+  - 탈퇴 유저(`withdrawn`)를 제외한 활성 회원의 `displayName` 및 `profile.nickname`과 대소문자 무시(case-insensitive) 중복 여부 확인.
+  - 현재 로그인한 본인 계정 ID는 중복 대상에서 제외(`excludeUserId`)하여 본인 기존 닉네임 유지 시 정상 통과.
+- **친구 상태 조회 고도화 (`friendships.service.ts`)**:
+  - `getStatus` 반환 객체에 `friendshipId` 필드를 포함하도록 확장하여, 프로필 상세 화면에서 친구 관계 식별 및 즉시 해제 가능하도록 지원.
+
+### 2. 모바일 내 프로필 수정 화면 전면 개편 (`ProfileEditScreen.js`)
+- **닉네임 중복 확인 인터랙션**:
+  - 닉네임 인풋 우측에 직관적인 [중복확인] 액션 버튼 배치 및 실시간 상태 배지(현재 닉네임, 사용 가능, 중복/금칙어 포함, 변경 후 미검사) 연동.
+  - 변경사항 저장 시 중복 검사를 거치지 않은 경우 자동으로 선제 검증 수행.
+- **17개 시/도 지역 선택 모달 (Region Picker)**:
+  - 지역 1(시/도) 터치 시 대한민국 17개 특별·광역·도 선택 모달 팝업 제공.
+  - 지역 2(시/군/구) 입력란과 결합하여 신뢰도 높은 지역 정보 설정 지원.
+- **글자 수 카운터 및 자기소개 UX**:
+  - 한줄 소개 (최대 40자, 실시간 `N/40` 카운터).
+  - 자기소개 (최대 300자, 다줄 입력 및 실시간 `N/300` 카운터).
+- **16종 추천 관심사 (Interests) 칩 시스템**:
+  - 음악, 영화, 카페, 맛집, 여행, 운동, 게임, 요리, 반려동물 등 16종 프리셋 태그 토글 칩 버튼.
+  - 선택된 태그는 카카오 옐로우(`#FEE500`) 배경과 볼드 텍스트로 시각화, 최대 10개 제한 및 직접 입력 추가/개별 삭제 기능 지원.
+- **실시간 프로필 미리보기 카드 (Live Preview)**:
+  - 아바타, 닉네임, 지역, 한줄 소개, 자기소개, 관심사 해시태그 칩이 실시간으로 반영되는 프리뷰 카드 제공.
+- **사진 관리 및 세션 동기화**:
+  - 갤러리 접근 권한 요청 및 사진 크롭/업로드(`uploadAvatar`), 기본 사진 초기화 옵션.
+  - 저장 시 `updateUser` API 호출 및 `refreshMe()` 전역 세션 즉시 동기화.
+
+### 3. 프로필 상세 화면 및 네비게이션 연계 (`ProfileDetailScreen.js` & `RootNavigator.js`)
+- **프로필 상세 화면 친구 관리 원터치 액션**:
+  - 이미 친구 사이인 회원 열람 시 [친구] 버튼 터치 시 즉시 안내 다이얼로그를 통해 [친구 끊기] 옵션 제공 및 `removeFriend` 연동.
+  - 내가 보낸 요청인 경우 [요청 취소하기], 상대방이 보낸 요청인 경우 [수락하기]를 프로필 화면에서 다이렉트 수행 가능.
+- **스택 네비게이션 연계**:
+  - `HomeStackNav`에 `ProfileEdit` 스크린을 정식 등록하여, 홈 화면 상단 내 프로필 미니 배너 → 프로필 상세 → 프로필 수정으로 이어지는 UX 흐름 완성.
+
+---
 
 ## 2026-10-01 Checkpoint 13: 친구 관리 화면 고도화 & 친구 삭제(끊기) 파이프라인 연동 (완료)
 

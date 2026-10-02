@@ -645,6 +645,8 @@ export const apiClient = {
       ...(rawRegion ? { region: String(rawRegion).trim() } : {}),
       ...(payload?.headline ? { headline: String(payload.headline).trim() } : {}),
       ...(payload?.bio ? { bio: String(payload.bio).trim() } : {}),
+      ...(Array.isArray(payload?.interests) ? { interests: payload.interests } : {}),
+      ...(payload?.avatarUri ? { avatarUri: String(payload.avatarUri).trim() } : {}),
     };
 
     // 필수 입력값이 모두 채워졌는지 검증
@@ -916,6 +918,39 @@ export const apiClient = {
   async getUser(userId) {
     try { const { data } = await client.get(`/users/${userId}`); return data; }
     catch (e) { throw normalizeError(e); }
+  },
+
+  async updateUser(userId, payload = {}) {
+    if (!userId) {
+      throw normalizeError(new Error('사용자 ID가 필요합니다.'));
+    }
+    if (USE_DUMMY_AUTH) {
+      return { ok: true, data: { id: userId, ...payload } };
+    }
+    try {
+      const { data } = await client.patch(`/users/${userId}`, payload);
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async checkNickname(nickname) {
+    const trimmed = String(nickname ?? '').trim();
+    if (!trimmed) {
+      return { available: false, reason: '닉네임을 입력해 주세요.' };
+    }
+    if (USE_DUMMY_AUTH) {
+      return { available: true, message: '사용 가능한 닉네임입니다.' };
+    }
+    try {
+      const { data } = await client.get('/users/check-nickname', {
+        params: { nickname: trimmed },
+      });
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
   },
 
   async getDiscover(params = {}) {
@@ -1690,6 +1725,101 @@ export const apiClient = {
     }
   },
 
+  async getProfileVisits({ type = 'received', limit = 20, offset = 0 } = {}) {
+    try {
+      const endpoint = type === 'sent' ? '/profile-visits/sent' : '/profile-visits/received';
+      const { data } = await client.get(endpoint, {
+        params: { limit, offset },
+      });
+      return data?.data ?? data;
+    } catch (e) {
+      if (USE_DUMMY_AUTH) {
+        return {
+          items: [
+            {
+              id: 'visit-acc-1',
+              displayName: '이지수',
+              avatarUri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+              region1: '서울특별시',
+              region2: '강남구',
+              headline: '오늘도 즐거운 하루 보내세요 ✨',
+              visitedAt: new Date(Date.now() - 25 * 60000).toISOString(),
+            },
+            {
+              id: 'visit-acc-2',
+              displayName: '김민우',
+              avatarUri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+              region1: '경기도',
+              region2: '성남시 분당구',
+              headline: '주말엔 카페 투어 함께해요 ☕',
+              visitedAt: new Date(Date.now() - 2 * 3600000).toISOString(),
+            },
+          ],
+          hasMore: false,
+        };
+      }
+      return { items: [], hasMore: false };
+    }
+  },
+
+  async getFollowers(accountId, { limit = 20, offset = 0 } = {}) {
+    if (!accountId) return { items: [], hasMore: false };
+    try {
+      const { data } = await client.get(
+        `/follows/${encodeURIComponent(String(accountId).trim())}/followers`,
+        { params: { limit, offset } },
+      );
+      return data?.data ?? data;
+    } catch (e) {
+      if (USE_DUMMY_AUTH) {
+        return {
+          items: [
+            {
+              id: 'follow-acc-1',
+              displayName: '이지수',
+              avatarUri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+              region1: '서울특별시',
+              region2: '강남구',
+              headline: '반가워요! 맞팔해요 😊',
+              followedAt: new Date(Date.now() - 3600000).toISOString(),
+            },
+          ],
+          hasMore: false,
+        };
+      }
+      return { items: [], hasMore: false };
+    }
+  },
+
+  async getFollowing(accountId, { limit = 20, offset = 0 } = {}) {
+    if (!accountId) return { items: [], hasMore: false };
+    try {
+      const { data } = await client.get(
+        `/follows/${encodeURIComponent(String(accountId).trim())}/following`,
+        { params: { limit, offset } },
+      );
+      return data?.data ?? data;
+    } catch (e) {
+      if (USE_DUMMY_AUTH) {
+        return {
+          items: [
+            {
+              id: 'follow-acc-2',
+              displayName: '김민우',
+              avatarUri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+              region1: '경기도',
+              region2: '성남시 분당구',
+              headline: '주말엔 카페 투어 ☕',
+              followedAt: new Date(Date.now() - 86400000).toISOString(),
+            },
+          ],
+          hasMore: false,
+        };
+      }
+      return { items: [], hasMore: false };
+    }
+  },
+
   async sendFriendRequest({ addresseeId, targetAccountId } = {}) {
     if (!addresseeId && !targetAccountId) {
       throw normalizeError(new Error('친구 요청 대상이 필요합니다.'));
@@ -1893,6 +2023,23 @@ export const apiClient = {
     } catch (e) {
       if (USE_DUMMY_AUTH || e?.status === 401 || !currentToken) {
         return { items: DUMMY_POSTS, nextCursor: null, hasMore: false };
+      }
+      throw normalizeError(e);
+    }
+  },
+
+  async getPost(postId) {
+    if (!postId) throw normalizeError(new Error('게시글 ID가 필요합니다.'));
+    const dummy = DUMMY_POSTS.find((p) => p.id === postId);
+    if (USE_DUMMY_AUTH) {
+      return dummy || null;
+    }
+    try {
+      const { data } = await client.get(`/posts/${encodeURIComponent(postId)}`);
+      return data?.data ?? data ?? dummy ?? null;
+    } catch (e) {
+      if (dummy || USE_DUMMY_AUTH || e?.status === 401 || !currentToken) {
+        return dummy || null;
       }
       throw normalizeError(e);
     }

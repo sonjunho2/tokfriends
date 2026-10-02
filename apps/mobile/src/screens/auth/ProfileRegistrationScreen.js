@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+// src/screens/auth/ProfileRegistrationScreen.js
+import React, { useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,22 +12,28 @@ import {
   Platform,
   ScrollView,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
-import ButtonPrimary from '../../components/ButtonPrimary';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { USE_DUMMY_AUTH } from '../../config/env';
 
 const GENDER_OPTIONS = [
-  { key: 'female', label: '여성' },
-  { key: 'male', label: '남성' },
+  { key: 'female', label: '여성', icon: 'female' },
+  { key: 'male', label: '남성', icon: 'male' },
 ];
 
-const REGION_OPTIONS = [
+const PRESET_INTERESTS = [
+  '음악', '영화', '독서', '카페', '맛집', '여행', '운동',
+  '게임', '요리', '등산', '사진', '반려동물', '패션', '미술',
+  '드라이브', '재테크',
+];
+
+const KOREA_REGIONS = [
   '서울특별시',
   '부산광역시',
   '대구광역시',
@@ -53,28 +60,89 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
   const [nickname, setNickname] = useState('');
   const [birthYear, setBirthYear] = useState('');
   const [gender, setGender] = useState('');
-  const [region, setRegion] = useState('');
+  const [region1, setRegion1] = useState('');
+  const [region2, setRegion2] = useState('');
   const [headline, setHeadline] = useState('');
   const [bio, setBio] = useState('');
   const [imageUri, setImageUri] = useState(null);
   const [imageAsset, setImageAsset] = useState(null);
+  const [interests, setInterests] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+
+  // 닉네임 중복 확인 상태: 'initial' | 'checking' | 'available' | 'unavailable' | 'modified'
+  const [nicknameCheckStatus, setNicknameCheckStatus] = useState('initial');
+  const [nicknameMessage, setNicknameMessage] = useState('닉네임 중복 확인이 필요합니다.');
+  const [checkingNickname, setCheckingNickname] = useState(false);
+
+  // 시/도 선택 모달 상태
   const [regionModalVisible, setRegionModalVisible] = useState(false);
 
+  // 출생연도 유효성 (1920 ~ 올해)
   const birthYearValid = useMemo(() => {
     const numeric = parseInt(birthYear, 10);
     const current = new Date().getFullYear();
     return numeric >= current - 100 && numeric <= current;
   }, [birthYear]);
 
+  // 가입 버튼 활성화 조건
   const canSubmit =
     nickname.trim().length >= 2 &&
     birthYearValid &&
-    gender &&
-    headline.trim().length >= 5 &&
-    bio.trim().length >= 10 &&
+    Boolean(gender) &&
+    headline.trim().length >= 2 &&
+    bio.trim().length >= 5 &&
     !submitting;
 
+  // 닉네임 변경 시 상태 리셋
+  const handleNicknameChange = (text) => {
+    setNickname(text);
+    setNicknameCheckStatus('modified');
+    setNicknameMessage('닉네임 변경 시 중복 확인이 필요합니다.');
+  };
+
+  // 닉네임 중복 확인 실행
+  const handleCheckNickname = async (overrideText) => {
+    const target = (typeof overrideText === 'string' ? overrideText : nickname).trim();
+    if (!target) {
+      Alert.alert('알림', '확인할 닉네임을 입력해 주세요.');
+      return false;
+    }
+
+    setCheckingNickname(true);
+    try {
+      const res = await apiClient.checkNickname(target);
+      if (res?.available) {
+        setNicknameCheckStatus('available');
+        setNicknameMessage(res.message || '✓ 사용 가능한 닉네임입니다.');
+        return true;
+      } else {
+        setNicknameCheckStatus('unavailable');
+        setNicknameMessage(res.reason || '✕ 이미 사용 중이거나 사용할 수 없는 닉네임입니다.');
+        return false;
+      }
+    } catch (err) {
+      setNicknameCheckStatus('unavailable');
+      setNicknameMessage(err?.message || '닉네임 확인 중 오류가 발생했습니다.');
+      return false;
+    } finally {
+      setCheckingNickname(false);
+    }
+  };
+
+  // 관심사 태그 토글
+  const handleToggleInterest = (tag) => {
+    if (interests.includes(tag)) {
+      setInterests((prev) => prev.filter((t) => t !== tag));
+    } else {
+      if (interests.length >= 10) {
+        Alert.alert('관심사 안내', '관심사는 최대 10개까지 선택할 수 있습니다.');
+        return;
+      }
+      setInterests((prev) => [...prev, tag]);
+    }
+  };
+
+  // 사진 선택
   const handlePickImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -85,6 +153,7 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
       const res = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
+        aspect: [1, 1],
         quality: 0.85,
       });
       if (!res.canceled && res.assets?.[0]?.uri) {
@@ -92,81 +161,100 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
         setImageUri(res.assets[0].uri);
       }
     } catch (error) {
-      Alert.alert('오류', '사진을 선택하지 못했어요. 다시 시도해 주세요.');
+      Alert.alert('오류', '사진을 선택하지 못했습니다. 다시 시도해 주세요.');
     }
   };
 
+  // 가입 제출
   const handleSubmit = async () => {
-    // verificationId 결정
     let verificationId = initialVerificationId;
 
-    // 더미 모드에서는 verificationId 없이도 진행
-    if (USE_DUMMY_AUTH) {
-      if (!verificationId) {
-        verificationId = 'dummy-verification';
-      }
+    if (USE_DUMMY_AUTH && !verificationId) {
+      verificationId = 'dummy-verification';
     }
 
     if (!verificationId) {
       Alert.alert('오류', '인증 정보가 만료되었습니다. 처음부터 다시 진행해 주세요.');
       return;
     }
+
     if (!canSubmit) {
-      Alert.alert('안내', '필수 정보를 모두 입력해 주세요.');
+      Alert.alert('안내', '필수 정보를 모두 올바르게 입력해 주세요.');
       return;
     }
+
+    const trimmedNickname = nickname.trim();
+
+    // 닉네임 중복 확인 미완료 시 선제 검증
+    if (nicknameCheckStatus !== 'available') {
+      const isAvailable = await handleCheckNickname(trimmedNickname);
+      if (!isAvailable) {
+        Alert.alert('닉네임 확인', nicknameMessage || '사용 가능한 닉네임을 입력해 주세요.');
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
+      // 사진이 선택된 경우 먼저 업로드 시도
+      let uploadedAvatarUrl = null;
+      if (!USE_DUMMY_AUTH && imageAsset) {
+        try {
+          const uploadedAvatar = await apiClient.uploadAvatar(imageAsset);
+          uploadedAvatarUrl = String(uploadedAvatar?.url || '').trim() || null;
+        } catch {
+          // 사진 업로드 실패 시에도 기본 가입은 계속 진행
+        }
+      }
+
+      const fullRegion = [region1.trim(), region2.trim()].filter(Boolean).join(' ');
+
       const payload = {
         verificationId,
         phone,
-        nickname: nickname.trim(),
+        nickname: trimmedNickname,
         birthYear: parseInt(birthYear, 10),
         gender,
-        region: region.trim() || null,
+        region: fullRegion || null,
         headline: headline.trim(),
         bio: bio.trim(),
+        interests,
+        ...(uploadedAvatarUrl ? { avatarUri: uploadedAvatarUrl } : {}),
       };
+
       const response = await apiClient.completePhoneSignup(payload);
       const token =
         response?.token || response?.accessToken || response?.access_token;
       if (!token) {
         Alert.alert(
           '가입 실패',
-          response?.error?.message || '서버에서 토큰을 받지 못했습니다. 잠시 후 다시 시도해 주세요.',
+          response?.error?.message ||
+            '서버에서 인증 토큰을 수신하지 못했습니다. 잠시 후 다시 시도해 주세요.',
         );
         return;
       }
+
       const authResult = await authenticateWithToken(token);
       if (!authResult.success) {
-        Alert.alert('로그인 실패', authResult.error || '세션을 생성하지 못했습니다.');
+        Alert.alert('로그인 실패', authResult.error || '세션을 수립하지 못했습니다.');
         return;
       }
-      if (!USE_DUMMY_AUTH && imageAsset) {
+
+      // 만약 가입 시 사진이 업로드되지 못했으나 로컬에 이미지가 남아있는 경우 후속 업데이트 보완
+      if (!USE_DUMMY_AUTH && imageAsset && !uploadedAvatarUrl) {
         try {
-          const uploadedAvatar = await apiClient.uploadAvatar(imageAsset);
-          const avatarUrl = String(uploadedAvatar?.url || '').trim();
+          const uploaded = await apiClient.uploadAvatar(imageAsset);
+          const nextUrl = String(uploaded?.url || '').trim();
           const userId = authResult?.user?.id || response?.user?.id;
-
-          if (!avatarUrl || !userId) {
-            throw new Error('프로필 사진 저장 정보를 확인하지 못했습니다.');
+          if (nextUrl && userId) {
+            await apiClient.updateUser(userId, { avatarUri: nextUrl });
+            const canonicalMe = await apiClient.getMe();
+            await setUser(canonicalMe);
           }
-
-          await apiClient.updateUser(userId, {
-            avatarUri: avatarUrl,
-          });
-
-          const canonicalMe = await apiClient.getMe();
-          await setUser(canonicalMe);
-        } catch (avatarError) {
-          Alert.alert(
-            '프로필 사진',
-            avatarError?.message ||
-              '회원가입은 완료되었지만 프로필 사진을 저장하지 못했습니다. 나중에 다시 등록해 주세요.',
-          );
-        }
+        } catch {}
       }
 
+      // 성공 시 자동으로 메인 대시보드로 이동 (AuthContext 상태 변경)
     } catch (error) {
       Alert.alert(
         '가입 실패',
@@ -177,8 +265,34 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
     }
   };
 
+  const nicknameColor = useMemo(() => {
+    switch (nicknameCheckStatus) {
+      case 'available':
+        return '#10B981';
+      case 'unavailable':
+        return '#EF4444';
+      default:
+        return '#F59E0B';
+    }
+  }, [nicknameCheckStatus]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+      {/* 상단 헤더 */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.headerBackBtn}
+          onPress={() => navigation.goBack()}
+          hitSlop={8}
+        >
+          <Ionicons name="chevron-back" size={24} color="#191919" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>프로필 등록</Text>
+        <View style={styles.stepBadge}>
+          <Text style={styles.stepBadgeText}>2 / 2 단계</Text>
+        </View>
+      </View>
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -188,85 +302,194 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.title}>프로필을 입력해 주세요</Text>
+          <Text style={styles.welcomeTitle}>다가온에서 사용할{'\n'}프로필을 완성해 주세요 ✨</Text>
+          <Text style={styles.welcomeSub}>이웃과 첫인사를 나눌 멋진 프로필을 등록하세요.</Text>
 
-          <TouchableOpacity style={styles.avatarWrap} onPress={handlePickImage} activeOpacity={0.85}>
-            {imageUri ? (
-              <Image source={{ uri: imageUri }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Ionicons name="person" size={42} color={colors.textTertiary} />
-                <Text style={styles.avatarHint}>프로필 사진 등록 (선택)</Text>
+          {/* 아바타 사진 등록 */}
+          <View style={styles.avatarSection}>
+            <TouchableOpacity
+              style={styles.avatarWrap}
+              onPress={handlePickImage}
+              activeOpacity={0.85}
+              disabled={submitting}
+            >
+              {imageUri ? (
+                <Image source={{ uri: imageUri }} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Ionicons name="person" size={46} color="#A1A1AA" />
+                </View>
+              )}
+              <View style={styles.avatarCameraBadge}>
+                <Ionicons name="camera" size={17} color="#FFFFFF" />
               </View>
-            )}
-          </TouchableOpacity>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handlePickImage} disabled={submitting}>
+              <Text style={styles.avatarHint}>
+                {imageUri ? '사진 변경하기' : '프로필 사진 등록 (선택)'}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
+          {/* 메인 폼 카드 */}
           <View style={styles.formCard}>
-            <Text style={styles.sectionTitle}>기본 정보</Text>
-            <View style={styles.field}>
-              <Text style={styles.label}>닉네임 *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="닉네임을 입력하세요"
-                placeholderTextColor={colors.textTertiary}
-                value={nickname}
-                onChangeText={setNickname}
-                editable={!submitting}
-              />
+            {/* 1. 닉네임 입력 & 중복 확인 */}
+            <View style={styles.fieldBlock}>
+              <Text style={styles.label}>
+                닉네임 <Text style={styles.requiredAsterisk}>*</Text>
+              </Text>
+              <View style={styles.nicknameRow}>
+                <TextInput
+                  style={[styles.input, styles.nicknameInput]}
+                  placeholder="2~12자 닉네임을 입력하세요"
+                  placeholderTextColor="#A1A1AA"
+                  value={nickname}
+                  onChangeText={handleNicknameChange}
+                  maxLength={12}
+                  autoCapitalize="none"
+                  editable={!submitting}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.checkButton,
+                    (checkingNickname || !nickname.trim()) && styles.checkButtonDisabled,
+                  ]}
+                  onPress={() => handleCheckNickname()}
+                  disabled={checkingNickname || !nickname.trim()}
+                  activeOpacity={0.8}
+                >
+                  {checkingNickname ? (
+                    <ActivityIndicator size="small" color="#191919" />
+                  ) : (
+                    <Text style={styles.checkButtonText}>중복확인</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+              {nicknameMessage ? (
+                <View style={styles.feedbackRow}>
+                  <Ionicons
+                    name={
+                      nicknameCheckStatus === 'available'
+                        ? 'checkmark-circle'
+                        : nicknameCheckStatus === 'unavailable'
+                        ? 'alert-circle'
+                        : 'information-circle'
+                    }
+                    size={14}
+                    color={nicknameColor}
+                  />
+                  <Text style={[styles.feedbackText, { color: nicknameColor }]}>
+                    {nicknameMessage}
+                  </Text>
+                </View>
+              ) : null}
             </View>
 
+            {/* 2. 출생연도 & 성별 선택 */}
             <View style={styles.row}>
-              <View style={[styles.field, { flex: 1 }]}>
-                <Text style={styles.label}>출생연도 *</Text>
+              {/* 출생연도 */}
+              <View style={[styles.fieldBlock, { flex: 1 }]}>
+                <Text style={styles.label}>
+                  출생연도 <Text style={styles.requiredAsterisk}>*</Text>
+                </Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="1996"
-                  placeholderTextColor={colors.textTertiary}
+                  placeholder="예) 1998"
+                  placeholderTextColor="#A1A1AA"
                   value={birthYear}
                   onChangeText={setBirthYear}
                   keyboardType="number-pad"
                   maxLength={4}
                   editable={!submitting}
                 />
-                {!birthYearValid && birthYear.length === 4 && (
-                  <Text style={styles.errorText}>올바른 연도를 입력해 주세요.</Text>
-                )}
+                {!birthYearValid && birthYear.length === 4 ? (
+                  <Text style={styles.errorSubText}>올바른 연도를 입력해 주세요.</Text>
+                ) : null}
               </View>
-              <View style={{ width: 16 }} />
-              <View style={[styles.field, { flex: 1 }]}>
-                <Text style={styles.label}>거주 지역</Text>
-                <TouchableOpacity
-                  style={[styles.input, styles.selectInput]}
-                  activeOpacity={0.8}
-                  onPress={() => !submitting && setRegionModalVisible(true)}
-                  disabled={submitting}
-                >
-                  <Text
-                    style={[
-                      styles.selectInputText,
-                      !region ? styles.selectInputPlaceholder : null,
-                    ]}
-                  >
-                    {region || '지역선택'}
-                  </Text>
-                </TouchableOpacity>
+
+              {/* 성별 선택 */}
+              <View style={[styles.fieldBlock, { flex: 1 }]}>
+                <Text style={styles.label}>
+                  성별 <Text style={styles.requiredAsterisk}>*</Text>
+                </Text>
+                <View style={styles.genderRow}>
+                  {GENDER_OPTIONS.map((opt) => {
+                    const active = gender === opt.key;
+                    return (
+                      <TouchableOpacity
+                        key={opt.key}
+                        style={[styles.genderCard, active && styles.genderCardActive]}
+                        onPress={() => setGender(opt.key)}
+                        disabled={submitting}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons
+                          name={opt.icon}
+                          size={16}
+                          color={active ? '#191919' : '#71717A'}
+                        />
+                        <Text style={[styles.genderText, active && styles.genderTextActive]}>
+                          {opt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
             </View>
 
-            <View style={styles.field}>
-              <Text style={styles.label}>성별 *</Text>
-              <View style={styles.genderRow}>
-                {GENDER_OPTIONS.map((option) => {
-                  const active = gender === option.key;
+            {/* 3. 활동 지역 선택 (시/도 + 시/군/구) */}
+            <View style={styles.fieldBlock}>
+              <Text style={styles.label}>활동 지역 (선택)</Text>
+              <View style={styles.regionRow}>
+                <TouchableOpacity
+                  style={styles.regionPickerBtn}
+                  onPress={() => !submitting && setRegionModalVisible(true)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.regionPickerText, !region1 && styles.placeholderText]}>
+                    {region1 || '시/도 선택'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color="#71717A" />
+                </TouchableOpacity>
+
+                <TextInput
+                  style={[styles.input, styles.region2Input]}
+                  placeholder="시/군/구 (예: 강남구)"
+                  placeholderTextColor="#A1A1AA"
+                  value={region2}
+                  onChangeText={setRegion2}
+                  maxLength={20}
+                  editable={!submitting}
+                />
+              </View>
+            </View>
+
+            {/* 4. 온보딩 관심사 선택 */}
+            <View style={styles.fieldBlock}>
+              <View style={styles.labelBetweenRow}>
+                <Text style={styles.label}>관심사 선택 ({interests.length}/10)</Text>
+                <Text style={styles.subInfoText}>관심사로 이웃을 찾아요</Text>
+              </View>
+
+              <View style={styles.interestChipContainer}>
+                {PRESET_INTERESTS.map((tag) => {
+                  const isSelected = interests.includes(tag);
                   return (
                     <TouchableOpacity
-                      key={option.key}
-                      style={[styles.genderButton, active && styles.genderButtonActive]}
-                      onPress={() => setGender(option.key)}
+                      key={tag}
+                      style={[styles.interestChip, isSelected && styles.interestChipActive]}
+                      onPress={() => handleToggleInterest(tag)}
                       disabled={submitting}
+                      activeOpacity={0.8}
                     >
-                      <Text style={[styles.genderText, active && styles.genderTextActive]}>
-                        {option.label}
+                      <Text
+                        style={[
+                          styles.interestChipText,
+                          isSelected && styles.interestChipTextActive,
+                        ]}
+                      >
+                        {isSelected ? `✓ ${tag}` : `+ ${tag}`}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -274,78 +497,114 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
               </View>
             </View>
 
-            <View style={styles.field}>
-              <Text style={styles.label}>한 줄 소개 *</Text>
+            {/* 5. 한줄 소개 */}
+            <View style={styles.fieldBlock}>
+              <View style={styles.labelBetweenRow}>
+                <Text style={styles.label}>
+                  한 줄 소개 <Text style={styles.requiredAsterisk}>*</Text>
+                </Text>
+                <Text style={styles.counterText}>{headline.length}/40</Text>
+              </View>
               <TextInput
                 style={styles.input}
-                placeholder="예) 주말엔 등산 함께해요!"
-                placeholderTextColor={colors.textTertiary}
+                placeholder="예) 커피 한잔 마시며 이야기 나눠요!"
+                placeholderTextColor="#A1A1AA"
                 value={headline}
                 onChangeText={setHeadline}
-                editable={!submitting}
                 maxLength={40}
+                editable={!submitting}
               />
-              <Text style={styles.helper}>{headline.length}/40</Text>
             </View>
 
-            <View style={styles.field}>
-              <Text style={styles.label}>자기소개 *</Text>
+            {/* 6. 자기소개 (다줄 입력) */}
+            <View style={styles.fieldBlock}>
+              <View style={styles.labelBetweenRow}>
+                <Text style={styles.label}>
+                  자기소개 <Text style={styles.requiredAsterisk}>*</Text>
+                </Text>
+                <Text style={styles.counterText}>{bio.length}/300</Text>
+              </View>
               <TextInput
-                style={[styles.input, styles.multiline]}
-                placeholder="관심사, 취미 등을 소개해 주세요."
-                placeholderTextColor={colors.textTertiary}
+                style={[styles.input, styles.textarea]}
+                placeholder="어떤 사람인지, 좋아하는 취미나 취향을 자유롭게 적어보세요."
+                placeholderTextColor="#A1A1AA"
                 value={bio}
                 onChangeText={setBio}
-                editable={!submitting}
                 multiline
-                numberOfLines={5}
+                numberOfLines={4}
                 textAlignVertical="top"
-                maxLength={500}
+                maxLength={300}
+                editable={!submitting}
               />
-              <Text style={styles.helper}>{bio.length}/500</Text>
             </View>
           </View>
 
-          <ButtonPrimary
-            title="가입 완료하기"
+          {/* 가입 완료 버튼 */}
+          <TouchableOpacity
+            style={[styles.submitButton, (!canSubmit || submitting) && styles.submitButtonDisabled]}
             onPress={handleSubmit}
-            disabled={!canSubmit}
-            loading={submitting}
-            style={{ marginTop: 32 }}
-          />
+            disabled={!canSubmit || submitting}
+            activeOpacity={0.85}
+          >
+            {submitting ? (
+              <ActivityIndicator size="small" color="#191919" />
+            ) : (
+              <>
+                <Text style={styles.submitButtonText}>다가온 시작하기 ✨</Text>
+                <Ionicons name="arrow-forward" size={18} color="#191919" />
+              </>
+            )}
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* 대한민국 17개 시/도 선택 모달 */}
       <Modal
         visible={regionModalVisible}
         transparent
         animationType="fade"
         onRequestClose={() => setRegionModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setRegionModalVisible(false)}
+        >
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>거주 지역 선택</Text>
-            <ScrollView style={styles.modalList}>
-              {REGION_OPTIONS.map((option) => (
-                <TouchableOpacity
-                  key={option}
-                  style={styles.modalOption}
-                  onPress={() => {
-                    setRegion(option);
-                    setRegionModalVisible(false);
-                  }}
-                >
-                  <Text style={styles.modalOptionText}>{option}</Text>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>활동 시/도 선택</Text>
+              <TouchableOpacity
+                style={styles.modalCloseBtn}
+                onPress={() => setRegionModalVisible(false)}
+              >
+                <Ionicons name="close" size={20} color="#191919" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+              {KOREA_REGIONS.map((option) => {
+                const isSelected = region1 === option;
+                return (
+                  <TouchableOpacity
+                    key={option}
+                    style={[styles.modalItem, isSelected && styles.modalItemActive]}
+                    onPress={() => {
+                      setRegion1(option);
+                      setRegionModalVisible(false);
+                    }}
+                  >
+                    <Text style={[styles.modalItemText, isSelected && styles.modalItemTextActive]}>
+                      {option}
+                    </Text>
+                    {isSelected ? (
+                      <Ionicons name="checkmark" size={18} color="#191919" />
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
-            <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={() => setRegionModalVisible(false)}
-            >
-              <Text style={styles.modalCloseText}>닫기</Text>
-            </TouchableOpacity>
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );
@@ -354,181 +613,371 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F7F8FA',
   },
-  scrollContent: {
-    padding: 24,
-    paddingBottom: 60,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8EAED',
   },
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: colors.text,
-    textAlign: 'center',
-  },
-  avatarWrap: {
-    marginTop: 28,
-    alignSelf: 'center',
-  },
-  avatarPlaceholder: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    backgroundColor: colors.backgroundSecondary,
+  headerBackBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 8,
   },
-  avatarHint: {
-    marginTop: 8,
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#191919',
+  },
+  stepBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  stepBadgeText: {
     fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
+    fontWeight: '700',
+    color: '#D97706',
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 60,
+  },
+  welcomeTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#191919',
+    lineHeight: 30,
+    marginTop: 8,
+  },
+  welcomeSub: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#71717A',
+    marginTop: 6,
+    marginBottom: 20,
+  },
+  avatarSection: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  avatarWrap: {
+    position: 'relative',
+    width: 104,
+    height: 104,
+    borderRadius: 52,
   },
   avatar: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    resizeMode: 'cover',
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: '#E4E4E7',
+  },
+  avatarPlaceholder: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: '#F4F4F5',
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarCameraBadge: {
+    position: 'absolute',
+    right: 0,
+    bottom: 2,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#191919',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  avatarHint: {
+    marginTop: 10,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#2563EB',
   },
   formCard: {
-    marginTop: 32,
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    gap: 20,
+    borderWidth: 1,
+    borderColor: '#E8EAED',
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 18,
-  },
-  field: {
-    marginBottom: 20,
+  fieldBlock: {
+    gap: 6,
   },
   label: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.text,
-    marginBottom: 8,
+    color: '#191919',
+  },
+  requiredAsterisk: {
+    color: '#EF4444',
+  },
+  labelBetweenRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  counterText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#A1A1AA',
+  },
+  subInfoText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#71717A',
   },
   input: {
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: colors.text,
+    borderColor: '#E4E4E7',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#191919',
+    backgroundColor: '#FAFAFA',
   },
-  selectInput: {
+  nicknameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  nicknameInput: {
+    flex: 1,
+  },
+  checkButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#FEE500',
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  selectInputText: {
-    fontSize: 16,
-    color: colors.text,
+  checkButtonDisabled: {
+    backgroundColor: '#E4E4E7',
+    opacity: 0.7,
   },
-  selectInputPlaceholder: {
-    color: colors.textTertiary,
+  checkButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#191919',
   },
-  multiline: {
-    height: 150,
-    paddingVertical: 14,
+  feedbackRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
   },
-  helper: {
-    marginTop: 6,
+  feedbackText: {
     fontSize: 12,
-    color: colors.textTertiary,
-    textAlign: 'right',
+    fontWeight: '600',
   },
   row: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  errorSubText: {
+    fontSize: 11,
+    color: '#EF4444',
+    marginTop: 2,
   },
   genderRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
   },
-  genderButton: {
+  genderCard: {
     flex: 1,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
+    backgroundColor: '#FAFAFA',
   },
-  genderButtonActive: {
-    backgroundColor: `${colors.primary}1A`,
-    borderColor: colors.primary,
+  genderCardActive: {
+    backgroundColor: '#FEE500',
+    borderColor: '#FEE500',
   },
   genderText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#71717A',
   },
   genderTextActive: {
-    color: colors.primary,
+    color: '#191919',
+    fontWeight: '800',
   },
-  errorText: {
-    marginTop: 6,
-    fontSize: 12,
-    color: colors.error || '#EF4444',
+  regionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  regionPickerBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: '#FAFAFA',
+  },
+  regionPickerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#191919',
+  },
+  placeholderText: {
+    color: '#A1A1AA',
+    fontWeight: '400',
+  },
+  region2Input: {
+    flex: 1,
+  },
+  interestChipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 4,
+  },
+  interestChip: {
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#F4F4F5',
+    borderWidth: 1,
+    borderColor: '#E4E4E7',
+  },
+  interestChipActive: {
+    backgroundColor: '#FEE500',
+    borderColor: '#FEE500',
+  },
+  interestChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#52525B',
+  },
+  interestChipTextActive: {
+    color: '#191919',
+    fontWeight: '700',
+  },
+  textarea: {
+    minHeight: 100,
+    lineHeight: 20,
+  },
+  submitButton: {
+    marginTop: 28,
+    backgroundColor: '#FEE500',
+    borderRadius: 18,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#FEE500',
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#E4E4E7',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  submitButtonText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#191919',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.35)',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'center',
+    alignItems: 'center',
     padding: 24,
   },
   modalCard: {
     width: '100%',
-    maxWidth: 360,
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    paddingVertical: 20,
-    paddingHorizontal: 20,
+    maxHeight: '75%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F4F4F5',
+    marginBottom: 8,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 16,
-    textAlign: 'center',
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#191919',
+  },
+  modalCloseBtn: {
+    padding: 4,
   },
   modalList: {
-    maxHeight: 320,
+    maxHeight: 380,
   },
-  modalOption: {
-    paddingVertical: 12,
+  modalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    borderRadius: 12,
   },
-  modalOptionText: {
-    fontSize: 16,
-    color: colors.text,
-    textAlign: 'center',
+  modalItemActive: {
+    backgroundColor: '#FEE500',
   },
-  modalCloseButton: {
-    marginTop: 12,
-    alignSelf: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    borderRadius: 999,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  modalCloseText: {
+  modalItemText: {
     fontSize: 14,
-    color: colors.textSecondary,
     fontWeight: '600',
+    color: '#3F3F46',
+  },
+  modalItemTextActive: {
+    fontWeight: '800',
+    color: '#191919',
   },
 });

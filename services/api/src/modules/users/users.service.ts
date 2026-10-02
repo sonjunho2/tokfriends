@@ -60,6 +60,75 @@ export class UsersService {
       },
     });
   }
+
+  async checkNickname(
+    nickname: string,
+    excludeUserId?: string,
+  ): Promise<{ available: boolean; reason?: string; message?: string }> {
+    const trimmed = (nickname ?? '').trim();
+    if (!trimmed) {
+      return { available: false, reason: '닉네임을 입력해 주세요.' };
+    }
+    if (trimmed.length < 2 || trimmed.length > 12) {
+      return {
+        available: false,
+        reason: '닉네임은 2자 이상 12자 이하로 입력해 주세요.',
+      };
+    }
+
+    const validPattern = /^[a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ_ ]+$/;
+    if (!validPattern.test(trimmed)) {
+      return {
+        available: false,
+        reason: '특수문자 및 기호는 사용할 수 없습니다.',
+      };
+    }
+
+    // 금칙어 검사
+    const bannedWords = await this.prisma.bannedWord.findMany({
+      select: { word: true },
+    });
+    const lower = trimmed.toLowerCase();
+    for (const bw of bannedWords) {
+      if (bw.word && lower.includes(bw.word.toLowerCase())) {
+        return {
+          available: false,
+          reason: '닉네임에 사용할 수 없는 단어가 포함되어 있습니다.',
+        };
+      }
+    }
+
+    // 중복 검사 (탈퇴 유저 제외)
+    const whereClause: Prisma.UserWhereInput = {
+      status: { not: 'withdrawn' },
+      OR: [
+        { displayName: { equals: trimmed, mode: Prisma.QueryMode.insensitive } },
+        { profile: { nickname: { equals: trimmed, mode: Prisma.QueryMode.insensitive } } },
+      ],
+    };
+
+    if (excludeUserId) {
+      whereClause.id = { not: excludeUserId };
+    }
+
+    const existing = await this.prisma.user.findFirst({
+      where: whereClause,
+      select: { id: true },
+    });
+
+    if (existing) {
+      return {
+        available: false,
+        reason: '이미 다른 회원이 사용 중인 닉네임입니다.',
+      };
+    }
+
+    return {
+      available: true,
+      message: '사용 가능한 닉네임입니다.',
+    };
+  }
+
   async search(term: string, take: number = 20) {
     const trimmed = term.trim();
     if (!trimmed) return [];
