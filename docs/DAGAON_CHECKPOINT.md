@@ -4,6 +4,32 @@ Updated: 2026-10-02
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-02 Checkpoint 29: 전체 시스템 점검 완료 & Expo SDK 57 미디어 타입(ImagePicker) 안전성 강화 및 앱 빌드 버전(v1.2.0) 일치화 (완료)
+
+### 1. Expo SDK 57 호환 미디어 타입(`MediaTypeOptions`) 방어 코드 일괄 적용
+- **하위 호환 및 런타임 안정성 극대화**:
+  - `ChatRoomScreen.js` (카메라 촬영 및 앨범 첨부)
+  - `CommunityFeedScreen.js` (피드 작성 사진 첨부)
+  - `ProfileRegistrationScreen.js` (초기 가입 프로필 사진 등록)
+  - `ProfileEditScreen.js` (프로필 수정 사진 변경)
+  - Expo SDK 52~57 환경에서 `MediaTypeOptions` 객체 접근 시 발생할 수 있는 잠재적 `undefined` 에러를 차단하기 위해 옵셔널 체이닝 및 최신 배열 리터럴(`['images']`, `['videos']`, `['images', 'videos']`) 폴백 구조 적용 완료.
+
+### 2. 다가온(DAGAON) 정식 릴리즈 버전 일치화 (`v1.2.0`)
+- **빌드 설정 및 마이페이지 버전 표기 통일**:
+  - `app.config.js`: `version: '1.2.0'`
+  - `package.json`: `"version": "1.2.0"`
+  - `SettingsScreen.js`에 표기된 `v1.2.0 (SDK 57)`와 네이티브 앱 매니페스트 버전이 완벽하게 일치하도록 동기화.
+
+### 3. 전체 시스템 엔드투엔드 무결성 점검 완료
+- **서버 및 클라이언트 종합 헬스체크**:
+  - 백엔드 NestJS 빌드(`npm run build`): 에러 0건 성공.
+  - 운영 API 서버(`https://tok-friends-api.onrender.com`): `/v1/health` 200 OK 및 DB 연결 정상 확인.
+  - 모바일 소스코드(`apps/mobile/src/**/*.js`): 전체 `node -c` 구문 검증 완료 (0 Syntax Error).
+  - 모듈 임포트 검증: 깨진 경로(Broken local imports) 0건 확인.
+  - 실서버 연결 테스트(`npm run check:api`): 354ms로 정상 통신 확인.
+
+---
+
 ## 2026-10-02 Checkpoint 28: 마이페이지 설정(SettingsScreen) 임시 캐시 정리 & 버전 관리 안정화 (완료)
 
 ### 1. 임시 캐시 및 저장공간 원터치 정리 기능 신설 (`handleClearCache`)

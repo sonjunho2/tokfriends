@@ -28,7 +28,7 @@ module.exports = ({ config }) => {
     ...resolvedConfig,
     name: '다가온 (DAGAON)',
     slug: 'dagaon',
-    version: '1.0.0',
+    version: '1.2.0',
     orientation: 'portrait',
     icon: './assets/icon.png',
     scheme: 'dagaon',

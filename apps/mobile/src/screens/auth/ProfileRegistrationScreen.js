@@ -151,7 +151,7 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
         return;
       }
       const res = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaTypeOptions?.Images ?? ['images'],
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.85,

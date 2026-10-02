@@ -149,7 +149,7 @@ export default function CommunityFeedScreen({ navigation, route }) {
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaTypeOptions?.Images ?? ['images'],
         allowsMultipleSelection: true,
         quality: 0.8,
         selectionLimit: 5,

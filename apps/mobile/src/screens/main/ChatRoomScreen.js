@@ -744,8 +744,8 @@ export default function ChatRoomScreen({ route, navigation }) {
         const result = await ImagePicker.launchCameraAsync({
           mediaTypes:
             mode === 'video'
-              ? ImagePicker.MediaTypeOptions.Videos
-              : ImagePicker.MediaTypeOptions.Images,
+              ? ImagePicker.MediaTypeOptions?.Videos ?? ['videos']
+              : ImagePicker.MediaTypeOptions?.Images ?? ['images'],
           quality: 1,
           videoMaxDuration: 60,
         });
@@ -769,7 +769,7 @@ export default function ChatRoomScreen({ route, navigation }) {
 
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        mediaTypes: ImagePicker.MediaTypeOptions?.All ?? ['images', 'videos'],
         allowsMultipleSelection: true,
         quality: 1,
       });
