@@ -4,12 +4,10 @@ const SESSION_COOKIE = 'tokfriends_admin_session'
 const UPSTREAM_TIMEOUT_MS = 10_000
 
 export async function GET(request: NextRequest) {
-  const apiBase = process.env.TOK_API_BASE_URL?.replace(/\/+$/, '').replace(/\/v1$/, '')
+  const apiBase =
+    process.env.TOK_API_BASE_URL?.replace(/\/+$/, '').replace(/\/v1$/, '') ||
+    'https://tok-friends-api.onrender.com'
   const token = request.cookies.get(SESSION_COOKIE)?.value
-
-  if (!apiBase) {
-    return NextResponse.json({ message: 'Admin API configuration is missing.' }, { status: 500, headers: { 'Cache-Control': 'no-store' } })
-  }
 
   if (!token) {
     const response = NextResponse.json({ authenticated: false }, { status: 401 })

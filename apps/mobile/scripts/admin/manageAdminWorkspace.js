@@ -6,7 +6,10 @@ const { spawn } = require('child_process');
 const readline = require('readline');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
-const defaultAdminPath = path.resolve(repoRoot, '..', 'tokfriends-admin');
+const monorepoAdminPath = path.resolve(repoRoot, '..', 'admin');
+const defaultAdminPath = fs.existsSync(path.join(monorepoAdminPath, 'package.json'))
+  ? monorepoAdminPath
+  : path.resolve(repoRoot, '..', 'tokfriends-admin');
 
 const rl = readline.createInterface({
   input: process.stdin,

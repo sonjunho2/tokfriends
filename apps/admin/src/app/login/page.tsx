@@ -96,7 +96,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <Card className="w-[400px]">
         <CardHeader>
-          <CardTitle>딱친 관리자 로그인</CardTitle>
+          <CardTitle>다가온 (DAGAON) 관리자 로그인</CardTitle>
           <CardDescription>
             관리자 계정으로 로그인하세요
             {health === 'ok' && <span className="ml-2 text-green-600 text-xs">(서버 연결 OK)</span>}

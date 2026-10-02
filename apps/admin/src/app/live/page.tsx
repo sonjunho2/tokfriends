@@ -505,8 +505,8 @@ export default function LivePage() {
               라이브 방송 강제 종료 확인
             </h2>
             <p className="text-sm text-muted-foreground">
-              방 <strong>"{forceEndTarget.title}"</strong> (호스트: {forceEndTarget.host.name}) 방송을 즉시 종료합니다.
-              시청자 접속이 끊어지고 방 상태가 'ended'로 전환됩니다.
+              방 <strong>&quot;{forceEndTarget.title}&quot;</strong> (호스트: {forceEndTarget.host.name}) 방송을 즉시 종료합니다.
+              시청자 접속이 끊어지고 방 상태가 &apos;ended&apos;로 전환됩니다.
             </p>
             <div className="space-y-1.5">
               <label className="text-xs font-semibold">종료 사유 (관리자 감사 로그에 기록됨)</label>

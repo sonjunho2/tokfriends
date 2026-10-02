@@ -795,7 +795,7 @@ export default function SettingsPage() {
                   {members.length === 0 && (
                     <tr>
                       <td className="px-3 py-6 text-center text-xs text-muted-foreground" colSpan={7}>
-                        아직 등록된 관리자가 없습니다. "새 부관리자 추가" 버튼으로 첫 계정을 생성하세요.
+                        아직 등록된 관리자가 없습니다. &quot;새 부관리자 추가&quot; 버튼으로 첫 계정을 생성하세요.
                       </td>
                     </tr>
                   )}

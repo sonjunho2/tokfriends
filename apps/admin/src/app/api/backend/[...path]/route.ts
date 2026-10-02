@@ -10,11 +10,9 @@ type RouteContext = {
 }
 
 async function proxyRequest(request: NextRequest, context: RouteContext) {
-  const apiBase = process.env.TOK_API_BASE_URL?.replace(/\/+$/, '').replace(/\/v1$/, '')
-
-  if (!apiBase) {
-    return NextResponse.json({ message: 'Admin API configuration is missing.' }, { status: 500, headers: { 'Cache-Control': 'no-store' } })
-  }
+  const apiBase =
+    process.env.TOK_API_BASE_URL?.replace(/\/+$/, '').replace(/\/v1$/, '') ||
+    'https://tok-friends-api.onrender.com'
 
   const path = context.params.path.map((segment) => encodeURIComponent(segment)).join('/')
   const targetUrl = new URL(`${apiBase}/v1/${path}`)

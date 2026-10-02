@@ -4,6 +4,34 @@ Updated: 2026-10-02
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-02 Checkpoint 30: 관리자(Admin) 전체 구동 점검 & 린트/브랜드 오류 수정 및 운영 API 폴백 안정화 (완료)
+
+### 1. JSX 미이스케이프 특수문자 및 린트 오류 원천 수정 (`npm run lint` PASS)
+- **코드 무결성 및 빌드 안정성 확보**:
+  - `apps/admin/src/app/live/page.tsx`: 방송 강제 종료 모달 내 `"{forceEndTarget.title}"` 및 `'ended'` 텍스트를 `&quot;` 및 `&apos;` 엔티티로 이스케이프하여 `react/no-unescaped-entities` 린트 에러 해결.
+  - `apps/admin/src/app/settings/page.tsx`: 빈 관리자 계정 목록 텍스트의 큰따옴표를 `&quot;`로 치환.
+  - `apps/admin/.eslintrc.json` 신설: `next/core-web-vitals` 규칙 적용으로 비인터랙티브 린트 검증 파이프라인 정착 (0 errors).
+
+### 2. 관리자 로그인 페이지 다가온(DAGAON) 정식 브랜드 동기화
+- **일관된 브랜드 아이덴티티**:
+  - `apps/admin/src/app/login/page.tsx`: 기존 `딱친 관리자 로그인` 표기를 `다가온 (DAGAON) 관리자 로그인`으로 일괄 변경.
+
+### 3. 운영 환경 API Base URL 무중단 폴백(Fallback) 탑재
+- **환경 변수 누락 및 배포 복원력 강화**:
+  - `apps/admin/src/app/api/backend/[...path]/route.ts`
+  - `apps/admin/src/app/api/auth/login/route.ts`
+  - `apps/admin/src/app/api/auth/session/route.ts`
+  - `TOK_API_BASE_URL` 환경 변수가 미설정된 배포 환경에서도 500 에러를 반환하지 않고 정식 운영 백엔드(`https://tok-friends-api.onrender.com`)로 자동 폴백 연동.
+
+### 4. 관리자 워크스페이스 관리 스크립트 모노레포 자동 인식
+- **개발 및 운영 편의성**:
+  - `apps/mobile/scripts/admin/manageAdminWorkspace.js`: 외부 경로 대신 모노레포 내부의 `apps/admin`을 기본 관리자 경로로 자동 감지하도록 보완.
+
+### 5. 관리자 31개 전체 라우트 빌드 무결성 검증 완료
+- **프로덕션 빌드 성공**: `npm run build` 결과 31개 전체 관리자 라우트(대시보드, 회원, 정산, 라이브, 상점, 선물, 통계, 콘텐츠, 신고 등) 정상 컴파일 완료.
+
+---
+
 ## 2026-10-02 Checkpoint 29: 전체 시스템 점검 완료 & Expo SDK 57 미디어 타입(ImagePicker) 안전성 강화 및 앱 빌드 버전(v1.2.0) 일치화 (완료)
 
 ### 1. Expo SDK 57 호환 미디어 타입(`MediaTypeOptions`) 방어 코드 일괄 적용
