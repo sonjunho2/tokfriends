@@ -4,6 +4,22 @@ Updated: 2026-10-02
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-02 Checkpoint 19: 라이브 방송 뷰어 실시간 반응/플로팅 하트 및 3D 선물 고도화 (완료)
+
+### 1. 플로팅 하트 애니메이션 오버레이 신설 (`apps/mobile/src/components/FloatingHeartsOverlay.js`)
+- **틱톡/인스타그램 스타일 60fps 네이티브 플로팅 하트 연출**:
+  - `Animated.timing` & `Animated.sequence` 기반의 자연스러운 곡선 흔들림(Sway trajectory), 크기 팽창, 투명도 페이드아웃 효과.
+  - 다채로운 8종 생동감 있는 하트 컬러 팔레트 (`#FF3B6B`, `#EC4899`, `#F59E0B`, `#FEE500` 등).
+  - 하트 버튼 터치 시 3연타 버스트 연출(`addHeartsBurst(3)`), WebSocket `like` 이벤트 수신 시 실시간 동기화 렌더링.
+
+### 2. 라이브 룸 상단 프로필 및 인터랙션 강화 (`apps/mobile/src/screens/live/LiveRoomScreen.js`)
+- **호스트 프로필 원터치 상세 보기**:
+  - 방송 상단 좌측 호스트 필(`hostPill`) 터치 시 호스트 프로필 상세 화면(`ProfileDetailScreen`)으로 부드럽게 네비게이션.
+- **3D 선물 이펙트와 플로팅 하트의 자연스러운 레이어 분리**:
+  - 선물 비디오 CG 애니메이션(`GiftEffectOverlay`)과 실시간 시청자 하트 리액션(`FloatingHeartsOverlay`)이 겹쳐도 버벅임 없이 매끄럽게 동시 연출.
+
+---
+
 ## 2026-10-02 Checkpoint 18: 크리에이터 포인트 정산 신청 및 내역 관리 센터(Settlement) 구축 (완료)
 
 ### 1. 전용 정산 화면 신설 (`apps/mobile/src/screens/my/SettlementScreen.js`)

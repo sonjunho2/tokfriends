@@ -19,6 +19,7 @@ import Avatar from '../../components/Avatar';
 import ReportModal from '../../components/ReportModal';
 import GiftEffectOverlay from '../../components/GiftEffectOverlay';
 import GiftPickerSheet from '../../components/GiftPickerSheet';
+import FloatingHeartsOverlay from '../../components/FloatingHeartsOverlay';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { createChatSocket, LIVE_SOCKET_EVENTS } from '../../realtime/chatSocket';
@@ -40,8 +41,9 @@ export default function LiveRoomScreen({ navigation, route }) {
   const [reportTarget, setReportTarget] = useState(null);
   const [blocking, setBlocking] = useState(false);
 
-  // 3D Gift System States
+  // 3D Gift & Animated Reaction States
   const giftOverlayRef = useRef(null);
+  const floatingHeartsRef = useRef(null);
   const [giftPickerVisible, setGiftPickerVisible] = useState(false);
   const [myPoints, setMyPoints] = useState(currentUser?.pointsBalance || 0);
   const processedGiftMessageIdsRef = useRef(new Set());
@@ -145,6 +147,7 @@ export default function LiveRoomScreen({ navigation, route }) {
 
         if (msg.type === 'like') {
           setLikeCount((c) => c + 1);
+          floatingHeartsRef.current?.addHeart();
         } else if (msg.type === 'gift') {
           if (typeof msg.giftPoints === 'number' && msg.giftPoints > 0) {
             setRoom((prev) =>
@@ -302,6 +305,7 @@ export default function LiveRoomScreen({ navigation, route }) {
 
   const handleSendHeart = async () => {
     setLikeCount((prev) => prev + 1);
+    floatingHeartsRef.current?.addHeartsBurst(3);
     try {
       await apiClient.sendLiveMessage({
         roomId,
@@ -600,7 +604,24 @@ export default function LiveRoomScreen({ navigation, route }) {
 
       {/* Top Header Overlay */}
       <View style={styles.topHeader}>
-        <View style={styles.hostPill}>
+        <TouchableOpacity
+          style={styles.hostPill}
+          activeOpacity={0.85}
+          onPress={() => {
+            if (room?.host?.id) {
+              navigation.navigate('ProfileDetail', {
+                profile: {
+                  id: room.host.id,
+                  targetUserId: room.host.id,
+                  name: room.host.name,
+                  avatar: room.host.avatar,
+                  location: room.host.region,
+                  headline: room.title || '라이브 방송 진행 중',
+                },
+              });
+            }
+          }}
+        >
           <Avatar
             size={36}
             name={room?.host?.name}
@@ -618,7 +639,7 @@ export default function LiveRoomScreen({ navigation, route }) {
             <View style={styles.liveDot} />
             <Text style={styles.liveTagText}>LIVE</Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.topHeaderRight}>
           {agoraTokenData && (
@@ -805,6 +826,9 @@ export default function LiveRoomScreen({ navigation, route }) {
         onClose={() => setReportModalVisible(false)}
         onSubmit={handleReportSubmit}
       />
+
+      {/* Floating Animated Hearts Reaction Overlay */}
+      <FloatingHeartsOverlay ref={floatingHeartsRef} />
 
       {/* Fullscreen 3D Gift Effect Overlay (FIFO Queue) */}
       <GiftEffectOverlay ref={giftOverlayRef} />
