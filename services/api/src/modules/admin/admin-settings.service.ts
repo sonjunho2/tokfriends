@@ -48,9 +48,12 @@ export const DEFAULT_INTEGRATION_SETTINGS: DefaultIntegrationSettingDef[] = [
   { id: 'apns_auth_key', label: 'Apple APNs AuthKey (.p8 파일 내용)', placeholder: '-----BEGIN PRIVATE KEY----- ...' },
   { id: 'apns_bundle_id', label: 'Apple APNs Bundle ID', placeholder: '예: com.sonjunho.ddakchin' },
 
-  // 4. 라이브 스트리밍 (Agora RTC)
+  // 4. 라이브 스트리밍 (Agora RTC & CDN HLS 중계)
   { id: 'agora_app_id', label: 'Agora 라이브 App ID', placeholder: 'Agora 콘솔 > 프로젝트 관리 > App ID' },
   { id: 'agora_app_certificate', label: 'Agora 라이브 App Certificate (기본 인증서)', placeholder: 'Agora 콘솔 > 기본 인증서(Primary Certificate)' },
+  { id: 'live_stream_mode', label: '라이브 스트리밍 송출 방식', placeholder: 'AGORA_RTC (초저지연 RTC) 또는 CDN_HLS (CDN 중계 HLS)' },
+  { id: 'live_cdn_hls_url_pattern', label: 'CDN HLS 재생 URL 템플릿', placeholder: '예: https://live-cdn.dagaon.app/live/{roomId}/index.m3u8' },
+  { id: 'live_cdn_rtmp_push_url', label: 'Agora Media Push RTMP 수신 주소', placeholder: '예: rtmp://live-push.dagaon.app/live/{roomId}' },
 ];
 
 const adminProfileArgs = Prisma.validator<Prisma.AdminProfileDefaultArgs>()({
@@ -529,6 +532,54 @@ export class AdminSettingsService implements OnModuleInit {
       this.logger.warn(`Failed to decrypt setting ${settingId}: ${e?.message}`);
       return null;
     }
+  }
+
+  async getLiveStreamingConfig(): Promise<{
+    mode: 'AGORA_RTC' | 'CDN_HLS';
+    cdnHlsUrlPattern: string;
+    cdnRtmpPushUrl: string;
+  }> {
+    const rawMode = await this.getDecryptedSetting('live_stream_mode');
+    const mode = rawMode?.toUpperCase() === 'CDN_HLS' ? 'CDN_HLS' : 'AGORA_RTC';
+    const cdnHlsUrlPattern =
+      (await this.getDecryptedSetting('live_cdn_hls_url_pattern')) ||
+      'https://live-cdn.dagaon.app/live/{roomId}/index.m3u8';
+    const cdnRtmpPushUrl =
+      (await this.getDecryptedSetting('live_cdn_rtmp_push_url')) ||
+      'rtmp://live-push.dagaon.app/live/{roomId}';
+    return {
+      mode,
+      cdnHlsUrlPattern,
+      cdnRtmpPushUrl,
+    };
+  }
+
+  async setLiveStreamingConfig(
+    actorId: string,
+    config: {
+      mode?: 'AGORA_RTC' | 'CDN_HLS';
+      cdnHlsUrlPattern?: string;
+      cdnRtmpPushUrl?: string;
+    },
+  ) {
+    await this.requireSettingsActor(actorId);
+
+    if (config.mode) {
+      await this.updateIntegrationSetting(actorId, 'live_stream_mode', {
+        value: config.mode,
+      });
+    }
+    if (config.cdnHlsUrlPattern !== undefined) {
+      await this.updateIntegrationSetting(actorId, 'live_cdn_hls_url_pattern', {
+        value: config.cdnHlsUrlPattern,
+      });
+    }
+    if (config.cdnRtmpPushUrl !== undefined) {
+      await this.updateIntegrationSetting(actorId, 'live_cdn_rtmp_push_url', {
+        value: config.cdnRtmpPushUrl,
+      });
+    }
+    return this.getLiveStreamingConfig();
   }
 
   async getSnapshot(actorId: string) {

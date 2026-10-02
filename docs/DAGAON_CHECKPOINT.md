@@ -4,6 +4,49 @@ Updated: 2026-10-02
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-02 Checkpoint 33: 실시간 라이브 스트리밍 송출 아키텍처(Agora RTC vs CDN HLS) 관리자 선택/전환 시스템 구축 (완료)
+
+### 1. 스트리밍 아키텍처 개요 및 과금 최적화 분기
+- **배경 및 목적**:
+  - 소규모/양방향 소통 방송에는 **초저지연(~0.3초) Agora RTC**가 최적이지만, 대규모 시청자가 몰릴 경우 시청자 수 × 시간(분)만큼 비례하여 Agora 분당 과금이 급증하는 구조적 문제를 해결.
+  - 관리자가 상황에 따라 **[Agora RTC 단독 모드]**와 **[CDN 중계 (HLS/LL-HLS) 모드]**를 대시보드에서 원클릭으로 선택/전환할 수 있도록 시스템 전반에 유연한 송출 파이프라인을 구축.
+- **모드별 동작 방식**:
+  - **Agora RTC 단독 모드**: 호스트와 시청자 전원이 Agora RTC 채널에 직접 접속하여 0.3초 미만의 초저지연 양방향 방송 진행.
+  - **CDN 중계 모드**: 호스트는 Agora RTMP 컨버터(Media Push)를 통해 CDN으로 고화질 스트림을 푸시하고, **모든 시청자는 CDN HLS/LL-HLS URL을 통해 재생**. 시청자가 Agora RTC 채널에 참여하지 않으므로 **Agora 시청자 분당 과금이 0원으로 원천 절감**.
+
+### 2. 백엔드 송출 아키텍처 파이프라인 구현 (`services/api`)
+- **관리자 통합 설정 연동 (`AdminSettingsService`)**:
+  - `DEFAULT_INTEGRATION_SETTINGS`에 `live_stream_mode` (`AGORA_RTC` | `CDN_HLS`), `live_cdn_hls_url_pattern`, `live_cdn_rtmp_push_url` 기본값 및 저장 로직 추가.
+  - `getLiveStreamingConfig()`, `setLiveStreamingConfig()` 전용 서비스 메서드 제공.
+- **라이브 서비스 분기 로직 (`LiveService`)**:
+  - `formatRoom`에 `streamDeliveryMode`, `hlsPlaybackUrl`, `rtmpPushUrl` 필드 표준화.
+  - `listActiveRooms()`, `getRoom(roomId)`에서 현재 시스템의 송출 설정을 기반으로 동적 HLS URL(`https://live-cdn.dagaon.app/live/{roomId}/index.m3u8`) 주입.
+  - `getAgoraToken()`: CDN HLS 모드일 때 일반 시청자(Subscriber)에게 Agora 채널 토큰 발급을 생략하고 `streamDeliveryMode: 'CDN_HLS'` 및 `hlsPlaybackUrl`을 반환하여 불필요한 Agora 세션 과금 원천 차단. 호스트(Publisher)에게는 안전하게 송출 토큰 및 RTMP 타깃 주소 전달.
+- **컨트롤러 엔드포인트 증설 (`LiveController`)**:
+  - `GET /live/config`: 모바일 클라이언트가 현재 플랫폼 스트림 모드를 조회할 수 있는 엔드포인트.
+  - `GET /live/admin/stream-config`: 관리자 전용 스트리밍 상세 설정 조회.
+  - `PATCH /live/admin/stream-config`: 관리자 전용 스트리밍 모드/URL 즉시 변경 엔드포인트 (감사 로그 자동 기록).
+
+### 3. 관리자 대시보드 원클릭 스위칭 UI 구축 (`apps/admin`)
+- **시스템 설정 페이지 (`apps/admin/src/app/settings/page.tsx`)**:
+  - `Section 4: 실시간 라이브 스트리밍 (Agora RTC & CDN HLS)` 패널 개편.
+  - Agora RTC 카드(초저지연)와 CDN HLS 카드(대규모/비용절감) 원터치 라디오 선택 UI 탑재.
+  - HLS 재생 URL 템플릿 및 RTMP 송출 엔드포인트 커스텀 설정 폼 및 즉시 저장 기능 연동.
+- **라이브 모니터링 컨트롤타워 (`apps/admin/src/app/live/page.tsx`)**:
+  - 상단에 '실시간 라이브 송출 아키텍처' 현황 배너 추가.
+  - 관리자가 실시간 모니터링 도중 트래픽 상황에 따라 버튼 하나로 `[CDN 중계 모드로 전환]` 또는 `[Agora RTC 모드로 전환]` 즉시 스위칭 가능.
+
+### 4. 모바일 클라이언트 실시간 상태 감지 및 UX 고도화 (`apps/mobile`)
+- **API 클라이언트 확장 (`apps/mobile/src/api/client.js`)**:
+  - `getLiveStreamConfig()` 신규 메서드 추가.
+  - `getLiveAgoraToken`에서 `streamDeliveryMode`, `hlsPlaybackUrl` 완벽 대응.
+- **라이브 룸 비디오 오버레이 & 배지 반영 (`LiveRoomScreen.js`)**:
+  - Agora 토큰 로드 시 `CDN_HLS` 모드일 경우 안내 토스트 브로드캐스트.
+  - 비디오 뷰파인더 상태 바: `CDN HLS 중계 · 대규모 시청 최적화` (스카이블루) vs `Agora RTC HD 1080p` (에메랄드).
+  - 상단 상태 헤더: `CDN HLS` 전용 스카이블루 배지(`cdnHlsBadge`) 표시.
+
+---
+
 ## 2026-10-02 Checkpoint 32: 라이브 방송 실시간 시청자 수 오차 원천 해결 & 백그라운드 Agora 비디오 구독 해제(오디오 절전 모드 자동 전환) 트래픽 최적화 (완료)
 
 ### 1. 실시간 시청자 수(`viewerCount`) 오차 및 유령 시청자 방지 파이프라인 구축

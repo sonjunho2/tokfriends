@@ -40,7 +40,14 @@ const HOST_INCLUDE = {
   },
 };
 
-function formatRoom(room: any) {
+function formatRoom(
+  room: any,
+  streamConfig?: {
+    mode?: 'AGORA_RTC' | 'CDN_HLS';
+    hlsPlaybackUrl?: string | null;
+    rtmpPushUrl?: string | null;
+  },
+) {
   return {
     id: room.id,
     title: room.title,
@@ -52,6 +59,9 @@ function formatRoom(room: any) {
     coverUri: room.coverUri || room.host?.profile?.avatarUri || null,
     startedAt: room.startedAt,
     endedAt: room.endedAt,
+    streamDeliveryMode: streamConfig?.mode || 'AGORA_RTC',
+    hlsPlaybackUrl: streamConfig?.hlsPlaybackUrl || null,
+    rtmpPushUrl: streamConfig?.rtmpPushUrl || null,
     host: {
       id: room.host.id,
       name:
@@ -130,14 +140,54 @@ export class LiveService {
     };
   }
 
+  async getStreamConfigForRoom(roomId: string) {
+    const config = await this.adminSettings.getLiveStreamingConfig();
+    const hlsPlaybackUrl = config.cdnHlsUrlPattern
+      ? config.cdnHlsUrlPattern.replace('{roomId}', roomId)
+      : `https://live-cdn.dagaon.app/live/${roomId}/index.m3u8`;
+    const rtmpPushUrl = config.cdnRtmpPushUrl
+      ? config.cdnRtmpPushUrl.replace('{roomId}', roomId)
+      : `rtmp://live-push.dagaon.app/live/${roomId}`;
+    return {
+      mode: config.mode,
+      hlsPlaybackUrl: config.mode === 'CDN_HLS' ? hlsPlaybackUrl : null,
+      rtmpPushUrl: config.mode === 'CDN_HLS' ? rtmpPushUrl : null,
+    };
+  }
+
+  async getLiveStreamingConfig() {
+    return this.adminSettings.getLiveStreamingConfig();
+  }
+
+  async setLiveStreamingConfig(
+    actorId: string,
+    dto: {
+      mode?: 'AGORA_RTC' | 'CDN_HLS';
+      cdnHlsUrlPattern?: string;
+      cdnRtmpPushUrl?: string;
+    },
+  ) {
+    return this.adminSettings.setLiveStreamingConfig(actorId, dto);
+  }
+
   async listActiveRooms() {
+    const streamConfig = await this.adminSettings.getLiveStreamingConfig();
     const rooms = await this.prisma.liveRoom.findMany({
       where: { status: 'live' },
       orderBy: [{ viewerCount: 'desc' }, { startedAt: 'desc' }],
       include: HOST_INCLUDE,
     });
 
-    return rooms.map(formatRoom);
+    return rooms.map((r) => {
+      const hlsPlaybackUrl =
+        streamConfig.mode === 'CDN_HLS' && streamConfig.cdnHlsUrlPattern
+          ? streamConfig.cdnHlsUrlPattern.replace('{roomId}', r.id)
+          : null;
+      return formatRoom(r, {
+        mode: streamConfig.mode,
+        hlsPlaybackUrl,
+      });
+    });
   }
 
   async getRoom(roomId: string) {
@@ -150,7 +200,8 @@ export class LiveService {
       throw new NotFoundException('라이브 룸을 찾을 수 없습니다.');
     }
 
-    return formatRoom(room);
+    const streamConfig = await this.getStreamConfigForRoom(roomId);
+    return formatRoom(room, streamConfig);
   }
 
   async endRoom(hostUserId: string, roomId: string) {
@@ -442,7 +493,7 @@ export class LiveService {
 
     return {
       total,
-      items: rooms.map(formatRoom),
+      items: rooms.map((r) => formatRoom(r)),
     };
   }
 
@@ -501,6 +552,25 @@ export class LiveService {
     }
 
     const isHost = room.hostId === userId;
+    const streamConfig = await this.getStreamConfigForRoom(roomId);
+
+    // CDN 중계 모드에서 일반 시청자(Subscriber)는 Agora 토큰 과금 없이 CDN HLS URL로 직결 재생
+    if (!isHost && streamConfig.mode === 'CDN_HLS') {
+      return {
+        appId: 'dagaon_agora_live',
+        channelName: roomId,
+        uid: userIdToAgoraUid(userId),
+        role: 'subscriber' as const,
+        streamDeliveryMode: 'CDN_HLS' as const,
+        hlsPlaybackUrl: streamConfig.hlsPlaybackUrl,
+        rtmpPushUrl: null,
+        token: `cdn_hls_stream_${roomId}`,
+        expiresAt: Math.floor(Date.now() / 1000) + 86400,
+        isFallback: false,
+        isHost: false,
+      };
+    }
+
     const role = isHost
       ? AgoraRole.PUBLISHER
       : requestedRole === 'publisher' && isHost
@@ -524,6 +594,9 @@ export class LiveService {
 
     return {
       ...tokenResult,
+      streamDeliveryMode: streamConfig.mode,
+      hlsPlaybackUrl: streamConfig.hlsPlaybackUrl,
+      rtmpPushUrl: isHost && streamConfig.mode === 'CDN_HLS' ? streamConfig.rtmpPushUrl : null,
       isHost,
     };
   }

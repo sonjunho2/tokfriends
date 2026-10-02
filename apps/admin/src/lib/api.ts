@@ -1971,6 +1971,26 @@ export async function getAdminLiveMessages(roomId: string, limit = 50): Promise<
   return Array.isArray(d) ? d : []
 }
 
+export interface AdminLiveStreamConfig {
+  mode: 'AGORA_RTC' | 'CDN_HLS'
+  cdnHlsUrlPattern?: string
+  cdnRtmpPushUrl?: string
+}
+
+export async function getAdminLiveStreamConfig(): Promise<AdminLiveStreamConfig> {
+  const response = await api.get('/live/admin/stream-config')
+  return (response.data as any)?.data ?? { mode: 'AGORA_RTC' }
+}
+
+export async function updateAdminLiveStreamConfig(config: {
+  mode?: 'AGORA_RTC' | 'CDN_HLS'
+  cdnHlsUrlPattern?: string
+  cdnRtmpPushUrl?: string
+}): Promise<AdminLiveStreamConfig> {
+  const response = await api.patch('/live/admin/stream-config', config)
+  return (response.data as any)?.data ?? response.data
+}
+
 // =============================================
 // Admin Permissions, Approvals & Audit
 // =============================================

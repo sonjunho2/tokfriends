@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle,
@@ -10,9 +11,12 @@ import {
   Radio,
   RefreshCcw,
   Search,
+  Settings,
+  Sparkles,
   StopCircle,
   Users,
   Video,
+  Zap,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,14 +28,23 @@ import {
   getAdminLiveMessages,
   getAdminLiveRooms,
   getAdminLiveSummary,
+  getAdminLiveStreamConfig,
+  updateAdminLiveStreamConfig,
   type AdminLiveMessage,
   type AdminLiveRoom,
   type AdminLiveSummary,
+  type AdminLiveStreamConfig,
 } from '@/lib/api'
 import type { AxiosError } from 'axios'
+import { cn } from '@/lib/utils'
 
 export default function LivePage() {
   const { toast } = useToast()
+
+  // Stream Delivery Config
+  const [streamConfig, setStreamConfig] = useState<AdminLiveStreamConfig | null>(null)
+  const [streamConfigLoading, setStreamConfigLoading] = useState(false)
+  const [switchingStreamMode, setSwitchingStreamMode] = useState(false)
 
   // Summary
   const [summary, setSummary] = useState<AdminLiveSummary | null>(null)
@@ -55,6 +68,42 @@ export default function LivePage() {
   const [forceEndTarget, setForceEndTarget] = useState<AdminLiveRoom | null>(null)
   const [forceEndReason, setForceEndReason] = useState('')
   const [forceEnding, setForceEnding] = useState(false)
+
+  const loadStreamConfig = useCallback(async () => {
+    setStreamConfigLoading(true)
+    try {
+      const cfg = await getAdminLiveStreamConfig()
+      setStreamConfig(cfg)
+    } catch {
+      // ignore
+    } finally {
+      setStreamConfigLoading(false)
+    }
+  }, [])
+
+  const handleSwitchStreamMode = async (targetMode: 'AGORA_RTC' | 'CDN_HLS') => {
+    setSwitchingStreamMode(true)
+    try {
+      const updated = await updateAdminLiveStreamConfig({ mode: targetMode })
+      setStreamConfig(updated)
+      toast({
+        title: targetMode === 'CDN_HLS' ? 'CDN 중계 모드로 전환됨' : 'Agora RTC 단독 모드로 전환됨',
+        description:
+          targetMode === 'CDN_HLS'
+            ? '시청자 분당 과금이 원천 절감되며 HLS/LL-HLS 스트림으로 중계됩니다.'
+            : '초저지연(~0.3초) 양방향 Agora RTC 스트리밍으로 전환되었습니다.',
+      })
+    } catch (error) {
+      const ax = error as AxiosError | undefined
+      toast({
+        title: '스트리밍 모드 전환 실패',
+        description: (ax?.response?.data as any)?.message || '송출 모드를 변경하지 못했습니다.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSwitchingStreamMode(false)
+    }
+  }
 
   const loadSummary = useCallback(async () => {
     setSummaryLoading(true)
@@ -100,9 +149,10 @@ export default function LivePage() {
   )
 
   useEffect(() => {
+    void loadStreamConfig()
     void loadSummary()
     void loadRooms(page, statusFilter)
-  }, [loadSummary, loadRooms, page, statusFilter])
+  }, [loadStreamConfig, loadSummary, loadRooms, page, statusFilter])
 
   const handleOpenMessages = async (room: AdminLiveRoom) => {
     setSelectedRoom(room)
@@ -181,6 +231,100 @@ export default function LivePage() {
           새로고침
         </Button>
       </div>
+
+      {/* Stream Delivery Architecture Banner */}
+      <Card
+        className={cn(
+          'border shadow-sm transition-all',
+          streamConfig?.mode === 'CDN_HLS'
+            ? 'border-emerald-300 bg-gradient-to-r from-emerald-50/70 via-teal-50/40 to-white dark:from-emerald-950/20 dark:to-background'
+            : 'border-blue-300 bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-white dark:from-blue-950/20 dark:to-background',
+        )}
+      >
+        <CardContent className="p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div
+                className={cn(
+                  'mt-0.5 rounded-lg p-2.5 shadow-sm',
+                  streamConfig?.mode === 'CDN_HLS'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-blue-600 text-white',
+                )}
+              >
+                {streamConfig?.mode === 'CDN_HLS' ? (
+                  <Sparkles className="h-5 w-5" />
+                ) : (
+                  <Zap className="h-5 w-5" />
+                )}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    현재 라이브 송출 아키텍처
+                  </span>
+                  <span
+                    className={cn(
+                      'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+                      streamConfig?.mode === 'CDN_HLS'
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300'
+                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+                    )}
+                  >
+                    {streamConfig?.mode === 'CDN_HLS'
+                      ? '⚡ CDN 중계 모드 (HLS/LL-HLS)'
+                      : '🎯 Agora RTC 단독 모드 (초저지연)'}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-foreground/90 font-medium">
+                  {streamConfig?.mode === 'CDN_HLS'
+                    ? '호스트만 Agora RTMP로 미디어 푸시하며, 모든 시청자는 CDN HLS로 재생하여 아고라 분당 요율을 원천 절감합니다.'
+                    : '호스트와 시청자 모두 Agora RTC 채널에 직접 접속하여 0.3초 미만의 초저지연 양방향 방송을 진행합니다.'}
+                </p>
+                {streamConfig?.mode === 'CDN_HLS' && streamConfig.cdnHlsUrlPattern && (
+                  <p className="mt-0.5 text-xs font-mono text-muted-foreground truncate max-w-xl">
+                    HLS 템플릿: {streamConfig.cdnHlsUrlPattern}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-center">
+              <Button
+                variant={streamConfig?.mode === 'CDN_HLS' ? 'outline' : 'default'}
+                size="sm"
+                className={cn(
+                  streamConfig?.mode === 'AGORA_RTC' &&
+                    'bg-emerald-600 hover:bg-emerald-700 text-white',
+                )}
+                disabled={streamConfigLoading || switchingStreamMode}
+                onClick={() =>
+                  handleSwitchStreamMode(
+                    streamConfig?.mode === 'CDN_HLS' ? 'AGORA_RTC' : 'CDN_HLS',
+                  )
+                }
+              >
+                {switchingStreamMode ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : streamConfig?.mode === 'CDN_HLS' ? (
+                  <Zap className="mr-1.5 h-3.5 w-3.5 text-blue-600" />
+                ) : (
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5 text-white" />
+                )}
+                {streamConfig?.mode === 'CDN_HLS'
+                  ? 'Agora RTC 모드로 전환'
+                  : 'CDN 중계 모드로 전환'}
+              </Button>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/settings#live-streaming">
+                  <Settings className="mr-1.5 h-3.5 w-3.5" />
+                  송출 설정
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Summary KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

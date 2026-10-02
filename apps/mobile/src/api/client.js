@@ -1555,8 +1555,22 @@ export const apiClient = {
         channelName: roomId,
         uid: Math.floor(Math.random() * 1000000) + 10000,
         role,
+        streamDeliveryMode: 'AGORA_RTC',
+        hlsPlaybackUrl: `https://live-cdn.dagaon.app/live/${roomId}/index.m3u8`,
         token: `fallback_token_${roomId}`,
         isFallback: true,
+      };
+    }
+  },
+
+  async getLiveStreamConfig() {
+    try {
+      const { data } = await client.get('/live/config');
+      return data?.data ?? data;
+    } catch {
+      return {
+        mode: 'AGORA_RTC',
+        cdnHlsUrlPattern: 'https://live-cdn.dagaon.app/live/{roomId}/index.m3u8',
       };
     }
   },

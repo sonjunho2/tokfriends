@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -199,6 +200,46 @@ export class LiveController {
   ) {
     const adminId = user?.id ?? user?.sub;
     const data = await this.liveService.forceEndRoom(adminId, roomId, reason);
+    return {
+      ok: true,
+      data,
+    };
+  }
+
+  @Get('config')
+  async getPublicStreamConfig() {
+    const data = await this.liveService.getLiveStreamingConfig();
+    return {
+      ok: true,
+      data,
+    };
+  }
+
+  @Get('admin/stream-config')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async getAdminStreamConfig() {
+    const data = await this.liveService.getLiveStreamingConfig();
+    return {
+      ok: true,
+      data,
+    };
+  }
+
+  @Patch('admin/stream-config')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async updateAdminStreamConfig(
+    @CurrentUser() user: any,
+    @Body()
+    dto: {
+      mode?: 'AGORA_RTC' | 'CDN_HLS';
+      cdnHlsUrlPattern?: string;
+      cdnRtmpPushUrl?: string;
+    },
+  ) {
+    const adminId = user?.id ?? user?.sub;
+    const data = await this.liveService.setLiveStreamingConfig(adminId, dto);
     return {
       ok: true,
       data,

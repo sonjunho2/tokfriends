@@ -361,6 +361,13 @@ export default function LiveRoomScreen({ navigation, route }) {
         const res = await apiClient.getLiveAgoraToken(roomId, role);
         if (mounted && res) {
           setAgoraTokenData(res);
+          if (res.streamDeliveryMode === 'CDN_HLS') {
+            if (isHost) {
+              showStreamToast('CDN 중계 모드: Agora RTMP로 실시간 미디어가 송출됩니다', 'flash');
+            } else {
+              showStreamToast('대규모 시청 최적화: CDN HLS 스트림으로 시청 중입니다', 'flash');
+            }
+          }
         }
       } catch (err) {
         console.warn('Agora token initialization error', err);
@@ -802,10 +809,23 @@ export default function LiveRoomScreen({ navigation, route }) {
             </View>
 
             {/* Video status overlay */}
-            <View style={styles.videoOverlayBadge}>
-              <Ionicons name="videocam" size={14} color="#10B981" />
+            <View
+              style={[
+                styles.videoOverlayBadge,
+                agoraTokenData?.streamDeliveryMode === 'CDN_HLS' && styles.videoOverlayBadgeCdn,
+              ]}
+            >
+              <Ionicons
+                name={agoraTokenData?.streamDeliveryMode === 'CDN_HLS' ? 'flash' : 'videocam'}
+                size={14}
+                color={agoraTokenData?.streamDeliveryMode === 'CDN_HLS' ? '#38BDF8' : '#10B981'}
+              />
               <Text style={styles.videoOverlayText}>
-                Agora RTC HD 1080p · {isHost ? (cameraFacing === 'front' ? '전면 카메라' : '후면 카메라') : '라이브 영상 수신'}
+                {agoraTokenData?.streamDeliveryMode === 'CDN_HLS'
+                  ? isHost
+                    ? 'CDN 중계 송출 (Agora RTMP 푸시)'
+                    : 'CDN HLS 중계 · 대규모 시청 최적화'
+                  : `Agora RTC HD 1080p · ${isHost ? (cameraFacing === 'front' ? '전면 카메라' : '후면 카메라') : '라이브 영상 수신'}`}
               </Text>
             </View>
 
@@ -916,17 +936,28 @@ export default function LiveRoomScreen({ navigation, route }) {
             <View
               style={[
                 styles.rtcBadge,
+                agoraTokenData?.streamDeliveryMode === 'CDN_HLS' && styles.cdnHlsBadge,
                 (!isVideoSubscribed || isCameraOff) && styles.rtcBadgeAudio,
               ]}
             >
               <View
                 style={[
                   styles.rtcDot,
+                  agoraTokenData?.streamDeliveryMode === 'CDN_HLS' && styles.cdnHlsDot,
                   (!isVideoSubscribed || isCameraOff) && styles.rtcDotAudio,
                 ]}
               />
-              <Text style={styles.rtcBadgeText}>
-                {!isVideoSubscribed || isCameraOff ? 'RTC Audio' : 'RTC HD'}
+              <Text
+                style={[
+                  styles.rtcBadgeText,
+                  agoraTokenData?.streamDeliveryMode === 'CDN_HLS' && styles.cdnHlsBadgeText,
+                ]}
+              >
+                {agoraTokenData?.streamDeliveryMode === 'CDN_HLS'
+                  ? 'CDN HLS'
+                  : !isVideoSubscribed || isCameraOff
+                  ? 'RTC Audio'
+                  : 'RTC HD'}
               </Text>
             </View>
           )}
@@ -1216,6 +1247,11 @@ const styles = StyleSheet.create({
     color: '#E5E7EB',
     fontWeight: '600',
   },
+  videoOverlayBadgeCdn: {
+    backgroundColor: 'rgba(2, 132, 199, 0.35)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.5)',
+  },
   videoCenterBadge: {
     alignItems: 'center',
     gap: 12,
@@ -1364,6 +1400,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245, 158, 11, 0.25)',
     borderColor: 'rgba(245, 158, 11, 0.45)',
   },
+  cdnHlsBadge: {
+    backgroundColor: 'rgba(2, 132, 199, 0.25)',
+    borderColor: 'rgba(56, 189, 248, 0.5)',
+  },
   rtcDot: {
     width: 6,
     height: 6,
@@ -1373,10 +1413,16 @@ const styles = StyleSheet.create({
   rtcDotAudio: {
     backgroundColor: '#F59E0B',
   },
+  cdnHlsDot: {
+    backgroundColor: '#38BDF8',
+  },
   rtcBadgeText: {
     color: '#A7F3D0',
     fontSize: 10,
     fontWeight: '800',
+  },
+  cdnHlsBadgeText: {
+    color: '#BAE6FD',
   },
   viewerBadge: {
     flexDirection: 'row',

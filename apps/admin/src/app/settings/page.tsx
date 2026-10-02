@@ -1325,13 +1325,13 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* 4. 실시간 라이브 스트리밍 연동 (Agora RTC) */}
-            <div className="rounded-xl border bg-card p-5 space-y-4">
+            {/* 4. 실시간 라이브 스트리밍 연동 (Agora RTC & CDN HLS) */}
+            <div className="rounded-xl border bg-card p-5 space-y-5">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
                 <div className="flex items-center gap-2">
                   <Video className="h-5 w-5 text-sky-500" />
-                  <h3 className="font-bold text-base text-foreground">4. 실시간 라이브 스트리밍 (Agora RTC)</h3>
-                  <span className="text-xs text-muted-foreground">초저지연 비디오/오디오 방송 송출 & 시청</span>
+                  <h3 className="font-bold text-base text-foreground">4. 실시간 라이브 스트리밍 (Agora RTC & CDN HLS)</h3>
+                  <span className="text-xs text-muted-foreground">초저지연 양방향 RTC 또는 대규모 비용 절감 CDN 중계 송출 방식 선택</span>
                 </div>
                 <a
                   href="https://console.agora.io"
@@ -1343,11 +1343,83 @@ export default function SettingsPage() {
                 </a>
               </div>
 
+              {/* 송출 방식 선택 탭 / 카드 */}
+              {(() => {
+                const modeItem = integrations.find((i) => i.id === 'live_stream_mode');
+                const currentMode = (modeItem?.draftValue || modeItem?.value || 'AGORA_RTC').toUpperCase();
+                const isCdn = currentMode === 'CDN_HLS';
+
+                return (
+                  <div className="space-y-3">
+                    <Label className="text-xs font-bold text-foreground">
+                      스트리밍 송출 아키텍처 선택 (전체 라이브 방송 적용)
+                    </Label>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div
+                        onClick={() => updateIntegration('live_stream_mode', 'AGORA_RTC')}
+                        className={cn(
+                          'cursor-pointer rounded-xl border p-4 transition-all',
+                          !isCdn
+                            ? 'border-sky-500 bg-sky-500/10 ring-1 ring-sky-500 shadow-sm'
+                            : 'border-border bg-background/50 hover:border-zinc-400'
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-sm text-foreground flex items-center gap-2">
+                            <span className={cn('h-2.5 w-2.5 rounded-full', !isCdn ? 'bg-sky-500 animate-pulse' : 'bg-zinc-400')} />
+                            Agora RTC 단독 모드
+                          </span>
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-600">
+                            초저지연 ~200ms
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                          시청자도 Agora RTC 채널에 직접 입장하여 양방향 딜레이 없는 실시간 방송 진행.
+                        </p>
+                        <p className="mt-1 text-[11px] text-zinc-500 font-medium">
+                          과금: 전체 시청 시간 합산 (Agora RTC 분당 요율)
+                        </p>
+                      </div>
+
+                      <div
+                        onClick={() => updateIntegration('live_stream_mode', 'CDN_HLS')}
+                        className={cn(
+                          'cursor-pointer rounded-xl border p-4 transition-all',
+                          isCdn
+                            ? 'border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500 shadow-sm'
+                            : 'border-border bg-background/50 hover:border-zinc-400'
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-sm text-foreground flex items-center gap-2">
+                            <span className={cn('h-2.5 w-2.5 rounded-full', isCdn ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-400')} />
+                            CDN 중계 (HLS / LL-HLS) 모드
+                          </span>
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600">
+                            대규모 비용 80%+ 절감
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                          호스트 송출을 Agora Media Push로 CDN에 전송하고, 시청자는 HLS URL로 재생.
+                        </p>
+                        <p className="mt-1 text-[11px] text-emerald-600 font-medium">
+                          과금: 시청자 수 무관 Agora 시청료 0원 (CDN 트래픽 요금만 발생)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="grid gap-4 md:grid-cols-2">
                 {integrations
-                  .filter((item) => item.id.startsWith('agora_'))
+                  .filter((item) => item.id.startsWith('agora_') || item.id.startsWith('live_cdn_'))
                   .map((integration) => {
                     const isConfigured = Boolean((integration.value ?? '').length > 0);
+                    const isPasswordType =
+                      integration.id.includes('secret') ||
+                      integration.id.includes('certificate') ||
+                      integration.id.includes('key');
                     return (
                       <div key={integration.id} className="rounded-lg border bg-background/50 p-3.5 space-y-2">
                         <div className="flex items-center justify-between">
@@ -1365,10 +1437,16 @@ export default function SettingsPage() {
                           )}
                         </div>
                         <Input
-                          type="password"
+                          type={isPasswordType ? 'password' : 'text'}
                           value={integration.draftValue ?? ''}
-                          placeholder={isConfigured ? '••••••••  (등록 완료됨, 변경 시 입력)' : (integration.placeholder ?? '발급받은 키를 입력하세요')}
-                          autoComplete="new-password"
+                          placeholder={
+                            isConfigured
+                              ? isPasswordType
+                                ? '••••••••  (등록 완료됨, 변경 시 입력)'
+                                : integration.value ?? ''
+                              : integration.placeholder ?? '설정값을 입력하세요'
+                          }
+                          autoComplete="off"
                           onChange={(event) => updateIntegration(integration.id, event.target.value)}
                           disabled={savingIntegrationId === 'bulk'}
                           className="text-xs h-9 font-mono"
@@ -1393,7 +1471,7 @@ export default function SettingsPage() {
             </div>
 
             {/* 5. 기타 광고 및 리워드 설정 (기존 항목 보존) */}
-            {integrations.some((item) => !item.id.startsWith('oauth_') && !item.id.startsWith('toss_') && !item.id.startsWith('portone_') && !item.id.startsWith('iap_') && !item.id.startsWith('firebase_') && !item.id.startsWith('apns_') && !item.id.startsWith('agora_')) && (
+            {integrations.some((item) => !item.id.startsWith('oauth_') && !item.id.startsWith('toss_') && !item.id.startsWith('portone_') && !item.id.startsWith('iap_') && !item.id.startsWith('firebase_') && !item.id.startsWith('apns_') && !item.id.startsWith('agora_') && !item.id.startsWith('live_')) && (
               <div className="rounded-xl border bg-card p-5 space-y-4">
                 <div className="flex items-center gap-2 border-b pb-3">
                   <Sparkles className="h-5 w-5 text-yellow-500" />
