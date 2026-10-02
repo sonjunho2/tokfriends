@@ -60,6 +60,7 @@ export default function CommunityFeedScreen({ navigation, route }) {
   const [newPostTopicId, setNewPostTopicId] = useState('');
   const [selectedImages, setSelectedImages] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgressText, setUploadProgressText] = useState('');
 
   // Comments modal state
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
@@ -173,13 +174,18 @@ export default function CommunityFeedScreen({ navigation, route }) {
       return;
     }
     setSubmitting(true);
+    setUploadProgressText('게시글을 준비하고 있습니다...');
     try {
       const uploadedUrls = [];
+      let currentIdx = 0;
       for (const asset of selectedImages) {
+        currentIdx++;
+        setUploadProgressText(`사진 업로드 중... (${currentIdx}/${selectedImages.length})`);
         const url = await apiClient.uploadPostMedia(asset);
         if (url) uploadedUrls.push(url);
       }
 
+      setUploadProgressText('게시글 등록 중...');
       await apiClient.createPost({
         content: text || '사진을 공유했습니다.',
         topicId: newPostTopicId || undefined,
@@ -188,12 +194,14 @@ export default function CommunityFeedScreen({ navigation, route }) {
       setModalVisible(false);
       setNewPostContent('');
       setSelectedImages([]);
+      setUploadProgressText('');
       Alert.alert('등록 완료', '게시글이 성공적으로 등록되었습니다.');
       onRefresh();
     } catch (e) {
       Alert.alert('등록 실패', e?.message || '게시글 등록에 실패했습니다.');
     } finally {
       setSubmitting(false);
+      setUploadProgressText('');
     }
   };
 
@@ -798,6 +806,11 @@ export default function CommunityFeedScreen({ navigation, route }) {
                   {selectedImages.map((asset, idx) => (
                     <View key={`selected-img-${idx}`} style={styles.modalImageThumbWrapper}>
                       <Image source={{ uri: asset.uri }} style={styles.modalImageThumb} />
+                      {idx === 0 && (
+                        <View style={styles.modalCoverBadge}>
+                          <Text style={styles.modalCoverBadgeText}>대표</Text>
+                        </View>
+                      )}
                       <TouchableOpacity
                         style={styles.modalImageRemoveBtn}
                         onPress={() => handleRemoveSelectedImage(idx)}
@@ -825,7 +838,9 @@ export default function CommunityFeedScreen({ navigation, route }) {
                 </Text>
               </TouchableOpacity>
               {submitting && (
-                <Text style={styles.modalUploadingHint}>사진 업로드 및 등록 중...</Text>
+                <Text style={styles.modalUploadingHint}>
+                  {uploadProgressText || '사진 업로드 및 등록 중...'}
+                </Text>
               )}
             </View>
           </KeyboardAvoidingView>
@@ -1350,6 +1365,20 @@ const styles = StyleSheet.create({
     height: 18,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  modalCoverBadge: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    backgroundColor: '#FEE500',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  modalCoverBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#191919',
   },
   modalBottomBar: {
     flexDirection: 'row',

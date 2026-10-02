@@ -14,6 +14,7 @@ import {
   Platform,
   RefreshControl,
   Share,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -53,6 +54,14 @@ export default function PostDetailScreen({ navigation, route }) {
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [likeProcessing, setLikeProcessing] = useState(false);
+  const [previewImageUri, setPreviewImageUri] = useState(null);
+
+  const EMOJI_LIST = ['❤️', '👍', '😊', '👏', '✨', '🔥', '☕'];
+
+  const handleAddEmoji = (emoji) => {
+    setCommentText((prev) => `${prev}${emoji}`);
+    inputRef.current?.focus();
+  };
 
   // Load post details & comments
   const loadData = useCallback(async () => {
@@ -428,12 +437,17 @@ export default function PostDetailScreen({ navigation, route }) {
             {Array.isArray(post?.mediaUrls) && post.mediaUrls.length > 0 && (
               <View style={styles.mediaContainer}>
                 {post.mediaUrls.map((url, idx) => (
-                  <Image
+                  <TouchableOpacity
                     key={`detail-img-${idx}-${url}`}
-                    source={{ uri: url }}
-                    style={styles.postDetailImage}
-                    resizeMode="cover"
-                  />
+                    activeOpacity={0.9}
+                    onPress={() => setPreviewImageUri(url)}
+                  >
+                    <Image
+                      source={{ uri: url }}
+                      style={styles.postDetailImage}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
@@ -554,6 +568,27 @@ export default function PostDetailScreen({ navigation, route }) {
           )}
         </ScrollView>
 
+        {/* Quick Emoji Reactions */}
+        <View style={styles.quickEmojiBar}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickEmojiScroll}
+          >
+            <Text style={styles.quickEmojiLabel}>빠른 반응</Text>
+            {EMOJI_LIST.map((emoji) => (
+              <TouchableOpacity
+                key={`emoji-${emoji}`}
+                style={styles.emojiBtn}
+                onPress={() => handleAddEmoji(emoji)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.emojiChar}>{emoji}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         {/* Bottom Interactive Comment Input Bar */}
         <View style={styles.bottomInputBar}>
           <TextInput
@@ -583,6 +618,33 @@ export default function PostDetailScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Fullscreen Image Preview Modal */}
+      <Modal
+        visible={Boolean(previewImageUri)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewImageUri(null)}
+      >
+        <View style={styles.fullscreenModalBackdrop}>
+          <TouchableOpacity
+            style={styles.fullscreenCloseBtn}
+            onPress={() => setPreviewImageUri(null)}
+            hitSlop={14}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="close" size={28} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          {previewImageUri && (
+            <Image
+              source={{ uri: previewImageUri }}
+              style={styles.fullscreenImage}
+              resizeMode="contain"
+            />
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -880,5 +942,54 @@ const styles = StyleSheet.create({
   commentSendBtnDisabled: {
     backgroundColor: '#E5E7EB',
     opacity: 0.7,
+  },
+  quickEmojiBar: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    paddingVertical: 7,
+  },
+  quickEmojiScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    gap: 6,
+  },
+  quickEmojiLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    marginRight: 4,
+  },
+  emojiBtn: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 14,
+    backgroundColor: '#F3F4F6',
+  },
+  emojiChar: {
+    fontSize: 16,
+  },
+  fullscreenModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullscreenCloseBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  fullscreenImage: {
+    width: '100%',
+    height: '80%',
   },
 });
