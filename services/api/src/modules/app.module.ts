@@ -25,6 +25,7 @@ import { PostsModule } from './posts/posts.module';
 import { LiveModule } from './live/live.module';
 import { MediaModule } from './media/media.module';
 import { AdvertisementsModule } from './advertisements/advertisements.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { AdvertisementsModule } from './advertisements/advertisements.module';
     LegalDocumentsModule,
     LegacyModule,
     AliasModule,
+    AnalyticsModule,
   ],
   providers: [
     {
