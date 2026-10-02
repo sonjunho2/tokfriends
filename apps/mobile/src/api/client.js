@@ -1455,7 +1455,7 @@ export const apiClient = {
     }
   },
 
-  async joinLiveRoom(roomId) {
+  async joinLiveRoom(roomId, viewerKey) {
     if (!roomId) return { success: false, viewerCount: 1 };
     const room = DUMMY_LIVE_ROOMS.find((r) => r.id === roomId);
     if (USE_DUMMY_AUTH) {
@@ -1464,7 +1464,11 @@ export const apiClient = {
       return { success: true, viewerCount: count };
     }
     try {
-      const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/join`);
+      const { data } = await client.post(
+        `/live/rooms/${encodeURIComponent(roomId)}/join`,
+        {},
+        { params: viewerKey ? { viewerKey } : undefined },
+      );
       return data?.data ?? data;
     } catch {
       const count = (room?.viewerCount || 0) + 1;
@@ -1472,11 +1476,15 @@ export const apiClient = {
     }
   },
 
-  async leaveLiveRoom(roomId) {
+  async leaveLiveRoom(roomId, viewerKey) {
     if (!roomId) return { success: false };
     if (USE_DUMMY_AUTH) return { success: true };
     try {
-      const { data } = await client.post(`/live/rooms/${encodeURIComponent(roomId)}/leave`);
+      const { data } = await client.post(
+        `/live/rooms/${encodeURIComponent(roomId)}/leave`,
+        {},
+        { params: viewerKey ? { viewerKey } : undefined },
+      );
       return data?.data ?? data;
     } catch {
       return { success: true };

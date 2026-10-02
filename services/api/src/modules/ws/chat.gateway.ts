@@ -1,6 +1,15 @@
 import { OnModuleDestroy } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
-import { WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayInit, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  OnGatewayInit,
+  SubscribeMessage,
+  MessageBody,
+  ConnectedSocket,
+} from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { isCorsOriginAllowed, parseCorsOrigins } from '../../common/cors-origins';
@@ -9,6 +18,7 @@ import { Public } from '../auth/public.decorator';
 import { ChatRealtimePublisher } from '../chats/chat-realtime-publisher.service';
 import { ChatsService } from '../chats/chats.service';
 import { LiveRealtimePublisher } from '../live/live-realtime-publisher.service';
+import { LiveService } from '../live/live.service';
 
 @Public()
 @SkipThrottle({ default: true })
@@ -27,7 +37,7 @@ import { LiveRealtimePublisher } from '../live/live-realtime-publisher.service';
     },
   },
 })
-export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModuleDestroy {
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, OnModuleDestroy {
   @WebSocketServer() server: Server;
   private readonly jwtSecret: string;
   private unsubscribeRealtime?: () => void;
@@ -41,6 +51,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModule
     private readonly chatsService: ChatsService,
     private readonly chatRealtimePublisher: ChatRealtimePublisher,
     private readonly liveRealtimePublisher: LiveRealtimePublisher,
+    private readonly liveService: LiveService,
   ) {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
@@ -115,6 +126,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModule
       client.emit('connected', { ok: true });
     } catch (e) {
       client.disconnect(true);
+    }
+  }
+
+  async handleDisconnect(client: Socket) {
+    try {
+      const viewerKey = client.data.userId || client.id;
+      const liveRooms = client.data.liveRooms as Set<string> | undefined;
+      if (liveRooms && liveRooms.size > 0) {
+        for (const roomId of liveRooms) {
+          try {
+            await this.liveService.leaveRoom(roomId, viewerKey);
+          } catch {
+            // ignore cleanup error
+          }
+        }
+        liveRooms.clear();
+      }
+    } catch {
+      // ignore
     }
   }
 
@@ -197,7 +227,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModule
     const roomId = typeof data?.roomId === 'string' ? data.roomId.trim() : '';
     if (!roomId) return { ok: false, error: 'INVALID_ROOM' };
     client.join(`live:${roomId}`);
-    return { ok: true, roomId };
+    if (!client.data.liveRooms) {
+      client.data.liveRooms = new Set<string>();
+    }
+    const viewerKey = client.data.userId || client.id;
+    client.data.liveRooms.add(roomId);
+
+    const result = await this.liveService.joinRoom(roomId, viewerKey);
+    return { ok: true, roomId, viewerCount: result?.viewerCount ?? 1 };
   }
 
   @SubscribeMessage('live:leave')
@@ -205,6 +242,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayInit, OnModule
     const roomId = typeof data?.roomId === 'string' ? data.roomId.trim() : '';
     if (!roomId) return { ok: false, error: 'INVALID_ROOM' };
     client.leave(`live:${roomId}`);
-    return { ok: true, roomId };
+    const viewerKey = client.data.userId || client.id;
+    if (client.data.liveRooms) {
+      client.data.liveRooms.delete(roomId);
+    }
+    const result = await this.liveService.leaveRoom(roomId, viewerKey);
+    return { ok: true, roomId, viewerCount: result?.viewerCount ?? 0 };
   }
 }

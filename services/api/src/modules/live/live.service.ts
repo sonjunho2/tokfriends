@@ -70,6 +70,8 @@ function formatRoom(room: any) {
 
 @Injectable()
 export class LiveService {
+  private readonly activeViewersByRoom = new Map<string, Set<string>>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly giftsService: GiftsService,
@@ -174,6 +176,8 @@ export class LiveService {
       include: HOST_INCLUDE,
     });
 
+    this.activeViewersByRoom.delete(roomId);
+
     this.livePublisher.publishEnd({
       roomId,
       reason: '호스트가 방송을 종료했습니다.',
@@ -182,7 +186,7 @@ export class LiveService {
     return formatRoom(updated);
   }
 
-  async joinRoom(roomId: string) {
+  async joinRoom(roomId: string, viewerKey?: string) {
     const room = await this.prisma.liveRoom.findUnique({
       where: { id: roomId },
     });
@@ -191,37 +195,89 @@ export class LiveService {
       return { success: false, viewerCount: 0 };
     }
 
-    const updated = await this.prisma.liveRoom.update({
-      where: { id: roomId },
-      data: { viewerCount: { increment: 1 } },
-      select: { viewerCount: true },
-    });
+    let viewers = this.activeViewersByRoom.get(roomId);
+    if (!viewers) {
+      viewers = new Set<string>();
+      this.activeViewersByRoom.set(roomId, viewers);
+    }
+
+    let shouldIncrement = true;
+    if (viewerKey) {
+      if (viewers.has(viewerKey)) {
+        shouldIncrement = false;
+      } else {
+        viewers.add(viewerKey);
+      }
+    }
+
+    let newCount = room.viewerCount;
+    if (shouldIncrement) {
+      const updated = await this.prisma.liveRoom.update({
+        where: { id: roomId },
+        data: { viewerCount: { increment: 1 } },
+        select: { viewerCount: true },
+      });
+      newCount = updated.viewerCount;
+    }
+
+    const trackedCount = Math.max(viewers.size, newCount, 1);
+    if (trackedCount !== newCount) {
+      await this.prisma.liveRoom.update({
+        where: { id: roomId },
+        data: { viewerCount: trackedCount },
+      });
+      newCount = trackedCount;
+    }
 
     this.livePublisher.publishViewer({
       roomId,
-      viewerCount: updated.viewerCount,
+      viewerCount: newCount,
     });
 
-    return { success: true, viewerCount: updated.viewerCount };
+    return { success: true, viewerCount: newCount };
   }
 
-  async leaveRoom(roomId: string) {
+  async leaveRoom(roomId: string, viewerKey?: string) {
     const room = await this.prisma.liveRoom.findUnique({
       where: { id: roomId },
       select: { viewerCount: true, status: true },
     });
 
-    if (!room || room.viewerCount <= 0) {
+    if (!room || room.status !== 'live' || room.viewerCount <= 0) {
+      if (viewerKey) {
+        this.activeViewersByRoom.get(roomId)?.delete(viewerKey);
+      }
       return { success: true, viewerCount: 0 };
     }
 
-    const updated = await this.prisma.liveRoom.update({
-      where: { id: roomId },
-      data: { viewerCount: { decrement: 1 } },
-      select: { viewerCount: true },
-    });
+    let viewers = this.activeViewersByRoom.get(roomId);
+    let shouldDecrement = true;
+    if (viewerKey) {
+      if (!viewers || !viewers.has(viewerKey)) {
+        shouldDecrement = false;
+      } else {
+        viewers.delete(viewerKey);
+      }
+    }
 
-    const count = Math.max(0, updated.viewerCount);
+    let count = room.viewerCount;
+    if (shouldDecrement) {
+      const updated = await this.prisma.liveRoom.update({
+        where: { id: roomId },
+        data: { viewerCount: { decrement: 1 } },
+        select: { viewerCount: true },
+      });
+      count = Math.max(0, updated.viewerCount);
+    }
+
+    if (viewers && viewers.size === 0 && count > 1) {
+      count = 1;
+      await this.prisma.liveRoom.update({
+        where: { id: roomId },
+        data: { viewerCount: count },
+      });
+    }
+
     this.livePublisher.publishViewer({
       roomId,
       viewerCount: count,

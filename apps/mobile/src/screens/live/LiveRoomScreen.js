@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  AppState,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -129,6 +130,24 @@ export default function LiveRoomScreen({ navigation, route }) {
   const [cameraFacing, setCameraFacing] = useState('front'); // 'front' | 'back'
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
 
+  // Agora Traffic Optimization: Background Video Unsubscribe & Audio Mode Switch
+  const [isVideoSubscribed, setIsVideoSubscribed] = useState(true);
+  const wasVideoActiveBeforeBgRef = useRef(true);
+  const appStateRef = useRef(AppState.currentState);
+  const [isBackgroundAudioMode, setIsBackgroundAudioMode] = useState(false);
+
+  // Agora RTC Stream Controller (Unsubscribe / Mute / Subscribe)
+  const agoraStreamController = useRef({
+    unsubscribeRemoteVideo: () => {
+      setIsVideoSubscribed(false);
+    },
+    subscribeRemoteVideo: () => {
+      setIsVideoSubscribed(true);
+    },
+    muteLocalVideo: (_mute) => {},
+    muteLocalAudio: (_mute) => {},
+  }).current;
+
   // Dynamic Audio Pulse & Quick Stream Notification Toast
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [streamToast, setStreamToast] = useState(null);
@@ -220,6 +239,12 @@ export default function LiveRoomScreen({ navigation, route }) {
     });
   }, [showStreamToast]);
 
+  const handleResumeVideo = useCallback(() => {
+    agoraStreamController.subscribeRemoteVideo();
+    setIsCameraOff(false);
+    showStreamToast('라이브 비디오 영상을 다시 켰습니다', 'videocam');
+  }, [agoraStreamController, showStreamToast]);
+
   const flatListRef = useRef(null);
 
   const isHost =
@@ -227,37 +252,102 @@ export default function LiveRoomScreen({ navigation, route }) {
     room?.host?.id &&
     String(currentUser.id) === String(room.host.id);
 
-  // Join room on mount, leave on unmount
+  const viewerKey = currentUser?.id || currentUser?.activityAccountId;
+
+  const loadRoomDetails = useCallback(async () => {
+    if (!roomId) return;
+    try {
+      const details = await apiClient.getLiveRoom(roomId);
+      if (details) {
+        setRoom(details);
+        setViewerCount(details.viewerCount || 1);
+        setLikeCount(details.totalLikes || 0);
+      }
+    } catch (e) {
+      console.warn('Failed to load room details', e);
+    }
+  }, [roomId]);
+
+  // Join room on mount, leave on unmount with viewerKey deduplication
   useEffect(() => {
     if (!roomId) return;
     let mounted = true;
 
-    apiClient.joinLiveRoom(roomId).then((res) => {
+    apiClient.joinLiveRoom(roomId, viewerKey).then((res) => {
       if (mounted && res?.viewerCount) {
         setViewerCount(res.viewerCount);
       }
     });
 
-    const loadRoomDetails = async () => {
-      try {
-        const details = await apiClient.getLiveRoom(roomId);
-        if (mounted && details) {
-          setRoom(details);
-          setViewerCount(details.viewerCount || 1);
-          setLikeCount(details.totalLikes || 0);
-        }
-      } catch (e) {
-        console.warn('Failed to load room details', e);
-      }
-    };
-
     loadRoomDetails();
 
     return () => {
       mounted = false;
-      apiClient.leaveLiveRoom(roomId).catch(() => {});
+      apiClient.leaveLiveRoom(roomId, viewerKey).catch(() => {});
     };
-  }, [roomId]);
+  }, [roomId, viewerKey, loadRoomDetails]);
+
+  // 백그라운드 진입 시 Agora 비디오 스트림 구독 해제 및 포그라운드 복귀 시 자동 재구독 (트래픽/과금 최적화)
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState) => {
+      if (
+        appStateRef.current === 'active' &&
+        nextAppState.match(/inactive|background/)
+      ) {
+        // App moving to background
+        setIsBackgroundAudioMode(true);
+        if (!isHost) {
+          // 시청자: Agora 비디오 구독 해제 -> 저렴한 오디오 요율로 전환
+          wasVideoActiveBeforeBgRef.current = isVideoSubscribed && !isCameraOff;
+          agoraStreamController.unsubscribeRemoteVideo();
+          setIsCameraOff(true);
+          showStreamToast(
+            '백그라운드 절전: 비디오 구독 해제 (오디오 전용 모드 전환)',
+            'musical-notes'
+          );
+        } else {
+          // 호스트: 카메라 송출 일시 중지
+          agoraStreamController.muteLocalVideo(true);
+          showStreamToast(
+            '백그라운드 전환: 카메라 영상 송출이 일시 정지되었습니다',
+            'videocam-off'
+          );
+        }
+      } else if (
+        appStateRef.current.match(/inactive|background/) &&
+        nextAppState === 'active'
+      ) {
+        // App returning to foreground
+        setIsBackgroundAudioMode(false);
+        if (!isHost) {
+          // 시청자: 백그라운드 진입 전 비디오를 시청하고 있었다면 비디오 구독 복원
+          if (wasVideoActiveBeforeBgRef.current) {
+            agoraStreamController.subscribeRemoteVideo();
+            setIsCameraOff(false);
+            showStreamToast(
+              '포그라운드 복귀: 라이브 비디오 스트림이 복원되었습니다',
+              'videocam'
+            );
+          }
+        } else {
+          // 호스트: 카메라 송출 복원
+          if (!isCameraOff) {
+            agoraStreamController.muteLocalVideo(false);
+            showStreamToast('카메라 영상 송출이 재개되었습니다', 'videocam');
+          }
+        }
+        // 복귀 시 서버 최신 시청자 수 및 방 상태 즉시 재동기화
+        loadRoomDetails();
+      }
+
+      appStateRef.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => {
+      subscription.remove();
+    };
+  }, [isHost, isCameraOff, isVideoSubscribed, showStreamToast, loadRoomDetails, agoraStreamController]);
 
   // Agora Live Streaming Token initialization (Audio + Video)
   useEffect(() => {
@@ -700,7 +790,7 @@ export default function LiveRoomScreen({ navigation, route }) {
             <ActivityIndicator size="large" color={LIVE_ACCENT} />
             <Text style={styles.connectingText}>Agora 라이브 스트림 연결 중...</Text>
           </View>
-        ) : !isCameraOff ? (
+        ) : (!isCameraOff && isVideoSubscribed) ? (
           // Video Canvas Mode (Camera ON: Host local video or Viewer remote video)
           <View style={styles.videoStreamContainer}>
             {/* Viewfinder simulation & camera layout */}
@@ -737,7 +827,7 @@ export default function LiveRoomScreen({ navigation, route }) {
             <LiveAudioWaveform isMuted={isMicMuted} />
           </View>
         ) : (
-          // Audio Only Mode (Camera turned OFF)
+          // Audio Only Mode (Camera turned OFF or Background Video Unsubscribed)
           <View style={styles.audioOnlyContainer}>
             <View style={styles.audioAvatarWrapper}>
               <Animated.View
@@ -759,8 +849,25 @@ export default function LiveRoomScreen({ navigation, route }) {
             </View>
             <LiveAudioWaveform isMuted={isMicMuted} />
             <Text style={styles.liveNoticeText}>
-              카메라를 끄고 고음질 음성 라이브로 진행 중입니다
+              {!isVideoSubscribed || isBackgroundAudioMode
+                ? '🎧 백그라운드 절전 / 오디오 전용 수신 중'
+                : '카메라를 끄고 고음질 음성 라이브로 진행 중입니다'}
             </Text>
+            {!isVideoSubscribed && (
+              <Text style={styles.trafficSaveBadge}>
+                Agora 비디오 구독 해제 · 저렴한 오디오 요율 적용 (트래픽 최적화)
+              </Text>
+            )}
+            {!isHost && !isVideoSubscribed && (
+              <TouchableOpacity
+                style={styles.resumeStreamBtn}
+                activeOpacity={0.8}
+                onPress={handleResumeVideo}
+              >
+                <Ionicons name="videocam" size={15} color="#191919" />
+                <Text style={styles.resumeStreamBtnText}>영상 다시 보기 (구독 재개)</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
@@ -806,9 +913,21 @@ export default function LiveRoomScreen({ navigation, route }) {
 
         <View style={styles.topHeaderRight}>
           {agoraTokenData && (
-            <View style={styles.rtcBadge}>
-              <View style={styles.rtcDot} />
-              <Text style={styles.rtcBadgeText}>RTC HD</Text>
+            <View
+              style={[
+                styles.rtcBadge,
+                (!isVideoSubscribed || isCameraOff) && styles.rtcBadgeAudio,
+              ]}
+            >
+              <View
+                style={[
+                  styles.rtcDot,
+                  (!isVideoSubscribed || isCameraOff) && styles.rtcDotAudio,
+                ]}
+              />
+              <Text style={styles.rtcBadgeText}>
+                {!isVideoSubscribed || isCameraOff ? 'RTC Audio' : 'RTC HD'}
+              </Text>
             </View>
           )}
           {Boolean(room?.totalGiftsPoints && room.totalGiftsPoints > 0) && (
@@ -1140,6 +1259,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     textAlign: 'center',
   },
+  trafficSaveBadge: {
+    marginTop: 8,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#38BDF8',
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+    textAlign: 'center',
+  },
+  resumeStreamBtn: {
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEE500',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  resumeStreamBtnText: {
+    color: '#191919',
+    fontSize: 13,
+    fontWeight: '800',
+  },
   topHeader: {
     position: 'absolute',
     top: 50,
@@ -1208,11 +1360,18 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(16, 185, 129, 0.45)',
     gap: 4,
   },
+  rtcBadgeAudio: {
+    backgroundColor: 'rgba(245, 158, 11, 0.25)',
+    borderColor: 'rgba(245, 158, 11, 0.45)',
+  },
   rtcDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: '#10B981',
+  },
+  rtcDotAudio: {
+    backgroundColor: '#F59E0B',
   },
   rtcBadgeText: {
     color: '#A7F3D0',

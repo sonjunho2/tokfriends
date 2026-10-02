@@ -84,8 +84,11 @@ export class LiveController {
   }
 
   @Post('rooms/:id/join')
-  async joinRoom(@Param('id') roomId: string) {
-    const data = await this.liveService.joinRoom(roomId);
+  async joinRoom(
+    @Param('id') roomId: string,
+    @Query('viewerKey') viewerKey?: string,
+  ) {
+    const data = await this.liveService.joinRoom(roomId, viewerKey);
     return {
       ok: true,
       data,
@@ -93,8 +96,11 @@ export class LiveController {
   }
 
   @Post('rooms/:id/leave')
-  async leaveRoom(@Param('id') roomId: string) {
-    const data = await this.liveService.leaveRoom(roomId);
+  async leaveRoom(
+    @Param('id') roomId: string,
+    @Query('viewerKey') viewerKey?: string,
+  ) {
+    const data = await this.liveService.leaveRoom(roomId, viewerKey);
     return {
       ok: true,
       data,

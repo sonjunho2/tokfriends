@@ -4,6 +4,37 @@ Updated: 2026-10-02
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-02 Checkpoint 32: 라이브 방송 실시간 시청자 수 오차 원천 해결 & 백그라운드 Agora 비디오 구독 해제(오디오 절전 모드 자동 전환) 트래픽 최적화 (완료)
+
+### 1. 실시간 시청자 수(`viewerCount`) 오차 및 유령 시청자 방지 파이프라인 구축
+- **문제점 원천 해결**:
+  - 기존에는 단순 HTTP 진입/퇴장 시에만 `+1 / -1` 카운팅이 되어, 사용자가 앱을 강제 종료(Kill)하거나 네트워크가 끊겨 비정상 종료 시 퇴장 API가 호출되지 않아 '유령 시청자'가 DB에 영구 잔존하는 문제가 발생함.
+- **WebSocket Disconnect 생명주기 연동 (`ChatGateway.ts`)**:
+  - `ChatGateway`에 `OnGatewayDisconnect` 인터페이스 및 `handleDisconnect(client)` 라이프사이클 구현.
+  - 소켓 세션별 참여 중인 라이브 방 목록(`client.data.liveRooms`)을 추적하여, 앱 강제 종료 또는 통신 두절 시 자동으로 `liveService.leaveRoom(roomId, viewerKey)`을 호출하여 시청자 수 자동 차감 및 실시간 브로드캐스트.
+- **인메모리 세션 기반 멱등(Idempotent) 카운팅 (`LiveService.ts`)**:
+  - `activeViewersByRoom: Map<string, Set<string>>`를 도입하여 동일 유저가 HTTP와 소켓으로 동시 입장 시 중복 카운팅 방지.
+  - 퇴장 시에도 등록된 `viewerKey` 기준으로만 감소 처리하여 음수 카운트 및 다중 차감 차단.
+  - 방송 종료 시 실시간 세션 자동 일괄 정리.
+
+### 2. 백그라운드 진입 시 Agora 비디오 구독 해제 & 오디오 전용 모드 전환 (트래픽 최적화)
+- **과금 및 배터리/데이터 절감**:
+  - 사용자가 앱을 홈 화면으로 내리거나 다른 탭/앱으로 이동(`AppState.match(/inactive|background/)`)했을 때:
+    - **시청자(Viewer)**:
+      - `agoraStreamController.unsubscribeRemoteVideo()` 호출로 Agora HD 비디오 수신을 해제하고 오디오 전용 모드로 자동 전환 (Agora 고단가 HD 비디오 분당 과금 대신 저렴한 오디오 요율 적용 $\rightarrow$ 약 75% 비용 절감).
+      - UI 상태를 `isCameraOff: true` 및 `isBackgroundAudioMode: true`로 전환하여 캔버스 절전 파형 화면으로 전환.
+      - 화면 상단 배지도 `RTC HD`에서 `RTC Audio` (앰버 액센트)로 실시간 전환.
+    - **호스트(Host)**:
+      - 백그라운드 이동 시 카메라 송출 일시 중단(`muteLocalVideo(true)`).
+- **포그라운드 복귀 시 원상 복원 및 최신 데이터 동기화**:
+  - 앱으로 다시 돌아올 때(`AppState === 'active'`):
+    - 비디오를 시청 중이던 유저는 자동으로 `subscribeRemoteVideo()`를 호출하여 1080p HD 비디오 캔버스로 즉각 복원.
+    - `loadRoomDetails()`를 자동 실행하여 백그라운드 동안 변동된 실시간 시청자 수, 좋아요, 선물 내역을 즉시 재동기화.
+- **시청자 수동 영상 다시 보기 액션 신설**:
+  - 백그라운드 절전 또는 수동 오디오 모드 상태에서도 언제든 원터치로 비디오를 재개할 수 있는 `resumeStreamBtn` ("영상 다시 보기") 지원.
+
+---
+
 ## 2026-10-02 Checkpoint 31: 관리자 API ↔ 백엔드 엔드포인트 전수 점검 및 미구현 기능 구현 (완료)
 
 ### 1. 전체 API 엔드포인트 1:1 대조 점검
