@@ -414,26 +414,32 @@ export interface Announcement {
 
 export async function getAnnouncements(params: Record<string, unknown> = {}) {
   const response = await api.get('/announcements', { params })
-  return unwrapArray<Announcement>(response.data, ['announcements'])
+  return unwrapArray<Announcement>(response.data, ['announcements', 'data'])
 }
 
 export async function getActiveAnnouncements() {
   const response = await api.get('/announcements/active')
-  return unwrapArray<Announcement>(response.data, ['announcements'])
+  return unwrapArray<Announcement>(response.data, ['announcements', 'data'])
 }
 
 export async function createAnnouncement(payload: AnnouncementWritePayload) {
-  const response = await api.post('/announcements', payload)
-  const data = response.data as Announcement
+  // 관리자 전용 컨트롤러 경로: AdminAnnouncementsController → /admin/announcements
+  const response = await api.post('/admin/announcements', payload)
+  const data = (response.data as any)?.data ?? response.data as Announcement
   const id = ensureStringId(data?.id, 'announcement')
   return { ...data, id }
 }
 
 export async function updateAnnouncement(announcementId: string, payload: AnnouncementWritePayload) {
-  const response = await api.patch(`/announcements/${announcementId}`, payload)
-  const data = response.data as Announcement
+  // 관리자 전용 컨트롤러 경로: AdminAnnouncementsController → /admin/announcements
+  const response = await api.patch(`/admin/announcements/${announcementId}`, payload)
+  const data = (response.data as any)?.data ?? response.data as Announcement
   const id = ensureStringId(data?.id ?? announcementId, 'announcement')
   return { ...data, id }
+}
+
+export async function deleteAnnouncement(announcementId: string) {
+  await api.delete(`/admin/announcements/${announcementId}`)
 }
 
 // ---------------------------------------------------------------------------

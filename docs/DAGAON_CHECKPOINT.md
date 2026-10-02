@@ -4,6 +4,52 @@ Updated: 2026-10-02
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-02 Checkpoint 31: 관리자 API ↔ 백엔드 엔드포인트 전수 점검 및 미구현 기능 구현 (완료)
+
+### 1. 전체 API 엔드포인트 1:1 대조 점검
+- `apps/admin/src/lib/api.ts` (50개+ 함수)와 `services/api` 모든 컨트롤러 전수 비교
+- 정상 연동: 사용자 관리, 신고/제재, 정산/환불, 라이브, 선물, 광고, 알림 브로드캐스트, 설정, 결재 시스템
+
+### 2. [FIX HIGH] 공지사항 CRUD 경로 불일치 수정
+- **원인**: 백엔드가 `AdminAnnouncementsController(/admin/announcements)`와 공용 `AnnouncementsController(/announcements)`로 분리되어 있는데, 프론트가 권한 없는 공용 경로로 POST/PATCH를 호출하던 버그
+- **수정**: `apps/admin/src/lib/api.ts`의 `createAnnouncement`, `updateAnnouncement`를 `/admin/announcements`로 수정
+- **추가**: `deleteAnnouncement` 함수 신규 추가
+
+### 3. [NEW] 채팅 관리자 컨트롤패널 백엔드 구현
+- `services/api/src/modules/chats/chats.controller.ts`에 관리자 전용 엔드포인트 추가:
+  - `GET /chats/control-panel` — 채팅방 목록, 신고 현황, 정책 규칙 스냅샷
+  - `PATCH /chats/rooms/:id` — 채팅방 상태 변경
+  - `POST /chats/reports/:id/resolve` — 채팅 신고 해결
+  - `PATCH /chats/policy-rules/:id` — 정책 규칙 수정
+  - `POST /chats/control-panel/memo` — 운영 메모 저장 (AuditLog 기록)
+
+### 4. [NEW] 매칭 관리자 컨트롤패널 백엔드 구현
+- `services/api/src/modules/admin/matches-admin.controller.ts` 신규 생성:
+  - `GET /matches/control-panel` — 큐 통계, 프리셋, 퀵필터, 추천풀, 히트맵 스냅샷
+  - `PATCH /matches/presets/:id` — 프리셋 가중치/이름 수정
+  - `POST /matches/presets/:id/activate` — 프리셋 활성화 (AdminIntegrationSetting 저장)
+  - `POST /matches/presets/:id/duplicate` — 프리셋 복제
+  - `POST /matches/quick-filters` — 퀵 필터 추가
+  - `DELETE /matches/quick-filters/:id` — 퀵 필터 삭제
+  - `PATCH /matches/recommendation-pools/:id` — 추천풀 수정
+  - `POST /matches/heat-map/memo` — 히트맵 메모 저장
+- `AdminModule`에 `MatchesAdminController` 등록
+
+### 5. [NEW] 분석(Analytics) 관리자 컨트롤러 신규 구현
+- `services/api/src/modules/analytics/analytics.controller.ts` 신규 생성:
+  - `GET /analytics/overview` — 실시간 Prisma 쿼리 기반 KPI (DAU, 전체 사용자, 신규 가입, 구매 통계)
+  - `POST /analytics/metrics` — 커스텀 메트릭 추가
+  - `PATCH /analytics/metrics/:id` — 메트릭 핀 고정 (AdminIntegrationSetting 저장)
+  - `PATCH /analytics/report-jobs/:id` — 리포트 잡 설정
+  - `POST /analytics/report-jobs/:id/activate|deactivate` — 리포트 잡 활성화
+  - `POST /analytics/exports` — 내보내기 요청 생성 (AuditLog 기록)
+- `AnalyticsModule` 신규 생성, `AppModule`에 등록
+
+### 6. TSC 검증 완료
+- `services/api`: `npx tsc --noEmit` → **0 errors** ✅
+- `apps/admin`: `npx tsc --noEmit` → **0 errors** ✅
+- `tsconfig.json`에 `test/**/*.e2e-spec.ts` exclude 추가 (기존 supertest 타입 누락 오류 제거)
+
 ## 2026-10-02 Checkpoint 30: 관리자(Admin) 전체 구동 점검 & 린트/브랜드 오류 수정 및 운영 API 폴백 안정화 (완료)
 
 ### 1. JSX 미이스케이프 특수문자 및 린트 오류 원천 수정 (`npm run lint` PASS)
