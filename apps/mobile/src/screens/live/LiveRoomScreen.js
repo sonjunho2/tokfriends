@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -25,6 +26,78 @@ import { useAuth } from '../../context/AuthContext';
 import { createChatSocket, LIVE_SOCKET_EVENTS } from '../../realtime/chatSocket';
 
 const LIVE_ACCENT = '#FF3B6B';
+
+/**
+ * 60fps 동적 오디오 이퀄라이저 파형 애니메이션
+ * 마이크가 켜져 있으면 자연스럽게 음성 진폭에 맞춰 오실레이션
+ * 마이크 음소거 시 정적 기준선(4px)으로 평탄화
+ */
+function LiveAudioWaveform({ isMuted, barCount = 5, barColor = LIVE_ACCENT }) {
+  const animValues = useRef([...Array(barCount)].map(() => new Animated.Value(0.2))).current;
+
+  useEffect(() => {
+    if (isMuted) {
+      animValues.forEach((val) => {
+        Animated.timing(val, {
+          toValue: 0.1,
+          duration: 250,
+          useNativeDriver: false,
+        }).start();
+      });
+      return;
+    }
+
+    const loops = animValues.map((val, i) => {
+      const minVal = 0.2 + (i % 2) * 0.12;
+      const maxVal = 0.65 + ((i * 3) % 4) * 0.1;
+      const duration = 280 + (i % 3) * 140;
+
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(val, {
+            toValue: maxVal,
+            duration,
+            useNativeDriver: false,
+          }),
+          Animated.timing(val, {
+            toValue: minVal,
+            duration,
+            useNativeDriver: false,
+          }),
+        ])
+      );
+      loop.start();
+      return loop;
+    });
+
+    return () => {
+      loops.forEach((l) => l.stop());
+    };
+  }, [isMuted, animValues]);
+
+  return (
+    <View style={styles.audioWaveContainer}>
+      {animValues.map((val, idx) => {
+        const height = val.interpolate({
+          inputRange: [0.1, 1],
+          outputRange: [4, 38],
+        });
+        return (
+          <Animated.View
+            key={`live_wave_bar_${idx}`}
+            style={[
+              styles.waveBar,
+              {
+                height,
+                backgroundColor: isMuted ? 'rgba(255, 255, 255, 0.3)' : barColor,
+              },
+            ]}
+          />
+        );
+      })}
+    </View>
+  );
+}
 
 export default function LiveRoomScreen({ navigation, route }) {
   const { user: currentUser, token: authToken } = useAuth();
@@ -55,6 +128,97 @@ export default function LiveRoomScreen({ navigation, route }) {
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [cameraFacing, setCameraFacing] = useState('front'); // 'front' | 'back'
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
+
+  // Dynamic Audio Pulse & Quick Stream Notification Toast
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const [streamToast, setStreamToast] = useState(null);
+  const toastFadeAnim = useRef(new Animated.Value(0)).current;
+  const toastTimeoutRef = useRef(null);
+
+  const showStreamToast = useCallback((msg, icon = 'information-circle') => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setStreamToast({ msg, icon });
+    Animated.timing(toastFadeAnim, {
+      toValue: 1,
+      duration: 180,
+      useNativeDriver: true,
+    }).start();
+
+    toastTimeoutRef.current = setTimeout(() => {
+      Animated.timing(toastFadeAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }).start(() => setStreamToast(null));
+    }, 1800);
+  }, [toastFadeAnim]);
+
+  useEffect(() => {
+    if (isCameraOff && !isMicMuted) {
+      const pulseLoop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.15,
+            duration: 850,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 850,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulseLoop.start();
+      return () => pulseLoop.stop();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isCameraOff, isMicMuted, pulseAnim]);
+
+  const toggleMic = useCallback(() => {
+    setIsMicMuted((prev) => {
+      const next = !prev;
+      showStreamToast(
+        next ? '마이크가 음소거되었습니다' : '마이크가 켜졌습니다',
+        next ? 'mic-off' : 'mic'
+      );
+      return next;
+    });
+  }, [showStreamToast]);
+
+  const toggleCamera = useCallback(() => {
+    setIsCameraOff((prev) => {
+      const next = !prev;
+      showStreamToast(
+        next ? '카메라를 끄고 음성 모드로 전환했습니다' : '카메라 라이브 영상으로 전환했습니다',
+        next ? 'videocam-off' : 'videocam'
+      );
+      return next;
+    });
+  }, [showStreamToast]);
+
+  const toggleCameraFacing = useCallback(() => {
+    setCameraFacing((prev) => {
+      const next = prev === 'front' ? 'back' : 'front';
+      showStreamToast(
+        next === 'front' ? '전면 카메라로 전환했습니다' : '후면 카메라로 전환했습니다',
+        'camera-reverse'
+      );
+      return next;
+    });
+  }, [showStreamToast]);
+
+  const toggleSpeaker = useCallback(() => {
+    setIsSpeakerMuted((prev) => {
+      const next = !prev;
+      showStreamToast(
+        next ? '스피커를 음소거했습니다' : '스피커 음량을 켰습니다',
+        next ? 'volume-mute' : 'volume-high'
+      );
+      return next;
+    });
+  }, [showStreamToast]);
 
   const flatListRef = useRef(null);
 
@@ -570,33 +734,32 @@ export default function LiveRoomScreen({ navigation, route }) {
             </View>
 
             {/* Audio waveform meter */}
-            <View style={styles.audioWaveContainer}>
-              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 18 }]} />
-              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 32 }]} />
-              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 24 }]} />
-              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 36 }]} />
-              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 20 }]} />
-            </View>
+            <LiveAudioWaveform isMuted={isMicMuted} />
           </View>
         ) : (
           // Audio Only Mode (Camera turned OFF)
           <View style={styles.audioOnlyContainer}>
-            <Avatar
-              size={110}
-              name={room?.host?.name}
-              uri={room?.host?.avatar}
-              showBorder
-              style={styles.hostAvatarVisual}
-            />
-            <View style={styles.audioWaveContainer}>
-              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 18 }]} />
-              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 32 }]} />
-              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 24 }]} />
-              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 36 }]} />
-              <View style={[styles.waveBar, { height: isMicMuted ? 4 : 20 }]} />
+            <View style={styles.audioAvatarWrapper}>
+              <Animated.View
+                style={[
+                  styles.audioPulseHalo,
+                  {
+                    transform: [{ scale: pulseAnim }],
+                    opacity: isMicMuted ? 0 : 0.4,
+                  },
+                ]}
+              />
+              <Avatar
+                size={110}
+                name={room?.host?.name}
+                uri={room?.host?.avatar}
+                showBorder
+                style={styles.hostAvatarVisual}
+              />
             </View>
+            <LiveAudioWaveform isMuted={isMicMuted} />
             <Text style={styles.liveNoticeText}>
-              카메라를 끄고 음성 라이브로 진행 중입니다
+              카메라를 끄고 고음질 음성 라이브로 진행 중입니다
             </Text>
           </View>
         )}
@@ -679,13 +842,24 @@ export default function LiveRoomScreen({ navigation, route }) {
         </View>
       </View>
 
+      {/* Dynamic Toast Status Pill */}
+      {streamToast && (
+        <Animated.View
+          style={[styles.streamToastContainer, { opacity: toastFadeAnim }]}
+          pointerEvents="none"
+        >
+          <Ionicons name={streamToast.icon} size={15} color="#FEE500" />
+          <Text style={styles.streamToastText}>{streamToast.msg}</Text>
+        </Animated.View>
+      )}
+
       {/* Media Streaming Quick Controls Toolbar */}
       <View style={styles.mediaToolBar}>
         {isHost ? (
           <>
             <TouchableOpacity
               style={[styles.mediaToolBtn, isMicMuted && styles.mediaToolBtnActive]}
-              onPress={() => setIsMicMuted((prev) => !prev)}
+              onPress={toggleMic}
               activeOpacity={0.8}
             >
               <Ionicons
@@ -700,7 +874,7 @@ export default function LiveRoomScreen({ navigation, route }) {
 
             <TouchableOpacity
               style={[styles.mediaToolBtn, isCameraOff && styles.mediaToolBtnActive]}
-              onPress={() => setIsCameraOff((prev) => !prev)}
+              onPress={toggleCamera}
               activeOpacity={0.8}
             >
               <Ionicons
@@ -715,7 +889,7 @@ export default function LiveRoomScreen({ navigation, route }) {
 
             <TouchableOpacity
               style={styles.mediaToolBtn}
-              onPress={() => setCameraFacing((prev) => (prev === 'front' ? 'back' : 'front'))}
+              onPress={toggleCameraFacing}
               activeOpacity={0.8}
             >
               <Ionicons name="camera-reverse" size={16} color="#FFFFFF" />
@@ -727,7 +901,7 @@ export default function LiveRoomScreen({ navigation, route }) {
         ) : (
           <TouchableOpacity
             style={[styles.mediaToolBtn, isSpeakerMuted && styles.mediaToolBtnActive]}
-            onPress={() => setIsSpeakerMuted((prev) => !prev)}
+            onPress={toggleSpeaker}
             activeOpacity={0.8}
           >
             <Ionicons
@@ -1240,5 +1414,42 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+  audioAvatarWrapper: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  audioPulseHalo: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: LIVE_ACCENT,
+  },
+  streamToastContainer: {
+    position: 'absolute',
+    top: 104,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(15, 23, 42, 0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(254, 229, 0, 0.5)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    zIndex: 999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  streamToastText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
