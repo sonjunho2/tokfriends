@@ -9,6 +9,7 @@ import {
   Min,
   MinLength,
   IsDateString,
+  IsArray,
 } from 'class-validator';
 
 export class EmailSignupDto {
@@ -101,5 +102,9 @@ export class CompletePhoneProfileDto {
   @IsOptional()
   @IsString()
   avatarUri?: string;
-  
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  interests?: string[];
 }

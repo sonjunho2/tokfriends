@@ -645,6 +645,8 @@ export const apiClient = {
       ...(rawRegion ? { region: String(rawRegion).trim() } : {}),
       ...(payload?.headline ? { headline: String(payload.headline).trim() } : {}),
       ...(payload?.bio ? { bio: String(payload.bio).trim() } : {}),
+      ...(Array.isArray(payload?.interests) ? { interests: payload.interests } : {}),
+      ...(payload?.avatarUri ? { avatarUri: String(payload.avatarUri).trim() } : {}),
     };
 
     // 필수 입력값이 모두 채워졌는지 검증

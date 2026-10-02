@@ -4,6 +4,34 @@ Updated: 2026-10-02
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-02 Checkpoint 15: 회원가입 온보딩 프로필 등록(ProfileRegistration) 고도화 & 닉네임 중복검사 및 관심사 연동 (완료)
+
+### 1. 백엔드 가입 온보딩 관심사(Interests) & 아바타 파이프라인 확장 (`dto.ts` & `auth.service.ts`)
+- **`CompletePhoneProfileDto` 필드 확장 (`services/api/src/modules/auth/dto.ts`)**:
+  - `interests?: string[]` 유효성 검증 필드(`@IsArray`, `@IsString`) 신설.
+- **`completePhoneProfile` 온보딩 트랜잭션 연동 (`auth.service.ts`)**:
+  - 가입 시 클라이언트가 선택한 관심사 배열을 받아 신규 회원 프로필 생성(`tx.user.create -> profile.create`) 시 `interests` 필드에 즉시 원자적 영구 저장.
+
+### 2. 모바일 가입 온보딩 프로필 등록 화면 전면 개편 (`ProfileRegistrationScreen.js`)
+- **닉네임 실시간 중복 확인 인터랙션**:
+  - 닉네임 인풋 우측에 카카오 옐로우 `#FEE500` [중복확인] 액션 버튼 배치 및 상태 배지(확인 전, 사용 가능, 중복/금칙어) 연동.
+  - 가입 버튼 터치 시 닉네임 중복 확인 미완료 상태인 경우 선제 자동 검증 수행.
+- **온보딩 관심사(Interests) 칩 선택 섹션 신설**:
+  - 음악, 영화, 카페, 맛집, 여행, 운동, 게임, 요리, 반려동물 등 16종 인기 추천 태그를 카카오 감성 토글 칩으로 제공.
+  - 최대 10개 선택 제한 및 가입 시 서버로 직접 동봉 전송.
+- **성별 & 출생연도 UI 고도화**:
+  - 여성/남성 아이콘 라디오 카드 UI 제공 (활성화 시 카카오 옐로우 `#FEE500` + 볼드 차콜 `#191919`).
+  - 출생연도 유효성 실시간 안내.
+- **17개 시/도 지역 선택 모달 (Region Picker)**:
+  - 지역 1(시/도) 터치 시 17개 특별·광역·도 선택 모달 팝업 제공 및 지역 2(시/군/구) 입력 결합.
+- **글자 수 카운터 및 자기소개 UX**:
+  - 한줄 소개 (최대 40자, `N/40`), 자기소개 (다줄 입력, 최대 300자, `N/300`).
+- **사진 업로드 & 안전한 가입 트랜잭션**:
+  - 갤러리 접근 권한 요청 및 사진 선택, 미리보기.
+  - 가입 진행 시 `uploadAvatar` 선제 실행 및 가입 완료 시 `authenticateWithToken`을 통한 원활한 자동 로그인 수립.
+
+---
+
 ## 2026-10-02 Checkpoint 14: 내 프로필 수정 화면(ProfileEdit) 고도화 & 닉네임 실시간 중복검사 및 프로필 연동 (완료)
 
 ### 1. 백엔드 닉네임 유효성 및 중복 검사 API 신설 (`users.controller.ts` & `users.service.ts`)

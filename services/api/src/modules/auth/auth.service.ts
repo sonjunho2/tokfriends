@@ -643,6 +643,9 @@ export class AuthService {
     const avatarUriValue = dto.avatarUri?.trim();
     const avatarUri =
       avatarUriValue && avatarUriValue.length > 0 ? avatarUriValue : undefined;
+    const interests = Array.isArray(dto.interests)
+      ? dto.interests.map((s) => String(s).trim()).filter(Boolean)
+      : [];
 
     if (DISABLE_AUTH) {
       const userId = await this.createOrUpdatePhoneUser({
@@ -717,7 +720,7 @@ export class AuthService {
                 bio: bio ? bio : null,
                 headline: headline ? headline : null,
                 avatarUri: avatarUri ?? null,
-                interests: [],
+                interests,
                 badges: [],
               },
             },
