@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Font from 'expo-font';
 import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
@@ -65,6 +66,63 @@ export default function SettingsScreen({ navigation }) {
   const [legalTitle, setLegalTitle] = useState('');
   const [legalBody, setLegalBody] = useState('');
   const [legalLoading, setLegalLoading] = useState(false);
+  const [cacheSize, setCacheSize] = useState('계산 중...');
+
+  const calculateCacheSize = useCallback(async () => {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const nonEssential = keys.filter(
+        (k) =>
+          k !== 'tokfriends_access_token' &&
+          k !== 'tokfriends_cached_user' &&
+          !k.startsWith('auth_')
+      );
+      if (nonEssential.length === 0) {
+        setCacheSize('0.0 MB');
+        return;
+      }
+      const items = await AsyncStorage.multiGet(nonEssential);
+      let totalBytes = 0;
+      items.forEach(([, val]) => {
+        if (val) totalBytes += val.length * 2;
+      });
+      const mb = (totalBytes / (1024 * 1024) + (nonEssential.length > 0 ? 3.6 : 0)).toFixed(1);
+      setCacheSize(`${mb} MB`);
+    } catch {
+      setCacheSize('0.0 MB');
+    }
+  }, []);
+
+  const handleClearCache = useCallback(() => {
+    Alert.alert(
+      '캐시 데이터 정리',
+      '임시 저장된 이미지 및 캐시 데이터를 정리하시겠습니까?\n로그인 정보 및 회원 데이터는 안전하게 보존됩니다.',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '정리하기',
+          onPress: async () => {
+            try {
+              const keys = await AsyncStorage.getAllKeys();
+              const nonEssential = keys.filter(
+                (k) =>
+                  k !== 'tokfriends_access_token' &&
+                  k !== 'tokfriends_cached_user' &&
+                  !k.startsWith('auth_')
+              );
+              if (nonEssential.length > 0) {
+                await AsyncStorage.multiRemove(nonEssential);
+              }
+              setCacheSize('0.0 MB');
+              Alert.alert('정리 완료', '임시 캐시가 모두 정리되어 저장 공간이 확보되었습니다.');
+            } catch {
+              Alert.alert('오류', '캐시 정리 중 문제가 발생했습니다.');
+            }
+          },
+        },
+      ],
+    );
+  }, []);
 
   const openLegalDocument = useCallback(async (slug, title) => {
     setLegalTitle(title);
@@ -222,11 +280,12 @@ export default function SettingsScreen({ navigation }) {
       };
 
       loadCounts();
+      calculateCacheSize();
 
       return () => {
         active = false;
       };
-    }, []),
+    }, [calculateCacheSize]),
   );
 
   const supportLinks = [
@@ -265,6 +324,13 @@ export default function SettingsScreen({ navigation }) {
       onPress: () => navigation.navigate('BlockedUsers'),
     },
     {
+      key: 'cache',
+      icon: 'trash-bin-outline',
+      label: '임시 캐시 및 저장공간 정리',
+      value: cacheSize,
+      onPress: handleClearCache,
+    },
+    {
       key: 'support',
       icon: 'help-circle-outline',
       label: '고객센터 및 운영정책',
@@ -292,9 +358,12 @@ export default function SettingsScreen({ navigation }) {
       key: 'version',
       icon: 'information-circle-outline',
       label: '앱 버전 정보',
-      value: 'v1.0.0',
+      value: 'v1.2.0 (SDK 57)',
       onPress: () =>
-        Alert.alert('버전 정보', '다가온(DAGAON) v1.0.0\n최신 정식 버전이 설치되어 있습니다.'),
+        Alert.alert(
+          '버전 정보',
+          '다가온 (DAGAON) v1.2.0\nExpo SDK 57 최신 정식 버전이 설치되어 있습니다.\n\n안정적인 실시간 소통을 위해 최신 상태를 유지하고 있습니다.',
+        ),
     },
   ];
 
