@@ -319,6 +319,38 @@ export const clearToken = async () => {
   catch (e) { console.error('Failed to clear token:', e); }
 };
 
+export const STORAGE_USER_KEY = 'tokfriends_cached_user';
+
+export const getStoredUser = async () => {
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    console.error('Failed to get stored user cache:', e);
+    return null;
+  }
+};
+
+export const saveStoredUser = async (user) => {
+  try {
+    if (user) {
+      await AsyncStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user));
+    } else {
+      await AsyncStorage.removeItem(STORAGE_USER_KEY);
+    }
+  } catch (e) {
+    console.error('Failed to save stored user cache:', e);
+  }
+};
+
+export const clearStoredUser = async () => {
+  try {
+    await AsyncStorage.removeItem(STORAGE_USER_KEY);
+  } catch (e) {
+    console.error('Failed to clear stored user cache:', e);
+  }
+};
+
 client.interceptors.request.use(
   async (config) => {
     if (!currentToken) {

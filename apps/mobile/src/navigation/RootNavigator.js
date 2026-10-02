@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, ActivityIndicator, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -400,20 +400,20 @@ function MainTabs() {
 
 /** ===== 루트 ===== */
 export default function RootNavigator() {
-  const { user, token, initializing } = useAuth();
+  const { user, token, initializing, isOffline } = useAuth();
   useAuthStoreSync();
   
   if (initializing) {
     return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: colors.background,
-        }}
-      >
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={styles.splashContainer}>
+        <View style={styles.splashBrandBox}>
+          <View style={styles.splashIconCircle}>
+            <Ionicons name="sparkles" size={32} color="#191919" />
+          </View>
+          <Text style={styles.splashTitle}>다가온</Text>
+          <Text style={styles.splashSubtitle}>새로운 인연이 다가옵니다</Text>
+        </View>
+        <ActivityIndicator size="small" color="#191919" style={styles.splashSpinner} />
       </View>
     );
   }
@@ -422,5 +422,85 @@ export default function RootNavigator() {
   const userHasIdentifier = Boolean(user) && Boolean(user.id || user._id);
   const isSignedIn = tokenExists || userHasIdentifier;
 
-  return isSignedIn ? <MainTabs /> : <AuthFlow />;
+  return (
+    <View style={{ flex: 1 }}>
+      {isOffline && (
+        <View style={styles.offlineNoticeBar}>
+          <Ionicons name="cloud-offline" size={13} color="#92400E" />
+          <Text style={styles.offlineNoticeText}>
+            서버 연결 확인 중입니다. 캐시된 프로필로 작동 중입니다.
+          </Text>
+        </View>
+      )}
+      {isSignedIn ? <MainTabs /> : <AuthFlow />}
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  splashContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  splashBrandBox: {
+    alignItems: 'center',
+  },
+  splashIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FEE500',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    shadowColor: '#FEE500',
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  splashTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#191919',
+    letterSpacing: -0.5,
+  },
+  splashSubtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginTop: 6,
+  },
+  splashSpinner: {
+    marginTop: 32,
+  },
+  offlineNoticeBar: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 44 : 20,
+    left: 16,
+    right: 16,
+    zIndex: 9999,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  offlineNoticeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#92400E',
+  },
+});

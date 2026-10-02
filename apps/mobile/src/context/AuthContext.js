@@ -1,5 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { apiClient, saveToken, clearToken, getStoredToken } from '../api/client';
+import {
+  apiClient,
+  saveToken,
+  clearToken,
+  getStoredToken,
+  getStoredUser,
+  saveStoredUser,
+  clearStoredUser,
+} from '../api/client';
 import { USE_DUMMY_AUTH } from '../config/env';
 import {
   registerPushNotifications,
@@ -10,6 +18,7 @@ const AuthContext = createContext({
   user: null,
   token: null,
   initializing: true,
+  isOffline: false,
   setUser: () => {},
   login: async () => ({ success: false }),
   signup: async () => ({ success: false }),
@@ -23,37 +32,86 @@ const AuthContext = createContext({
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-  const [state, setState] = useState({ user: null, token: null, initializing: true });
+  const [state, setState] = useState({
+    user: null,
+    token: null,
+    initializing: true,
+    isOffline: false,
+  });
 
   useEffect(() => {
+    let isMounted = true;
+
     (async () => {
       try {
-        try { await apiClient.health(); } catch {}
-        let stored = await getStoredToken();
-        if (!stored && USE_DUMMY_AUTH) {
-          stored = 'dummy_token';
-          await saveToken(stored);
+        let storedToken = await getStoredToken();
+        const cachedUser = await getStoredUser();
+
+        if (!storedToken && USE_DUMMY_AUTH) {
+          storedToken = 'dummy_token';
+          await saveToken(storedToken);
         }
-        if (stored) {
-          setState((s) => ({ ...s, token: stored }));
-          const me = await apiClient.getMe();
-          setState((s) => ({ ...s, user: me }));
-          registerPushNotifications().catch(() => {});
+
+        if (storedToken) {
+          // 캐시된 유저가 있으면 초기 화면 깜빡임 없이 즉시 UI 렌더링
+          if (isMounted) {
+            setState({
+              token: storedToken,
+              user: cachedUser || null,
+              initializing: !cachedUser,
+              isOffline: false,
+            });
+          }
+
+          // 백그라운드에서 최신 유저 프로필 검증 및 동기화
+          try {
+            const me = await apiClient.getMe();
+            if (isMounted && me) {
+              setState((s) => ({ ...s, user: me, isOffline: false, initializing: false }));
+              await saveStoredUser(me);
+              registerPushNotifications().catch(() => {});
+            }
+          } catch (netErr) {
+            const status = netErr?.response?.status || netErr?.status;
+            if (status === 401 || status === 403) {
+              // 유효하지 않거나 만료된 세션인 경우에만 토큰 정리
+              if (!USE_DUMMY_AUTH) {
+                await clearToken();
+                await clearStoredUser();
+                if (isMounted) {
+                  setState({ user: null, token: null, initializing: false, isOffline: false });
+                }
+              }
+            } else {
+              // 렌더 서버 콜드스타트 / 일시적 오프라인 / 타임아웃 시 세션을 날리지 않고 캐시된 상태 유지
+              console.warn('API cold-start or offline during startup; keeping cached user session', netErr?.message);
+              if (isMounted) {
+                setState((s) => ({ ...s, isOffline: true, initializing: false }));
+              }
+            }
+          }
+        } else {
+          if (isMounted) {
+            setState({ user: null, token: null, initializing: false, isOffline: false });
+          }
         }
-      } catch (e) {
-        if (!USE_DUMMY_AUTH) {
-          await clearToken();
+      } catch (err) {
+        console.warn('Auth startup initialization error:', err);
+        if (isMounted) {
+          setState({ user: null, token: null, initializing: false, isOffline: false });
         }
-        setState({ user: null, token: null, initializing: false });
-        return;
       }
-      setState((s) => ({ ...s, initializing: false }));
     })();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const setUser = async (user, token) => {
     try {
       if (token) await saveToken(token);
+      if (user) await saveStoredUser(user);
     } catch {}
     setState((s) => ({ ...s, user: user || null, token: token || s.token }));
   };
@@ -62,7 +120,7 @@ export const AuthProvider = ({ children }) => {
     try {
       if (!token) throw new Error('토큰이 필요합니다.');
       await saveToken(token);
-      setState((s) => ({ ...s, token }));
+      setState((s) => ({ ...s, token, isOffline: false }));
       const hasCanonicalActivityAccount = Boolean(
         userPayload &&
           typeof userPayload.activityAccountId === 'string' &&
@@ -71,7 +129,10 @@ export const AuthProvider = ({ children }) => {
       const me = hasCanonicalActivityAccount
         ? userPayload
         : await apiClient.getMe();
-      setState((s) => ({ ...s, user: me }));
+      if (me) {
+        await saveStoredUser(me);
+      }
+      setState((s) => ({ ...s, user: me, initializing: false }));
       registerPushNotifications().catch(() => {});
       return { success: true, user: me };
     } catch (e) {
@@ -122,16 +183,25 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try { await unregisterPushNotifications(); } catch {}
     try { await clearToken(); } catch {}
-    setState({ user: null, token: null, initializing: false });
+    try { await clearStoredUser(); } catch {}
+    setState({ user: null, token: null, initializing: false, isOffline: false });
   };
 
   const refreshMe = async () => {
     if (!state.token) return;
     try {
       const me = await apiClient.getMe();
-      setState((s) => ({ ...s, user: me }));
-    } catch {
-      await logout();
+      if (me) {
+        await saveStoredUser(me);
+        setState((s) => ({ ...s, user: me, isOffline: false }));
+      }
+    } catch (err) {
+      const status = err?.response?.status || err?.status;
+      if (status === 401 || status === 403) {
+        await logout();
+      } else {
+        setState((s) => ({ ...s, isOffline: true }));
+      }
     }
   };
 
@@ -158,6 +228,7 @@ export const AuthProvider = ({ children }) => {
         user: state.user,
         token: state.token,
         initializing: state.initializing,
+        isOffline: state.isOffline,
         setUser,
         login,
         signup,
