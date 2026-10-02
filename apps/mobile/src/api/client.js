@@ -918,6 +918,39 @@ export const apiClient = {
     catch (e) { throw normalizeError(e); }
   },
 
+  async updateUser(userId, payload = {}) {
+    if (!userId) {
+      throw normalizeError(new Error('사용자 ID가 필요합니다.'));
+    }
+    if (USE_DUMMY_AUTH) {
+      return { ok: true, data: { id: userId, ...payload } };
+    }
+    try {
+      const { data } = await client.patch(`/users/${userId}`, payload);
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async checkNickname(nickname) {
+    const trimmed = String(nickname ?? '').trim();
+    if (!trimmed) {
+      return { available: false, reason: '닉네임을 입력해 주세요.' };
+    }
+    if (USE_DUMMY_AUTH) {
+      return { available: true, message: '사용 가능한 닉네임입니다.' };
+    }
+    try {
+      const { data } = await client.get('/users/check-nickname', {
+        params: { nickname: trimmed },
+      });
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
   async getDiscover(params = {}) {
     try {
       const { data } = await client.get('/discover', { params });

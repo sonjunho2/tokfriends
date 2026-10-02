@@ -75,6 +75,11 @@ function HomeStack() {
         options={{ animation: 'slide_from_right' }}
       />
       <HomeStackNav.Screen
+        name="ProfileEdit"
+        component={ProfileEditScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <HomeStackNav.Screen
         name="Friends"
         component={FriendsScreen}
         options={{ animation: 'slide_from_right' }}

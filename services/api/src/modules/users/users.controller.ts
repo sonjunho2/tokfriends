@@ -74,6 +74,17 @@ export class UsersController {
     return { ok: true, data: items, items };
   }
 
+  @ApiQuery({ name: 'nickname', required: true, type: String })
+  @Get('check-nickname')
+  async checkNickname(
+    @Query('nickname') nickname: string = '',
+    @CurrentUser() user: any,
+  ) {
+    const currentUserId = user?.sub ?? user?.id;
+    const result = await this.users.checkNickname(nickname, currentUserId);
+    return { ok: true, ...result };
+  }
+
   @Patch(':id')
   async update(
     @Param('id') id: string,
