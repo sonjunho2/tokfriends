@@ -2028,6 +2028,23 @@ export const apiClient = {
     }
   },
 
+  async getPost(postId) {
+    if (!postId) throw normalizeError(new Error('게시글 ID가 필요합니다.'));
+    const dummy = DUMMY_POSTS.find((p) => p.id === postId);
+    if (USE_DUMMY_AUTH) {
+      return dummy || null;
+    }
+    try {
+      const { data } = await client.get(`/posts/${encodeURIComponent(postId)}`);
+      return data?.data ?? data ?? dummy ?? null;
+    } catch (e) {
+      if (dummy || USE_DUMMY_AUTH || e?.status === 401 || !currentToken) {
+        return dummy || null;
+      }
+      throw normalizeError(e);
+    }
+  },
+
   async getTopicPosts(topicId, params = {}) {
     if (!topicId) return this.getPosts(params);
     if (USE_DUMMY_AUTH) {

@@ -4,6 +4,38 @@ Updated: 2026-10-02
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-02 Checkpoint 17: 커뮤니티 동네생활 게시글 상세(PostDetail) 및 실시간 댓글 시스템 고도화 (완료)
+
+### 1. 모바일 클라이언트 단일 게시글 조회 API 신설 (`apps/mobile/src/api/client.js`)
+- **`getPost(postId)` 메서드 구현**:
+  - `GET /posts/:postId` 엔드포인트 연동.
+  - 네트워크 단절 및 목데이터 모드 시 로컬 메모리 스토어(`DUMMY_POSTS`) 안전 fallback 제공.
+
+### 2. 커뮤니티 게시글 상세 화면 신설 (`apps/mobile/src/screens/community/PostDetailScreen.js`)
+- **다가온 브랜드 기반 카드 레이아웃**:
+  - 작성자 프로필 헤더 (아바타, 닉네임, 지역, 작성 시간 경과 표시, 내 글 뱃지).
+  - 토픽 태그 배지 (`#동네 소식`, `#취미 / 운동` 등).
+  - 게시글 본문 텍스트 및 다중 미디어 이미지 갤러리 렌더링.
+  - 상단 옵션 메뉴: 공유하기(`Share.share`), 게시글 신고, 작성자 차단, 내 글 삭제.
+- **실시간 인터랙션 바**:
+  - 낙관적 UI(Optimistic UI) 기반 좋아요 토글 (`apiClient.togglePostLike`).
+  - 작성자와 즉시 1:1 대화 연결 (`ensureDirectRoom` -> `ChatRoom`).
+  - 작성자 프로필 상세 네비게이션 (`ProfileDetailScreen`).
+- **댓글(Comments) 피드 및 입력 시스템**:
+  - 실시간 댓글 개수 및 상대 시간("방금 전", "10분 전") 표기.
+  - 내 댓글 즉시 삭제 기능 (`apiClient.deletePostComment`).
+  - 빈 댓글 상태 일러스트 안내 ("따뜻한 첫 댓글을 남겨 이웃과 이야기를 시작해보세요!").
+  - 하단 인터랙티브 댓글 입력 바 (`TextInput`, 카카오 옐로우 전송 버튼, 전송 중 로딩 스피너).
+  - 당겨서 새로고침(Pull-to-refresh) 지원.
+
+### 3. 네비게이션 및 피드 연동 (`RootNavigator.js` & `CommunityFeedScreen.js`)
+- **`RootNavigator.js` 등록**:
+  - `CommunityStackNav`, `HomeStackNav`, `MyPageStackNav`에 `PostDetail` 스크린 완벽 등록.
+- **`CommunityFeedScreen.js` 터치 인터랙션 연동**:
+  - 피드 내 게시글 카드 본문 및 미디어 터치 시 `PostDetailScreen`으로 부드러운 전환 지원.
+
+---
+
 ## 2026-10-02 Checkpoint 16: 내 프로필 방문자(Visitors) & 팔로워/팔로잉(Follows) 센터 구축 (완료)
 
 ### 1. 백엔드 소셜 프로필 상세 조인 엔리치먼트 (`profile-visits.service.ts` & `follows.service.ts`)

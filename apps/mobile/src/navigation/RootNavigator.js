@@ -19,6 +19,7 @@ import FriendsScreen from '../screens/my/FriendsScreen';
 import VisitorsScreen from '../screens/my/VisitorsScreen';
 import FollowsScreen from '../screens/my/FollowsScreen';
 import CommunityFeedScreen from '../screens/community/CommunityFeedScreen';
+import PostDetailScreen from '../screens/community/PostDetailScreen';
 
 // ===== 서브 =====
 import HotRecommendScreen from '../screens/recommend/HotRecommendScreen';
@@ -92,6 +93,11 @@ function HomeStack() {
         options={{ animation: 'slide_from_right' }}
       />
       <HomeStackNav.Screen
+        name="PostDetail"
+        component={PostDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <HomeStackNav.Screen
         name="LiveRoom"
         component={LiveRoomScreen}
         options={{ animation: 'slide_from_bottom' }}
@@ -133,6 +139,11 @@ function CommunityStack() {
       screenOptions={{ headerShown: false }}
     >
       <CommunityStackNav.Screen name="CommunityMain" component={CommunityFeedScreen} />
+      <CommunityStackNav.Screen
+        name="PostDetail"
+        component={PostDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
       <CommunityStackNav.Screen
         name="ProfileDetail"
         component={ProfileDetailScreen}
@@ -244,6 +255,11 @@ function MyPageStack() {
       <MyPageStackNav.Screen
         name="CommunityFeed"
         component={CommunityFeedScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="PostDetail"
+        component={PostDetailScreen}
         options={{ animation: 'slide_from_right' }}
       />
       <MyPageStackNav.Screen
