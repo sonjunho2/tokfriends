@@ -4,6 +4,25 @@ Updated: 2026-10-02
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-02 Checkpoint 26: 홈 화면 당겨서 새로고침(RefreshControl) & 실시간 라이브/이웃 동기화 UX 고도화 (완료)
+
+### 1. 홈 스크롤 피드 당겨서 새로고침 (`RefreshControl`) 탑재 (`HomeScreen.js`)
+- **실시간 데이터 일괄 갱신 파이프라인**:
+  - `loadHomeData({ refresh: true })` 구현으로 홈 화면을 아래로 당겼을 때 `getDiscover()`, `getLiveRooms()`, `getTopics()`, `getPosts()`, `getPointBalance()`, `getAdvertisements()` 6대 핵심 데이터가 일괄 최신화.
+  - 카카오 옐로우 & 다크 차콜 액센트 인디케이터(`colors: ['#191919', colors.primary]`) 적용.
+
+### 2. 화면 포커스 시 잔여 포인트 및 실시간 라이브 룸 백그라운드 동기화 (`useFocusEffect`)
+- **즉시 반응형 상태 업데이트**:
+  - 타 탭(상점, 라이브, 커뮤니티)에서 활동 후 홈으로 돌아올 때 `getPointBalance()` 및 `getLiveRooms()`를 자동 호출하여 실시간 잔액 및 방송 방 목록을 항상 최신 상태로 유지.
+
+### 3. 접속 중인 이웃 빈 상태 대응 및 핫 추천 매칭 탐색 카드 (`emptyDiscoverCard`)
+- **친근한 온보딩 경험**:
+  - 초기 기동 또는 접속 이웃이 일시적으로 없을 때 휑한 빈 공간 대신 `emptyDiscoverCard` 노출:
+    - 카카오 옐로우 스파클 아이콘 + `주변 새로운 인연 찾기` + `동네 이웃과 소통을 시작해보세요 ›` 링크 버튼.
+    - 터치 시 다차원 매칭 필터 화면(`HotRecommendScreen`)으로 즉시 이동하여 사용자 이탈 방지.
+
+---
+
 ## 2026-10-02 Checkpoint 25: 앱 시작 세션 지속성 및 캐시 동기화 / 오프라인 복원력 & 브랜드 스플래시 고도화 (완료)
 
 ### 1. 프로필 로컬 캐시 동기화 파이프라인 구축 (`client.js`, `STORAGE_USER_KEY`)

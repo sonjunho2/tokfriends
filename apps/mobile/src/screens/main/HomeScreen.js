@@ -1,15 +1,17 @@
 // apps/mobile/src/screens/main/HomeScreen.js
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Dimensions,
   Image,
+  RefreshControl,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Dimensions,
-  StatusBar,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -81,6 +83,7 @@ export default function HomeScreen({ navigation }) {
   const [activeBannerIdx, setActiveBannerIdx] = useState(0);
   const [liveRooms, setLiveRooms] = useState([]);
   const [myPoints, setMyPoints] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
   // 배너 자동 롤링 (4초 주기)
   useEffect(() => {
@@ -91,83 +94,96 @@ export default function HomeScreen({ navigation }) {
     return () => clearInterval(interval);
   }, [banners.length]);
 
+  const loadHomeData = useCallback(async ({ refresh = false } = {}) => {
+    if (refresh) setRefreshing(true);
+    try {
+      const [
+        discoverResult,
+        topicsResult,
+        postsResult,
+        bannersResult,
+        liveResult,
+        balanceResult,
+      ] = await Promise.allSettled([
+        apiClient.getDiscover(),
+        apiClient.getTopics(),
+        apiClient.getPosts({ take: 3 }),
+        apiClient.getAdvertisements({ placement: 'HOME_BANNER' }),
+        apiClient.getLiveRooms(),
+        apiClient.getPointBalance(),
+      ]);
+
+      if (discoverResult.status === 'fulfilled') {
+        const list = Array.isArray(discoverResult.value) ? discoverResult.value : [];
+        setDiscoverUsers(
+          list.map(mapHomeDiscoverUser).filter((item) => item.id),
+        );
+      }
+
+      if (topicsResult.status === 'fulfilled') {
+        const list = Array.isArray(topicsResult.value) ? topicsResult.value : [];
+        setCommunityTopics(list);
+      }
+
+      if (postsResult.status === 'fulfilled') {
+        const items = Array.isArray(postsResult.value?.items)
+          ? postsResult.value.items
+          : Array.isArray(postsResult.value)
+          ? postsResult.value
+          : [];
+        setRecentPosts(items);
+      }
+
+      if (bannersResult.status === 'fulfilled') {
+        const ads = Array.isArray(bannersResult.value) ? bannersResult.value : [];
+        setBanners(ads);
+      }
+
+      if (liveResult.status === 'fulfilled') {
+        const rooms = Array.isArray(liveResult.value)
+          ? liveResult.value
+          : Array.isArray(liveResult.value?.items)
+          ? liveResult.value.items
+          : [];
+        const activeOnes = rooms.filter(
+          (r) => r.status === 'ACTIVE' || r.status === 'LIVE' || !r.status,
+        );
+        setLiveRooms(activeOnes.length > 0 ? activeOnes : DEFAULT_HOT_LIVES);
+      } else {
+        setLiveRooms(DEFAULT_HOT_LIVES);
+      }
+
+      if (balanceResult.status === 'fulfilled' && balanceResult.value?.balance !== undefined) {
+        setMyPoints(Number(balanceResult.value.balance));
+      }
+    } catch {
+      setLiveRooms(DEFAULT_HOT_LIVES);
+    } finally {
+      if (refresh) setRefreshing(false);
+    }
+  }, []);
+
   useEffect(() => {
-    let active = true;
+    loadHomeData();
+  }, [loadHomeData]);
 
-    const loadData = async () => {
-      try {
-        const [
-          discoverResult,
-          topicsResult,
-          postsResult,
-          bannersResult,
-          liveResult,
-          balanceResult,
-        ] = await Promise.allSettled([
-          apiClient.getDiscover(),
-          apiClient.getTopics(),
-          apiClient.getPosts({ take: 3 }),
-          apiClient.getAdvertisements({ placement: 'HOME_BANNER' }),
-          apiClient.getLiveRooms(),
-          apiClient.getPointBalance(),
-        ]);
+  // 화면 포커스 시 잔여 포인트 및 실시간 라이브 빠른 동기화
+  useFocusEffect(
+    useCallback(() => {
+      apiClient.getPointBalance().then((res) => {
+        if (res?.balance !== undefined) setMyPoints(Number(res.balance));
+      }).catch(() => {});
 
-        if (!active) return;
-
-        if (discoverResult.status === 'fulfilled') {
-          const list = Array.isArray(discoverResult.value) ? discoverResult.value : [];
-          setDiscoverUsers(
-            list.map(mapHomeDiscoverUser).filter((item) => item.id),
-          );
-        }
-
-        if (topicsResult.status === 'fulfilled') {
-          const list = Array.isArray(topicsResult.value) ? topicsResult.value : [];
-          setCommunityTopics(list);
-        }
-
-        if (postsResult.status === 'fulfilled') {
-          const items = Array.isArray(postsResult.value?.items)
-            ? postsResult.value.items
-            : Array.isArray(postsResult.value)
-            ? postsResult.value
-            : [];
-          setRecentPosts(items);
-        }
-
-        if (bannersResult.status === 'fulfilled') {
-          const ads = Array.isArray(bannersResult.value) ? bannersResult.value : [];
-          setBanners(ads);
-        }
-
-        if (liveResult.status === 'fulfilled') {
-          const rooms = Array.isArray(liveResult.value)
-            ? liveResult.value
-            : Array.isArray(liveResult.value?.items)
-            ? liveResult.value.items
-            : [];
+      apiClient.getLiveRooms().then((rooms) => {
+        if (Array.isArray(rooms) && rooms.length > 0) {
           const activeOnes = rooms.filter(
             (r) => r.status === 'ACTIVE' || r.status === 'LIVE' || !r.status,
           );
-          setLiveRooms(activeOnes.length > 0 ? activeOnes : DEFAULT_HOT_LIVES);
-        } else {
-          setLiveRooms(DEFAULT_HOT_LIVES);
+          if (activeOnes.length > 0) setLiveRooms(activeOnes);
         }
-
-        if (balanceResult.status === 'fulfilled' && balanceResult.value?.balance !== undefined) {
-          setMyPoints(Number(balanceResult.value.balance));
-        }
-      } catch {
-        setLiveRooms(DEFAULT_HOT_LIVES);
-      }
-    };
-
-    loadData();
-
-    return () => {
-      active = false;
-    };
-  }, []);
+      }).catch(() => {});
+    }, [])
+  );
 
   const handleProfilePress = (item) => {
     if (!item) return;
@@ -286,6 +302,14 @@ export default function HomeScreen({ navigation }) {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadHomeData({ refresh: true })}
+            colors={['#191919', colors.primary]}
+            tintColor="#191919"
+          />
+        }
       >
         {/* =================================================================
             2. 카카오톡 상단 웰컴 & 내 프로필 미니 바
@@ -510,25 +534,43 @@ export default function HomeScreen({ navigation }) {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.storyScrollContent}
           >
-            {discoverUsers.map((item) => (
+            {discoverUsers.length > 0 ? (
+              discoverUsers.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.storyItem}
+                  activeOpacity={0.8}
+                  onPress={() => handleProfilePress(item)}
+                >
+                  <View style={styles.storyAvatarRing}>
+                    <Avatar size={58} name={item.name} uri={item.avatar} />
+                    <View style={styles.storyActiveDot} />
+                  </View>
+                  <Text style={styles.storyName} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  <Text style={styles.storyLoc} numberOfLines={1}>
+                    {item.location?.split(' ')[0] || '동네이웃'}
+                  </Text>
+                </TouchableOpacity>
+              ))
+            ) : (
               <TouchableOpacity
-                key={item.id}
-                style={styles.storyItem}
-                activeOpacity={0.8}
-                onPress={() => handleProfilePress(item)}
+                style={styles.emptyDiscoverCard}
+                activeOpacity={0.85}
+                onPress={() => navigation.navigate('HotRecommend')}
               >
-                <View style={styles.storyAvatarRing}>
-                  <Avatar size={58} name={item.name} uri={item.avatar} />
-                  <View style={styles.storyActiveDot} />
+                <View style={styles.emptyDiscoverIconBg}>
+                  <Ionicons name="sparkles" size={20} color="#191919" />
                 </View>
-                <Text style={styles.storyName} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <Text style={styles.storyLoc} numberOfLines={1}>
-                  {item.location?.split(' ')[0] || '동네이웃'}
-                </Text>
+                <View style={styles.emptyDiscoverTextWrap}>
+                  <Text style={styles.emptyDiscoverTitle}>주변 새로운 인연 찾기</Text>
+                  <Text style={styles.emptyDiscoverSubtitle}>
+                    동네 이웃과 소통을 시작해보세요 ›
+                  </Text>
+                </View>
               </TouchableOpacity>
-            ))}
+            )}
           </ScrollView>
         </View>
 
@@ -1434,5 +1476,45 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 2,
     lineHeight: 15,
+  },
+  emptyDiscoverCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E8EAED',
+    marginRight: 16,
+    minWidth: 260,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  emptyDiscoverIconBg: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FEE500',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  emptyDiscoverTextWrap: {
+    flex: 1,
+  },
+  emptyDiscoverTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#191919',
+  },
+  emptyDiscoverSubtitle: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+    fontWeight: '500',
   },
 });
