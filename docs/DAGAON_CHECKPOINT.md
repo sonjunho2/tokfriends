@@ -4,6 +4,46 @@ Updated: 2026-10-02
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-02 Checkpoint 16: 내 프로필 방문자(Visitors) & 팔로워/팔로잉(Follows) 센터 구축 (완료)
+
+### 1. 백엔드 소셜 프로필 상세 조인 엔리치먼트 (`profile-visits.service.ts` & `follows.service.ts`)
+- **프로필 방문자 목록 API 엔리치먼트 (`profile-visits.service.ts`)**:
+  - `listReceived` / `listSent` 조회 시 방문자 계정의 `legacyUser` (`profile: { nickname, headline, avatarUri }`, `region1`, `region2`, `id`) 정보를 다이렉트로 조인 및 플랫 매핑.
+  - 모바일 클라이언트에서 추가적인 유저 조회 왕복 통신 없이도 방문자 닉네임, 지역, 아바타, 한줄소개를 즉각 렌더링.
+- **팔로워 / 팔로잉 목록 API 엔리치먼트 (`follows.service.ts`)**:
+  - `listFollowers` / `listFollowing` 조회 시 대상 계정의 `legacyUser` 프로필 및 지역 정보를 자동 엔리치먼트하여 반환.
+
+### 2. 모바일 클라이언트 API 함수 신설 (`apps/mobile/src/api/client.js`)
+- **`getProfileVisits({ type, limit, offset })`**:
+  - 나를 방문한 유저 및 내가 방문한 유저 목록 조회 (네트워크 오프라인 시 목데이터 fallback 탑재).
+- **`getFollowers(accountId, { limit, offset })` & `getFollowing(accountId, { limit, offset })`**:
+  - 특정 계정의 팔로워/팔로잉 목록 페이징 조회 함수 신설.
+
+### 3. 방문자 관리 화면 신설 (`apps/mobile/src/screens/my/VisitorsScreen.js`)
+- **다가온 브랜드 아이덴티티 카드 UI**:
+  - 카카오 옐로우 `#FEE500` 안내 배너 ("나에게 관심을 보인 소중한 인연들이에요").
+  - 상대적 방문 시간 계산기 ("방금 전", "15분 전", "3시간 전", "어제" 등).
+  - 방문자 아바타, 닉네임, 지역(`서울 강남구`), 한줄 소개 표시.
+  - [1:1 대화] 버튼 터치 시 `ensureDirectRoom`을 통해 즉시 채팅방 개설 및 이동.
+  - 방문자 카드 터치 시 `ProfileDetail` 상세 보기로 부드럽게 네비게이션.
+  - 당겨서 새로고침(Pull-to-refresh) 및 방문자 없을 시 산뜻한 빈 화면 안내.
+
+### 4. 팔로워 / 팔로잉 관리 화면 신설 (`apps/mobile/src/screens/my/FollowsScreen.js`)
+- **상단 듀얼 탭 전환 (`[팔로워 N]`, `[팔로잉 N]`)**:
+  - 실시간 카운터 배지와 탭 인디케이터 제공.
+  - 맞팔 여부 감지 및 즉각적인 팔로우/언팔로우 액션 (`apiClient.followAccount`, `apiClient.unfollowAccount`).
+  - 당겨서 새로고침(Pull-to-refresh) 및 회원 프로필 상세 연동.
+
+### 5. 마이페이지(SettingsScreen) 소셜 관계 허브 연동 & 네비게이션 등록
+- **프로필 하단 소셜 카운터 바 (방문자 / 팔로워 / 팔로잉 / 친구) 신설**:
+  - 실시간 방문자 수, 팔로워 수, 팔로잉 수, 친구 수를 한눈에 볼 수 있는 카운터 바 배치 및 원터치 이동 지원.
+- **도움말/활동 링크 목록에 추가**:
+  - [프로필 방문자], [팔로워 / 팔로잉 관리] 메뉴 아이템 신설.
+- **`RootNavigator.js` 등록**:
+  - `HomeStackNav` 및 `MyPageStackNav`에 `Visitors`, `Follows`, `ChatRoom` 스크린 완벽 등록.
+
+---
+
 ## 2026-10-02 Checkpoint 15: 회원가입 온보딩 프로필 등록(ProfileRegistration) 고도화 & 닉네임 중복검사 및 관심사 연동 (완료)
 
 ### 1. 백엔드 가입 온보딩 관심사(Interests) & 아바타 파이프라인 확장 (`dto.ts` & `auth.service.ts`)

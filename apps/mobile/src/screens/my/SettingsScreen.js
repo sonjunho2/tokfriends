@@ -58,6 +58,9 @@ export default function SettingsScreen({ navigation }) {
   const [fontMessage, setFontMessage] = useState('');
   const [blockedCount, setBlockedCount] = useState(null);
   const [friendsCount, setFriendsCount] = useState(null);
+  const [visitorsCount, setVisitorsCount] = useState(null);
+  const [followersCount, setFollowersCount] = useState(null);
+  const [followingCount, setFollowingCount] = useState(null);
   const [legalModalVisible, setLegalModalVisible] = useState(false);
   const [legalTitle, setLegalTitle] = useState('');
   const [legalBody, setLegalBody] = useState('');
@@ -155,10 +158,13 @@ export default function SettingsScreen({ navigation }) {
 
       const loadCounts = async () => {
         try {
-          const [blockedRes, friendsRes, pushPref] = await Promise.allSettled([
+          const [blockedRes, friendsRes, pushPref, visitsRes, followersRes, followingRes] = await Promise.allSettled([
             apiClient.getBlockedUsers(),
             apiClient.getFriendships(),
             getPushNotificationsEnabled(),
+            apiClient.getProfileVisits({ limit: 1 }),
+            apiClient.getFollowers('me', { limit: 1 }),
+            apiClient.getFollowing('me', { limit: 1 }),
           ]);
 
           if (!active) return;
@@ -189,6 +195,27 @@ export default function SettingsScreen({ navigation }) {
           } else {
             setFriendsCount(null);
           }
+
+          if (visitsRes.status === 'fulfilled') {
+            const totalVisits = visitsRes.value?.total ?? (Array.isArray(visitsRes.value?.data) ? visitsRes.value.data.length : null);
+            setVisitorsCount(totalVisits);
+          } else {
+            setVisitorsCount(null);
+          }
+
+          if (followersRes.status === 'fulfilled') {
+            const totalFollowers = followersRes.value?.total ?? (Array.isArray(followersRes.value?.data) ? followersRes.value.data.length : null);
+            setFollowersCount(totalFollowers);
+          } else {
+            setFollowersCount(null);
+          }
+
+          if (followingRes.status === 'fulfilled') {
+            const totalFollowing = followingRes.value?.total ?? (Array.isArray(followingRes.value?.data) ? followingRes.value.data.length : null);
+            setFollowingCount(totalFollowing);
+          } else {
+            setFollowingCount(null);
+          }
         } catch (error) {
           console.warn('Failed to load counts in settings', error);
         }
@@ -203,6 +230,20 @@ export default function SettingsScreen({ navigation }) {
   );
 
   const supportLinks = [
+    {
+      key: 'visitors',
+      icon: 'eye-outline',
+      label: '프로필 방문자',
+      value: visitorsCount === null ? undefined : `${visitorsCount}명`,
+      onPress: () => navigation.navigate('Visitors'),
+    },
+    {
+      key: 'follows',
+      icon: 'person-add-outline',
+      label: '팔로워 / 팔로잉 관리',
+      value: followersCount !== null && followingCount !== null ? `${followersCount} / ${followingCount}` : undefined,
+      onPress: () => navigation.navigate('Follows'),
+    },
     {
       key: 'friends',
       icon: 'people-outline',
@@ -433,6 +474,59 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
           </View>
         </TouchableOpacity>
+
+        {/* 소셜 관계 카운터 바 (방문자 / 팔로워 / 팔로잉 / 친구) */}
+        <View style={styles.socialStatsBar}>
+          <TouchableOpacity
+            style={styles.socialStatItem}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('Visitors')}
+          >
+            <Text style={[styles.socialStatCount, dynamicFont.heading]}>
+              {visitorsCount !== null ? visitorsCount : 0}
+            </Text>
+            <Text style={[styles.socialStatLabel, dynamicFont.body]}>방문자</Text>
+          </TouchableOpacity>
+
+          <View style={styles.socialStatDivider} />
+
+          <TouchableOpacity
+            style={styles.socialStatItem}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('Follows', { initialTab: 'followers' })}
+          >
+            <Text style={[styles.socialStatCount, dynamicFont.heading]}>
+              {followersCount !== null ? followersCount : 0}
+            </Text>
+            <Text style={[styles.socialStatLabel, dynamicFont.body]}>팔로워</Text>
+          </TouchableOpacity>
+
+          <View style={styles.socialStatDivider} />
+
+          <TouchableOpacity
+            style={styles.socialStatItem}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('Follows', { initialTab: 'following' })}
+          >
+            <Text style={[styles.socialStatCount, dynamicFont.heading]}>
+              {followingCount !== null ? followingCount : 0}
+            </Text>
+            <Text style={[styles.socialStatLabel, dynamicFont.body]}>팔로잉</Text>
+          </TouchableOpacity>
+
+          <View style={styles.socialStatDivider} />
+
+          <TouchableOpacity
+            style={styles.socialStatItem}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('Friends')}
+          >
+            <Text style={[styles.socialStatCount, dynamicFont.heading]}>
+              {friendsCount !== null ? friendsCount : 0}
+            </Text>
+            <Text style={[styles.socialStatLabel, dynamicFont.body]}>내 친구</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, dynamicFont.heading]}>빠른 설정</Text>
@@ -702,6 +796,47 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
+  },
+  socialStatsBar: {
+    marginTop: 12,
+    marginHorizontal: 18,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: colors.borderLight || '#F0F0F0',
+  },
+  socialStatItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+  },
+  socialStatCount: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.textPrimary || '#191919',
+    letterSpacing: -0.3,
+  },
+  socialStatLabel: {
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary || '#6B7280',
+  },
+  socialStatDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#E5E7EB',
   },
   profileAvatar: {
     borderWidth: 4,

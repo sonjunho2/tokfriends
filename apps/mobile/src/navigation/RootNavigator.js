@@ -16,6 +16,8 @@ import SettingsScreen from '../screens/my/SettingsScreen';
 import ProfileEditScreen from '../screens/my/ProfileEditScreen';
 import BlockedUsersScreen from '../screens/my/BlockedUsersScreen';
 import FriendsScreen from '../screens/my/FriendsScreen';
+import VisitorsScreen from '../screens/my/VisitorsScreen';
+import FollowsScreen from '../screens/my/FollowsScreen';
 import CommunityFeedScreen from '../screens/community/CommunityFeedScreen';
 
 // ===== 서브 =====
@@ -107,6 +109,16 @@ function HomeStack() {
       <HomeStackNav.Screen
         name="Notifications"
         component={NotificationsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <HomeStackNav.Screen
+        name="Visitors"
+        component={VisitorsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <HomeStackNav.Screen
+        name="Follows"
+        component={FollowsScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </HomeStackNav.Navigator>
@@ -247,6 +259,21 @@ function MyPageStack() {
       <MyPageStackNav.Screen
         name="Notifications"
         component={NotificationsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="Visitors"
+        component={VisitorsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="Follows"
+        component={FollowsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="ChatRoom"
+        component={ChatRoomScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </MyPageStackNav.Navigator>

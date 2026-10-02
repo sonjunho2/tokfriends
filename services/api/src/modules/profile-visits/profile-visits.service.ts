@@ -142,6 +142,20 @@ export class ProfileVisitsService {
             id: true,
             handle: true,
             displayName: true,
+            legacyUser: {
+              select: {
+                id: true,
+                region1: true,
+                region2: true,
+                profile: {
+                  select: {
+                    nickname: true,
+                    headline: true,
+                    avatarUri: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -151,7 +165,15 @@ export class ProfileVisitsService {
       items: rows.slice(0, query.limit).map((row) => ({
         id: row.visitorAccount.id,
         handle: row.visitorAccount.handle,
-        displayName: row.visitorAccount.displayName,
+        displayName:
+          row.visitorAccount.displayName ||
+          row.visitorAccount.legacyUser?.profile?.nickname ||
+          '회원',
+        avatarUri: row.visitorAccount.legacyUser?.profile?.avatarUri || null,
+        region1: row.visitorAccount.legacyUser?.region1 || null,
+        region2: row.visitorAccount.legacyUser?.region2 || null,
+        headline: row.visitorAccount.legacyUser?.profile?.headline || null,
+        userId: row.visitorAccount.legacyUser?.id || null,
         visitedAt: row.visitedAt,
       })),
       offset: query.offset,
@@ -184,6 +206,20 @@ export class ProfileVisitsService {
             id: true,
             handle: true,
             displayName: true,
+            legacyUser: {
+              select: {
+                id: true,
+                region1: true,
+                region2: true,
+                profile: {
+                  select: {
+                    nickname: true,
+                    headline: true,
+                    avatarUri: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -193,7 +229,15 @@ export class ProfileVisitsService {
       items: rows.slice(0, query.limit).map((row) => ({
         id: row.visitedAccount.id,
         handle: row.visitedAccount.handle,
-        displayName: row.visitedAccount.displayName,
+        displayName:
+          row.visitedAccount.displayName ||
+          row.visitedAccount.legacyUser?.profile?.nickname ||
+          '회원',
+        avatarUri: row.visitedAccount.legacyUser?.profile?.avatarUri || null,
+        region1: row.visitedAccount.legacyUser?.region1 || null,
+        region2: row.visitedAccount.legacyUser?.region2 || null,
+        headline: row.visitedAccount.legacyUser?.profile?.headline || null,
+        userId: row.visitedAccount.legacyUser?.id || null,
         visitedAt: row.visitedAt,
       })),
       offset: query.offset,
