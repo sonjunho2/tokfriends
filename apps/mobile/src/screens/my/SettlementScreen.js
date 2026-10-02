@@ -96,6 +96,20 @@ export default function SettlementScreen({ navigation }) {
   const taxAmount = Math.round(parsedAmount * 0.033);
   const netEstimatedAmount = Math.max(0, parsedAmount - taxAmount);
 
+  const handleAddAmount = (add) => {
+    const next = Math.min(overview.redeemableBalance || 0, parsedAmount + add);
+    setAmountInput(String(next));
+  };
+
+  const handleResetAmount = () => {
+    setAmountInput('');
+  };
+
+  const handleAccountNumberChange = (text) => {
+    const numeric = text.replace(/[^0-9]/g, '');
+    setAccountNumber(numeric);
+  };
+
   // Handle Submit Settlement Request
   const handleSubmit = async () => {
     const minPoints = overview.minSettlementPoints || 10000;
@@ -282,6 +296,38 @@ export default function SettlementScreen({ navigation }) {
                   />
                   <Text style={styles.inputAffix}>P</Text>
                 </View>
+
+                {/* 빠른 증액 칩 */}
+                <View style={styles.amountChipRow}>
+                  <TouchableOpacity
+                    style={styles.amountChip}
+                    onPress={() => handleAddAmount(10000)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.amountChipText}>+1만P</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.amountChip}
+                    onPress={() => handleAddAmount(50000)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.amountChipText}>+5만P</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.amountChip}
+                    onPress={() => handleAddAmount(100000)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.amountChipText}>+10만P</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.amountChip, styles.amountChipReset]}
+                    onPress={handleResetAmount}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.amountChipResetText}>초기화</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* 실시간 세금 계산 카드 */}
@@ -345,9 +391,9 @@ export default function SettlementScreen({ navigation }) {
                   style={styles.textInput}
                   placeholder="숫자만 입력 (하이픈 자동 처리)"
                   placeholderTextColor="#9CA3AF"
-                  keyboardType="numeric"
+                  keyboardType="number-pad"
                   value={accountNumber}
-                  onChangeText={setAccountNumber}
+                  onChangeText={handleAccountNumberChange}
                 />
               </View>
 
@@ -399,6 +445,13 @@ export default function SettlementScreen({ navigation }) {
                   <Text style={styles.emptyHistorySubtitle}>
                     크리에이터 수익을 모아 첫 출금을 신청해보세요!
                   </Text>
+                  <TouchableOpacity
+                    style={styles.emptyHistoryBtn}
+                    onPress={() => setActiveTab('request')}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.emptyHistoryBtnText}>첫 출금 신청하러 가기</Text>
+                  </TouchableOpacity>
                 </View>
               ) : (
                 overview.recentRequests.map((req) => {
@@ -886,5 +939,48 @@ const styles = StyleSheet.create({
     color: '#059669',
     fontWeight: '600',
     flex: 1,
+  },
+  amountChipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  amountChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  amountChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  amountChipReset: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+    marginLeft: 'auto',
+  },
+  amountChipResetText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#EF4444',
+  },
+  emptyHistoryBtn: {
+    marginTop: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: colors.primary || '#FEE500',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyHistoryBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#191919',
   },
 });
