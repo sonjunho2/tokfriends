@@ -16,6 +16,7 @@ import {
   Bell,
   Sparkles,
   Video,
+  Coins,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -39,10 +40,12 @@ import {
   deleteAdminTeamMember,
   getAdminSettingsSnapshot,
   saveAdminAuditMemo,
+  updateActionPointPolicy,
   updateAdminFeatureFlag,
   updateAdminIntegrationSetting,
   updateAdminTeamMember,
   updateAdminTeamMemberPassword,
+  type ActionPointPolicy,
   type AdminFeatureFlag,
   type AdminIntegrationSetting,
   type AdminTeamMember,
@@ -52,7 +55,7 @@ import { cn } from '@/lib/utils'
 
 const PERMISSION_HINT = 'users.manage, reports.view'
 
-type SettingsSection = 'overview' | 'team' | 'security' | 'product' | 'integrations'
+type SettingsSection = 'overview' | 'team' | 'security' | 'product' | 'integrations' | 'pointPolicy'
 
 type AdminIntegrationDraft = AdminIntegrationSetting & {
   draftValue?: string
@@ -94,6 +97,14 @@ export default function SettingsPage() {
   const [savingFlagId, setSavingFlagId] = useState<string | null>(null)
   const [savingIntegrationId, setSavingIntegrationId] = useState<string | null>(null)
   const [savingAuditLog, setSavingAuditLog] = useState(false)
+  const [pointPolicy, setPointPolicy] = useState<ActionPointPolicy>({
+    chatRoomCreate: { enabled: false, amount: 0 },
+    chatRoomJoin: { enabled: false, amount: 0 },
+    directMessageRequest: { enabled: false, amount: 0 },
+    liveRoomCreate: { enabled: false, amount: 0 },
+    liveRoomJoin: { enabled: false, amount: 0 },
+  })
+  const [savingPointPolicy, setSavingPointPolicy] = useState(false)
 
   const [activeSection, setActiveSection] = useState<SettingsSection>('overview')
 
@@ -161,6 +172,12 @@ export default function SettingsPage() {
           description: '푸시 · 모니터링 · AI 키를 관리합니다.',
           icon: PlugZap,
         },
+        {
+          id: 'pointPolicy' as SettingsSection,
+          label: '포인트 소모 정책',
+          description: '1:1 채팅, 대화신청, 라이브방송 포인트 소모 설정',
+          icon: Coins,
+        },
       ] satisfies { id: SettingsSection; label: string; description: string; icon: LucideIcon }[],
     []
   )
@@ -211,6 +228,18 @@ export default function SettingsPage() {
           helper: '푸시 · 모니터링 키',
           icon: PlugZap,
         },
+        {
+          id: 'pointPolicy' as SettingsSection,
+          label: '포인트 소모 정책',
+          value: `${[
+            pointPolicy.chatRoomCreate.enabled,
+            pointPolicy.directMessageRequest.enabled,
+            pointPolicy.liveRoomCreate.enabled,
+            pointPolicy.liveRoomJoin.enabled,
+          ].filter(Boolean).length}/4 활성`,
+          helper: '채팅 · 친구 · 라이브',
+          icon: Coins,
+        },
       ] satisfies {
         id: SettingsSection
         label: string
@@ -224,6 +253,7 @@ export default function SettingsPage() {
       enabledFlagCount,
       flags.length,
       integrations.length,
+      pointPolicy,
       suspendedMemberCount,
       twoFactorEnabledCount,
     ]
@@ -277,6 +307,9 @@ export default function SettingsPage() {
       setIntegrations(snapshot.integrations)
       setAuditLog(snapshot.auditMemo ?? '')
       setInitialAuditLog(snapshot.auditMemo ?? '')
+      if (snapshot.actionPointPolicy) {
+        setPointPolicy(snapshot.actionPointPolicy)
+      }
     } catch (error) {
         const ax = error as AxiosError | undefined
         const message =
@@ -553,6 +586,31 @@ export default function SettingsPage() {
       toast({ title: '감사 메모 저장 실패', description: Array.isArray(message) ? message.join(', ') : String(message), variant: 'destructive' })
     } finally {
       setSavingAuditLog(false)
+    }
+  }
+
+  const handleSavePointPolicy = async () => {
+    setSavingPointPolicy(true)
+    try {
+      const updated = await updateActionPointPolicy(pointPolicy)
+      setPointPolicy(updated)
+      toast({
+        title: '포인트 소모 정책 저장 완료',
+        description: '채팅방, 대화신청, 라이브방송 포인트 정책이 정상적으로 반영되었습니다.',
+      })
+    } catch (error) {
+      const ax = error as AxiosError | undefined
+      const message =
+        (ax?.response?.data as any)?.message ||
+        ax?.message ||
+        '포인트 정책을 저장하지 못했습니다.'
+      toast({
+        title: '저장 실패',
+        description: Array.isArray(message) ? message.join(', ') : String(message),
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingPointPolicy(false)
     }
   }
 
@@ -1470,8 +1528,8 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* 5. 기타 광고 및 리워드 설정 (기존 항목 보존) */}
-            {integrations.some((item) => !item.id.startsWith('oauth_') && !item.id.startsWith('toss_') && !item.id.startsWith('portone_') && !item.id.startsWith('iap_') && !item.id.startsWith('firebase_') && !item.id.startsWith('apns_') && !item.id.startsWith('agora_') && !item.id.startsWith('live_')) && (
+            {/* 5. 기타 광고 및 리워드 설정 (기존 항목 보존, 포인트 정책 제외) */}
+            {integrations.some((item) => !item.id.startsWith('oauth_') && !item.id.startsWith('toss_') && !item.id.startsWith('portone_') && !item.id.startsWith('iap_') && !item.id.startsWith('firebase_') && !item.id.startsWith('apns_') && !item.id.startsWith('agora_') && !item.id.startsWith('live_') && !item.id.startsWith('point_policy_')) && (
               <div className="rounded-xl border bg-card p-5 space-y-4">
                 <div className="flex items-center gap-2 border-b pb-3">
                   <Sparkles className="h-5 w-5 text-yellow-500" />
@@ -1479,7 +1537,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   {integrations
-                    .filter((item) => !item.id.startsWith('oauth_') && !item.id.startsWith('toss_') && !item.id.startsWith('portone_') && !item.id.startsWith('iap_') && !item.id.startsWith('firebase_') && !item.id.startsWith('apns_') && !item.id.startsWith('agora_'))
+                    .filter((item) => !item.id.startsWith('oauth_') && !item.id.startsWith('toss_') && !item.id.startsWith('portone_') && !item.id.startsWith('iap_') && !item.id.startsWith('firebase_') && !item.id.startsWith('apns_') && !item.id.startsWith('agora_') && !item.id.startsWith('live_') && !item.id.startsWith('point_policy_'))
                     .map((integration) => {
                       const isConfigured = Boolean((integration.value ?? '').length > 0);
                       return (
@@ -1518,6 +1576,388 @@ export default function SettingsPage() {
               >
                 {savingIntegrationId === 'bulk' ? '암호화 저장 중…' : '모든 변경사항 즉시 저장'}
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+    )}
+
+    {/* 포인트 소모 정책 (Action Point Policy) 섹션 */}
+    {isSectionVisible('pointPolicy') && (
+      <section id="settings-pointPolicy" className="space-y-4">
+        <Card className="border-amber-200/70 dark:border-amber-900/50 shadow-sm">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-amber-500/5 border-b pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20 text-amber-600">
+                  <Coins className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-lg font-bold">액션별 포인트 소모 정책</CardTitle>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                사용자가 1:1 채팅방 개설, 1:1 대화/친구 신청, 라이브 방송 개설 및 입장 시 소모될 포인트를 설정합니다.
+                활성화된 항목은 앱에서 사용자에게 사전에 확인 안내창이 표시되며 승인 시에만 소모됩니다.
+              </p>
+            </div>
+            <Button
+              onClick={handleSavePointPolicy}
+              disabled={savingPointPolicy}
+              className="bg-amber-500 hover:bg-amber-600 text-black font-semibold shadow-sm px-5"
+            >
+              {savingPointPolicy ? '저장 중...' : '포인트 정책 저장'}
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-6 pt-5">
+            <div className="grid gap-5 md:grid-cols-2">
+              {/* 1. 1:1 채팅방 개설 */}
+              <div className="rounded-xl border p-4.5 transition bg-card hover:border-amber-400/50 shadow-sm space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-base font-semibold text-foreground">1:1 채팅방 개설</Label>
+                    <p className="text-xs text-muted-foreground">새로운 1:1 대화방을 최초 개설할 때 소모</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={cn('text-xs font-semibold', pointPolicy.chatRoomCreate.enabled ? 'text-amber-600' : 'text-muted-foreground')}>
+                      {pointPolicy.chatRoomCreate.enabled ? '소모 활성' : '무료 (비활성)'}
+                    </span>
+                    <Switch
+                      checked={pointPolicy.chatRoomCreate.enabled}
+                      onCheckedChange={(checked) =>
+                        setPointPolicy((prev) => ({
+                          ...prev,
+                          chatRoomCreate: { ...prev.chatRoomCreate, enabled: checked },
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 pt-2.5 border-t">
+                  <Label className="text-sm font-medium whitespace-nowrap text-muted-foreground">소모 금액:</Label>
+                  <div className="relative flex-1">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={pointPolicy.chatRoomCreate.amount}
+                      disabled={!pointPolicy.chatRoomCreate.enabled}
+                      onChange={(e) =>
+                        setPointPolicy((prev) => ({
+                          ...prev,
+                          chatRoomCreate: {
+                            ...prev.chatRoomCreate,
+                            amount: Math.max(0, parseInt(e.target.value, 10) || 0),
+                          },
+                        }))
+                      }
+                      className="pr-8 font-mono text-right"
+                      placeholder="0"
+                    />
+                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">P</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {[10, 50, 100].map((inc) => (
+                      <Button
+                        key={inc}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!pointPolicy.chatRoomCreate.enabled}
+                        onClick={() =>
+                          setPointPolicy((prev) => ({
+                            ...prev,
+                            chatRoomCreate: {
+                              ...prev.chatRoomCreate,
+                              amount: prev.chatRoomCreate.amount + inc,
+                            },
+                          }))
+                        }
+                        className="px-2 text-xs"
+                      >
+                        +{inc}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. 1:1 채팅방 참여 (입장) */}
+              <div className="rounded-xl border p-4.5 transition bg-card hover:border-amber-400/50 shadow-sm space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-base font-semibold text-foreground">1:1 채팅방 참여 (입장)</Label>
+                    <p className="text-xs text-muted-foreground">이미 개설된 1:1 대화방에 참여하거나 입장할 때 소모</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={cn('text-xs font-semibold', pointPolicy.chatRoomJoin.enabled ? 'text-amber-600' : 'text-muted-foreground')}>
+                      {pointPolicy.chatRoomJoin.enabled ? '소모 활성' : '무료 (비활성)'}
+                    </span>
+                    <Switch
+                      checked={pointPolicy.chatRoomJoin.enabled}
+                      onCheckedChange={(checked) =>
+                        setPointPolicy((prev) => ({
+                          ...prev,
+                          chatRoomJoin: { ...prev.chatRoomJoin, enabled: checked },
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 pt-2.5 border-t">
+                  <Label className="text-sm font-medium whitespace-nowrap text-muted-foreground">소모 금액:</Label>
+                  <div className="relative flex-1">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={pointPolicy.chatRoomJoin.amount}
+                      disabled={!pointPolicy.chatRoomJoin.enabled}
+                      onChange={(e) =>
+                        setPointPolicy((prev) => ({
+                          ...prev,
+                          chatRoomJoin: {
+                            ...prev.chatRoomJoin,
+                            amount: Math.max(0, parseInt(e.target.value, 10) || 0),
+                          },
+                        }))
+                      }
+                      className="pr-8 font-mono text-right"
+                      placeholder="0"
+                    />
+                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">P</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {[10, 50, 100].map((inc) => (
+                      <Button
+                        key={inc}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!pointPolicy.chatRoomJoin.enabled}
+                        onClick={() =>
+                          setPointPolicy((prev) => ({
+                            ...prev,
+                            chatRoomJoin: {
+                              ...prev.chatRoomJoin,
+                              amount: prev.chatRoomJoin.amount + inc,
+                            },
+                          }))
+                        }
+                        className="px-2 text-xs"
+                      >
+                        +{inc}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. 1:1 대화/친구 신청 */}
+              <div className="rounded-xl border p-4.5 transition bg-card hover:border-amber-400/50 shadow-sm space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-base font-semibold text-foreground">1:1 대화/친구 신청</Label>
+                    <p className="text-xs text-muted-foreground">상대방에게 친구 또는 1:1 대화 요청을 전송할 때 소모</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={cn('text-xs font-semibold', pointPolicy.directMessageRequest.enabled ? 'text-amber-600' : 'text-muted-foreground')}>
+                      {pointPolicy.directMessageRequest.enabled ? '소모 활성' : '무료 (비활성)'}
+                    </span>
+                    <Switch
+                      checked={pointPolicy.directMessageRequest.enabled}
+                      onCheckedChange={(checked) =>
+                        setPointPolicy((prev) => ({
+                          ...prev,
+                          directMessageRequest: { ...prev.directMessageRequest, enabled: checked },
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 pt-2.5 border-t">
+                  <Label className="text-sm font-medium whitespace-nowrap text-muted-foreground">소모 금액:</Label>
+                  <div className="relative flex-1">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={pointPolicy.directMessageRequest.amount}
+                      disabled={!pointPolicy.directMessageRequest.enabled}
+                      onChange={(e) =>
+                        setPointPolicy((prev) => ({
+                          ...prev,
+                          directMessageRequest: {
+                            ...prev.directMessageRequest,
+                            amount: Math.max(0, parseInt(e.target.value, 10) || 0),
+                          },
+                        }))
+                      }
+                      className="pr-8 font-mono text-right"
+                      placeholder="0"
+                    />
+                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">P</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {[10, 50, 100].map((inc) => (
+                      <Button
+                        key={inc}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!pointPolicy.directMessageRequest.enabled}
+                        onClick={() =>
+                          setPointPolicy((prev) => ({
+                            ...prev,
+                            directMessageRequest: {
+                              ...prev.directMessageRequest,
+                              amount: prev.directMessageRequest.amount + inc,
+                            },
+                          }))
+                        }
+                        className="px-2 text-xs"
+                      >
+                        +{inc}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. 라이브 방송 개설 */}
+              <div className="rounded-xl border p-4.5 transition bg-card hover:border-amber-400/50 shadow-sm space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-base font-semibold text-foreground">라이브 방송 개설 (호스트)</Label>
+                    <p className="text-xs text-muted-foreground">호스트가 새로운 실시간 라이브 방송을 시작할 때 소모</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={cn('text-xs font-semibold', pointPolicy.liveRoomCreate.enabled ? 'text-amber-600' : 'text-muted-foreground')}>
+                      {pointPolicy.liveRoomCreate.enabled ? '소모 활성' : '무료 (비활성)'}
+                    </span>
+                    <Switch
+                      checked={pointPolicy.liveRoomCreate.enabled}
+                      onCheckedChange={(checked) =>
+                        setPointPolicy((prev) => ({
+                          ...prev,
+                          liveRoomCreate: { ...prev.liveRoomCreate, enabled: checked },
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 pt-2.5 border-t">
+                  <Label className="text-sm font-medium whitespace-nowrap text-muted-foreground">소모 금액:</Label>
+                  <div className="relative flex-1">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={pointPolicy.liveRoomCreate.amount}
+                      disabled={!pointPolicy.liveRoomCreate.enabled}
+                      onChange={(e) =>
+                        setPointPolicy((prev) => ({
+                          ...prev,
+                          liveRoomCreate: {
+                            ...prev.liveRoomCreate,
+                            amount: Math.max(0, parseInt(e.target.value, 10) || 0),
+                          },
+                        }))
+                      }
+                      className="pr-8 font-mono text-right"
+                      placeholder="0"
+                    />
+                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">P</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {[50, 100, 300].map((inc) => (
+                      <Button
+                        key={inc}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!pointPolicy.liveRoomCreate.enabled}
+                        onClick={() =>
+                          setPointPolicy((prev) => ({
+                            ...prev,
+                            liveRoomCreate: {
+                              ...prev.liveRoomCreate,
+                              amount: prev.liveRoomCreate.amount + inc,
+                            },
+                          }))
+                        }
+                        className="px-2 text-xs"
+                      >
+                        +{inc}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. 라이브 방송 참여 (시청자 입장) */}
+              <div className="rounded-xl border p-4.5 transition bg-card hover:border-amber-400/50 shadow-sm space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-base font-semibold text-foreground">라이브 방송 입장/시청 (시청자)</Label>
+                    <p className="text-xs text-muted-foreground">시청자가 라이브 방송에 최초 입장할 때 1회 소모</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={cn('text-xs font-semibold', pointPolicy.liveRoomJoin.enabled ? 'text-amber-600' : 'text-muted-foreground')}>
+                      {pointPolicy.liveRoomJoin.enabled ? '소모 활성' : '무료 (비활성)'}
+                    </span>
+                    <Switch
+                      checked={pointPolicy.liveRoomJoin.enabled}
+                      onCheckedChange={(checked) =>
+                        setPointPolicy((prev) => ({
+                          ...prev,
+                          liveRoomJoin: { ...prev.liveRoomJoin, enabled: checked },
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 pt-2.5 border-t">
+                  <Label className="text-sm font-medium whitespace-nowrap text-muted-foreground">소모 금액:</Label>
+                  <div className="relative flex-1">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={pointPolicy.liveRoomJoin.amount}
+                      disabled={!pointPolicy.liveRoomJoin.enabled}
+                      onChange={(e) =>
+                        setPointPolicy((prev) => ({
+                          ...prev,
+                          liveRoomJoin: {
+                            ...prev.liveRoomJoin,
+                            amount: Math.max(0, parseInt(e.target.value, 10) || 0),
+                          },
+                        }))
+                      }
+                      className="pr-8 font-mono text-right"
+                      placeholder="0"
+                    />
+                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">P</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {[10, 50, 100].map((inc) => (
+                      <Button
+                        key={inc}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!pointPolicy.liveRoomJoin.enabled}
+                        onClick={() =>
+                          setPointPolicy((prev) => ({
+                            ...prev,
+                            liveRoomJoin: {
+                              ...prev.liveRoomJoin,
+                              amount: prev.liveRoomJoin.amount + inc,
+                            },
+                          }))
+                        }
+                        className="px-2 text-xs"
+                      >
+                        +{inc}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

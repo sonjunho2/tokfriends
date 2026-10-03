@@ -18,6 +18,12 @@ export class StoreController {
     return { items };
   }
 
+  @Public()
+  @Get('action-points')
+  async getActionPoints() {
+    return this.store.getActionPointPolicy();
+  }
+
   @Post('purchases/confirm')
   confirmPurchase(@CurrentUser() user: any, @Body() dto: ConfirmPurchaseDto) {
     const userId = user?.sub ?? user?.id;

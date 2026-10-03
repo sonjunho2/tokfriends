@@ -17,6 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
 import { apiClient } from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
+import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
 
 const LIVE_COLOR = '#FF3B6B';
 
@@ -29,6 +31,7 @@ const CATEGORIES = [
 ];
 
 export default function LiveScreen({ navigation }) {
+  const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -72,25 +75,46 @@ export default function LiveScreen({ navigation }) {
       Alert.alert('알림', '방송 제목을 입력해 주세요.');
       return;
     }
-    setStarting(true);
-    try {
-      const room = await apiClient.createLiveRoom({
-        title: trimmedTitle,
-        category,
-      });
-      setModalVisible(false);
-      setTitle('');
-      navigation.navigate('LiveRoom', { room, roomId: room.id });
-      loadRooms();
-    } catch (e) {
-      Alert.alert('시작 실패', e?.message || '라이브 방송을 시작하지 못했습니다.');
-    } finally {
-      setStarting(false);
-    }
+
+    checkAndConfirmActionPoint({
+      actionType: 'liveRoomCreate',
+      actionName: '라이브 방송 개설',
+      navigation,
+      onConfirm: async () => {
+        setStarting(true);
+        try {
+          const room = await apiClient.createLiveRoom({
+            title: trimmedTitle,
+            category,
+          });
+          setModalVisible(false);
+          setTitle('');
+          navigation.navigate('LiveRoom', { room, roomId: room.id });
+          loadRooms();
+        } catch (e) {
+          Alert.alert('시작 실패', e?.message || '라이브 방송을 시작하지 못했습니다.');
+        } finally {
+          setStarting(false);
+        }
+      },
+    });
   };
 
   const handleEnterRoom = (room) => {
-    navigation.navigate('LiveRoom', { room, roomId: room.id });
+    const isHost = user?.id && (room?.hostId === user.id || room?.host?.id === user.id);
+    if (isHost) {
+      navigation.navigate('LiveRoom', { room, roomId: room.id });
+      return;
+    }
+
+    checkAndConfirmActionPoint({
+      actionType: 'liveRoomJoin',
+      actionName: '라이브 방송 입장',
+      navigation,
+      onConfirm: () => {
+        navigation.navigate('LiveRoom', { room, roomId: room.id });
+      },
+    });
   };
 
   const renderRoomItem = ({ item }) => {

@@ -118,17 +118,31 @@ export class LiveService {
       );
     }
 
-    const room = await this.prisma.liveRoom.create({
-      data: {
-        hostId: hostUserId,
-        hostAccountId: hostAccount?.id || null,
-        title: dto.title.trim(),
-        category: dto.category?.trim() || 'talk',
-        coverUri: dto.coverUri?.trim() || null,
-        status: 'live',
-        viewerCount: 1,
-      },
-      include: HOST_INCLUDE,
+    const pointPolicy = await this.adminSettings.getActionPointPolicy();
+    const room = await this.prisma.$transaction(async (tx) => {
+      if (pointPolicy.liveRoomCreate.enabled && pointPolicy.liveRoomCreate.amount > 0) {
+        await this.adminSettings.deductUserPoints(
+          tx,
+          hostUserId,
+          pointPolicy.liveRoomCreate.amount,
+          'create_live_room',
+          `live_create_${hostUserId}_${Date.now()}`,
+          { title: dto.title.trim() },
+        );
+      }
+
+      return tx.liveRoom.create({
+        data: {
+          hostId: hostUserId,
+          hostAccountId: hostAccount?.id || null,
+          title: dto.title.trim(),
+          category: dto.category?.trim() || 'talk',
+          coverUri: dto.coverUri?.trim() || null,
+          status: 'live',
+          viewerCount: 1,
+        },
+        include: HOST_INCLUDE,
+      });
     });
 
     const formatted = formatRoom(room);
@@ -237,13 +251,37 @@ export class LiveService {
     return formatRoom(updated);
   }
 
-  async joinRoom(roomId: string, viewerKey?: string) {
+  async joinRoom(roomId: string, viewerKey?: string, userId?: string) {
     const room = await this.prisma.liveRoom.findUnique({
       where: { id: roomId },
     });
 
     if (!room || room.status !== 'live') {
       return { success: false, viewerCount: 0 };
+    }
+
+    // 시청자 라이브 참여 포인트 소모 정책 확인
+    if (userId && room.hostId !== userId) {
+      const pointPolicy = await this.adminSettings.getActionPointPolicy();
+      if (pointPolicy.liveRoomJoin.enabled && pointPolicy.liveRoomJoin.amount > 0) {
+        const idempotencyKey = `live_join_${roomId}_${userId}`;
+        const existingPayment = await this.prisma.walletLedgerEntry.findUnique({
+          where: { idempotencyKey },
+        });
+
+        if (!existingPayment) {
+          await this.prisma.$transaction(async (tx) => {
+            await this.adminSettings.deductUserPoints(
+              tx,
+              userId,
+              pointPolicy.liveRoomJoin.amount,
+              'join_live_room',
+              idempotencyKey,
+              { roomId, roomTitle: room.title },
+            );
+          });
+        }
+      }
     }
 
     let viewers = this.activeViewersByRoom.get(roomId);

@@ -16,6 +16,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { apiClient } from '../../api/client';
 import colors from '../../theme/colors';
 import ChatListItem from '../../components/ChatListItem';
+import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
 
 const normalizeChats = (response) => {
   if (!Array.isArray(response)) {
@@ -71,11 +72,18 @@ export default function ChatsScreen({ navigation }) {
 
   const handleOpenChat = useCallback(
     (item) => {
-      navigation.navigate('ChatRoom', {
-        id: item.id,
-        chatId: item.id,
-        title: item.title,
-        counterpartAccountId: item.counterpartAccountId,
+      checkAndConfirmActionPoint({
+        actionType: 'chatRoomJoin',
+        actionName: '1:1 채팅방 참여',
+        navigation,
+        onConfirm: () => {
+          navigation.navigate('ChatRoom', {
+            id: item.id,
+            chatId: item.id,
+            title: item.title,
+            counterpartAccountId: item.counterpartAccountId,
+          });
+        },
       });
     },
     [navigation]

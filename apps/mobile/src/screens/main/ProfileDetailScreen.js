@@ -19,6 +19,7 @@ import GiftPickerSheet from '../../components/GiftPickerSheet';
 import GiftEffectOverlay from '../../components/GiftEffectOverlay';
 import colors from '../../theme/colors';
 import { apiClient } from '../../api/client';
+import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
 
 export default function ProfileDetailScreen({ navigation, route }) {
   const profile = route?.params?.profile;
@@ -396,20 +397,27 @@ export default function ProfileDetailScreen({ navigation, route }) {
     }
 
     // friendStatus === 'none'
-    setUpdatingFriend(true);
-    try {
-      const res = await apiClient.sendFriendRequest({
-        targetAccountId: targetAccountId || undefined,
-        addresseeId: targetUserId || undefined,
-      });
-      setFriendStatus('requested_by_me');
-      if (res?.id) setFriendshipId(res.id);
-      Alert.alert('친구 요청 완료', `${data.name}님에게 친구 요청을 보냈습니다.`);
-    } catch (error) {
-      Alert.alert('친구 요청 실패', error?.message || '친구 요청을 보내지 못했습니다.');
-    } finally {
-      setUpdatingFriend(false);
-    }
+    checkAndConfirmActionPoint({
+      actionType: 'directMessageRequest',
+      actionName: '1:1 친구/대화 신청',
+      navigation,
+      onConfirm: async () => {
+        setUpdatingFriend(true);
+        try {
+          const res = await apiClient.sendFriendRequest({
+            targetAccountId: targetAccountId || undefined,
+            addresseeId: targetUserId || undefined,
+          });
+          setFriendStatus('requested_by_me');
+          if (res?.id) setFriendshipId(res.id);
+          Alert.alert('친구 요청 완료', `${data.name}님에게 친구 요청을 보냈습니다.`);
+        } catch (error) {
+          Alert.alert('친구 요청 실패', error?.message || '친구 요청을 보내지 못했습니다.');
+        } finally {
+          setUpdatingFriend(false);
+        }
+      },
+    });
   };
 
   const handleMessage = async () => {
@@ -424,34 +432,42 @@ export default function ProfileDetailScreen({ navigation, route }) {
       Alert.alert('안내', '대화 상대 식별 정보가 올바르지 않습니다.');
       return;
     }
-    setSending(true);
-    try {
-      const room = await apiClient.ensureDirectRoom(
-        targetUserId ? { targetUserId } : { targetAccountId },
-      );
-      const roomId = room?.id || room?._id;
-      if (!roomId) {
-        throw new Error('채팅방 정보를 확인할 수 없습니다.');
-      }
-      const participant = {
-        ...(targetUserId ? { id: targetUserId, targetUserId } : { targetAccountId }),
-        name: data.name,
-        avatar: data.avatar,
-        headline: data.title,
-      };
-      navigation.navigate('Chat', {
-        screen: 'ChatRoom',
-        params: {
-          id: roomId,
-          room,
-          user: participant,
-        },
-      });
-    } catch (error) {
-      Alert.alert('메시지 시작 실패', error?.message || '채팅방을 생성하지 못했습니다.');
-    } finally {
-      setSending(false);
-    }
+
+    checkAndConfirmActionPoint({
+      actionType: 'chatRoomCreate',
+      actionName: '1:1 채팅방 개설',
+      navigation,
+      onConfirm: async () => {
+        setSending(true);
+        try {
+          const room = await apiClient.ensureDirectRoom(
+            targetUserId ? { targetUserId } : { targetAccountId },
+          );
+          const roomId = room?.id || room?._id;
+          if (!roomId) {
+            throw new Error('채팅방 정보를 확인할 수 없습니다.');
+          }
+          const participant = {
+            ...(targetUserId ? { id: targetUserId, targetUserId } : { targetAccountId }),
+            name: data.name,
+            avatar: data.avatar,
+            headline: data.title,
+          };
+          navigation.navigate('Chat', {
+            screen: 'ChatRoom',
+            params: {
+              id: roomId,
+              room,
+              user: participant,
+            },
+          });
+        } catch (error) {
+          Alert.alert('메시지 시작 실패', error?.message || '채팅방을 생성하지 못했습니다.');
+        } finally {
+          setSending(false);
+        }
+      },
+    });
   };
 
   const handleEditProfile = () => {

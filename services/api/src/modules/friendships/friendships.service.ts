@@ -5,12 +5,16 @@ import {
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "nestjs-prisma";
+import { AdminSettingsService } from "../admin/admin-settings.service";
 
 const MAX_TRANSACTION_RETRIES = 3;
 
 @Injectable()
 export class FriendshipsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private adminSettings: AdminSettingsService,
+  ) {}
 
   async sendRequest(
     requesterId: string,
@@ -107,6 +111,21 @@ export class FriendshipsService {
                 status: "declined",
               },
             });
+
+            const pointPolicy = await this.adminSettings.getActionPointPolicy();
+            if (
+              pointPolicy.directMessageRequest.enabled &&
+              pointPolicy.directMessageRequest.amount > 0
+            ) {
+              await this.adminSettings.deductUserPoints(
+                transaction,
+                requesterId,
+                pointPolicy.directMessageRequest.amount,
+                'friend_request',
+                `friend_request_${requesterId}_${resolvedAddresseeId}_${Date.now()}`,
+                { requesterId, addresseeId: resolvedAddresseeId },
+              );
+            }
 
             return transaction.friendship.create({
               data: {

@@ -22,6 +22,7 @@ import {
 } from "./dto";
 import { NotificationsService } from "../notifications/notifications.service";
 import { GiftsService } from "../gifts/gifts.service";
+import { AdminSettingsService } from "../admin/admin-settings.service";
 
 const MAX_TRANSACTION_RETRIES = 3;
 
@@ -128,6 +129,7 @@ export class ChatsService {
     private readonly chatRealtimePublisher: ChatRealtimePublisher,
     private readonly notificationsService: NotificationsService,
     private readonly giftsService: GiftsService,
+    private readonly adminSettings: AdminSettingsService,
   ) {}
 
   async list(
@@ -536,6 +538,28 @@ export class ChatsService {
       select: { id: true },
     });
     if (block) throw new NotFoundException("Chat not found");
+
+    if (!cursorDate && !query.cursorId) {
+      const pointPolicy = await this.adminSettings.getActionPointPolicy();
+      if (
+        pointPolicy.chatRoomJoin?.enabled &&
+        pointPolicy.chatRoomJoin?.amount > 0
+      ) {
+        await this.prisma.$transaction(async (tx) => {
+          await this.adminSettings.deductUserPoints(
+            tx,
+            currentUserId,
+            pointPolicy.chatRoomJoin.amount,
+            'join_direct_chat',
+            `chat_join_${chat.id}_${currentUserId}`,
+            {
+              chatId: chat.id,
+              counterpartUserId,
+            },
+          );
+        });
+      }
+    }
     const messages = await this.prisma.message.findMany({
       where: {
         chatId: chat.id,
@@ -1399,6 +1423,25 @@ export class ChatsService {
                 ![room.userAId, room.userBId].includes(userBId)
               )
                 throw new ConflictException("Chat is unavailable");
+
+              const pointPolicy = await this.adminSettings.getActionPointPolicy();
+              if (
+                pointPolicy.chatRoomJoin?.enabled &&
+                pointPolicy.chatRoomJoin?.amount > 0
+              ) {
+                await this.adminSettings.deductUserPoints(
+                  tx,
+                  currentUserId,
+                  pointPolicy.chatRoomJoin.amount,
+                  'join_direct_chat',
+                  `chat_join_${room.id}_${currentUserId}`,
+                  {
+                    chatId: room.id,
+                    targetUserId: target.owner.legacyUserId,
+                    targetAccountId: target.id,
+                  },
+                );
+              }
             } else {
               const legacy = await tx.chat.findMany({
                 where: {
@@ -1414,27 +1457,47 @@ export class ChatsService {
               });
               if (legacy.length > 1)
                 throw new ConflictException("Chat is unavailable");
-              room = legacy[0]
-                ? await tx.chat.update({
-                    where: { id: legacy[0].id },
-                    data: {
-                      accountAId: a.id,
-                      accountBId: b.id,
-                      userAId,
-                      userBId,
+              if (legacy[0]) {
+                room = await tx.chat.update({
+                  where: { id: legacy[0].id },
+                  data: {
+                    accountAId: a.id,
+                    accountBId: b.id,
+                    userAId,
+                    userBId,
+                  },
+                  include: chatInclude,
+                });
+              } else {
+                const pointPolicy = await this.adminSettings.getActionPointPolicy();
+                if (
+                  pointPolicy.chatRoomCreate.enabled &&
+                  pointPolicy.chatRoomCreate.amount > 0
+                ) {
+                  await this.adminSettings.deductUserPoints(
+                    tx,
+                    currentUserId,
+                    pointPolicy.chatRoomCreate.amount,
+                    'create_direct_chat',
+                    `chat_create_${a.id}_${b.id}`,
+                    {
+                      targetUserId: target.owner.legacyUserId,
+                      targetAccountId: target.id,
                     },
-                    include: chatInclude,
-                  })
-                : await tx.chat.create({
-                    data: {
-                      accountAId: a.id,
-                      accountBId: b.id,
-                      userAId,
-                      userBId,
-                      lastMessageAt: new Date(),
-                    },
-                    include: chatInclude,
-                  });
+                  );
+                }
+
+                room = await tx.chat.create({
+                  data: {
+                    accountAId: a.id,
+                    accountBId: b.id,
+                    userAId,
+                    userBId,
+                    lastMessageAt: new Date(),
+                  },
+                  include: chatInclude,
+                });
+              }
             }
             return this.serializeDirectChat(room, actorAccountId);
           },

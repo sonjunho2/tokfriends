@@ -31,6 +31,10 @@ export class StoreService {
 
   private productsCache?: { expiresAt: number; items: PointProduct[] };
 
+  async getActionPointPolicy() {
+    return this.adminSettings.getActionPointPolicy();
+  }
+
   private readonly fallbackProducts: PointProduct[] = [
     {
       id: 'com.company.points.100',

@@ -5,11 +5,15 @@ import {
   IsEmail,
   IsIn,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   MaxLength,
+  Min,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ADMIN_PERMISSION_KEYS } from '../../common/admin-permissions.guard';
 
 export class SetUserRoleDto {
@@ -135,4 +139,40 @@ export class SaveAdminAuditMemoDto {
   @IsString()
   @MaxLength(5000)
   memo: string;
+}
+
+export class ActionPointPolicyItemDto {
+  @IsBoolean()
+  enabled: boolean;
+
+  @IsNumber()
+  @Min(0)
+  amount: number;
+}
+
+export class UpdateActionPointPolicyDto {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ActionPointPolicyItemDto)
+  chatRoomCreate?: ActionPointPolicyItemDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ActionPointPolicyItemDto)
+  chatRoomJoin?: ActionPointPolicyItemDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ActionPointPolicyItemDto)
+  directMessageRequest?: ActionPointPolicyItemDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ActionPointPolicyItemDto)
+  liveRoomCreate?: ActionPointPolicyItemDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ActionPointPolicyItemDto)
+  liveRoomJoin?: ActionPointPolicyItemDto;
 }

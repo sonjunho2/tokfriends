@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
 import { apiClient } from '../../api/client';
+import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
 
 const TABS = [
   { key: 'friends', label: '친구 목록' },
@@ -175,33 +176,40 @@ export default function FriendsScreen({ navigation }) {
     );
   };
 
-  const handleStartChat = async (user) => {
-    try {
-      const targetUserId = user?.id;
-      const targetAccountId = user?.targetAccountId;
-      const room = await apiClient.ensureDirectRoom(
-        targetUserId ? { targetUserId } : { targetAccountId },
-      );
-      const roomId = room?.id || room?._id;
-      if (!roomId) throw new Error('대화방을 생성할 수 없습니다.');
+  const handleStartChat = (user) => {
+    checkAndConfirmActionPoint({
+      actionType: 'chatRoomCreate',
+      actionName: '1:1 대화방 개설',
+      navigation,
+      onConfirm: async () => {
+        try {
+          const targetUserId = user?.id;
+          const targetAccountId = user?.targetAccountId;
+          const room = await apiClient.ensureDirectRoom(
+            targetUserId ? { targetUserId } : { targetAccountId },
+          );
+          const roomId = room?.id || room?._id;
+          if (!roomId) throw new Error('대화방을 생성할 수 없습니다.');
 
-      navigation.navigate('Chat', {
-        screen: 'ChatRoom',
-        params: {
-          id: roomId,
-          room,
-          user: {
-            id: targetUserId,
-            targetAccountId,
-            name: user.name,
-            avatar: user.avatar,
-            headline: user.bio,
-          },
-        },
-      });
-    } catch (error) {
-      Alert.alert('대화 시작 실패', error?.message || '채팅방을 열지 못했습니다.');
-    }
+          navigation.navigate('Chat', {
+            screen: 'ChatRoom',
+            params: {
+              id: roomId,
+              room,
+              user: {
+                id: targetUserId,
+                targetAccountId,
+                name: user.name,
+                avatar: user.avatar,
+                headline: user.bio,
+              },
+            },
+          });
+        } catch (error) {
+          Alert.alert('대화 시작 실패', error?.message || '채팅방을 열지 못했습니다.');
+        }
+      },
+    });
   };
 
   const handleOpenProfile = (user) => {

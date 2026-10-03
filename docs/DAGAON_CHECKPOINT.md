@@ -1,8 +1,71 @@
 # DAGAON Development Checkpoint
 
-Updated: 2026-10-02
+Updated: 2026-10-03
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
+
+## 2026-10-03 Checkpoint 34: 5대 핵심 액션(1:1 채팅방 개설/참여, 1:1 대화/친구 신청, 라이브 방송 개설/참여) 포인트 소모 정책 & 관리자 제어 시스템 및 클라이언트 사전 승인 확인창 구축 (완료)
+
+### 1. 기능 개요 및 도입 배경
+- **목적**:
+  - 1:1 채팅방 개설, 1:1 채팅방 참여(입장), 1:1 대화/친구 신청, 라이브 방송 개설(호스트), 라이브 방송 입장/시청(시청자) 등 플랫폼 5대 주요 인터랙션에 대해 관리자가 유연하게 포인트 소모 여부(체크 활성화/비활성화)와 소모 포인트(P) 금액을 설정할 수 있도록 시스템 전반에 정책 파이프라인 구축.
+  - 사용자가 무단 차감되지 않도록, 정책이 활성화되어 포인트가 소모되는 액션 직전에는 **현재 잔여 포인트와 필요 포인트, 차감 후 잔액이 안내되는 사전 승인 확인창(Alert Dialog)**을 반드시 띄우며, 포인트 부족 시 원클릭으로 상점(Shop) 화면으로 이동할 수 있도록 완벽한 사용자 경험 제공.
+
+### 2. 관리자(Admin) 포인트 소모 정책 제어 센터 구축 (`apps/admin`)
+- **타입 정의 및 API 연동 (`apps/admin/src/lib/api.ts`)**:
+  - `ActionPointPolicy`, `ActionPointItem` 인터페이스 정의 (`chatRoomCreate`, `chatRoomJoin`, `directMessageRequest`, `liveRoomCreate`, `liveRoomJoin`).
+  - `getAdminSettingsSnapshot` 응답 정규화에 `actionPointPolicy` 자동 매핑.
+  - 전용 엔드포인트 연동: `getActionPointPolicy()`, `updateActionPointPolicy(payload)`.
+- **설정 대시보드 UI 구현 (`apps/admin/src/app/settings/page.tsx`)**:
+  - `SettingsSection` 및 상단 빠른 필터/통계 배너에 `[포인트 소모 정책]` 전용 탭(Coins 아이콘) 추가.
+  - 5대 액션별 전용 설정 카드 제공:
+    1. **1:1 채팅방 개설**: 활성화 스위치(소모 활성 vs 무료), 소모 포인트 인풋, +10P / +50P / +100P 원터치 증액 칩.
+    2. **1:1 채팅방 참여 (입장)**: 활성화 스위치, 소모 포인트 인풋, +10P / +50P / +100P 증액 칩.
+    3. **1:1 대화/친구 신청**: 활성화 스위치, 소모 포인트 인풋, +10P / +50P / +100P 증액 칩.
+    4. **라이브 방송 개설 (호스트)**: 활성화 스위치, 소모 포인트 인풋, +50P / +100P / +300P 증액 칩.
+    5. **라이브 방송 입장/시청 (시청자)**: 활성화 스위치, 소모 포인트 인풋, +10P / +50P / +100P 증액 칩.
+  - 우측 상단 `[포인트 정책 저장]` 버튼을 통해 실시간 서버 동기화 및 성공 토스트 피드백 제공.
+
+### 3. 백엔드 정책 파이프라인 및 원자적 트랜잭션 차감 (`services/api`)
+- **관리자 설정 서비스 (`AdminSettingsService`)**:
+  - `DEFAULT_INTEGRATION_SETTINGS`에 10대 기본 설정 키 연동 (`point_policy_chat_room_create_enabled`, `point_policy_chat_room_join_enabled` 등).
+  - `getActionPointPolicy()`: 10개 설정 비동기 병렬 조회하여 구조화된 정책 객체로 반환.
+  - `updateActionPointPolicy()`: 관리자의 변경사항을 안전하게 저장하고 감사 로그 자동 남김.
+  - `deductUserPoints()` 공통 차감 트랜잭션 헬퍼:
+    - 잔액 검증: `user.pointsBalance < points` 시 즉시 `BadRequestException('포인트가 부족합니다.')` 방어.
+    - `User.pointsBalance` 감소 및 `ActivityAccount.Wallet.spendableBalance` 동기화.
+    - `WalletLedgerEntry` (kind: 'debit', referenceType: 'action_point')에 멱등키 기반 원자적 기록.
+- **서비스별 정책 적용 및 차감 로직**:
+  - `ChatsService.ensureDirectRoom`: 신규 1:1 방 생성 시 발신자의 `chatRoomCreate` 포인트 차감, 이미 개설된 방 재입장 시 `chat_join_${room.id}_${currentUserId}` 멱등키 기반 `chatRoomJoin` 포인트 차감.
+  - `ChatsService.history`: 첫 메시지 페이지 조회(방 입장) 시 `chat_join_${chat.id}_${currentUserId}` 멱등키 기반 `chatRoomJoin` 포인트 차감 (중복 차감 원천 차단).
+  - `FriendshipsService.sendRequest`: 친구/대화 요청 생성 시 요청자의 `directMessageRequest` 포인트 차감.
+  - `LiveService.createRoom`: 호스트의 새로운 방송 생성 시 `liveRoomCreate` 포인트 차감.
+  - `LiveService.joinRoom`: 일반 시청자가 입장할 때 중복 차감 방지 멱등키(`live_join_${roomId}_${userId}`)를 적용하여 1회에 한해 `liveRoomJoin` 포인트 차감 (호스트 본인은 면제).
+- **공용 및 관리자 컨트롤러 증설**:
+  - `AdminController`: `GET /admin/settings/action-points`, `PATCH /admin/settings/action-points` 엔드포인트.
+  - `StoreController`: 모바일 클라이언트 조회를 위한 `@Public() GET /store/action-points` 엔드포인트.
+
+### 4. 모바일 클라이언트 사전 승인 확인창 & UX 고도화 (`apps/mobile`)
+- **공통 헬퍼 신설 (`apps/mobile/src/utils/pointPolicyHelper.js`)**:
+  - `checkAndConfirmActionPoint({ actionType, actionName, navigation, onConfirm })`
+  - 기능 실행 전 서버 정책을 비동기 조회하여:
+    - 비활성화 또는 0P인 경우: 안내창 없이 즉시 `onConfirm()` 진행.
+    - 활성화 및 포인트 필요 시:
+      - 포인트 부족 시: `[포인트 부족]` 안내 다이얼로그 노출 ("필요: {amount}P, 보유: {balance}P") + `[충전하러 가기]` 터치 시 상점(Shop) 화면으로 자동 전환.
+      - 포인트 충분 시: `[{actionName} 안내]` 다이얼로그 노출 ("{amount}P가 소모됩니다. 현재: {balance}P → {balance - amount}P") + `[확인]` 터치 시 안전하게 기능 실행.
+- **적용 화면 전수 연동**:
+  1. `ChatsScreen.js`: 대화 목록에서 개설된 대화방 터치 시 [1:1 채팅방 참여] 사전 승인 확인창 연동 (`handleOpenChat`).
+  2. `ChatRoomScreen.js`: 방 입장 시 잔액 부족 에러 발생 시 [포인트 상점 충전 안내] 다이얼로그 노출 방어.
+  3. `ProfileDetailScreen.js`: 1:1 대화 시작 (`handleMessage`) 및 친구 요청 전송 (`sendFriendRequest`).
+  4. `PostDetailScreen.js`: 커뮤니티 게시글 상세에서 작성자와 1:1 대화 (`handleStartChat`).
+  5. `VisitorsScreen.js`: 프로필 방문자 카드에서 [1:1 대화] 액션 (`handleStartChat`).
+  6. `HotRecommendScreen.js`: 추천 인연 카드에서 [대화] 액션 (`handleQuickChat`).
+  7. `LiveScreen.js`: 호스트 [방송 시작하기] (`handleStartLive`) 및 시청자 방송 룸 터치 입장 (`handleEnterRoom`).
+  8. `FriendsScreen.js`: 친구 목록 카드에서 [1:1 대화] 액션 (`handleStartChat`).
+  9. `CommunityFeedScreen.js`: 피드 게시글 카드에서 작성자와 1:1 대화 (`handleStartChat`).
+  10. `GlobalProfileModal.js`: 전역 프로필 팝업 모달에서 [메시지 보내기] (`handleMessage`).
+
+---
 
 ## 2026-10-02 Checkpoint 33: 실시간 라이브 스트리밍 송출 아키텍처(Agora RTC vs CDN HLS) 관리자 선택/전환 시스템 구축 (완료)
 

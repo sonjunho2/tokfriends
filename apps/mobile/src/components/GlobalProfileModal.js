@@ -18,6 +18,7 @@ import { useProfileModal } from '../context/ProfileModalContext';
 import Avatar from './Avatar';
 import { useNavigation } from '@react-navigation/native';
 import { apiClient } from '../api/client';
+import { checkAndConfirmActionPoint } from '../utils/pointPolicyHelper';
 
 
 export default function GlobalProfileModal() {
@@ -51,9 +52,6 @@ export default function GlobalProfileModal() {
 
   const handleOpenMyPage = () => {
     closeProfile();
-    setTimeout(() => {
-      navigation.navigate('My', { screen: 'MyPageMain' });
-    }, 0);
   };
 
   const handleOpenSettings = () => {
@@ -63,7 +61,7 @@ export default function GlobalProfileModal() {
     }, 0);
   };
 
-  const handleMessage = async () => {
+  const handleMessage = () => {
     if (sending) return;
     const targetUserId =
       typeof profile?.targetUserId === 'string' ? profile.targetUserId.trim() : '';
@@ -77,33 +75,41 @@ export default function GlobalProfileModal() {
       Alert.alert('안내', '대화 상대 식별 정보가 올바르지 않습니다.');
       return;
     }
-    setSending(true);
-    try {
-      const room = await apiClient.ensureDirectRoom(
-        targetUserId ? { targetUserId } : { targetAccountId },
-      );
-      const roomId = room?.id || room?._id;
-      if (!roomId) {
-        throw new Error('채팅방 정보를 확인할 수 없습니다.');
-      }
-      const participant = {
-        ...(targetUserId ? { id: targetUserId, targetUserId } : { targetAccountId }),
-        name: profileData?.name,
-        avatar: profileData?.avatar,
-        headline: profileData?.title,
-      };
-      closeProfile();
-      setTimeout(() => {
-        navigation.navigate('Chat', {
-          screen: 'ChatRoom',
-          params: { id: roomId, room, user: participant },
-        });
-      }, 120);
-    } catch (error) {
-      Alert.alert('메시지 시작 실패', error?.message || '채팅방을 생성하지 못했습니다.');
-    } finally {
-      setSending(false);
-    }
+
+    checkAndConfirmActionPoint({
+      actionType: 'chatRoomCreate',
+      actionName: '1:1 대화방 개설',
+      navigation,
+      onConfirm: async () => {
+        setSending(true);
+        try {
+          const room = await apiClient.ensureDirectRoom(
+            targetUserId ? { targetUserId } : { targetAccountId },
+          );
+          const roomId = room?.id || room?._id;
+          if (!roomId) {
+            throw new Error('채팅방 정보를 확인할 수 없습니다.');
+          }
+          const participant = {
+            ...(targetUserId ? { id: targetUserId, targetUserId } : { targetAccountId }),
+            name: profileData?.name,
+            avatar: profileData?.avatar,
+            headline: profileData?.title,
+          };
+          closeProfile();
+          setTimeout(() => {
+            navigation.navigate('Chat', {
+              screen: 'ChatRoom',
+              params: { id: roomId, room, user: participant },
+            });
+          }, 120);
+        } catch (error) {
+          Alert.alert('메시지 시작 실패', error?.message || '채팅방을 생성하지 못했습니다.');
+        } finally {
+          setSending(false);
+        }
+      },
+    });
   };
 
   if (!visible || !profileData) return null;

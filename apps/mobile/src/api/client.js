@@ -798,8 +798,53 @@ export const apiClient = {
     }
   },
 
+  async getActionPointPolicy() {
+    const defaultPolicy = {
+      chatRoomCreate: { enabled: false, amount: 0 },
+      chatRoomJoin: { enabled: false, amount: 0 },
+      directMessageRequest: { enabled: false, amount: 0 },
+      liveRoomCreate: { enabled: false, amount: 0 },
+      liveRoomJoin: { enabled: false, amount: 0 },
+    };
+
+    if (USE_DUMMY_AUTH) {
+      return defaultPolicy;
+    }
+
+    try {
+      const { data } = await client.get('/store/action-points');
+      if (data) {
+        return {
+          chatRoomCreate: {
+            enabled: Boolean(data.chatRoomCreate?.enabled),
+            amount: Number(data.chatRoomCreate?.amount) || 0,
+          },
+          chatRoomJoin: {
+            enabled: Boolean(data.chatRoomJoin?.enabled),
+            amount: Number(data.chatRoomJoin?.amount) || 0,
+          },
+          directMessageRequest: {
+            enabled: Boolean(data.directMessageRequest?.enabled),
+            amount: Number(data.directMessageRequest?.amount) || 0,
+          },
+          liveRoomCreate: {
+            enabled: Boolean(data.liveRoomCreate?.enabled),
+            amount: Number(data.liveRoomCreate?.amount) || 0,
+          },
+          liveRoomJoin: {
+            enabled: Boolean(data.liveRoomJoin?.enabled),
+            amount: Number(data.liveRoomJoin?.amount) || 0,
+          },
+        };
+      }
+    } catch {
+      // fallback to default
+    }
+    return defaultPolicy;
+  },
+
   async getPointProducts() {
-        // In dummy mode, return a static set of products without network calls
+    // In dummy mode, return a static set of products without network calls
     if (USE_DUMMY_AUTH) {
       return [
         { id: 'points_100', productId: 'com.company.points.100', label: '100P', points: 100, price: 1900, priceText: '₩1,900' },

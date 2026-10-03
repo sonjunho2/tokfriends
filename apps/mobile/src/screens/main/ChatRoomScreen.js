@@ -355,7 +355,24 @@ export default function ChatRoomScreen({ route, navigation }) {
       }
     } catch (error) {
       if (historyRequestRef.current === requestId) {
-        setHistoryError(error?.message || '대화 내역을 불러오지 못했습니다.');
+        const errorMsg = error?.response?.data?.message || error?.message || '';
+        if (typeof errorMsg === 'string' && errorMsg.includes('포인트가 부족합니다')) {
+          Alert.alert(
+            '포인트 부족',
+            '1:1 채팅방 참여에 필요한 포인트가 부족합니다.\n\n포인트 상점으로 이동하시겠습니까?',
+            [
+              { text: '닫기', style: 'cancel', onPress: () => navigation.goBack() },
+              {
+                text: '충전하러 가기',
+                onPress: () => {
+                  navigation.goBack();
+                  navigation.navigate('Shop');
+                },
+              },
+            ]
+          );
+        }
+        setHistoryError(errorMsg || '대화 내역을 불러오지 못했습니다.');
       }
     } finally {
       if (historyRequestRef.current === requestId) {

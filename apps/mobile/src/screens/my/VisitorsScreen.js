@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
 
 function formatRelativeTime(dateString) {
   if (!dateString) return '';
@@ -78,25 +79,32 @@ export default function VisitorsScreen({ navigation }) {
   };
 
   const handleStartChat = async (item) => {
-    try {
-      const targetParams = item.userId
-        ? { targetUserId: item.userId }
-        : { targetAccountId: item.id };
-      const room = await apiClient.ensureDirectRoom(targetParams);
-      const roomId = room?.id || room?._id;
-      if (roomId) {
-        navigation.navigate('ChatRoom', {
-          chatId: roomId,
-          counterpart: {
-            id: item.userId || item.id,
-            name: item.displayName || '회원',
-            avatar: item.avatarUri,
-          },
-        });
-      }
-    } catch (e) {
-      Alert.alert('대화 시작 실패', e?.message || '대화방을 생성하지 못했습니다.');
-    }
+    checkAndConfirmActionPoint({
+      actionType: 'chatRoomCreate',
+      actionName: '1:1 채팅방 개설',
+      navigation,
+      onConfirm: async () => {
+        try {
+          const targetParams = item.userId
+            ? { targetUserId: item.userId }
+            : { targetAccountId: item.id };
+          const room = await apiClient.ensureDirectRoom(targetParams);
+          const roomId = room?.id || room?._id;
+          if (roomId) {
+            navigation.navigate('ChatRoom', {
+              chatId: roomId,
+              counterpart: {
+                id: item.userId || item.id,
+                name: item.displayName || '회원',
+                avatar: item.avatarUri,
+              },
+            });
+          }
+        } catch (e) {
+          Alert.alert('대화 시작 실패', e?.message || '대화방을 생성하지 못했습니다.');
+        }
+      },
+    });
   };
 
   const renderVisitorItem = ({ item }) => {

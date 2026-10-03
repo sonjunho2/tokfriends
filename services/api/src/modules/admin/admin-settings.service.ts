@@ -1,9 +1,10 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException, OnModuleInit, Logger } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException, OnModuleInit, Logger, BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
 import {
   CreateAdminTeamMemberDto,
   SaveAdminAuditMemoDto,
+  UpdateActionPointPolicyDto,
   UpdateAdminFeatureFlagDto,
   UpdateAdminIntegrationSettingDto,
   UpdateAdminTeamMemberDto,
@@ -16,6 +17,19 @@ export interface DefaultIntegrationSettingDef {
   id: string;
   label: string;
   placeholder?: string;
+}
+
+export interface ActionPointItem {
+  enabled: boolean;
+  amount: number;
+}
+
+export interface ActionPointPolicy {
+  chatRoomCreate: ActionPointItem;
+  chatRoomJoin: ActionPointItem;
+  directMessageRequest: ActionPointItem;
+  liveRoomCreate: ActionPointItem;
+  liveRoomJoin: ActionPointItem;
 }
 
 export const DEFAULT_INTEGRATION_SETTINGS: DefaultIntegrationSettingDef[] = [
@@ -54,6 +68,18 @@ export const DEFAULT_INTEGRATION_SETTINGS: DefaultIntegrationSettingDef[] = [
   { id: 'live_stream_mode', label: '라이브 스트리밍 송출 방식', placeholder: 'AGORA_RTC (초저지연 RTC) 또는 CDN_HLS (CDN 중계 HLS)' },
   { id: 'live_cdn_hls_url_pattern', label: 'CDN HLS 재생 URL 템플릿', placeholder: '예: https://live-cdn.dagaon.app/live/{roomId}/index.m3u8' },
   { id: 'live_cdn_rtmp_push_url', label: 'Agora Media Push RTMP 수신 주소', placeholder: '예: rtmp://live-push.dagaon.app/live/{roomId}' },
+
+  // 5. 액션별 포인트 소모 정책 (Action Point Policy)
+  { id: 'point_policy_chat_room_create_enabled', label: '1:1 채팅방 개설 포인트 소모 활성화 (true/false)', placeholder: 'false' },
+  { id: 'point_policy_chat_room_create_amount', label: '1:1 채팅방 개설 소모 포인트 (P)', placeholder: '0' },
+  { id: 'point_policy_chat_room_join_enabled', label: '1:1 채팅방 참여 포인트 소모 활성화 (true/false)', placeholder: 'false' },
+  { id: 'point_policy_chat_room_join_amount', label: '1:1 채팅방 참여 소모 포인트 (P)', placeholder: '0' },
+  { id: 'point_policy_direct_message_request_enabled', label: '1:1 대화/친구 신청 포인트 소모 활성화 (true/false)', placeholder: 'false' },
+  { id: 'point_policy_direct_message_request_amount', label: '1:1 대화/친구 신청 소모 포인트 (P)', placeholder: '0' },
+  { id: 'point_policy_live_room_create_enabled', label: '라이브 방송 개설 포인트 소모 활성화 (true/false)', placeholder: 'false' },
+  { id: 'point_policy_live_room_create_amount', label: '라이브 방송 개설 소모 포인트 (P)', placeholder: '0' },
+  { id: 'point_policy_live_room_join_enabled', label: '라이브 방송 입장/시청 포인트 소모 활성화 (true/false)', placeholder: 'false' },
+  { id: 'point_policy_live_room_join_amount', label: '라이브 방송 입장/시청 소모 포인트 (P)', placeholder: '0' },
 ];
 
 const adminProfileArgs = Prisma.validator<Prisma.AdminProfileDefaultArgs>()({
@@ -582,13 +608,239 @@ export class AdminSettingsService implements OnModuleInit {
     return this.getLiveStreamingConfig();
   }
 
+  async getActionPointPolicy(): Promise<ActionPointPolicy> {
+    const [
+      chatCreateEnabled,
+      chatCreateAmount,
+      chatJoinEnabled,
+      chatJoinAmount,
+      directMsgEnabled,
+      directMsgAmount,
+      liveCreateEnabled,
+      liveCreateAmount,
+      liveJoinEnabled,
+      liveJoinAmount,
+    ] = await Promise.all([
+      this.getDecryptedSetting('point_policy_chat_room_create_enabled'),
+      this.getDecryptedSetting('point_policy_chat_room_create_amount'),
+      this.getDecryptedSetting('point_policy_chat_room_join_enabled'),
+      this.getDecryptedSetting('point_policy_chat_room_join_amount'),
+      this.getDecryptedSetting('point_policy_direct_message_request_enabled'),
+      this.getDecryptedSetting('point_policy_direct_message_request_amount'),
+      this.getDecryptedSetting('point_policy_live_room_create_enabled'),
+      this.getDecryptedSetting('point_policy_live_room_create_amount'),
+      this.getDecryptedSetting('point_policy_live_room_join_enabled'),
+      this.getDecryptedSetting('point_policy_live_room_join_amount'),
+    ]);
+
+    return {
+      chatRoomCreate: {
+        enabled: chatCreateEnabled === 'true',
+        amount: Math.max(0, parseInt(chatCreateAmount || '0', 10) || 0),
+      },
+      chatRoomJoin: {
+        enabled: chatJoinEnabled === 'true',
+        amount: Math.max(0, parseInt(chatJoinAmount || '0', 10) || 0),
+      },
+      directMessageRequest: {
+        enabled: directMsgEnabled === 'true',
+        amount: Math.max(0, parseInt(directMsgAmount || '0', 10) || 0),
+      },
+      liveRoomCreate: {
+        enabled: liveCreateEnabled === 'true',
+        amount: Math.max(0, parseInt(liveCreateAmount || '0', 10) || 0),
+      },
+      liveRoomJoin: {
+        enabled: liveJoinEnabled === 'true',
+        amount: Math.max(0, parseInt(liveJoinAmount || '0', 10) || 0),
+      },
+    };
+  }
+
+  async updateActionPointPolicy(
+    actorId: string,
+    dto: UpdateActionPointPolicyDto,
+  ): Promise<ActionPointPolicy> {
+    await this.requireSettingsActor(actorId);
+
+    if (dto.chatRoomCreate) {
+      if (dto.chatRoomCreate.enabled !== undefined) {
+        await this.updateIntegrationSetting(
+          actorId,
+          'point_policy_chat_room_create_enabled',
+          { value: String(Boolean(dto.chatRoomCreate.enabled)) },
+        );
+      }
+      if (dto.chatRoomCreate.amount !== undefined) {
+        await this.updateIntegrationSetting(
+          actorId,
+          'point_policy_chat_room_create_amount',
+          { value: String(Math.max(0, Math.floor(dto.chatRoomCreate.amount))) },
+        );
+      }
+    }
+
+    if (dto.chatRoomJoin) {
+      if (dto.chatRoomJoin.enabled !== undefined) {
+        await this.updateIntegrationSetting(
+          actorId,
+          'point_policy_chat_room_join_enabled',
+          { value: String(Boolean(dto.chatRoomJoin.enabled)) },
+        );
+      }
+      if (dto.chatRoomJoin.amount !== undefined) {
+        await this.updateIntegrationSetting(
+          actorId,
+          'point_policy_chat_room_join_amount',
+          { value: String(Math.max(0, Math.floor(dto.chatRoomJoin.amount))) },
+        );
+      }
+    }
+
+    if (dto.directMessageRequest) {
+      if (dto.directMessageRequest.enabled !== undefined) {
+        await this.updateIntegrationSetting(
+          actorId,
+          'point_policy_direct_message_request_enabled',
+          { value: String(Boolean(dto.directMessageRequest.enabled)) },
+        );
+      }
+      if (dto.directMessageRequest.amount !== undefined) {
+        await this.updateIntegrationSetting(
+          actorId,
+          'point_policy_direct_message_request_amount',
+          { value: String(Math.max(0, Math.floor(dto.directMessageRequest.amount))) },
+        );
+      }
+    }
+
+    if (dto.liveRoomCreate) {
+      if (dto.liveRoomCreate.enabled !== undefined) {
+        await this.updateIntegrationSetting(
+          actorId,
+          'point_policy_live_room_create_enabled',
+          { value: String(Boolean(dto.liveRoomCreate.enabled)) },
+        );
+      }
+      if (dto.liveRoomCreate.amount !== undefined) {
+        await this.updateIntegrationSetting(
+          actorId,
+          'point_policy_live_room_create_amount',
+          { value: String(Math.max(0, Math.floor(dto.liveRoomCreate.amount))) },
+        );
+      }
+    }
+
+    if (dto.liveRoomJoin) {
+      if (dto.liveRoomJoin.enabled !== undefined) {
+        await this.updateIntegrationSetting(
+          actorId,
+          'point_policy_live_room_join_enabled',
+          { value: String(Boolean(dto.liveRoomJoin.enabled)) },
+        );
+      }
+      if (dto.liveRoomJoin.amount !== undefined) {
+        await this.updateIntegrationSetting(
+          actorId,
+          'point_policy_live_room_join_amount',
+          { value: String(Math.max(0, Math.floor(dto.liveRoomJoin.amount))) },
+        );
+      }
+    }
+
+    return this.getActionPointPolicy();
+  }
+
+  /**
+   * 유저의 포인트를 원자적으로 차감하고 지갑 및 원장에 기록합니다.
+   * 잔여 포인트가 부족하면 BadRequestException을 발생시킵니다.
+   */
+  async deductUserPoints(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    points: number,
+    source: string,
+    idempotencyKey: string,
+    metadata?: any,
+  ): Promise<{ remainingBalance: number }> {
+    if (points <= 0) {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { pointsBalance: true },
+      });
+      return { remainingBalance: user?.pointsBalance ?? 0 };
+    }
+
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { pointsBalance: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    if (user.pointsBalance < points) {
+      throw new BadRequestException(
+        `포인트가 부족합니다. (필요: ${points}P, 보유: ${user.pointsBalance}P)`,
+      );
+    }
+
+    // User 포인트 차감
+    const updatedUser = await tx.user.update({
+      where: { id: userId },
+      data: { pointsBalance: { decrement: points } },
+      select: { pointsBalance: true },
+    });
+
+    // ActivityAccount & Wallet 동기화
+    const activityAccount = await tx.activityAccount.findFirst({
+      where: { legacyUserId: userId, status: 'active' },
+      include: { wallet: true },
+    });
+
+    if (activityAccount?.wallet) {
+      const newSpendable = Math.max(0, activityAccount.wallet.spendableBalance - points);
+      await tx.wallet.update({
+        where: { id: activityAccount.wallet.id },
+        data: { spendableBalance: newSpendable },
+      });
+
+      // 이미 같은 idempotencyKey가 존재하는지 확인 (중복 차감 방지)
+      const existingLedger = await tx.walletLedgerEntry.findUnique({
+        where: { idempotencyKey },
+      });
+
+      if (!existingLedger) {
+        await tx.walletLedgerEntry.create({
+          data: {
+            walletId: activityAccount.wallet.id,
+            kind: 'debit',
+            source,
+            deltaSpendable: -points,
+            deltaRedeemable: 0,
+            deltaPending: 0,
+            spendableAfter: newSpendable,
+            redeemableAfter: activityAccount.wallet.redeemableBalance,
+            pendingAfter: activityAccount.wallet.pendingEarnings,
+            idempotencyKey,
+            referenceType: 'action_point',
+            metadata: metadata ? metadata : { points, source },
+          },
+        });
+      }
+    }
+
+    return { remainingBalance: updatedUser.pointsBalance };
+  }
+
   async getSnapshot(actorId: string) {
     await this.requireSettingsActor(actorId);
 
     // 누락된 기본 설정 항목이 있으면 자동 보충
     await this.ensureDefaultIntegrationSettings();
 
-    const [profiles, featureFlags, integrations, settingsState] =
+    const [profiles, featureFlags, integrations, settingsState, actionPointPolicy] =
       await Promise.all([
         this.prisma.adminProfile.findMany({
           include: adminProfileArgs.include,
@@ -603,6 +855,7 @@ export class AdminSettingsService implements OnModuleInit {
         this.prisma.adminSettingsState.findUnique({
           where: { id: 'default' },
         }),
+        this.getActionPointPolicy(),
       ]);
 
     const maskedValue = '********';
@@ -617,6 +870,7 @@ export class AdminSettingsService implements OnModuleInit {
         value: setting.encryptedValue ? maskedValue : '',
       })),
       auditMemo: settingsState?.auditMemo ?? '',
+      actionPointPolicy,
     };
   }
 }

@@ -19,6 +19,7 @@ import UserListItem from '../../components/UserListItem';
 import SegmentBar from '../../components/SegmentBar';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
 
 const SUPPORTED_SEGMENTS = [
   '전체',
@@ -273,20 +274,27 @@ export default function HotRecommendScreen({ navigation, route }) {
   };
 
   const handleQuickChat = async (item) => {
-    const targetAccountId = item.targetAccountId || `acc_${item.id}`;
-    let chatId = `chat_${item.id}`;
-    try {
-      const room = await apiClient.ensureDirectRoom(targetAccountId);
-      if (room?.id) chatId = room.id;
-    } catch (e) {
-      // fallback
-    }
+    checkAndConfirmActionPoint({
+      actionType: 'chatRoomCreate',
+      actionName: '1:1 채팅방 개설',
+      navigation,
+      onConfirm: async () => {
+        const targetAccountId = item.targetAccountId || `acc_${item.id}`;
+        let chatId = `chat_${item.id}`;
+        try {
+          const room = await apiClient.ensureDirectRoom(targetAccountId);
+          if (room?.id) chatId = room.id;
+        } catch {
+          // fallback
+        }
 
-    navigation.navigate('ChatRoom', {
-      chatId,
-      counterpartAccountId: targetAccountId,
-      counterpartNickname: item.name,
-      counterpartAvatar: item.avatar,
+        navigation.navigate('ChatRoom', {
+          chatId,
+          counterpartAccountId: targetAccountId,
+          counterpartNickname: item.name,
+          counterpartAvatar: item.avatar,
+        });
+      },
     });
   };
 

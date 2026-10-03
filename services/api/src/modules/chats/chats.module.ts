@@ -5,9 +5,10 @@ import { PrismaService } from 'nestjs-prisma';
 import { ChatRealtimePublisher } from './chat-realtime-publisher.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { GiftsModule } from '../gifts/gifts.module';
+import { AdminModule } from '../admin/admin.module';
 
 @Module({
-  imports: [NotificationsModule, GiftsModule],
+  imports: [NotificationsModule, GiftsModule, AdminModule],
   providers: [ChatsService, PrismaService, ChatRealtimePublisher],
   controllers: [ChatsController],
   exports: [ChatsService, ChatRealtimePublisher],

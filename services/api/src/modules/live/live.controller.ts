@@ -88,8 +88,10 @@ export class LiveController {
   async joinRoom(
     @Param('id') roomId: string,
     @Query('viewerKey') viewerKey?: string,
+    @CurrentUser() user?: any,
   ) {
-    const data = await this.liveService.joinRoom(roomId, viewerKey);
+    const userId = user?.id ?? user?.sub;
+    const data = await this.liveService.joinRoom(roomId, viewerKey, userId);
     return {
       ok: true,
       data,

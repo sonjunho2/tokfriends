@@ -23,6 +23,7 @@ import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
 
 function formatTimeAgo(dateString) {
   if (!dateString) return '';
@@ -439,32 +440,39 @@ export default function CommunityFeedScreen({ navigation, route }) {
     ]);
   }, [activePost]);
 
-  const handleStartChat = async (author) => {
+  const handleStartChat = (author) => {
     if (!author) return;
-    try {
-      const room = await apiClient.ensureDirectRoom(
-        author.id ? { targetUserId: author.id } : { targetAccountId: author.targetAccountId },
-      );
-      const roomId = room?.id || room?._id;
-      if (!roomId) throw new Error('대화방을 생성할 수 없습니다.');
+    checkAndConfirmActionPoint({
+      actionType: 'chatRoomCreate',
+      actionName: '1:1 대화방 개설',
+      navigation,
+      onConfirm: async () => {
+        try {
+          const room = await apiClient.ensureDirectRoom(
+            author.id ? { targetUserId: author.id } : { targetAccountId: author.targetAccountId },
+          );
+          const roomId = room?.id || room?._id;
+          if (!roomId) throw new Error('대화방을 생성할 수 없습니다.');
 
-      navigation.navigate('Chat', {
-        screen: 'ChatRoom',
-        params: {
-          id: roomId,
-          room,
-          user: {
-            id: author.id,
-            targetAccountId: author.targetAccountId,
-            name: author.name,
-            avatar: author.avatar,
-            headline: author.headline,
-          },
-        },
-      });
-    } catch (e) {
-      Alert.alert('대화 시작 실패', e?.message || '대화방 연결에 실패했습니다.');
-    }
+          navigation.navigate('Chat', {
+            screen: 'ChatRoom',
+            params: {
+              id: roomId,
+              room,
+              user: {
+                id: author.id,
+                targetAccountId: author.targetAccountId,
+                name: author.name,
+                avatar: author.avatar,
+                headline: author.headline,
+              },
+            },
+          });
+        } catch (e) {
+          Alert.alert('대화 시작 실패', e?.message || '대화방 연결에 실패했습니다.');
+        }
+      },
+    });
   };
 
   const renderPostItem = ({ item }) => {

@@ -8,6 +8,7 @@ import {
   CreateRefundDto,
   SaveAdminAuditMemoDto,
   SetUserRoleDto,
+  UpdateActionPointPolicyDto,
   UpdateAdminFeatureFlagDto,
   UpdateAdminIntegrationSettingDto,
   UpdateAdminTeamMemberDto,
@@ -105,6 +106,20 @@ export class AdminController {
   ) {
     const actorId = user?.id ?? user?.sub;
     return this.adminSettings.saveAuditMemo(actorId, dto);
+  }
+
+  @Get('settings/action-points')
+  async getActionPointPolicy() {
+    return this.adminSettings.getActionPointPolicy();
+  }
+
+  @Patch('settings/action-points')
+  async updateActionPointPolicy(
+    @CurrentUser() user: any,
+    @Body() dto: UpdateActionPointPolicyDto,
+  ) {
+    const actorId = user?.id ?? user?.sub;
+    return this.adminSettings.updateActionPointPolicy(actorId, dto);
   }
   @AdminPermissions('users.manage')
   @Patch('users/:id/role')

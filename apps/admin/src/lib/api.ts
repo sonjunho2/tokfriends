@@ -1319,11 +1319,25 @@ export interface AdminIntegrationSetting {
   [key: string]: unknown
 }
 
+export interface ActionPointItem {
+  enabled: boolean
+  amount: number
+}
+
+export interface ActionPointPolicy {
+  chatRoomCreate: ActionPointItem
+  chatRoomJoin: ActionPointItem
+  directMessageRequest: ActionPointItem
+  liveRoomCreate: ActionPointItem
+  liveRoomJoin: ActionPointItem
+}
+
 export interface AdminSettingsSnapshot {
   members: AdminTeamMember[]
   featureFlags: AdminFeatureFlag[]
   integrations: AdminIntegrationSetting[]
   auditMemo?: string
+  actionPointPolicy?: ActionPointPolicy
   [key: string]: unknown
 }
 
@@ -1373,11 +1387,36 @@ function normalizeAdminSettings(payload: unknown): AdminSettingsSnapshot {
     }
   })
 
+  const rawPolicy = (raw.actionPointPolicy as Record<string, any>) ?? {}
+  const actionPointPolicy: ActionPointPolicy = {
+    chatRoomCreate: {
+      enabled: Boolean(rawPolicy.chatRoomCreate?.enabled),
+      amount: Number(rawPolicy.chatRoomCreate?.amount) || 0,
+    },
+    chatRoomJoin: {
+      enabled: Boolean(rawPolicy.chatRoomJoin?.enabled),
+      amount: Number(rawPolicy.chatRoomJoin?.amount) || 0,
+    },
+    directMessageRequest: {
+      enabled: Boolean(rawPolicy.directMessageRequest?.enabled),
+      amount: Number(rawPolicy.directMessageRequest?.amount) || 0,
+    },
+    liveRoomCreate: {
+      enabled: Boolean(rawPolicy.liveRoomCreate?.enabled),
+      amount: Number(rawPolicy.liveRoomCreate?.amount) || 0,
+    },
+    liveRoomJoin: {
+      enabled: Boolean(rawPolicy.liveRoomJoin?.enabled),
+      amount: Number(rawPolicy.liveRoomJoin?.amount) || 0,
+    },
+  }
+
   return {
     members,
     featureFlags,
     integrations,
     auditMemo: typeof raw.auditMemo === 'string' ? raw.auditMemo : (raw.audit_log as string | undefined),
+    actionPointPolicy,
   }
 }
 
@@ -1391,6 +1430,16 @@ const EMPTY_ADMIN_SETTINGS: AdminSettingsSnapshot = {
 export async function getAdminSettingsSnapshot(params: Record<string, unknown> = {}) {
   const response = await api.get('/admin/settings/snapshot', { params })
   return normalizeAdminSettings(response.data)
+}
+
+export async function getActionPointPolicy(): Promise<ActionPointPolicy> {
+  const response = await api.get('/admin/settings/action-points')
+  return response.data
+}
+
+export async function updateActionPointPolicy(payload: Partial<ActionPointPolicy>): Promise<ActionPointPolicy> {
+  const response = await api.patch('/admin/settings/action-points', payload)
+  return response.data
 }
 
 export async function createAdminTeamMember(payload: Record<string, unknown>) {

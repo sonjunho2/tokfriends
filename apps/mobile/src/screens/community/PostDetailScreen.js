@@ -22,6 +22,7 @@ import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
 
 function formatTimeAgo(dateString) {
   if (!dateString) return '';
@@ -185,24 +186,31 @@ export default function PostDetailScreen({ navigation, route }) {
   // 1:1 Chat with Post Author
   const handleStartChat = async (author) => {
     if (!author?.id) return;
-    try {
-      const room = await apiClient.ensureDirectRoom(author.id);
-      navigation.navigate('ChatRoom', {
-        chatId: room?.id || `room-${author.id}`,
-        room: {
-          id: room?.id || `room-${author.id}`,
-          counterpart: {
-            id: author.id,
-            targetAccountId: author.targetAccountId,
-            name: author.name,
-            avatar: author.avatar,
-            headline: author.headline,
-          },
-        },
-      });
-    } catch (e) {
-      Alert.alert('대화 시작 실패', e?.message || '대화방을 연결할 수 없습니다.');
-    }
+    checkAndConfirmActionPoint({
+      actionType: 'chatRoomCreate',
+      actionName: '1:1 채팅방 개설',
+      navigation,
+      onConfirm: async () => {
+        try {
+          const room = await apiClient.ensureDirectRoom(author.id);
+          navigation.navigate('ChatRoom', {
+            chatId: room?.id || `room-${author.id}`,
+            room: {
+              id: room?.id || `room-${author.id}`,
+              counterpart: {
+                id: author.id,
+                targetAccountId: author.targetAccountId,
+                name: author.name,
+                avatar: author.avatar,
+                headline: author.headline,
+              },
+            },
+          });
+        } catch (e) {
+          Alert.alert('대화 시작 실패', e?.message || '대화방을 연결할 수 없습니다.');
+        }
+      },
+    });
   };
 
   // Open Author Profile
