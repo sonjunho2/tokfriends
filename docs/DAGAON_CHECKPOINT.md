@@ -4,7 +4,43 @@ Updated: 2026-10-03
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-03 Checkpoint 35: 시스템 전체 건강 검진 및 수정 (완료)
+
+### 1. 기능 개요
+- **목적**: 전체 모노레포(API, DB, Admin Web, Mobile)에 대한 건강 검진을 수행하고, 발견된 이슈를 수정.
+
+### 2. DB — 미적용 마이그레이션 적용 (`services/api`)
+- `20261001024500_add_post_likes_and_media` 마이그레이션 운영 DB에 배포 완료.
+  - `PostLike` 테이블 및 `Post.mediaUrls` 컬럼 DB 반영 (게시글 좋아요 기능 활성화).
+- `npx prisma migrate deploy` 실행, 21개 마이그레이션 전체 적용 완료.
+
+### 3. Admin Web — Next.js 보안 업그레이드 및 lint 수정 (`apps/admin`)
+- **Next.js 14.0.0 → 14.2.35** 패치 버전 업그레이드 (다수의 CVE 해결).
+- `eslint-config-next` 버전을 `14.0.0 → 14.2.35`로 일치 업데이트.
+- `browserslist` caniuse-lite 데이터베이스 최신화 (1.0.30001814).
+- `reports-safety/page.tsx` L416 — `<img>` 태그 ESLint 경고 suppress 처리.
+
+### 4. Mobile — Expo SDK 패치 버전 업데이트 (`apps/mobile`)
+- 6개 Expo 패키지 최신 패치 버전으로 업데이트:
+  - `expo`: 57.0.22 → 57.0.26
+  - `expo-asset`: 57.0.17 → 57.0.18
+  - `expo-constants`: 57.0.18 → 57.0.20
+  - `expo-image-picker`: 57.0.17 → 57.0.20
+  - `expo-linking`: 57.0.10 → 57.0.11
+  - `expo-video`: 57.0.4 → 57.0.5
+- `expo-doctor` 21/21 체크 전체 통과 확인.
+- `npm audit fix` 실행 — breaking change 없는 항목 해소.
+
+### 5. 잔여 항목 (향후 처리)
+- Admin `next@15` 이상 major upgrade — TailwindCSS v4 병행 마이그레이션 필요.
+- Mobile `braces` / `http-cache-semantics` — Expo SDK 자체 간접 의존성으로 Expo가 공식 업데이트해야 해결됨.
+
+### 6. 커밋 정보
+- `b7e680b`: fix: health check fixes - suppress admin lint warning, update expo SDK patch deps [Checkpoint 35]
+- `(현재)`: fix: system health remediation - migrate DB, upgrade Next.js, update eslint-config-next [Checkpoint 35 cont.]
+
 ## 2026-10-03 Checkpoint 34: 5대 핵심 액션(1:1 채팅방 개설/참여, 1:1 대화/친구 신청, 라이브 방송 개설/참여) 포인트 소모 정책 & 관리자 제어 시스템 및 클라이언트 사전 승인 확인창 구축 (완료)
+
 
 ### 1. 기능 개요 및 도입 배경
 - **목적**:
