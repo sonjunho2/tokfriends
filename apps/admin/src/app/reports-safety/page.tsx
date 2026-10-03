@@ -413,6 +413,7 @@ export default function ReportsSafetyPage() {
                                 rel="noreferrer"
                                 className="block relative rounded border overflow-hidden hover:opacity-80 transition"
                               >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                   src={url}
                                   alt="첨부 사진"
