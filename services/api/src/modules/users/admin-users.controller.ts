@@ -122,6 +122,8 @@ export class AdminUsersController {
           createdAt: true,
           updatedAt: true,
           trustScore: true,
+          streamerTier: true,
+          customExchangeRate: true,
           provider: true,
           region1: true,
           region2: true,
@@ -145,6 +147,8 @@ export class AdminUsersController {
       displayName: row.displayName,
       nickname: row.profile?.nickname ?? row.displayName ?? null,
       status: row.status,
+      streamerTier: row.streamerTier,
+      customExchangeRate: row.customExchangeRate,
       provider: row.provider,
       createdAt: row.createdAt,
       lastActiveAt: row.updatedAt,
@@ -194,6 +198,9 @@ export class AdminUsersController {
         region2: true,
         trustScore: true,
         lang: true,
+        streamerTier: true,
+        customExchangeRate: true,
+        contractMemo: true,
         profile: {
           select: {
             nickname: true,
@@ -242,6 +249,9 @@ export class AdminUsersController {
         email: user.email,
         displayName: user.displayName,
         status: user.status,
+        streamerTier: user.streamerTier,
+        customExchangeRate: user.customExchangeRate,
+        contractMemo: user.contractMemo,
         provider: user.provider,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
@@ -389,6 +399,22 @@ export class AdminUsersController {
     const trustScore = this.resolveRiskScore(body.riskLevel);
     if (trustScore !== undefined) {
       userUpdate.trustScore = trustScore;
+    }
+
+    if (body.streamerTier !== undefined && ['ROOKIE', 'BEST', 'PARTNER'].includes(body.streamerTier)) {
+      userUpdate.streamerTier = body.streamerTier as any;
+    }
+
+    if (body.customExchangeRate !== undefined) {
+      userUpdate.customExchangeRate =
+        body.customExchangeRate === null || isNaN(Number(body.customExchangeRate))
+          ? null
+          : Math.max(1, Math.min(100, Math.round(Number(body.customExchangeRate))));
+    }
+
+    if (body.contractMemo !== undefined) {
+      userUpdate.contractMemo =
+        typeof body.contractMemo === 'string' ? body.contractMemo.trim() : null;
     }
 
     if (Object.keys(profileUpdate).length > 0) {

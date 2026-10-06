@@ -185,6 +185,7 @@ export class AdminController {
       recentPurchases,
       pendingSettlementsCount,
       pendingSettlementsSum,
+      approvedSettlementsSum,
     ] = await Promise.all([
       this.prisma.pointPurchase.count(),
       this.prisma.pointPurchase.aggregate({ _sum: { points: true } }),
@@ -211,6 +212,10 @@ export class AdminController {
         where: { status: 'PENDING' },
         _sum: { pointsAmount: true, netAmount: true },
       }),
+      this.prisma.settlementRequest.aggregate({
+        where: { status: 'APPROVED' },
+        _sum: { platformFeeKrw: true, krwAmount: true, netAmount: true },
+      }),
     ]);
 
     return {
@@ -222,6 +227,7 @@ export class AdminController {
         pendingSettlementsCount,
         pendingSettlementsPoints: pendingSettlementsSum._sum.pointsAmount ?? 0,
         pendingSettlementsNetAmount: pendingSettlementsSum._sum.netAmount ?? 0,
+        totalPlatformRevenueKrw: approvedSettlementsSum._sum.platformFeeKrw ?? 0,
         totalWallets: walletsStats._count.id,
         totalSpendableBalance: walletsStats._sum.spendableBalance ?? 0,
         totalRedeemableBalance: walletsStats._sum.redeemableBalance ?? 0,

@@ -173,10 +173,15 @@ export interface UserSummary {
   [key: string]: unknown
 }
 
+export type StreamerTier = 'ROOKIE' | 'BEST' | 'PARTNER'
+
 export type UserDetail = UserSummary & {
   profile?: unknown
   memo?: string
   marketingOptIn?: boolean
+  streamerTier?: StreamerTier
+  customExchangeRate?: number | null
+  contractMemo?: string | null
   [key: string]: unknown
 }
 
@@ -1738,6 +1743,7 @@ export interface SettlementSummary {
   pendingSettlementsCount?: number
   pendingSettlementsPoints?: number
   pendingSettlementsNetAmount?: number
+  totalPlatformRevenueKrw?: number
   totalWallets: number
   totalSpendableBalance: number
   totalRedeemableBalance: number
@@ -1752,6 +1758,9 @@ export interface SettlementRequestItem {
   krwAmount: number
   taxAmount: number
   netAmount: number
+  exchangeRate?: number
+  tier?: 'ROOKIE' | 'BEST' | 'PARTNER'
+  platformFeeKrw?: number
   bankName: string
   accountNumber: string
   accountHolder: string
@@ -1768,6 +1777,16 @@ export interface SettlementRequestItem {
     handle?: string | null
     ownerId?: string | null
     legacyUserId?: string | null
+    owner?: {
+      id: string
+      legacyUser?: {
+        id: string
+        email?: string | null
+        displayName?: string | null
+        streamerTier?: 'ROOKIE' | 'BEST' | 'PARTNER'
+        customExchangeRate?: number | null
+      } | null
+    } | null
   } | null
   processedBy?: {
     id: string

@@ -365,14 +365,14 @@ export default function SettlementPage() {
       </div>
 
       {/* Summary KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardContent className="pt-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">총 결제 포인트 (건수)</p>
+                <p className="text-xs text-muted-foreground">총 결제 온(ON) / 건수</p>
                 <p className="text-2xl font-bold mt-1">
-                  {summaryLoading ? '—' : `${summary?.totalPointsPurchased.toLocaleString()}P`}
+                  {summaryLoading ? '—' : `${summary?.totalPointsPurchased.toLocaleString()} 온`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   총 {summary?.totalPurchasesCount.toLocaleString() ?? 0}건 결제
@@ -402,9 +402,9 @@ export default function SettlementPage() {
           <CardContent className="pt-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">사용자 보유 포인트 총합</p>
+                <p className="text-xs text-muted-foreground">사용자 보유 온(ON) 총합</p>
                 <p className="text-2xl font-bold mt-1">
-                  {summaryLoading ? '—' : `${summary?.totalSpendableBalance.toLocaleString()}P`}
+                  {summaryLoading ? '—' : `${summary?.totalSpendableBalance.toLocaleString()} 온`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   활성 지갑 {summary?.totalWallets.toLocaleString() ?? 0}개
@@ -421,10 +421,10 @@ export default function SettlementPage() {
               <div>
                 <p className="text-xs text-muted-foreground">출금 가능 잔액 / 대기액</p>
                 <p className="text-2xl font-bold mt-1 text-emerald-600">
-                  {summaryLoading ? '—' : `${summary?.totalRedeemableBalance.toLocaleString()}P`}
+                  {summaryLoading ? '—' : `${summary?.totalRedeemableBalance.toLocaleString()} 온`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  정산 대기 {summary?.totalPendingEarnings.toLocaleString() ?? 0}P
+                  정산 대기 {summary?.totalPendingEarnings.toLocaleString() ?? 0} 온
                   {(summary?.pendingSettlementsCount ?? 0) > 0 && (
                     <span className="ml-1.5 font-semibold text-amber-600">
                       ({summary?.pendingSettlementsCount}건 대기)
@@ -433,6 +433,21 @@ export default function SettlementPage() {
                 </p>
               </div>
               <CreditCard className="h-8 w-8 text-emerald-500 opacity-80" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-indigo-100 bg-indigo-50/20">
+          <CardContent className="pt-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-indigo-700">회사 누적 수수료 수익</p>
+                <p className="text-2xl font-bold mt-1 text-indigo-900">
+                  {summaryLoading ? '—' : `${(summary?.totalPlatformRevenueKrw ?? 0).toLocaleString()}원`}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">승인 정산 플랫폼 마진</p>
+              </div>
+              <Building className="h-8 w-8 text-indigo-600 opacity-80" />
             </div>
           </CardContent>
         </Card>
@@ -526,9 +541,11 @@ export default function SettlementPage() {
                     <thead>
                       <tr className="border-b text-left text-muted-foreground">
                         <th className="p-2.5 font-medium">신청일시 / ID</th>
-                        <th className="p-2.5 font-medium">크리에이터</th>
+                        <th className="p-2.5 font-medium">호스트 / 등급</th>
                         <th className="p-2.5 font-medium">입금 계좌 정보</th>
-                        <th className="p-2.5 font-medium text-right">신청 포인트</th>
+                        <th className="p-2.5 font-medium text-right">신청 온(ON)</th>
+                        <th className="p-2.5 font-medium text-right">적용 단가</th>
+                        <th className="p-2.5 font-medium text-right">회사 수수료</th>
                         <th className="p-2.5 font-medium text-right">세금(3.3%)</th>
                         <th className="p-2.5 font-medium text-right">실지급액(KRW)</th>
                         <th className="p-2.5 font-medium text-center">상태</th>
@@ -543,6 +560,10 @@ export default function SettlementPage() {
                           text: 'text-slate-700',
                           label: item.status,
                         }
+                        const tier = item.tier || item.activityAccount?.owner?.legacyUser?.streamerTier || 'ROOKIE'
+                        const effectiveRate = item.exchangeRate ?? (tier === 'PARTNER' ? 80 : tier === 'BEST' ? 70 : 60)
+                        const platformFee = item.platformFeeKrw != null ? item.platformFeeKrw : Math.max(0, (item.pointsAmount * 100) - item.krwAmount)
+
                         return (
                           <tr key={item.id} className="hover:bg-muted/30">
                             <td className="p-2.5">
@@ -557,8 +578,21 @@ export default function SettlementPage() {
                               </p>
                             </td>
                             <td className="p-2.5">
-                              <div className="font-medium text-foreground">
-                                {item.activityAccount?.displayName ?? '미지정'}
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium text-foreground">
+                                  {item.activityAccount?.displayName ?? '미지정'}
+                                </span>
+                                <span
+                                  className={`inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold ${
+                                    tier === 'PARTNER'
+                                      ? 'bg-purple-100 text-purple-700'
+                                      : tier === 'BEST'
+                                      ? 'bg-blue-100 text-blue-700'
+                                      : 'bg-emerald-100 text-emerald-700'
+                                  }`}
+                                >
+                                  {tier === 'PARTNER' ? '파트너' : tier === 'BEST' ? '베스트' : '루키'}
+                                </span>
                               </div>
                               <div className="text-[10px] text-muted-foreground">
                                 @{item.activityAccount?.handle ?? item.activityAccountId.slice(0, 8)}
@@ -577,7 +611,13 @@ export default function SettlementPage() {
                               </div>
                             </td>
                             <td className="p-2.5 text-right font-medium text-foreground">
-                              {item.pointsAmount.toLocaleString()}P
+                              {item.pointsAmount.toLocaleString()} 온
+                            </td>
+                            <td className="p-2.5 text-right font-semibold text-foreground">
+                              {effectiveRate}원/온
+                            </td>
+                            <td className="p-2.5 text-right font-semibold text-indigo-600">
+                              +{platformFee.toLocaleString()}원
                             </td>
                             <td className="p-2.5 text-right text-rose-600 font-medium">
                               -{item.taxAmount.toLocaleString()}원
@@ -1044,11 +1084,20 @@ export default function SettlementPage() {
           {selectedRequestForApprove && (
             <div className="space-y-3 py-2 text-xs">
               <div className="rounded-lg border bg-muted/40 p-3 space-y-1.5">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">크리에이터:</span>
-                  <span className="font-semibold text-foreground">
-                    {selectedRequestForApprove.activityAccount?.displayName ?? '미지정'}
-                  </span>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">호스트 / 등급:</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-semibold text-foreground">
+                      {selectedRequestForApprove.activityAccount?.displayName ?? '미지정'}
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-indigo-100 text-indigo-700">
+                      {selectedRequestForApprove.tier === 'PARTNER'
+                        ? '파트너'
+                        : selectedRequestForApprove.tier === 'BEST'
+                        ? '베스트'
+                        : '루키'}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">입금 은행:</span>
@@ -1063,8 +1112,21 @@ export default function SettlementPage() {
                   <span className="font-semibold text-foreground">{selectedRequestForApprove.accountHolder}</span>
                 </div>
                 <div className="border-t pt-1.5 flex justify-between">
-                  <span className="text-muted-foreground">신청 포인트:</span>
-                  <span className="font-medium text-foreground">{selectedRequestForApprove.pointsAmount.toLocaleString()}P</span>
+                  <span className="text-muted-foreground">신청 수량:</span>
+                  <span className="font-medium text-foreground">{selectedRequestForApprove.pointsAmount.toLocaleString()} 온</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">적용 환전 단가:</span>
+                  <span className="font-semibold text-foreground">{selectedRequestForApprove.exchangeRate ?? 60}원/온</span>
+                </div>
+                <div className="flex justify-between text-indigo-700 font-medium">
+                  <span>플랫폼 수수료 (회사 수익):</span>
+                  <span>
+                    +{(selectedRequestForApprove.platformFeeKrw != null
+                      ? selectedRequestForApprove.platformFeeKrw
+                      : Math.max(0, (selectedRequestForApprove.pointsAmount * 100) - selectedRequestForApprove.krwAmount)
+                    ).toLocaleString()}원
+                  </span>
                 </div>
                 <div className="flex justify-between text-rose-600">
                   <span>원천징수세(3.3%):</span>

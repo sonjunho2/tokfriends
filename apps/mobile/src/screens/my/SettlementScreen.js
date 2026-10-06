@@ -44,6 +44,8 @@ export default function SettlementScreen({ navigation }) {
     spendableBalance: 0,
     minSettlementPoints: 10000,
     taxRatePercent: 3.3,
+    exchangeRate: 60,
+    streamerTier: 'ROOKIE',
     recentRequests: [],
   });
 
@@ -68,6 +70,8 @@ export default function SettlementScreen({ navigation }) {
           spendableBalance: data.spendableBalance ?? 0,
           minSettlementPoints: data.minSettlementPoints ?? 10000,
           taxRatePercent: data.taxRatePercent ?? 3.3,
+          exchangeRate: data.exchangeRate ?? 60,
+          streamerTier: data.streamerTier ?? 'ROOKIE',
           recentRequests: Array.isArray(data.recentRequests) ? data.recentRequests : [],
         });
       }
@@ -91,10 +95,12 @@ export default function SettlementScreen({ navigation }) {
     }
   }, [loadOverview, refreshMe]);
 
-  // Tax calculation
+  // Exchange rate & Tax calculation (1 온당 회원 등급 단가 적용)
   const parsedAmount = parseInt(amountInput.replace(/\D/g, ''), 10) || 0;
-  const taxAmount = Math.round(parsedAmount * 0.033);
-  const netEstimatedAmount = Math.max(0, parsedAmount - taxAmount);
+  const effectiveRate = overview.exchangeRate || 60;
+  const krwGrossAmount = parsedAmount * effectiveRate;
+  const taxAmount = Math.round(krwGrossAmount * 0.033);
+  const netEstimatedAmount = Math.max(0, krwGrossAmount - taxAmount);
 
   const handleAddAmount = (add) => {
     const next = Math.min(overview.redeemableBalance || 0, parsedAmount + add);
@@ -114,11 +120,11 @@ export default function SettlementScreen({ navigation }) {
   const handleSubmit = async () => {
     const minPoints = overview.minSettlementPoints || 10000;
     if (parsedAmount < minPoints) {
-      Alert.alert('출금 안내', `최소 출금 신청 포인트는 ${minPoints.toLocaleString()}P입니다.`);
+      Alert.alert('출금 안내', `최소 출금 신청 수량은 ${minPoints.toLocaleString()} 온(ON)입니다.`);
       return;
     }
     if (parsedAmount > overview.redeemableBalance) {
-      Alert.alert('잔액 부족', '출금 가능 수익 포인트를 초과하여 신청할 수 없습니다.');
+      Alert.alert('잔액 부족', '출금 가능한 보유 온(ON)을 초과하여 신청할 수 없습니다.');
       return;
     }
     if (!bankName.trim()) {
@@ -136,7 +142,7 @@ export default function SettlementScreen({ navigation }) {
 
     Alert.alert(
       '출금 신청 확인',
-      `신청 포인트: ${parsedAmount.toLocaleString()}P\n원천징수(3.3%): -${taxAmount.toLocaleString()}원\n실 입금액: ${netEstimatedAmount.toLocaleString()}원\n\n입금 계좌: ${bankName.trim()} ${accountNumber.trim()} (예금주: ${accountHolder.trim()})\n\n정말로 출금 신청을 진행하시겠습니까?`,
+      `신청 수량: ${parsedAmount.toLocaleString()} 온(ON)\n지급 환전액: ${krwGrossAmount.toLocaleString()}원\n원천징수세(3.3%): -${taxAmount.toLocaleString()}원\n실 입금액: ${netEstimatedAmount.toLocaleString()}원\n\n입금 계좌: ${bankName.trim()} ${accountNumber.trim()} (예금주: ${accountHolder.trim()})\n\n정말로 출금 신청을 진행하시겠습니까?`,
       [
         { text: '취소', style: 'cancel' },
         {
@@ -215,8 +221,19 @@ export default function SettlementScreen({ navigation }) {
                 <Ionicons name="wallet" size={20} color="#059669" />
                 <Text style={styles.summaryTopTitle}>내 크리에이터 수익금</Text>
               </View>
-              <View style={styles.taxBadge}>
-                <Text style={styles.taxBadgeText}>원천징수 3.3% 적용</Text>
+              <View style={{ flexDirection: 'row', gap: 4 }}>
+                <View style={[styles.taxBadge, { backgroundColor: '#EDE9FE' }]}>
+                  <Text style={[styles.taxBadgeText, { color: '#6D28D9' }]}>
+                    {overview.streamerTier === 'PARTNER'
+                      ? '파트너 스트리머'
+                      : overview.streamerTier === 'BEST'
+                      ? '베스트 스트리머'
+                      : '루키 호스트'}
+                  </Text>
+                </View>
+                <View style={styles.taxBadge}>
+                  <Text style={styles.taxBadgeText}>원천징수 3.3% 적용</Text>
+                </View>
               </View>
             </View>
 
@@ -225,7 +242,7 @@ export default function SettlementScreen({ navigation }) {
                 <Text style={styles.summaryLabel}>출금 가능 수익</Text>
                 <Text style={styles.summaryAmountHighlight}>
                   {(overview.redeemableBalance || 0).toLocaleString()}
-                  <Text style={styles.summaryUnit}> P</Text>
+                  <Text style={styles.summaryUnit}> 온</Text>
                 </Text>
               </View>
 
@@ -235,7 +252,7 @@ export default function SettlementScreen({ navigation }) {
                 <Text style={styles.summaryLabel}>심사/정산 대기</Text>
                 <Text style={[styles.summaryAmountHighlight, { color: '#D97706' }]}>
                   {(overview.pendingEarnings || 0).toLocaleString()}
-                  <Text style={styles.summaryUnit}> P</Text>
+                  <Text style={styles.summaryUnit}> 온</Text>
                 </Text>
               </View>
             </View>
@@ -243,7 +260,7 @@ export default function SettlementScreen({ navigation }) {
             <View style={styles.summaryNoticeRow}>
               <Ionicons name="information-circle-outline" size={14} color="#6B7280" />
               <Text style={styles.summaryNoticeText}>
-                1P = 1원으로 환산되며, 최소 {overview.minSettlementPoints?.toLocaleString()}P부터 출금 신청이 가능합니다.
+                최소 {overview.minSettlementPoints?.toLocaleString()} 온부터 출금 신청이 가능하며, 회원 등급별 정산 환전율이 적용됩니다.
               </Text>
             </View>
           </View>
@@ -277,7 +294,7 @@ export default function SettlementScreen({ navigation }) {
               {/* 포인트 입력 필드 */}
               <View style={styles.fieldGroup}>
                 <View style={styles.fieldLabelRow}>
-                  <Text style={styles.fieldLabel}>출금 신청 포인트</Text>
+                  <Text style={styles.fieldLabel}>출금 신청 수량 (온)</Text>
                   <TouchableOpacity
                     onPress={() => setAmountInput(String(overview.redeemableBalance || 0))}
                     activeOpacity={0.7}
@@ -288,13 +305,13 @@ export default function SettlementScreen({ navigation }) {
                 <View style={styles.inputWrapper}>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="최소 10,000P 이상 입력"
+                    placeholder={`최소 ${(overview.minSettlementPoints || 10000).toLocaleString()} 온 이상 입력`}
                     placeholderTextColor="#9CA3AF"
                     keyboardType="numeric"
                     value={amountInput}
                     onChangeText={setAmountInput}
                   />
-                  <Text style={styles.inputAffix}>P</Text>
+                  <Text style={styles.inputAffix}>온</Text>
                 </View>
 
                 {/* 빠른 증액 칩 */}
@@ -304,21 +321,21 @@ export default function SettlementScreen({ navigation }) {
                     onPress={() => handleAddAmount(10000)}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.amountChipText}>+1만P</Text>
+                    <Text style={styles.amountChipText}>+1만 온</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.amountChip}
                     onPress={() => handleAddAmount(50000)}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.amountChipText}>+5만P</Text>
+                    <Text style={styles.amountChipText}>+5만 온</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.amountChip}
                     onPress={() => handleAddAmount(100000)}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.amountChipText}>+10만P</Text>
+                    <Text style={styles.amountChipText}>+10만 온</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.amountChip, styles.amountChipReset]}
@@ -335,7 +352,7 @@ export default function SettlementScreen({ navigation }) {
                 <View style={styles.calcCard}>
                   <View style={styles.calcRow}>
                     <Text style={styles.calcLabel}>환전 기준액</Text>
-                    <Text style={styles.calcVal}>{parsedAmount.toLocaleString()}원</Text>
+                    <Text style={styles.calcVal}>{krwGrossAmount.toLocaleString()}원</Text>
                   </View>
                   <View style={styles.calcRow}>
                     <Text style={[styles.calcLabel, { color: '#EF4444' }]}>원천징수세액 (3.3%)</Text>
@@ -348,6 +365,9 @@ export default function SettlementScreen({ navigation }) {
                     <Text style={styles.calcNetLabel}>실제 입금 예정액</Text>
                     <Text style={styles.calcNetVal}>{netEstimatedAmount.toLocaleString()}원</Text>
                   </View>
+                  <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 8, textAlign: 'center' }}>
+                    ※ 회원 등급별 환전 비율 및 세금(3.3%)을 제외한 최종 실지급액입니다.
+                  </Text>
                 </View>
               )}
 
@@ -486,11 +506,19 @@ export default function SettlementScreen({ navigation }) {
 
                       <View style={styles.historyCardBody}>
                         <View style={styles.historyRow}>
-                          <Text style={styles.historyLabel}>신청 금액</Text>
+                          <Text style={styles.historyLabel}>신청 수량</Text>
                           <Text style={styles.historyAmount}>
-                            {Number(req.pointsAmount).toLocaleString()}P
+                            {Number(req.pointsAmount).toLocaleString()} 온
                           </Text>
                         </View>
+                        {req.netAmount ? (
+                          <View style={styles.historyRow}>
+                            <Text style={styles.historyLabel}>실지급액</Text>
+                            <Text style={[styles.historyAmount, { color: '#059669', fontWeight: '800' }]}>
+                              {Number(req.netAmount).toLocaleString()}원
+                            </Text>
+                          </View>
+                        ) : null}
                         <View style={styles.historyRow}>
                           <Text style={styles.historyLabel}>입금 계좌</Text>
                           <Text style={styles.historyValue}>

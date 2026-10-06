@@ -24,12 +24,13 @@ import InAppPurchases, {
 import { apiClient } from '../../api/client';
 
 const FALLBACK_PACKAGES = [
-  { id: 'com.company.points.100', productId: 'com.company.points.100', label: '100P', price: '₩1,900', points: 100 },
-  { id: 'com.company.points.300', productId: 'com.company.points.300', label: '300P', price: '₩5,500', points: 300 },
-  { id: 'com.company.points.500', productId: 'com.company.points.500', label: '500P', price: '₩8,900', points: 500 },
-  { id: 'com.company.points.1000', productId: 'com.company.points.1000', label: '1,000P', price: '₩17,000', points: 1000, recommended: true },
-  { id: 'com.company.points.3000', productId: 'com.company.points.3000', label: '3,000P', price: '₩49,000', points: 3000 },
-  { id: 'com.company.points.5000', productId: 'com.company.points.5000', label: '5,000P', price: '₩79,000', points: 5000 },
+  { id: 'com.company.points.10', productId: 'com.company.points.10', label: '10 온', price: '₩1,100', points: 10 },
+  { id: 'com.company.points.30', productId: 'com.company.points.30', label: '30 온', price: '₩3,300', points: 30 },
+  { id: 'com.company.points.50', productId: 'com.company.points.50', label: '50 온', price: '₩5,500', points: 50 },
+  { id: 'com.company.points.100', productId: 'com.company.points.100', label: '100 온', price: '₩11,000', points: 100, recommended: true },
+  { id: 'com.company.points.300', productId: 'com.company.points.300', label: '300 온', price: '₩33,000', points: 300 },
+  { id: 'com.company.points.500', productId: 'com.company.points.500', label: '500 온', price: '₩55,000', points: 500 },
+  { id: 'com.company.points.1000', productId: 'com.company.points.1000', label: '1,000 온', price: '₩110,000', points: 1000 },
 ];
 
 export default function ShopScreen({ navigation }) {
@@ -437,7 +438,7 @@ export default function ShopScreen({ navigation }) {
             <Text style={styles.historyBtnText}>충전 내역</Text>
           </TouchableOpacity>
           <View style={styles.pointBadge}>
-            <Text style={styles.pointIcon}>P</Text>
+            <Text style={styles.pointIcon}>온</Text>
             <Text style={styles.pointText}>{balance.toLocaleString()}</Text>
           </View>
         </View>
@@ -498,14 +499,14 @@ export default function ShopScreen({ navigation }) {
             <View style={styles.settlementBalanceCol}>
               <Text style={styles.settlementBalanceLabel}>출금 가능 수익</Text>
               <Text style={styles.settlementBalanceVal}>
-                {(settlementOverview.redeemableBalance || 0).toLocaleString()}P
+                {(settlementOverview.redeemableBalance || 0).toLocaleString()} 온
               </Text>
             </View>
             <View style={styles.settlementDivider} />
             <View style={styles.settlementBalanceCol}>
               <Text style={styles.settlementBalanceLabel}>정산 심사 대기</Text>
               <Text style={[styles.settlementBalanceVal, { color: '#D97706' }]}>
-                {(settlementOverview.pendingEarnings || 0).toLocaleString()}P
+                {(settlementOverview.pendingEarnings || 0).toLocaleString()} 온
               </Text>
             </View>
           </View>

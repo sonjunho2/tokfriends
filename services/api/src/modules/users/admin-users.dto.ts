@@ -90,4 +90,16 @@ export class AdminUpdateUserDto {
   @IsString()
   @MaxLength(20)
   riskLevel?: string;
+
+  @IsOptional()
+  @IsString()
+  streamerTier?: string;
+
+  @IsOptional()
+  customExchangeRate?: number | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  contractMemo?: string | null;
 }

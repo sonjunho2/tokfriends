@@ -4,6 +4,51 @@ Updated: 2026-10-06
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-06 Checkpoint 38: 스트리머/호스트 등급제(루키/베스트/파트너), 환급율 차등화, 플랫폼 수수료 보안 정책 및 브랜드 시그니처 재화 '온(ON)' 표준화 (완료)
+
+### 1. 개요 및 배경
+- **회원 등급제 및 정산 단가 차등화**: 일반 방송 호스트(루키)와 회사 전속 계약 스트리머(파트너)의 환급율을 차등화하고, 관리자가 회원을 승급하거나 개별 계약 환급 단가를 직접 지정할 수 있는 파트너십 관리 체계 구축.
+- **플랫폼 수수료 비노출 보안 정책**: 사용자(스트리머) 앱 화면에는 회사가 수수료로 얼마를 제하는지(마진율)를 노출하지 않고, 본인 등급 기준 환전액과 원천징수세(3.3%)를 제외한 최종 실지급액만 노출하는 업계 표준(아프리카TV, 치지직 방식) 적용. 플랫폼 마진(수수료 수익)은 관리자 콘솔에서만 집계 및 모니터링.
+- **브랜드 시그니처 재화 '온 (ON)' 표준화**: 단순한 'P(포인트)' 대신 다가온의 브랜드 정체성을 담은 재화 명칭 **'온 (ON)'**을 정립하고, 업계 표준 충전/환전 비율(1 온 = 110원 충전, 루키 60원 / 베스트 70원 / 파트너 80원 환전) 도입.
+
+### 2. 데이터베이스 스키마 확장 (`services/api`)
+- `schema.prisma`:
+  - `enum StreamerTier { ROOKIE, BEST, PARTNER }` 정의.
+  - `User` 모델: `streamerTier StreamerTier @default(ROOKIE)`, `customExchangeRate Int?`, `contractMemo String?` 추가.
+  - `SettlementRequest` 모델: `exchangeRate Int @default(60)`, `tier StreamerTier @default(ROOKIE)`, `platformFeeKrw Int @default(0)` 추가.
+- 마이그레이션 SQL 생성: `20261006050000_add_streamer_tier_and_settlement_rates` (Render 배포 시 `prisma migrate deploy`로 Supabase DB 자동 적용).
+
+### 3. 백엔드 정산 & 관리자 API 구축 (`services/api`)
+- `settlement.service.ts`:
+  - `DEFAULT_TIER_EXCHANGE_RATES = { ROOKIE: 60, BEST: 70, PARTNER: 80 }` 기준 단가 수립.
+  - `getUserOverview`: 유저의 `streamerTier`, `exchangeRate`, `estimatedKrw` 반환.
+  - `createRequest`: 1온당 환전 단가(`exchangeRate`) 적용, `krwAmount = pointsAmount * exchangeRate`, `taxAmount = Math.round(krwAmount * 0.033)`, `netAmount = krwAmount - taxAmount`, `platformFeeKrw = (pointsAmount * 100) - krwAmount` 자동 계산 및 저장.
+  - `adminListRequests`: 호스트의 `streamerTier`, `customExchangeRate`, 계정 정보 동시 조회.
+- `admin.controller.ts`:
+  - `getSettlementSummary`: 승인 완료된 출금 요청들의 `platformFeeKrw`를 합산하여 `totalPlatformRevenueKrw` (누적 플랫폼 수수료 수익) 집계 반환.
+- `admin-users.controller.ts` & `admin-users.dto.ts`:
+  - 관리자 회원 목록, 상세, 수정 API에 `streamerTier`, `customExchangeRate`, `contractMemo` 필드 입출력 지원.
+
+### 4. 관리자 웹 콘솔 (`apps/admin`)
+- `users/[id]/page.tsx`:
+  - '스트리머 등급 및 정산 환급율 설정' 전용 관리 카드 신설.
+  - 등급 선택 (루키 60원/60%, 베스트 70원/70%, 파트너 80원/80%), 개별 계약 환전 단가(원/온), 계약/제휴 메모 입력 및 저장 기능 구현.
+- `settlement/page.tsx`:
+  - 상단 KPI 요약 카드에 '회사 누적 수수료 수익' 카드 신설.
+  - 출금 신청 목록 테이블에 호스트 등급 배지, 환전 단가(원/온), 회사 수수료 수익(KRW), 실지급액(KRW) 컬럼 추가.
+  - 송금 승인 모달에 등급, 환전 단가, 회사 수익 상세 안내 항목 추가.
+
+### 5. 모바일 앱 (`apps/mobile`)
+- `SettlementScreen.js`:
+  - 재화 단위 표기를 `P`에서 `온 (ON)`으로 변경.
+  - 수수료 비노출 정책 준수: 플랫폼 마진율은 일체 표시하지 않고, 등급별 단가 기준 환전액 - 원천징수세(3.3%) = 최종 실지급액만 투명하게 안내 (`※ 등급별 환전 비율 및 세금(3.3%)을 제외한 최종 실지급액입니다`).
+  - 상단 요약 카드에 본인의 스트리머 등급 배지(루키 호스트/베스트 스트리머/파트너 스트리머) 표시.
+- `ShopScreen.js`:
+  - 보유 재화 및 충전 패키지 명칭을 `온 (ON)`으로 일원화 (1 온당 110원 충전 패키지 구성).
+
+### 6. 커밋 정보
+- `(현재)`: feat: implement streamer tiers, settlement rates, platform revenue tracking, and ON currency [Checkpoint 38]
+
 ## 2026-10-06 Checkpoint 37: Supabase PostgreSQL 및 Supabase Storage 미디어 스토리지 연동 엔진 구축 (완료)
 
 ### 1. 개요

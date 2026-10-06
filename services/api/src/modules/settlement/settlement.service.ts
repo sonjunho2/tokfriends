@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
-import { SettlementStatus } from '@prisma/client';
+import { SettlementStatus, StreamerTier } from '@prisma/client';
 import { buildDefaultActivityAccountOrderBy } from '../../common/activity-account-selection';
 import {
   CreateSettlementRequestDto,
@@ -14,6 +14,12 @@ import {
 
 const TAX_RATE = 0.033; // 3.3% 원천징수 세율 (사업소득세 3% + 지방소득세 0.3%)
 const MIN_SETTLEMENT_POINTS = 10000;
+
+export const DEFAULT_TIER_EXCHANGE_RATES: Record<StreamerTier, number> = {
+  ROOKIE: 60,   // 루키 호스트: 1온당 60원 (60%)
+  BEST: 70,     // 베스트 스트리머: 1온당 70원 (70%)
+  PARTNER: 80,  // 파트너 스트리머: 1온당 80원 (80%)
+};
 
 @Injectable()
 export class SettlementService {
@@ -87,6 +93,15 @@ export class SettlementService {
   async getUserOverview(userId: string) {
     const { account, wallet } = await this.getOrCreateUserAccountWithWallet(userId);
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { streamerTier: true, customExchangeRate: true },
+    });
+
+    const streamerTier: StreamerTier = user?.streamerTier ?? StreamerTier.ROOKIE;
+    const exchangeRate = user?.customExchangeRate ?? DEFAULT_TIER_EXCHANGE_RATES[streamerTier] ?? 60;
+    const estimatedKrw = Math.round(wallet.redeemableBalance * exchangeRate);
+
     const requests = await this.prisma.settlementRequest.findMany({
       where: { activityAccountId: account.id },
       orderBy: { createdAt: 'desc' },
@@ -99,6 +114,9 @@ export class SettlementService {
       spendableBalance: wallet.spendableBalance,
       minSettlementPoints: MIN_SETTLEMENT_POINTS,
       taxRatePercent: 3.3,
+      streamerTier,
+      exchangeRate,
+      estimatedKrw,
       recentRequests: requests,
     };
   }
@@ -108,21 +126,30 @@ export class SettlementService {
    */
   async createRequest(userId: string, dto: CreateSettlementRequestDto) {
     if (dto.pointsAmount < MIN_SETTLEMENT_POINTS) {
-      throw new BadRequestException(`최소 출금 신청 포인트는 ${MIN_SETTLEMENT_POINTS.toLocaleString()}P입니다.`);
+      throw new BadRequestException(`최소 출금 신청 수량은 ${MIN_SETTLEMENT_POINTS.toLocaleString()} 온(ON)입니다.`);
     }
 
     const { account, wallet } = await this.getOrCreateUserAccountWithWallet(userId);
 
     if (wallet.redeemableBalance < dto.pointsAmount) {
       throw new BadRequestException(
-        `출금 가능한 포인트가 부족합니다. (현재 보유: ${wallet.redeemableBalance.toLocaleString()}P, 신청: ${dto.pointsAmount.toLocaleString()}P)`
+        `출금 가능한 온(ON)이 부족합니다. (현재 보유: ${wallet.redeemableBalance.toLocaleString()} 온, 신청: ${dto.pointsAmount.toLocaleString()} 온)`
       );
     }
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { streamerTier: true, customExchangeRate: true },
+    });
+
+    const streamerTier: StreamerTier = user?.streamerTier ?? StreamerTier.ROOKIE;
+    const exchangeRate = user?.customExchangeRate ?? DEFAULT_TIER_EXCHANGE_RATES[streamerTier] ?? 60;
+
     const pointsAmount = dto.pointsAmount;
-    const krwAmount = pointsAmount; // 1P = 1KRW
+    const krwAmount = pointsAmount * exchangeRate;
     const taxAmount = Math.round(krwAmount * TAX_RATE);
     const netAmount = krwAmount - taxAmount;
+    const platformFeeKrw = Math.max(0, (pointsAmount * 100) - krwAmount);
 
     return this.prisma.$transaction(async (tx) => {
       // 1. 출금 신청 레코드 생성
@@ -130,9 +157,12 @@ export class SettlementService {
         data: {
           activityAccountId: account.id,
           pointsAmount,
+          exchangeRate,
+          tier: streamerTier,
           krwAmount,
           taxAmount,
           netAmount,
+          platformFeeKrw,
           bankName: dto.bankName.trim(),
           accountNumber: dto.accountNumber.trim(),
           accountHolder: dto.accountHolder.trim(),
@@ -224,6 +254,19 @@ export class SettlementService {
               handle: true,
               ownerId: true,
               legacyUserId: true,
+              owner: {
+                select: {
+                  legacyUser: {
+                    select: {
+                      id: true,
+                      email: true,
+                      displayName: true,
+                      streamerTier: true,
+                      customExchangeRate: true,
+                    },
+                  },
+                },
+              },
             },
           },
           processedBy: {

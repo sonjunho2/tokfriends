@@ -30,6 +30,10 @@ model User {
   displayName    String?
   pointsBalance  Int      @default(0)
 
+  streamerTier       StreamerTier     @default(ROOKIE)
+  customExchangeRate Int?
+  contractMemo       String?
+
   profile        Profile?
   devices        Device[]
   photos         Photo[]
@@ -683,14 +687,23 @@ enum SettlementStatus {
   CANCELLED
 }
 
+enum StreamerTier {
+  ROOKIE
+  BEST
+  PARTNER
+}
+
 model SettlementRequest {
   id                String           @id @default(cuid())
   activityAccountId String
   activityAccount   ActivityAccount  @relation(fields: [activityAccountId], references: [id], onDelete: Restrict)
   pointsAmount      Int
+  exchangeRate      Int              @default(60)
+  tier              StreamerTier     @default(ROOKIE)
   krwAmount         Int
   taxAmount         Int              @default(0)
   netAmount         Int
+  platformFeeKrw    Int              @default(0)
   bankName          String
   accountNumber     String
   accountHolder     String
