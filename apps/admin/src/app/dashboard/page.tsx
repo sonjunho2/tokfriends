@@ -15,8 +15,11 @@ import {
 } from 'recharts'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { getDashboardMetrics } from '@/lib/api'
+import { Smartphone, Download, CheckCircle, ExternalLink, ShieldCheck } from 'lucide-react'
 import type { AxiosError } from 'axios'
 
 type KpiMetric = {
@@ -105,7 +108,50 @@ export default function DashboardPage() {
   const summaryTitle = useMemo(() => kpis.map((kpi) => kpi.label).join(', '), [kpis])
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* Mobile App APK Download Banner */}
+      <Card className="border-indigo-100 bg-gradient-to-r from-indigo-50/80 via-white to-purple-50/80 shadow-sm">
+        <CardContent className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="p-3 bg-indigo-600 rounded-xl text-white shadow-md shadow-indigo-200">
+              <Smartphone className="h-6 w-6" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-base text-foreground">
+                  다가온(DAGAON) 모바일 앱 독립 실행형 (APK)
+                </h3>
+                <Badge className="bg-emerald-600 text-white hover:bg-emerald-700 text-[10px] px-2">
+                  <CheckCircle className="h-3 w-3 mr-1 inline" />
+                  실서버 연동 v1.2.0
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Render 프로덕션 백엔드 및 Vercel 관리자 콘솔과 100% 실시간 연동되는 안드로이드 릴리즈 설치 파일입니다. 스마트폰에 다운로드하여 즉시 설치 및 테스트하실 수 있습니다.
+              </p>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground pt-1">
+                <span><strong className="text-foreground">백엔드:</strong> Render API (LIVE)</span>
+                <span>•</span>
+                <span><strong className="text-foreground">재화:</strong> 온 (ON) 표준화</span>
+                <span>•</span>
+                <span><strong className="text-foreground">용량:</strong> 약 59.8 MB</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5 shrink-0 self-end md:self-center">
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 px-5"
+              asChild
+            >
+              <a href="/downloads/dagaon-release.apk" download="dagaon-release.apk">
+                <Download className="h-4 w-4" />
+                <span>APK 파일 다운로드</span>
+              </a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <section className="grid gap-4 md:grid-cols-3">
         {kpis.map((metric) => (
           <Card key={metric.label} className="border-muted">

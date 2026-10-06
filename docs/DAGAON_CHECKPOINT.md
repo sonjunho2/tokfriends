@@ -4,6 +4,34 @@ Updated: 2026-10-06
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-06 Checkpoint 39: Render 백엔드 및 Vercel 관리자 웹 연동 독립 실행형 모바일 앱 (APK) 패키징 및 원클릭 다운로드 파이프라인 구축 (완료)
+
+### 1. 개요
+- **목적**: Expo Go나 개발 서버(Metro) 없이도 실제 안드로이드 스마트폰에 직접 설치하여 로그인부터 라이브 방송, 온(ON) 결제, 선물 후원, 정산까지 전체 라이프사이클을 온전히 검증할 수 있는 독립 실행형(Standalone) 프로덕션 릴리즈 APK 패키징.
+- **실서버 연동 사양**:
+  - 백엔드 REST API: `https://tok-friends-api.onrender.com` (Render LIVE)
+  - 웹소켓 시그널링/채팅: `wss://tok-friends-api.onrender.com`
+  - 더미 모드 비활성화: `EXPO_PUBLIC_USE_DUMMY_AUTH=false` (실제 Supabase DB 계정 인증)
+  - 재화 체계: '온(ON)' 1:110 비율 및 등급제 정산 로직 내장
+
+### 2. 안드로이드 네이티브 빌드 파이프라인 구축 (`apps/mobile`)
+- `app.config.js`:
+  - 앱 이름: `다가온 (DAGAON)`, 패키지명: `com.sonjunho.ddakchin`, 버전: `1.2.0`.
+  - 카메라, 마이크, 오디오, 네트워크 권한 설정 완료.
+- `npx expo prebuild --platform android --clean --no-install`을 통한 최신 React Native 0.86.3 / Expo 57 네이티브 안드로이드 소스 동기화.
+- CMake/Ninja 아키텍처 최적화:
+  - 32비트 구형 아키텍처 충돌을 방지하고 최신 스마트폰 규격에 맞춰 `reactNativeArchitectures=arm64-v8a` 적용.
+- `gradlew assembleRelease` 실행 성공:
+  - 번들링된 Hermes JS 엔진 및 모든 에셋(이미지/사운드/폰트)이 내장된 독립 릴리즈 APK 생성 완료 (`app-release.apk`, 59.8 MB).
+
+### 3. 다운로드 및 배포 인프라 (`apps/admin`)
+- 프로젝트 루트 배포: `dagaon-release.apk`
+- 관리자 웹 정적 다운로드 서빙: `apps/admin/public/downloads/dagaon-release.apk`
+- 관리자 콘솔 헤더([app-shell.tsx](file:///c:/Users/ION/Downloads/work/tokfriends/apps/admin/src/components/layout/app-shell.tsx)) 및 대시보드 메인([dashboard/page.tsx](file:///c:/Users/ION/Downloads/work/tokfriends/apps/admin/src/app/dashboard/page.tsx))에 '앱 (APK) 다운로드' 버튼 및 안내 배너 배치.
+
+### 4. 커밋 정보
+- `(현재)`: feat: build standalone release APK and provide one-click download in admin console [Checkpoint 39]
+
 ## 2026-10-06 Checkpoint 38: 스트리머/호스트 등급제(루키/베스트/파트너), 환급율 차등화, 플랫폼 수수료 보안 정책 및 브랜드 시그니처 재화 '온(ON)' 표준화 (완료)
 
 ### 1. 개요 및 배경
@@ -29,14 +57,6 @@ Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작�
 - `admin-users.controller.ts` & `admin-users.dto.ts`:
   - 관리자 회원 목록, 상세, 수정 API에 `streamerTier`, `customExchangeRate`, `contractMemo` 필드 입출력 지원.
 
-### 4. 관리자 웹 콘솔 (`apps/admin`)
-- `users/[id]/page.tsx`:
-  - '스트리머 등급 및 정산 환급율 설정' 전용 관리 카드 신설.
-  - 등급 선택 (루키 60원/60%, 베스트 70원/70%, 파트너 80원/80%), 개별 계약 환전 단가(원/온), 계약/제휴 메모 입력 및 저장 기능 구현.
-- `settlement/page.tsx`:
-  - 상단 KPI 요약 카드에 '회사 누적 수수료 수익' 카드 신설.
-  - 출금 신청 목록 테이블에 호스트 등급 배지, 환전 단가(원/온), 회사 수수료 수익(KRW), 실지급액(KRW) 컬럼 추가.
-  - 송금 승인 모달에 등급, 환전 단가, 회사 수익 상세 안내 항목 추가.
 ### 4. 관리자 웹 콘솔 (`apps/admin`)
 - `users/[id]/page.tsx`:
   - '스트리머 등급 및 정산 환급율 설정' 전용 관리 카드 신설.

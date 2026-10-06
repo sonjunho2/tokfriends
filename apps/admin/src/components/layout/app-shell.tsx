@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ChevronRight, LogOut, Search } from 'lucide-react'
+import { ChevronRight, LogOut, Search, Smartphone } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -142,6 +142,18 @@ export function AppShell({ items, adminName = '관리자', children }: AppShellP
                   <span className="h-2 w-2 rounded-full bg-emerald-500" />
                   <span className="font-medium">{adminName}</span>
                 </div>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5 shadow-sm"
+                  asChild
+                >
+                  <a href="/downloads/dagaon-release.apk" download="dagaon-release.apk">
+                    <Smartphone className="h-4 w-4" />
+                    <span className="hidden sm:inline">앱 (APK) 다운로드</span>
+                    <span className="sm:hidden">APK</span>
+                  </a>
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"

@@ -42,3 +42,5 @@ apps/mobile/android/app/build/
 *.temp
 
 *.tsbuildinfo
+
+/dagaon-release.apk
