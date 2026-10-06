@@ -29,8 +29,30 @@ Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작�
 - 관리자 웹 정적 다운로드 서빙: `apps/admin/public/downloads/dagaon-release.apk`
 - 관리자 콘솔 헤더([app-shell.tsx](file:///c:/Users/ION/Downloads/work/tokfriends/apps/admin/src/components/layout/app-shell.tsx)) 및 대시보드 메인([dashboard/page.tsx](file:///c:/Users/ION/Downloads/work/tokfriends/apps/admin/src/app/dashboard/page.tsx))에 '앱 (APK) 다운로드' 버튼 및 안내 배너 배치.
 
-### 4. 커밋 정보
-- `(현재)`: feat: build standalone release APK and provide one-click download in admin console [Checkpoint 39]
+### 4. 실시간 카메라 피드 연동 및 호스트 판별 버그 수정 (2026-10-06 야간 추가)
+- **`expo-camera` SDK 57 패키지 추가 및 권한 파이프라인**:
+  - 카메라 모듈 설치 및 안드로이드/iOS 권한(`CAMERA`, `RECORD_AUDIO`) 연동 완료.
+  - 시스템 권한 거부 시 앱 설정으로 바로 이동할 수 있는 `Linking.openSettings()` 팝업 가이드 적용.
+- **영상 미출력 원인 진단 및 해결**:
+  1. **호스트 판별(`isHost`) 오류 수정**: 방송 생성 및 입장 시 `isHost: true` 플래그를 화면으로 명시 전달하고, `room.hostId` / `currentUser.id` 매핑 다중 보강.
+  2. **로딩 스피너 분리**: 아고라 토큰 통신 중에도 카메라 프리뷰가 차단되지 않도록 `streamConnecting` 블로킹을 호스트 화면에서 분리하고 2.5초 안전 타임아웃 적용.
+  3. **안드로이드 네이티브 렌더링 스타일 보정**: `width: '100%'`, `height: '100%'`, `zIndex: 1`, `overflow: 'hidden'` 적용하여 서피스뷰 검은 화면 현상 방지.
+- **독립형 릴리즈 APK 재패키징 완료**:
+  - `gradlew assembleRelease` 재빌드 성공 (`dagaon-release.apk`, 71.1 MB).
+  - 관리자 웹 다운로드 링크 및 Git 원격 저장소(`main` 48f88a1) 동기화 완료.
+
+### 5. 내일(다음 작업) 이어갈 세부 과제 로드맵
+- **1순위: 전 기능 동작 오류 전수 점검 및 개별 수정 (하나하나 검증)**:
+  - 1:1 라이브 방송 전체 흐름 (호스트 개설 -> 카메라 출력 -> 시청자 입장 -> 채팅 -> 3D 선물 -> 방송 종료) 완벽 검증.
+  - 1:1 실시간 채팅 및 메시지/이미지 전송, 알림, 오프라인 재접속 흐름 검증.
+  - 온(ON) 충전/선물/환전 신청 및 포인트 소모 확인창(Alert) 동작 정밀 검증.
+- **2순위: 사용자 에러 피드백 & 토스트 모니터링 강화**:
+  - 네트워크 콜드스타트 또는 API 실패 시 사용자에게 친절한 안내 팝업/토스트 제공.
+  - 관리자 웹 설정값 저장 안정성 보강.
+
+### 6. 커밋 정보
+- `9a31e56`: feat: integrate real camera feed into live broadcast and rebuild standalone APK [Checkpoint 39 cont.]
+- `48f88a1`: fix(live): fix isHost detection, remove connecting spinner blocking camera, and rebuild APK [Checkpoint 39 cont.]
 
 ## 2026-10-06 Checkpoint 38: 스트리머/호스트 등급제(루키/베스트/파트너), 환급율 차등화, 플랫폼 수수료 보안 정책 및 브랜드 시그니처 재화 '온(ON)' 표준화 (완료)
 
