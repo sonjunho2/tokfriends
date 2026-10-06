@@ -40,6 +40,56 @@ type CloudinaryUploadResponse = {
 
 @Injectable()
 export class MediaService {
+  private async uploadToSupabaseStorage(
+    folder: string,
+    filename: string,
+    file: { buffer: Buffer; mimetype: string; size: number },
+  ): Promise<{ key: string; url: string } | null> {
+    const supabaseUrl = process.env.SUPABASE_URL?.trim()?.replace(/\/+$/, '');
+    const serviceRoleKey = (
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY
+    )?.trim();
+    const bucket = (process.env.SUPABASE_STORAGE_BUCKET || 'media').trim();
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return null;
+    }
+
+    const objectPath = `${folder}/${filename}`;
+    const uploadUrl = `${supabaseUrl}/storage/v1/object/${encodeURIComponent(bucket)}/${objectPath}`;
+
+    let response: Response;
+    try {
+      response = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${serviceRoleKey}`,
+          apikey: serviceRoleKey,
+          'Content-Type': file.mimetype,
+          'x-upsert': 'true',
+        },
+        body: new Uint8Array(file.buffer),
+      });
+    } catch (err: any) {
+      throw new ServiceUnavailableException(
+        `Supabase Storage is unavailable: ${err?.message || err}`,
+      );
+    }
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '');
+      throw new ServiceUnavailableException(
+        `Supabase Storage upload failed (${response.status}): ${errText || response.statusText}`,
+      );
+    }
+
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/${encodeURIComponent(bucket)}/${objectPath}`;
+    return {
+      key: `${bucket}/${objectPath}`,
+      url: publicUrl,
+    };
+  }
+
   async uploadAvatar(userId: string, file?: UploadFile) {
     const normalizedUserId = String(userId || '').replace(
       /[^0-9a-zA-Z_-]/g,
@@ -68,6 +118,27 @@ export class MediaService {
       );
     }
 
+    // 1. Supabase Storage 우선 처리
+    const filename = `${randomUUID()}.${extension}`;
+    const supabaseResult = await this.uploadToSupabaseStorage(
+      `avatars/${normalizedUserId}`,
+      filename,
+      { buffer: file.buffer, mimetype: file.mimetype, size: file.size },
+    );
+
+    if (supabaseResult) {
+      return {
+        ok: true,
+        data: {
+          key: supabaseResult.key,
+          url: supabaseResult.url,
+          contentType: file.mimetype,
+          size: file.size,
+        },
+      };
+    }
+
+    // 2. Cloudinary 폴백
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
     const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
     const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
@@ -181,6 +252,28 @@ export class MediaService {
     const isVideo = file.mimetype.toLowerCase().startsWith('video/');
     const resourceType = isVideo ? 'video' : 'image';
 
+    // 1. Supabase Storage 우선 처리
+    const filename = `${randomUUID()}.${extension}`;
+    const supabaseResult = await this.uploadToSupabaseStorage(
+      `chat/${normalizedUserId}`,
+      filename,
+      { buffer: file.buffer, mimetype: file.mimetype, size: file.size },
+    );
+
+    if (supabaseResult) {
+      return {
+        ok: true,
+        data: {
+          key: supabaseResult.key,
+          url: supabaseResult.url,
+          contentType: file.mimetype,
+          size: file.size,
+          mediaType: resourceType,
+        },
+      };
+    }
+
+    // 2. Cloudinary 폴백
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
     const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
     const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();

@@ -4,6 +4,23 @@ Updated: 2026-10-06
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-06 Checkpoint 37: Supabase PostgreSQL 및 Supabase Storage 미디어 스토리지 연동 엔진 구축 (완료)
+
+### 1. 개요
+- 데이터베이스(PostgreSQL) 및 미디어 스토리지 인프라를 Supabase로 일원화하기 위한 백엔드 연동 파이프라인 구축.
+- 아바타/게시글/채팅 미디어 업로드 시 Supabase Storage를 1순위로 지원하고, 미설정 시 기존 Cloudinary로 자동 폴백되는 하이브리드 엔진 구현.
+
+### 2. 백엔드 — Supabase Storage 연동 구현 (`services/api`)
+- `media.service.ts`:
+  - `uploadToSupabaseStorage()` 메서드 구현: REST API(`POST /storage/v1/object/:bucket/:path`)를 통해 네이티브 바이너리 업로드 및 Public URL(`GET /storage/v1/object/public/:bucket/:path`) 생성.
+  - `uploadAvatar`, `uploadChatMedia`에 Supabase Storage 우선 처리 적용.
+  - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` 환경 변수 지원.
+- `services/api/.env.example`: Supabase Storage 환경 변수 문서화.
+- **검증**: `nest build` 정상 완료 (빌드 에러 0건).
+
+### 3. 커밋 정보
+- `9ca7938`: feat(api): implement Supabase Storage media upload support [Checkpoint 37]
+
 ## 2026-10-06 Checkpoint 36: 관리자 권한 가드 403 버그 수정, 관리자 UI 크래시 해결 및 모바일 실서버(Render/Vercel) 연동 안정화 (완료)
 
 ### 1. 개요 및 배경
