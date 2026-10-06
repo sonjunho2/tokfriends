@@ -18,7 +18,7 @@ import {
 import type { AxiosError } from 'axios'
 
 const TARGET_ROLES = [
-  { value: '', label: '전체 사용자' },
+  { value: 'ALL', label: '전체 사용자' },
   { value: 'user', label: '일반 회원' },
   { value: 'admin', label: '관리자' },
 ]
@@ -47,7 +47,7 @@ export default function NotificationsPage() {
   const [form, setForm] = useState({
     title: '',
     body: '',
-    role: '',
+    role: 'ALL',
   })
   const [sending, setSending] = useState(false)
   const [history, setHistory] = useState<SendHistoryEntry[]>([])
@@ -82,13 +82,13 @@ export default function NotificationsPage() {
       const result = await sendAdminBroadcast({
         title: form.title.trim(),
         body: form.body.trim(),
-        role: form.role || undefined,
+        role: form.role === 'ALL' || !form.role ? undefined : form.role,
       })
       const entry: SendHistoryEntry = {
         id: `hist-${Date.now()}`,
         title: form.title.trim(),
         body: form.body.trim(),
-        role: form.role || '전체',
+        role: form.role === 'ALL' || !form.role ? '전체' : form.role,
         sentAt: new Date().toLocaleString('ko-KR'),
         result,
       }

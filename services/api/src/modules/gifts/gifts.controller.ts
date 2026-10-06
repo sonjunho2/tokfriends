@@ -12,6 +12,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Public } from '../auth/public.decorator';
 import { RolesGuard, Roles } from '../../common/roles.guard';
+import { AdminPermissions } from '../../common/admin-permissions.guard';
 import { GiftsService } from './gifts.service';
 import { CreateGiftDto, UpdateGiftDto } from './dto';
 
@@ -34,6 +35,7 @@ export class GiftsController {
   @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles('admin')
+  @AdminPermissions('content.manage')
   @Get('admin/list')
   async listAdmin() {
     const items = await this.gifts.listAllForAdmin();
@@ -43,6 +45,7 @@ export class GiftsController {
   @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles('admin')
+  @AdminPermissions('content.manage')
   @Get('admin/stats')
   async statsAdmin() {
     const stats = await this.gifts.getGiftStats();
@@ -52,6 +55,7 @@ export class GiftsController {
   @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles('admin')
+  @AdminPermissions('content.manage')
   @Post('admin')
   async createAdmin(@Body() dto: CreateGiftDto) {
     const item = await this.gifts.createGift(dto);
@@ -61,6 +65,7 @@ export class GiftsController {
   @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles('admin')
+  @AdminPermissions('content.manage')
   @Patch('admin/:id')
   async updateAdmin(@Param('id') id: string, @Body() dto: UpdateGiftDto) {
     const item = await this.gifts.updateGift(id, dto);
@@ -70,6 +75,7 @@ export class GiftsController {
   @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles('admin')
+  @AdminPermissions('content.manage')
   @Delete('admin/:id')
   async deleteAdmin(@Param('id') id: string) {
     await this.gifts.deleteGift(id);

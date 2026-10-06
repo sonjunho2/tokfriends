@@ -14,6 +14,7 @@ import { LiveService } from './live.service';
 import { CreateLiveRoomDto, SendLiveGiftDto, SendLiveMessageDto } from './dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { AdminPermissions } from '../../common/admin-permissions.guard';
 
 @ApiTags('live')
 @Controller('live')
@@ -172,6 +173,7 @@ export class LiveController {
 
   @Get('admin/rooms')
   @UseGuards(JwtAuthGuard)
+  @AdminPermissions('content.manage')
   @ApiBearerAuth()
   async listAdminRooms(
     @Query('status') status?: string,
@@ -194,6 +196,7 @@ export class LiveController {
 
   @Post('admin/rooms/:id/force-end')
   @UseGuards(JwtAuthGuard)
+  @AdminPermissions('content.manage')
   @ApiBearerAuth()
   async forceEndRoom(
     @CurrentUser() user: any,
@@ -219,6 +222,7 @@ export class LiveController {
 
   @Get('admin/stream-config')
   @UseGuards(JwtAuthGuard)
+  @AdminPermissions('settings.manage')
   @ApiBearerAuth()
   async getAdminStreamConfig() {
     const data = await this.liveService.getLiveStreamingConfig();
@@ -230,6 +234,7 @@ export class LiveController {
 
   @Patch('admin/stream-config')
   @UseGuards(JwtAuthGuard)
+  @AdminPermissions('settings.manage')
   @ApiBearerAuth()
   async updateAdminStreamConfig(
     @CurrentUser() user: any,

@@ -215,6 +215,16 @@ function ChatsStack() {
     >
       <ChatsStackNav.Screen name="ChatsMain" component={ChatsScreen} />
       <ChatsStackNav.Screen
+        name="HotRecommend"
+        component={HotRecommendScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <ChatsStackNav.Screen
+        name="ProfileDetail"
+        component={ProfileDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <ChatsStackNav.Screen
         name="ChatRoom"
         component={ChatRoomScreen}
         options={{ animation: 'slide_from_right' }}
@@ -222,6 +232,11 @@ function ChatsStack() {
       <ChatsStackNav.Screen
         name="Friends"
         component={FriendsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <ChatsStackNav.Screen
+        name="Notifications"
+        component={NotificationsScreen}
         options={{ animation: 'slide_from_right' }}
       />
       <ChatsStackNav.Screen

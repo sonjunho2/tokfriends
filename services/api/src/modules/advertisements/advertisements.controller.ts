@@ -12,6 +12,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Public } from '../auth/public.decorator';
 import { RolesGuard, Roles } from '../../common/roles.guard';
+import { AdminPermissions } from '../../common/admin-permissions.guard';
 import { AdvertisementsService } from './advertisements.service';
 import { CreateAdvertisementDto, UpdateAdvertisementDto } from './dto';
 
@@ -45,6 +46,7 @@ export class AdvertisementsController {
   @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles('admin')
+  @AdminPermissions('content.manage')
   @Get('admin/list')
   async listAdmin(@Query('placement') placement?: string) {
     const items = await this.adsService.listAllForAdmin(placement);
@@ -54,6 +56,7 @@ export class AdvertisementsController {
   @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles('admin')
+  @AdminPermissions('content.manage')
   @Get('admin/stats')
   async statsAdmin() {
     const data = await this.adsService.getStats();
@@ -63,6 +66,7 @@ export class AdvertisementsController {
   @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles('admin')
+  @AdminPermissions('content.manage')
   @Post('admin')
   async createAdmin(@Body() dto: CreateAdvertisementDto) {
     const item = await this.adsService.create(dto);
@@ -72,6 +76,7 @@ export class AdvertisementsController {
   @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles('admin')
+  @AdminPermissions('content.manage')
   @Patch('admin/:id')
   async updateAdmin(
     @Param('id') id: string,
@@ -84,6 +89,7 @@ export class AdvertisementsController {
   @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles('admin')
+  @AdminPermissions('content.manage')
   @Delete('admin/:id')
   async deleteAdmin(@Param('id') id: string) {
     await this.adsService.delete(id);

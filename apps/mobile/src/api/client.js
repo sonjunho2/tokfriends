@@ -2626,6 +2626,83 @@ export const apiClient = {
       return { success: true };
     }
   },
+
+  // --- Live Streaming Methods ---
+  async getLiveRooms() {
+    try {
+      const { data } = await client.get('/live/rooms');
+      return Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+    } catch (e) {
+      return [];
+    }
+  },
+
+  async getActiveLiveRooms() {
+    return this.getLiveRooms();
+  },
+
+  async getLiveRoom(roomId) {
+    try {
+      const { data } = await client.get(`/live/rooms/${roomId}`);
+      return data?.data || data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async createLiveRoom(payload) {
+    try {
+      const { data } = await client.post('/live/rooms', payload);
+      return data?.data || data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async endLiveRoom(roomId) {
+    try {
+      const { data } = await client.post(`/live/rooms/${roomId}/end`);
+      return data?.data || data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async joinLiveRoom(roomId, viewerKey) {
+    try {
+      const { data } = await client.post(`/live/rooms/${roomId}/join${viewerKey ? `?viewerKey=${viewerKey}` : ''}`);
+      return data?.data || data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async leaveLiveRoom(roomId) {
+    try {
+      const { data } = await client.post(`/live/rooms/${roomId}/leave`);
+      return data?.data || data;
+    } catch (e) {
+      return { success: true };
+    }
+  },
+
+  async sendLiveGift(roomId, payload) {
+    try {
+      const { data } = await client.post(`/live/rooms/${roomId}/gift`, payload);
+      return data?.data || data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async sendLiveMessage(roomId, payload) {
+    try {
+      const { data } = await client.post(`/live/rooms/${roomId}/messages`, payload);
+      return data?.data || data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
 };
 
 export default client;

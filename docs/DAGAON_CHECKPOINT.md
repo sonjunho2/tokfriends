@@ -1,8 +1,44 @@
 # DAGAON Development Checkpoint
 
-Updated: 2026-10-03
+Updated: 2026-10-06
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
+
+## 2026-10-06 Checkpoint 36: 관리자 권한 가드 403 버그 수정, 관리자 UI 크래시 해결 및 모바일 실서버(Render/Vercel) 연동 안정화 (완료)
+
+### 1. 개요 및 배경
+- Render(백엔드 API: `tok-friends-api.onrender.com`)와 Vercel(관리자 웹: `tokfriends.vercel.app`) 실서버 연동 환경에서 발생한 관리자 기능 장애 및 모바일 에뮬레이터 연동 이슈를 해결.
+- 관리자 콘솔 403 권한 거부, 안전센터/알림 페이지의 클라이언트 크래시, 모바일 내비게이션 오류를 전면 점검 및 해결.
+
+### 2. 백엔드 — 관리자 권한 가드 403 해소 (`services/api`)
+- **원인 분석**:
+  - `AdminPermissionsGuard`가 `/admin` 엔드포인트 요청 시 `@AdminPermissions(...)` 메타데이터가 선언되지 않은 라우트에 대해 일괄적으로 403 `Explicit admin permission is required for this action` 예외를 발생시킴.
+- **수정 내용**:
+  - `live.controller.ts`: 라이브 방송 관리 API(`GET /live/admin/rooms`, `POST /live/admin/rooms/:id/close`, `GET /live/admin/broadcast-mode`, `POST /live/admin/broadcast-mode`)에 `@AdminPermissions('content.manage')`, `@AdminPermissions('settings.manage')` 적용.
+  - `gifts.controller.ts`: 선물 데이터 관리 API(`GET /gifts/admin/list`, `POST /gifts/admin/create`, `PATCH /gifts/admin/:id`, `DELETE /gifts/admin/:id`)에 `@AdminPermissions('content.manage')` 적용.
+  - `advertisements.controller.ts`: 자체 배너/광고 관리 API(`GET /advertisements/admin/list`, `POST /advertisements/admin/create`, `PATCH /advertisements/admin/:id`, `DELETE /advertisements/admin/:id`)에 `@AdminPermissions('content.manage')` 적용.
+- **검증**: `nest build` 정상 완료 (빌드 에러 0건).
+
+### 3. 관리자 웹 — Radix UI `<SelectItem>` 빈 문자열 크래시 해결 (`apps/admin`)
+- **원인 분석**:
+  - `@radix-ui/react-select` 컴포넌트는 `<SelectItem value="">`와 같이 빈 문자열 값을 허용하지 않으며, 페이지 마운트 즉시 `Application error: a client-side exception has occurred` 런타임 오류로 브라우저 전체가 크래시됨.
+- **수정 내용**:
+  - `reports-safety/page.tsx`: 신고/안전 센터의 상태 필터 `STATUS_OPTIONS`의 빈 문자열(`''`)을 `'ALL'`로 변경하고 초기값 및 API 호출 쿼리(`status === 'ALL' ? undefined : status`) 정규화.
+  - `notifications/page.tsx`: 알림 브로드캐스트의 대상 역할 `TARGET_ROLES`의 빈 문자열(`''`)을 `'ALL'`로 변경하고 폼 초기값 및 전송 payload 정규화.
+- **검증**: `next build` 31개 정적/동적 라우트 전체 정상 생성 완료 (빌드 에러 0건).
+
+### 4. 모바일 앱 — 실서버 연동 및 내비게이션 라우트 누락 해결 (`apps/mobile`)
+- **실서버 백엔드 연동**:
+  - `apps/mobile/.env.local`에 Render 실서버 API(`https://tok-friends-api.onrender.com`) 및 웹소켓(`wss://tok-friends-api.onrender.com`) 설정 완료.
+- **라이브 클라이언트 메서드 보완**:
+  - `src/api/client.js`에 라이브 룸 관리/참여/선물/메시지 관련 API 호출 메서드 추가 (`getLiveRooms`, `getActiveLiveRooms`, `getLiveRoom`, `createLiveRoom`, `endLiveRoom`, `joinLiveRoom`, `leaveLiveRoom`, `sendLiveGift`, `sendLiveMessage`).
+- **채팅 탭 내비게이션 에러 해결**:
+  - `ChatsScreen`에서 '새로운 인연 찾기' 버튼 터치 시 발생하던 `The action 'NAVIGATE' with payload {"name":"HotRecommend"} was not handled by any navigator` 오류 해결 (`RootNavigator.js`의 `ChatsStack`에 `HotRecommend`, `ProfileDetail`, `Notifications` 라우트 등록).
+- **에뮬레이터 실서버 검증 완료**:
+  - 안드로이드 에뮬레이터(`emulator-5554`)에서 Render 실서버 로그인(다가온테스터), 1,000P 잔액 표시, 홈/커뮤니티/라이브/대화/마이페이지 탭 정상 렌더링 및 대화 탭 '인연 찾기' 이동 동작 검증 완료.
+
+### 5. 커밋 정보
+- `5aa8248`: fix(admin, api, mobile): fix admin 403 permission guard, SelectItem crash, and mobile live routes [Checkpoint 36]
 
 ## 2026-10-03 Checkpoint 35: 시스템 전체 건강 검진 및 수정 (완료)
 

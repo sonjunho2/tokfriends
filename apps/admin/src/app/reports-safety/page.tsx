@@ -32,7 +32,7 @@ import {
 import type { AxiosError } from 'axios'
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: '', label: '전체' },
+  { value: 'ALL', label: '전체' },
   { value: 'PENDING', label: '대기 중' },
   { value: 'REVIEWING', label: '검토 중' },
   { value: 'RESOLVED', label: '처리 완료' },
@@ -55,7 +55,7 @@ export default function ReportsSafetyPage() {
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
   const [page, setPage] = useState(1)
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('ALL')
   const [search, setSearch] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -78,7 +78,7 @@ export default function ReportsSafetyPage() {
       setIsLoading(true)
       try {
         const res = await getAdminReports({
-          status: status || undefined,
+          status: status === 'ALL' || !status ? undefined : status,
           page: p,
           limit: PAGE_SIZE,
         })
