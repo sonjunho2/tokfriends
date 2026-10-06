@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
 import ReportModal from '../../components/ReportModal';
@@ -123,6 +124,7 @@ export default function LiveRoomScreen({ navigation, route }) {
   const processedGiftMessageIdsRef = useRef(new Set());
 
   // Agora Live Streaming States (Video + Audio)
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [agoraTokenData, setAgoraTokenData] = useState(null);
   const [streamConnecting, setStreamConnecting] = useState(true);
   const [isMicMuted, setIsMicMuted] = useState(false);
@@ -251,6 +253,13 @@ export default function LiveRoomScreen({ navigation, route }) {
     currentUser?.id &&
     room?.host?.id &&
     String(currentUser.id) === String(room.host.id);
+
+  // 호스트 방송 시 카메라 권한 자동 요청
+  useEffect(() => {
+    if (isHost && !cameraPermission?.granted) {
+      requestCameraPermission();
+    }
+  }, [isHost, cameraPermission, requestCameraPermission]);
 
   const viewerKey = currentUser?.id || currentUser?.activityAccountId;
 
@@ -800,20 +809,62 @@ export default function LiveRoomScreen({ navigation, route }) {
         ) : (!isCameraOff && isVideoSubscribed) ? (
           // Video Canvas Mode (Camera ON: Host local video or Viewer remote video)
           <View style={styles.videoStreamContainer}>
+            {/* 호스트 실제 스마트폰 카메라 피드 */}
+            {isHost ? (
+              cameraPermission?.granted ? (
+                <CameraView
+                  style={StyleSheet.absoluteFillObject}
+                  facing={cameraFacing}
+                  enableTorch={false}
+                  mirror={cameraFacing === 'front'}
+                />
+              ) : (
+                <TouchableOpacity
+                  style={styles.permissionPromptBox}
+                  activeOpacity={0.8}
+                  onPress={requestCameraPermission}
+                >
+                  <Ionicons name="camera-outline" size={54} color={LIVE_ACCENT} />
+                  <Text style={styles.permissionPromptTitle}>카메라 권한이 필요합니다</Text>
+                  <Text style={styles.permissionPromptDesc}>
+                    실시간 영상 방송을 위해 카메라 권한을 허용해 주세요.
+                  </Text>
+                  <View style={styles.permissionPromptBtn}>
+                    <Text style={styles.permissionPromptBtnText}>카메라 권한 허용하기</Text>
+                  </View>
+                </TouchableOpacity>
+              )
+            ) : (
+              /* 시청자 화면: 호스트의 실시간 영상 방송 센터 워터마크 */
+              <View style={styles.videoCenterBadge}>
+                <Avatar
+                  size={96}
+                  name={room?.host?.name}
+                  uri={room?.host?.avatar}
+                  showBorder
+                  style={styles.hostAvatarVisual}
+                />
+                <Text style={styles.videoHostCaption}>
+                  {room?.host?.name || '호스트'}님의 실시간 영상 방송
+                </Text>
+              </View>
+            )}
+
             {/* Viewfinder simulation & camera layout */}
-            <View style={styles.viewfinderGrid}>
+            <View style={styles.viewfinderGrid} pointerEvents="none">
               <View style={[styles.cornerMarker, styles.cornerTL]} />
               <View style={[styles.cornerMarker, styles.cornerTR]} />
               <View style={[styles.cornerMarker, styles.cornerBL]} />
               <View style={[styles.cornerMarker, styles.cornerBR]} />
             </View>
 
-            {/* Video status overlay */}
+            {/* Video status overlay badge */}
             <View
               style={[
                 styles.videoOverlayBadge,
                 agoraTokenData?.streamDeliveryMode === 'CDN_HLS' && styles.videoOverlayBadgeCdn,
               ]}
+              pointerEvents="none"
             >
               <Ionicons
                 name={agoraTokenData?.streamDeliveryMode === 'CDN_HLS' ? 'flash' : 'videocam'}
@@ -825,21 +876,7 @@ export default function LiveRoomScreen({ navigation, route }) {
                   ? isHost
                     ? 'CDN 중계 송출 (Agora RTMP 푸시)'
                     : 'CDN HLS 중계 · 대규모 시청 최적화'
-                  : `Agora RTC HD 1080p · ${isHost ? (cameraFacing === 'front' ? '전면 카메라' : '후면 카메라') : '라이브 영상 수신'}`}
-              </Text>
-            </View>
-
-            {/* Simulated Live Broadcast Avatar Watermark / Stream Center */}
-            <View style={styles.videoCenterBadge}>
-              <Avatar
-                size={88}
-                name={room?.host?.name}
-                uri={room?.host?.avatar}
-                showBorder
-                style={styles.hostAvatarVisual}
-              />
-              <Text style={styles.videoHostCaption}>
-                {room?.host?.name || '호스트'}님의 실시간 영상 방송
+                  : `Agora RTC HD 1080p · ${isHost ? (cameraFacing === 'front' ? '전면 카메라 (LIVE)' : '후면 카메라 (LIVE)') : '라이브 영상 수신'}`}
               </Text>
             </View>
 
@@ -1656,5 +1693,43 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '700',
+  },
+  permissionPromptBox: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    gap: 12,
+  },
+  permissionPromptTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  permissionPromptDesc: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 19,
+  },
+  permissionPromptBtn: {
+    marginTop: 12,
+    backgroundColor: LIVE_ACCENT,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+    shadowColor: LIVE_ACCENT,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  permissionPromptBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });

@@ -6,6 +6,7 @@ module.exports = ({ config }) => {
   const plugins = [...(resolvedConfig.plugins ?? [])];
   const requiredPlugins = [
     'expo-asset',
+    'expo-camera',
     'expo-font',
     'expo-image-picker',
     'expo-secure-store',
