@@ -13,6 +13,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -249,17 +250,41 @@ export default function LiveRoomScreen({ navigation, route }) {
 
   const flatListRef = useRef(null);
 
-  const isHost =
-    currentUser?.id &&
-    room?.host?.id &&
-    String(currentUser.id) === String(room.host.id);
+  const isHost = Boolean(
+    route?.params?.isHost ||
+    (currentUser?.id && room?.host?.id && String(currentUser.id) === String(room.host.id)) ||
+    (currentUser?.id && room?.hostId && String(currentUser.id) === String(room.hostId)) ||
+    (currentUser?.activityAccountId && room?.host?.targetAccountId && String(currentUser.activityAccountId) === String(room.host.targetAccountId))
+  );
+
+  const hasCameraPermission = Boolean(
+    cameraPermission?.granted || cameraPermission?.status === 'granted'
+  );
+
+  const handleRequestCamera = useCallback(async () => {
+    try {
+      const res = await requestCameraPermission();
+      if (!res?.granted && res?.canAskAgain === false) {
+        Alert.alert(
+          '카메라 권한 필요',
+          '기기 설정에서 카메라 접근 권한을 허용해 주셔야 실시간 방송을 진행할 수 있습니다.',
+          [
+            { text: '취소', style: 'cancel' },
+            { text: '설정으로 이동', onPress: () => Linking.openSettings() },
+          ]
+        );
+      }
+    } catch (e) {
+      console.warn('Camera permission request error', e);
+    }
+  }, [requestCameraPermission]);
 
   // 호스트 방송 시 카메라 권한 자동 요청
   useEffect(() => {
-    if (isHost && !cameraPermission?.granted) {
+    if (isHost && !hasCameraPermission) {
       requestCameraPermission();
     }
-  }, [isHost, cameraPermission, requestCameraPermission]);
+  }, [isHost, hasCameraPermission, requestCameraPermission]);
 
   const viewerKey = currentUser?.id || currentUser?.activityAccountId;
 
@@ -364,6 +389,10 @@ export default function LiveRoomScreen({ navigation, route }) {
     let mounted = true;
 
     const initAgoraStream = async () => {
+      const safetyTimeout = setTimeout(() => {
+        if (mounted) setStreamConnecting(false);
+      }, 2500);
+
       try {
         setStreamConnecting(true);
         const role = isHost ? 'publisher' : 'subscriber';
@@ -381,6 +410,7 @@ export default function LiveRoomScreen({ navigation, route }) {
       } catch (err) {
         console.warn('Agora token initialization error', err);
       } finally {
+        clearTimeout(safetyTimeout);
         if (mounted) {
           setStreamConnecting(false);
         }
@@ -801,7 +831,7 @@ export default function LiveRoomScreen({ navigation, route }) {
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
       {/* Background Live Video / Stream Canvas */}
       <View style={styles.streamCanvas}>
-        {streamConnecting ? (
+        {(streamConnecting && !isHost) ? (
           <View style={styles.connectingBox}>
             <ActivityIndicator size="large" color={LIVE_ACCENT} />
             <Text style={styles.connectingText}>Agora 라이브 스트림 연결 중...</Text>
@@ -811,18 +841,19 @@ export default function LiveRoomScreen({ navigation, route }) {
           <View style={styles.videoStreamContainer}>
             {/* 호스트 실제 스마트폰 카메라 피드 */}
             {isHost ? (
-              cameraPermission?.granted ? (
+              hasCameraPermission ? (
                 <CameraView
-                  style={StyleSheet.absoluteFillObject}
+                  style={styles.cameraPreview}
                   facing={cameraFacing}
                   enableTorch={false}
                   mirror={cameraFacing === 'front'}
+                  active={!isCameraOff}
                 />
               ) : (
                 <TouchableOpacity
                   style={styles.permissionPromptBox}
                   activeOpacity={0.8}
-                  onPress={requestCameraPermission}
+                  onPress={handleRequestCamera}
                 >
                   <Ionicons name="camera-outline" size={54} color={LIVE_ACCENT} />
                   <Text style={styles.permissionPromptTitle}>카메라 권한이 필요합니다</Text>
@@ -846,6 +877,9 @@ export default function LiveRoomScreen({ navigation, route }) {
                 />
                 <Text style={styles.videoHostCaption}>
                   {room?.host?.name || '호스트'}님의 실시간 영상 방송
+                </Text>
+                <Text style={styles.viewerRoleSubtitle}>
+                  시청자 모드로 참여 중입니다
                 </Text>
               </View>
             )}
@@ -1231,7 +1265,20 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#111827',
+    backgroundColor: '#000000',
+    overflow: 'hidden',
+  },
+  cameraPreview: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+    zIndex: 1,
+  },
+  viewerRoleSubtitle: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 4,
   },
   viewfinderGrid: {
     ...StyleSheet.absoluteFillObject,

@@ -89,7 +89,7 @@ export default function LiveScreen({ navigation }) {
           });
           setModalVisible(false);
           setTitle('');
-          navigation.navigate('LiveRoom', { room, roomId: room.id });
+          navigation.navigate('LiveRoom', { room, roomId: room.id, isHost: true });
           loadRooms();
         } catch (e) {
           Alert.alert('시작 실패', e?.message || '라이브 방송을 시작하지 못했습니다.');
@@ -101,9 +101,11 @@ export default function LiveScreen({ navigation }) {
   };
 
   const handleEnterRoom = (room) => {
-    const isHost = user?.id && (room?.hostId === user.id || room?.host?.id === user.id);
+    const isHost = Boolean(
+      user?.id && (room?.hostId === user.id || room?.host?.id === user.id)
+    );
     if (isHost) {
-      navigation.navigate('LiveRoom', { room, roomId: room.id });
+      navigation.navigate('LiveRoom', { room, roomId: room.id, isHost: true });
       return;
     }
 
@@ -112,7 +114,7 @@ export default function LiveScreen({ navigation }) {
       actionName: '라이브 방송 입장',
       navigation,
       onConfirm: () => {
-        navigation.navigate('LiveRoom', { room, roomId: room.id });
+        navigation.navigate('LiveRoom', { room, roomId: room.id, isHost: false });
       },
     });
   };
