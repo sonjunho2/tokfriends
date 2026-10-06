@@ -251,7 +251,7 @@ export default function AdminGiftsPage() {
             선물 마스터 & 3D 이펙트 센터
           </h1>
           <p className="text-sm text-muted-foreground">
-            채팅방과 라이브 방송에서 후원하는 선물 아이템, 포인트 가격 및 3D 투명 알파 비디오 이펙트를 관리합니다.
+            채팅방과 라이브 방송에서 후원하는 선물 아이템, 온(ON) 가격 및 3D 투명 알파 비디오 이펙트를 관리합니다.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -315,9 +315,9 @@ export default function AdminGiftsPage() {
           <CardContent className="pt-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">누적 선물 포인트</p>
+                <p className="text-xs text-muted-foreground">누적 후원 온(ON)</p>
                 <p className="text-2xl font-bold mt-1 text-amber-600">
-                  {stats.totalPointsSent.toLocaleString()}P
+                  {stats.totalPointsSent.toLocaleString()} 온
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">창작자 후원 총액</p>
               </div>
@@ -404,7 +404,7 @@ export default function AdminGiftsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="font-bold text-sm text-primary">
-                      {gift.pricePoints.toLocaleString()}P
+                      {gift.pricePoints.toLocaleString()} 온
                     </TableCell>
                     <TableCell>
                       {gift.animationType === 'alpha_video' ? (
@@ -516,7 +516,7 @@ export default function AdminGiftsPage() {
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="price" className="text-xs">
-                  가격 (포인트) *
+                  가격 (온/ON) *
                 </Label>
                 <Input
                   id="price"

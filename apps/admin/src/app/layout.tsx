@@ -70,9 +70,9 @@ const NAV_ITEMS: AppShellNavItem[] = [
     accent: 'live',
   },
   {
-    label: '포인트 상점',
+    label: '온(ON) 상점',
     href: '/store',
-    description: '인앱 포인트 판매 상품 관리',
+    description: '인앱 온(ON) 판매 상품 관리',
     group: '수익·선물',
     icon: Coins,
   },
@@ -86,7 +86,7 @@ const NAV_ITEMS: AppShellNavItem[] = [
   {
     label: '정산 & 환불',
     href: '/settlement',
-    description: '포인트 정산 및 환불 요청 처리',
+    description: '온(ON) 정산 및 환불 요청 처리',
     group: '수익·선물',
     icon: CircleDollarSign,
   },

@@ -264,7 +264,7 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         <View style={styles.appbarRightActions}>
-          {/* 내 포인트 잔액 칩 (카카오 옐로우 포인트) */}
+          {/* 내 온 잔액 칩 */}
           <TouchableOpacity
             style={styles.pointChip}
             onPress={() => navigation.navigate('Shop')}
@@ -273,7 +273,7 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.pointIconBg}>
               <Ionicons name="sparkles" size={12} color="#191919" />
             </View>
-            <Text style={styles.pointChipText}>{myPoints.toLocaleString()}P</Text>
+            <Text style={styles.pointChipText}>{myPoints.toLocaleString()} 온</Text>
           </TouchableOpacity>
 
           {/* 검색 아이콘 */}
@@ -398,7 +398,7 @@ export default function HomeScreen({ navigation }) {
             <View style={[styles.shortcutIconBg, { backgroundColor: '#DCFCE7' }]}>
               <Ionicons name="gift" size={24} color="#16A34A" />
             </View>
-            <Text style={styles.shortcutLabel}>무료 포인트</Text>
+            <Text style={styles.shortcutLabel}>무료 온(ON)</Text>
             <Text style={styles.shortcutSub}>출석 & 리워드</Text>
           </TouchableOpacity>
         </View>
@@ -503,7 +503,7 @@ export default function HomeScreen({ navigation }) {
                 </View>
                 <Text style={styles.liveCreateTitle}>라이브 시작하기</Text>
                 <Text style={styles.liveCreateSub}>
-                  이웃들과 소통하고{'\n'}선물 포인트를 받아보세요!
+                  이웃들과 소통하고{'\n'}선물 온(ON)을 받아보세요!
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -630,10 +630,10 @@ export default function HomeScreen({ navigation }) {
                     <Text style={styles.defaultBannerBadgeText}>SPECIAL</Text>
                   </View>
                   <Text style={styles.defaultBannerTitle}>
-                    프로필 완성하고 50P 즉시 받기
+                    프로필 완성하고 50 온 즉시 받기
                   </Text>
                   <Text style={styles.defaultBannerDesc}>
-                    동네 이웃에게 나를 소개하고 포인트를 충전하세요!
+                    동네 이웃에게 나를 소개하고 온을 충전하세요!
                   </Text>
                 </View>
                 <View style={styles.defaultBannerArrowBtn}>

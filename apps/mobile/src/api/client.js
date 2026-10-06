@@ -847,12 +847,12 @@ export const apiClient = {
     // In dummy mode, return a static set of products without network calls
     if (USE_DUMMY_AUTH) {
       return [
-        { id: 'points_100', productId: 'com.company.points.100', label: '100P', points: 100, price: 1900, priceText: '₩1,900' },
-        { id: 'points_300', productId: 'com.company.points.300', label: '300P', points: 300, price: 5500, priceText: '₩5,500' },
-        { id: 'points_500', productId: 'com.company.points.500', label: '500P', points: 500, price: 8900, priceText: '₩8,900' },
-        { id: 'points_1000', productId: 'com.company.points.1000', label: '1,000P', points: 1000, price: 17000, priceText: '₩17,000', recommended: true },
-        { id: 'points_3000', productId: 'com.company.points.3000', label: '3,000P', points: 3000, price: 49000, priceText: '₩49,000' },
-        { id: 'points_5000', productId: 'com.company.points.5000', label: '5,000P', points: 5000, price: 79000, priceText: '₩79,000' },
+        { id: 'points_100', productId: 'com.company.points.100', label: '100 온', points: 100, price: 1100, priceText: '₩1,100' },
+        { id: 'points_300', productId: 'com.company.points.300', label: '300 온', points: 300, price: 3300, priceText: '₩3,300' },
+        { id: 'points_500', productId: 'com.company.points.500', label: '500 온', points: 500, price: 5500, priceText: '₩5,500' },
+        { id: 'points_1000', productId: 'com.company.points.1000', label: '1,000 온', points: 1000, price: 11000, priceText: '₩11,000', recommended: true },
+        { id: 'points_3000', productId: 'com.company.points.3000', label: '3,000 온', points: 3000, price: 33000, priceText: '₩33,000' },
+        { id: 'points_5000', productId: 'com.company.points.5000', label: '5,000 온', points: 5000, price: 55000, priceText: '₩55,000' },
       ];
     }
 
@@ -2492,7 +2492,7 @@ export const apiClient = {
 
   async requestSettlement({ pointsAmount, bankName, accountNumber, accountHolder, idCardNumberHash } = {}) {
     if (!pointsAmount || pointsAmount < 10000) {
-      throw normalizeError(new Error('최소 출금 신청 포인트는 10,000P입니다.'));
+      throw normalizeError(new Error('최소 출금 신청 수량은 10,000 온(ON)입니다.'));
     }
     if (!bankName || !accountNumber || !accountHolder) {
       throw normalizeError(new Error('은행명, 계좌번호, 예금주명을 모두 입력해 주세요.'));
@@ -2524,8 +2524,8 @@ export const apiClient = {
           },
           {
             id: 'ann-2',
-            title: '💳 크리에이터 포인트 출금(정산) 정책 개정 안내',
-            content: '크리에이터 포인트 출금은 최소 10,000P부터 신청 가능하며, 매주 화요일 일괄 심사 및 송금이 진행됩니다.\n계좌정보가 정확하지 않을 경우 반려될 수 있으니 등록된 본인 명의 계좌를 다시 한 번 확인해 주시기 바랍니다.',
+            title: '💳 크리에이터 수익금 출금(정산) 정책 개정 안내',
+            content: '크리에이터 수익금 출금은 최소 10,000 온부터 신청 가능하며, 매주 화요일 일괄 심사 및 송금이 진행됩니다.\n계좌정보가 정확하지 않을 경우 반려될 수 있으니 등록된 본인 명의 계좌를 다시 한 번 확인해 주시기 바랍니다.',
             isImportant: false,
             createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
           },
@@ -2547,7 +2547,7 @@ export const apiClient = {
             id: 'mock-notif-1',
             type: 'gift',
             title: '🎁 이지수님에게서 선물이 도착했어요!',
-            body: '[하트 팡팡] 선물 (+500P)이 적립되었습니다.',
+            body: '[하트 팡팡] 선물 (+500 온)이 적립되었습니다.',
             createdAt: new Date(Date.now() - 15 * 60000).toISOString(),
             avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
             data: { points: 500, giftName: '하트 팡팡', senderAccountId: 'usr_mock_1' },

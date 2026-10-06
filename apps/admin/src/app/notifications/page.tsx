@@ -26,7 +26,7 @@ const TARGET_ROLES = [
 const TEMPLATE_MESSAGES = [
   { label: '서비스 점검 안내', title: '서비스 점검 안내', body: '오늘 밤 02:00~04:00 사이 서비스 점검이 진행됩니다. 이용에 불편을 드려 죄송합니다.' },
   { label: '새 기능 출시', title: '새로운 기능이 추가되었어요! 🎉', body: '프로필에 관심사 태그를 추가하고 더 잘 맞는 사람들을 만나보세요.' },
-  { label: '이벤트 알림', title: '특별 이벤트 진행 중! 🎁', body: '지금 앱을 열면 무료 포인트를 드립니다. 이벤트 기간을 놓치지 마세요!' },
+  { label: '이벤트 알림', title: '특별 이벤트 진행 중! 🎁', body: '지금 앱을 열면 무료 온(ON)을 드립니다. 이벤트 기간을 놓치지 마세요!' },
 ]
 
 interface SendHistoryEntry {

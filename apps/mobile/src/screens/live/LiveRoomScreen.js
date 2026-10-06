@@ -758,9 +758,9 @@ export default function LiveRoomScreen({ navigation, route }) {
         const giftTitle = giftMeta?.giftName || '선물';
         const points = giftMeta?.pricePoints || item.giftPoints || 0;
         const note = giftMeta?.message ? ` "${giftMeta.message}"` : '';
-        displayContent = `🎁 [${giftTitle}] 후원! (${Number(points).toLocaleString()}P)${note}`;
+        displayContent = `🎁 [${giftTitle}] 후원! (${Number(points).toLocaleString()} 온)${note}`;
       } catch {
-        displayContent = `🎁 선물 후원! (${Number(item.giftPoints || 0).toLocaleString()}P)`;
+        displayContent = `🎁 선물 후원! (${Number(item.giftPoints || 0).toLocaleString()} 온)`;
       }
     }
 

@@ -303,7 +303,7 @@ export default function SettlementPage() {
     setSubmittingAction(true)
     try {
       await rejectSettlementRequest(selectedRequestForReject.id, rejectReason.trim())
-      toast({ title: '출금 반려 처리', description: '출금 요청이 반려되고 포인트가 환원되었습니다.' })
+      toast({ title: '출금 반려 처리', description: '출금 요청이 반려되고 온(ON)이 환원되었습니다.' })
       setRejectModalOpen(false)
       setSelectedRequestForReject(null)
       setRejectReason('')
@@ -868,9 +868,9 @@ export default function SettlementPage() {
           <Card>
             <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-3">
               <div>
-                <CardTitle className="text-lg">포인트 결제 내역</CardTitle>
+                <CardTitle className="text-lg">온(ON) 결제 내역</CardTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  앱 내 포인트 상품 충전/구매 내역 및 거래 ID를 조회합니다.
+                  앱 내 온(ON) 상품 충전/구매 내역 및 거래 ID를 조회합니다.
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -919,7 +919,7 @@ export default function SettlementPage() {
                           <th className="p-2.5">사용자</th>
                           <th className="p-2.5">플랫폼</th>
                           <th className="p-2.5">상품 ID</th>
-                          <th className="p-2.5">충전 포인트</th>
+                          <th className="p-2.5">충전 온(ON)</th>
                           <th className="p-2.5">상태</th>
                           <th className="p-2.5">거래 ID</th>
                         </tr>
@@ -937,7 +937,7 @@ export default function SettlementPage() {
                               {p.platform}
                             </td>
                             <td className="p-2.5 font-mono text-muted-foreground">{p.productId}</td>
-                            <td className="p-2.5 font-bold text-amber-600">+{p.points.toLocaleString()}P</td>
+                            <td className="p-2.5 font-bold text-amber-600">+{p.points.toLocaleString()} 온</td>
                             <td className="p-2.5">
                               <span className="rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-[10px] font-bold">
                                 {p.status}
@@ -1018,7 +1018,7 @@ export default function SettlementPage() {
                         <th className="p-2.5">일시</th>
                         <th className="p-2.5">계정 / 지갑</th>
                         <th className="p-2.5">종류 / 소스</th>
-                        <th className="p-2.5 text-right">보유 포인트 변동</th>
+                        <th className="p-2.5 text-right">보유 온(ON) 변동</th>
                         <th className="p-2.5 text-right">변동 후 잔액</th>
                         <th className="p-2.5 text-right">출금 가능 변동</th>
                         <th className="p-2.5">멱등성 키</th>
@@ -1044,14 +1044,14 @@ export default function SettlementPage() {
                             <td className={`p-2.5 text-right font-bold ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
                               <span className="inline-flex items-center gap-0.5">
                                 {isPositive ? <ArrowDownLeft className="h-3 w-3" /> : <ArrowUpRight className="h-3 w-3" />}
-                                {isPositive ? `+${item.deltaSpendable}` : item.deltaSpendable}P
+                                {isPositive ? `+${item.deltaSpendable}` : item.deltaSpendable} 온
                               </span>
                             </td>
                             <td className="p-2.5 text-right font-medium text-foreground">
-                              {item.spendableAfter.toLocaleString()}P
+                              {item.spendableAfter.toLocaleString()} 온
                             </td>
                             <td className="p-2.5 text-right text-muted-foreground">
-                              {item.deltaRedeemable !== 0 ? `${item.deltaRedeemable > 0 ? '+' : ''}${item.deltaRedeemable}P` : '—'}
+                              {item.deltaRedeemable !== 0 ? `${item.deltaRedeemable > 0 ? '+' : ''}${item.deltaRedeemable} 온` : '—'}
                             </td>
                             <td className="p-2.5 font-mono text-[10px] text-muted-foreground truncate max-w-[120px]">
                               {item.idempotencyKey}
@@ -1178,7 +1178,7 @@ export default function SettlementPage() {
             <DialogDescription>
               요청을 반려하면 대기 잔액에서 차감되었던{' '}
               <strong className="text-foreground">
-                {selectedRequestForReject?.pointsAmount.toLocaleString()}P
+                {selectedRequestForReject?.pointsAmount.toLocaleString()} 온
               </strong>
               가 크리에이터의 출금 가능 잔액으로 즉시 환원됩니다.
             </DialogDescription>
@@ -1192,7 +1192,7 @@ export default function SettlementPage() {
                   {selectedRequestForReject.bankName} {selectedRequestForReject.accountNumber})
                 </p>
                 <p className="text-muted-foreground">
-                  신청 포인트: <span className="font-bold text-rose-600">{selectedRequestForReject.pointsAmount.toLocaleString()}P</span>
+                  신청 온(ON): <span className="font-bold text-rose-600">{selectedRequestForReject.pointsAmount.toLocaleString()} 온</span>
                 </p>
               </div>
 
@@ -1221,7 +1221,7 @@ export default function SettlementPage() {
               disabled={submittingAction || !rejectReason.trim()}
             >
               {submittingAction ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <X className="mr-2 h-3.5 w-3.5" />}
-              반려 및 포인트 환원
+              반려 및 온(ON) 환원
             </Button>
           </DialogFooter>
         </DialogContent>

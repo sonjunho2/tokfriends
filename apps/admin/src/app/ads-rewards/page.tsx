@@ -288,9 +288,9 @@ export default function AdsRewardsPage() {
           <CardContent className="pt-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">총 지급 리워드 포인트</p>
+                <p className="text-xs text-muted-foreground">총 지급 리워드 온(ON)</p>
                 <p className="text-2xl font-bold mt-1 text-amber-600">
-                  {loading ? '—' : `${data?.stats.totalPointsDistributed.toLocaleString()}P`}
+                  {loading ? '—' : `${data?.stats.totalPointsDistributed.toLocaleString()} 온`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">사용자 지갑 충전 누적액</p>
               </div>
@@ -372,7 +372,7 @@ export default function AdsRewardsPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">보상형 광고 및 리워드 정책 설정</CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
-                광고 시청 횟수 제한, 광고 시청당 지급 포인트, 출석체크 및 친구 초대 보상 정책을 관리합니다.
+                광고 시청 횟수 제한, 광고 시청당 지급 온(ON), 출석체크 및 친구 초대 보상 정책을 관리합니다.
               </p>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -425,7 +425,7 @@ export default function AdsRewardsPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground">광고 1회당 지급 포인트 (P)</label>
+                    <label className="text-xs font-semibold text-muted-foreground">광고 1회당 지급 온 (ON)</label>
                     <Input
                       type="number"
                       min={1}
@@ -435,7 +435,7 @@ export default function AdsRewardsPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground">출석체크 지급 포인트 (P)</label>
+                    <label className="text-xs font-semibold text-muted-foreground">출석체크 지급 온 (ON)</label>
                     <Input
                       type="number"
                       min={1}
@@ -445,7 +445,7 @@ export default function AdsRewardsPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground">친구초대 1인당 포인트 (P)</label>
+                    <label className="text-xs font-semibold text-muted-foreground">친구초대 1인당 온 (ON)</label>
                     <Input
                       type="number"
                       min={1}
@@ -646,7 +646,7 @@ export default function AdsRewardsPage() {
               <CardContent className="space-y-2 text-xs">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">출석 보상:</span>
-                  <span className="font-bold text-blue-600">+{attendancePoints}P</span>
+                  <span className="font-bold text-blue-600">+{attendancePoints} 온</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">지급 주기:</span>
@@ -669,11 +669,11 @@ export default function AdsRewardsPage() {
               <CardContent className="space-y-2 text-xs">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">추천인 보상:</span>
-                  <span className="font-bold text-purple-600">+{referralPoints}P</span>
+                  <span className="font-bold text-purple-600">+{referralPoints} 온</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">피추천인 혜택:</span>
-                  <span>가입 시 50P 즉시 지급</span>
+                  <span>가입 시 50 온 즉시 지급</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">상태:</span>
@@ -760,7 +760,7 @@ export default function AdsRewardsPage() {
               <Input
                 value={adDescription}
                 onChange={(e) => setAdDescription(e.target.value)}
-                placeholder="프로필 완성하고 50포인트를 즉시 받아가세요"
+                placeholder="프로필 완성하고 50온(ON)을 즉시 받아가세요"
                 className="text-xs"
               />
             </div>

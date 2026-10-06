@@ -88,7 +88,7 @@ export default function ShopScreen({ navigation }) {
       const normalized = rawList.map((item, index) => ({
         id: item?.id || item?.productId || `pkg-${index + 1}`,
         productId: item?.productId || item?.id || item?.sku,
-        label: item?.label || item?.title || `${item?.points || ''}P`,
+        label: item?.label || item?.title || `${item?.points || ''} 온`,
         price: item?.priceText || item?.price || '',
         points: item?.points || Number.parseInt(item?.label, 10) || null,
         recommended: Boolean(item?.recommended),
@@ -171,12 +171,12 @@ export default function ShopScreen({ navigation }) {
     if (isNaN(pts) || pts < (settlementOverview.minSettlementPoints || 10000)) {
       Alert.alert(
         '출금 신청 안내',
-        `최소 출금 신청 포인트는 ${(settlementOverview.minSettlementPoints || 10000).toLocaleString()}P입니다.`,
+        `최소 출금 신청 수량은 ${(settlementOverview.minSettlementPoints || 10000).toLocaleString()} 온(ON)입니다.`,
       );
       return;
     }
     if (pts > (settlementOverview.redeemableBalance || 0)) {
-      Alert.alert('출금 신청 오류', '출금 가능한 포인트 잔액을 초과할 수 없습니다.');
+      Alert.alert('출금 신청 오류', '출금 가능한 보유 온(ON)을 초과할 수 없습니다.');
       return;
     }
     if (!bankName.trim() || !accountNumber.trim() || !accountHolder.trim()) {
@@ -305,7 +305,7 @@ export default function ShopScreen({ navigation }) {
       // If native IAP is unavailable (Expo Go, dev client, or simulator), offer developer/sandbox instant test purchase
       if (!isIapAvailable) {
         Alert.alert(
-          '포인트 충전',
+          '온(ON) 충전',
           `[${item.label}] 상품을 충전하시겠습니까? (${getPriceLabel(item)})\n* 개발/테스트 모드로 즉시 충전 및 적립됩니다.`,
           [
             { text: '취소', style: 'cancel' },
@@ -323,9 +323,9 @@ export default function ShopScreen({ navigation }) {
                   });
                   await Promise.allSettled([refreshMe(), loadPurchaseHistory()]);
                   const newBal = res?.balance ?? '반영 완료';
-                  Alert.alert('충전 완료', `${item.label} 포인트 충전이 완료되었습니다.\n(현재 잔액: ${newBal}P)`);
+                  Alert.alert('충전 완료', `${item.label} 충전이 완료되었습니다.\n(현재 잔액: ${newBal} 온)`);
                 } catch (err) {
-                  Alert.alert('충전 실패', err?.message || '포인트 충전에 실패했습니다.');
+                  Alert.alert('충전 실패', err?.message || '온 충전에 실패했습니다.');
                 } finally {
                   setPurchaseProcessing(false);
                 }
@@ -425,7 +425,7 @@ export default function ShopScreen({ navigation }) {
               <Ionicons name="chevron-back" size={24} color={colors.textPrimary || '#111827'} />
             </TouchableOpacity>
           )}
-          <Text style={styles.title}>포인트 충전소</Text>
+          <Text style={styles.title}>온(ON) 충전소</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <TouchableOpacity
@@ -512,14 +512,14 @@ export default function ShopScreen({ navigation }) {
           </View>
         </View>
 
-        {/* 무료 포인트 충전소 */}
+        {/* 무료 온 충전소 */}
         <View style={styles.rewardsSection}>
           <View style={styles.rewardsHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Ionicons name="gift" size={20} color={colors.primary} />
-              <Text style={styles.sectionTitle}>무료 포인트 충전소</Text>
+              <Text style={styles.sectionTitle}>무료 온(ON) 충전소</Text>
             </View>
-            <Text style={styles.sectionSubtitle}>미션을 완료하고 매일 무료 포인트를 받으세요</Text>
+            <Text style={styles.sectionSubtitle}>미션을 완료하고 매일 무료 온을 받으세요</Text>
           </View>
 
           <View style={styles.rewardsCardList}>
@@ -537,13 +537,13 @@ export default function ShopScreen({ navigation }) {
                   <Text style={styles.rewardCardTitle}>
                     매일 출석체크{' '}
                     <Text style={styles.rewardPointHighlight}>
-                      +{rewards.attendance?.rewardPoints || 5}P
+                      +{rewards.attendance?.rewardPoints || 5} 온
                     </Text>
                   </Text>
                   <Text style={styles.rewardCardDesc}>
                     {rewards.attendance?.checkedInToday
                       ? '오늘 출석 완료! 내일 또 방문해 주세요'
-                      : '하루 한 번 접속하고 무료 포인트 받기'}
+                      : '하루 한 번 접속하고 무료 온 받기'}
                   </Text>
                 </View>
               </View>
@@ -577,7 +577,7 @@ export default function ShopScreen({ navigation }) {
                   <Text style={styles.rewardCardTitle}>
                     보상형 광고 시청{' '}
                     <Text style={styles.rewardPointHighlight}>
-                      +{rewards.adReward?.rewardPoints || 10}P
+                      +{rewards.adReward?.rewardPoints || 10} 온
                     </Text>
                   </Text>
                   <Text style={styles.rewardCardDesc}>
@@ -615,7 +615,7 @@ export default function ShopScreen({ navigation }) {
                   <Text style={styles.rewardCardTitle}>
                     친구 초대하기{' '}
                     <Text style={styles.rewardPointHighlight}>
-                      +{rewards.referral?.rewardPoints || 50}P
+                      +{rewards.referral?.rewardPoints || 50} 온
                     </Text>
                   </Text>
                   <Text style={styles.rewardCardDesc}>
@@ -634,10 +634,10 @@ export default function ShopScreen({ navigation }) {
           </View>
         </View>
 
-        {/* 포인트 상품 목록 헤더 */}
+        {/* 온 상품 목록 헤더 */}
         <View style={styles.packageSectionHeader}>
-          <Text style={styles.sectionTitle}>포인트 상품 충전</Text>
-          <Text style={styles.sectionSubtitle}>안전한 인앱 결제로 포인트를 즉시 충전하세요</Text>
+          <Text style={styles.sectionTitle}>온(ON) 상품 충전</Text>
+          <Text style={styles.sectionSubtitle}>안전한 인앱 결제로 온을 즉시 충전하세요</Text>
         </View>
 
         <View style={{ gap: 14 }}>
@@ -673,12 +673,12 @@ export default function ShopScreen({ navigation }) {
           ))}
         </View>
 
-        {/* 포인트 상품 충전 안내 및 부가세 고지 */}
+        {/* 온 상품 충전 안내 및 부가세 고지 */}
         <View style={styles.legalNoticeBox}>
           <Ionicons name="information-circle-outline" size={18} color="#64748B" />
           <Text style={styles.legalNoticeText}>
             모든 결제 금액은 VAT(부가세 10%) 포함 금액입니다.{'\n'}
-            충전된 포인트는 다가온 앱 내 선물 및 소통 기능 이용에 사용되며, 미사용 포인트의 청약철회 및 환불은 전자상거래법 및 앱마켓 규정에 따라 처리됩니다.
+            충전된 온(ON)은 다가온 앱 내 선물 및 소통 기능 이용에 사용되며, 미사용 온의 청약철회 및 환불은 전자상거래법 및 앱마켓 규정에 따라 처리됩니다.
           </Text>
         </View>
       </ScrollView>
@@ -691,7 +691,7 @@ export default function ShopScreen({ navigation }) {
               <Ionicons name="tv-outline" size={36} color={colors.primary} />
               <Text style={styles.adModalTitle}>보상형 광고 시청 중</Text>
               <Text style={styles.adModalDesc}>
-                영상 시청 완료 후 {rewards.adReward?.rewardPoints || 10}P가 즉시 지급됩니다.
+                영상 시청 완료 후 {rewards.adReward?.rewardPoints || 10} 온이 즉시 지급됩니다.
               </Text>
             </View>
 
@@ -719,7 +719,7 @@ export default function ShopScreen({ navigation }) {
               activeOpacity={0.9}
             >
               <Text style={styles.adFinishBtnText}>
-                {adCountdown > 0 ? '시청 중 (닫기 불가)' : '보상 10P 받기'}
+                {adCountdown > 0 ? '시청 중 (닫기 불가)' : '보상 10 온 받기'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -749,7 +749,7 @@ export default function ShopScreen({ navigation }) {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.modalBalanceLabel}>출금 가능 잔액</Text>
                   <Text style={styles.modalBalanceNum}>
-                    {(settlementOverview.redeemableBalance || 0).toLocaleString()}P
+                    {(settlementOverview.redeemableBalance || 0).toLocaleString()} 온
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -762,7 +762,7 @@ export default function ShopScreen({ navigation }) {
 
               {/* 출금 금액 입력 */}
               <View style={styles.modalInputGroup}>
-                <Text style={styles.modalInputLabel}>출금 신청 포인트 (최소 10,000P)</Text>
+                <Text style={styles.modalInputLabel}>출금 신청 온 (최소 10,000 온)</Text>
                 <TextInput
                   style={styles.modalTextInput}
                   placeholder="예: 50000"
@@ -885,7 +885,7 @@ export default function ShopScreen({ navigation }) {
             <View style={styles.settlementModalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Ionicons name="receipt" size={22} color={colors.primary} />
-                <Text style={styles.settlementModalTitle}>포인트 충전 내역</Text>
+                <Text style={styles.settlementModalTitle}>온(ON) 충전 내역</Text>
               </View>
               <TouchableOpacity
                 onPress={() => setPurchaseHistoryModalVisible(false)}
@@ -909,7 +909,7 @@ export default function ShopScreen({ navigation }) {
                   충전 내역이 없습니다.
                 </Text>
                 <Text style={{ marginTop: 4, color: '#94A3B8', fontSize: 12 }}>
-                  포인트를 충전하시면 여기에 내역이 표시됩니다.
+                  온을 충전하시면 여기에 내역이 표시됩니다.
                 </Text>
               </View>
             ) : (

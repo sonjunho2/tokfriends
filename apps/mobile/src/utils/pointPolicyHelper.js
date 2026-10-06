@@ -45,8 +45,8 @@ export async function checkAndConfirmActionPoint({
     // 잔액 부족 안내
     if (currentBalance < requiredAmount) {
       Alert.alert(
-        '포인트 부족',
-        `${actionName}을(를) 진행하려면 ${requiredAmount.toLocaleString()}P가 필요합니다.\n\n현재 보유 포인트: ${currentBalance.toLocaleString()}P\n부족한 포인트: ${(requiredAmount - currentBalance).toLocaleString()}P\n\n포인트 상점으로 이동하시겠습니까?`,
+        '온(ON) 부족',
+        `${actionName}을(를) 진행하려면 ${requiredAmount.toLocaleString()} 온이 필요합니다.\n\n현재 보유: ${currentBalance.toLocaleString()} 온\n부족한 온: ${(requiredAmount - currentBalance).toLocaleString()} 온\n\n온 충전소로 이동하시겠습니까?`,
         [
           { text: '취소', style: 'cancel' },
           {
@@ -66,7 +66,7 @@ export async function checkAndConfirmActionPoint({
     const remainingAfter = currentBalance - requiredAmount;
     Alert.alert(
       `${actionName} 안내`,
-      `${actionName} 시 ${requiredAmount.toLocaleString()}P가 소모됩니다.\n(현재 보유: ${currentBalance.toLocaleString()}P → ${remainingAfter.toLocaleString()}P)\n\n계속 진행하시겠습니까?`,
+      `${actionName} 시 ${requiredAmount.toLocaleString()} 온이 소모됩니다.\n(현재 보유: ${currentBalance.toLocaleString()} 온 → ${remainingAfter.toLocaleString()} 온)\n\n계속 진행하시겠습니까?`,
       [
         { text: '취소', style: 'cancel' },
         {

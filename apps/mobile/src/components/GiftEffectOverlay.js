@@ -244,7 +244,7 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
           </Text>
           <Text style={styles.bannerGiftText} numberOfLines={1}>
             <Text style={styles.bannerHighlight}>{currentGift.giftName || currentGift.name || '선물'}</Text>
-            {(currentGift.pricePoints || currentGift.amount) ? ` (${(currentGift.pricePoints || currentGift.amount).toLocaleString()}P)` : ''}을 보냈습니다!
+            {(currentGift.pricePoints || currentGift.amount) ? ` (${(currentGift.pricePoints || currentGift.amount).toLocaleString()} 온)` : ''}을 보냈습니다!
           </Text>
         </View>
       </Animated.View>

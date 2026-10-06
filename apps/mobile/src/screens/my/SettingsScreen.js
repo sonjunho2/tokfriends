@@ -188,7 +188,7 @@ export default function SettingsScreen({ navigation }) {
       key: 'charge',
       icon: 'card-outline',
       label: '충전하기',
-      value: `${balance} P`,
+      value: `${balance.toLocaleString()} 온`,
       accent: colors.primary,
       onPress: () => navigation.navigate('Shop'),
     },
@@ -466,7 +466,7 @@ export default function SettingsScreen({ navigation }) {
   const handleDeleteAccount = () => {
     Alert.alert(
       '회원 탈퇴',
-      '정말로 다가온 서비스를 탈퇴하시겠습니까?\n\n탈퇴 시 모든 개인정보 및 프로필, 보유 포인트가 소멸되며 복구할 수 없습니다.',
+      '정말로 다가온 서비스를 탈퇴하시겠습니까?\n\n탈퇴 시 모든 개인정보 및 프로필, 보유 온(ON)이 소멸되며 복구할 수 없습니다.',
       [
         { text: '취소', style: 'cancel' },
         {

@@ -12,7 +12,7 @@ export default function StoreOverviewPage() {
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold">수익 및 상점 운영</h1>
         <p className="text-sm text-muted-foreground">
-          앱 내 포인트 판매 상품, 채팅·라이브 3D 선물 마스터 및 결제 인프라를 안정적으로 운영합니다.
+          앱 내 온(ON) 판매 상품, 채팅·라이브 3D 선물 마스터 및 결제 인프라를 안정적으로 운영합니다.
         </p>
       </header>
 
@@ -21,14 +21,14 @@ export default function StoreOverviewPage() {
           <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <ShoppingBag className="h-5 w-5 text-primary" /> 포인트 상품 관리
+                <ShoppingBag className="h-5 w-5 text-primary" /> 온(ON) 상품 관리
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                앱 내 포인트 판매 상품의 노출 순서, 가격, 추천 여부를 관리합니다.
+                앱 내 온(ON) 판매 상품의 노출 순서, 가격, 추천 여부를 관리합니다.
               </p>
             </div>
             <Button asChild size="sm">
-              <Link href="/store/point-products">포인트 상품 편집</Link>
+              <Link href="/store/point-products">온(ON) 상품 편집</Link>
             </Button>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground leading-relaxed">
@@ -51,7 +51,7 @@ export default function StoreOverviewPage() {
             </Button>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground leading-relaxed">
-            선물별 포인트 가격, 썸네일, 3D 투명 알파 비디오(Alpha MP4) URL, 카테고리(일반/스페셜/VIP) 및 노출 채널(채팅/라이브)을 실시간으로 설정합니다.
+            선물별 온(ON) 가격, 썸네일, 3D 투명 알파 비디오(Alpha MP4) URL, 카테고리(일반/스페셜/VIP) 및 노출 채널(채팅/라이브)을 실시간으로 설정합니다.
           </CardContent>
         </Card>
 
@@ -62,7 +62,7 @@ export default function StoreOverviewPage() {
                 <Coins className="h-5 w-5 text-emerald-500" /> 정산 및 환불 센터
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                사용자 지갑 잔액 현황, 포인트 구매 내역 및 환불 요청을 심사합니다.
+                사용자 지갑 잔액 현황, 온(ON) 구매 내역 및 환불 요청을 심사합니다.
               </p>
             </div>
             <Button asChild size="sm" variant="outline">
@@ -70,7 +70,7 @@ export default function StoreOverviewPage() {
             </Button>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground leading-relaxed">
-            총 포인트 유통량, 충전액, 미처리 환불 요청 및 지갑 원장(WalletLedger)을 투명하게 확인합니다.
+            총 온(ON) 유통량, 충전액, 미처리 환불 요청 및 지갑 원장(WalletLedger)을 투명하게 확인합니다.
           </CardContent>
         </Card>
 

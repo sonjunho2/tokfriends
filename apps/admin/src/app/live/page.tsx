@@ -370,9 +370,9 @@ export default function LivePage() {
           <CardContent className="pt-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">누적 선물 포인트</p>
+                <p className="text-xs text-muted-foreground">누적 후원 온(ON)</p>
                 <p className="text-2xl font-bold mt-1 text-amber-600">
-                  {summaryLoading ? '—' : `${summary?.totalGiftPoints.toLocaleString()}P`}
+                  {summaryLoading ? '—' : `${summary?.totalGiftPoints.toLocaleString()} 온`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">시청자 후원 총액</p>
               </div>
@@ -503,8 +503,8 @@ export default function LivePage() {
                         </span>
                       </div>
                       <div>
-                        <span className="font-medium text-foreground">선물 포인트: </span>
-                        <span className="font-bold text-amber-600">{room.totalGiftsPoints.toLocaleString()}P</span>
+                        <span className="font-medium text-foreground">후원 온: </span>
+                        <span className="font-bold text-amber-600">{room.totalGiftsPoints.toLocaleString()} 온</span>
                       </div>
                       <div>
                         <span className="font-medium text-foreground">좋아요: </span>

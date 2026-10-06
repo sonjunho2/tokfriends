@@ -111,7 +111,7 @@ export default function GiftPickerSheet({
                   <View style={styles.myPointsPill}>
                     <Ionicons name="sparkles" size={13} color="#D97706" />
                     <Text style={styles.myPointsText}>
-                      보유 {myPoints?.toLocaleString() ?? 0}P
+                      보유 {myPoints?.toLocaleString() ?? 0} 온
                     </Text>
                     {onGoToShop && (
                       <TouchableOpacity
@@ -201,7 +201,7 @@ export default function GiftPickerSheet({
                           {item.name}
                         </Text>
                         <Text style={styles.giftPrice}>
-                          {item.pricePoints?.toLocaleString()}P
+                          {item.pricePoints?.toLocaleString()} 온
                         </Text>
                       </TouchableOpacity>
                     );
@@ -217,7 +217,7 @@ export default function GiftPickerSheet({
                       선택: <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{selectedGift.name}</Text>
                     </Text>
                     <Text style={styles.selectedGiftPrice}>
-                      {selectedGift.pricePoints?.toLocaleString()}P 차감
+                      {selectedGift.pricePoints?.toLocaleString()} 온 차감
                     </Text>
                   </View>
                 ) : (
@@ -239,7 +239,7 @@ export default function GiftPickerSheet({
                   ) : (
                     <Text style={styles.sendBtnText}>
                       {myPoints < (selectedGift?.pricePoints || 0)
-                        ? '포인트 충전하기'
+                        ? '온(ON) 충전하기'
                         : '선물 보내기'}
                     </Text>
                   )}

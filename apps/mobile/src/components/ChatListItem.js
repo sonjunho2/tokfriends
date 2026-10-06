@@ -57,7 +57,7 @@ const formatLastMessage = (content) => {
     ) {
       try {
         const parsed = JSON.parse(content);
-        return `🎁 선물: ${parsed.name || '선물'} (${parsed.amount ?? 0}P)`;
+        return `🎁 선물: ${parsed.name || '선물'} (${parsed.amount ?? 0} 온)`;
       } catch {
         return '🎁 선물을 보냈습니다.';
       }

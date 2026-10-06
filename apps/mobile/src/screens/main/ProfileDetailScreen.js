@@ -140,7 +140,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
       items.push(`${data.distanceKm}km`);
     }
     if (typeof data.points === 'number') {
-      items.push(`${data.points}P`);
+      items.push(`${data.points} 온`);
     }
     return items;
   }, [data.age, data.distanceKm, data.points]);
@@ -191,7 +191,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
         `${data.name}님에게 [${gift.name}] 선물을 보냈습니다!`,
       );
     } catch (e) {
-      Alert.alert('선물 실패', e?.message || '선물을 보내지 못했습니다. 포인트를 확인해 주세요.');
+      Alert.alert('선물 실패', e?.message || '선물을 보내지 못했습니다. 온(ON) 잔액을 확인해 주세요.');
     }
   };
 

@@ -431,7 +431,7 @@ export default function NotificationsScreen({ navigation }) {
               <Text style={styles.emptyDesc}>
                 {activeTab === 'announcements'
                   ? '새로운 소식과 업데이트가 등록되면 바로 알려드릴게요.'
-                  : '선물 수신, 포인트 정산, 프로필 방문 등의 소식이 표시됩니다.'}
+                  : '선물 수신, 수익금 정산, 프로필 방문 등의 소식이 표시됩니다.'}
               </Text>
             </View>
           }

@@ -37,6 +37,16 @@ Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작�
   - 상단 KPI 요약 카드에 '회사 누적 수수료 수익' 카드 신설.
   - 출금 신청 목록 테이블에 호스트 등급 배지, 환전 단가(원/온), 회사 수수료 수익(KRW), 실지급액(KRW) 컬럼 추가.
   - 송금 승인 모달에 등급, 환전 단가, 회사 수익 상세 안내 항목 추가.
+### 4. 관리자 웹 콘솔 (`apps/admin`)
+- `users/[id]/page.tsx`:
+  - '스트리머 등급 및 정산 환급율 설정' 전용 관리 카드 신설.
+  - 등급 선택 (루키 60원/60%, 베스트 70원/70%, 파트너 80원/80%), 개별 계약 환전 단가(원/온), 계약/제휴 메모 입력 및 저장 기능 구현.
+- `settlement/page.tsx`:
+  - 상단 KPI 요약 카드에 '회사 누적 수수료 수익' 카드 신설.
+  - 출금 신청 목록 테이블에 호스트 등급 배지, 환전 단가(원/온), 회사 수수료 수익(KRW), 실지급액(KRW) 컬럼 추가.
+  - 온(ON) 결제 내역 탭, 지갑 원장 잔액/변동 단위, 승인 및 반려 모달 텍스트 전체 '온(ON)' 적용.
+- `store/`, `point-products/`, `gifts/`, `live/`, `ads-rewards/`, `settings/`, `notifications/`, `layout.tsx`:
+  - 네비게이션 메뉴(`온(ON) 상점`), 상품 관리(`온(ON) 상품 관리`, 기본 패키지 1:110 비율 반영), 선물 마스터(`선물 온(ON) 가격`, `누적 후원 온`), 라이브 관리(`후원 온`), 광고/리워드 정책(`출석/초대/광고 지급 온`), 환경설정(`액션별 온(ON) 소모 정책`, 단위 '온'), 푸시 알림 템플릿 등 관리자 전체 UI 텍스트를 '온 (ON)'으로 100% 일원화.
 
 ### 5. 모바일 앱 (`apps/mobile`)
 - `SettlementScreen.js`:
@@ -44,10 +54,16 @@ Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작�
   - 수수료 비노출 정책 준수: 플랫폼 마진율은 일체 표시하지 않고, 등급별 단가 기준 환전액 - 원천징수세(3.3%) = 최종 실지급액만 투명하게 안내 (`※ 등급별 환전 비율 및 세금(3.3%)을 제외한 최종 실지급액입니다`).
   - 상단 요약 카드에 본인의 스트리머 등급 배지(루키 호스트/베스트 스트리머/파트너 스트리머) 표시.
 - `ShopScreen.js`:
-  - 보유 재화 및 충전 패키지 명칭을 `온 (ON)`으로 일원화 (1 온당 110원 충전 패키지 구성).
+  - 보유 재화, 충전 패키지(1:110 비율), 무료 온 리워드 충전소, 출석체크/광고/초대 보상 및 충전 내역 모달 전체를 `온 (ON)`으로 전면 교체.
+- `LiveRoomScreen.js`, `GiftEffectOverlay.js`, `ChatListItem.js`:
+  - 라이브 방송 후원 알림(`🎁 [선물] 후원! (1,000 온)`), 3D 애니메이션 오버레이 배너, 채팅 목록 선물 프리뷰 전체 '온 (ON)' 적용.
+- `pointPolicyHelper.js`:
+  - 1:1 대화, 채팅방 개설/참여, 라이브 개설/입장 시 소모되는 재화 안내 및 부족 팝업을 '온(ON) 부족' 및 '온 충전소 이동'으로 교체.
+- `HomeScreen.js`, `SettingsScreen.js`, `ChatRoomScreen.js`, `ProfileDetailScreen.js`, `GiftPickerSheet.js`:
+  - 홈 상단 GNB 칩(`1,000 온`), 마이페이지 충전 버튼, 선물 픽커 시트(`보유 1,000 온`, `100 온 차감`), 채팅방 부족 안내 등을 모두 `온 (ON)`으로 표준화.
 
 ### 6. 커밋 정보
-- `(현재)`: feat: implement streamer tiers, settlement rates, platform revenue tracking, and ON currency [Checkpoint 38]
+- `(현재)`: feat: standardize all point UI labels to ON currency across mobile and admin [Checkpoint 38 cont.]
 
 ## 2026-10-06 Checkpoint 37: Supabase PostgreSQL 및 Supabase Storage 미디어 스토리지 연동 엔진 구축 (완료)
 

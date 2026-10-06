@@ -28,9 +28,9 @@ interface EditablePointProduct extends PointProduct {
 const FALLBACK_PRODUCTS: EditablePointProduct[] = [
   {
     id: 'point-1',
-    name: '1,000P 충전',
+    name: '1,000 온 충전',
     points: 1000,
-    price: 1900,
+    price: 1100,
     isRecommended: false,
     isActive: true,
     androidProductId: 'com.tokfriends.point.1000',
@@ -39,9 +39,9 @@ const FALLBACK_PRODUCTS: EditablePointProduct[] = [
   },
   {
     id: 'point-2',
-    name: '5,000P 충전',
+    name: '5,000 온 충전',
     points: 5000,
-    price: 7900,
+    price: 5500,
     isRecommended: true,
     isActive: true,
     androidProductId: 'com.tokfriends.point.5000',
@@ -50,9 +50,9 @@ const FALLBACK_PRODUCTS: EditablePointProduct[] = [
   },
   {
     id: 'point-3',
-    name: '10,000P 충전',
+    name: '10,000 온 충전',
     points: 10000,
-    price: 14900,
+    price: 11000,
     isRecommended: false,
     isActive: false,
     androidProductId: 'com.tokfriends.point.10000',
@@ -99,7 +99,7 @@ export default function PointProductsPage() {
     } catch (error) {
       setProducts(sortProducts(FALLBACK_PRODUCTS))
       toast({
-        title: '포인트 상품 불러오기 실패',
+        title: '온(ON) 상품 불러오기 실패',
         description: '네트워크 오류로 기본 상품 목록을 표시합니다.',
         variant: 'destructive',
       })
@@ -173,7 +173,7 @@ export default function PointProductsPage() {
     try {
       await deletePointProduct(product.id)
       setProducts((prev) => prev.filter((item) => item.id !== product.id))
-      toast({ title: '삭제 완료', description: '포인트 상품이 삭제되었습니다.' })
+      toast({ title: '삭제 완료', description: '온(ON) 상품이 삭제되었습니다.' })
     } catch (error) {
       toast({ title: '삭제 실패', description: '상품 삭제 중 오류가 발생했습니다.', variant: 'destructive' })
     } finally {
@@ -195,7 +195,7 @@ export default function PointProductsPage() {
       return
     }
     if (!product.points || product.points <= 0) {
-      toast({ title: '포인트 값 확인', description: '포인트 양을 1 이상으로 설정하세요.', variant: 'destructive' })
+      toast({ title: '온(ON) 수량 확인', description: '온(ON) 수량을 1 이상으로 설정하세요.', variant: 'destructive' })
       return
     }
     if (!product.price || product.price <= 0) {
@@ -239,7 +239,7 @@ export default function PointProductsPage() {
       toast({ title: '저장 완료', description: `${product.name} 상품이 업데이트되었습니다.` })
       setOrderDirty(true)
     } catch (error) {
-      toast({ title: '저장 실패', description: '포인트 상품 저장 중 오류가 발생했습니다.', variant: 'destructive' })
+      toast({ title: '저장 실패', description: '온(ON) 상품 저장 중 오류가 발생했습니다.', variant: 'destructive' })
     } finally {
       setProductSaving(id, false)
     }
@@ -268,7 +268,7 @@ export default function PointProductsPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold">포인트 상품 관리</h1>
+        <h1 className="text-2xl font-semibold">온(ON) 상품 관리</h1>
         <p className="text-sm text-muted-foreground">
           노출 순서를 조정하고, 추천 여부 및 판매가를 관리해 앱 내 결제 경험을 개선하세요. 저장 시 /store/point-products 데이터 소스와 동기화됩니다.
         </p>
@@ -333,11 +333,11 @@ export default function PointProductsPage() {
                     <Input
                       value={product.name ?? ''}
                       onChange={(event) => handleFieldChange(product.id, 'name', event.target.value)}
-                      placeholder="예: 5,000P 충전"
+                      placeholder="예: 5,000 온 충전"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>포인트 양</Label>
+                    <Label>온(ON) 수량</Label>
                     <Input
                       value={product.points?.toString() ?? ''}
                       onChange={(event) =>
@@ -416,7 +416,7 @@ export default function PointProductsPage() {
             )
           })}
           {sortedProducts.length === 0 && (
-            <p className="py-12 text-center text-sm text-muted-foreground">등록된 포인트 상품이 없습니다. 상품을 추가하세요.</p>
+            <p className="py-12 text-center text-sm text-muted-foreground">등록된 온(ON) 상품이 없습니다. 상품을 추가하세요.</p>
           )}
         </CardContent>
       </Card>
