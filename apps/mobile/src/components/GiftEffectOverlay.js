@@ -27,7 +27,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
  * 선물 등급 산정 유틸 (타사 라이브 벤치마크 3단계 이펙트 규격)
  * - small: 3,000 온 미만 (커피, 하트 등 소형 바운스 & 스파클)
  * - medium: 3,000 ~ 15,000 온 (꽃다발, 샴페인 등 중형 회전 골드 아우라 & 스타버스트)
- * - large: 15,000 온 이상 또는 3D 비디오 (골든 드래곤, 스포츠카 등 대형 3D/VIP 팡파레)
+ * - large: 15,000 온 이상 또는 3D 비디오 (골든 드래곤, 슈퍼카 등 대형 3D/VIP 팡파레)
  */
 export const getGiftTier = (gift) => {
   if (!gift) return 'small';
@@ -39,8 +39,9 @@ export const getGiftTier = (gift) => {
 };
 
 /**
- * 3D 선물 이펙트 투명 비디오 & 3단계 티어(소/중/대) 이펙트 오버레이
- * - 타사 라이브(틱톡, SOOP/아프리카) 표준에 따라 화면 하단 1/3 중앙 영역에 플로팅 앵커
+ * 3D 선물 이펙트 투명 비디오 & 3단계 티어(소/중/대) 플로팅 이펙트 오버레이
+ * - 라이브 방송 및 채팅방 화면 위 정중앙(화면 중앙 상공)에 플로팅 앵커 배치
+ * - 배경 화면(채팅방 메시지/하단 입력창, 라이브 스트림)은 100% 그대로 유지
  * - pointerEvents="none" 으로 채팅창 스크롤 및 입력창 터치를 100% 방해하지 않음
  * - FIFO 순차 대기열 처리로 연속 후원 시 씹힘 없이 매끄럽게 재생
  */
@@ -74,7 +75,6 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
   // 외부 ref 공개 API (FIFO 대기열 추가 및 테스트 트리거)
   useImperativeHandle(ref, () => ({
     enqueueGift,
-    // 개발/테스트용 목 트리거
     triggerMockGift: (mock = {}) => {
       enqueueGift({
         giftId: mock.giftId || 'gift-dragon',
@@ -129,17 +129,17 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
     Animated.parallel([
       Animated.timing(bannerAnim, {
         toValue: 0,
-        duration: 300,
+        duration: 320,
         useNativeDriver: true,
       }),
       Animated.timing(bannerScale, {
         toValue: 0.8,
-        duration: 300,
+        duration: 320,
         useNativeDriver: true,
       }),
       Animated.timing(effectScale, {
         toValue: 0.2,
-        duration: 300,
+        duration: 320,
         useNativeDriver: true,
       }),
     ]).start(() => {
@@ -167,7 +167,7 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
     const spinLoop = Animated.loop(
       Animated.timing(spinAnim, {
         toValue: 1,
-        duration: 6000,
+        duration: 5000,
         easing: Easing.linear,
         useNativeDriver: true,
       })
@@ -179,13 +179,13 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1.08,
-          duration: 900,
+          duration: 800,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 0.96,
-          duration: 900,
+          duration: 800,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
@@ -197,7 +197,7 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
     Animated.parallel([
       Animated.timing(bannerAnim, {
         toValue: 1,
-        duration: 300,
+        duration: 250,
         useNativeDriver: true,
       }),
       Animated.spring(bannerScale, {
@@ -217,15 +217,20 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
     // expo-video 재생
     if (player && videoSource) {
       try {
-        player.replay();
+        if (typeof player.replace === 'function') {
+          player.replace(videoSource);
+        }
+        player.play();
       } catch {
-        // silent fallback
+        try {
+          player.play();
+        } catch {}
       }
     }
 
-    // 티어별 최적 노출 시간
+    // 티어별 최적 노출 시간 (중앙 플로팅 지속 시간)
     const duration =
-      tier === 'large' ? (currentGift.animationUrl ? 4400 : 3800) : tier === 'medium' ? 3000 : 2200;
+      tier === 'large' ? 4200 : tier === 'medium' ? 3200 : 2400;
 
     const timer = setTimeout(() => {
       spinLoop.stop();
@@ -268,118 +273,112 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
 
   return (
     <View style={styles.overlayContainer} pointerEvents="none">
-      {/* 앵커: 화면 하단 1/3 중앙 플로팅 스테이지 */}
+      {/* 앵커: 화면 정중앙 플로팅 스테이지 (라이브 방송 / 채팅방 화면 위에서 3D 폭발) */}
       <View style={styles.stageAnchor}>
         {/* ========================================================
-            1. 티어별 비주얼 이펙트 공간 (소형 110px / 중형 190px / 대형 280px)
+            1. 티어별 3D 비주얼 이펙트 공간 (소형 120px / 중형 200px / 대형 VIP 290px)
            ======================================================== */}
-        {isVideo ? (
-          /* 투명 비디오 이펙트 (대형 VIP 비디오) */
-          <Animated.View
-            style={[
-              styles.videoStage,
-              {
-                opacity: bannerAnim,
-                transform: [{ scale: effectScale }],
-              },
-            ]}
-          >
-            <VideoView
-              style={styles.videoView}
-              player={player}
-              allowsFullscreen={false}
-              allowsPictureInPicture={false}
-              startsPictureInPictureAutomatically={false}
-              contentFit="contain"
-              nativeControls={false}
-            />
-          </Animated.View>
-        ) : (
-          /* 그래픽/썸네일 이펙트 (티어별 맞춤 공간) */
-          <Animated.View
-            style={[
-              styles.effectStageBase,
-              tier === 'small' && styles.smallStage,
-              tier === 'medium' && styles.mediumStage,
-              tier === 'large' && styles.largeStage,
-              {
-                opacity: bannerAnim,
-                transform: [{ scale: effectScale }],
-              },
-            ]}
-          >
-            {/* [중형/대형 전용] 회전하는 골드 아우라 광채 링 */}
-            {tier !== 'small' && (
-              <Animated.View
-                style={[
-                  styles.auraRing,
-                  tier === 'medium' ? styles.mediumAura : styles.largeAura,
-                  {
-                    transform: [{ rotate: spinInterpolation }, { scale: pulseAnim }],
-                  },
-                ]}
-              />
-            )}
-
-            {/* [대형 VIP 전용] 방사형 럭셔리 라이트 레이 */}
-            {tier === 'large' && (
-              <Animated.View
-                style={[
-                  styles.largeRadiantGlow,
-                  {
-                    transform: [{ scale: pulseAnim }],
-                  },
-                ]}
-              />
-            )}
-
-            {/* 중앙 선물 썸네일 / 아이콘 카드 */}
-            <View
+        <Animated.View
+          style={[
+            styles.effectStageBase,
+            tier === 'small' && styles.smallStage,
+            tier === 'medium' && styles.mediumStage,
+            tier === 'large' && styles.largeStage,
+            {
+              opacity: bannerAnim,
+              transform: [{ scale: effectScale }],
+            },
+          ]}
+        >
+          {/* [중형/대형 전용] 회전하는 황금빛 아우라 광채 링 */}
+          {tier !== 'small' && (
+            <Animated.View
               style={[
-                styles.iconContainerBase,
-                tier === 'small' && styles.smallIconContainer,
-                tier === 'medium' && styles.mediumIconContainer,
-                tier === 'large' && styles.largeIconContainer,
+                styles.auraRing,
+                tier === 'medium' ? styles.mediumAura : styles.largeAura,
+                {
+                  transform: [{ rotate: spinInterpolation }, { scale: pulseAnim }],
+                },
               ]}
-            >
-              {thumbUrl ? (
-                <Image
-                  source={{ uri: thumbUrl }}
-                  style={[
-                    tier === 'small' && styles.smallThumb,
-                    tier === 'medium' && styles.mediumThumb,
-                    tier === 'large' && styles.largeThumb,
-                  ]}
-                  resizeMode="contain"
+            />
+          )}
+
+          {/* [대형 VIP 전용] 방사형 럭셔리 라이트 레이 (3D 광선 회전) */}
+          {tier === 'large' && (
+            <Animated.View
+              style={[
+                styles.largeRadiantGlow,
+                {
+                  transform: [{ rotate: spinInterpolation }, { scale: pulseAnim }],
+                },
+              ]}
+            />
+          )}
+
+          {/* 중앙 3D 선물 엠블럼 / 아이콘 카드 */}
+          <View
+            style={[
+              styles.iconContainerBase,
+              tier === 'small' && styles.smallIconContainer,
+              tier === 'medium' && styles.mediumIconContainer,
+              tier === 'large' && styles.largeIconContainer,
+            ]}
+          >
+            {thumbUrl ? (
+              <Image
+                source={{ uri: thumbUrl }}
+                style={[
+                  tier === 'small' && styles.smallThumb,
+                  tier === 'medium' && styles.mediumThumb,
+                  tier === 'large' && styles.largeThumb,
+                ]}
+                resizeMode="contain"
+              />
+            ) : (
+              <Text
+                style={{
+                  fontSize: tier === 'small' ? 40 : tier === 'medium' ? 62 : 84,
+                }}
+              >
+                🎁
+              </Text>
+            )}
+
+            {/* 비디오 레이어 오버레이 (대형 VIP 비디오가 재생 가능한 경우 위에 오버랩) */}
+            {isVideo && player && (
+              <View style={styles.videoOverlay}>
+                <VideoView
+                  style={styles.videoView}
+                  player={player}
+                  allowsFullscreen={false}
+                  allowsPictureInPicture={false}
+                  startsPictureInPictureAutomatically={false}
+                  contentFit="contain"
+                  nativeControls={false}
                 />
-              ) : (
-                <Text
-                  style={{
-                    fontSize: tier === 'small' ? 36 : tier === 'medium' ? 56 : 76,
-                  }}
-                >
-                  🎁
-                </Text>
-              )}
+              </View>
+            )}
 
-              {/* 티어별 상단 장식 뱃지 */}
-              {tier === 'large' && (
-                <View style={styles.crownBadge}>
-                  <Text style={styles.crownBadgeText}>👑 VIP</Text>
-                </View>
-              )}
-            </View>
+            {/* 티어별 상단 장식 뱃지 */}
+            {tier === 'large' && (
+              <View style={styles.crownBadge}>
+                <Text style={styles.crownBadgeText}>👑 3D VIP</Text>
+              </View>
+            )}
+          </View>
 
-            {/* [소형/중형/대형 공통] 반짝임 파티클 장식 */}
-            <View style={styles.particleContainer}>
-              <Text style={[styles.sparkleParticle, styles.sparkleTopLeft]}>✨</Text>
-              <Text style={[styles.sparkleParticle, styles.sparkleBottomRight]}>⭐</Text>
-              {tier !== 'small' && (
-                <Text style={[styles.sparkleParticle, styles.sparkleTopRight]}>✨</Text>
-              )}
-            </View>
-          </Animated.View>
-        )}
+          {/* 반짝임 파티클 장식 */}
+          <View style={styles.particleContainer}>
+            <Text style={[styles.sparkleParticle, styles.sparkleTopLeft]}>✨</Text>
+            <Text style={[styles.sparkleParticle, styles.sparkleBottomRight]}>⭐</Text>
+            {tier !== 'small' && (
+              <Text style={[styles.sparkleParticle, styles.sparkleTopRight]}>✨</Text>
+            )}
+            {tier === 'large' && (
+              <Text style={[styles.sparkleParticle, styles.sparkleBottomLeft]}>🌟</Text>
+            )}
+          </View>
+        </Animated.View>
 
         {/* ========================================================
             2. 이펙트 바로 아래에 밀착되는 선물 알림 배너 뱃지
@@ -399,7 +398,7 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
           {thumbUrl ? (
             <Image source={{ uri: thumbUrl }} style={styles.bannerBadgeThumb} resizeMode="cover" />
           ) : (
-            <Text style={{ fontSize: 14, marginRight: 6 }}>🎁</Text>
+            <Text style={{ fontSize: 16, marginRight: 8 }}>🎁</Text>
           )}
 
           <View style={styles.bannerBadgeTextCol}>
@@ -427,31 +426,14 @@ const styles = StyleSheet.create({
   overlayContainer: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 99999,
-    justifyContent: 'flex-end',
+    // 화면 전체 정중앙에 플로팅 (라이브 방송 / 채팅방 화면 위에서 바로 폭발)
+    justifyContent: 'center',
     alignItems: 'center',
-    // 화면 하단 1/3 중앙 영역에 이펙트 배치 (입력창 위 ~ 중앙 하단 플로팅)
-    paddingBottom: Platform.OS === 'ios' ? 140 : 120,
+    backgroundColor: 'transparent',
   },
   stageAnchor: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-
-  // ---------------------------------------------------------------------------
-  // 비디오 스테이지 (투명 비디오 이펙트)
-  // ---------------------------------------------------------------------------
-  videoStage: {
-    width: Math.min(SCREEN_WIDTH * 0.85, 300),
-    height: Math.min(SCREEN_WIDTH * 0.85, 300),
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-    marginBottom: 8,
-  },
-  videoView: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'transparent',
   },
 
   // ---------------------------------------------------------------------------
@@ -460,22 +442,22 @@ const styles = StyleSheet.create({
   effectStageBase: {
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 16,
   },
-  // 1단계: 작은 크기 (Small - 110x110)
+  // 1단계: 작은 크기 (Small - 120x120)
   smallStage: {
-    width: 110,
-    height: 110,
+    width: 120,
+    height: 120,
   },
-  // 2단계: 중간 크기 (Medium - 190x190)
+  // 2단계: 중간 크기 (Medium - 200x200)
   mediumStage: {
-    width: 190,
-    height: 190,
+    width: 200,
+    height: 200,
   },
-  // 3단계: 완전 큰 크기 (Large - 280x280)
+  // 3단계: 완전 큰 크기 (Large - 290x290)
   largeStage: {
-    width: 280,
-    height: 280,
+    width: 290,
+    height: 290,
   },
 
   // ---------------------------------------------------------------------------
@@ -484,36 +466,39 @@ const styles = StyleSheet.create({
   auraRing: {
     position: 'absolute',
     borderRadius: 999,
-    borderWidth: 2,
+    borderWidth: 2.5,
     borderStyle: 'dashed',
-    borderColor: 'rgba(251, 191, 36, 0.85)',
-    backgroundColor: 'rgba(251, 191, 36, 0.08)',
+    borderColor: 'rgba(251, 191, 36, 0.9)',
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
   },
   mediumAura: {
-    width: 180,
-    height: 180,
+    width: 190,
+    height: 190,
     shadowColor: '#F59E0B',
-    shadowOpacity: 0.45,
-    shadowRadius: 16,
+    shadowOpacity: 0.5,
+    shadowRadius: 18,
     elevation: 8,
   },
   largeAura: {
-    width: 270,
-    height: 270,
-    borderWidth: 3,
+    width: 280,
+    height: 280,
+    borderWidth: 3.5,
     borderColor: 'rgba(245, 158, 11, 0.95)',
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
     shadowColor: '#EAB308',
-    shadowOpacity: 0.65,
-    shadowRadius: 24,
-    elevation: 12,
+    shadowOpacity: 0.7,
+    shadowRadius: 26,
+    elevation: 14,
   },
   largeRadiantGlow: {
     position: 'absolute',
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: 'rgba(254, 240, 138, 0.2)',
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    borderWidth: 2,
+    borderStyle: 'dotted',
+    borderColor: 'rgba(254, 240, 138, 0.6)',
+    backgroundColor: 'rgba(254, 240, 138, 0.16)',
   },
 
   // ---------------------------------------------------------------------------
@@ -525,61 +510,79 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: 'rgba(255, 255, 255, 0.96)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 12,
   },
   smallIconContainer: {
-    width: 84,
-    height: 84,
-    borderWidth: 2,
-    borderColor: 'rgba(251, 191, 36, 0.7)',
+    width: 90,
+    height: 90,
+    borderWidth: 2.5,
+    borderColor: 'rgba(251, 191, 36, 0.8)',
   },
   mediumIconContainer: {
-    width: 128,
-    height: 128,
-    borderWidth: 3,
+    width: 140,
+    height: 140,
+    borderWidth: 3.5,
     borderColor: '#F59E0B',
   },
   largeIconContainer: {
-    width: 170,
-    height: 170,
-    borderWidth: 4,
+    width: 185,
+    height: 185,
+    borderWidth: 4.5,
     borderColor: '#EAB308',
   },
 
   // 썸네일 이미지 크기
   smallThumb: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
   },
   mediumThumb: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 104,
+    height: 104,
+    borderRadius: 52,
   },
   largeThumb: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+  },
+
+  // 비디오 오버레이
+  videoOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 999,
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
+  },
+  videoView: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'transparent',
   },
 
   // VIP 왕관 뱃지
   crownBadge: {
     position: 'absolute',
-    top: -12,
+    top: -14,
     backgroundColor: '#DC2626',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
     borderWidth: 1.5,
     borderColor: '#FEF08A',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   crownBadgeText: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '900',
   },
 
@@ -590,22 +593,26 @@ const styles = StyleSheet.create({
   },
   sparkleParticle: {
     position: 'absolute',
-    fontSize: 18,
+    fontSize: 20,
     textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
   sparkleTopLeft: {
     top: 4,
-    left: 8,
+    left: 4,
   },
   sparkleTopRight: {
     top: 6,
-    right: 8,
+    right: 4,
   },
   sparkleBottomRight: {
-    bottom: 8,
-    right: 12,
+    bottom: 6,
+    right: 8,
+  },
+  sparkleBottomLeft: {
+    bottom: 6,
+    left: 8,
   },
 
   // ---------------------------------------------------------------------------
@@ -614,43 +621,43 @@ const styles = StyleSheet.create({
   bannerBadgeBase: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.92)',
-    borderRadius: 24,
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    maxWidth: SCREEN_WIDTH * 0.88,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  smallBannerBadge: {
-    borderWidth: 1,
-    borderColor: 'rgba(251, 191, 36, 0.5)',
-  },
-  mediumBannerBadge: {
-    borderWidth: 1.5,
-    borderColor: '#F59E0B',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  largeBannerBadge: {
-    borderWidth: 2,
-    borderColor: '#EAB308',
-    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+    backgroundColor: 'rgba(15, 23, 42, 0.94)',
+    borderRadius: 26,
     paddingVertical: 9,
-    paddingHorizontal: 18,
-    shadowColor: '#F59E0B',
-    shadowOpacity: 0.5,
-    shadowRadius: 14,
+    paddingHorizontal: 16,
+    maxWidth: SCREEN_WIDTH * 0.9,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
     elevation: 10,
   },
+  smallBannerBadge: {
+    borderWidth: 1.5,
+    borderColor: 'rgba(251, 191, 36, 0.6)',
+  },
+  mediumBannerBadge: {
+    borderWidth: 2,
+    borderColor: '#F59E0B',
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+  },
+  largeBannerBadge: {
+    borderWidth: 2.5,
+    borderColor: '#EAB308',
+    backgroundColor: 'rgba(17, 24, 39, 0.96)',
+    paddingVertical: 11,
+    paddingHorizontal: 20,
+    shadowColor: '#F59E0B',
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 12,
+  },
   bannerBadgeThumb: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    marginRight: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    marginRight: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   bannerBadgeTextCol: {
@@ -658,14 +665,14 @@ const styles = StyleSheet.create({
   },
   bannerBadgeSenderText: {
     color: '#D1D5DB',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
   },
   bannerBadgeGiftText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
-    marginTop: 1,
+    marginTop: 2,
   },
   bannerBadgeHighlight: {
     color: '#FBBF24',

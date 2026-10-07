@@ -1331,7 +1331,7 @@ export default function ChatRoomScreen({ route, navigation }) {
         </View>
 
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.chatContainer}
           keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
         >
@@ -1570,8 +1570,6 @@ export default function ChatRoomScreen({ route, navigation }) {
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* Fullscreen 3D Gift Effect Overlay (FIFO Queue) */}
-      <GiftEffectOverlay ref={giftOverlayRef} />
 
       {/* Fullscreen Image Preview Modal */}
       <Modal
@@ -1701,6 +1699,8 @@ export default function ChatRoomScreen({ route, navigation }) {
         </TouchableWithoutFeedback>
       </Modal>
       </SafeAreaView>
+      {/* Fullscreen 3D Gift Effect Overlay (Floating above the entire chat screen, just like live broadcast) */}
+      <GiftEffectOverlay ref={giftOverlayRef} />
     </View>
   );
 }
