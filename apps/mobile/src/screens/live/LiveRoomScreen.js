@@ -1,5 +1,4 @@
-// src/screens/live/LiveRoomScreen.js
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -25,6 +24,7 @@ import Avatar from '../../components/Avatar';
 import ReportModal from '../../components/ReportModal';
 import GiftEffectOverlay from '../../components/GiftEffectOverlay';
 import GiftPickerSheet from '../../components/GiftPickerSheet';
+import LiveViewerRankingSheet from '../../components/LiveViewerRankingSheet';
 import FloatingHeartsOverlay from '../../components/FloatingHeartsOverlay';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -123,8 +123,64 @@ export default function LiveRoomScreen({ navigation, route }) {
   const giftOverlayRef = useRef(null);
   const floatingHeartsRef = useRef(null);
   const [giftPickerVisible, setGiftPickerVisible] = useState(false);
+  const [viewerModalVisible, setViewerModalVisible] = useState(false);
   const [myPoints, setMyPoints] = useState(currentUser?.pointsBalance || 0);
   const processedGiftMessageIdsRef = useRef(new Set());
+
+  // Guarantee bottom tab bar is completely hidden while Live Room is open
+  useLayoutEffect(() => {
+    const parentNav = navigation.getParent();
+    parentNav?.setOptions({ tabBarStyle: { display: 'none' } });
+    return () => {
+      parentNav?.setOptions({ tabBarStyle: undefined });
+    };
+  }, [navigation]);
+
+  // Extract up to 3 viewer avatars for top header display
+  const viewerAvatars = useMemo(() => {
+    const list = [];
+    const seen = new Set();
+    if (Array.isArray(messages)) {
+      for (const m of messages) {
+        const avatar = m?.senderAvatar || m?.sender?.avatar;
+        const name = m?.senderName || m?.sender?.name;
+        const id = m?.senderId || m?.sender?.id;
+        if (avatar && id && !seen.has(id)) {
+          seen.add(id);
+          list.push({ id, name, avatar });
+        }
+        if (list.length >= 3) break;
+      }
+    }
+    if (list.length < 3) {
+      const fallback = [
+        { id: 'f1', name: '디우', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100' },
+        { id: 'f2', name: 'Adil', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100' },
+        { id: 'f3', name: 'hemi', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100' },
+      ];
+      for (const f of fallback) {
+        if (!seen.has(f.id) && list.length < 3) {
+          seen.add(f.id);
+          list.push(f);
+        }
+      }
+    }
+    return list.slice(0, 3);
+  }, [messages]);
+
+  // Calculate my contributed points in this room
+  const myContributionPoints = useMemo(() => {
+    let total = 0;
+    const myId = String(currentUser?.id || '');
+    if (Array.isArray(messages) && myId) {
+      for (const m of messages) {
+        if (m.type === 'gift' && (String(m.senderId) === myId || String(m.sender?.id) === myId)) {
+          total += Number(m.giftPoints || 0);
+        }
+      }
+    }
+    return total;
+  }, [messages, currentUser]);
 
   // Navigation & Camera Lifecycle
   const isFocused = useIsFocused();
@@ -971,28 +1027,6 @@ export default function LiveRoomScreen({ navigation, route }) {
               <View style={[styles.cornerMarker, styles.cornerBR]} />
             </View>
 
-            {/* Video status overlay badge */}
-            <View
-              style={[
-                styles.videoOverlayBadge,
-                agoraTokenData?.streamDeliveryMode === 'CDN_HLS' && styles.videoOverlayBadgeCdn,
-              ]}
-              pointerEvents="none"
-            >
-              <Ionicons
-                name={agoraTokenData?.streamDeliveryMode === 'CDN_HLS' ? 'flash' : 'videocam'}
-                size={14}
-                color={agoraTokenData?.streamDeliveryMode === 'CDN_HLS' ? '#38BDF8' : '#10B981'}
-              />
-              <Text style={styles.videoOverlayText}>
-                {agoraTokenData?.streamDeliveryMode === 'CDN_HLS'
-                  ? isHost
-                    ? 'CDN 중계 송출 (Agora RTMP 푸시)'
-                    : 'CDN HLS 중계 · 대규모 시청 최적화'
-                  : `Agora RTC HD 1080p · ${isHost ? (cameraFacing === 'front' ? '전면 카메라 (LIVE)' : '후면 카메라 (LIVE)') : '라이브 영상 수신'}`}
-              </Text>
-            </View>
-
             {/* Audio waveform meter */}
             <LiveAudioWaveform isMuted={isMicMuted} />
           </View>
@@ -1082,35 +1116,6 @@ export default function LiveRoomScreen({ navigation, route }) {
         </TouchableOpacity>
 
         <View style={styles.topHeaderRight}>
-          {agoraTokenData && (
-            <View
-              style={[
-                styles.rtcBadge,
-                agoraTokenData?.streamDeliveryMode === 'CDN_HLS' && styles.cdnHlsBadge,
-                (!isVideoSubscribed || isCameraOff) && styles.rtcBadgeAudio,
-              ]}
-            >
-              <View
-                style={[
-                  styles.rtcDot,
-                  agoraTokenData?.streamDeliveryMode === 'CDN_HLS' && styles.cdnHlsDot,
-                  (!isVideoSubscribed || isCameraOff) && styles.rtcDotAudio,
-                ]}
-              />
-              <Text
-                style={[
-                  styles.rtcBadgeText,
-                  agoraTokenData?.streamDeliveryMode === 'CDN_HLS' && styles.cdnHlsBadgeText,
-                ]}
-              >
-                {agoraTokenData?.streamDeliveryMode === 'CDN_HLS'
-                  ? 'CDN HLS'
-                  : !isVideoSubscribed || isCameraOff
-                  ? 'RTC Audio'
-                  : 'RTC HD'}
-              </Text>
-            </View>
-          )}
           {Boolean(room?.totalGiftsPoints && room.totalGiftsPoints > 0) && (
             <View style={styles.giftTotalBadge}>
               <Ionicons name="gift" size={13} color="#F59E0B" />
@@ -1119,10 +1124,33 @@ export default function LiveRoomScreen({ navigation, route }) {
               </Text>
             </View>
           )}
-          <View style={styles.viewerBadge}>
-            <Ionicons name="eye" size={14} color="#FFFFFF" />
-            <Text style={styles.viewerBadgeText}>{viewerCount}</Text>
-          </View>
+
+          {/* Clickable Viewer Profiles Group & Count (opens ranking/viewers modal) */}
+          <TouchableOpacity
+            style={styles.viewerProfileGroupBtn}
+            onPress={() => setViewerModalVisible(true)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.viewerAvatarsOverlap}>
+              {viewerAvatars.map((v, i) => (
+                <View
+                  key={`v_hdr_${v.id || i}`}
+                  style={[
+                    styles.viewerAvatarMiniWrap,
+                    { marginLeft: i === 0 ? 0 : -8, zIndex: 3 - i },
+                  ]}
+                >
+                  <Avatar size={24} name={v.name} uri={v.avatar} />
+                </View>
+              ))}
+            </View>
+            <View style={styles.viewerCountPill}>
+              <Text style={styles.viewerCountPillText}>
+                {viewerCount > 999 ? `${(viewerCount / 1000).toFixed(1)}K` : viewerCount}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
           {!isHost && (
             <TouchableOpacity
               style={styles.safetyButton}
@@ -1132,9 +1160,17 @@ export default function LiveRoomScreen({ navigation, route }) {
               <Ionicons name="ellipsis-vertical" size={18} color="#FFFFFF" />
             </TouchableOpacity>
           )}
+
+          {/* Top Right 'X' button: exits as viewer, ends broadcast as host */}
           <TouchableOpacity
             style={styles.closeButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              if (isHost) {
+                handleEndBroadcast();
+              } else {
+                navigation.goBack();
+              }
+            }}
             hitSlop={8}
           >
             <Ionicons name="close" size={24} color="#FFFFFF" />
@@ -1153,68 +1189,51 @@ export default function LiveRoomScreen({ navigation, route }) {
         </Animated.View>
       )}
 
-      {/* Media Streaming Quick Controls Toolbar */}
-      <View style={styles.mediaToolBar}>
-        {isHost ? (
-          <>
-            <TouchableOpacity
-              style={[styles.mediaToolBtn, isMicMuted && styles.mediaToolBtnActive]}
-              onPress={toggleMic}
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name={isMicMuted ? 'mic-off' : 'mic'}
-                size={16}
-                color={isMicMuted ? '#EF4444' : '#FFFFFF'}
-              />
-              <Text style={[styles.mediaToolText, isMicMuted && styles.mediaToolTextActive]}>
-                {isMicMuted ? '마이크 꺼짐' : '마이크 켜짐'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.mediaToolBtn, isCameraOff && styles.mediaToolBtnActive]}
-              onPress={toggleCamera}
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name={isCameraOff ? 'videocam-off' : 'videocam'}
-                size={16}
-                color={isCameraOff ? '#EF4444' : '#FFFFFF'}
-              />
-              <Text style={[styles.mediaToolText, isCameraOff && styles.mediaToolTextActive]}>
-                {isCameraOff ? '카메라 꺼짐' : '카메라 켜짐'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.mediaToolBtn}
-              onPress={toggleCameraFacing}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="camera-reverse" size={16} color="#FFFFFF" />
-              <Text style={styles.mediaToolText}>
-                {cameraFacing === 'front' ? '전면 전환' : '후면 전환'}
-              </Text>
-            </TouchableOpacity>
-          </>
-        ) : (
+      {/* Media Streaming Quick Controls Toolbar (Host Top Row) */}
+      {isHost && (
+        <View style={styles.mediaToolBar}>
           <TouchableOpacity
-            style={[styles.mediaToolBtn, isSpeakerMuted && styles.mediaToolBtnActive]}
-            onPress={toggleSpeaker}
+            style={[styles.mediaToolBtn, isMicMuted && styles.mediaToolBtnActive]}
+            onPress={toggleMic}
             activeOpacity={0.8}
           >
             <Ionicons
-              name={isSpeakerMuted ? 'volume-mute' : 'volume-high'}
-              size={16}
-              color={isSpeakerMuted ? '#EF4444' : '#FFFFFF'}
+              name={isMicMuted ? 'mic-off' : 'mic'}
+              size={15}
+              color={isMicMuted ? '#EF4444' : '#FFFFFF'}
             />
-            <Text style={[styles.mediaToolText, isSpeakerMuted && styles.mediaToolTextActive]}>
-              {isSpeakerMuted ? '음소거' : '소리 켜짐'}
+            <Text style={[styles.mediaToolText, isMicMuted && styles.mediaToolTextActive]}>
+              {isMicMuted ? '마이크 끔' : '마이크'}
             </Text>
           </TouchableOpacity>
-        )}
-      </View>
+
+          <TouchableOpacity
+            style={[styles.mediaToolBtn, isCameraOff && styles.mediaToolBtnActive]}
+            onPress={toggleCamera}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={isCameraOff ? 'videocam-off' : 'videocam'}
+              size={15}
+              color={isCameraOff ? '#EF4444' : '#FFFFFF'}
+            />
+            <Text style={[styles.mediaToolText, isCameraOff && styles.mediaToolTextActive]}>
+              {isCameraOff ? '카메라 끔' : '카메라'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.mediaToolBtn}
+            onPress={toggleCameraFacing}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="camera-reverse" size={15} color="#FFFFFF" />
+            <Text style={styles.mediaToolText}>
+              {cameraFacing === 'front' ? '전면' : '후면'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Bottom Area: Chat stream + Controls */}
       <View
@@ -1286,16 +1305,6 @@ export default function LiveRoomScreen({ navigation, route }) {
               </TouchableOpacity>
             </View>
           )}
-
-          {isHost && (
-            <TouchableOpacity
-              style={styles.endBroadcastBtn}
-              onPress={handleEndBroadcast}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.endBroadcastText}>종료</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </View>
 
@@ -1321,6 +1330,20 @@ export default function LiveRoomScreen({ navigation, route }) {
         myPoints={myPoints}
         onGoToShop={() => navigation.navigate('Shop')}
         context="live"
+      />
+
+      {/* Viewer & Contribution Ranking Bottom Sheet Modal */}
+      <LiveViewerRankingSheet
+        visible={viewerModalVisible}
+        onClose={() => setViewerModalVisible(false)}
+        viewerCount={viewerCount}
+        messages={messages}
+        currentUser={currentUser}
+        myContributionPoints={myContributionPoints}
+        onOpenGiftPicker={() => {
+          setViewerModalVisible(false);
+          handleOpenGiftPicker();
+        }}
       />
     </SafeAreaView>
   );
@@ -1655,21 +1678,31 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
   },
-  cdnHlsBadgeText: {
-    color: '#BAE6FD',
-  },
-  viewerBadge: {
+  viewerProfileGroupBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 14,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    borderRadius: 16,
+    paddingLeft: 3,
+    paddingRight: 8,
+    paddingVertical: 3,
+    gap: 6,
   },
-  viewerBadgeText: {
+  viewerAvatarsOverlap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewerAvatarMiniWrap: {
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    borderRadius: 13,
+  },
+  viewerCountPill: {
+    paddingHorizontal: 2,
+  },
+  viewerCountPillText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#FFFFFF',
   },
   safetyButton: {
@@ -1690,11 +1723,11 @@ const styles = StyleSheet.create({
   },
   mediaToolBar: {
     position: 'absolute',
-    top: 105,
+    top: 98,
     left: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     zIndex: 10,
   },
   mediaToolBtn: {
@@ -1702,23 +1735,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     backgroundColor: 'rgba(0, 0, 0, 0.55)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
+    paddingHorizontal: 8,
+    paddingVertical: 4.5,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   mediaToolBtnActive: {
-    backgroundColor: 'rgba(239, 68, 68, 0.25)',
-    borderColor: 'rgba(239, 68, 68, 0.6)',
+    backgroundColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: 'rgba(239, 68, 68, 0.7)',
   },
   mediaToolText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   mediaToolTextActive: {
-    color: '#F87171',
+    color: '#FCA5A5',
   },
   bottomOverlay: {
     position: 'absolute',

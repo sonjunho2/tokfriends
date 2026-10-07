@@ -99,11 +99,6 @@ function HomeStack() {
         options={{ animation: 'slide_from_right' }}
       />
       <HomeStackNav.Screen
-        name="LiveRoom"
-        component={LiveRoomScreen}
-        options={{ animation: 'slide_from_bottom' }}
-      />
-      <HomeStackNav.Screen
         name="Points"
         component={ShopScreen}
         options={{ animation: 'slide_from_right' }}
@@ -187,11 +182,6 @@ function LiveStack() {
       screenOptions={{ headerShown: false }}
     >
       <LiveStackNav.Screen name="LiveMain" component={LiveScreen} />
-      <LiveStackNav.Screen
-        name="LiveRoom"
-        component={LiveRoomScreen}
-        options={{ animation: 'slide_from_bottom' }}
-      />
       <LiveStackNav.Screen
         name="Points"
         component={ShopScreen}
