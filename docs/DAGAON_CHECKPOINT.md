@@ -30,6 +30,10 @@ Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작�
    - `styles.giftCardCapsule`, `styles.myGiftCardCapsule`, `styles.otherGiftCardCapsule`, `styles.giftCardThumbBox` 신규 정의.
 3. **`services/api/src/modules/chats/chats.service.ts`**:
    - `sendGift` 시 메시지 payload의 `giftContent` JSON 문자열에 `thumbnailUrl: gift.thumbnailUrl ?? ""` 누락 필드 추가.
+4. **릴리즈 APK 빌드 및 동기화 배포 (`dagaon-release.apk`)**:
+   - `gradlew.bat assembleRelease` 성공 (71.1 MB, 1분 26초).
+   - 프로젝트 루트 배포: `c:\Users\ION\Downloads\work\tokfriends\dagaon-release.apk`
+   - 관리자 웹 다운로드 서빙: `c:\Users\ION\Downloads\work\tokfriends\apps\admin\public\downloads\dagaon-release.apk`
 
 ## 2026-10-07 Checkpoint 44: 액션별 온(ON) 소모 정책 개편(방 개설자 자율 참여비/입장료 설정) 및 대화 탭 채팅방 신규 개설 기능 구현 (완료)
 
