@@ -1683,8 +1683,8 @@ export default function SettingsPage() {
               <div className="rounded-xl border p-4.5 transition bg-card hover:border-amber-400/50 shadow-sm space-y-3.5">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label className="text-base font-semibold text-foreground">1:1 채팅방 참여 (입장)</Label>
-                    <p className="text-xs text-muted-foreground">이미 개설된 1:1 대화방에 참여하거나 입장할 때 소모</p>
+                    <Label className="text-base font-semibold text-foreground">1:1 채팅방 참여 (기본값 / 개설자 자율 설정)</Label>
+                    <p className="text-xs text-muted-foreground">대화방 개설자가 설정한 입장료가 우선 적용되며, 미설정 시 적용되는 관리자 기본값</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={cn('text-xs font-semibold', pointPolicy.chatRoomJoin.enabled ? 'text-amber-600' : 'text-muted-foreground')}>
@@ -1893,8 +1893,8 @@ export default function SettingsPage() {
               <div className="rounded-xl border p-4.5 transition bg-card hover:border-amber-400/50 shadow-sm space-y-3.5">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label className="text-base font-semibold text-foreground">라이브 방송 입장/시청 (시청자)</Label>
-                    <p className="text-xs text-muted-foreground">시청자가 라이브 방송에 최초 입장할 때 1회 소모</p>
+                    <Label className="text-base font-semibold text-foreground">라이브 방송 입장/시청 (기본값 / 호스트 자율 설정)</Label>
+                    <p className="text-xs text-muted-foreground">호스트가 개설 시 지정한 입장료가 우선 적용되며, 미설정 시 적용되는 관리자 기본값</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={cn('text-xs font-semibold', pointPolicy.liveRoomJoin.enabled ? 'text-amber-600' : 'text-muted-foreground')}>

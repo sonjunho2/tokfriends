@@ -25,6 +25,7 @@ export const DUMMY_CHATS = [
     lastMessageAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
     lastMessage: '오늘 날씨 정말 좋네요! 주말에 뭐하세요? 😊',
     unreadCount: 2,
+    entryFee: 0,
   },
   {
     id: 'chat-mock-2',
@@ -37,6 +38,7 @@ export const DUMMY_CHATS = [
     lastMessageAt: new Date(Date.now() - 36 * 60 * 1000).toISOString(),
     lastMessage: '방금 라이브 방송 잘 보셨나요? 감사해요!',
     unreadCount: 0,
+    entryFee: 0,
   },
   {
     id: 'chat-mock-3',
@@ -49,6 +51,7 @@ export const DUMMY_CHATS = [
     lastMessageAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
     lastMessage: '추천해주신 카페 다녀왔어요! 분위기 최고예요 ☕',
     unreadCount: 0,
+    entryFee: 0,
   },
 ];
 
@@ -106,6 +109,7 @@ export const DUMMY_LIVE_ROOMS = [
     id: 'live-room-1',
     title: '지수와 함께하는 소소한 힐링 토크 🌸',
     category: 'talk',
+    entryFee: 0,
     viewerCount: 42,
     totalLikes: 128,
     status: 'active',
@@ -121,6 +125,7 @@ export const DUMMY_LIVE_ROOMS = [
     id: 'live-room-2',
     title: '민우의 어쿠스틱 기타 & 보컬 라이브 🎸',
     category: 'music',
+    entryFee: 20,
     viewerCount: 88,
     totalLikes: 340,
     status: 'active',
@@ -136,6 +141,7 @@ export const DUMMY_LIVE_ROOMS = [
     id: 'live-room-3',
     title: '퇴근길 일상 수다방 ☕ 저녁 뭐 드시나요?',
     category: 'daily',
+    entryFee: 0,
     viewerCount: 19,
     totalLikes: 55,
     status: 'active',
@@ -1066,6 +1072,70 @@ export const apiClient = {
     }
   },
 
+  async createChatRoom({ title, category = '일반', entryFee = 0, isGroup = false } = {}) {
+    const trimmedTitle = String(title || '').trim();
+    if (!trimmedTitle) {
+      throw normalizeError(new Error('대화방 제목을 입력해 주세요.'));
+    }
+    const fee = Math.max(0, Number(entryFee || 0));
+    const newChatId = `chat-room-${Date.now()}`;
+    const newChat = {
+      id: newChatId,
+      title: trimmedTitle,
+      category,
+      entryFee: fee,
+      isGroup: Boolean(isGroup),
+      counterpart: {
+        id: `acc-room-${Date.now()}`,
+        displayName: trimmedTitle,
+        handle: `room_${Date.now()}`,
+        avatarUrl: null,
+      },
+      lastMessageAt: new Date().toISOString(),
+      lastMessage: '대화방이 개설되었습니다. 대화를 시작해 보세요!',
+      unreadCount: 0,
+    };
+
+    DUMMY_CHATS.unshift(newChat);
+    DUMMY_MESSAGES_STORE[newChatId] = [
+      {
+        id: `msg-welcome-${newChatId}`,
+        chatId: newChatId,
+        senderAccountId: 'system',
+        content: `🎉 '${trimmedTitle}' 대화방이 개설되었습니다! (입장료: ${fee > 0 ? `${fee} 온` : '무료'})`,
+        createdAt: new Date().toISOString(),
+        type: 'text',
+      },
+    ];
+
+    if (USE_DUMMY_AUTH) {
+      return newChat;
+    }
+
+    try {
+      const { data } = await client.post('/chats/rooms', {
+        title: trimmedTitle,
+        category,
+        entryFee: fee,
+        isGroup,
+      });
+      const created = data?.data ?? data;
+      if (created && created.id) {
+        return {
+          ...newChat,
+          ...created,
+          entryFee: created?.entryFee !== undefined ? Number(created.entryFee) : fee,
+        };
+      }
+      return newChat;
+    } catch (e) {
+      if (USE_DUMMY_AUTH || e?.status === 401 || e?.status === 404 || !currentToken) {
+        return newChat;
+      }
+      throw normalizeError(e);
+    }
+  },
+
   async getChatMessages(chatId, cursor) {
     const target = String(chatId || '').trim();
     if (!target) {
@@ -1448,15 +1518,17 @@ export const apiClient = {
     }
   },
 
-  async createLiveRoom({ title, category = 'talk', coverUri } = {}) {
+  async createLiveRoom({ title, category = 'talk', coverUri, entryFee = 0 } = {}) {
     const trimmedTitle = String(title || '').trim();
     if (!trimmedTitle) {
       throw normalizeError(new Error('방송 제목을 입력해 주세요.'));
     }
+    const fee = Math.max(0, Number(entryFee || 0));
     const newRoom = {
       id: `live-room-${Date.now()}`,
       title: trimmedTitle,
       category,
+      entryFee: fee,
       viewerCount: 1,
       totalLikes: 0,
       status: 'active',
@@ -1476,9 +1548,15 @@ export const apiClient = {
       const { data } = await client.post('/live/rooms', {
         title: trimmedTitle,
         category,
+        entryFee: fee,
         ...(coverUri ? { coverUri } : {}),
       });
-      return data?.data ?? data;
+      const room = data?.data ?? data;
+      return {
+        ...newRoom,
+        ...room,
+        entryFee: room?.entryFee !== undefined ? Number(room.entryFee) : fee,
+      };
     } catch (e) {
       if (USE_DUMMY_AUTH || e?.status === 401 || e?.status === 404 || !currentToken) {
         DUMMY_LIVE_ROOMS.unshift(newRoom);
@@ -2665,15 +2743,6 @@ export const apiClient = {
   async getLiveRoom(roomId) {
     try {
       const { data } = await client.get(`/live/rooms/${roomId}`);
-      return data?.data || data;
-    } catch (e) {
-      throw normalizeError(e);
-    }
-  },
-
-  async createLiveRoom(payload) {
-    try {
-      const { data } = await client.post('/live/rooms', payload);
       return data?.data || data;
     } catch (e) {
       throw normalizeError(e);

@@ -47,6 +47,7 @@ function formatRoom(
     hlsPlaybackUrl?: string | null;
     rtmpPushUrl?: string | null;
   },
+  entryFee = 0,
 ) {
   return {
     id: room.id,
@@ -56,6 +57,7 @@ function formatRoom(
     viewerCount: room.viewerCount,
     totalLikes: room.totalLikes,
     totalGiftsPoints: room.totalGiftsPoints,
+    entryFee: Math.max(0, Number(entryFee || room?.entryFee || 0)),
     coverUri: room.coverUri || room.host?.profile?.avatarUri || null,
     startedAt: room.startedAt,
     endedAt: room.endedAt,
@@ -81,6 +83,7 @@ function formatRoom(
 @Injectable()
 export class LiveService {
   private readonly activeViewersByRoom = new Map<string, Set<string>>();
+  private readonly roomEntryFees = new Map<string, number>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -145,7 +148,11 @@ export class LiveService {
       });
     });
 
-    const formatted = formatRoom(room);
+    if (dto.entryFee !== undefined) {
+      this.roomEntryFees.set(room.id, Math.max(0, dto.entryFee));
+    }
+
+    const formatted = formatRoom(room, undefined, this.roomEntryFees.get(room.id) ?? 0);
     const agoraToken = await this.getAgoraToken(room.id, hostUserId, 'publisher').catch(() => null);
 
     return {
@@ -197,10 +204,14 @@ export class LiveService {
         streamConfig.mode === 'CDN_HLS' && streamConfig.cdnHlsUrlPattern
           ? streamConfig.cdnHlsUrlPattern.replace('{roomId}', r.id)
           : null;
-      return formatRoom(r, {
-        mode: streamConfig.mode,
-        hlsPlaybackUrl,
-      });
+      return formatRoom(
+        r,
+        {
+          mode: streamConfig.mode,
+          hlsPlaybackUrl,
+        },
+        this.roomEntryFees.get(r.id) ?? 0,
+      );
     });
   }
 
@@ -215,7 +226,7 @@ export class LiveService {
     }
 
     const streamConfig = await this.getStreamConfigForRoom(roomId);
-    return formatRoom(room, streamConfig);
+    return formatRoom(room, streamConfig, this.roomEntryFees.get(room.id) ?? 0);
   }
 
   async endRoom(hostUserId: string, roomId: string) {
@@ -260,10 +271,18 @@ export class LiveService {
       return { success: false, viewerCount: 0 };
     }
 
-    // 시청자 라이브 참여 포인트 소모 정책 확인
+    // 시청자 라이브 참여 포인트 소모 정책 확인 (호스트 설정 우선 적용)
     if (userId && room.hostId !== userId) {
+      const customEntryFee = this.roomEntryFees.get(roomId);
       const pointPolicy = await this.adminSettings.getActionPointPolicy();
-      if (pointPolicy.liveRoomJoin.enabled && pointPolicy.liveRoomJoin.amount > 0) {
+      const requiredAmount =
+        customEntryFee !== undefined
+          ? customEntryFee
+          : pointPolicy.liveRoomJoin.enabled
+          ? pointPolicy.liveRoomJoin.amount
+          : 0;
+
+      if (requiredAmount > 0) {
         const idempotencyKey = `live_join_${roomId}_${userId}`;
         const existingPayment = await this.prisma.walletLedgerEntry.findUnique({
           where: { idempotencyKey },
@@ -274,10 +293,10 @@ export class LiveService {
             await this.adminSettings.deductUserPoints(
               tx,
               userId,
-              pointPolicy.liveRoomJoin.amount,
+              requiredAmount,
               'join_live_room',
               idempotencyKey,
-              { roomId, roomTitle: room.title },
+              { roomId, roomTitle: room.title, entryFee: requiredAmount },
             );
           });
         }

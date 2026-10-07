@@ -16,22 +16,37 @@ import { apiClient } from '../api/client';
 export async function checkAndConfirmActionPoint({
   actionType,
   actionName,
+  overrideAmount,
   navigation,
   onConfirm,
 }) {
   try {
-    const policy = await apiClient.getActionPointPolicy();
-    const actionConfig = policy?.[actionType];
-
-    // 포인트 소모가 비활성화되어 있거나 0P인 경우 즉시 진행
-    if (!actionConfig || !actionConfig.enabled || actionConfig.amount <= 0) {
-      if (typeof onConfirm === 'function') {
-        onConfirm();
+    // 1. 방 개설자가 설정한 참여 비용(overrideAmount)이 있는 경우 우선 적용
+    let requiredAmount = 0;
+    if (overrideAmount !== undefined && overrideAmount !== null) {
+      requiredAmount = Math.max(0, Number(overrideAmount) || 0);
+      // 참여 비용이 0 온(무료)이면 즉시 진행
+      if (requiredAmount <= 0) {
+        if (typeof onConfirm === 'function') {
+          onConfirm();
+        }
+        return;
       }
-      return;
-    }
+    } else {
+      // 2. 방 개설 비용 등 관리자 기본 정책 적용
+      const policy = await apiClient.getActionPointPolicy();
+      const actionConfig = policy?.[actionType];
 
-    const requiredAmount = actionConfig.amount;
+      // 포인트 소모가 비활성화되어 있거나 0P인 경우 즉시 진행
+      if (!actionConfig || !actionConfig.enabled || actionConfig.amount <= 0) {
+        if (typeof onConfirm === 'function') {
+          onConfirm();
+        }
+        return;
+      }
+
+      requiredAmount = Number(actionConfig.amount) || 0;
+    }
 
     // 현재 보유 포인트 잔액 조회
     let currentBalance = 0;

@@ -54,6 +54,14 @@ export class ChatsController {
     );
   }
 
+  @Post("rooms")
+  createCustomRoom(
+    @CurrentUser() user: CurrentRequestUser,
+    @Body() dto: { title: string; category?: string; entryFee?: number; isGroup?: boolean },
+  ) {
+    return this.chats.createCustomRoom(user?.id, user?.activityAccountId, dto);
+  }
+
   @Post(":chatId/read")
   markRead(
     @CurrentUser() user: CurrentRequestUser,

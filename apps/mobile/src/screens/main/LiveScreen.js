@@ -42,6 +42,7 @@ export default function LiveScreen({ navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('talk');
+  const [entryFee, setEntryFee] = useState(0);
   const [starting, setStarting] = useState(false);
 
   const loadRooms = useCallback(async () => {
@@ -79,6 +80,8 @@ export default function LiveScreen({ navigation }) {
       return;
     }
 
+    const fee = Math.max(0, Number(entryFee || 0));
+
     checkAndConfirmActionPoint({
       actionType: 'liveRoomCreate',
       actionName: '라이브 방송 개설',
@@ -89,9 +92,11 @@ export default function LiveScreen({ navigation }) {
           const room = await apiClient.createLiveRoom({
             title: trimmedTitle,
             category,
+            entryFee: fee,
           });
           setModalVisible(false);
           setTitle('');
+          setEntryFee(0);
           navigation.navigate('LiveRoom', { room, roomId: room.id, isHost: true });
           loadRooms();
         } catch (e) {
@@ -112,9 +117,12 @@ export default function LiveScreen({ navigation }) {
       return;
     }
 
+    const fee = Number(room?.entryFee ?? 0);
+
     checkAndConfirmActionPoint({
       actionType: 'liveRoomJoin',
-      actionName: '라이브 방송 입장',
+      actionName: fee > 0 ? `라이브 방송 입장(입장료 ${fee.toLocaleString()} 온)` : '라이브 방송 무료 입장',
+      overrideAmount: fee,
       navigation,
       onConfirm: () => {
         navigation.navigate('LiveRoom', { room, roomId: room.id, isHost: false });
@@ -149,6 +157,16 @@ export default function LiveScreen({ navigation }) {
             <View style={styles.viewerBadge}>
               <Ionicons name="eye" size={12} color="#FFFFFF" />
               <Text style={styles.viewerCountText}>{item.viewerCount || 1}</Text>
+            </View>
+            <View
+              style={[
+                styles.entryFeePill,
+                Number(item.entryFee || 0) > 0 ? styles.entryFeePaid : styles.entryFeeFree,
+              ]}
+            >
+              <Text style={styles.entryFeePillText}>
+                {Number(item.entryFee || 0) > 0 ? `${Number(item.entryFee).toLocaleString()} 온` : '무료'}
+              </Text>
             </View>
           </View>
         </View>
@@ -338,6 +356,51 @@ export default function LiveScreen({ navigation }) {
                   </TouchableOpacity>
                 );
               })}
+            </View>
+
+            <Text style={[styles.inputLabel, { marginTop: 24 }]}>시청자 입장료 (참여 온 설정)</Text>
+            <Text style={styles.inputSubLabel}>
+              호스트가 직접 시청자의 입장료를 지정할 수 있습니다. (0 온 설정 시 무료)
+            </Text>
+            <View style={styles.entryFeeChipRow}>
+              {[0, 10, 30, 50, 100].map((feeVal) => {
+                const isSelected = entryFee === feeVal;
+                return (
+                  <TouchableOpacity
+                    key={feeVal}
+                    style={[
+                      styles.entryFeeChip,
+                      isSelected && styles.entryFeeChipActive,
+                    ]}
+                    onPress={() => setEntryFee(feeVal)}
+                  >
+                    <Text
+                      style={[
+                        styles.entryFeeChipText,
+                        isSelected && styles.entryFeeChipTextActive,
+                      ]}
+                    >
+                      {feeVal === 0 ? '무료' : `${feeVal} 온`}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <View style={styles.customFeeRow}>
+              <Text style={styles.customFeeLabel}>직접 입력:</Text>
+              <TextInput
+                style={styles.customFeeInput}
+                placeholder="0"
+                placeholderTextColor={colors.textTertiary}
+                keyboardType="number-pad"
+                value={String(entryFee)}
+                onChangeText={(text) => {
+                  const cleaned = text.replace(/[^0-9]/g, '');
+                  const num = parseInt(cleaned, 10);
+                  setEntryFee(isNaN(num) ? 0 : Math.min(num, 50000));
+                }}
+              />
+              <Text style={styles.customFeeUnit}>온(ON)</Text>
             </View>
 
             <View style={styles.modalTipCard}>
@@ -684,5 +747,82 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     lineHeight: 18,
+  },
+  entryFeePill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 'auto',
+  },
+  entryFeeFree: {
+    backgroundColor: 'rgba(16, 185, 129, 0.85)',
+  },
+  entryFeePaid: {
+    backgroundColor: 'rgba(245, 158, 11, 0.9)',
+  },
+  entryFeePillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  inputSubLabel: {
+    fontSize: 12,
+    color: colors.textTertiary,
+    marginBottom: 10,
+  },
+  entryFeeChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+  entryFeeChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 14,
+    backgroundColor: colors.pillBg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  entryFeeChipActive: {
+    backgroundColor: 'rgba(255, 59, 107, 0.1)',
+    borderColor: LIVE_COLOR,
+  },
+  entryFeeChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  entryFeeChipTextActive: {
+    color: LIVE_COLOR,
+    fontWeight: '800',
+  },
+  customFeeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 6,
+  },
+  customFeeLabel: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  customFeeInput: {
+    minWidth: 80,
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    fontSize: 14,
+    color: colors.text,
+    textAlign: 'right',
+  },
+  customFeeUnit: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textSecondary,
   },
 });

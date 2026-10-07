@@ -93,9 +93,25 @@ export default function ChatListItem({ item, onPress }) {
 
       <View style={styles.contentWrap}>
         <View style={styles.topRow}>
-          <Text numberOfLines={1} style={styles.title}>
-            {item.title}
-          </Text>
+          <View style={styles.titleWithBadges}>
+            <Text numberOfLines={1} style={styles.title}>
+              {item.title}
+            </Text>
+            {item.entryFee !== undefined && Number(item.entryFee) > 0 ? (
+              <View style={styles.feeBadge}>
+                <Text style={styles.feeBadgeText}>{Number(item.entryFee).toLocaleString()} 온</Text>
+              </View>
+            ) : item.entryFee !== undefined && Number(item.entryFee) === 0 ? (
+              <View style={styles.freeBadge}>
+                <Text style={styles.freeBadgeText}>무료</Text>
+              </View>
+            ) : null}
+            {item.isGroup ? (
+              <View style={styles.groupBadge}>
+                <Text style={styles.groupBadgeText}>그룹</Text>
+              </View>
+            ) : null}
+          </View>
           {Boolean(timeText) && (
             <Text style={styles.timeText}>{timeText}</Text>
           )}
@@ -140,13 +156,56 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 4,
   },
+  titleWithBadges: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+    gap: 6,
+  },
   title: {
     fontSize: 16,
     fontWeight: '700',
     color: '#191919',
-    flex: 1,
-    marginRight: 8,
     letterSpacing: -0.3,
+    maxWidth: '75%',
+  },
+  feeBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+  },
+  feeBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#D97706',
+  },
+  freeBadge: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  freeBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#059669',
+  },
+  groupBadge: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  groupBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#4B5563',
   },
   timeText: {
     fontSize: 11,

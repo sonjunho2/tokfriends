@@ -14,6 +14,11 @@ export class CreateLiveRoomDto {
   @IsString()
   @IsOptional()
   coverUri?: string;
+
+  @IsInt()
+  @IsOptional()
+  @Min(0)
+  entryFee?: number;
 }
 
 export class SendLiveMessageDto {

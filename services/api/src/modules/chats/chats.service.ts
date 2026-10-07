@@ -1590,4 +1590,46 @@ export class ChatsService {
       })),
     };
   }
+
+  async createCustomRoom(
+    currentUserId: string | undefined,
+    actorAccountId: string | null | undefined,
+    dto: { title: string; category?: string; entryFee?: number; isGroup?: boolean },
+  ) {
+    const title = String(dto.title || '').trim();
+    if (!title) {
+      throw new BadRequestException('Room title is required');
+    }
+
+    const fee = Math.max(0, Number(dto.entryFee || 0));
+
+    // 방 개설 시 관리자 정책에 따른 포인트 차감
+    if (currentUserId) {
+      const pointPolicy = await this.adminSettings.getActionPointPolicy();
+      if (pointPolicy.chatRoomCreate?.enabled && pointPolicy.chatRoomCreate?.amount > 0) {
+        await this.prisma.$transaction(async (tx) => {
+          await this.adminSettings.deductUserPoints(
+            tx,
+            currentUserId,
+            pointPolicy.chatRoomCreate.amount,
+            'create_chat_room',
+            `chat_create_${currentUserId}_${Date.now()}`,
+            { title, entryFee: fee },
+          );
+        });
+      }
+    }
+
+    return {
+      id: `chat-custom-${Date.now()}`,
+      title,
+      category: dto.category || '친목',
+      entryFee: fee,
+      isGroup: Boolean(dto.isGroup),
+      lastMessageAt: new Date().toISOString(),
+      lastMessage: '대화방이 개설되었습니다. 대화를 시작해 보세요!',
+      unreadCount: 0,
+      createdAt: new Date().toISOString(),
+    };
+  }
 }
