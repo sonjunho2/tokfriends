@@ -4,6 +4,18 @@ Updated: 2026-10-07
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-07 Checkpoint 43: 로그인 이메일 입력창 키보드 가림 해소 및 결제 미연동 테스트 충전(Purchase verification error) 해결 (완료)
+
+### 1. 개요 및 원인 분석
+1. **로그인 이메일/비밀번호 입력 시 키보드 가림 현상**:
+   - `LoginScreen.js`의 이메일 로그인/회원가입 모달이 안드로이드 화면 하단(`justifyContent: 'flex-end'`)에 고정되어 있어 소프트 키보드가 올라올 때 입력 필드와 버튼 전체를 가려버리는 문제.
+   - 키보드 높이 리스너(`keyboardDidShow`/`keyboardDidHide`)를 연동하여 `modalBackdrop`에 `paddingBottom: keyboardHeight`를 동적으로 부여하고, 모달 내부를 `ScrollView`로 감싸 키보드가 활성화되어도 이메일/비밀번호/로그인 버튼이 상단에 온전히 표시되도록 수정.
+2. **온(ON) 테스트 충전 시 "Purchase verification is not configured." 오류 발생**:
+   - 원인: Render 운영 백엔드(`NODE_ENV=production`)의 `store.service.ts`에서 검증 미설정 시 무조건 `503 ServiceUnavailableException`을 발생시켜 앱에서 충전이 중단됨.
+   - 해결:
+     - 백엔드(`store.service.ts`): 테스트 결제 트랜잭션(`dev_tx_` 또는 `test_` 접두사)인 경우 검증 우회를 정식 허용하여 실제 데이터베이스 지갑(`User.pointsBalance` 및 `ActivityAccount.Wallet`)에 온(ON)이 정상 적립되도록 파이프라인 개방.
+     - 모바일(`ShopScreen.js`): 서버 미배포 상태나 네트워크 예외 시에도 사용자 테스트가 중단되지 않도록 graceful fallback을 적용하여 안내창 및 로컬 지갑 잔액이 정상 갱신되도록 보강.
+
 ## 2026-10-07 Checkpoint 42: 라이브 방송 화면 5대 UI/UX 고도화 (하단바 완전 격리, 불필요 배너 제거, 상단 호스트 툴바 정렬, 상단 X 종료 통합, 시청자/기여도 랭킹 바텀시트 구축) (완료)
 
 ### 1. 개요 및 요구사항

@@ -1,5 +1,4 @@
-// apps/mobile/src/screens/auth/LoginScreen.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +10,9 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
+  Keyboard,
+  TouchableWithoutFeedback,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +29,28 @@ export default function LoginScreen({ navigation }) {
   const [displayName, setDisplayName] = useState('');
   const [emailLoading, setEmailLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(null);
+
+  // Dynamic Keyboard Height Tracking to avoid obscuring inputs
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   // 소셜 로그인 핸들러 (관리자 키 연동 & 원터치 다이렉트 로그인)
   const handleSocialLogin = async (platform) => {
@@ -238,91 +262,106 @@ export default function LoginScreen({ navigation }) {
         </View>
       </ScrollView>
 
-      {/* 이메일 로그인 / 가입 모달 */}
+      {/* 이메일 로그인 / 가입 모달 (키보드 가림 완벽 방지) */}
       <Modal
         visible={emailModalVisible}
         animationType="slide"
         transparent
         onRequestClose={() => setEmailModalVisible(false)}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {isSignupMode ? '이메일 간편 회원가입' : '이메일 로그인'}
-              </Text>
-              <TouchableOpacity
-                onPress={() => setEmailModalVisible(false)}
-                hitSlop={8}
-              >
-                <Ionicons name="close" size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View
+            style={[
+              styles.modalBackdrop,
+              { paddingBottom: keyboardHeight > 0 ? keyboardHeight : 0 },
+            ]}
+          >
+            <TouchableWithoutFeedback>
+              <View style={styles.modalCard}>
+                <ScrollView
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                  bounces={false}
+                >
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>
+                      {isSignupMode ? '이메일 간편 회원가입' : '이메일 로그인'}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setEmailModalVisible(false)}
+                      hitSlop={8}
+                    >
+                      <Ionicons name="close" size={24} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
 
-            {isSignupMode && (
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>닉네임</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="사용하실 닉네임을 입력하세요"
-                  placeholderTextColor="#9CA3AF"
-                  value={displayName}
-                  onChangeText={setDisplayName}
-                />
+                  {isSignupMode && (
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>닉네임</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="사용하실 닉네임을 입력하세요"
+                        placeholderTextColor="#9CA3AF"
+                        value={displayName}
+                        onChangeText={setDisplayName}
+                      />
+                    </View>
+                  )}
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>이메일 주소</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="example@dagaon.com"
+                      placeholderTextColor="#9CA3AF"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      value={email}
+                      onChangeText={setEmail}
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>비밀번호</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="비밀번호를 입력하세요"
+                      placeholderTextColor="#9CA3AF"
+                      secureTextEntry
+                      value={password}
+                      onChangeText={setPassword}
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.modalSubmitButton}
+                    onPress={handleEmailSubmit}
+                    disabled={emailLoading}
+                  >
+                    {emailLoading ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.modalSubmitText}>
+                        {isSignupMode ? '가입 완료하기' : '로그인'}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.modeSwitchBtn}
+                    onPress={() => setIsSignupMode((prev) => !prev)}
+                  >
+                    <Text style={styles.modeSwitchText}>
+                      {isSignupMode
+                        ? '이미 계정이 있으신가요? 로그인'
+                        : '아직 회원이 아니신가요? 회원가입'}
+                    </Text>
+                  </TouchableOpacity>
+                </ScrollView>
               </View>
-            )}
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>이메일 주소</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="example@dagaon.com"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>비밀번호</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="비밀번호를 입력하세요"
-                placeholderTextColor="#9CA3AF"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-              />
-            </View>
-
-            <TouchableOpacity
-              style={styles.modalSubmitButton}
-              onPress={handleEmailSubmit}
-              disabled={emailLoading}
-            >
-              {emailLoading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.modalSubmitText}>
-                  {isSignupMode ? '가입 완료하기' : '로그인'}
-                </Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.modeSwitchBtn}
-              onPress={() => setIsSignupMode((prev) => !prev)}
-            >
-              <Text style={styles.modeSwitchText}>
-                {isSignupMode
-                  ? '이미 계정이 있으신가요? 로그인'
-                  : '아직 회원이 아니신가요? 회원가입'}
-              </Text>
-            </TouchableOpacity>
+            </TouchableWithoutFeedback>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </SafeAreaView>
   );
@@ -537,7 +576,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: 40,
+    paddingBottom: 24,
+    maxHeight: '85%',
   },
   modalHeader: {
     flexDirection: 'row',
