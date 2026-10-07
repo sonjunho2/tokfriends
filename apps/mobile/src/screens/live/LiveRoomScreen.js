@@ -6,6 +6,7 @@ import {
   Animated,
   AppState,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -141,6 +142,28 @@ export default function LiveRoomScreen({ navigation, route }) {
       setIsCameraReady(false);
     }
   }, [isHost, isFocused, isCameraOff, cameraFacing]);
+
+  // Dynamic Keyboard Height Tracking (Avoid Input Obscuring)
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   // Agora Live Streaming States (Video + Audio)
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -1194,9 +1217,15 @@ export default function LiveRoomScreen({ navigation, route }) {
       </View>
 
       {/* Bottom Area: Chat stream + Controls */}
-      <KeyboardAvoidingView
-        style={styles.bottomOverlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <View
+        style={[
+          styles.bottomOverlay,
+          {
+            bottom: keyboardHeight > 0
+              ? keyboardHeight + (Platform.OS === 'android' ? 8 : 12)
+              : (Platform.OS === 'android' ? 12 : 24),
+          },
+        ]}
       >
         {/* Chat message list */}
         <View style={styles.chatListWrap}>
@@ -1268,7 +1297,7 @@ export default function LiveRoomScreen({ navigation, route }) {
             </TouchableOpacity>
           )}
         </View>
-      </KeyboardAvoidingView>
+      </View>
 
       <ReportModal
         visible={reportModalVisible}

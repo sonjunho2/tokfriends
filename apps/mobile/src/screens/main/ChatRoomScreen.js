@@ -1314,7 +1314,7 @@ export default function ChatRoomScreen({ route, navigation }) {
         </View>
 
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.chatContainer}
           keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
         >

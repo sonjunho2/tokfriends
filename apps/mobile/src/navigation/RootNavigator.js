@@ -413,6 +413,25 @@ function MainTabs() {
   );
 }
 
+/** ===== 로그인 후 메인 앱 플로우 (라이브 룸 풀화면 분리) ===== */
+const AppStackNav = createNativeStackNavigator();
+
+function AppFlow() {
+  return (
+    <AppStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <AppStackNav.Screen name="MainTabs" component={MainTabs} />
+      <AppStackNav.Screen
+        name="LiveRoom"
+        component={LiveRoomScreen}
+        options={{
+          animation: 'slide_from_bottom',
+          presentation: 'fullScreenModal',
+        }}
+      />
+    </AppStackNav.Navigator>
+  );
+}
+
 /** ===== 루트 ===== */
 export default function RootNavigator() {
   const { user, token, initializing, isOffline } = useAuth();
@@ -447,7 +466,7 @@ export default function RootNavigator() {
           </Text>
         </View>
       )}
-      {isSignedIn ? <MainTabs /> : <AuthFlow />}
+      {isSignedIn ? <AppFlow /> : <AuthFlow />}
     </View>
   );
 }

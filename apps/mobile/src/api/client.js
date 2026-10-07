@@ -1550,7 +1550,28 @@ export const apiClient = {
     }
   },
 
-  async sendLiveMessage({ roomId, content, type = 'chat', giftPoints } = {}) {
+  async sendLiveMessage(arg1, arg2) {
+    let roomId;
+    let content;
+    let type = 'chat';
+    let giftPoints;
+
+    if (arg1 && typeof arg1 === 'object') {
+      roomId = arg1.roomId;
+      content = arg1.content;
+      type = arg1.type || 'chat';
+      giftPoints = arg1.giftPoints;
+    } else {
+      roomId = arg1;
+      if (arg2 && typeof arg2 === 'object') {
+        content = arg2.content;
+        type = arg2.type || 'chat';
+        giftPoints = arg2.giftPoints;
+      } else {
+        content = arg2;
+      }
+    }
+
     if (!roomId) throw normalizeError(new Error('라이브 룸 ID가 필요합니다.'));
     const trimmedContent = String(content || '').trim();
     if (!trimmedContent && type !== 'like') {
@@ -2689,15 +2710,6 @@ export const apiClient = {
   async sendLiveGift(roomId, payload) {
     try {
       const { data } = await client.post(`/live/rooms/${roomId}/gift`, payload);
-      return data?.data || data;
-    } catch (e) {
-      throw normalizeError(e);
-    }
-  },
-
-  async sendLiveMessage(roomId, payload) {
-    try {
-      const { data } = await client.post(`/live/rooms/${roomId}/messages`, payload);
       return data?.data || data;
     } catch (e) {
       throw normalizeError(e);

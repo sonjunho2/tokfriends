@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
@@ -55,9 +56,11 @@ export default function LiveScreen({ navigation }) {
     }
   }, []);
 
-  useEffect(() => {
-    loadRooms();
-  }, [loadRooms]);
+  useFocusEffect(
+    useCallback(() => {
+      loadRooms();
+    }, [loadRooms])
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

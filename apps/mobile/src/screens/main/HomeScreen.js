@@ -167,22 +167,11 @@ export default function HomeScreen({ navigation }) {
     loadHomeData();
   }, [loadHomeData]);
 
-  // 화면 포커스 시 잔여 포인트 및 실시간 라이브 빠른 동기화
+  // 화면 포커스 시 홈 데이터 전체 자동 새로고침 (라이브/포인트/피드 동기화)
   useFocusEffect(
     useCallback(() => {
-      apiClient.getPointBalance().then((res) => {
-        if (res?.balance !== undefined) setMyPoints(Number(res.balance));
-      }).catch(() => {});
-
-      apiClient.getLiveRooms().then((rooms) => {
-        if (Array.isArray(rooms) && rooms.length > 0) {
-          const activeOnes = rooms.filter(
-            (r) => r.status === 'ACTIVE' || r.status === 'LIVE' || !r.status,
-          );
-          if (activeOnes.length > 0) setLiveRooms(activeOnes);
-        }
-      }).catch(() => {});
-    }, [])
+      loadHomeData();
+    }, [loadHomeData])
   );
 
   const handleProfilePress = (item) => {

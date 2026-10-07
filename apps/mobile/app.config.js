@@ -53,6 +53,10 @@ module.exports = ({ config }) => {
         'android.permission.ACCESS_NETWORK_STATE',
       ],
     },
+    androidNavigationBar: {
+      visible: 'sticky-immersive',
+      backgroundColor: '#00000000',
+    },
     ios: {
       ...(resolvedConfig.ios ?? {}),
       bundleIdentifier: 'com.sonjunho.ddakchin',

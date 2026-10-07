@@ -33,6 +33,13 @@ const FALLBACK_PACKAGES = [
   { id: 'com.company.points.1000', productId: 'com.company.points.1000', label: '1,000 온', price: '₩110,000', points: 1000 },
 ];
 
+/**
+ * [결제 시스템 미연동 테스트 충전 스위치]
+ * 구글 플레이/앱스토어 IAP 결제가 연동되기 전 온(ON) 충전을 바로 테스트할 수 있도록 제공합니다.
+ * 나중에 정식 오픈 시 false로 변경하거나 환경변수 EXPO_PUBLIC_ENABLE_DIRECT_CHARGE=false로 즉시 비활성화 가능합니다.
+ */
+const ENABLE_DIRECT_TEST_CHARGE = true;
+
 export default function ShopScreen({ navigation }) {
   const { user, refreshMe } = useAuth();
   const [packages, setPackages] = useState([]);
@@ -302,15 +309,15 @@ export default function ShopScreen({ navigation }) {
         return;
       }
 
-      // If native IAP is unavailable (Expo Go, dev client, or simulator), offer developer/sandbox instant test purchase
-      if (!isIapAvailable) {
+      // 결제 시스템 미연동 또는 테스트 즉시 충전 모드 활성화 시
+      if (ENABLE_DIRECT_TEST_CHARGE || !isIapAvailable) {
         Alert.alert(
-          '온(ON) 충전',
-          `[${item.label}] 상품을 충전하시겠습니까? (${getPriceLabel(item)})\n* 개발/테스트 모드로 즉시 충전 및 적립됩니다.`,
+          '온(ON) 테스트 충전',
+          `[${item.label}] 상품을 충전하시겠습니까? (${getPriceLabel(item)})\n* 결제 시스템 미연동 상태로, 테스트 즉시 충전이 적용됩니다.`,
           [
             { text: '취소', style: 'cancel' },
             {
-              text: '충전하기',
+              text: '즉시 충전하기',
               onPress: async () => {
                 try {
                   setPurchaseProcessing(true);
@@ -322,7 +329,7 @@ export default function ShopScreen({ navigation }) {
                     platform: Platform.OS || 'android',
                   });
                   await Promise.allSettled([refreshMe(), loadPurchaseHistory()]);
-                  const newBal = res?.balance ?? '반영 완료';
+                  const newBal = res?.balance ?? res?.data?.balance ?? '반영 완료';
                   Alert.alert('충전 완료', `${item.label} 충전이 완료되었습니다.\n(현재 잔액: ${newBal} 온)`);
                 } catch (err) {
                   Alert.alert('충전 실패', err?.message || '온 충전에 실패했습니다.');

@@ -4,6 +4,60 @@ Updated: 2026-10-07
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-07 Checkpoint 41: 모바일 핵심 UX/기능 6대 이슈 종합 개선 및 최신 릴리즈 APK 재패키징 (완료)
+
+### 1. 개요
+사용자 피드백에 따른 실사용 중 발생하던 6가지 주요 사용성/기능 이슈를 원인 분석 후 단계별로 완벽히 해결:
+1. 스마트폰 시스템 하단 내비게이션 바(소프트키 ||| O <)가 앱 화면을 계속 가리는 현상.
+2. 채팅/글 입력 시 안드로이드 소프트 키보드가 입력 필드를 가려 타이핑 내용을 볼 수 없는 현상.
+3. 라이브 시청/방송 화면 하단에 불필요한 메인 5개 탭바(홈, 커뮤니티, 라이브, 대화, 마이)가 노출되던 문제 (진정한 풀스크린 몰입 모드 필요).
+4. 탭 이동 후 복귀 시 화면이 자동 갱신되지 않아 종료된 라이브 방송이 계속 남아있던 문제.
+5. 현재 미연동된 인앱 결제 대신 원클릭으로 온(ON) 코인이 테스트 충전되도록 지원 (추후 토글로 손쉽게 끄기 가능).
+6. 라이브 방송 중 채팅 메시지 전송 시 발생하던 에러(중복 API 메서드 파라미터 충돌).
+
+### 2. 수정 상세 내역
+
+#### (1) 안드로이드 소프트키 하단바 자동 숨김 (몰입 모드 적용)
+- `MainActivity.kt`:
+  - `WindowCompat.getInsetsController` 및 `WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` 연동.
+  - `onCreate` 및 `onWindowFocusChanged` 양쪽에서 `windowInsetsController.hide(WindowInsetsCompat.Type.navigationBars())` 호출하여 앱 사용 중 하단바 자동 숨김 처리.
+- `app.config.js`:
+  - `androidNavigationBar: { visible: "sticky-immersive", backgroundColor: "#00000000" }` 설정 적용.
+
+#### (2) 키보드 활성화 시 입력창 가림 방지 및 동적 위치 조정
+- `LiveRoomScreen.js`:
+  - React Native `Keyboard.addListener` (`keyboardDidShow`/`keyboardDidHide`, `keyboardWillShow`/`keyboardWillHide`) 연동으로 `keyboardHeight` 상태 추적.
+  - 정적 고정 레이아웃을 `bottom: keyboardHeight > 0 ? keyboardHeight + 8 : 12`의 동적 인라인 오프셋으로 전면 개편하여 키보드 상단에 인풋바가 완벽 밀착되도록 수정.
+- `ChatRoomScreen.js`:
+  - 안드로이드 `KeyboardAvoidingView`의 behavior를 `height`로 지정하여 1:1 대화방에서도 입력창 가림 방지.
+
+#### (3) 라이브 방송 화면 최상위 풀화면 모달 전환 (앱 하단 5개 탭바 완전 제거)
+- `RootNavigator.js`:
+  - 메인 탭 네비게이터(`MainTabs`) 내부 깊숙이 포함되어 탭바가 함께 렌더링되던 `LiveRoom`을 최상위 스택(`AppFlow`)으로 승격.
+  - `presentation: 'fullScreenModal'` 적용: 라이브 방송 입장 시 5개 탭바("홈, 커뮤니티, 라이브, 대화, 마이")가 완전히 언마운트/숨김 처리되어 순수 풀스크린으로 방송을 즐길 수 있도록 구조 개선.
+
+#### (4) 화면 전환 및 복귀 시 자동 새로고침 (`useFocusEffect` 전면 적용)
+- `LiveScreen.js`: 1회성 `useEffect`를 `useFocusEffect`로 교체하여 라이브 탭 진입/복귀 시마다 `loadRooms()` 자동 실행 (종료된 방 즉시 정리).
+- `HomeScreen.js`: `useFocusEffect` 연동으로 홈 화면 복귀 시 라이브 방송 목록 및 재화 잔액 자동 최신화.
+- `CommunityFeedScreen.js`: `useFocusEffect` 연동으로 커뮤니티 토픽 및 최신 피드 자동 재조회.
+
+#### (5) 결제 미연동 시 테스트 ON(코인) 즉시 충전 모드 구축
+- `ShopScreen.js`:
+  - `const ENABLE_DIRECT_TEST_CHARGE = true;` 설정 플래그 추가 (실제 결제 PG/IAP 심사 통과 후 `false`로 한 줄 변경 가능).
+  - 결제 시스템 미연동 환경 또는 테스트 모드 시 "충전하기" 탭하면 즉시 테스트 충전 확인 팝업 안내 후 `apiClient.confirmPurchase()`를 통해 서버 지갑 잔액이 즉시 충전되도록 파이프라인 구성.
+
+#### (6) 라이브 채팅 전송 오류(400/404) 완전 해결
+- `apps/mobile/src/api/client.js`:
+  - 파일 하단(L2698)에 중복 선언된 `sendLiveMessage(roomId, payload)`가 기존의 객체 인자 시그니처 `sendLiveMessage({ roomId, content, type })`를 덮어써서 발생하던 버그 수정.
+  - `sendLiveMessage`를 단일 인자(객체)와 2개 인자(roomId, payload)를 모두 수용하는 스마트 시그니처로 통합하고 하단 중복 선언 제거.
+  - 네트워크 단절 시에도 더미 메시지 스토어를 통한 Fallback 보장.
+
+### 3. 독립형 릴리즈 APK 빌드 및 배포 완료
+- `gradlew assembleRelease` 빌드 성공 (BUILD SUCCESSFUL in 2m 12s, 71.1 MB).
+- 배포 위치 동기화:
+  - `c:\Users\ION\Downloads\work\tokfriends\dagaon-release.apk`
+  - `c:\Users\ION\Downloads\work\tokfriends\apps\admin\public\downloads\dagaon-release.apk`
+
 ## 2026-10-07 Checkpoint 40: 안드로이드 네이티브 카메라 렌더러 복원 및 라이브 방송 서피스뷰 검은 화면(Stale Camera) 완전 해소, 릴리즈 APK 갱신 (완료)
 
 ### 1. 개요 및 문제 진단

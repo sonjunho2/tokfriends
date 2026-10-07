@@ -17,6 +17,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import colors from '../../theme/colors';
@@ -118,10 +119,12 @@ export default function CommunityFeedScreen({ navigation, route }) {
     [],
   );
 
-  useEffect(() => {
-    loadTopics();
-    loadPosts(selectedTopicId);
-  }, [loadTopics, loadPosts, selectedTopicId]);
+  useFocusEffect(
+    useCallback(() => {
+      loadTopics();
+      loadPosts(selectedTopicId, null, true);
+    }, [loadTopics, loadPosts, selectedTopicId])
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
