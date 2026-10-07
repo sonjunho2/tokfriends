@@ -1,8 +1,30 @@
 # DAGAON Development Checkpoint
 
-Updated: 2026-10-06
+Updated: 2026-10-07
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
+
+## 2026-10-07 Checkpoint 40: 안드로이드 네이티브 카메라 렌더러 복원 및 라이브 방송 서피스뷰 검은 화면(Stale Camera) 완전 해소, 릴리즈 APK 갱신 (완료)
+
+### 1. 개요 및 문제 진단
+- **증상**: 모바일 앱에서 호스트 라이브 방송 개설 시 카메라 권한이 정상 부여되어 있음에도 카메라 영상이 렌더링되지 않고 새까만 화면으로 고착되는 현상 발생.
+- **원인 분석**:
+  1. **React Navigation 라이프사이클 미연동**: 화면 진입 시점과 Android CameraX `bindToLifecycle` 간 레이스 컨디션으로 인해 포커스 전에 카메라 세션이 초기화되어 서피스뷰가 정지(Stale Camera).
+  2. **비호환 prop 간섭**: `active` prop(iOS 전용) 및 `mirror` prop이 안드로이드 GL 서피스 렌더링 파이프라인에서 버퍼 갱신을 중단시킴.
+  3. **전면/후면 카메라 전환 락**: 네이티브 서피스 고유 `key` 부재로 인해 카메라 전환 및 재진입 시 이전 하드웨어 센서 락 발생.
+  4. **부모 컨테이너 크기 측정 버그**: `videoStreamContainer`의 중앙 정렬 속성으로 인해 안드로이드 SurfaceView 레이아웃 치수가 0으로 수축되는 현상.
+
+### 2. 해결 및 수정 내용 (`apps/mobile`)
+- `LiveRoomScreen.js`:
+  - `@react-navigation/native`의 `useIsFocused()` 훅 연동: 화면이 완전히 포커스되고 카메라가 켜진 상태(`isFocused && !isCameraOff`)에서만 네이티브 카메라 뷰 마운트.
+  - 비호환 `active` prop 제거 및 안전한 조건부 렌더링 교체.
+  - 고유 `key={`cam_${cameraFacing}_${isFocused}`}` 적용: 렌즈 전환 및 화면 복귀 시 이전 네이티브 카메라 리소스를 안전하게 unbind하고 깨끗하게 재할당.
+  - `onCameraReady`, `onMountError` 콜백 연동: 카메라 센서 초기화 중 로딩 인디케이터 표시 및 에러 발생 시 사용자 안내/재시도 버튼 제공.
+  - `cameraFillWrapper` 및 `cameraPreview` 레이아웃을 `flex: 1`, `width: '100%'`, `height: '100%'`로 보정하여 화면 전체를 온전히 채우도록 처리.
+
+### 3. 독립형 릴리즈 APK 재패키징 및 배포 동기화
+- `gradlew assembleRelease` 성공 완료 (71.1 MB).
+- 관리자 웹 다운로드 정적 파일(`apps/admin/public/downloads/dagaon-release.apk`) 및 프로젝트 루트(`dagaon-release.apk`) 동기화 완료.
 
 ## 2026-10-06 Checkpoint 39: Render 백엔드 및 Vercel 관리자 웹 연동 독립 실행형 모바일 앱 (APK) 패키징 및 원클릭 다운로드 파이프라인 구축 (완료)
 

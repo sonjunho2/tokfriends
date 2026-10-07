@@ -16,6 +16,7 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import colors from '../../theme/colors';
@@ -123,6 +124,11 @@ export default function LiveRoomScreen({ navigation, route }) {
   const [giftPickerVisible, setGiftPickerVisible] = useState(false);
   const [myPoints, setMyPoints] = useState(currentUser?.pointsBalance || 0);
   const processedGiftMessageIdsRef = useRef(new Set());
+
+  // Navigation & Camera Lifecycle
+  const isFocused = useIsFocused();
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const [cameraMountError, setCameraMountError] = useState(null);
 
   // Agora Live Streaming States (Video + Audio)
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -842,13 +848,51 @@ export default function LiveRoomScreen({ navigation, route }) {
             {/* 호스트 실제 스마트폰 카메라 피드 */}
             {isHost ? (
               hasCameraPermission ? (
-                <CameraView
-                  style={styles.cameraPreview}
-                  facing={cameraFacing}
-                  enableTorch={false}
-                  mirror={cameraFacing === 'front'}
-                  active={!isCameraOff}
-                />
+                isFocused && !isCameraOff ? (
+                  <View style={styles.cameraFillWrapper}>
+                    <CameraView
+                      key={`cam_${cameraFacing}_${isFocused ? 'focused' : 'blurred'}`}
+                      style={styles.cameraPreview}
+                      facing={cameraFacing}
+                      enableTorch={false}
+                      onCameraReady={() => {
+                        setIsCameraReady(true);
+                        setCameraMountError(null);
+                      }}
+                      onMountError={(error) => {
+                        console.warn('Camera mount error:', error);
+                        setCameraMountError(error?.message || '카메라 센서를 열 수 없습니다.');
+                      }}
+                    />
+                    {!isCameraReady && !cameraMountError && (
+                      <View style={styles.cameraLoadingOverlay} pointerEvents="none">
+                        <ActivityIndicator size="large" color={LIVE_ACCENT} />
+                        <Text style={styles.cameraLoadingText}>카메라 센서 초기화 중...</Text>
+                      </View>
+                    )}
+                    {cameraMountError && (
+                      <View style={styles.cameraMountErrorBox}>
+                        <Ionicons name="alert-circle-outline" size={40} color="#EF4444" />
+                        <Text style={styles.cameraMountErrorTitle}>카메라를 열 수 없습니다</Text>
+                        <Text style={styles.cameraMountErrorDesc}>{cameraMountError}</Text>
+                        <TouchableOpacity
+                          style={styles.cameraRetryBtn}
+                          onPress={() => {
+                            setCameraMountError(null);
+                            setIsCameraReady(false);
+                          }}
+                        >
+                          <Text style={styles.cameraRetryBtnText}>카메라 다시 열기</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                ) : (
+                  <View style={styles.cameraOffPlaceholder}>
+                    <Ionicons name="videocam-off" size={48} color="rgba(255,255,255,0.5)" />
+                    <Text style={styles.cameraOffText}>카메라가 꺼져 있습니다</Text>
+                  </View>
+                )
               ) : (
                 <TouchableOpacity
                   style={styles.permissionPromptBox}
@@ -1263,16 +1307,76 @@ const styles = StyleSheet.create({
   },
   videoStreamContainer: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: '#000000',
     overflow: 'hidden',
+  },
+  cameraFillWrapper: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
   cameraPreview: {
     ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
-    zIndex: 1,
+  },
+  cameraLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    zIndex: 2,
+  },
+  cameraLoadingText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  cameraMountErrorBox: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    gap: 10,
+    zIndex: 3,
+  },
+  cameraMountErrorTitle: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '800',
+    marginTop: 4,
+  },
+  cameraMountErrorDesc: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  cameraRetryBtn: {
+    marginTop: 8,
+    backgroundColor: LIVE_ACCENT,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  cameraRetryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  cameraOffPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#0B0F19',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  cameraOffText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 14,
+    fontWeight: '600',
   },
   viewerRoleSubtitle: {
     color: 'rgba(255, 255, 255, 0.6)',
