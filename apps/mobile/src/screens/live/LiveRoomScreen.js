@@ -130,6 +130,18 @@ export default function LiveRoomScreen({ navigation, route }) {
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [cameraMountError, setCameraMountError] = useState(null);
 
+  // Safety fallback: ensure loading overlay clears even if onCameraReady callback is delayed on Android
+  useEffect(() => {
+    if (isHost && isFocused && !isCameraOff) {
+      const timer = setTimeout(() => {
+        setIsCameraReady(true);
+      }, 1200);
+      return () => clearTimeout(timer);
+    } else {
+      setIsCameraReady(false);
+    }
+  }, [isHost, isFocused, isCameraOff, cameraFacing]);
+
   // Agora Live Streaming States (Video + Audio)
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [agoraTokenData, setAgoraTokenData] = useState(null);
@@ -1288,13 +1300,11 @@ export default function LiveRoomScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#000000',
   },
   streamCanvas: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#0B0F19',
+    backgroundColor: 'transparent',
   },
   connectingBox: {
     alignItems: 'center',
@@ -1307,30 +1317,37 @@ const styles = StyleSheet.create({
   },
   videoStreamContainer: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000000',
+    backgroundColor: 'transparent',
     overflow: 'hidden',
   },
   cameraFillWrapper: {
     ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
+    backgroundColor: 'transparent',
   },
   cameraPreview: {
     ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
+    backgroundColor: 'transparent',
   },
   cameraLoadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    position: 'absolute',
+    top: 140,
+    alignSelf: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    zIndex: 2,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 8,
+    zIndex: 10,
   },
   cameraLoadingText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
   },
   cameraMountErrorBox: {
