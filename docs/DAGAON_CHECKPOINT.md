@@ -4,6 +4,33 @@ Updated: 2026-10-07
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-07 Checkpoint 45: 선물 표현 체계 타사(틱톡/SOOP/카카오) 벤치마크 고도화 (채팅방 세로 늘어남 버그 해소 & 화면 하단 1/3 중앙 3단계 티어 플로팅 이펙트 구축) (완료)
+
+### 1. 개요 및 요구사항 분석
+1. **채팅방 선물 말풍선 세로 늘어남(250px+) 버그 해소**:
+   - 기존 채팅방(`ChatRoomScreen.js`)에서 선물을 보냈을 때 `myMessageBubble` 내부의 `giftTextWrapper`(`flex: 1`)가 Android React Native Yoga 엔진에서 너비 제약 없이 계산되어 가로 폭이 좁아지고 세로로 250px 이상 비정상 확장되는 버그 해결.
+   - 카카오톡 선물하기 및 틱톡 채팅 스타일의 컴팩트한 고정 규격 카드 캡슐(`giftCardCapsule`, 너비 216px, 좌측 44x44 썸네일 박스 + 우측 선물명/온 수량)로 재설계하여 말풍선 비대화 및 세로 늘어남을 완전히 제거.
+2. **화면 선물 이펙트 오버레이(GiftEffectOverlay) 위치 및 연출 고도화**:
+   - 기존 화면 중앙 및 키보드/하단 바에 겹치던 이펙트를 타사(틱톡, SOOP/아프리카TV, Bigo Live) 표준에 맞춰 **화면 하단 1/3 중앙 영역(`bottom: 120~140`)**으로 플로팅 앵커 재배치.
+   - `pointerEvents="none"`으로 채팅방 스크롤, 텍스트 타이핑, 라이브 방 버튼 조작을 100% 방해하지 않는 비차단 플로팅 레이어 확립.
+   - 선물 금액에 따른 **3단계 티어(소형, 중형, 대형 VIP) 이펙트 공간 시스템** 구축:
+     - **소형(Small, 3,000 온 미만)**: 110x110 컴팩트 공간, 바운스 스프링 + 스파클 미니 파티클 + 슬림 알림 뱃지 (2.2초).
+     - **중형(Medium, 3,000 ~ 15,000 온)**: 190x190 중형 공간, 회전하는 골든 아우라 링 + 펄스 + 별빛 버스트 + 골드 테두리 배너 (3.0초).
+     - **대형(Large VIP, 15,000 온 이상 또는 3D 비디오)**: 280x280 대형 무대, 3D 투명 비디오 또는 방사형 황금 광채 레이 + 왕관(`👑 VIP`) 엠블럼 + 럭셔리 VIP 골드 티커 배너 (4.2초).
+
+### 2. 세부 구현 내역
+1. **`apps/mobile/src/components/GiftEffectOverlay.js`**:
+   - `getGiftTier(gift)` 산정 함수 구현 (`small`, `medium`, `large`).
+   - 화면 하단 1/3 중앙(`overlayContainer` 하단 패딩 120~140) 배치.
+   - 티어별 스테이지 크기(`110px`, `190px`, `280px`) 및 아우라 회전(`spinAnim`), 펄스(`pulseAnim`) 애니메이션 통합.
+   - 이펙트 하단 밀착형 선물 알림 배너 뱃지(`bannerBadgeBase`) 구축.
+2. **`apps/mobile/src/screens/main/ChatRoomScreen.js`**:
+   - `renderMessage`: 선물 메시지 수신/발신 시 고정 카드 캡슐(`giftCardCapsule`, 너비 216px) 직접 렌더링.
+   - `handleSendGift` 및 실시간 소켓 이벤트에서 선물 메타데이터(`giftId`, `giftName`, `pricePoints`, `senderNickname`)를 `GiftEffectOverlay`에 일관되게 전달.
+   - `styles.giftCardCapsule`, `styles.myGiftCardCapsule`, `styles.otherGiftCardCapsule`, `styles.giftCardThumbBox` 신규 정의.
+3. **`services/api/src/modules/chats/chats.service.ts`**:
+   - `sendGift` 시 메시지 payload의 `giftContent` JSON 문자열에 `thumbnailUrl: gift.thumbnailUrl ?? ""` 누락 필드 추가.
+
 ## 2026-10-07 Checkpoint 44: 액션별 온(ON) 소모 정책 개편(방 개설자 자율 참여비/입장료 설정) 및 대화 탭 채팅방 신규 개설 기능 구현 (완료)
 
 ### 1. 개요 및 배경

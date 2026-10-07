@@ -498,12 +498,16 @@ export default function ChatRoomScreen({ route, navigation }) {
           if (nextMessage.type === 'gift' || nextMessage.backendType === 'gift') {
             const g = nextMessage.gift;
             giftOverlayRef.current?.enqueueGift({
+              giftId: g?.id || 'gift',
+              giftName: g?.name || '선물',
               name: g?.name || '선물',
               amount: g?.amount || g?.pricePoints || 0,
+              pricePoints: g?.amount || g?.pricePoints || 0,
               animationUrl: g?.animationUrl || null,
               animationType: g?.animationType || 'none',
               thumbnailUrl: g?.thumbnailUrl || null,
               icon: g?.icon || null,
+              senderNickname: user?.name || user?.profile?.nickname || '상대방',
               senderName: user?.name || user?.profile?.nickname || '상대방',
             });
             fetchMyPoints();
@@ -860,12 +864,16 @@ export default function ChatRoomScreen({ route, navigation }) {
 
         // 로컬 3D 이펙트 렌더링
         giftOverlayRef.current?.enqueueGift({
+          giftId: gift.id,
+          giftName: gift.name,
           name: gift.name,
           amount: gift.amount || gift.pricePoints || 0,
+          pricePoints: gift.amount || gift.pricePoints || 0,
           animationUrl: gift.animationUrl,
           animationType: gift.animationType,
-          thumbnailUrl: gift.thumbnailUrl,
-          icon: gift.icon,
+          thumbnailUrl: gift.thumbnailUrl || gift.icon,
+          icon: gift.icon || gift.thumbnailUrl,
+          senderNickname: '나',
           senderName: '나',
         });
 
@@ -1089,48 +1097,49 @@ export default function ChatRoomScreen({ route, navigation }) {
       }
 
       if (item.type === 'gift' && item.gift) {
-        const giftTextColor = isMe ? '#3F2A00' : colors.text;
-        const giftAccentColor = isMe ? '#3F2A00' : colors.primary;
+        const giftTextColor = isMe ? '#1F2937' : '#0F172A';
+        const giftAccentColor = isMe ? '#92400E' : colors.primary;
         const giftAmount = item.gift.amount ?? item.gift.pricePoints ?? item.gift.points ?? 0;
         const thumbUrl = item.gift.thumbnailUrl || item.gift.icon;
-        const isVip = item.gift.animationType === 'alpha_video';
+        const isVip = item.gift.animationType === 'alpha_video' || giftAmount >= 15000;
 
         return (
-          <View style={styles.giftContent}>
-            <View style={[styles.giftIconBadge, { borderColor: isMe ? 'rgba(63,42,0,0.2)' : 'rgba(243,108,147,0.35)' }]}>
+          <View
+            style={[
+              styles.giftCardCapsule,
+              isMe ? styles.myGiftCardCapsule : styles.otherGiftCardCapsule,
+            ]}
+          >
+            <View
+              style={[
+                styles.giftCardThumbBox,
+                isMe ? styles.myGiftCardThumbBox : styles.otherGiftCardThumbBox,
+              ]}
+            >
               {thumbUrl ? (
                 <Image
                   source={{ uri: thumbUrl }}
-                  style={styles.giftThumbImage}
+                  style={styles.giftCardThumbImage}
                   resizeMode="contain"
                 />
               ) : (
-                <Ionicons name="gift" size={20} color={giftAccentColor} />
+                <Ionicons name="gift" size={24} color={giftAccentColor} />
               )}
             </View>
-            <View style={styles.giftTextWrapper}>
-              <View style={styles.giftTitleRow}>
-                <Text style={[styles.giftTitle, { color: giftTextColor }]}>{item.gift.name}</Text>
+            <View style={styles.giftCardInfoCol}>
+              <View style={styles.giftCardTitleRow}>
+                <Text style={[styles.giftCardTitle, { color: giftTextColor }]} numberOfLines={1}>
+                  {item.gift.name || '선물'}
+                </Text>
                 {isVip && (
                   <View style={styles.gift3DBadge}>
-                    <Text style={styles.gift3DBadgeText}>3D VIP</Text>
+                    <Text style={styles.gift3DBadgeText}>VIP</Text>
                   </View>
                 )}
               </View>
-              <Text style={[styles.giftAmount, { color: giftAccentColor }]}>
+              <Text style={[styles.giftCardPointsText, { color: giftAccentColor }]} numberOfLines={1}>
                 {giftAmount ? `${formatPoints(giftAmount)}P ` : ''}선물 {isMe ? '보냄' : '도착'} 🎁
               </Text>
-              {item.gift.description ? (
-                <Text
-                  style={[
-                    styles.giftDescription,
-                    isMe ? { color: 'rgba(63, 42, 0, 0.75)' } : { color: colors.textSecondary },
-                  ]}
-                  numberOfLines={2}
-                >
-                  {item.gift.description}
-                </Text>
-              ) : null}
             </View>
           </View>
         );
@@ -1147,7 +1156,7 @@ export default function ChatRoomScreen({ route, navigation }) {
         </Text>
       );
     };
- 
+
     if (isMe) {
       return (
         <View style={styles.myMessageContainer}>
@@ -1157,9 +1166,13 @@ export default function ChatRoomScreen({ route, navigation }) {
             )}
             <Text style={styles.kakaoTimeText}>{item.timestamp}</Text>
           </View>
-          <View style={[styles.messageBubble, styles.myMessageBubble]}>
-            {renderBubbleContent()}
-          </View>
+          {item.type === 'gift' ? (
+            renderBubbleContent()
+          ) : (
+            <View style={[styles.messageBubble, styles.myMessageBubble]}>
+              {renderBubbleContent()}
+            </View>
+          )}
         </View>
       );
     }
@@ -1214,9 +1227,13 @@ export default function ChatRoomScreen({ route, navigation }) {
             <Text style={styles.otherAuthorName}>{user.name}</Text>
           </TouchableOpacity>
           <View style={styles.otherBubbleRow}>
-            <View style={[styles.messageBubble, styles.otherMessageBubble]}>
-              {renderBubbleContent()}
-            </View>
+            {item.type === 'gift' ? (
+              renderBubbleContent()
+            ) : (
+              <View style={[styles.messageBubble, styles.otherMessageBubble]}>
+                {renderBubbleContent()}
+              </View>
+            )}
             <View style={styles.otherTimeBadgeCol}>
               <Text style={styles.kakaoTimeText}>{item.timestamp}</Text>
             </View>
@@ -2164,68 +2181,81 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  giftContent: {
+  giftCardCapsule: {
+    width: 216,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 16,
+    borderWidth: 1,
   },
-  giftIconBadge: {
+  myGiftCardCapsule: {
+    backgroundColor: '#FFE812',
+    borderColor: '#F5CE00',
+    borderTopRightRadius: 4,
+  },
+  otherGiftCardCapsule: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderTopLeftRadius: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  giftCardThumbBox: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
+    marginRight: 10,
+    borderWidth: 1,
   },
-  myGiftIconBadge: {
-    borderColor: 'rgba(63, 42, 0, 0.2)',
-    backgroundColor: '#FFE812',
+  myGiftCardThumbBox: {
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    borderColor: 'rgba(234, 179, 8, 0.35)',
   },
-  otherGiftIconBadge: {
-    borderColor: '#FED7AA',
-    backgroundColor: '#FFF7ED',
+  otherGiftCardThumbBox: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
   },
-  giftThumbImage: {
+  giftCardThumbImage: {
     width: 36,
     height: 36,
     borderRadius: 8,
   },
-  giftTextWrapper: {
+  giftCardInfoCol: {
     flex: 1,
+    justifyContent: 'center',
   },
-  giftTitleRow: {
+  giftCardTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
-  giftTitle: {
-    fontSize: 15,
+  giftCardTitle: {
+    fontSize: 14,
     fontWeight: '700',
-    color: '#1F2A44',
+    letterSpacing: -0.2,
   },
   gift3DBadge: {
     backgroundColor: '#EF4444',
-    paddingHorizontal: 5,
+    paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 4,
   },
   gift3DBadgeText: {
     color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: 9,
+    fontWeight: '900',
   },
-  giftAmount: {
-    marginTop: 3,
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  giftDescription: {
+  giftCardPointsText: {
     marginTop: 3,
     fontSize: 12,
-    color: colors.textSecondary,
-    lineHeight: 16,
+    fontWeight: '700',
   },
   optionsBackdrop: {
     flex: 1,

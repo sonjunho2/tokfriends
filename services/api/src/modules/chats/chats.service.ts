@@ -1225,6 +1225,7 @@ export class ChatsService {
               description: gift.description ?? "",
               animationUrl: gift.animationUrl ?? "",
               animationType: gift.animationType ?? "none",
+              thumbnailUrl: gift.thumbnailUrl ?? "",
             });
 
             const now = new Date();
