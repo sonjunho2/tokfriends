@@ -31,6 +31,11 @@ Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작�
 - `services/api/src/modules/gifts/gifts.service.ts`: 3D 폭죽, 3D 러브 하트, 축하 샴페인 시드 및 자동 동기화 추가
 - `apps/admin/src/app/store/gifts/page.tsx`: 어드민 선물 관리 화면 3D 폭죽, 3D 하트, Lottie 뱃지 및 옵션 추가
 
+### 3. 릴리즈 APK 재빌드 및 배포 (`dagaon-release.apk`)
+- `gradlew.bat assembleRelease` 성공 (71.4 MB, 4분 9초).
+- 프로젝트 루트 배포: `c:\Users\ION\Downloads\work\tokfriends\dagaon-release.apk`
+- 관리자 웹 다운로드 서빙: `c:\Users\ION\Downloads\work\tokfriends\apps\admin\public\downloads\dagaon-release.apk`
+
 ## 2026-10-07 Checkpoint 45: 선물 표현 체계 타사(틱톡/SOOP/카카오) 벤치마크 고도화 (채팅방 세로 늘어남 버그 해소 & 화면 하단 1/3 중앙 3단계 티어 플로팅 이펙트 구축) (완료)
 
 ### 1. 개요 및 요구사항 분석
