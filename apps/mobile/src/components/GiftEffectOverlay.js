@@ -22,56 +22,206 @@ import LottieView from 'lottie-react-native';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 /**
- * 선물 등급 및 이펙트 타입 산정 유틸
- * - fireworks: 3D 입체 폭죽쇼
- * - 3d_heart: 3D 입체 하트 폭풍
- * - lottie: Lottie 벡터 애니메이션
- * - alpha_video: 3D 투명 알파 비디오 (대형 VIP)
- * - small/medium/large: 일반 선물 티어별 3D 파티클 & 오라
+ * -----------------------------------------------------------------------------
+ * 선물 금액(포인트) 기반 3단계 티어(Tier) 산정 유틸 (틱톡/비고라이브 스타일)
+ * -----------------------------------------------------------------------------
+ * [1단계 - 소형 (Tier 1)]: 100P ~ 1,000P (따뜻한 커피, 꽃다발, 아이스크림, 케이크 등)
+ * [2단계 - 중형 (Tier 2)]: 3,000P ~ 10,000P (네온 슈퍼카, 화려한 3D 폭죽, 샴페인, 다이아몬드 등)
+ * [3단계 - 대형 (Tier 3)]: 30,000P 이상 (골드 드래곤 등 화면 전체를 압도하는 초대형 3D 특수 연출)
+ */
+export const getGiftTier = (gift) => {
+  if (!gift) return 1;
+
+  // 명시적 tier / level 전달 시 우선 적용
+  if (gift.tier === 1 || gift.tier === 2 || gift.tier === 3) {
+    return gift.tier;
+  }
+  if (gift.level === 1 || gift.level === 2 || gift.level === 3) {
+    return gift.level;
+  }
+
+  const points = Number(
+    gift.pricePoints ?? gift.amount ?? gift.points ?? gift.giftPoints ?? 0
+  );
+  const name = String(gift.giftName || gift.name || '').toLowerCase();
+  const type = String(gift.animationType || '').toLowerCase();
+
+  // [3단계 - 대형]: 30,000P 이상 또는 골드 드래곤 등 초대형 특수 연출
+  if (
+    points >= 30000 ||
+    name.includes('드래곤') ||
+    name.includes('dragon') ||
+    type === 'dragon' ||
+    type === 'large_vip' ||
+    type === 'tier3'
+  ) {
+    return 3;
+  }
+
+  // [2단계 - 중형]: 3,000P ~ 10,000P (폭죽, 슈퍼카, 샴페인, 다이아몬드 등)
+  if (
+    points >= 3000 ||
+    name.includes('슈퍼카') ||
+    name.includes('폭죽') ||
+    name.includes('샴페인') ||
+    name.includes('다이아몬드') ||
+    name.includes('supercar') ||
+    type === 'fireworks' ||
+    type === 'supercar' ||
+    type === 'tier2'
+  ) {
+    return 2;
+  }
+
+  // [1단계 - 소형]: 100P ~ 1,000P (따뜻한 커피, 꽃다발 등 기본)
+  return 1;
+};
+
+/**
+ * 하위 호환용 이펙트 타입 산정 유틸
  */
 export const getGiftEffectType = (gift) => {
   if (!gift) return 'small';
+  const tier = getGiftTier(gift);
+  if (tier === 3) return 'large';
+  if (tier === 2) return 'medium';
+
   const type = String(gift.animationType || '').toLowerCase();
-  const name = String(gift.giftName || gift.name || '');
-
-  if (type === 'fireworks' || name.includes('폭죽') || name.includes('샴페인')) {
-    return 'fireworks';
-  }
-  if (type === '3d_heart' || name.includes('하트') || name.includes('러브')) {
-    return '3d_heart';
-  }
-  if (type === 'lottie' || (gift.animationUrl && gift.animationUrl.endsWith('.json'))) {
-    return 'lottie';
-  }
-  if (type === 'alpha_video' || (gift.animationUrl && !gift.animationUrl.endsWith('.json'))) {
-    return 'alpha_video';
-  }
-
-  const points = Number(gift.pricePoints || gift.amount || gift.points || 0);
-  if (points >= 15000) return 'large';
-  if (points >= 3000) return 'medium';
+  if (type === 'fireworks') return 'fireworks';
+  if (type === '3d_heart') return '3d_heart';
+  if (type === 'lottie' || (gift.animationUrl && gift.animationUrl.endsWith('.json'))) return 'lottie';
+  if (type === 'alpha_video' || (gift.animationUrl && !gift.animationUrl.endsWith('.json'))) return 'alpha_video';
   return 'small';
 };
 
-// -----------------------------------------------------------------------------
-// 1. 화려한 3D 입체 폭죽 파티클 컴포넌트 (Fireworks Particle System)
-// -----------------------------------------------------------------------------
-const FIREWORK_PARTICLE_COUNT = 36;
-const FIREWORK_COLORS = ['#FFD700', '#FF3B6B', '#00F0FF', '#FF8500', '#A855F7', '#FFFFFF', '#4ADE80'];
+/**
+ * 포인트 금액에 따른 동적 크기(Scale) 보정 배율 계산
+ */
+const calculateDynamicScale = (tier, points) => {
+  if (tier === 3) {
+    // 초대형 3단계: 기본 1.45배 ~ 최대 1.75배
+    const extra = Math.min(0.3, Math.max(0, (points - 30000) / 70000) * 0.3);
+    return 1.45 + extra;
+  }
+  if (tier === 2) {
+    // 중형 2단계: 기본 1.15배 ~ 최대 1.35배
+    const extra = Math.min(0.2, Math.max(0, (points - 3000) / 27000) * 0.2);
+    return 1.15 + extra;
+  }
+  // 소형 1단계: 기본 0.9배 ~ 최대 1.05배
+  const extra = Math.min(0.15, Math.max(0, points / 2000) * 0.15);
+  return 0.9 + extra;
+};
 
-function FireworksEffect({ isPlaying }) {
+// -----------------------------------------------------------------------------
+// [1단계 파티클] 귀엽고 아기자기한 플로팅 스파클 & 하트 이펙트
+// -----------------------------------------------------------------------------
+const TIER1_PARTICLE_COUNT = 14;
+const TIER1_EMOJIS = ['✨', '💖', '🌸', '⭐', '☕', '🌷', '✨', '💕'];
+
+function Tier1CuteSparklesEffect({ isPlaying }) {
   const particles = useRef(
-    Array.from({ length: FIREWORK_PARTICLE_COUNT }, (_, index) => {
-      const angle = (index / FIREWORK_PARTICLE_COUNT) * 2 * Math.PI + (Math.random() * 0.4 - 0.2);
-      const distance = 80 + Math.random() * 160;
+    Array.from({ length: TIER1_PARTICLE_COUNT }, (_, index) => {
+      const angle = (index / TIER1_PARTICLE_COUNT) * 2 * Math.PI;
+      const distance = 55 + (index % 3) * 25;
+      return {
+        id: index,
+        emoji: TIER1_EMOJIS[index % TIER1_EMOJIS.length],
+        x: Math.cos(angle) * distance,
+        y: Math.sin(angle) * distance - 35, // 상공으로 살짝 떠오름
+        size: 16 + (index % 4) * 4,
+        anim: new Animated.Value(0),
+        delay: (index % 4) * 90,
+      };
+    })
+  ).current;
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    const anims = particles.map((p) => {
+      p.anim.setValue(0);
+      return Animated.sequence([
+        Animated.delay(p.delay),
+        Animated.timing(p.anim, {
+          toValue: 1,
+          duration: 1600 + Math.random() * 300,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]);
+    });
+    Animated.parallel(anims).start();
+  }, [isPlaying, particles]);
+
+  if (!isPlaying) return null;
+
+  return (
+    <View style={styles.absoluteCenter} pointerEvents="none">
+      {particles.map((p) => {
+        const translateX = p.anim.interpolate({
+          inputRange: [0, 0.4, 1],
+          outputRange: [0, p.x * 0.7, p.x],
+        });
+        const translateY = p.anim.interpolate({
+          inputRange: [0, 0.4, 1],
+          outputRange: [0, p.y * 0.7, p.y - 30],
+        });
+        const scale = p.anim.interpolate({
+          inputRange: [0, 0.2, 0.8, 1],
+          outputRange: [0.1, 1.2, 0.95, 0],
+        });
+        const opacity = p.anim.interpolate({
+          inputRange: [0, 0.15, 0.8, 1],
+          outputRange: [0, 1, 0.9, 0],
+        });
+
+        return (
+          <Animated.View
+            key={`t1_p_${p.id}`}
+            style={[
+              styles.sparkleItem,
+              {
+                transform: [{ translateX }, { translateY }, { scale }],
+                opacity,
+              },
+            ]}
+          >
+            <Text style={{ fontSize: p.size }}>{p.emoji}</Text>
+          </Animated.View>
+        );
+      })}
+    </View>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// [2단계 파티클] 360도 화려한 3D 입체 폭죽쇼 & 네온 쇼크웨이브
+// -----------------------------------------------------------------------------
+const TIER2_PARTICLE_COUNT = 36;
+const TIER2_COLORS = [
+  '#FFD700',
+  '#FF3B6B',
+  '#00F0FF',
+  '#FF8500',
+  '#A855F7',
+  '#FFFFFF',
+  '#4ADE80',
+  '#F43F5E',
+];
+
+function Tier2FireworksEffect({ isPlaying }) {
+  const particles = useRef(
+    Array.from({ length: TIER2_PARTICLE_COUNT }, (_, index) => {
+      const angle = (index / TIER2_PARTICLE_COUNT) * 2 * Math.PI + (Math.random() * 0.3 - 0.15);
+      const distance = 90 + Math.random() * 160;
       return {
         id: index,
         x: Math.cos(angle) * distance,
-        y: Math.sin(angle) * distance - 20, // 살짝 상공으로 치솟음
-        color: FIREWORK_COLORS[index % FIREWORK_COLORS.length],
-        size: 5 + Math.random() * 7,
+        y: Math.sin(angle) * distance - 25,
+        color: TIER2_COLORS[index % TIER2_COLORS.length],
+        size: 6 + Math.random() * 7,
         anim: new Animated.Value(0),
-        delay: (index % 4) * 80,
+        delay: (index % 5) * 60,
       };
     })
   ).current;
@@ -81,31 +231,26 @@ function FireworksEffect({ isPlaying }) {
   useEffect(() => {
     if (!isPlaying) return;
 
-    // 쇼크웨이브 링 애니메이션
     shockwaveAnim.setValue(0);
-    Animated.sequence([
-      Animated.timing(shockwaveAnim, {
-        toValue: 1,
-        duration: 900,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-    ]).start();
+    Animated.timing(shockwaveAnim, {
+      toValue: 1,
+      duration: 1000,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
 
-    // 파티클 방사 폭발 애니메이션
     const anims = particles.map((p) => {
       p.anim.setValue(0);
       return Animated.sequence([
         Animated.delay(p.delay),
         Animated.timing(p.anim, {
           toValue: 1,
-          duration: 1600 + Math.random() * 400,
+          duration: 1800 + Math.random() * 400,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
       ]);
     });
-
     Animated.parallel(anims).start();
   }, [isPlaying, particles, shockwaveAnim]);
 
@@ -113,20 +258,19 @@ function FireworksEffect({ isPlaying }) {
 
   const shockwaveScale = shockwaveAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.2, 2.8],
+    outputRange: [0.3, 3.2],
   });
-
   const shockwaveOpacity = shockwaveAnim.interpolate({
-    inputRange: [0, 0.4, 1],
-    outputRange: [0.9, 0.5, 0],
+    inputRange: [0, 0.3, 1],
+    outputRange: [0.95, 0.6, 0],
   });
 
   return (
     <View style={styles.absoluteCenter} pointerEvents="none">
-      {/* 폭죽 충격파 글로우 링 */}
+      {/* 네온 쇼크웨이브 링 */}
       <Animated.View
         style={[
-          styles.shockwaveRing,
+          styles.shockwaveRingTier2,
           {
             transform: [{ scale: shockwaveScale }],
             opacity: shockwaveOpacity,
@@ -134,28 +278,28 @@ function FireworksEffect({ isPlaying }) {
         ]}
       />
 
-      {/* 360도 입체 파티클 불꽃 */}
+      {/* 360도 방사형 파티클 */}
       {particles.map((p) => {
         const translateX = p.anim.interpolate({
-          inputRange: [0, 0.3, 1],
+          inputRange: [0, 0.35, 1],
           outputRange: [0, p.x * 0.7, p.x],
         });
         const translateY = p.anim.interpolate({
-          inputRange: [0, 0.3, 0.7, 1],
-          outputRange: [0, p.y * 0.7, p.y, p.y + 40], // 중력에 의해 떨어짐
+          inputRange: [0, 0.35, 0.75, 1],
+          outputRange: [0, p.y * 0.7, p.y, p.y + 35],
         });
         const scale = p.anim.interpolate({
-          inputRange: [0, 0.15, 0.8, 1],
+          inputRange: [0, 0.2, 0.8, 1],
           outputRange: [0, 1.4, 0.9, 0],
         });
         const opacity = p.anim.interpolate({
-          inputRange: [0, 0.1, 0.8, 1],
+          inputRange: [0, 0.1, 0.85, 1],
           outputRange: [0, 1, 0.85, 0],
         });
 
         return (
           <Animated.View
-            key={`fw_${p.id}`}
+            key={`t2_fw_${p.id}`}
             style={[
               styles.fireworkSpark,
               {
@@ -176,87 +320,214 @@ function FireworksEffect({ isPlaying }) {
 }
 
 // -----------------------------------------------------------------------------
-// 2. 화려한 3D 입체 하트 폭풍 컴포넌트 (3D Exploding / Floating Hearts)
+// [3단계 파티클] 화면을 압도하는 골드 드래곤 파이어 폭풍 & 듀얼 메가 쇼크웨이브
 // -----------------------------------------------------------------------------
-const HEART_PARTICLE_COUNT = 24;
-const HEART_EMOJIS = ['💖', '💕', '❤️', '💗', '💓', '✨', '💝'];
+const TIER3_EMBER_COUNT = 48;
+const TIER3_COLORS = ['#FFD700', '#F59E0B', '#EF4444', '#FEF08A', '#F97316', '#FFFFFF'];
+const TIER3_SYMBOLS = ['🔥', '⚡', '✨', '🌟', '👑', '💫'];
 
-function Exploding3DHeartsEffect({ isPlaying }) {
-  const heartParticles = useRef(
-    Array.from({ length: HEART_PARTICLE_COUNT }, (_, i) => {
-      const angle = (i / HEART_PARTICLE_COUNT) * 2 * Math.PI;
-      const distance = 70 + Math.random() * 150;
+function Tier3GoldenDragonStormEffect({ isPlaying }) {
+  const embers = useRef(
+    Array.from({ length: TIER3_EMBER_COUNT }, (_, index) => {
+      const angle = (index / TIER3_EMBER_COUNT) * 2 * Math.PI;
+      const distance = 110 + Math.random() * 200;
       return {
-        id: i,
-        emoji: HEART_EMOJIS[i % HEART_EMOJIS.length],
-        targetX: Math.cos(angle) * distance,
-        targetY: Math.sin(angle) * distance - 40,
-        size: 18 + (i % 3) * 10,
+        id: index,
+        x: Math.cos(angle) * distance,
+        y: Math.sin(angle) * distance - (40 + Math.random() * 80), // 용의 불꽃처럼 치솟음
+        color: TIER3_COLORS[index % TIER3_COLORS.length],
+        symbol: TIER3_SYMBOLS[index % TIER3_SYMBOLS.length],
+        isSymbol: index % 3 === 0,
+        size: index % 3 === 0 ? 20 + (index % 3) * 6 : 7 + Math.random() * 8,
         anim: new Animated.Value(0),
-        rotate: `${(Math.random() - 0.5) * 60}deg`,
-        delay: (i % 5) * 70,
+        delay: (index % 6) * 70,
       };
     })
   ).current;
 
+  const shockwave1 = useRef(new Animated.Value(0)).current;
+  const shockwave2 = useRef(new Animated.Value(0)).current;
+  const sunburstRot = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     if (!isPlaying) return;
 
-    const anims = heartParticles.map((h) => {
-      h.anim.setValue(0);
+    // 1차 메가 쇼크웨이브
+    shockwave1.setValue(0);
+    Animated.timing(shockwave1, {
+      toValue: 1,
+      duration: 1200,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+
+    // 2차 골든 쇼크웨이브
+    shockwave2.setValue(0);
+    Animated.sequence([
+      Animated.delay(250),
+      Animated.timing(shockwave2, {
+        toValue: 1,
+        duration: 1400,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // 썬버스트 광선 회전
+    sunburstRot.setValue(0);
+    const sunburstAnim = Animated.loop(
+      Animated.timing(sunburstRot, {
+        toValue: 1,
+        duration: 6000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    sunburstAnim.start();
+
+    // 골든 드래곤 파이어 엠버 폭풍
+    const anims = embers.map((e) => {
+      e.anim.setValue(0);
       return Animated.sequence([
-        Animated.delay(h.delay),
-        Animated.timing(h.anim, {
+        Animated.delay(e.delay),
+        Animated.timing(e.anim, {
           toValue: 1,
-          duration: 1800 + Math.random() * 400,
+          duration: 2200 + Math.random() * 500,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
       ]);
     });
-
     Animated.parallel(anims).start();
-  }, [isPlaying, heartParticles]);
+
+    return () => {
+      sunburstAnim.stop();
+    };
+  }, [isPlaying, embers, shockwave1, shockwave2, sunburstRot]);
 
   if (!isPlaying) return null;
 
+  const sw1Scale = shockwave1.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.2, 4.2],
+  });
+  const sw1Opacity = shockwave1.interpolate({
+    inputRange: [0, 0.25, 1],
+    outputRange: [1, 0.7, 0],
+  });
+
+  const sw2Scale = shockwave2.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.2, 5.0],
+  });
+  const sw2Opacity = shockwave2.interpolate({
+    inputRange: [0, 0.3, 1],
+    outputRange: [0.9, 0.5, 0],
+  });
+
+  const sunburstAngle = sunburstRot.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
   return (
     <View style={styles.absoluteCenter} pointerEvents="none">
-      {heartParticles.map((h) => {
-        const translateX = h.anim.interpolate({
-          inputRange: [0, 0.4, 1],
-          outputRange: [0, h.targetX * 0.8, h.targetX],
+      {/* 360도 황금빛 갓레이 (God Rays / Sunburst Beams) */}
+      <Animated.View
+        style={[
+          styles.sunburstBeams,
+          {
+            transform: [{ rotate: sunburstAngle }],
+          },
+        ]}
+      >
+        {Array.from({ length: 8 }, (_, i) => (
+          <View
+            key={`sunbeam_${i}`}
+            style={[
+              styles.sunbeamRay,
+              {
+                transform: [{ rotate: `${i * 45}deg` }],
+              },
+            ]}
+          />
+        ))}
+      </Animated.View>
+
+      {/* 1차 골드 쇼크웨이브 링 */}
+      <Animated.View
+        style={[
+          styles.megaShockwave1,
+          {
+            transform: [{ scale: sw1Scale }],
+            opacity: sw1Opacity,
+          },
+        ]}
+      />
+
+      {/* 2차 루비/엠버 쇼크웨이브 링 */}
+      <Animated.View
+        style={[
+          styles.megaShockwave2,
+          {
+            transform: [{ scale: sw2Scale }],
+            opacity: sw2Opacity,
+          },
+        ]}
+      />
+
+      {/* 48개 골든 드래곤 파이어 & 심볼 파티클 */}
+      {embers.map((e) => {
+        const translateX = e.anim.interpolate({
+          inputRange: [0, 0.3, 1],
+          outputRange: [0, e.x * 0.6, e.x],
         });
-        const translateY = h.anim.interpolate({
-          inputRange: [0, 0.4, 1],
-          outputRange: [0, h.targetY * 0.8, h.targetY - 50], // 상공으로 날아감
+        const translateY = e.anim.interpolate({
+          inputRange: [0, 0.3, 0.7, 1],
+          outputRange: [0, e.y * 0.6, e.y, e.y - 40], // 위로 승천
         });
-        const scale = h.anim.interpolate({
-          inputRange: [0, 0.2, 0.7, 1],
-          outputRange: [0.1, 1.3, 1.0, 0],
+        const scale = e.anim.interpolate({
+          inputRange: [0, 0.2, 0.75, 1],
+          outputRange: [0.1, 1.5, 1.1, 0],
         });
-        const opacity = h.anim.interpolate({
-          inputRange: [0, 0.1, 0.75, 1],
+        const opacity = e.anim.interpolate({
+          inputRange: [0, 0.1, 0.8, 1],
           outputRange: [0, 1, 0.9, 0],
         });
 
+        if (e.isSymbol) {
+          return (
+            <Animated.View
+              key={`t3_sym_${e.id}`}
+              style={[
+                styles.sparkleItem,
+                {
+                  transform: [{ translateX }, { translateY }, { scale }],
+                  opacity,
+                },
+              ]}
+            >
+              <Text style={{ fontSize: e.size }}>{e.symbol}</Text>
+            </Animated.View>
+          );
+        }
+
         return (
           <Animated.View
-            key={`ht_${h.id}`}
+            key={`t3_emb_${e.id}`}
             style={[
-              styles.heartItem,
+              styles.dragonEmber,
               {
-                transform: [
-                  { translateX },
-                  { translateY },
-                  { scale },
-                ],
+                width: e.size,
+                height: e.size,
+                borderRadius: e.size / 2,
+                backgroundColor: e.color,
+                shadowColor: e.color,
+                transform: [{ translateX }, { translateY }, { scale }],
                 opacity,
               },
             ]}
-          >
-            <Text style={{ fontSize: h.size }}>{h.emoji}</Text>
-          </Animated.View>
+          />
         );
       })}
     </View>
@@ -264,7 +535,7 @@ function Exploding3DHeartsEffect({ isPlaying }) {
 }
 
 // -----------------------------------------------------------------------------
-// 3. 메인 GiftEffectOverlay 컴포넌트
+// 메인 GiftEffectOverlay 컴포넌트
 // -----------------------------------------------------------------------------
 const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
   const [queue, setQueue] = useState([]);
@@ -278,6 +549,8 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
   const spinAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const cardTilt = useRef(new Animated.Value(0)).current;
+  const screenShakeAnim = useRef(new Animated.Value(0)).current;
+  const ambientDimAnim = useRef(new Animated.Value(0)).current;
 
   // 비디오 소스 URL
   const [videoSource, setVideoSource] = useState(null);
@@ -289,23 +562,60 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
   // 큐에 선물 이벤트 추가 (FIFO)
   const enqueueGift = useCallback((giftEvent) => {
     if (!giftEvent) return;
-    setQueue((prev) => [...prev, { ...giftEvent, qId: `q_${Date.now()}_${Math.random()}` }]);
+    setQueue((prev) => [
+      ...prev,
+      {
+        ...giftEvent,
+        qId: `q_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      },
+    ]);
   }, []);
 
-  // 외부 ref 공개 API (대기열 추가 및 테스트 트리거)
+  // 외부 ref 공개 API (대기열 추가 및 단계별 테스트 트리거 지원)
   useImperativeHandle(ref, () => ({
     enqueueGift,
-    triggerMockGift: (mock = {}) => {
-      enqueueGift({
-        giftId: mock.giftId || 'gift-fireworks',
-        giftName: mock.giftName || '화려한 3D 폭죽',
-        senderNickname: mock.senderNickname || '익명의 후원자',
-        pricePoints: mock.pricePoints || 3000,
-        thumbnailUrl:
-          mock.thumbnailUrl ||
-          'https://images.unsplash.com/photo-1498931299472-f7a63a5a1cfa?w=150',
-        animationType: mock.animationType || 'fireworks',
-      });
+    triggerMockGift: (option = 2) => {
+      // 1, 2, 3 단계 직접 지정 또는 Mock 객체 지원
+      const tierChoice =
+        typeof option === 'number'
+          ? option
+          : option?.tier || (option?.pricePoints >= 30000 ? 3 : option?.pricePoints >= 3000 ? 2 : 1);
+
+      if (tierChoice === 1) {
+        // [1단계 - 소형 (100P)]: 따뜻한 커피
+        enqueueGift({
+          giftId: 'mock-coffee',
+          giftName: '따뜻한 커피',
+          senderNickname: '마음천사',
+          pricePoints: 100,
+          thumbnailUrl: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=150',
+          tier: 1,
+        });
+      } else if (tierChoice === 3) {
+        // [3단계 - 대형 (50,000P)]: 골든 드래곤
+        enqueueGift({
+          giftId: 'mock-dragon',
+          giftName: '골든 드래곤 (3D VIP)',
+          senderNickname: 'VIP회장님',
+          pricePoints: 50000,
+          thumbnailUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=150',
+          animationUrl:
+            'https://assets.mixkit.co/videos/preview/mixkit-fire-sparks-rising-in-the-dark-42352-large.mp4',
+          animationType: 'alpha_video',
+          tier: 3,
+        });
+      } else {
+        // [2단계 - 중형 (3,000P)]: 화려한 3D 폭죽
+        enqueueGift({
+          giftId: 'mock-fireworks',
+          giftName: '화려한 3D 폭죽',
+          senderNickname: '축제요정',
+          pricePoints: 3000,
+          thumbnailUrl: 'https://images.unsplash.com/photo-1498931299472-f7a63a5a1cfa?w=150',
+          animationType: 'fireworks',
+          tier: 2,
+        });
+      }
     },
   }));
 
@@ -324,8 +634,12 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
       setCurrentGift(nextGift);
       setIsPlaying(true);
 
-      const effectType = getGiftEffectType(nextGift);
-      if (effectType === 'alpha_video' && nextGift.animationUrl) {
+      const tier = getGiftTier(nextGift);
+      if (
+        (tier === 3 || nextGift.animationType === 'alpha_video') &&
+        nextGift.animationUrl &&
+        !nextGift.animationUrl.endsWith('.json')
+      ) {
         setVideoSource(nextGift.animationUrl);
       } else {
         setVideoSource(null);
@@ -347,16 +661,21 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
     Animated.parallel([
       Animated.timing(bannerAnim, {
         toValue: 0,
-        duration: 350,
+        duration: 320,
         useNativeDriver: true,
       }),
       Animated.timing(bannerScale, {
         toValue: 0.8,
-        duration: 350,
+        duration: 320,
         useNativeDriver: true,
       }),
       Animated.timing(effectScale, {
-        toValue: 0.2,
+        toValue: 0.15,
+        duration: 320,
+        useNativeDriver: true,
+      }),
+      Animated.timing(ambientDimAnim, {
+        toValue: 0,
         duration: 350,
         useNativeDriver: true,
       }),
@@ -364,29 +683,36 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
       setIsPlaying(false);
       setCurrentGift(null);
       setVideoSource(null);
+      screenShakeAnim.setValue(0);
       if (onEffectEnd) onEffectEnd();
     });
-  }, [bannerAnim, bannerScale, effectScale, onEffectEnd]);
+  }, [bannerAnim, bannerScale, effectScale, ambientDimAnim, screenShakeAnim, onEffectEnd]);
 
   // 이펙트 애니메이션 및 재생 라이프사이클
   useEffect(() => {
     if (!currentGift) return;
 
-    const effectType = getGiftEffectType(currentGift);
+    const tier = getGiftTier(currentGift);
+    const points = Number(
+      currentGift.pricePoints ?? currentGift.amount ?? currentGift.points ?? 0
+    );
+    const dynamicTargetScale = calculateDynamicScale(tier, points);
 
     // 초기화
     bannerAnim.setValue(0);
     bannerScale.setValue(0.7);
-    effectScale.setValue(0.2);
+    effectScale.setValue(0.1);
     spinAnim.setValue(0);
     pulseAnim.setValue(1);
     cardTilt.setValue(0);
+    screenShakeAnim.setValue(0);
+    ambientDimAnim.setValue(0);
 
-    // 아우라 회전 루프
+    // 아우라 회전 루프 (대형일수록 더 빠르고 웅장하게 회전)
     const spinLoop = Animated.loop(
       Animated.timing(spinAnim, {
         toValue: 1,
-        duration: 4000,
+        duration: tier === 3 ? 3000 : tier === 2 ? 4000 : 5500,
         easing: Easing.linear,
         useNativeDriver: true,
       })
@@ -397,14 +723,14 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
     const pulseLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 700,
+          toValue: tier === 3 ? 1.14 : tier === 2 ? 1.08 : 1.05,
+          duration: tier === 3 ? 550 : 700,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
-          toValue: 0.95,
-          duration: 700,
+          toValue: 0.96,
+          duration: tier === 3 ? 550 : 700,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
@@ -412,26 +738,43 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
     );
     pulseLoop.start();
 
+    // 3단계 전용 시네마틱 백드롭 딤 & 화면 쉐이크 연출
+    if (tier === 3) {
+      Animated.timing(ambientDimAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }).start();
+
+      Animated.sequence([
+        Animated.timing(screenShakeAnim, { toValue: -6, duration: 60, useNativeDriver: true }),
+        Animated.timing(screenShakeAnim, { toValue: 6, duration: 60, useNativeDriver: true }),
+        Animated.timing(screenShakeAnim, { toValue: -4, duration: 60, useNativeDriver: true }),
+        Animated.timing(screenShakeAnim, { toValue: 4, duration: 60, useNativeDriver: true }),
+        Animated.timing(screenShakeAnim, { toValue: 0, duration: 80, useNativeDriver: true }),
+      ]).start();
+    }
+
     // 3D 틸트 바운스
     Animated.sequence([
       Animated.timing(cardTilt, {
         toValue: -1,
-        duration: 200,
+        duration: 180,
         useNativeDriver: true,
       }),
       Animated.timing(cardTilt, {
         toValue: 1,
-        duration: 350,
+        duration: 320,
         useNativeDriver: true,
       }),
       Animated.timing(cardTilt, {
         toValue: 0,
-        duration: 300,
+        duration: 280,
         useNativeDriver: true,
       }),
     ]).start();
 
-    // 등장 스프링 애니메이션
+    // 등장 스프링 애니메이션 (포인트에 비례한 동적 스케일로 확장)
     Animated.parallel([
       Animated.timing(bannerAnim, {
         toValue: 1,
@@ -440,14 +783,14 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
       }),
       Animated.spring(bannerScale, {
         toValue: 1,
-        friction: 6,
-        tension: 80,
+        friction: tier === 3 ? 5 : 6,
+        tension: 85,
         useNativeDriver: true,
       }),
       Animated.spring(effectScale, {
-        toValue: 1,
-        friction: 5,
-        tension: 75,
+        toValue: dynamicTargetScale,
+        friction: tier === 3 ? 4.5 : 5.5,
+        tension: 80,
         useNativeDriver: true,
       }),
     ]).start();
@@ -466,21 +809,14 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
       }
     }
 
-    // 최적 노출 시간
-    const duration =
-      effectType === 'alpha_video' || effectType === 'large'
-        ? 4500
-        : effectType === 'fireworks' || effectType === '3d_heart' || effectType === 'lottie'
-        ? 3800
-        : effectType === 'medium'
-        ? 3200
-        : 2600;
+    // 단계별 노출 지속 시간: 1단계 ~2.4초 / 2단계 ~3.4초 / 3단계 ~4.8초
+    const displayDuration = tier === 3 ? 4800 : tier === 2 ? 3400 : 2400;
 
     const timer = setTimeout(() => {
       spinLoop.stop();
       pulseLoop.stop();
       finishCurrentEffect();
-    }, duration);
+    }, displayDuration);
 
     return () => {
       clearTimeout(timer);
@@ -497,6 +833,8 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
     spinAnim,
     pulseAnim,
     cardTilt,
+    screenShakeAnim,
+    ambientDimAnim,
     finishCurrentEffect,
   ]);
 
@@ -504,17 +842,16 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
     return null;
   }
 
-  const effectType = getGiftEffectType(currentGift);
-  const isVideo = effectType === 'alpha_video' && Boolean(currentGift.animationUrl) && Boolean(player);
-  const isLottie = effectType === 'lottie' && Boolean(currentGift.animationUrl);
-  const isFireworks = effectType === 'fireworks';
-  const is3DHeart = effectType === '3d_heart';
-  const isVip = effectType === 'alpha_video' || effectType === 'large';
-
+  const tier = getGiftTier(currentGift);
   const giftName = currentGift.giftName || currentGift.name || '선물';
   const senderNickname = currentGift.senderNickname || currentGift.senderName || '친구';
-  const pricePoints = Number(currentGift.pricePoints || currentGift.amount || currentGift.points || 0);
+  const pricePoints = Number(
+    currentGift.pricePoints ?? currentGift.amount ?? currentGift.points ?? 0
+  );
   const thumbUrl = currentGift.thumbnailUrl || currentGift.icon;
+
+  const isVideo = Boolean(videoSource) && Boolean(player);
+  const isLottie = Boolean(currentGift.animationUrl?.endsWith('.json'));
 
   const spinInterpolation = spinAnim.interpolate({
     inputRange: [0, 1],
@@ -523,49 +860,81 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
 
   const tiltInterpolation = cardTilt.interpolate({
     inputRange: [-1, 0, 1],
-    outputRange: ['-12deg', '0deg', '12deg'],
+    outputRange: tier === 3 ? ['-14deg', '0deg', '14deg'] : ['-10deg', '0deg', '10deg'],
   });
 
   return (
     <View style={styles.overlayContainer} pointerEvents="none">
-      {/* 1. 화면 전체 파티클 레이어 (폭죽 / 3D 하트) */}
-      {isFireworks && <FireworksEffect isPlaying={isPlaying} />}
-      {is3DHeart && <Exploding3DHeartsEffect isPlaying={isPlaying} />}
+      {/* 3단계 전용 시네마틱 앰비언트 암전 & 골든 네뷸라 백드롭 */}
+      {tier === 3 && (
+        <Animated.View
+          style={[
+            styles.cinematicVeil,
+            {
+              opacity: ambientDimAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 0.65],
+              }),
+            },
+          ]}
+        />
+      )}
 
-      {/* 2. 화면 중앙 3D 플로팅 스테이지 */}
-      <View style={styles.stageAnchor}>
+      {/* 단계별 파티클 시스템 */}
+      {tier === 1 && <Tier1CuteSparklesEffect isPlaying={isPlaying} />}
+      {tier === 2 && <Tier2FireworksEffect isPlaying={isPlaying} />}
+      {tier === 3 && <Tier3GoldenDragonStormEffect isPlaying={isPlaying} />}
+
+      {/* 화면 진동 쉐이크 및 3D 플로팅 스테이지 컨테이너 */}
+      <Animated.View
+        style={[
+          styles.stageAnchor,
+          {
+            transform: [{ translateX: screenShakeAnim }],
+          },
+        ]}
+      >
+        {/* 중앙 3D 입체 스테이지 */}
         <Animated.View
           style={[
             styles.effectStageBase,
-            isVip && styles.largeStage,
-            (isFireworks || is3DHeart || effectType === 'medium') && styles.mediumStage,
-            effectType === 'small' && styles.smallStage,
+            tier === 1 && styles.stageTier1,
+            tier === 2 && styles.stageTier2,
+            tier === 3 && styles.stageTier3,
             {
               opacity: bannerAnim,
               transform: [{ scale: effectScale }],
             },
           ]}
         >
-          {/* 회전하는 황금빛 / 네온 아우라 링 */}
+          {/* 회전하는 아우라 링 (단계별 광채 차등화) */}
           <Animated.View
             style={[
-              styles.auraRing,
-              isFireworks && styles.fireworksAura,
-              is3DHeart && styles.heartAura,
-              isVip && styles.largeAura,
+              styles.auraRingBase,
+              tier === 1 && styles.auraTier1,
+              tier === 2 && styles.auraTier2,
+              tier === 3 && styles.auraTier3,
               {
                 transform: [{ rotate: spinInterpolation }, { scale: pulseAnim }],
               },
             ]}
           />
 
-          {/* VIP 전용 방사형 광선 (Radiant Light Rays) */}
-          {isVip && (
+          {/* 3단계 대형 전용 다이아몬드 글로우 링 */}
+          {tier === 3 && (
             <Animated.View
               style={[
-                styles.largeRadiantGlow,
+                styles.largeRadiantGlowRing,
                 {
-                  transform: [{ rotate: spinInterpolation }, { scale: pulseAnim }],
+                  transform: [
+                    {
+                      rotate: spinAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['360deg', '0deg'], // 역회전
+                      }),
+                    },
+                    { scale: pulseAnim },
+                  ],
                 },
               ]}
             />
@@ -575,9 +944,9 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
           <Animated.View
             style={[
               styles.iconContainerBase,
-              isVip && styles.largeIconContainer,
-              (isFireworks || is3DHeart || effectType === 'medium') && styles.mediumIconContainer,
-              effectType === 'small' && styles.smallIconContainer,
+              tier === 1 && styles.iconContainerTier1,
+              tier === 2 && styles.iconContainerTier2,
+              tier === 3 && styles.iconContainerTier3,
               {
                 transform: [{ rotate: tiltInterpolation }, { scale: pulseAnim }],
               },
@@ -589,21 +958,25 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
                 source={{ uri: currentGift.animationUrl }}
                 autoPlay
                 loop={false}
-                style={styles.lottieView}
+                style={[
+                  tier === 1 && styles.lottieTier1,
+                  tier === 2 && styles.lottieTier2,
+                  tier === 3 && styles.lottieTier3,
+                ]}
               />
             ) : thumbUrl ? (
               <Image
                 source={{ uri: thumbUrl }}
                 style={[
-                  isVip && styles.largeThumb,
-                  (isFireworks || is3DHeart || effectType === 'medium') && styles.mediumThumb,
-                  effectType === 'small' && styles.smallThumb,
+                  tier === 1 && styles.thumbTier1,
+                  tier === 2 && styles.thumbTier2,
+                  tier === 3 && styles.thumbTier3,
                 ]}
                 resizeMode="contain"
               />
             ) : (
-              <Text style={{ fontSize: isVip ? 80 : 60 }}>
-                {isFireworks ? '🎆' : is3DHeart ? '💖' : '🎁'}
+              <Text style={{ fontSize: tier === 3 ? 90 : tier === 2 ? 65 : 44 }}>
+                {tier === 3 ? '🐉' : tier === 2 ? '🎆' : '🎁'}
               </Text>
             )}
 
@@ -622,22 +995,26 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
               </View>
             )}
 
-            {/* 상단 3D 뱃지 */}
+            {/* 단계별 상단 3D 뱃지 */}
             <View
               style={[
-                styles.topBadge,
-                isFireworks && { backgroundColor: '#F59E0B' },
-                is3DHeart && { backgroundColor: '#EC4899' },
-                isVip && { backgroundColor: '#DC2626' },
+                styles.topBadgeBase,
+                tier === 1 && styles.topBadgeTier1,
+                tier === 2 && styles.topBadgeTier2,
+                tier === 3 && styles.topBadgeTier3,
               ]}
             >
               <Text style={styles.topBadgeText}>
-                {isFireworks ? '🎆 3D 폭죽' : is3DHeart ? '💖 3D 하트' : isVip ? '👑 3D VIP' : '✨ 3D'}
+                {tier === 3
+                  ? '👑 3단계 LEGENDARY VIP'
+                  : tier === 2
+                  ? '🎆 2단계 SPECIAL'
+                  : '🌸 1단계 BASIC'}
               </Text>
             </View>
           </Animated.View>
 
-          {/* 스파클 파티클 장식 */}
+          {/* 미세 스파클 반짝임 장식 */}
           <View style={styles.particleContainer}>
             <Text style={[styles.sparkleParticle, styles.sparkleTopLeft]}>✨</Text>
             <Text style={[styles.sparkleParticle, styles.sparkleBottomRight]}>⭐</Text>
@@ -646,13 +1023,13 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
           </View>
         </Animated.View>
 
-        {/* 3. 이펙트 바로 하단에 밀착되는 화려한 글래스모피즘 후원 배너 */}
+        {/* 하단 글래스모피즘 후원 배너 (단계별 테두리 및 텍스트 하이라이트 차등) */}
         <Animated.View
           style={[
             styles.bannerBadgeBase,
-            isFireworks && styles.fireworksBannerBadge,
-            is3DHeart && styles.heartBannerBadge,
-            isVip && styles.largeBannerBadge,
+            tier === 1 && styles.bannerBadgeTier1,
+            tier === 2 && styles.bannerBadgeTier2,
+            tier === 3 && styles.bannerBadgeTier3,
             {
               opacity: bannerAnim,
               transform: [{ scale: bannerScale }],
@@ -662,22 +1039,23 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
           {thumbUrl ? (
             <Image source={{ uri: thumbUrl }} style={styles.bannerBadgeThumb} resizeMode="cover" />
           ) : (
-            <Text style={{ fontSize: 20, marginRight: 8 }}>
-              {isFireworks ? '🎆' : is3DHeart ? '💖' : '🎁'}
+            <Text style={{ fontSize: 22, marginRight: 8 }}>
+              {tier === 3 ? '🐉' : tier === 2 ? '🎆' : '🎁'}
             </Text>
           )}
 
           <View style={styles.bannerBadgeTextCol}>
             <Text style={styles.bannerBadgeSenderText} numberOfLines={1}>
-              <Text style={styles.senderHighlight}>{senderNickname}</Text>님의 따뜻한 후원
+              <Text style={styles.senderHighlight}>{senderNickname}</Text>님의{' '}
+              {tier === 3 ? '위대한 후원 👑' : tier === 2 ? '화려한 후원 🔥' : '따뜻한 선물 🎁'}
             </Text>
             <Text style={styles.bannerBadgeGiftText} numberOfLines={1}>
               <Text
                 style={[
                   styles.bannerBadgeHighlight,
-                  isFireworks && { color: '#FCD34D' },
-                  is3DHeart && { color: '#F472B6' },
-                  isVip && styles.vipHighlight,
+                  tier === 1 && styles.highlightTier1,
+                  tier === 2 && styles.highlightTier2,
+                  tier === 3 && styles.highlightTier3,
                 ]}
               >
                 {giftName}
@@ -686,7 +1064,7 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
             </Text>
           </View>
         </Animated.View>
-      </View>
+      </Animated.View>
     </View>
   );
 });
@@ -696,34 +1074,167 @@ GiftEffectOverlay.displayName = 'GiftEffectOverlay';
 export default GiftEffectOverlay;
 
 const styles = StyleSheet.create({
+  // ---------------------------------------------------------------------------
+  // 최상단 투명 오버레이 컨테이너:
+  // 절대 위치(position: absolute)로 전체 화면을 덮으며,
+  // 어떠한 경우에도 하단 채팅 입력창이나 메시지 리스트의 레이아웃을 밀어내지 않습니다.
+  // ---------------------------------------------------------------------------
   overlayContainer: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
     zIndex: 999999,
+    elevation: 999999,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'transparent',
+    pointerEvents: 'none',
   },
   absoluteCenter: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
+    pointerEvents: 'none',
   },
   stageAnchor: {
     alignItems: 'center',
     justifyContent: 'center',
+    pointerEvents: 'none',
+  },
+
+  // 3단계 시네마틱 다크 백드롭
+  cinematicVeil: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#050301',
+    pointerEvents: 'none',
   },
 
   // ---------------------------------------------------------------------------
-  // 폭죽 & 하트 파티클 스타일
+  // 단계별 3D 플로팅 스테이지 규격
   // ---------------------------------------------------------------------------
-  shockwaveRing: {
+  effectStageBase: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  stageTier1: {
+    width: 130,
+    height: 130,
+  },
+  stageTier2: {
+    width: 195,
+    height: 195,
+  },
+  stageTier3: {
+    width: 270,
+    height: 270,
+  },
+
+  // ---------------------------------------------------------------------------
+  // 단계별 아우라 링 & 글로우 효과
+  // ---------------------------------------------------------------------------
+  auraRingBase: {
+    position: 'absolute',
+    borderRadius: 999,
+    borderWidth: 3,
+  },
+  auraTier1: {
+    width: 130,
+    height: 130,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(251, 146, 60, 0.75)',
+    backgroundColor: 'rgba(251, 146, 60, 0.08)',
+    shadowColor: '#F97316',
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  auraTier2: {
+    width: 195,
+    height: 195,
+    borderStyle: 'dashed',
+    borderWidth: 3.5,
+    borderColor: 'rgba(245, 158, 11, 0.95)',
+    backgroundColor: 'rgba(245, 158, 11, 0.16)',
+    shadowColor: '#F59E0B',
+    shadowOpacity: 0.75,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  auraTier3: {
+    width: 270,
+    height: 270,
+    borderWidth: 5,
+    borderColor: 'rgba(255, 215, 0, 0.98)',
+    backgroundColor: 'rgba(245, 158, 11, 0.24)',
+    shadowColor: '#EF4444',
+    shadowOpacity: 0.95,
+    shadowRadius: 32,
+    elevation: 20,
+  },
+  largeRadiantGlowRing: {
+    position: 'absolute',
+    width: 285,
+    height: 285,
+    borderRadius: 142.5,
+    borderWidth: 2.5,
+    borderStyle: 'dotted',
+    borderColor: 'rgba(254, 240, 138, 0.85)',
+    backgroundColor: 'transparent',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 3단계 썬버스트 갓레이 (God Rays)
+  // ---------------------------------------------------------------------------
+  sunburstBeams: {
+    position: 'absolute',
+    width: SCREEN_WIDTH * 1.2,
+    height: SCREEN_WIDTH * 1.2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    pointerEvents: 'none',
+  },
+  sunbeamRay: {
+    position: 'absolute',
+    width: 4,
+    height: SCREEN_WIDTH * 1.1,
+    backgroundColor: 'rgba(255, 215, 0, 0.18)',
+    borderRadius: 2,
+  },
+
+  // ---------------------------------------------------------------------------
+  // 쇼크웨이브 링 & 파티클 스타일
+  // ---------------------------------------------------------------------------
+  shockwaveRingTier2: {
     position: 'absolute',
     width: 140,
     height: 140,
     borderRadius: 70,
     borderWidth: 4,
     borderColor: 'rgba(255, 215, 0, 0.9)',
-    backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    backgroundColor: 'rgba(255, 215, 0, 0.14)',
+  },
+  megaShockwave1: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    borderWidth: 5,
+    borderColor: 'rgba(255, 215, 0, 0.95)',
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+  },
+  megaShockwave2: {
+    position: 'absolute',
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    borderWidth: 3.5,
+    borderColor: 'rgba(239, 68, 68, 0.85)',
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
   },
   fireworkSpark: {
     position: 'absolute',
@@ -731,92 +1242,18 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  heartItem: {
+  dragonEmber: {
+    position: 'absolute',
+    shadowOpacity: 0.95,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  sparkleItem: {
     position: 'absolute',
   },
 
   // ---------------------------------------------------------------------------
-  // 그래픽 이펙트 스테이지 규격
-  // ---------------------------------------------------------------------------
-  effectStageBase: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 18,
-  },
-  smallStage: {
-    width: 140,
-    height: 140,
-  },
-  mediumStage: {
-    width: 220,
-    height: 220,
-  },
-  largeStage: {
-    width: 300,
-    height: 300,
-  },
-
-  // ---------------------------------------------------------------------------
-  // 아우라 링 & 광채 효과
-  // ---------------------------------------------------------------------------
-  auraRing: {
-    position: 'absolute',
-    width: 190,
-    height: 190,
-    borderRadius: 999,
-    borderWidth: 3,
-    borderStyle: 'dashed',
-    borderColor: 'rgba(251, 191, 36, 0.9)',
-    backgroundColor: 'rgba(251, 191, 36, 0.1)',
-    shadowColor: '#F59E0B',
-    shadowOpacity: 0.6,
-    shadowRadius: 18,
-    elevation: 8,
-  },
-  fireworksAura: {
-    width: 220,
-    height: 220,
-    borderColor: 'rgba(245, 158, 11, 0.95)',
-    backgroundColor: 'rgba(245, 158, 11, 0.18)',
-    shadowColor: '#EF4444',
-    shadowOpacity: 0.8,
-    shadowRadius: 24,
-    elevation: 12,
-  },
-  heartAura: {
-    width: 210,
-    height: 210,
-    borderColor: 'rgba(236, 72, 153, 0.95)',
-    backgroundColor: 'rgba(236, 72, 153, 0.16)',
-    shadowColor: '#EC4899',
-    shadowOpacity: 0.8,
-    shadowRadius: 24,
-    elevation: 12,
-  },
-  largeAura: {
-    width: 280,
-    height: 280,
-    borderWidth: 4,
-    borderColor: 'rgba(245, 158, 11, 0.95)',
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
-    shadowColor: '#EAB308',
-    shadowOpacity: 0.9,
-    shadowRadius: 30,
-    elevation: 16,
-  },
-  largeRadiantGlow: {
-    position: 'absolute',
-    width: 290,
-    height: 290,
-    borderRadius: 145,
-    borderWidth: 2.5,
-    borderStyle: 'dotted',
-    borderColor: 'rgba(254, 240, 138, 0.7)',
-    backgroundColor: 'rgba(254, 240, 138, 0.18)',
-  },
-
-  // ---------------------------------------------------------------------------
-  // 중앙 3D 엠블럼 카드
+  // 중앙 3D 엠블럼 카드 규격
   // ---------------------------------------------------------------------------
   iconContainerBase: {
     justifyContent: 'center',
@@ -829,44 +1266,52 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 14,
   },
-  smallIconContainer: {
-    width: 100,
-    height: 100,
-    borderWidth: 3,
-    borderColor: '#FBBF24',
+  iconContainerTier1: {
+    width: 88,
+    height: 88,
+    borderWidth: 2.5,
+    borderColor: '#FB923C',
   },
-  mediumIconContainer: {
-    width: 150,
-    height: 150,
+  iconContainerTier2: {
+    width: 135,
+    height: 135,
     borderWidth: 4,
     borderColor: '#F59E0B',
   },
-  largeIconContainer: {
-    width: 190,
-    height: 190,
-    borderWidth: 5,
+  iconContainerTier3: {
+    width: 195,
+    height: 195,
+    borderWidth: 5.5,
     borderColor: '#EAB308',
   },
 
-  smallThumb: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+  thumbTier1: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
-  mediumThumb: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
+  thumbTier2: {
+    width: 98,
+    height: 98,
+    borderRadius: 49,
   },
-  largeThumb: {
+  thumbTier3: {
     width: 145,
     height: 145,
-    borderRadius: 72,
+    borderRadius: 72.5,
   },
 
-  lottieView: {
-    width: 140,
-    height: 140,
+  lottieTier1: {
+    width: 75,
+    height: 75,
+  },
+  lottieTier2: {
+    width: 120,
+    height: 120,
+  },
+  lottieTier3: {
+    width: 175,
+    height: 175,
   },
 
   videoOverlay: {
@@ -882,59 +1327,72 @@ const styles = StyleSheet.create({
   },
 
   // 상단 3D 뱃지
-  topBadge: {
+  topBadgeBase: {
     position: 'absolute',
-    top: -15,
-    backgroundColor: '#DC2626',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    top: -14,
+    paddingHorizontal: 11,
+    paddingVertical: 3.5,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#FEF08A',
+    borderColor: '#FFFFFF',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.35,
     shadowRadius: 5,
     elevation: 6,
   },
+  topBadgeTier1: {
+    backgroundColor: '#F97316',
+    borderColor: '#FFEDD5',
+  },
+  topBadgeTier2: {
+    backgroundColor: '#EA580C',
+    borderColor: '#FEF08A',
+  },
+  topBadgeTier3: {
+    backgroundColor: '#DC2626',
+    borderColor: '#FEF08A',
+    paddingHorizontal: 14,
+    paddingVertical: 4.5,
+  },
   topBadgeText: {
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '900',
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
   },
 
-  // 파티클 장식
+  // 미세 파티클
   particleContainer: {
     ...StyleSheet.absoluteFillObject,
     pointerEvents: 'none',
   },
   sparkleParticle: {
     position: 'absolute',
-    fontSize: 22,
+    fontSize: 20,
     textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
   sparkleTopLeft: {
-    top: 0,
-    left: 2,
+    top: 2,
+    left: 4,
   },
   sparkleTopRight: {
     top: 4,
-    right: 2,
+    right: 4,
   },
   sparkleBottomRight: {
-    bottom: 2,
+    bottom: 4,
     right: 4,
   },
   sparkleBottomLeft: {
     bottom: 4,
-    left: 2,
+    left: 4,
   },
 
   // ---------------------------------------------------------------------------
-  // 하단 후원 알림 배너 뱃지
+  // 하단 글래스모피즘 후원 배너 규격
   // ---------------------------------------------------------------------------
   bannerBadgeBase: {
     flexDirection: 'row',
@@ -945,42 +1403,41 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     maxWidth: SCREEN_WIDTH * 0.92,
     borderWidth: 2,
-    borderColor: 'rgba(251, 191, 36, 0.7)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.45,
     shadowRadius: 14,
     elevation: 12,
   },
-  fireworksBannerBadge: {
+  bannerBadgeTier1: {
+    borderColor: 'rgba(251, 146, 60, 0.8)',
+    backgroundColor: 'rgba(23, 23, 23, 0.94)',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+  },
+  bannerBadgeTier2: {
     borderColor: '#F59E0B',
     backgroundColor: 'rgba(17, 24, 39, 0.96)',
     shadowColor: '#F59E0B',
-    shadowOpacity: 0.6,
+    shadowOpacity: 0.65,
     shadowRadius: 16,
   },
-  heartBannerBadge: {
-    borderColor: '#EC4899',
-    backgroundColor: 'rgba(24, 15, 30, 0.96)',
-    shadowColor: '#EC4899',
-    shadowOpacity: 0.6,
-    shadowRadius: 16,
-  },
-  largeBannerBadge: {
+  bannerBadgeTier3: {
     borderWidth: 2.5,
     borderColor: '#EAB308',
-    backgroundColor: 'rgba(17, 24, 39, 0.97)',
-    paddingVertical: 12,
+    backgroundColor: 'rgba(15, 12, 10, 0.98)',
+    paddingVertical: 13,
     paddingHorizontal: 22,
-    shadowColor: '#F59E0B',
-    shadowOpacity: 0.7,
-    shadowRadius: 20,
-    elevation: 16,
+    shadowColor: '#EAB308',
+    shadowOpacity: 0.85,
+    shadowRadius: 24,
+    elevation: 18,
   },
+
   bannerBadgeThumb: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     marginRight: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
@@ -1003,11 +1460,15 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   bannerBadgeHighlight: {
-    color: '#FBBF24',
     fontWeight: '900',
   },
-  vipHighlight: {
+  highlightTier1: {
+    color: '#FB923C',
+  },
+  highlightTier2: {
+    color: '#FBBF24',
+  },
+  highlightTier3: {
     color: '#FEF08A',
-    fontWeight: '900',
   },
 });

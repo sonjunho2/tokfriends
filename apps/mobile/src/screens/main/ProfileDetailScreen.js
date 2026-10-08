@@ -836,6 +836,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    position: 'relative',
+    overflow: 'hidden',
   },
   scrollContent: {
     paddingBottom: 40,

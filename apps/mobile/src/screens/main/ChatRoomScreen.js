@@ -1717,6 +1717,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#B2C7DA',
+    position: 'relative',
+    overflow: 'hidden',
   },
   safeArea: {
     flex: 1,

@@ -4,6 +4,44 @@ Updated: 2026-10-08
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-08 Checkpoint 47: 1:1 채팅방 및 라이브 화면 3D 선물 이펙트 레이아웃 완전 고정(Absolute Overlay) 및 금액별 3단계(소형/중형/대형 VIP) 연출 차등화 시스템 구축 (완료)
+
+### 1. 개요 및 요구사항
+1. **레이아웃 고정 및 오버레이(Absolute Position / Overlay) 전면 개편**:
+   - 기존 선물 도착 시 하단 메시지 입력 라인이 위로 밀려나거나 그 아래에 이펙트가 삽입되던 flexbox 레이아웃 간섭 현상을 완전히 해소.
+   - `GiftEffectOverlay`를 `position: 'absolute'`, `top: 0`, `left: 0`, `right: 0`, `bottom: 0`, `width: '100%'`, `height: '100%'`, `zIndex: 999999`, `elevation: 999999`, `pointerEvents: 'none'` 투명 오버레이 레이어로 재설계.
+   - 채팅창과 메시지 입력 라인의 위치는 절대 밀려나거나 움직이지 않도록 완전 고정.
+   - 터치 이벤트 투과(`pointerEvents="none"`) 처리로 화면 가득 3D 이펙트가 출력되는 동안에도 채팅 입력, 버튼 탭, 대화 리스트 스크롤링이 100% 매끄럽게 동작.
+2. **선물 금액별 3단계 이펙트 크기 및 연출 차등화 (틱톡/비고라이브 스타일)**:
+   - **[1단계 - 소형 (100P ~ 1,000P)]**: 따뜻한 커피, 아름다운 꽃다발, 달콤한 아이스크림 등
+     - 컴팩트 팝업 바운스 (Scale 0.9 ~ 1.05)
+     - 은은한 파스텔 웜톤 대시드 아우라 + 아기자기한 플로팅 스파클 & 하트 파티클 (14개)
+     - 88px 미니 3D 엠블럼 + 슬림 글래스모피즘 후원 배너 + `🌸 1단계 BASIC` 뱃지 (2.4초).
+   - **[2단계 - 중형 (3,000P ~ 10,000P)]**: 화려한 3D 폭죽, 네온 슈퍼카, 축하 샴페인, 다이아몬드 등
+     - 3D 틸트 스윙 & 스프링 (Scale 1.15 ~ 1.35)
+     - 360도 방사형 3D 폭죽 파티클 (36개) + 네온 쇼크웨이브 링 펄스
+     - 195px 회전하는 앰버 더블 아우라 링 + 135px 3D 엠블럼 + `🎆 2단계 SPECIAL` 뱃지 (3.4초).
+   - **[3단계 - 대형 (30,000P 이상)]**: 골든 드래곤 3D VIP 특수 연출 등
+     - 화면 전체를 압도하는 헐리우드/틱톡 VIP 스타일 초대형 3D 연출 (Scale 1.45 ~ 1.75)
+     - **시네마틱 스크린 다크 딤 백드롭** + **용의 포효를 담은 스크린 쉐이크(화면 진동 연출)**
+     - 48개 골든 드래곤 파이어 엠버 폭풍 + 2중 메가 쇼크웨이브 링 + 360도 회전 갓레이(Sunburst 광선)
+     - 270px 초대형 3D 스테이지 + 195px 골드 엠블럼 + `👑 3단계 LEGENDARY VIP` 뱃지 + 황제급 VIP 배너 (4.8초).
+3. **포인트 금액 기반 동적 스케일(Scale) 엔진 구현**:
+   - 전달받은 선물 데이터의 포인트(포인트 금액 또는 등급 값)를 기준으로 `calculateDynamicScale(tier, points)`를 통해 이펙트 컴포넌트의 크기와 스타일이 동적으로 스무스하게 보정.
+   - 외부 테스트용 `triggerMockGift(1 | 2 | 3)` API 지원.
+
+### 2. 세부 변경 파일
+- `apps/mobile/src/components/GiftEffectOverlay.js`: 절대 위치 투명 오버레이로 레이아웃 고정, 금액별 3단계(소형/중형/대형 VIP) 파티클 시스템, 동적 스케일 및 엠블럼/배너 차등화
+- `apps/mobile/src/screens/main/ChatRoomScreen.js`: 최상위 컨테이너 `position: 'relative'`, `overflow: 'hidden'` 적용으로 하단 메시지 입력창 위치 절대 고정보장
+- `apps/mobile/src/screens/live/LiveRoomScreen.js`: 라이브 방송 최상위 컨테이너 `position: 'relative'`, `overflow: 'hidden'` 적용
+- `apps/mobile/src/screens/main/ProfileDetailScreen.js`: 프로필 상세 화면 최상위 컨테이너 상대 위치 및 오버플로우 정리
+- `docs/DAGAON_CHECKPOINT.md`: Checkpoint 47 기록
+
+### 3. 릴리즈 APK 빌드 및 배포 (`dagaon-release.apk`)
+- `gradlew.bat assembleRelease` 빌드 완료.
+- 프로젝트 루트 배포: `c:\Users\ION\Downloads\work\tokfriends\dagaon-release.apk`
+- 관리자 웹 다운로드 서빙: `c:\Users\ION\Downloads\work\tokfriends\apps\admin\public\downloads\dagaon-release.apk`
+
 ## 2026-10-08 Checkpoint 46: 1:1 채팅방 및 라이브 방송 3D 입체 선물 이펙트(폭죽·3D 하트·Lottie) 오버레이 및 WebSocket 실시간 동시 재생 시스템 구축 (완료)
 
 ### 1. 개요 및 요구사항
