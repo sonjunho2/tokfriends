@@ -47,6 +47,28 @@ export class GiftsService implements OnModuleInit {
       sortOrder: 2,
     },
     {
+      code: 'gift-heart-3d',
+      name: '3D 러브 하트',
+      description: '화면 가득 터져나오는 화려한 3D 입체 하트 폭풍!',
+      pricePoints: 1500,
+      thumbnailUrl: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=150',
+      animationType: '3d_heart',
+      category: 'special',
+      sortOrder: 3,
+      isNew: true,
+    },
+    {
+      code: 'gift-fireworks',
+      name: '화려한 3D 폭죽',
+      description: '모든 시청자의 화면을 수놓는 화려한 3D 입체 폭죽쇼!',
+      pricePoints: 3000,
+      thumbnailUrl: 'https://images.unsplash.com/photo-1498931299472-f7a63a5a1cfa?w=150',
+      animationType: 'fireworks',
+      category: 'special',
+      sortOrder: 4,
+      isNew: true,
+    },
+    {
       code: 'gift-cake',
       name: '조각 케이크',
       description: '특별한 날을 축하하는 달콤한 케이크',
@@ -54,7 +76,7 @@ export class GiftsService implements OnModuleInit {
       thumbnailUrl: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=150',
       animationType: 'none',
       category: 'general',
-      sortOrder: 3,
+      sortOrder: 5,
     },
     {
       code: 'gift-bouquet',
@@ -64,40 +86,51 @@ export class GiftsService implements OnModuleInit {
       thumbnailUrl: 'https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=150',
       animationType: 'none',
       category: 'special',
-      sortOrder: 4,
+      sortOrder: 6,
+    },
+    {
+      code: 'gift-champagne',
+      name: '축하 샴페인 (3D)',
+      description: '골든 버블과 화려한 축포가 팡팡 터지는 축배 선물',
+      pricePoints: 5000,
+      thumbnailUrl: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=150',
+      animationType: 'fireworks',
+      category: 'special',
+      sortOrder: 7,
+      isNew: true,
     },
     {
       code: 'gift-diamond',
-      name: '영롱한 다이아몬드',
-      description: '최고의 찬사를 보내는 영롱한 보석',
-      pricePoints: 5000,
+      name: '영롱한 다이아몬드 (3D)',
+      description: '최고의 찬사를 보내는 3D 영롱한 프리즘 다이아몬드',
+      pricePoints: 10000,
       thumbnailUrl: 'https://images.unsplash.com/photo-1599707367072-cd6ada2bc375?w=150',
-      animationType: 'none',
+      animationType: '3d_heart',
       category: 'special',
-      sortOrder: 5,
+      sortOrder: 8,
     },
     {
       code: 'gift-supercar',
       name: '네온 슈퍼카 (3D)',
       description: '화려한 라이브를 수놓는 3D 슈퍼카 이펙트',
-      pricePoints: 10000,
+      pricePoints: 20000,
       thumbnailUrl: 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=150',
       animationUrl: 'https://assets.mixkit.co/videos/preview/mixkit-car-headlights-in-the-dark-42416-large.mp4',
       animationType: 'alpha_video',
       category: 'vip',
-      sortOrder: 6,
+      sortOrder: 9,
       isNew: true,
     },
     {
       code: 'gift-dragon',
-      name: '골든 드래곤 (3D)',
-      description: '화면 전체를 압도하는 헐리우드급 3D 황금 드래곤',
-      pricePoints: 30000,
+      name: '골든 드래곤 (3D VIP)',
+      description: '화면 전체를 압도하는 헐리우드급 3D 황금 드래곤 팡파레',
+      pricePoints: 50000,
       thumbnailUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=150',
       animationUrl: 'https://assets.mixkit.co/videos/preview/mixkit-fire-sparks-rising-in-the-dark-42352-large.mp4',
       animationType: 'alpha_video',
       category: 'vip',
-      sortOrder: 7,
+      sortOrder: 10,
       isNew: true,
     },
   ];
@@ -110,32 +143,41 @@ export class GiftsService implements OnModuleInit {
 
   async seedDefaultsIfEmpty() {
     try {
-      const count = await this.prisma.gift.count();
-      if (count === 0) {
-        this.logger.log('Seeding initial gifts into database...');
-        for (const item of this.initialSeedGifts) {
-          await this.prisma.gift.upsert({
-            where: { code: item.code },
-            update: {},
-            create: {
-              code: item.code,
-              name: item.name,
-              description: item.description,
-              pricePoints: item.pricePoints,
-              thumbnailUrl: item.thumbnailUrl,
-              animationUrl: item.animationUrl,
-              animationType: item.animationType,
-              category: item.category,
-              sortOrder: item.sortOrder,
-              isActive: true,
-              chatEnabled: true,
-              liveEnabled: true,
-              isNew: item.isNew ?? false,
-            },
-          });
-        }
-        this.logger.log('Initial gifts seeded successfully.');
+      this.logger.log('Synchronizing initial default gifts into database...');
+      for (const item of this.initialSeedGifts) {
+        await this.prisma.gift.upsert({
+          where: { code: item.code },
+          update: {
+            name: item.name,
+            description: item.description,
+            pricePoints: item.pricePoints,
+            thumbnailUrl: item.thumbnailUrl,
+            animationUrl: item.animationUrl,
+            animationType: item.animationType,
+            category: item.category,
+            sortOrder: item.sortOrder,
+            isActive: true,
+            chatEnabled: true,
+            liveEnabled: true,
+          },
+          create: {
+            code: item.code,
+            name: item.name,
+            description: item.description,
+            pricePoints: item.pricePoints,
+            thumbnailUrl: item.thumbnailUrl,
+            animationUrl: item.animationUrl,
+            animationType: item.animationType,
+            category: item.category,
+            sortOrder: item.sortOrder,
+            isActive: true,
+            chatEnabled: true,
+            liveEnabled: true,
+            isNew: item.isNew ?? false,
+          },
+        });
       }
+      this.logger.log('Initial gifts synchronized successfully.');
     } catch (err: any) {
       this.logger.warn(`Failed to seed default gifts: ${err?.message ?? err}`);
     }

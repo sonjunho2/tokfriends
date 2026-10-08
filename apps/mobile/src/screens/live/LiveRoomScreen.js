@@ -531,6 +531,10 @@ export default function LiveRoomScreen({ navigation, route }) {
     try {
       socket = createChatSocket(normalizedToken);
 
+      socket.on('connect', () => {
+        socket.emit(LIVE_SOCKET_EVENTS.JOIN, { roomId });
+      });
+
       socket.on(LIVE_SOCKET_EVENTS.AUTH_READY, () => {
         socket.emit(LIVE_SOCKET_EVENTS.JOIN, { roomId });
       });
@@ -560,6 +564,16 @@ export default function LiveRoomScreen({ navigation, route }) {
             processedGiftMessageIdsRef.current.add(msg.id);
             try {
               const giftMeta = JSON.parse(msg.content);
+              const resolvedType =
+                giftMeta.animationType ||
+                (giftMeta.giftName?.includes('폭죽')
+                  ? 'fireworks'
+                  : giftMeta.giftName?.includes('하트')
+                  ? '3d_heart'
+                  : giftMeta.animationUrl
+                  ? 'alpha_video'
+                  : (msg.giftPoints >= 3000 ? 'fireworks' : '3d_heart'));
+
               giftOverlayRef.current?.enqueueGift({
                 giftId: giftMeta.giftId,
                 giftName: giftMeta.giftName,
@@ -570,7 +584,7 @@ export default function LiveRoomScreen({ navigation, route }) {
                   msg.sender?.profile?.nickname ||
                   '시청자',
                 animationUrl: giftMeta.animationUrl,
-                animationType: giftMeta.animationType || 'alpha_video',
+                animationType: resolvedType,
                 thumbnailUrl: giftMeta.thumbnailUrl,
               });
             } catch {
@@ -580,6 +594,7 @@ export default function LiveRoomScreen({ navigation, route }) {
                 pricePoints: msg.giftPoints,
                 senderNickname:
                   msg.sender?.name || msg.sender?.profile?.nickname || '시청자',
+                animationType: msg.giftPoints >= 3000 ? 'fireworks' : '3d_heart',
               });
             }
           }
@@ -644,6 +659,16 @@ export default function LiveRoomScreen({ navigation, route }) {
             processedGiftMessageIdsRef.current.add(msg.id);
             try {
               const giftMeta = JSON.parse(msg.content);
+              const resolvedType =
+                giftMeta.animationType ||
+                (giftMeta.giftName?.includes('폭죽')
+                  ? 'fireworks'
+                  : giftMeta.giftName?.includes('하트')
+                  ? '3d_heart'
+                  : giftMeta.animationUrl
+                  ? 'alpha_video'
+                  : (msg.giftPoints >= 3000 ? 'fireworks' : '3d_heart'));
+
               giftOverlayRef.current?.enqueueGift({
                 giftId: giftMeta.giftId,
                 giftName: giftMeta.giftName,
@@ -654,7 +679,7 @@ export default function LiveRoomScreen({ navigation, route }) {
                   msg.sender?.displayName ||
                   '시청자',
                 animationUrl: giftMeta.animationUrl,
-                animationType: giftMeta.animationType || 'alpha_video',
+                animationType: resolvedType,
                 thumbnailUrl: giftMeta.thumbnailUrl,
               });
             } catch {
@@ -664,6 +689,7 @@ export default function LiveRoomScreen({ navigation, route }) {
                 pricePoints: msg.giftPoints,
                 senderNickname:
                   msg.sender?.profile?.nickname || msg.sender?.displayName || '시청자',
+                animationType: msg.giftPoints >= 3000 ? 'fireworks' : '3d_heart',
               });
             }
           }
@@ -739,13 +765,23 @@ export default function LiveRoomScreen({ navigation, route }) {
       }
 
       // 내 화면에서도 3D 투명 비디오/애니메이션 이펙트 큐에 즉시 삽입
+      const resolvedSendType =
+        gift.animationType ||
+        (gift.name?.includes('폭죽')
+          ? 'fireworks'
+          : gift.name?.includes('하트')
+          ? '3d_heart'
+          : gift.animationUrl
+          ? 'alpha_video'
+          : (gift.pricePoints >= 3000 ? 'fireworks' : '3d_heart'));
+
       giftOverlayRef.current?.enqueueGift({
         giftId: gift.id,
         giftName: gift.name,
         pricePoints: gift.pricePoints,
         senderNickname: currentUser?.displayName || currentUser?.name || '나',
         animationUrl: gift.animationUrl,
-        animationType: gift.animationType || 'alpha_video',
+        animationType: resolvedSendType,
         thumbnailUrl: gift.thumbnailUrl,
       });
 

@@ -476,6 +476,12 @@ export default function ChatRoomScreen({ route, navigation }) {
       }
     };
 
+    const handleConnect = () => {
+      if (chatId) {
+        socket.emit(CHAT_SOCKET_EVENTS.JOIN, { chatId });
+      }
+    };
+
     const handleRealtimeMessage = (message) => {
       if (message?.chatId !== chatId) return;
 
@@ -504,7 +510,7 @@ export default function ChatRoomScreen({ route, navigation }) {
               amount: g?.amount || g?.pricePoints || 0,
               pricePoints: g?.amount || g?.pricePoints || 0,
               animationUrl: g?.animationUrl || null,
-              animationType: g?.animationType || 'none',
+              animationType: g?.animationType || (g?.name?.includes('폭죽') ? 'fireworks' : g?.name?.includes('하트') ? '3d_heart' : 'none'),
               thumbnailUrl: g?.thumbnailUrl || null,
               icon: g?.icon || null,
               senderNickname: user?.name || user?.profile?.nickname || '상대방',
@@ -563,6 +569,7 @@ export default function ChatRoomScreen({ route, navigation }) {
       }
     };
 
+    socket.on('connect', handleConnect);
     socket.on(CHAT_SOCKET_EVENTS.AUTH_READY, handleAuthReady);
     socket.on(CHAT_SOCKET_EVENTS.MESSAGE, handleRealtimeMessage);
     socket.on(CHAT_SOCKET_EVENTS.TYPING, handleRealtimeTyping);
@@ -592,6 +599,7 @@ export default function ChatRoomScreen({ route, navigation }) {
         });
       }
 
+      socket.off('connect', handleConnect);
       socket.off(
         CHAT_SOCKET_EVENTS.AUTH_READY,
         handleAuthReady,
@@ -870,11 +878,11 @@ export default function ChatRoomScreen({ route, navigation }) {
           amount: gift.amount || gift.pricePoints || 0,
           pricePoints: gift.amount || gift.pricePoints || 0,
           animationUrl: gift.animationUrl,
-          animationType: gift.animationType,
+          animationType: gift.animationType || (gift.name?.includes('폭죽') ? 'fireworks' : gift.name?.includes('하트') ? '3d_heart' : 'none'),
           thumbnailUrl: gift.thumbnailUrl || gift.icon,
           icon: gift.icon || gift.thumbnailUrl,
-          senderNickname: '나',
-          senderName: '나',
+          senderNickname: authUser?.displayName || authUser?.profile?.nickname || '나',
+          senderName: authUser?.displayName || authUser?.profile?.nickname || '나',
         });
 
         setTimeout(() => {

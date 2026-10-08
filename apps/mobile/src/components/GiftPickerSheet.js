@@ -22,9 +22,9 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const CATEGORIES = [
   { key: 'all', label: '전체' },
-  { key: 'general', label: '일반' },
-  { key: 'special', label: '스페셜' },
+  { key: 'special', label: '3D 스페셜' },
   { key: 'vip', label: '3D VIP' },
+  { key: 'general', label: '일반' },
 ];
 
 export default function GiftPickerSheet({
@@ -172,7 +172,13 @@ export default function GiftPickerSheet({
                   contentContainerStyle={styles.gridContent}
                   renderItem={({ item }) => {
                     const isSelected = selectedGift?.id === item.id;
-                    const isVip = item.animationType === 'alpha_video';
+                    const isVip =
+                      item.animationType === 'alpha_video' ||
+                      item.animationType === 'fireworks' ||
+                      item.animationType === '3d_heart' ||
+                      item.animationType === 'lottie' ||
+                      item.category === 'vip' ||
+                      (item.pricePoints && item.pricePoints >= 1500);
                     return (
                       <TouchableOpacity
                         style={[
@@ -183,8 +189,20 @@ export default function GiftPickerSheet({
                         onPress={() => setSelectedGift(item)}
                       >
                         {isVip && (
-                          <View style={styles.vipTag}>
-                            <Text style={styles.vipTagText}>3D</Text>
+                          <View
+                            style={[
+                              styles.vipTag,
+                              item.animationType === 'fireworks' && { backgroundColor: '#F59E0B' },
+                              item.animationType === '3d_heart' && { backgroundColor: '#EC4899' },
+                            ]}
+                          >
+                            <Text style={styles.vipTagText}>
+                              {item.animationType === 'fireworks'
+                                ? '폭죽'
+                                : item.animationType === '3d_heart'
+                                ? '하트'
+                                : '3D'}
+                            </Text>
                           </View>
                         )}
                         <View style={styles.giftIconWrap}>

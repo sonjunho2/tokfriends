@@ -1,8 +1,35 @@
 # DAGAON Development Checkpoint
 
-Updated: 2026-10-07
+Updated: 2026-10-08
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
+
+## 2026-10-08 Checkpoint 46: 1:1 채팅방 및 라이브 방송 3D 입체 선물 이펙트(폭죽·3D 하트·Lottie) 오버레이 및 WebSocket 실시간 동시 재생 시스템 구축 (완료)
+
+### 1. 개요 및 요구사항
+1. **화려한 3D 입체 이펙트 오버레이(`GiftEffectOverlay`) 전면 개편**:
+   - `lottie-react-native` 설치 및 Lottie JSON 기반 벡터 애니메이션 재생 지원.
+   - **3D 입체 폭죽쇼 (`FireworksEffect`)**: 360도 방사형 다채로운 컬러 불꽃 파티클 36개 + 쇼크웨이브 링 + 중력 낙하 물리 애니메이션 구현.
+   - **3D 입체 하트 폭풍 (`Exploding3DHeartsEffect`)**: 3D 틸트/회전과 원근감을 가진 하트 파티클 24개가 화면 중심에서 솟구쳐 오르는 입체 연출.
+   - VIP 3D 황금빛 오라 & 360도 회전 방사형 광선 (Radiant Light Rays) + 비디오 오버레이 결합.
+   - 3D 틸트 엠블럼 카드 및 글래스모피즘 후원자 축하 배너 뱃지 적용.
+   - FIFO 큐(Queue) 관리로 연속 후원 시에도 누락 없이 차례대로 매끄럽게 연속 재생.
+2. **백엔드 선물 데이터베이스 및 관리자(Admin) 연동 확장**:
+   - `gift-fireworks`(화려한 3D 폭죽, `animationType: 'fireworks'`), `gift-heart-3d`(3D 러브 하트, `animationType: '3d_heart'`), `gift-champagne`(축하 샴페인 3D) 등 대표 3D 선물 신설 및 모듈 기동 시 자동 upsert 동기화 보장.
+   - 관리자 웹(`apps/admin`) 선물 관리 테이블 및 등록/수정 모달에 3D 폭죽, 3D 하트, Lottie 뱃지 및 선택 옵션 추가.
+   - 모바일 선물 피커(`GiftPickerSheet.js`)에 3D 스페셜 카테고리 및 폭죽/하트/3D 뱃지 시각화.
+3. **1:1 채팅방 및 라이브 방송 실시간 웹소켓(WebSocket) 동시 재생 보장**:
+   - `ChatRoomScreen.js`: 소켓 `connect` 이벤트 핸들러 추가로 `chat:join` 누락 방지. 상대방이 선물 전송 시 WebSocket `chat:message`(`type: 'gift'`) 수신 즉시 3D 오버레이 발동 및 본인 전송 시에도 즉시 발동.
+   - `LiveRoomScreen.js`: 소켓 `connect` 시 `live:join` 보장. 비디오가 없는 선물에 대해 `animationType`이 `alpha_video`로 고정되어 이펙트가 발생하지 않던 버그를 해결하고, 모든 시청자 및 호스트 화면에 WebSocket을 통해 동시에 3D 오버레이가 폭발하도록 구현.
+
+### 2. 세부 변경 파일
+- `apps/mobile/package.json`: `lottie-react-native` (~7.3.8) 설치
+- `apps/mobile/src/components/GiftEffectOverlay.js`: 3D 폭죽 파티클, 3D 하트 폭풍, Lottie 지원, VIP 오라, 3D 엠블럼 카드 및 후원 배너 오버레이 구축
+- `apps/mobile/src/components/GiftPickerSheet.js`: 3D 스페셜 탭 및 3D/폭죽/하트 태그 추가
+- `apps/mobile/src/screens/main/ChatRoomScreen.js`: 소켓 연결 보장 및 상대방/본인 선물 전송 시 3D 오버레이 실시간 발동
+- `apps/mobile/src/screens/live/LiveRoomScreen.js`: 소켓 연결 보장 및 라이브 선물 수신 시 전 시청자 동시 3D 오버레이 폭발 연동
+- `services/api/src/modules/gifts/gifts.service.ts`: 3D 폭죽, 3D 러브 하트, 축하 샴페인 시드 및 자동 동기화 추가
+- `apps/admin/src/app/store/gifts/page.tsx`: 어드민 선물 관리 화면 3D 폭죽, 3D 하트, Lottie 뱃지 및 옵션 추가
 
 ## 2026-10-07 Checkpoint 45: 선물 표현 체계 타사(틱톡/SOOP/카카오) 벤치마크 고도화 (채팅방 세로 늘어남 버그 해소 & 화면 하단 1/3 중앙 3단계 티어 플로팅 이펙트 구축) (완료)
 

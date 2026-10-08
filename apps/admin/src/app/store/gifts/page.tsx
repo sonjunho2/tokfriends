@@ -411,6 +411,14 @@ export default function AdminGiftsPage() {
                         <Badge className="bg-purple-600 text-white flex items-center gap-1 w-fit text-[11px]">
                           <Video className="h-3 w-3" /> 3D 알파 비디오
                         </Badge>
+                      ) : gift.animationType === 'fireworks' ? (
+                        <Badge className="bg-amber-500 text-white flex items-center gap-1 w-fit text-[11px]">
+                          🎆 3D 폭죽
+                        </Badge>
+                      ) : gift.animationType === '3d_heart' ? (
+                        <Badge className="bg-rose-500 text-white flex items-center gap-1 w-fit text-[11px]">
+                          💖 3D 하트
+                        </Badge>
                       ) : gift.animationType === 'lottie' ? (
                         <Badge variant="secondary" className="text-[11px]">Lottie</Badge>
                       ) : (
@@ -589,7 +597,9 @@ export default function AdminGiftsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="alpha_video">3D 투명 알파 비디오 (Alpha MP4)</SelectItem>
-                      <SelectItem value="lottie">Lottie JSON 벡터</SelectItem>
+                      <SelectItem value="fireworks">3D 입체 폭죽쇼 (Fireworks)</SelectItem>
+                      <SelectItem value="3d_heart">3D 입체 하트 폭풍 (3D Heart)</SelectItem>
+                      <SelectItem value="lottie">Lottie JSON 벡터 애니메이션</SelectItem>
                       <SelectItem value="none">단순 아이콘 팝업 (기본)</SelectItem>
                     </SelectContent>
                   </Select>
