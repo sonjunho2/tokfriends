@@ -1,5 +1,5 @@
 // services/api/src/modules/users/users.service.ts
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'nestjs-prisma';
 import { createHash } from 'crypto';
@@ -20,6 +20,9 @@ export class UsersService {
       where: { id },
       include: {
         profile: true,
+        userPhotos: {
+          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
+        },
         _count: {
           select: {
             posts: true,
@@ -37,8 +40,19 @@ export class UsersService {
       select: {
         id: true,
         displayName: true,
+        avatarUrl: true,
+        callRatePerMinute: true,
         region1: true,
         region2: true,
+        userPhotos: {
+          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+          select: {
+            id: true,
+            url: true,
+            isPrimary: true,
+            sortOrder: true,
+          },
+        },
         profile: {
           select: {
             nickname: true,
@@ -182,6 +196,7 @@ export class UsersService {
       select: {
         id: true,
         displayName: true,
+        avatarUrl: true,
         region1: true,
         region2: true,
         profile: {
@@ -347,6 +362,7 @@ export class UsersService {
       displayName: payload.displayName ?? undefined,
       region1: payload.region1 ?? undefined,
       region2: payload.region2 ?? undefined,
+      ...(payload.avatarUri !== undefined ? { avatarUrl: payload.avatarUri ?? null } : {}),
     };
 
     if (Object.keys(profileUpdate).length > 0) {
@@ -372,6 +388,9 @@ export class UsersService {
       data: updateData,
       include: {
         profile: true,
+        userPhotos: {
+          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+        },
         _count: {
           select: {
             posts: true,
@@ -391,6 +410,148 @@ export class UsersService {
     }
 
     return updatedUser;
+  }
+
+  async getUserPhotos(userId: string) {
+    return this.prisma.userPhoto.findMany({
+      where: { userId },
+      orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  async addUserPhoto(userId: string, url: string, makePrimary?: boolean) {
+    const trimmedUrl = (url || '').trim();
+    if (!trimmedUrl) {
+      throw new BadRequestException('사진 URL이 필요합니다.');
+    }
+
+    const currentCount = await this.prisma.userPhoto.count({
+      where: { userId },
+    });
+
+    if (currentCount >= 9) {
+      throw new BadRequestException('프로필 사진은 최대 9장까지 등록할 수 있습니다.');
+    }
+
+    const shouldBePrimary = currentCount === 0 || !!makePrimary;
+
+    return this.prisma.$transaction(async (tx) => {
+      if (shouldBePrimary) {
+        await tx.userPhoto.updateMany({
+          where: { userId, isPrimary: true },
+          data: { isPrimary: false },
+        });
+
+        await tx.user.update({
+          where: { id: userId },
+          data: { avatarUrl: trimmedUrl },
+        });
+
+        await tx.profile.updateMany({
+          where: { userId },
+          data: { avatarUri: trimmedUrl },
+        });
+      }
+
+      const nextSortOrder = currentCount;
+
+      const created = await tx.userPhoto.create({
+        data: {
+          userId,
+          url: trimmedUrl,
+          isPrimary: shouldBePrimary,
+          sortOrder: nextSortOrder,
+        },
+      });
+
+      return created;
+    });
+  }
+
+  async setPrimaryUserPhoto(userId: string, photoId: string) {
+    const photo = await this.prisma.userPhoto.findFirst({
+      where: { id: photoId, userId },
+    });
+
+    if (!photo) {
+      throw new NotFoundException('해당 사진을 찾을 수 없습니다.');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.userPhoto.updateMany({
+        where: { userId, isPrimary: true },
+        data: { isPrimary: false },
+      });
+
+      const updated = await tx.userPhoto.update({
+        where: { id: photoId },
+        data: { isPrimary: true },
+      });
+
+      await tx.user.update({
+        where: { id: userId },
+        data: { avatarUrl: photo.url },
+      });
+
+      await tx.profile.updateMany({
+        where: { userId },
+        data: { avatarUri: photo.url },
+      });
+
+      return updated;
+    });
+  }
+
+  async deleteUserPhoto(userId: string, photoId: string) {
+    const photo = await this.prisma.userPhoto.findFirst({
+      where: { id: photoId, userId },
+    });
+
+    if (!photo) {
+      throw new NotFoundException('해당 사진을 찾을 수 없습니다.');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.userPhoto.delete({
+        where: { id: photoId },
+      });
+
+      if (photo.isPrimary) {
+        const nextPrimary = await tx.userPhoto.findFirst({
+          where: { userId },
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+        });
+
+        if (nextPrimary) {
+          await tx.userPhoto.update({
+            where: { id: nextPrimary.id },
+            data: { isPrimary: true },
+          });
+
+          await tx.user.update({
+            where: { id: userId },
+            data: { avatarUrl: nextPrimary.url },
+          });
+
+          await tx.profile.updateMany({
+            where: { userId },
+            data: { avatarUri: nextPrimary.url },
+          });
+        } else {
+          await tx.user.update({
+            where: { id: userId },
+            data: { avatarUrl: null },
+          });
+
+          await tx.profile.updateMany({
+            where: { userId },
+            data: { avatarUri: null },
+          });
+        }
+      }
+
+      return { success: true };
+    });
   }
 
   async deleteAccount(userId: string) {

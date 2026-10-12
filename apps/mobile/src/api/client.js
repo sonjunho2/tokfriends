@@ -999,8 +999,87 @@ export const apiClient = {
   },
 
   async getUser(userId) {
-    try { const { data } = await client.get(`/users/${userId}`); return data; }
+    try { const { data } = await client.get(`/users/${userId}`); return data?.data ?? data; }
     catch (e) { throw normalizeError(e); }
+  },
+
+  async getUserPhotos(userId) {
+    if (!userId) return [];
+    if (USE_DUMMY_AUTH) return [];
+    try {
+      const { data } = await client.get(`/users/${encodeURIComponent(String(userId).trim())}/photos`);
+      return data?.data ?? data ?? [];
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async addUserPhoto(url, isPrimary = false) {
+    if (!url) throw normalizeError(new Error('사진 URL이 필요합니다.'));
+    if (USE_DUMMY_AUTH) {
+      return { id: `photo-${Date.now()}`, url, isPrimary };
+    }
+    try {
+      const { data } = await client.post('/users/me/photos', { url, isPrimary });
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async setPrimaryUserPhoto(photoId) {
+    if (!photoId) throw normalizeError(new Error('사진 ID가 필요합니다.'));
+    if (USE_DUMMY_AUTH) return { success: true };
+    try {
+      const { data } = await client.patch(`/users/me/photos/${encodeURIComponent(String(photoId).trim())}/primary`);
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async deleteUserPhoto(photoId) {
+    if (!photoId) throw normalizeError(new Error('사진 ID가 필요합니다.'));
+    if (USE_DUMMY_AUTH) return { success: true };
+    try {
+      const { data } = await client.delete(`/users/me/photos/${encodeURIComponent(String(photoId).trim())}`);
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async getCallRate(hostUserId) {
+    if (!hostUserId) throw normalizeError(new Error('호스트 ID가 필요합니다.'));
+    try {
+      const { data } = await client.get(`/calls/rate/${encodeURIComponent(String(hostUserId).trim())}`);
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async startCall({ hostUserId, channelName }) {
+    if (!hostUserId) throw normalizeError(new Error('통화 상대방 ID가 필요합니다.'));
+    try {
+      const { data } = await client.post('/calls/start', {
+        hostUserId: String(hostUserId).trim(),
+        channelName: channelName ? String(channelName).trim() : undefined,
+      });
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
+  async endCall(sessionId) {
+    if (!sessionId) throw normalizeError(new Error('통화 세션 ID가 필요합니다.'));
+    try {
+      const { data } = await client.post(`/calls/${encodeURIComponent(String(sessionId).trim())}/end`);
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
   },
 
   async updateUser(userId, payload = {}) {

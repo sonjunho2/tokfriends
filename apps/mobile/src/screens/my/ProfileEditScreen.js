@@ -74,6 +74,8 @@ export default function ProfileEditScreen({ navigation, route }) {
   );
   const [interestInput, setInterestInput] = useState('');
   const [saving, setSaving] = useState(false);
+  const [userPhotos, setUserPhotos] = useState([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // 닉네임 중복 확인 상태: 'initial' | 'checking' | 'available' | 'unavailable' | 'modified'
   const [nicknameCheckStatus, setNicknameCheckStatus] = useState('initial');
@@ -216,6 +218,122 @@ export default function ProfileEditScreen({ navigation, route }) {
         },
       },
     ]);
+  };
+
+  const loadUserPhotos = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const photos = await apiClient.getUserPhotos(user.id);
+      if (Array.isArray(photos)) {
+        setUserPhotos(photos);
+        const primary = photos.find((p) => p.isPrimary);
+        if (primary?.url) {
+          setAvatarUri(primary.url);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load user photos:', e);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    loadUserPhotos();
+  }, [loadUserPhotos]);
+
+  // 다중 프로필 사진 추가 (최대 9장)
+  const handleAddPhoto = async () => {
+    if (userPhotos.length >= 9) {
+      Alert.alert('알림', '프로필 사진은 최대 9장까지 등록할 수 있습니다.');
+      return;
+    }
+
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('권한 필요', '사진을 등록하려면 갤러리 접근 권한이 필요합니다.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions?.Images ?? ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.85,
+      });
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setUploadingPhoto(true);
+        const uploaded = await apiClient.uploadAvatar(result.assets[0]);
+        const uploadedUrl = String(uploaded?.url || '').trim();
+        if (!uploadedUrl) {
+          throw new Error('사진 업로드에 실패했습니다.');
+        }
+
+        const isFirst = userPhotos.length === 0;
+        await apiClient.addUserPhoto(uploadedUrl, isFirst);
+        await loadUserPhotos();
+        Alert.alert(
+          '등록 완료',
+          isFirst
+            ? '첫 번째 사진이 대표 아이콘(avatarUrl)으로 자동 등록되었습니다.'
+            : '사진이 등록되었습니다.'
+        );
+      }
+    } catch (err) {
+      Alert.alert('사진 등록 실패', err?.message || '사진을 등록하지 못했습니다.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  // 사진 옵션 (대표 사진 지정 / 삭제)
+  const handlePhotoOptions = (photo) => {
+    Alert.alert(
+      '프로필 사진 관리',
+      photo.isPrimary ? '현재 대표 사진입니다.' : '옵션을 선택하세요.',
+      [
+        ...(!photo.isPrimary
+          ? [
+              {
+                text: '대표 사진으로 지정',
+                onPress: async () => {
+                  try {
+                    await apiClient.setPrimaryUserPhoto(photo.id);
+                    setAvatarUri(photo.url);
+                    await loadUserPhotos();
+                    Alert.alert('완료', '대표 사진으로 지정되었습니다.');
+                  } catch (e) {
+                    Alert.alert('오류', e?.message || '대표 사진 지정에 실패했습니다.');
+                  }
+                },
+              },
+            ]
+          : []),
+        {
+          text: '사진 삭제',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert('사진 삭제', '이 사진을 삭제하시겠습니까?', [
+              { text: '취소', style: 'cancel' },
+              {
+                text: '삭제',
+                style: 'destructive',
+                onPress: async () => {
+                  try {
+                    await apiClient.deleteUserPhoto(photo.id);
+                    await loadUserPhotos();
+                    Alert.alert('완료', '사진이 삭제되었습니다.');
+                  } catch (e) {
+                    Alert.alert('오류', e?.message || '사진 삭제에 실패했습니다.');
+                  }
+                },
+              },
+            ]);
+          },
+        },
+        { text: '닫기', style: 'cancel' },
+      ]
+    );
   };
 
   // 최종 저장
@@ -363,6 +481,62 @@ export default function ProfileEditScreen({ navigation, route }) {
                 </TouchableOpacity>
               </>
             ) : null}
+          </View>
+        </View>
+
+        {/* 다중 프로필 사진 (UserPhoto 최대 9장) 보관함 카드 */}
+        <View style={styles.photoGalleryCard}>
+          <View style={styles.photoGalleryHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.photoGalleryTitle}>프로필 사진 보관함</Text>
+              <Text style={styles.photoGallerySubtitle}>
+                최대 9장 · 첫 사진이 대표 원형 아이콘(avatarUrl)으로 지정됩니다
+              </Text>
+            </View>
+            <View style={styles.photoCountBadge}>
+              <Text style={styles.photoCountText}>{userPhotos.length} / 9</Text>
+            </View>
+          </View>
+
+          <View style={styles.photoGrid}>
+            {userPhotos.map((item, index) => (
+              <TouchableOpacity
+                key={item.id || `photo_${index}`}
+                style={styles.photoGridSlot}
+                activeOpacity={0.8}
+                onPress={() => handlePhotoOptions(item)}
+              >
+                <Image source={{ uri: item.url }} style={styles.photoGridImage} />
+                {item.isPrimary ? (
+                  <View style={styles.photoPrimaryTag}>
+                    <Ionicons name="star" size={10} color="#FFFFFF" />
+                    <Text style={styles.photoPrimaryTagText}>대표</Text>
+                  </View>
+                ) : (
+                  <View style={styles.photoMoreTag}>
+                    <Ionicons name="ellipsis-horizontal" size={12} color="#FFFFFF" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+
+            {userPhotos.length < 9 && (
+              <TouchableOpacity
+                style={styles.photoAddSlot}
+                activeOpacity={0.8}
+                onPress={handleAddPhoto}
+                disabled={uploadingPhoto || saving}
+              >
+                {uploadingPhoto ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <>
+                    <Ionicons name="add" size={24} color="#8E8E93" />
+                    <Text style={styles.photoAddText}>사진 추가</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -757,6 +931,109 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#71717A',
+  },
+  photoGalleryCard: {
+    marginTop: 18,
+    marginHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E8EAED',
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+    gap: 12,
+  },
+  photoGalleryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  photoGalleryTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#191919',
+  },
+  photoGallerySubtitle: {
+    fontSize: 11,
+    color: '#8E8E93',
+    marginTop: 2,
+  },
+  photoCountBadge: {
+    backgroundColor: '#F0F2F5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  photoCountText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#4A4A4A',
+  },
+  photoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  photoGridSlot: {
+    width: '31%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#F4F4F5',
+  },
+  photoGridImage: {
+    width: '100%',
+    height: '100%',
+  },
+  photoPrimaryTag: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  photoPrimaryTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  photoMoreTag: {
+    position: 'absolute',
+    bottom: 6,
+    right: 6,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoAddSlot: {
+    width: '31%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#D2D6DC',
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F9FAFB',
+    gap: 4,
+  },
+  photoAddText: {
+    fontSize: 11,
+    color: '#8E8E93',
+    fontWeight: '600',
   },
   formCard: {
     marginTop: 18,

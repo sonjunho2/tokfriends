@@ -13,6 +13,7 @@ import {
   UpdateAdminIntegrationSettingDto,
   UpdateAdminTeamMemberDto,
   UpdateAdminTeamMemberPasswordDto,
+  UpdateCallRateSettingDto,
 } from './dto';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AdminSettingsService } from './admin-settings.service';
@@ -121,6 +122,21 @@ export class AdminController {
     const actorId = user?.id ?? user?.sub;
     return this.adminSettings.updateActionPointPolicy(actorId, dto);
   }
+
+  @Get('settings/call-rate')
+  async getCallRateSetting() {
+    return this.adminSettings.getCallRateSetting();
+  }
+
+  @Patch('settings/call-rate')
+  async updateCallRateSetting(
+    @CurrentUser() user: any,
+    @Body() dto: UpdateCallRateSettingDto,
+  ) {
+    const actorId = user?.id ?? user?.sub;
+    return this.adminSettings.updateCallRateSetting(actorId, dto);
+  }
+
   @AdminPermissions('users.manage')
   @Patch('users/:id/role')
   async setRole(

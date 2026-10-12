@@ -76,6 +76,7 @@ export default function LiveViewerRankingSheet({
   currentUser = null,
   myContributionPoints = 0,
   onOpenGiftPicker,
+  onSelectUser,
 }) {
   const [activeTab, setActiveTab] = useState('viewers'); // 'viewers' | 'ranking' | 'vip'
   const [periodTab, setPeriodTab] = useState('daily'); // 'daily' | 'weekly' | 'monthly' | 'fan' | 'total'
@@ -162,7 +163,14 @@ export default function LiveViewerRankingSheet({
   }, [messages]);
 
   const renderViewerItem = ({ item }) => (
-    <View style={styles.viewerItem}>
+    <TouchableOpacity
+      style={styles.viewerItem}
+      activeOpacity={0.7}
+      onPress={() => {
+        onClose?.();
+        onSelectUser?.(item);
+      }}
+    >
       <Avatar size={44} name={item.name} uri={item.avatar} />
       <View style={styles.viewerMeta}>
         <Text style={styles.viewerName} numberOfLines={1}>
@@ -196,13 +204,20 @@ export default function LiveViewerRankingSheet({
           </View>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   const renderContributorItem = ({ item, index }) => {
     const rank = index + 1;
     return (
-      <View style={styles.contributorItem}>
+      <TouchableOpacity
+        style={styles.contributorItem}
+        activeOpacity={0.7}
+        onPress={() => {
+          onClose?.();
+          onSelectUser?.(item);
+        }}
+      >
         {/* Rank Number / Medal */}
         <View style={styles.rankCol}>
           {rank === 1 ? (
@@ -254,7 +269,7 @@ export default function LiveViewerRankingSheet({
             <Text style={styles.coinIconText}>🪙</Text>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 

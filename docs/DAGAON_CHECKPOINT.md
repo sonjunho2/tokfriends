@@ -4,6 +4,40 @@ Updated: 2026-10-08
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-12 Checkpoint 48: 1:1 프라이빗 통화 요금 정책 동적 설정 시스템 & 다중 프로필 사진(UserPhoto 최대 9장) 및 라이브 방송 무중단 프로필 Bottom Sheet (Bigo/Azar 스타일) 구축 (완료)
+
+### 1. 1:1 프라이빗 통화 요금 정책 동적 설정 시스템
+1. **Prisma DB 스키마 및 마이그레이션**:
+   - `SystemSetting` 모델 신설 (`key: String @id, value: String, description: String?`).
+   - 기본 키 시딩: `key='DEFAULT_CALL_RATE_PER_MINUTE', value='1500'`.
+   - `calls.service.ts`: 호스트의 개별 단가(`hostUser.callRatePerMinute`)가 없을 경우, `SystemSetting`의 `DEFAULT_CALL_RATE_PER_MINUTE`를 동적으로 조회하여 fallback 적용.
+2. **NestJS API**:
+   - `AdminSettingsController` & `AdminSettingsService` 구현 (`GET /admin/settings/call-rate`, `PATCH /admin/settings/call-rate`).
+3. **관리자 웹 (Next.js)**:
+   - `apps/admin/src/app/settings/page.tsx`에 `CallRateSettingCard` 연동: 기본 분당 요금(포인트) 조회 및 실시간 수정 기능 구현.
+
+### 2. 프로필 이미지 시스템 및 라이브 무중단 프로필 바텀시트 (Bigo/Azar 스타일)
+1. **DB & 이미지 분리 (`User.avatarUrl` & `UserPhoto` 최대 9장)**:
+   - `User` 모델에 `avatarUrl String?` 및 `UserPhoto` 1:N 관계 정의.
+   - `UserPhoto` 모델 신설: `id`, `userId`, `url`, `sortOrder`, `isPrimary`, `createdAt`, `@@index([userId, sortOrder])`.
+   - 백엔드 사진 CRUD 엔드포인트:
+     - `GET /users/:id/photos`: 유저 사진 목록 조회 (대표 사진 우선 정렬).
+     - `POST /users/me/photos`: 사진 추가 (최대 9장 제한, 첫 등록 사진 또는 명시 지정 시 자동 `isPrimary = true` 및 `avatarUrl`/`avatarUri` 즉시 동기화).
+     - `PATCH /users/me/photos/:photoId/primary`: 대표 사진 변경 및 `avatarUrl` 즉시 동기화.
+     - `DELETE /users/me/photos/:photoId`: 사진 삭제 (대표 사진 삭제 시 남은 사진 중 첫 번째 사진을 새 대표 사진으로 자동 승격, 없으면 null 처리).
+2. **모바일 프로필 수정 화면 (`ProfileEditScreen.js`)**:
+   - 대표 원형 아바타와 다중 사진 보관함(최대 9장 3x3 그리드) 분리 연동.
+   - 갤러리 접근 및 업로드(`uploadAvatar`), 대표 사진 지정, 삭제 옵션 모달 연동.
+3. **라이브 방송 참여자 프로필 모달 (`LiveParticipantProfileSheet.js`)**:
+   - 라이브 방송 화면(`LiveRoomScreen.js`)이 꺼지거나 끊기지 않는 반투명 글래스모피즘 Bottom Sheet 구현.
+   - 사진 다중 스와이프 Carousel / Paging (`FlatList horizontal pagingEnabled` + 페이지 인디케이터 배지 및 닷).
+   - 유저 정보 노출 (닉네임, 성별/지역 뱃지, 한줄소개, 관심사 태그, 1:1 통화 요금 뱃지).
+   - 실시간 팔로우/언팔로우 토글 버튼 (`apiClient.followAccount` / `unfollowAccount`).
+   - '1:1 통화 신청' 버튼 (`apiClient.startCall` 연동, 요금 확인 안내 및 포인트 부족 시 상점 이동 안내).
+   - 채팅 메시지 탭, 상단 참여자 아바타 탭, 호스트 프로필 탭, 참여자 랭킹 시트 탭 등 전체 경로 무중단 연동.
+
+---
+
 ## 2026-10-08 Checkpoint 47: 1:1 채팅방 및 라이브 화면 3D 선물 이펙트 레이아웃 완전 고정(Absolute Overlay) 및 금액별 3단계(소형/중형/대형 VIP) 연출 차등화 시스템 구축 (완료)
 
 ### 1. 개요 및 요구사항

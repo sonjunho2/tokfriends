@@ -30,6 +30,7 @@ import { FollowsModule } from "./modules/follows/follows.module";
 import { InterestsModule } from "./modules/interests/interests.module";
 import { ProfileVisitsModule } from "./modules/profile-visits/profile-visits.module";
 import { SettlementModule } from "./modules/settlement/settlement.module";
+import { CallsModule } from "./modules/calls/calls.module";
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { SettlementModule } from "./modules/settlement/settlement.module";
     InterestsModule,
     ProfileVisitsModule,
     SettlementModule,
+    CallsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

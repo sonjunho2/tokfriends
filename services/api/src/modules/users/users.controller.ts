@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -7,6 +8,7 @@ import {
   NotFoundException,
   Param,
   Patch,
+  Post,
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
@@ -40,6 +42,40 @@ export class UsersController {
     };
   }
 
+  @Post('me/photos')
+  async addMyPhoto(
+    @CurrentUser() user: any,
+    @Body() body: { url: string; isPrimary?: boolean },
+  ) {
+    const userId = user?.sub ?? user?.id;
+    if (!userId) throw new ForbiddenException('Authentication required');
+    if (!body?.url) throw new BadRequestException('사진 URL이 필요합니다.');
+    const photo = await this.users.addUserPhoto(userId, body.url, body.isPrimary);
+    return { ok: true, data: photo };
+  }
+
+  @Patch('me/photos/:photoId/primary')
+  async setPrimaryPhoto(
+    @CurrentUser() user: any,
+    @Param('photoId') photoId: string,
+  ) {
+    const userId = user?.sub ?? user?.id;
+    if (!userId) throw new ForbiddenException('Authentication required');
+    const updated = await this.users.setPrimaryUserPhoto(userId, photoId);
+    return { ok: true, data: updated };
+  }
+
+  @Delete('me/photos/:photoId')
+  async deletePhoto(
+    @CurrentUser() user: any,
+    @Param('photoId') photoId: string,
+  ) {
+    const userId = user?.sub ?? user?.id;
+    if (!userId) throw new ForbiddenException('Authentication required');
+    const result = await this.users.deleteUserPhoto(userId, photoId);
+    return { ok: true, ...result };
+  }
+
   @Delete('me')
   async deleteMe(@CurrentUser() user: any) {
     const userId = user?.sub ?? user?.id;
@@ -64,7 +100,8 @@ export class UsersController {
       nickname: item.profile?.nickname ?? null,
       headline: item.profile?.headline ?? null,
       bio: item.profile?.bio ?? null,
-      avatarUri: item.profile?.avatarUri ?? null,
+      avatarUri: item.avatarUrl ?? item.profile?.avatarUri ?? null,
+      avatarUrl: item.avatarUrl ?? item.profile?.avatarUri ?? null,
       region1: item.region1 ?? null,
       region2: item.region2 ?? null,
       interests: item.profile?.interests ?? [],
@@ -83,6 +120,12 @@ export class UsersController {
     const currentUserId = user?.sub ?? user?.id;
     const result = await this.users.checkNickname(nickname, currentUserId);
     return { ok: true, ...result };
+  }
+
+  @Get(':id/photos')
+  async getUserPhotos(@Param('id') id: string) {
+    const photos = await this.users.getUserPhotos(id);
+    return { ok: true, data: photos };
   }
 
   @Patch(':id')
@@ -132,14 +175,22 @@ export class UsersController {
     return {
       id: user.id,
       displayName: user.displayName ?? null,
+      avatarUrl: user.avatarUrl ?? user.profile?.avatarUri ?? null,
+      callRatePerMinute: user.callRatePerMinute ?? null,
       region1: user.region1 ?? null,
       region2: user.region2 ?? null,
+      photos: (user.userPhotos ?? []).map((p: any) => ({
+        id: p.id,
+        url: p.url,
+        isPrimary: p.isPrimary,
+        sortOrder: p.sortOrder,
+      })),
       profile: user.profile
         ? {
             nickname: user.profile.nickname ?? null,
             bio: user.profile.bio ?? null,
             headline: user.profile.headline ?? null,
-            avatarUri: user.profile.avatarUri ?? null,
+            avatarUri: user.avatarUrl ?? user.profile.avatarUri ?? null,
             interests: user.profile.interests ?? [],
             badges: user.profile.badges ?? [],
           }
@@ -147,6 +198,7 @@ export class UsersController {
       targetAccountId: user.ownerBridge?.activityAccounts?.[0]?.id ?? null,
     };
   }
+
   private serializeUser(user: any) {
     const visibility = user?.profile?.visibility as Record<string, any> | undefined;
     return {
@@ -156,16 +208,24 @@ export class UsersController {
       status: user.status,
       role: user.role,
       provider: user.provider,
+      avatarUrl: user.avatarUrl ?? user.profile?.avatarUri ?? null,
+      callRatePerMinute: user.callRatePerMinute ?? null,
       region1: user.region1 ?? null,
       region2: user.region2 ?? null,
       pointsBalance: user.pointsBalance ?? 0,
       createdAt: user.createdAt,
+      photos: (user.userPhotos ?? []).map((p: any) => ({
+        id: p.id,
+        url: p.url,
+        isPrimary: p.isPrimary,
+        sortOrder: p.sortOrder,
+      })),
       profile: user.profile
         ? {
             nickname: user.profile.nickname,
             bio: user.profile.bio,
             headline: user.profile.headline ?? null,
-            avatarUri: user.profile.avatarUri ?? null,
+            avatarUri: user.avatarUrl ?? user.profile.avatarUri ?? null,
             interests: user.profile.interests ?? [],
             badges: user.profile.badges ?? [],
             marketingOptIn: visibility?.marketingOptIn ?? false,

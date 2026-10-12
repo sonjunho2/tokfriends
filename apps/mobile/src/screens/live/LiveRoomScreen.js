@@ -25,6 +25,7 @@ import ReportModal from '../../components/ReportModal';
 import GiftEffectOverlay from '../../components/GiftEffectOverlay';
 import GiftPickerSheet from '../../components/GiftPickerSheet';
 import LiveViewerRankingSheet from '../../components/LiveViewerRankingSheet';
+import LiveParticipantProfileSheet from '../../components/LiveParticipantProfileSheet';
 import FloatingHeartsOverlay from '../../components/FloatingHeartsOverlay';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -124,6 +125,8 @@ export default function LiveRoomScreen({ navigation, route }) {
   const floatingHeartsRef = useRef(null);
   const [giftPickerVisible, setGiftPickerVisible] = useState(false);
   const [viewerModalVisible, setViewerModalVisible] = useState(false);
+  const [profileSheetVisible, setProfileSheetVisible] = useState(false);
+  const [selectedParticipant, setSelectedParticipant] = useState(null);
   const [myPoints, setMyPoints] = useState(currentUser?.pointsBalance || 0);
   const processedGiftMessageIdsRef = useRef(new Set());
 
@@ -845,34 +848,27 @@ export default function LiveRoomScreen({ navigation, route }) {
     );
   };
 
+  const handleOpenParticipantProfile = (participantData) => {
+    if (!participantData) return;
+    setSelectedParticipant(participantData);
+    setProfileSheetVisible(true);
+  };
+
   const handleMessagePress = (msg) => {
     const sender = msg?.sender;
-    if (!sender?.id || sender?.id === currentUser?.id) return;
+    const senderId = sender?.id || msg?.senderId;
+    if (!senderId) return;
 
-    Alert.alert(
-      `${sender.name || '참여자'} 관리`,
-      '작업을 선택하세요.',
-      [
-        {
-          text: '사용자 신고하기',
-          style: 'destructive',
-          onPress: () => {
-            setReportTarget({
-              type: 'user',
-              name: sender.name || '참여자',
-              userId: sender.id,
-            });
-            setReportModalVisible(true);
-          },
-        },
-        {
-          text: '사용자 차단하기',
-          style: 'destructive',
-          onPress: () => handleBlockUser(sender.id, sender.name || '참여자'),
-        },
-        { text: '취소', style: 'cancel' },
-      ],
-    );
+    handleOpenParticipantProfile({
+      id: senderId,
+      userId: senderId,
+      name: msg?.senderName || sender?.name || sender?.profile?.nickname || '참여자',
+      avatar: msg?.senderAvatar || sender?.avatar || sender?.profile?.avatarUri || sender?.avatarUrl,
+      region: sender?.region || [sender?.region1, sender?.region2].filter(Boolean).join(' '),
+      gender: sender?.gender,
+      headline: sender?.profile?.headline,
+      bio: sender?.profile?.bio,
+    });
   };
 
   const handleBlockUser = (userId, displayName) => {
@@ -1119,15 +1115,13 @@ export default function LiveRoomScreen({ navigation, route }) {
           activeOpacity={0.85}
           onPress={() => {
             if (room?.host?.id) {
-              navigation.navigate('ProfileDetail', {
-                profile: {
-                  id: room.host.id,
-                  targetUserId: room.host.id,
-                  name: room.host.name,
-                  avatar: room.host.avatar,
-                  location: room.host.region,
-                  headline: room.title || '라이브 방송 진행 중',
-                },
+              handleOpenParticipantProfile({
+                id: room.host.id,
+                userId: room.host.id,
+                name: room.host.name,
+                avatar: room.host.avatar,
+                region: room.host.region,
+                headline: room.title || '라이브 방송 진행 중',
               });
             }
           }}
@@ -1169,15 +1163,17 @@ export default function LiveRoomScreen({ navigation, route }) {
           >
             <View style={styles.viewerAvatarsOverlap}>
               {viewerAvatars.map((v, i) => (
-                <View
+                <TouchableOpacity
                   key={`v_hdr_${v.id || i}`}
                   style={[
                     styles.viewerAvatarMiniWrap,
                     { marginLeft: i === 0 ? 0 : -8, zIndex: 3 - i },
                   ]}
+                  onPress={() => handleOpenParticipantProfile(v)}
+                  activeOpacity={0.8}
                 >
                   <Avatar size={24} name={v.name} uri={v.avatar} />
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
             <View style={styles.viewerCountPill}>
@@ -1380,6 +1376,29 @@ export default function LiveRoomScreen({ navigation, route }) {
           setViewerModalVisible(false);
           handleOpenGiftPicker();
         }}
+        onSelectUser={(user) => {
+          handleOpenParticipantProfile({
+            id: user.id,
+            userId: user.id,
+            name: user.name,
+            avatar: user.avatar,
+            gender: user.gender,
+          });
+        }}
+      />
+
+      {/* Live Participant Profile Bottom Sheet (Bigo/Azar style) */}
+      <LiveParticipantProfileSheet
+        visible={profileSheetVisible}
+        onClose={() => setProfileSheetVisible(false)}
+        participant={selectedParticipant}
+        currentUser={currentUser}
+        onNavigateToShop={() => navigation.navigate('Shop')}
+        onOpenReport={(target) => {
+          setReportTarget(target);
+          setReportModalVisible(true);
+        }}
+        onBlockUser={handleBlockUser}
       />
     </SafeAreaView>
   );

@@ -33,10 +33,13 @@ model User {
   streamerTier       StreamerTier     @default(ROOKIE)
   customExchangeRate Int?
   contractMemo       String?
+  callRatePerMinute  Int?
+  avatarUrl          String?
 
   profile        Profile?
   devices        Device[]
   photos         Photo[]
+  userPhotos     UserPhoto[]
   friendshipsA   Friendship[] @relation("A")
   friendshipsB   Friendship[] @relation("B")
   chatsA         Chat[]       @relation("A")
@@ -63,6 +66,8 @@ model User {
   liveRoomsHosted       LiveRoom[]             @relation("LiveRoomHost")
   liveMessages          LiveMessage[]          @relation("LiveMessageSender")
   settlementsProcessed  SettlementRequest[]    @relation("SettlementProcessedBy")
+  callsAsCaller         CallSession[]          @relation("CallSessionCaller")
+  callsAsHost           CallSession[]          @relation("CallSessionHost")
 }
 
 model Owner {
@@ -233,6 +238,18 @@ model Photo {
   isSensitive Boolean  @default(false)
   aiNudity    Float    @default(0)
   createdAt   DateTime @default(now())
+}
+
+model UserPhoto {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url       String
+  sortOrder Int      @default(0)
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, sortOrder])
 }
 
 model Friendship {
@@ -535,6 +552,34 @@ model AdminSettingsState {
   auditMemo String   @default("")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model SystemSetting {
+  key         String   @id
+  value       String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CallSession {
+  id              String    @id @default(cuid())
+  callerId        String
+  caller          User      @relation("CallSessionCaller", fields: [callerId], references: [id])
+  hostId          String
+  host            User      @relation("CallSessionHost", fields: [hostId], references: [id])
+  status          String    @default("active")
+  ratePerMinute   Int
+  durationMinutes Int       @default(1)
+  totalPoints     Int
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([callerId, createdAt])
+  @@index([hostId, createdAt])
+  @@index([status])
 }
 
 model LegalDocument {

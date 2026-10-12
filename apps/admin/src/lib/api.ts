@@ -1337,12 +1337,20 @@ export interface ActionPointPolicy {
   liveRoomJoin: ActionPointItem
 }
 
+export interface CallRateSetting {
+  key: string
+  value: string
+  ratePerMinute: number
+  description?: string | null
+}
+
 export interface AdminSettingsSnapshot {
   members: AdminTeamMember[]
   featureFlags: AdminFeatureFlag[]
   integrations: AdminIntegrationSetting[]
   auditMemo?: string
   actionPointPolicy?: ActionPointPolicy
+  callRate?: CallRateSetting
   [key: string]: unknown
 }
 
@@ -1416,12 +1424,23 @@ function normalizeAdminSettings(payload: unknown): AdminSettingsSnapshot {
     },
   }
 
+  const rawCallRate = (raw.callRate as Record<string, any>) ?? {}
+  const callRate: CallRateSetting | undefined = raw.callRate
+    ? {
+        key: typeof rawCallRate.key === 'string' ? rawCallRate.key : 'DEFAULT_CALL_RATE_PER_MINUTE',
+        value: typeof rawCallRate.value === 'string' ? rawCallRate.value : '1500',
+        ratePerMinute: Number(rawCallRate.ratePerMinute) || 1500,
+        description: typeof rawCallRate.description === 'string' ? rawCallRate.description : null,
+      }
+    : undefined
+
   return {
     members,
     featureFlags,
     integrations,
     auditMemo: typeof raw.auditMemo === 'string' ? raw.auditMemo : (raw.audit_log as string | undefined),
     actionPointPolicy,
+    callRate,
   }
 }
 
@@ -1444,6 +1463,20 @@ export async function getActionPointPolicy(): Promise<ActionPointPolicy> {
 
 export async function updateActionPointPolicy(payload: Partial<ActionPointPolicy>): Promise<ActionPointPolicy> {
   const response = await api.patch('/admin/settings/action-points', payload)
+  return response.data
+}
+
+export async function getCallRateSetting(): Promise<CallRateSetting> {
+  const response = await api.get('/admin/settings/call-rate')
+  return response.data
+}
+
+export async function updateCallRateSetting(payload: {
+  ratePerMinute?: number
+  value?: string
+  description?: string
+}): Promise<CallRateSetting> {
+  const response = await api.patch('/admin/settings/call-rate', payload)
   return response.data
 }
 

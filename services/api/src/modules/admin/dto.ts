@@ -176,3 +176,18 @@ export class UpdateActionPointPolicyDto {
   @Type(() => ActionPointPolicyItemDto)
   liveRoomJoin?: ActionPointPolicyItemDto;
 }
+
+export class UpdateCallRateSettingDto {
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  ratePerMinute?: number;
+
+  @IsOptional()
+  @IsString()
+  value?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+}

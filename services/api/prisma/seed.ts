@@ -9,9 +9,10 @@ async function seedAdminUser() {
   const plain = process.env.SEED_ADMIN_PASSWORD
 
   if (!email || !plain) {
-    throw new Error(
-      'SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD are required to seed the admin account.'
+    console.log(
+      'ℹ️ SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD not set. Skipping admin user seeding.'
     )
+    return
   }
 
   const passwordHash = await argon2.hash(plain)
@@ -92,10 +93,32 @@ async function seedAnnouncements() {
   }
 }
 
+async function seedSystemSettings() {
+  try {
+    await prisma.systemSetting.upsert({
+      where: { key: 'DEFAULT_CALL_RATE_PER_MINUTE' },
+      update: {},
+      create: {
+        key: 'DEFAULT_CALL_RATE_PER_MINUTE',
+        value: '1500',
+        description: '1:1 영상 통화 기본 분당 요금(포인트)',
+      },
+    })
+    console.log('Seeded SystemSetting: DEFAULT_CALL_RATE_PER_MINUTE=1500')
+  } catch (e: any) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2021') {
+      console.log('ℹ️ SystemSetting table not found. Skipping system settings seeding.')
+      return
+    }
+    throw e
+  }
+}
+
 async function main() {
   await seedAdminUser()
   await seedTopics()
   await seedAnnouncements()
+  await seedSystemSettings()
   console.log('✅ Seed completed')
 }
 

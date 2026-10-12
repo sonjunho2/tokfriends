@@ -49,7 +49,9 @@ import {
   type AdminFeatureFlag,
   type AdminIntegrationSetting,
   type AdminTeamMember,
+  type CallRateSetting,
 } from '@/lib/api'
+import { CallRateSettingCard } from '@/components/CallRateSettingCard'
 import type { AxiosError } from 'axios'
 import { cn } from '@/lib/utils'
 
@@ -105,6 +107,7 @@ export default function SettingsPage() {
     liveRoomJoin: { enabled: false, amount: 0 },
   })
   const [savingPointPolicy, setSavingPointPolicy] = useState(false)
+  const [callRate, setCallRate] = useState<CallRateSetting | null>(null)
 
   const [activeSection, setActiveSection] = useState<SettingsSection>('overview')
 
@@ -174,8 +177,8 @@ export default function SettingsPage() {
         },
         {
           id: 'pointPolicy' as SettingsSection,
-          label: '온(ON) 소모 정책',
-          description: '1:1 채팅, 대화신청, 라이브방송 온(ON) 소모 설정',
+          label: '온(ON) 소모 & 통화 요금',
+          description: '1:1 통화 기본 요금, 채팅, 대화신청, 라이브방송 온(ON) 설정',
           icon: Coins,
         },
       ] satisfies { id: SettingsSection; label: string; description: string; icon: LucideIcon }[],
@@ -230,15 +233,10 @@ export default function SettingsPage() {
         },
         {
           id: 'pointPolicy' as SettingsSection,
-          label: '온(ON) 소모 정책',
-          value: `${[
-            pointPolicy.chatRoomCreate.enabled,
-            pointPolicy.directMessageRequest.enabled,
-            pointPolicy.liveRoomCreate.enabled,
-            pointPolicy.liveRoomJoin.enabled,
-          ].filter(Boolean).length}/4 활성`,
-          helper: '채팅 · 친구 · 라이브',
-          icon: Coins,
+          label: '통화 & 온(ON) 정책',
+          value: `${callRate?.ratePerMinute ? callRate.ratePerMinute.toLocaleString() : '1,500'} P/분`,
+          helper: `1:1 통화 요금 & 정책`,
+          icon: Video,
         },
       ] satisfies {
         id: SettingsSection
@@ -249,11 +247,11 @@ export default function SettingsPage() {
       }[],
     [
       activeMemberCount,
+      callRate,
       configuredIntegrationCount,
       enabledFlagCount,
       flags.length,
       integrations.length,
-      pointPolicy,
       suspendedMemberCount,
       twoFactorEnabledCount,
     ]
@@ -309,6 +307,9 @@ export default function SettingsPage() {
       setInitialAuditLog(snapshot.auditMemo ?? '')
       if (snapshot.actionPointPolicy) {
         setPointPolicy(snapshot.actionPointPolicy)
+      }
+      if (snapshot.callRate) {
+        setCallRate(snapshot.callRate)
       }
     } catch (error) {
         const ax = error as AxiosError | undefined
@@ -1582,9 +1583,15 @@ export default function SettingsPage() {
       </section>
     )}
 
-    {/* 포인트 소모 정책 (Action Point Policy) 섹션 */}
+    {/* 포인트 소모 및 통화 요금 정책 섹션 */}
     {isSectionVisible('pointPolicy') && (
-      <section id="settings-pointPolicy" className="space-y-4">
+      <section id="settings-pointPolicy" className="space-y-6">
+        {/* 1:1 영상 통화 기본 분당 요금(포인트) 동적 설정 카드 */}
+        <CallRateSettingCard
+          initialData={callRate}
+          onUpdated={(updated) => setCallRate(updated)}
+        />
+
         <Card className="border-amber-200/70 dark:border-amber-900/50 shadow-sm">
           <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-amber-500/5 border-b pb-4">
             <div>

@@ -9,6 +9,7 @@ import {
   UpdateAdminIntegrationSettingDto,
   UpdateAdminTeamMemberDto,
   UpdateAdminTeamMemberPasswordDto,
+  UpdateCallRateSettingDto,
 } from './dto';
 import { PrismaService } from 'nestjs-prisma';
 import { encryptAdminSettingValue, decryptAdminSettingValue } from './admin-settings.crypto';
@@ -840,7 +841,7 @@ export class AdminSettingsService implements OnModuleInit {
     // 누락된 기본 설정 항목이 있으면 자동 보충
     await this.ensureDefaultIntegrationSettings();
 
-    const [profiles, featureFlags, integrations, settingsState, actionPointPolicy] =
+    const [profiles, featureFlags, integrations, settingsState, actionPointPolicy, callRate] =
       await Promise.all([
         this.prisma.adminProfile.findMany({
           include: adminProfileArgs.include,
@@ -856,6 +857,7 @@ export class AdminSettingsService implements OnModuleInit {
           where: { id: 'default' },
         }),
         this.getActionPointPolicy(),
+        this.getCallRateSetting(),
       ]);
 
     const maskedValue = '********';
@@ -871,6 +873,94 @@ export class AdminSettingsService implements OnModuleInit {
       })),
       auditMemo: settingsState?.auditMemo ?? '',
       actionPointPolicy,
+      callRate,
+    };
+  }
+
+  async getCallRateSetting(): Promise<{
+    key: string;
+    value: string;
+    ratePerMinute: number;
+    description: string | null;
+  }> {
+    let setting = await this.prisma.systemSetting.findUnique({
+      where: { key: 'DEFAULT_CALL_RATE_PER_MINUTE' },
+    });
+
+    if (!setting) {
+      setting = await this.prisma.systemSetting.create({
+        data: {
+          key: 'DEFAULT_CALL_RATE_PER_MINUTE',
+          value: '1500',
+          description: '1:1 영상 통화 기본 분당 요금(포인트)',
+        },
+      });
+    }
+
+    const parsed = parseInt(setting.value, 10);
+    const ratePerMinute = !isNaN(parsed) && parsed >= 0 ? parsed : 1500;
+
+    return {
+      key: setting.key,
+      value: setting.value,
+      ratePerMinute,
+      description: setting.description,
+    };
+  }
+
+  async updateCallRateSetting(
+    actorId: string,
+    dto: UpdateCallRateSettingDto,
+  ): Promise<{
+    key: string;
+    value: string;
+    ratePerMinute: number;
+    description: string | null;
+  }> {
+    await this.requireSettingsActor(actorId);
+
+    let rawValue: string | undefined = dto.value?.trim();
+    if (dto.ratePerMinute !== undefined) {
+      rawValue = String(Math.max(0, Math.floor(dto.ratePerMinute)));
+    }
+
+    if (rawValue === undefined || rawValue === '') {
+      throw new BadRequestException('유효한 분당 요금을 입력해주세요.');
+    }
+
+    const parsed = parseInt(rawValue, 10);
+    if (isNaN(parsed) || parsed < 0) {
+      throw new BadRequestException('분당 요금은 0 이상의 정수여야 합니다.');
+    }
+
+    const updated = await this.prisma.systemSetting.upsert({
+      where: { key: 'DEFAULT_CALL_RATE_PER_MINUTE' },
+      update: {
+        value: String(parsed),
+        ...(dto.description !== undefined ? { description: dto.description } : {}),
+      },
+      create: {
+        key: 'DEFAULT_CALL_RATE_PER_MINUTE',
+        value: String(parsed),
+        description: dto.description ?? '1:1 영상 통화 기본 분당 요금(포인트)',
+      },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorId,
+        target: 'system-setting:DEFAULT_CALL_RATE_PER_MINUTE',
+        action: 'SYSTEM_SETTING_UPDATED',
+        notes: `ratePerMinute=${parsed}`,
+      },
+    });
+
+    return {
+      key: updated.key,
+      value: updated.value,
+      ratePerMinute: parsed,
+      description: updated.description,
     };
   }
 }
+
