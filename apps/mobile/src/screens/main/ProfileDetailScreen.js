@@ -10,6 +10,7 @@ import {
   Modal,
   Alert,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,9 +20,13 @@ import GiftPickerSheet from '../../components/GiftPickerSheet';
 import GiftEffectOverlay from '../../components/GiftEffectOverlay';
 import colors from '../../theme/colors';
 import { apiClient } from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
 import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
 
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
 export default function ProfileDetailScreen({ navigation, route }) {
+  const { user } = useAuth();
   const profile = route?.params?.profile;
   const preferredFont = route?.params?.preferredFont;
   const isSelf = Boolean(route?.params?.isSelf);
@@ -49,14 +54,23 @@ export default function ProfileDetailScreen({ navigation, route }) {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [blocking, setBlocking] = useState(false);
 
+  // 다중 프로필 사진 (타사 앱 Bigo/Azar 스타일)
+  const [userPhotos, setUserPhotos] = useState(
+    Array.isArray(profile?.photos) && profile.photos.length > 0 ? profile.photos : []
+  );
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+  const heroScrollRef = useRef(null);
+
   // 선물하기 및 3D 이펙트 상태
   const [giftPickerVisible, setGiftPickerVisible] = useState(false);
   const [myPoints, setMyPoints] = useState(0);
   const giftOverlayRef = useRef(null);
 
-  // 사진 확대 보기 모달 상태
+  // 사진 확대 보기 모달 상태 (스와이프 뷰어)
   const [photoViewerVisible, setPhotoViewerVisible] = useState(false);
   const [activePhotoUrl, setActivePhotoUrl] = useState(null);
+  const [viewerPhotoIndex, setViewerPhotoIndex] = useState(0);
+  const viewerScrollRef = useRef(null);
 
   const fetchMyPoints = useCallback(async () => {
     try {
@@ -66,6 +80,24 @@ export default function ProfileDetailScreen({ navigation, route }) {
       }
     } catch {}
   }, []);
+
+  // 유저의 다중 사진 목록 페칭
+  const loadUserPhotos = useCallback(async () => {
+    try {
+      const queryId = isSelf ? (user?.id || targetUserId) : (targetUserId || targetAccountId);
+      if (!queryId) return;
+      const res = await apiClient.getUserPhotos(queryId);
+      if (Array.isArray(res) && res.length > 0) {
+        setUserPhotos(res);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [isSelf, user?.id, targetUserId, targetAccountId]);
+
+  useEffect(() => {
+    loadUserPhotos();
+  }, [loadUserPhotos]);
 
   useEffect(() => {
     let mounted = true;
@@ -120,6 +152,21 @@ export default function ProfileDetailScreen({ navigation, route }) {
       interests: Array.isArray(profile?.interests) ? profile.interests : [],
     };
   }, [profile]);
+
+  const displayPhotos = useMemo(() => {
+    if (userPhotos.length > 0) {
+      return userPhotos.map((p, idx) => ({
+        id: p.id || `photo-${idx}`,
+        url: p.url,
+        isPrimary: Boolean(p.isPrimary),
+      }));
+    }
+    const fallbackUrl = data.avatar || data.coverImage;
+    if (fallbackUrl) {
+      return [{ id: 'primary-fallback', url: fallbackUrl, isPrimary: true }];
+    }
+    return [];
+  }, [userPhotos, data.avatar, data.coverImage]);
 
   const dynamicFont = useMemo(() => {
     if (!preferredFont || preferredFont === 'system') {
@@ -195,10 +242,14 @@ export default function ProfileDetailScreen({ navigation, route }) {
     }
   };
 
-  const handleOpenPhoto = (url) => {
+  const handleOpenPhoto = (url, index = 0) => {
     if (!url) return;
     setActivePhotoUrl(url);
+    setViewerPhotoIndex(index);
     setPhotoViewerVisible(true);
+    setTimeout(() => {
+      viewerScrollRef.current?.scrollTo({ x: index * SCREEN_WIDTH, animated: false });
+    }, 50);
   };
 
   const handleToggleFollow = async () => {
@@ -587,48 +638,133 @@ export default function ProfileDetailScreen({ navigation, route }) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* 상단 히어로 멀티 포토 캐러셀 (Bigo / Azar / Tinder 스타일) */}
         <View style={styles.heroWrapper}>
-          <ImageBackground
-            source={data.coverImage ? { uri: data.coverImage } : undefined}
-            style={styles.cover}
-            imageStyle={styles.coverImage}
-          >
-            <View style={styles.coverOverlay} />
-            <View style={styles.heroHeader}>
+          {displayPhotos.length > 0 ? (
+            <ScrollView
+              ref={heroScrollRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => {
+                const offsetX = e.nativeEvent.contentOffset.x;
+                const newIndex = Math.round(offsetX / SCREEN_WIDTH);
+                setActivePhotoIndex(newIndex);
+              }}
+              style={styles.heroScrollView}
+            >
+              {displayPhotos.map((photo, index) => (
+                <TouchableOpacity
+                  key={photo.id || index}
+                  activeOpacity={0.95}
+                  style={[styles.heroSlide, { width: SCREEN_WIDTH }]}
+                  onPress={() => handleOpenPhoto(photo.url, index)}
+                >
+                  <Image
+                    source={{ uri: photo.url }}
+                    style={styles.heroImage}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.coverOverlay} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          ) : (
+            <View style={[styles.heroSlide, styles.heroPlaceholder, { width: SCREEN_WIDTH }]}>
+              <Ionicons name="person" size={80} color="rgba(255,255,255,0.3)" />
+            </View>
+          )}
+
+          {/* 상단 스토리 스타일 인디케이터 바 (다중 사진일 때) */}
+          {displayPhotos.length > 1 && (
+            <View style={styles.storyIndicatorsRow}>
+              {displayPhotos.map((_, idx) => (
+                <View
+                  key={idx}
+                  style={[
+                    styles.storyIndicatorBar,
+                    idx === activePhotoIndex && styles.storyIndicatorBarActive,
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* 사진 장수 뱃지 카운터 */}
+          {displayPhotos.length > 1 && (
+            <View style={styles.photoCountBadge}>
+              <Ionicons name="images" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+              <Text style={styles.photoCountBadgeText}>
+                {activePhotoIndex + 1} / {displayPhotos.length}
+              </Text>
+            </View>
+          )}
+
+          {/* 헤더 버튼 (뒤로가기, 안전 메뉴) */}
+          <View style={styles.heroHeader}>
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => navigation.goBack()}
+              hitSlop={8}
+            >
+              <Ionicons name="chevron-back" size={26} color={colors.textInverse} />
+            </TouchableOpacity>
+            {!isSelf ? (
               <TouchableOpacity
                 style={styles.headerButton}
-                onPress={() => navigation.goBack()}
+                onPress={handleOpenSafetyMenu}
                 hitSlop={8}
               >
-                <Ionicons name="chevron-back" size={26} color={colors.textInverse} />
+                <Ionicons name="ellipsis-vertical" size={20} color={colors.textInverse} />
               </TouchableOpacity>
-              {!isSelf ? (
-                <TouchableOpacity
-                  style={styles.headerButton}
-                  onPress={handleOpenSafetyMenu}
-                  hitSlop={8}
-                >
-                  <Ionicons name="ellipsis-vertical" size={20} color={colors.textInverse} />
-                </TouchableOpacity>
-              ) : (
-                <View style={styles.headerSpacer} />
-              )}
-            </View>
-            <TouchableOpacity
-              style={styles.avatarWrapper}
-              activeOpacity={0.9}
-              onPress={() => handleOpenPhoto(data.avatar || data.coverImage)}
-            >
-              <Avatar
-                size={96}
-                uri={data.avatar}
-                name={data.name}
-                showBorder
-                shape="circle"
-                style={styles.avatar}
+            ) : (
+              <View style={styles.headerSpacer} />
+            )}
+          </View>
+
+          {/* 좌/우 터치 탭 넘기기 (Bigo / Tinder 스타일 빠른 탐색) */}
+          {displayPhotos.length > 1 && (
+            <>
+              <TouchableOpacity
+                style={styles.heroTapLeft}
+                activeOpacity={1}
+                onPress={() => {
+                  if (activePhotoIndex > 0) {
+                    const nextIdx = activePhotoIndex - 1;
+                    heroScrollRef.current?.scrollTo({ x: nextIdx * SCREEN_WIDTH, animated: true });
+                    setActivePhotoIndex(nextIdx);
+                  }
+                }}
               />
-            </TouchableOpacity>
-          </ImageBackground>
+              <TouchableOpacity
+                style={styles.heroTapRight}
+                activeOpacity={1}
+                onPress={() => {
+                  if (activePhotoIndex < displayPhotos.length - 1) {
+                    const nextIdx = activePhotoIndex + 1;
+                    heroScrollRef.current?.scrollTo({ x: nextIdx * SCREEN_WIDTH, animated: true });
+                    setActivePhotoIndex(nextIdx);
+                  }
+                }}
+              />
+            </>
+          )}
+
+          {/* 아바타 원형 서클 (대표 아이콘) */}
+          <TouchableOpacity
+            style={styles.avatarWrapper}
+            activeOpacity={0.9}
+            onPress={() => handleOpenPhoto(data.avatar || displayPhotos[0]?.url, 0)}
+          >
+            <Avatar
+              size={96}
+              uri={data.avatar || displayPhotos[0]?.url}
+              name={data.name}
+              showBorder
+              shape="circle"
+              style={styles.avatar}
+            />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.body}>
@@ -650,6 +786,56 @@ export default function ProfileDetailScreen({ navigation, route }) {
             <Ionicons name="sparkles-outline" size={20} color={colors.primary} />
             <Text style={[styles.infoText, dynamicFont.body]}>{data.bio}</Text>
           </View>
+
+          {/* 등록된 사진 갤러리 섹션 (타사 앱 Bigo/Azar 스타일) */}
+          {displayPhotos.length > 0 && (
+            <View style={styles.photoAlbumSection}>
+              <View style={styles.photoAlbumHeader}>
+                <View style={styles.photoAlbumTitleWrap}>
+                  <Ionicons name="images-outline" size={18} color={colors.primary} />
+                  <Text style={[styles.photoAlbumTitle, dynamicFont.heading]}>
+                    등록된 사진
+                  </Text>
+                  <View style={styles.photoAlbumBadge}>
+                    <Text style={styles.photoAlbumBadgeText}>{displayPhotos.length}장</Text>
+                  </View>
+                </View>
+                <Text style={styles.photoAlbumSubHint}>터치하여 크게 보기</Text>
+              </View>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.photoAlbumScroll}
+              >
+                {displayPhotos.map((photo, pIdx) => (
+                  <TouchableOpacity
+                    key={photo.id || pIdx}
+                    style={[
+                      styles.photoAlbumCard,
+                      pIdx === activePhotoIndex && styles.photoAlbumCardActive,
+                    ]}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      heroScrollRef.current?.scrollTo({ x: pIdx * SCREEN_WIDTH, animated: true });
+                      setActivePhotoIndex(pIdx);
+                      handleOpenPhoto(photo.url, pIdx);
+                    }}
+                  >
+                    <Image source={{ uri: photo.url }} style={styles.photoAlbumThumb} />
+                    {photo.isPrimary && (
+                      <View style={styles.primaryTagBadge}>
+                        <Text style={styles.primaryTagText}>대표</Text>
+                      </View>
+                    )}
+                    <View style={styles.photoIndexTag}>
+                      <Text style={styles.photoIndexTagText}>{pIdx + 1}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
           {data.interests.length > 0 && (
             <View style={styles.interestsRow}>
@@ -792,33 +978,90 @@ export default function ProfileDetailScreen({ navigation, route }) {
         context="chat"
       />
 
-      {/* 프로필 사진 확대 보기 모달 */}
+      {/* 프로필 사진 풀스크린 다중 뷰어 모달 (Bigo / Tinder 스타일) */}
       <Modal
         visible={photoViewerVisible}
         transparent
         animationType="fade"
         onRequestClose={() => setPhotoViewerVisible(false)}
       >
-        <TouchableOpacity
-          style={styles.photoViewerBackdrop}
-          activeOpacity={1}
-          onPress={() => setPhotoViewerVisible(false)}
-        >
-          <TouchableOpacity
-            style={styles.photoViewerCloseBtn}
-            onPress={() => setPhotoViewerVisible(false)}
-            hitSlop={12}
+        <View style={styles.photoViewerBackdrop}>
+          {/* 상단 바: 사진 카운터 & 닫기 버튼 */}
+          <View style={styles.photoViewerTopBar}>
+            <View style={styles.viewerCounterBadge}>
+              <Text style={styles.viewerCounterText}>
+                {viewerPhotoIndex + 1} / {displayPhotos.length}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.photoViewerCloseBtn}
+              onPress={() => setPhotoViewerVisible(false)}
+              hitSlop={12}
+            >
+              <Ionicons name="close" size={26} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          {/* 사진 슬라이더 */}
+          <ScrollView
+            ref={viewerScrollRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(e) => {
+              const offsetX = e.nativeEvent.contentOffset.x;
+              const newIndex = Math.round(offsetX / SCREEN_WIDTH);
+              setViewerPhotoIndex(newIndex);
+            }}
+            contentOffset={{ x: viewerPhotoIndex * SCREEN_WIDTH, y: 0 }}
+            style={styles.viewerScrollView}
           >
-            <Ionicons name="close" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
-          {activePhotoUrl && (
-            <Image
-              source={{ uri: activePhotoUrl }}
-              style={styles.photoViewerImage}
-              resizeMode="contain"
-            />
+            {displayPhotos.map((photo, pIdx) => (
+              <View
+                key={photo.id || pIdx}
+                style={[styles.viewerSlide, { width: SCREEN_WIDTH }]}
+              >
+                <Image
+                  source={{ uri: photo.url }}
+                  style={styles.photoViewerImage}
+                  resizeMode="contain"
+                />
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* 이전/다음 네비게이션 버튼 (2장 이상일 때) */}
+          {displayPhotos.length > 1 && (
+            <>
+              {viewerPhotoIndex > 0 && (
+                <TouchableOpacity
+                  style={[styles.viewerNavButton, styles.viewerNavButtonLeft]}
+                  onPress={() => {
+                    const prev = viewerPhotoIndex - 1;
+                    viewerScrollRef.current?.scrollTo({ x: prev * SCREEN_WIDTH, animated: true });
+                    setViewerPhotoIndex(prev);
+                  }}
+                  hitSlop={8}
+                >
+                  <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
+                </TouchableOpacity>
+              )}
+              {viewerPhotoIndex < displayPhotos.length - 1 && (
+                <TouchableOpacity
+                  style={[styles.viewerNavButton, styles.viewerNavButtonRight]}
+                  onPress={() => {
+                    const next = viewerPhotoIndex + 1;
+                    viewerScrollRef.current?.scrollTo({ x: next * SCREEN_WIDTH, animated: true });
+                    setViewerPhotoIndex(next);
+                  }}
+                  hitSlop={8}
+                >
+                  <Ionicons name="chevron-forward" size={28} color="#FFFFFF" />
+                </TouchableOpacity>
+              )}
+            </>
           )}
-        </TouchableOpacity>
+        </View>
       </Modal>
 
       <ReportModal
@@ -844,34 +1087,97 @@ const styles = StyleSheet.create({
   },
   heroWrapper: {
     position: 'relative',
-  },
-  cover: {
+    height: 400,
     backgroundColor: colors.backgroundSecondary,
-    height: 360,
-    justifyContent: 'flex-end',
   },
-  coverImage: {
-    resizeMode: 'cover',
+  heroScrollView: {
+    width: '100%',
+    height: '100%',
+  },
+  heroSlide: {
+    height: 400,
+    position: 'relative',
+    backgroundColor: '#1E1E2D',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.backgroundSecondary,
   },
   coverOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.22)',
+  },
+  storyIndicatorsRow: {
+    position: 'absolute',
+    top: 10,
+    left: 14,
+    right: 14,
+    flexDirection: 'row',
+    gap: 4,
+    zIndex: 10,
+  },
+  storyIndicatorBar: {
+    flex: 1,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+  },
+  storyIndicatorBarActive: {
+    backgroundColor: '#FFFFFF',
+  },
+  photoCountBadge: {
+    position: 'absolute',
+    bottom: 20,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    zIndex: 10,
+  },
+  photoCountBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  heroTapLeft: {
+    position: 'absolute',
+    top: 70,
+    bottom: 60,
+    left: 0,
+    width: '30%',
+    zIndex: 5,
+  },
+  heroTapRight: {
+    position: 'absolute',
+    top: 70,
+    bottom: 60,
+    right: 0,
+    width: '30%',
+    zIndex: 5,
   },
   heroHeader: {
     position: 'absolute',
-    top: 16,
+    top: 24,
     left: 16,
     right: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    zIndex: 2,
+    zIndex: 15,
   },
   headerButton: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: 'rgba(0,0,0,0.38)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -879,15 +1185,17 @@ const styles = StyleSheet.create({
     width: 42,
   },
   avatarWrapper: {
-    alignItems: 'center',
-    marginBottom: -60,
+    position: 'absolute',
+    bottom: -48,
+    left: 20,
+    zIndex: 20,
   },
   avatar: {
     borderWidth: 4,
     borderColor: colors.background,
   },
   body: {
-    paddingTop: 80,
+    paddingTop: 60,
     paddingHorizontal: 24,
     gap: 20,
   },
@@ -1061,24 +1369,162 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontWeight: '700',
   },
-  photoViewerBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.94)',
+  photoAlbumSection: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 12,
+  },
+  photoAlbumHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  photoAlbumTitleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  photoAlbumTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  photoAlbumBadge: {
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  photoAlbumBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  photoAlbumSubHint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  photoAlbumScroll: {
+    gap: 10,
+    paddingRight: 10,
+  },
+  photoAlbumCard: {
+    width: 90,
+    height: 110,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    backgroundColor: colors.backgroundSecondary,
+  },
+  photoAlbumCardActive: {
+    borderColor: colors.primary,
+  },
+  photoAlbumThumb: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  primaryTagBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  primaryTagText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  photoIndexTag: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  photoViewerCloseBtn: {
+  photoIndexTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  photoViewerBackdrop: {
+    flex: 1,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  photoViewerTopBar: {
     position: 'absolute',
     top: 50,
+    left: 20,
     right: 20,
-    zIndex: 10,
-    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 20,
+  },
+  viewerCounterBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  viewerCounterText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  photoViewerCloseBtn: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  viewerScrollView: {
+    flex: 1,
+    width: '100%',
+  },
+  viewerSlide: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
   },
   photoViewerImage: {
-    width: '92%',
-    height: '75%',
-    borderRadius: 12,
+    width: '100%',
+    height: '80%',
+  },
+  viewerNavButton: {
+    position: 'absolute',
+    top: '50%',
+    marginTop: -24,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  viewerNavButtonLeft: {
+    left: 12,
+  },
+  viewerNavButtonRight: {
+    right: 12,
   },
 });

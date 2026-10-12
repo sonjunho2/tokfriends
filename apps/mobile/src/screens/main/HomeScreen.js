@@ -197,6 +197,7 @@ export default function HomeScreen({ navigation }) {
         avatar: item.avatar,
         coverImage: item.avatar,
         age: item.age,
+        photos: item.photos,
       },
     });
   };

@@ -1003,6 +1003,10 @@ export const apiClient = {
     catch (e) { throw normalizeError(e); }
   },
 
+  async getUserById(userId) {
+    return this.getUser(userId);
+  },
+
   async getUserPhotos(userId) {
     if (!userId) return [];
     if (USE_DUMMY_AUTH) return [];

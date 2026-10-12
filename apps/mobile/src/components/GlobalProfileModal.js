@@ -1,5 +1,5 @@
 // src/components/GlobalProfileModal.js
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import {
   Modal,
   View,
@@ -9,6 +9,7 @@ import {
   Image,
   ScrollView,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +21,7 @@ import { useNavigation } from '@react-navigation/native';
 import { apiClient } from '../api/client';
 import { checkAndConfirmActionPoint } from '../utils/pointPolicyHelper';
 
+const SCREEN_WIDTH = Dimensions.get('window').width;
 
 export default function GlobalProfileModal() {
   const navigation = useNavigation();
@@ -27,6 +29,42 @@ export default function GlobalProfileModal() {
   const { visible, profile, closeProfile } = useProfileModal();
   const { user } = useAuth();
   const [sending, setSending] = useState(false);
+
+  // 다중 프로필 사진 상태
+  const [photos, setPhotos] = useState([]);
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+  const carouselScrollRef = useRef(null);
+
+  const targetUserId =
+    typeof profile?.targetUserId === 'string'
+      ? profile.targetUserId.trim()
+      : typeof profile?.id === 'string' && !profile.id.startsWith('acc_')
+      ? profile.id.trim()
+      : user?.id || '';
+
+  const loadPhotos = useCallback(async () => {
+    if (!visible) return;
+    try {
+      if (Array.isArray(profile?.photos) && profile.photos.length > 0) {
+        setPhotos(profile.photos);
+        return;
+      }
+      if (targetUserId) {
+        const res = await apiClient.getUserPhotos(targetUserId);
+        if (Array.isArray(res) && res.length > 0) {
+          setPhotos(res);
+          return;
+        }
+      }
+    } catch {}
+  }, [visible, profile?.photos, targetUserId]);
+
+  useEffect(() => {
+    if (visible) {
+      setActivePhotoIndex(0);
+      loadPhotos();
+    }
+  }, [visible, loadPhotos]);
 
   const profileData = useMemo(() => {
     if (profile) return profile;
@@ -45,6 +83,21 @@ export default function GlobalProfileModal() {
       coverImage: userProfile?.avatarUri || null,
     };
   }, [profile, user]);
+
+  const displayPhotos = useMemo(() => {
+    if (photos.length > 0) {
+      return photos.map((p, idx) => ({
+        id: p.id || `photo-${idx}`,
+        url: p.url,
+        isPrimary: Boolean(p.isPrimary),
+      }));
+    }
+    const fallback = profileData?.avatar || profileData?.coverImage;
+    if (fallback) {
+      return [{ id: 'primary-fallback', url: fallback, isPrimary: true }];
+    }
+    return [];
+  }, [photos, profileData?.avatar, profileData?.coverImage]);
 
   const handleClose = () => {
     closeProfile();
@@ -122,11 +175,57 @@ export default function GlobalProfileModal() {
       onRequestClose={handleClose}
     >
       <View style={styles.container}>
-        {profileData.coverImage ? (
-          <Image source={{ uri: profileData.coverImage }} style={styles.coverImage} />
-        ) : (
-          <View style={styles.coverPlaceholder} />
-        )}
+        {/* 상단 다중 사진 캐러셀 */}
+        <View style={styles.carouselContainer}>
+          {displayPhotos.length > 0 ? (
+            <ScrollView
+              ref={carouselScrollRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => {
+                const offsetX = e.nativeEvent.contentOffset.x;
+                const newIndex = Math.round(offsetX / SCREEN_WIDTH);
+                setActivePhotoIndex(newIndex);
+              }}
+              style={styles.carouselScrollView}
+            >
+              {displayPhotos.map((photo, pIdx) => (
+                <View key={photo.id || pIdx} style={[styles.carouselSlide, { width: SCREEN_WIDTH }]}>
+                  <Image source={{ uri: photo.url }} style={styles.coverImage} />
+                  <View style={styles.coverOverlay} />
+                </View>
+              ))}
+            </ScrollView>
+          ) : (
+            <View style={styles.coverPlaceholder} />
+          )}
+
+          {/* 스토리 인디케이터 바 */}
+          {displayPhotos.length > 1 && (
+            <View style={[styles.storyIndicatorsRow, { top: insets.top + 60 }]}>
+              {displayPhotos.map((_, idx) => (
+                <View
+                  key={idx}
+                  style={[
+                    styles.storyIndicatorBar,
+                    idx === activePhotoIndex && styles.storyIndicatorBarActive,
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* 사진 장수 뱃지 */}
+          {displayPhotos.length > 1 && (
+            <View style={styles.photoCountBadge}>
+              <Ionicons name="images" size={12} color="#FFFFFF" style={{ marginRight: 4 }} />
+              <Text style={styles.photoCountBadgeText}>
+                {activePhotoIndex + 1} / {displayPhotos.length}
+              </Text>
+            </View>
+          )}
+        </View>
 
         <View style={[styles.topBar, { paddingTop: insets.top + 6 }]}> 
           <TouchableOpacity style={styles.topButton} onPress={handleClose} hitSlop={8}>
@@ -144,7 +243,7 @@ export default function GlobalProfileModal() {
           <View style={styles.avatarWrap}>
             <Avatar
               size={88}
-              uri={profileData.avatar}
+              uri={displayPhotos[activePhotoIndex]?.url || profileData.avatar}
               name={profileData.name}
               shape="circle"
               showBorder
@@ -160,6 +259,37 @@ export default function GlobalProfileModal() {
             <Ionicons name="paw-outline" size={20} color={colors.primary} />
             <Text style={styles.infoText}>{profileData.bio}</Text>
           </View>
+
+          {/* 등록된 사진 앨범 (다중 사진일 때) */}
+          {displayPhotos.length > 1 && (
+            <View style={styles.albumSection}>
+              <View style={styles.albumHeader}>
+                <Text style={styles.albumTitle}>등록된 사진 ({displayPhotos.length})</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.albumScroll}>
+                {displayPhotos.map((photo, pIdx) => (
+                  <TouchableOpacity
+                    key={photo.id || pIdx}
+                    style={[
+                      styles.albumThumbWrap,
+                      pIdx === activePhotoIndex && styles.albumThumbWrapActive,
+                    ]}
+                    onPress={() => {
+                      carouselScrollRef.current?.scrollTo({ x: pIdx * SCREEN_WIDTH, animated: true });
+                      setActivePhotoIndex(pIdx);
+                    }}
+                  >
+                    <Image source={{ uri: photo.url }} style={styles.albumThumb} />
+                    {photo.isPrimary && (
+                      <View style={styles.primaryBadge}>
+                        <Text style={styles.primaryBadgeText}>대표</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
           <TouchableOpacity
             style={[styles.primaryButton, sending && { opacity: 0.6 }]}
@@ -186,19 +316,68 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  coverImage: {
+  carouselContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     height: 320,
+    backgroundColor: colors.backgroundSecondary,
+  },
+  carouselScrollView: {
+    width: '100%',
+    height: '100%',
+  },
+  carouselSlide: {
+    height: 320,
+    position: 'relative',
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  coverOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.22)',
+  },
+  storyIndicatorsRow: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    gap: 4,
+    zIndex: 10,
+  },
+  storyIndicatorBar: {
+    flex: 1,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+  },
+  storyIndicatorBarActive: {
+    backgroundColor: '#FFFFFF',
+  },
+  photoCountBadge: {
+    position: 'absolute',
+    bottom: 12,
+    right: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 10,
+  },
+  photoCountBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   coverPlaceholder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 320,
+    width: '100%',
+    height: '100%',
     backgroundColor: colors.backgroundSecondary,
   },
   topBar: {
@@ -301,5 +480,54 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: colors.text,
+  },
+  albumSection: {
+    marginTop: 6,
+    gap: 8,
+  },
+  albumHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  albumTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  albumScroll: {
+    gap: 8,
+  },
+  albumThumbWrap: {
+    width: 64,
+    height: 76,
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    position: 'relative',
+    backgroundColor: colors.backgroundSecondary,
+  },
+  albumThumbWrapActive: {
+    borderColor: colors.primary,
+  },
+  albumThumb: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  primaryBadge: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  primaryBadgeText: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });

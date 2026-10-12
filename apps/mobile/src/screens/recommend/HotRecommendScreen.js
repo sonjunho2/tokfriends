@@ -269,6 +269,7 @@ export default function HotRecommendScreen({ navigation, route }) {
         avatar: item?.avatar,
         coverImage: item?.avatar,
         age: item?.age,
+        photos: item?.photos,
       },
     });
   };

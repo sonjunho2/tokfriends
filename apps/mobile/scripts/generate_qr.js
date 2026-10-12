@@ -5,7 +5,7 @@ const QRCode = require('qrcode');
 
 const IP = '59.0.146.72';
 const EXPO_URL = `exp://${IP}:8081`;
-const APK_URL = `http://${IP}:3000/downloads/dagaon-release.apk`;
+const APK_URL = 'https://tmpfiles.org/dl/wOAV6q2QrG2m/dagaon-release.apk';
 const WEB_ADMIN_URL = `http://${IP}:3000`;
 
 const ARTIFACT_DIR = path.resolve('C:/Users/sonoo/.gemini/antigravity-ide/brain/a9268c67-4d3a-4065-9327-bcb9dd1f23db');
