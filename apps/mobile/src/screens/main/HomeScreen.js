@@ -53,6 +53,74 @@ const DEFAULT_HOT_LIVES = [
   },
 ];
 
+// 신규 추천 기본 매력 이웃 리스트
+const DEFAULT_NEW_USERS = [
+  {
+    id: 'user-new-1',
+    name: '유진',
+    age: 24,
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600',
+    location: '강남구 역삼동',
+    headline: '새로 왔어요! 카페 투어 같이 갈 친구 구해요 ☕',
+    bio: '새로 왔어요! 카페 투어 같이 갈 친구 구해요 ☕',
+    online: true,
+  },
+  {
+    id: 'user-new-2',
+    name: '도현',
+    age: 28,
+    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600',
+    location: '송파구 잠실동',
+    headline: '퇴근하고 러닝이나 헬스 함께해요 🏃',
+    bio: '퇴근하고 러닝이나 헬스 함께해요 🏃',
+    online: true,
+  },
+  {
+    id: 'user-new-3',
+    name: '채원',
+    age: 26,
+    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600',
+    location: '서초구 반포동',
+    headline: '전시회랑 맛집 탐방 좋아하는 직장인입니다 ✨',
+    bio: '전시회랑 맛집 탐방 좋아하는 직장인입니다 ✨',
+    online: false,
+  },
+];
+
+// BEST 인기 기본 대표 이웃 리스트
+const DEFAULT_BEST_USERS = [
+  {
+    id: 'user-best-1',
+    name: '민서',
+    age: 27,
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600',
+    location: '마포구 연남동',
+    headline: '음악과 드라이브를 사랑하는 다가온 인기 이웃 🎵',
+    bio: '음악과 드라이브를 사랑하는 다가온 인기 이웃 🎵',
+    online: true,
+  },
+  {
+    id: 'user-best-2',
+    name: '준호',
+    age: 30,
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600',
+    location: '용산구 한남동',
+    headline: '소소하게 일상 나누며 좋은 인연 만들어가요 🌿',
+    bio: '소소하게 일상 나누며 좋은 인연 만들어가요 🌿',
+    online: true,
+  },
+  {
+    id: 'user-best-3',
+    name: '하은',
+    age: 25,
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600',
+    location: '성동구 성수동',
+    headline: '오늘도 다가온에서 활발하게 소통 중입니다 🌸',
+    bio: '오늘도 다가온에서 활발하게 소통 중입니다 🌸',
+    online: true,
+  },
+];
+
 function mapHomeDiscoverUser(user) {
   const profile = user?.profile ?? {};
   const targetAccountId =
@@ -68,9 +136,11 @@ function mapHomeDiscoverUser(user) {
     age: typeof user?.age === 'number' ? user.age : undefined,
     avatar: profile?.avatarUri || undefined,
     location:
-      [user?.region1, user?.region2].filter(Boolean).join(' · ') || '지역 미설정',
+      [user?.region1, user?.region2].filter(Boolean).join(' · ') || '동네 이웃',
     bio: profile?.bio || profile?.headline || '반가워요!',
-    headline: profile?.headline || '새로운 인연을 기다려요',
+    headline: profile?.headline || '새로운 인연을 기다려요 ✨',
+    points: typeof user?.points === 'number' ? user.points : 500,
+    online: Boolean(profile?.lastSeenAt),
   };
 }
 
@@ -85,7 +155,11 @@ export default function HomeScreen({ navigation }) {
   const [myPoints, setMyPoints] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
-  // 배너 자동 롤링 (4초 주기)
+  // 신규 추천 / BEST 인기 슬라이드 인덱스
+  const [activeNewIdx, setActiveNewIdx] = useState(0);
+  const [activeBestIdx, setActiveBestIdx] = useState(0);
+
+  // 1. 배너 자동 롤링 (4.5초 주기)
   useEffect(() => {
     if (banners.length <= 1) return;
     const interval = setInterval(() => {
@@ -93,6 +167,39 @@ export default function HomeScreen({ navigation }) {
     }, 4500);
     return () => clearInterval(interval);
   }, [banners.length]);
+
+  // 2. 신규 추천 / BEST 슬라이드 자동 전환
+  const newUsers = useMemo(() => {
+    if (discoverUsers.length >= 2) {
+      return discoverUsers.slice(0, Math.ceil(discoverUsers.length / 2));
+    }
+    return DEFAULT_NEW_USERS;
+  }, [discoverUsers]);
+
+  const bestUsers = useMemo(() => {
+    if (discoverUsers.length >= 2) {
+      return [...discoverUsers]
+        .sort((a, b) => (b.points || 0) - (a.points || 0))
+        .slice(0, 5);
+    }
+    return DEFAULT_BEST_USERS;
+  }, [discoverUsers]);
+
+  useEffect(() => {
+    if (newUsers.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveNewIdx((prev) => (prev + 1) % newUsers.length);
+    }, 3800);
+    return () => clearInterval(interval);
+  }, [newUsers.length]);
+
+  useEffect(() => {
+    if (bestUsers.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveBestIdx((prev) => (prev + 1) % bestUsers.length);
+    }, 4300);
+    return () => clearInterval(interval);
+  }, [bestUsers.length]);
 
   const loadHomeData = useCallback(async ({ refresh = false } = {}) => {
     if (refresh) setRefreshing(true);
@@ -167,7 +274,7 @@ export default function HomeScreen({ navigation }) {
     loadHomeData();
   }, [loadHomeData]);
 
-  // 화면 포커스 시 홈 데이터 전체 자동 새로고침 (라이브/포인트/피드 동기화)
+  // 화면 포커스 시 홈 데이터 자동 새로고침
   useFocusEffect(
     useCallback(() => {
       loadHomeData();
@@ -240,12 +347,16 @@ export default function HomeScreen({ navigation }) {
 
   const currentBanner = banners.length > 0 ? banners[activeBannerIdx % banners.length] : null;
 
+  // 현재 슬라이드 카드 선택
+  const curNewUser = newUsers[activeNewIdx % newUsers.length];
+  const curBestUser = bestUsers[activeBestIdx % bestUsers.length];
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* =================================================================
-          1. 카카오톡 스타일 GNB 상단 앱바
+          1. GNB 상단 앱바 (검색 & 잔여온 제거 -> 로고와 알림만으로 극대화된 심플함)
           ================================================================= */}
       <View style={styles.appbar}>
         <View style={styles.brandRow}>
@@ -254,28 +365,6 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         <View style={styles.appbarRightActions}>
-          {/* 내 온 잔액 칩 */}
-          <TouchableOpacity
-            style={styles.pointChip}
-            onPress={() => navigation.navigate('Shop')}
-            activeOpacity={0.8}
-          >
-            <View style={styles.pointIconBg}>
-              <Ionicons name="sparkles" size={12} color="#191919" />
-            </View>
-            <Text style={styles.pointChipText}>{myPoints.toLocaleString()} 온</Text>
-          </TouchableOpacity>
-
-          {/* 검색 아이콘 */}
-          <TouchableOpacity
-            style={styles.appbarIconBtn}
-            onPress={() => navigation.navigate('HotRecommend', { openFilter: true })}
-            hitSlop={8}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="search" size={20} color="#191919" />
-          </TouchableOpacity>
-
           {/* 알림 아이콘 */}
           <TouchableOpacity
             style={styles.appbarIconBtn}
@@ -283,7 +372,7 @@ export default function HomeScreen({ navigation }) {
             hitSlop={8}
             activeOpacity={0.7}
           >
-            <Ionicons name="notifications-outline" size={20} color="#191919" />
+            <Ionicons name="notifications-outline" size={22} color="#191919" />
           </TouchableOpacity>
         </View>
       </View>
@@ -302,17 +391,17 @@ export default function HomeScreen({ navigation }) {
         }
       >
         {/* =================================================================
-            2. 카카오톡 상단 웰컴 & 내 프로필 미니 바
+            2. 내 프로필 정보 & 통합 보유 온(ON) 충전 박스
             ================================================================= */}
-        <TouchableOpacity
-          style={styles.myProfileBanner}
-          activeOpacity={0.9}
-          onPress={() => navigation.navigate('My')}
-        >
-          <View style={styles.myProfileLeft}>
+        <View style={styles.myProfileBanner}>
+          <TouchableOpacity
+            style={styles.myProfileLeft}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('My')}
+          >
             <View style={styles.myAvatarWrap}>
               <Avatar
-                size={46}
+                size={48}
                 name={authUser?.displayName || '나'}
                 uri={authUser?.profile?.avatarUri}
               />
@@ -320,7 +409,7 @@ export default function HomeScreen({ navigation }) {
             </View>
             <View style={styles.myProfileMeta}>
               <View style={styles.myProfileNameRow}>
-                <Text style={styles.myProfileName}>
+                <Text style={styles.myProfileName} numberOfLines={1}>
                   {authUser?.displayName || authUser?.profile?.nickname || '다가온 회원'}
                 </Text>
                 <View style={styles.verifiedTag}>
@@ -331,12 +420,96 @@ export default function HomeScreen({ navigation }) {
                 {authUser?.profile?.headline || '오늘도 다가온에서 새로운 인연을 만나보세요 ✨'}
               </Text>
             </View>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color="#C7C7CC" />
-        </TouchableOpacity>
+          </TouchableOpacity>
+
+          {/* 우측: 내 온(ON) 통합 칩 & 충전 버튼 */}
+          <TouchableOpacity
+            style={styles.myPointsChip}
+            onPress={() => navigation.navigate('Shop')}
+            activeOpacity={0.82}
+          >
+            <View style={styles.myPointsIconRow}>
+              <Ionicons name="sparkles" size={13} color="#D97706" />
+              <Text style={styles.myPointsAmount}>{myPoints.toLocaleString()} 온</Text>
+            </View>
+            <View style={styles.myPointsChargeTag}>
+              <Text style={styles.myPointsChargeText}>충전 ›</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
 
         {/* =================================================================
-            3. 4대 핵심 숏컷 그리드 (카카오톡 스타일 원터치 포털)
+            3. 🎁 스마트 프로모션/이벤트 롤링 배너 (최상단으로 전진 배치!)
+            ================================================================= */}
+        <View style={styles.bannerSection}>
+          {currentBanner ? (
+            <TouchableOpacity
+              style={styles.adBannerCard}
+              activeOpacity={0.9}
+              onPress={() => handleBannerPress(currentBanner)}
+            >
+              {currentBanner.imageUrl ? (
+                <Image
+                  source={{ uri: currentBanner.imageUrl }}
+                  style={styles.adBannerImage}
+                />
+              ) : null}
+              <View style={styles.adBannerOverlay}>
+                <View style={styles.adBadgeRow}>
+                  <View style={styles.adBadgeKakao}>
+                    <Text style={styles.adBadgeTextKakao}>EVENT</Text>
+                  </View>
+                  {banners.length > 1 && (
+                    <View style={styles.bannerPageBadge}>
+                      <Text style={styles.bannerPageText}>
+                        {(activeBannerIdx % banners.length) + 1} / {banners.length}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.adBannerTitle} numberOfLines={1}>
+                  {currentBanner.title}
+                </Text>
+                {currentBanner.description ? (
+                  <Text style={styles.adBannerDesc} numberOfLines={1}>
+                    {currentBanner.description}
+                  </Text>
+                ) : null}
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.defaultBannerCard}
+              activeOpacity={0.88}
+              onPress={() => navigation.navigate('Shop')}
+            >
+              <LinearGradient
+                colors={['#FFFBEB', '#FEF3C7']}
+                style={styles.defaultBannerGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <View style={styles.defaultBannerLeft}>
+                  <View style={styles.defaultBannerBadge}>
+                    <Text style={styles.defaultBannerBadgeText}>SPECIAL</Text>
+                  </View>
+                  <Text style={styles.defaultBannerTitle}>
+                    프로필 완성하고 50 온 즉시 받기
+                  </Text>
+                  <Text style={styles.defaultBannerDesc}>
+                    동네 이웃에게 나를 소개하고 온을 충전하세요!
+                  </Text>
+                </View>
+                <View style={styles.defaultBannerArrowBtn}>
+                  <Ionicons name="arrow-forward" size={16} color="#191919" />
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* =================================================================
+            4. 4대 핵심 숏컷 그리드 (원터치 빠른 이동)
             ================================================================= */}
         <View style={styles.shortcutGrid}>
           {/* 라이브 방송 */}
@@ -366,7 +539,7 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.shortcutSub}>이웃 이야기</Text>
           </TouchableOpacity>
 
-          {/* 1:1 대화 */}
+          {/* 인연·대화 */}
           <TouchableOpacity
             style={styles.shortcutItem}
             activeOpacity={0.8}
@@ -375,8 +548,8 @@ export default function HomeScreen({ navigation }) {
             <View style={[styles.shortcutIconBg, { backgroundColor: '#FEF3C7' }]}>
               <Ionicons name="chatbubbles" size={24} color="#D97706" />
             </View>
-            <Text style={styles.shortcutLabel}>새로운 대화</Text>
-            <Text style={styles.shortcutSub}>실시간 채팅</Text>
+            <Text style={styles.shortcutLabel}>인연 · 대화</Text>
+            <Text style={styles.shortcutSub}>새로운 친구</Text>
           </TouchableOpacity>
 
           {/* 무료 충전소 */}
@@ -394,7 +567,7 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         {/* =================================================================
-            4. 🔴 실시간 LIVE HOT 방송 쇼케이스 (가로 스크롤 카드)
+            5. 🔴 실시간 LIVE HOT 방송 쇼케이스
             ================================================================= */}
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
@@ -501,7 +674,7 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         {/* =================================================================
-            5. ✨ 지금 접속 중인 친구들 (카카오톡/인스타 스토리 아바타 링)
+            6. ✨ 지금 접속 중인 이웃 (스토리 아바타 링)
             ================================================================= */}
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
@@ -512,7 +685,7 @@ export default function HomeScreen({ navigation }) {
               </View>
             </View>
             <TouchableOpacity
-              onPress={() => navigation.navigate('HotRecommend')}
+              onPress={() => navigation.navigate('Chat', { tab: 'discover' })}
               activeOpacity={0.7}
             >
               <Text style={styles.sectionMoreLink}>인연 찾기 ›</Text>
@@ -548,7 +721,7 @@ export default function HomeScreen({ navigation }) {
               <TouchableOpacity
                 style={styles.emptyDiscoverCard}
                 activeOpacity={0.85}
-                onPress={() => navigation.navigate('HotRecommend')}
+                onPress={() => navigation.navigate('Chat', { tab: 'discover' })}
               >
                 <View style={styles.emptyDiscoverIconBg}>
                   <Ionicons name="sparkles" size={20} color="#191919" />
@@ -565,77 +738,127 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         {/* =================================================================
-            6. 🎁 카카오톡 스타일 스마트 프로모션 배너 (동적 슬라이드)
+            7. 💎 [신규 신설] 오늘의 추천 인연 (신규 추천 / BEST 인기 듀얼 쇼케이스)
             ================================================================= */}
-        <View style={styles.bannerSection}>
-          {currentBanner ? (
-            <TouchableOpacity
-              style={styles.adBannerCard}
-              activeOpacity={0.9}
-              onPress={() => handleBannerPress(currentBanner)}
-            >
-              {currentBanner.imageUrl ? (
-                <Image
-                  source={{ uri: currentBanner.imageUrl }}
-                  style={styles.adBannerImage}
-                />
-              ) : null}
-              <View style={styles.adBannerOverlay}>
-                <View style={styles.adBadgeRow}>
-                  <View style={styles.adBadgeKakao}>
-                    <Text style={styles.adBadgeTextKakao}>EVENT</Text>
-                  </View>
-                  {banners.length > 1 && (
-                    <View style={styles.bannerPageBadge}>
-                      <Text style={styles.bannerPageText}>
-                        {(activeBannerIdx % banners.length) + 1} / {banners.length}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.adBannerTitle} numberOfLines={1}>
-                  {currentBanner.title}
-                </Text>
-                {currentBanner.description ? (
-                  <Text style={styles.adBannerDesc} numberOfLines={1}>
-                    {currentBanner.description}
-                  </Text>
-                ) : null}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <Text style={styles.sectionTitle}>오늘의 추천 인연</Text>
+              <View style={styles.showcaseSectionBadge}>
+                <Text style={styles.showcaseSectionBadgeText}>NEW & BEST</Text>
               </View>
-            </TouchableOpacity>
-          ) : (
+            </View>
             <TouchableOpacity
-              style={styles.defaultBannerCard}
-              activeOpacity={0.88}
-              onPress={() => navigation.navigate('Shop')}
+              onPress={() => navigation.navigate('Chat', { tab: 'discover' })}
+              activeOpacity={0.7}
             >
+              <Text style={styles.sectionMoreLink}>인연 더보기 ›</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.showcaseDualRow}>
+            {/* 좌측: 신규 추천 카드 (슬라이드 전환) */}
+            <TouchableOpacity
+              style={styles.showcaseCard}
+              activeOpacity={0.92}
+              onPress={() => handleProfilePress(curNewUser)}
+            >
+              <Image
+                source={{
+                  uri:
+                    curNewUser?.avatar ||
+                    'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600',
+                }}
+                style={styles.showcaseImage}
+                resizeMode="cover"
+              />
               <LinearGradient
-                colors={['#FFFBEB', '#FEF3C7']}
-                style={styles.defaultBannerGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
+                colors={['rgba(0,0,0,0.25)', 'transparent', 'rgba(0,0,0,0.85)']}
+                style={styles.showcaseGradient}
               >
-                <View style={styles.defaultBannerLeft}>
-                  <View style={styles.defaultBannerBadge}>
-                    <Text style={styles.defaultBannerBadgeText}>SPECIAL</Text>
+                <View style={styles.showcaseTopRow}>
+                  <View style={styles.showcaseBadgeNew}>
+                    <Text style={styles.showcaseBadgeText}>✨ 신규 추천</Text>
                   </View>
-                  <Text style={styles.defaultBannerTitle}>
-                    프로필 완성하고 50 온 즉시 받기
-                  </Text>
-                  <Text style={styles.defaultBannerDesc}>
-                    동네 이웃에게 나를 소개하고 온을 충전하세요!
-                  </Text>
+                  <View style={styles.showcaseCounterPill}>
+                    <Text style={styles.showcaseCounterText}>
+                      {(activeNewIdx % newUsers.length) + 1}/{newUsers.length}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.defaultBannerArrowBtn}>
-                  <Ionicons name="arrow-forward" size={16} color="#191919" />
+
+                <View style={styles.showcaseBottomMeta}>
+                  <View style={styles.showcaseNameRow}>
+                    <View style={styles.showcaseOnlineDot} />
+                    <Text style={styles.showcaseNameText} numberOfLines={1}>
+                      {curNewUser?.name}
+                      {curNewUser?.age ? `, ${curNewUser.age}` : ''}
+                    </Text>
+                  </View>
+                  <Text style={styles.showcaseLocText} numberOfLines={1}>
+                    📍 {curNewUser?.location?.split(' ')[0] || '동네 이웃'}
+                  </Text>
+                  <Text style={styles.showcaseHeadline} numberOfLines={1}>
+                    {curNewUser?.headline || '새로운 인연을 찾고 있어요 ☕'}
+                  </Text>
+                  <Text style={styles.showcaseActionHint}>프로필 보기 ›</Text>
                 </View>
               </LinearGradient>
             </TouchableOpacity>
-          )}
+
+            {/* 우측: BEST 인기 카드 (슬라이드 전환) */}
+            <TouchableOpacity
+              style={styles.showcaseCard}
+              activeOpacity={0.92}
+              onPress={() => handleProfilePress(curBestUser)}
+            >
+              <Image
+                source={{
+                  uri:
+                    curBestUser?.avatar ||
+                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600',
+                }}
+                style={styles.showcaseImage}
+                resizeMode="cover"
+              />
+              <LinearGradient
+                colors={['rgba(0,0,0,0.25)', 'transparent', 'rgba(0,0,0,0.85)']}
+                style={styles.showcaseGradient}
+              >
+                <View style={styles.showcaseTopRow}>
+                  <View style={styles.showcaseBadgeBest}>
+                    <Text style={styles.showcaseBadgeText}>👑 BEST 인기</Text>
+                  </View>
+                  <View style={styles.showcaseCounterPill}>
+                    <Text style={styles.showcaseCounterText}>
+                      {(activeBestIdx % bestUsers.length) + 1}/{bestUsers.length}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.showcaseBottomMeta}>
+                  <View style={styles.showcaseNameRow}>
+                    <View style={styles.showcaseOnlineDot} />
+                    <Text style={styles.showcaseNameText} numberOfLines={1}>
+                      {curBestUser?.name}
+                      {curBestUser?.age ? `, ${curBestUser.age}` : ''}
+                    </Text>
+                  </View>
+                  <Text style={styles.showcaseLocText} numberOfLines={1}>
+                    📍 {curBestUser?.location?.split(' ')[0] || '동네 이웃'}
+                  </Text>
+                  <Text style={styles.showcaseHeadline} numberOfLines={1}>
+                    {curBestUser?.headline || '인기 회원과 대화해 보세요 🌸'}
+                  </Text>
+                  <Text style={styles.showcaseActionHint}>프로필 보기 ›</Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* =================================================================
-            7. 📰 다가온 동네 커뮤니티 이야기 피드 (생생한 이웃 일상)
+            8. 📰 다가온 동네 커뮤니티 이야기 피드 (생생한 이웃 일상)
             ================================================================= */}
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
@@ -750,7 +973,7 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         {/* =================================================================
-            8. 🛡️ 다가온 안심 케어 시스템 배너
+            9. 🛡️ 다가온 안심 케어 시스템 배너
             ================================================================= */}
         <View style={styles.safeCareCard}>
           <View style={styles.safeCareLeft}>
@@ -775,9 +998,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  // 1. 카카오 스타일 상단 앱바
+  // 1. 심플 프리미엄 앱바
   appbar: {
-    height: 56,
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -802,77 +1025,50 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: '#FEE500',
-    marginTop: 4,
+    marginTop: 2,
   },
   appbarRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  pointChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#FEE500',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  pointIconBg: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: 'rgba(0,0,0,0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pointChipText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#191919',
   },
   appbarIconBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F7F8FA',
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   scrollView: {
     flex: 1,
-    backgroundColor: '#F7F8FA',
   },
   scrollContent: {
-    paddingBottom: 130, // 하단 탭 바 위로 안전 스크롤
+    paddingBottom: 40,
   },
 
-  // 2. 카카오톡 상단 웰컴 & 내 프로필 미니 배너
+  // 2. 내 프로필 & 통합 잔여 온 칩 카드
   myProfileBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     marginTop: 12,
-    padding: 14,
-    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E8EAED',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    borderColor: '#ECEFF1',
   },
   myProfileLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
     flex: 1,
+    marginRight: 10,
   },
   myAvatarWrap: {
     position: 'relative',
+    marginRight: 10,
   },
   onlineBadge: {
     position: 'absolute',
@@ -892,46 +1088,177 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    marginBottom: 2,
   },
   myProfileName: {
     fontSize: 15,
     fontWeight: '800',
     color: '#191919',
+    letterSpacing: -0.3,
   },
   verifiedTag: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
   },
   verifiedTagText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
-    color: '#B45309',
+    color: '#0284C7',
   },
   myProfileStatus: {
     fontSize: 12,
     color: '#71717A',
+    lineHeight: 16,
+  },
+  myPointsChip: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    backgroundColor: '#FFFBEB',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  myPointsIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  myPointsAmount: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#B45309',
+  },
+  myPointsChargeTag: {
     marginTop: 2,
   },
+  myPointsChargeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#D97706',
+  },
 
-  // 3. 4대 숏컷 그리드
+  // 3. 배너 섹션 (최상단)
+  bannerSection: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+  },
+  adBannerCard: {
+    height: 94,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#191919',
+    position: 'relative',
+  },
+  adBannerImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  adBannerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    padding: 12,
+    justifyContent: 'center',
+  },
+  adBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  adBadgeKakao: {
+    backgroundColor: '#FEE500',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  adBadgeTextKakao: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#191919',
+  },
+  bannerPageBadge: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 8,
+  },
+  bannerPageText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  adBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  adBannerDesc: {
+    fontSize: 11,
+    color: '#E5E7EB',
+  },
+  defaultBannerCard: {
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  defaultBannerGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#FEF3C7',
+    borderRadius: 14,
+  },
+  defaultBannerLeft: {
+    flex: 1,
+    marginRight: 10,
+  },
+  defaultBannerBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  defaultBannerBadgeText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  defaultBannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#92400E',
+    marginBottom: 2,
+  },
+  defaultBannerDesc: {
+    fontSize: 11,
+    color: '#B45309',
+  },
+  defaultBannerArrowBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FDE68A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // 4. 4대 숏컷 그리드
   shortcutGrid: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#E8EAED',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    paddingHorizontal: 16,
+    marginTop: 14,
   },
   shortcutItem: {
     alignItems: 'center',
@@ -943,22 +1270,23 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
     position: 'relative',
   },
   shortcutPulseDot: {
     position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    top: 6,
+    right: 6,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
     backgroundColor: '#EF4444',
   },
   shortcutLabel: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#191919',
+    letterSpacing: -0.2,
   },
   shortcutSub: {
     fontSize: 10,
@@ -966,9 +1294,9 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
 
-  // 섹션 공통 스타일
+  // 공통 섹션 컨테이너
   sectionContainer: {
-    marginTop: 20,
+    marginTop: 22,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -982,63 +1310,63 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#191919',
-    letterSpacing: -0.4,
-  },
   livePulseDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#EF4444',
   },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#191919',
+    letterSpacing: -0.4,
+  },
   sectionBadgeRed: {
     backgroundColor: '#FEE2E2',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 4,
   },
   sectionBadgeTextRed: {
-    color: '#EF4444',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '900',
+    color: '#EF4444',
   },
   sectionSubCount: {
     fontSize: 12,
-    color: '#9CA3AF',
-    fontWeight: '600',
-  },
-  sectionMoreLink: {
-    fontSize: 13,
     color: '#8E8E93',
     fontWeight: '600',
   },
+  sectionMoreLink: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#8E8E93',
+  },
 
-  // 4. 실시간 LIVE 방송 쇼케이스
+  // 5. 실시간 LIVE 카드
   liveScrollContent: {
     paddingHorizontal: 16,
     gap: 12,
   },
   liveCard: {
-    width: 170,
+    width: 172,
     borderRadius: 16,
+    overflow: 'hidden',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E8EAED',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
+    borderColor: '#F2F3F5',
+    elevation: 2,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 6,
   },
   liveThumbWrap: {
     width: '100%',
-    height: 120,
+    height: 130,
     position: 'relative',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#E5E7EB',
   },
   liveThumbImage: {
     width: '100%',
@@ -1064,28 +1392,27 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   liveOnAirText: {
-    color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '900',
-    letterSpacing: 0.5,
+    color: '#FFFFFF',
   },
   liveViewerPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: 8,
   },
   liveViewerText: {
-    color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '700',
+    color: '#FFFFFF',
   },
   liveBottomHost: {
     position: 'absolute',
-    bottom: 8,
+    bottom: 6,
     left: 8,
     right: 8,
     flexDirection: 'row',
@@ -1093,10 +1420,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   liveHostName: {
-    color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
+    color: '#FFFFFF',
     flex: 1,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   liveMeta: {
     padding: 10,
@@ -1109,21 +1439,23 @@ const styles = StyleSheet.create({
   },
   liveTagText: {
     fontSize: 11,
-    color: '#F59E0B',
+    color: '#D97706',
     fontWeight: '600',
   },
   liveCreateCard: {
-    width: 150,
+    width: 140,
+    height: 194,
     borderRadius: 16,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
   },
   liveCreateGradient: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 16,
   },
   liveCreateIconCircle: {
     width: 44,
@@ -1133,10 +1465,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
-    shadowColor: '#D97706',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
     elevation: 2,
   },
   liveCreateTitle: {
@@ -1152,15 +1480,15 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
 
-  // 5. 지금 접속 중인 친구들
+  // 6. 지금 접속 중인 이웃 (스토리)
   onlineCountBadge: {
     backgroundColor: '#ECFDF5',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 10,
   },
   onlineCountText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
     color: '#059669',
   },
@@ -1170,19 +1498,22 @@ const styles = StyleSheet.create({
   },
   storyItem: {
     alignItems: 'center',
-    width: 66,
+    width: 64,
   },
   storyAvatarRing: {
-    position: 'relative',
-    padding: 2,
-    borderRadius: 33,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     borderWidth: 2,
     borderColor: '#FEE500',
-    marginBottom: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    marginBottom: 4,
   },
   storyActiveDot: {
     position: 'absolute',
-    bottom: 2,
+    bottom: 0,
     right: 2,
     width: 12,
     height: 12,
@@ -1195,145 +1526,176 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#191919',
+    width: 60,
     textAlign: 'center',
-    width: '100%',
   },
   storyLoc: {
     fontSize: 10,
     color: '#8E8E93',
+    width: 60,
     textAlign: 'center',
-    marginTop: 1,
   },
-
-  // 6. 배너 영역
-  bannerSection: {
-    marginHorizontal: 16,
-    marginTop: 22,
-  },
-  adBannerCard: {
-    height: 100,
-    borderRadius: 18,
-    overflow: 'hidden',
-    backgroundColor: '#1E293B',
-    position: 'relative',
-    justifyContent: 'flex-end',
-  },
-  adBannerImage: {
-    ...StyleSheet.absoluteFillObject,
-    resizeMode: 'cover',
-  },
-  adBannerOverlay: {
-    padding: 12,
-    backgroundColor: 'rgba(25, 25, 25, 0.65)',
-  },
-  adBadgeRow: {
+  emptyDiscoverCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  adBadgeKakao: {
-    backgroundColor: '#FEE500',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  adBadgeTextKakao: {
-    color: '#191919',
-    fontSize: 9,
-    fontWeight: '900',
-  },
-  bannerPageBadge: {
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  bannerPageText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '600',
-  },
-  adBannerTitle: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  adBannerDesc: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 11,
-    marginTop: 2,
-  },
-  defaultBannerCard: {
-    borderRadius: 18,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-  },
-  defaultBannerGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 12,
+    backgroundColor: '#F8F9FA',
     padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    width: width - 32,
   },
-  defaultBannerLeft: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  defaultBannerBadge: {
-    alignSelf: 'flex-start',
+  emptyDiscoverIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#FEE500',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginBottom: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  defaultBannerBadgeText: {
-    fontSize: 9,
-    fontWeight: '900',
-    color: '#191919',
+  emptyDiscoverTextWrap: {
+    flex: 1,
   },
-  defaultBannerTitle: {
-    fontSize: 14,
+  emptyDiscoverTitle: {
+    fontSize: 13,
     fontWeight: '800',
     color: '#191919',
   },
-  defaultBannerDesc: {
+  emptyDiscoverSubtitle: {
     fontSize: 11,
     color: '#71717A',
     marginTop: 2,
   },
-  defaultBannerArrowBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+
+  // 7. [신규 신설] 신규 추천 & BEST 인기 듀얼 쇼케이스
+  showcaseSectionBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+  },
+  showcaseSectionBadgeText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#D97706',
+  },
+  showcaseDualRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 16,
+  },
+  showcaseCard: {
+    flex: 1,
+    height: 234,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: '#1E293B',
+    elevation: 3,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    position: 'relative',
+  },
+  showcaseImage: {
+    width: '100%',
+    height: '100%',
+  },
+  showcaseGradient: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'space-between',
+    padding: 12,
+  },
+  showcaseTopRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+    justifyContent: 'space-between',
+  },
+  showcaseBadgeNew: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  showcaseBadgeBest: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  showcaseBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  showcaseCounterPill: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  showcaseCounterText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  showcaseBottomMeta: {
+    gap: 2,
+  },
+  showcaseNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  showcaseOnlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  showcaseNameText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '900',
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  showcaseLocText: {
+    color: '#E2E8F0',
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  showcaseHeadline: {
+    color: '#CBD5E1',
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  showcaseActionHint: {
+    color: '#FCD34D',
+    fontSize: 10,
+    fontWeight: '800',
+    marginTop: 4,
   },
 
-  // 7. 동네 커뮤니티 이야기 피드
+  // 8. 커뮤니티 피드
   topicChipScroll: {
     paddingHorizontal: 16,
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   topicChip: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F3F4F6',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E8EAED',
+    borderRadius: 14,
   },
   topicChipText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: '#4B5563',
   },
@@ -1342,16 +1704,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   postCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFAFA',
     padding: 14,
-    borderRadius: 18,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E8EAED',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    borderColor: '#F2F3F5',
   },
   postTopRow: {
     flexDirection: 'row',
@@ -1359,46 +1716,43 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   postAuthorMeta: {
-    marginLeft: 8,
     flex: 1,
+    marginLeft: 8,
   },
   postAuthorName: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#191919',
   },
   postTime: {
     fontSize: 11,
-    color: '#8E8E93',
+    color: '#9CA3AF',
+    marginTop: 1,
   },
   postCategoryBadge: {
     backgroundColor: '#F3F4F6',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   postCategoryText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: '#6B7280',
   },
   postContent: {
     fontSize: 13,
     color: '#374151',
-    lineHeight: 19,
+    lineHeight: 18,
     marginBottom: 10,
   },
   postBottomRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F7F8FA',
+    alignItems: 'center',
   },
   postStats: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: 12,
   },
   statItem: {
@@ -1408,40 +1762,40 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 11,
-    color: '#8E8E93',
+    color: '#9CA3AF',
     fontWeight: '600',
   },
   postReadMore: {
     fontSize: 11,
-    color: '#D97706',
     fontWeight: '700',
+    color: '#8E8E93',
   },
   emptyPostPrompt: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 16,
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    padding: 14,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E8EAED',
+    borderColor: '#FEF3C7',
   },
   emptyPostPromptText: {
-    fontSize: 13,
-    color: '#4B5563',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#92400E',
     flex: 1,
-    marginLeft: 8,
   },
 
-  // 8. 안심 케어 시스템
+  // 9. 안심 케어 카드
   safeCareCard: {
     marginHorizontal: 16,
-    marginTop: 20,
-    backgroundColor: '#FFFFFF',
+    marginTop: 24,
+    backgroundColor: '#ECFDF5',
     padding: 14,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E8EAED',
+    borderColor: '#D1FAE5',
   },
   safeCareLeft: {
     flexDirection: 'row',
@@ -1449,62 +1803,22 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   safeCareIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#ECFDF5',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   safeCareTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#191919',
+    color: '#065F46',
   },
   safeCareDesc: {
     fontSize: 11,
-    color: '#6B7280',
+    color: '#047857',
     marginTop: 2,
     lineHeight: 15,
-  },
-  emptyDiscoverCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#E8EAED',
-    marginRight: 16,
-    minWidth: 260,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  emptyDiscoverIconBg: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#FEE500',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  emptyDiscoverTextWrap: {
-    flex: 1,
-  },
-  emptyDiscoverTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#191919',
-  },
-  emptyDiscoverSubtitle: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 2,
-    fontWeight: '500',
   },
 });
