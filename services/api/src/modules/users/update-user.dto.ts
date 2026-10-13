@@ -37,6 +37,18 @@ export class UpdateUserDto {
   marketingOptIn?: boolean | string;
 
   @IsOptional()
+  nightPushOptIn?: boolean | string;
+
+  @IsOptional()
+  chatPushOptIn?: boolean | string;
+
+  @IsOptional()
+  livePushOptIn?: boolean | string;
+
+  @IsOptional()
+  hideOnlineStatus?: boolean | string;
+
+  @IsOptional()
   @IsString()
   @MaxLength(200)
   headline?: string;

@@ -69,6 +69,7 @@ module.exports = ({ config }) => {
     },
     updates: {
       ...(resolvedConfig.updates ?? {}),
+      url: 'https://u.expo.dev/48882e02-0717-473c-be0d-477fe24c4b5a',
       enabled: true,
       checkAutomatically: 'NEVER',
     },
@@ -82,7 +83,7 @@ module.exports = ({ config }) => {
         resolvedConfig?.extra?.TOK_API_BASE_URL ??
         'https://tok-friends-api.onrender.com',
       eas: {
-        projectId: 'eb3c1b74-5c41-4ce0-9574-d0d3eb932d72',
+        projectId: process.env.EAS_PROJECT_ID ?? '48882e02-0717-473c-be0d-477fe24c4b5a',
       },
     },
   };

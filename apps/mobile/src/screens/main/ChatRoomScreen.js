@@ -209,7 +209,51 @@ export default function ChatRoomScreen({ route, navigation }) {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [previewImageUri, setPreviewImageUri] = useState(null);
   const [isFavorite, setIsFavorite] = useState(route?.params?.isFavorite ?? false);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [messageActionVisible, setMessageActionVisible] = useState(false);
   const insets = useSafeAreaInsets();
+
+  const handleMessageLongPress = useCallback((item) => {
+    if (!item || item.type === 'date') return;
+    setSelectedMessage(item);
+    setMessageActionVisible(true);
+  }, []);
+
+  const handleCopyMessage = useCallback(() => {
+    if (selectedMessage?.text) {
+      try {
+        const { Clipboard } = require('react-native');
+        if (Clipboard?.setString) {
+          Clipboard.setString(selectedMessage.text);
+        }
+      } catch {}
+      Alert.alert('복사 완료', '메시지가 클립보드에 복사되었습니다.');
+    }
+    setMessageActionVisible(false);
+  }, [selectedMessage]);
+
+  const handleDeleteMessage = useCallback(() => {
+    if (!selectedMessage) return;
+    Alert.alert('메시지 삭제', '이 대화방에서 해당 메시지를 삭제하시겠습니까?', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '삭제',
+        style: 'destructive',
+        onPress: () => {
+          setMessages((prev) => prev.filter((m) => m.id !== selectedMessage.id));
+          setMessageActionVisible(false);
+        },
+      },
+    ]);
+  }, [selectedMessage]);
+
+  const handleReportSelectedMessage = useCallback(() => {
+    setMessageActionVisible(false);
+    if (selectedMessage?.text) {
+      setReportText(`[부적절한 대화 내용]: "${selectedMessage.text}"`);
+    }
+    setReportVisible(true);
+  }, [selectedMessage]);
 
   const handleRootLayout = (event) => {
     const height = event.nativeEvent.layout.height;
@@ -1206,9 +1250,13 @@ export default function ChatRoomScreen({ route, navigation }) {
           {item.type === 'gift' ? (
             renderBubbleContent()
           ) : (
-            <View style={[styles.messageBubble, styles.myMessageBubble]}>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              onLongPress={() => handleMessageLongPress(item)}
+              style={[styles.messageBubble, styles.myMessageBubble]}
+            >
               {renderBubbleContent()}
-            </View>
+            </TouchableOpacity>
           )}
         </View>
       );
@@ -1267,9 +1315,13 @@ export default function ChatRoomScreen({ route, navigation }) {
             {item.type === 'gift' ? (
               renderBubbleContent()
             ) : (
-              <View style={[styles.messageBubble, styles.otherMessageBubble]}>
+              <TouchableOpacity
+                activeOpacity={0.88}
+                onLongPress={() => handleMessageLongPress(item)}
+                style={[styles.messageBubble, styles.otherMessageBubble]}
+              >
                 {renderBubbleContent()}
-              </View>
+              </TouchableOpacity>
             )}
             <View style={styles.otherTimeBadgeCol}>
               <Text style={styles.kakaoTimeText}>{item.timestamp}</Text>
@@ -1743,6 +1795,43 @@ export default function ChatRoomScreen({ route, navigation }) {
                     )}
                   </TouchableOpacity>
                 </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+      </Modal>
+
+      {/* Message Long Press Context Action Modal */}
+      <Modal
+        transparent
+        visible={messageActionVisible}
+        animationType="fade"
+        onRequestClose={() => setMessageActionVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setMessageActionVisible(false)}>
+          <View style={styles.optionsBackdrop}>
+            <TouchableWithoutFeedback onPress={() => {}}>
+              <View style={styles.optionCard}>
+                {selectedMessage?.text ? (
+                  <>
+                    <TouchableOpacity style={styles.optionItem} onPress={handleCopyMessage}>
+                      <Ionicons name="copy-outline" size={18} color="#1F2A44" />
+                      <Text style={styles.optionText}>내용 복사</Text>
+                    </TouchableOpacity>
+                    <View style={styles.optionDivider} />
+                  </>
+                ) : null}
+
+                {selectedMessage?.sender === 'me' ? (
+                  <TouchableOpacity style={styles.optionItem} onPress={handleDeleteMessage}>
+                    <Ionicons name="trash-outline" size={18} color="#DC2626" />
+                    <Text style={[styles.optionText, { color: '#DC2626' }]}>메시지 삭제</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity style={styles.optionItem} onPress={handleReportSelectedMessage}>
+                    <Ionicons name="flag-outline" size={18} color={colors.primary} />
+                    <Text style={styles.optionText}>이 메시지 신고</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </TouchableWithoutFeedback>
           </View>

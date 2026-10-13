@@ -141,6 +141,10 @@ export class UsersController {
 
     const interests = this.normalizeInterests(body.interests);
     const marketingOptIn = this.normalizeBoolean(body.marketingOptIn);
+    const nightPushOptIn = this.normalizeBoolean(body.nightPushOptIn);
+    const chatPushOptIn = this.normalizeBoolean(body.chatPushOptIn);
+    const livePushOptIn = this.normalizeBoolean(body.livePushOptIn);
+    const hideOnlineStatus = this.normalizeBoolean(body.hideOnlineStatus);
 
     const bioValue = typeof body.bio === 'string' ? body.bio.trim() : undefined;
     const headlineValue = typeof body.headline === 'string' ? body.headline.trim() : undefined;
@@ -154,6 +158,10 @@ export class UsersController {
       region2: body.region2?.trim() || undefined,
       interests,
       marketingOptIn,
+      nightPushOptIn,
+      chatPushOptIn,
+      livePushOptIn,
+      hideOnlineStatus,
       headline:
         headlineValue === undefined ? undefined : headlineValue.length ? headlineValue : null,
       avatarUri:
@@ -229,6 +237,10 @@ export class UsersController {
             interests: user.profile.interests ?? [],
             badges: user.profile.badges ?? [],
             marketingOptIn: visibility?.marketingOptIn ?? false,
+            nightPushOptIn: visibility?.nightPushOptIn ?? false,
+            chatPushOptIn: visibility?.chatPushOptIn !== false,
+            livePushOptIn: visibility?.livePushOptIn !== false,
+            hideOnlineStatus: visibility?.hideOnlineStatus ?? false,
           }
         : null,
       counts: user._count

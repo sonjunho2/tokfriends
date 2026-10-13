@@ -140,7 +140,7 @@ function mapHomeDiscoverUser(user) {
     bio: profile?.bio || profile?.headline || '반가워요!',
     headline: profile?.headline || '새로운 인연을 기다려요 ✨',
     points: typeof user?.points === 'number' ? user.points : 500,
-    online: Boolean(profile?.lastSeenAt),
+    online: Boolean(profile?.lastSeenAt && !profile?.hideOnlineStatus),
   };
 }
 
@@ -185,21 +185,34 @@ export default function HomeScreen({ navigation }) {
     return DEFAULT_BEST_USERS;
   }, [discoverUsers]);
 
+  const [isPausedNew, setIsPausedNew] = useState(false);
+  const [isPausedBest, setIsPausedBest] = useState(false);
+
   useEffect(() => {
-    if (newUsers.length <= 1) return;
+    if (newUsers.length <= 1 || isPausedNew) return;
     const interval = setInterval(() => {
       setActiveNewIdx((prev) => (prev + 1) % newUsers.length);
     }, 3800);
     return () => clearInterval(interval);
-  }, [newUsers.length]);
+  }, [newUsers.length, isPausedNew]);
 
   useEffect(() => {
-    if (bestUsers.length <= 1) return;
+    if (bestUsers.length <= 1 || isPausedBest) return;
     const interval = setInterval(() => {
       setActiveBestIdx((prev) => (prev + 1) % bestUsers.length);
     }, 4300);
     return () => clearInterval(interval);
-  }, [bestUsers.length]);
+  }, [bestUsers.length, isPausedBest]);
+
+  const handleNextNew = (e) => {
+    e?.stopPropagation?.();
+    setActiveNewIdx((prev) => (prev + 1) % newUsers.length);
+  };
+
+  const handleNextBest = (e) => {
+    e?.stopPropagation?.();
+    setActiveBestIdx((prev) => (prev + 1) % bestUsers.length);
+  };
 
   const loadHomeData = useCallback(async ({ refresh = false } = {}) => {
     if (refresh) setRefreshing(true);
@@ -405,7 +418,7 @@ export default function HomeScreen({ navigation }) {
                 name={authUser?.displayName || '나'}
                 uri={authUser?.profile?.avatarUri}
               />
-              <View style={styles.onlineBadge} />
+              {!authUser?.profile?.hideOnlineStatus && <View style={styles.onlineBadge} />}
             </View>
             <View style={styles.myProfileMeta}>
               <View style={styles.myProfileNameRow}>
@@ -762,6 +775,8 @@ export default function HomeScreen({ navigation }) {
               style={styles.showcaseCard}
               activeOpacity={0.92}
               onPress={() => handleProfilePress(curNewUser)}
+              onPressIn={() => setIsPausedNew(true)}
+              onPressOut={() => setIsPausedNew(false)}
             >
               <Image
                 source={{
@@ -780,11 +795,16 @@ export default function HomeScreen({ navigation }) {
                   <View style={styles.showcaseBadgeNew}>
                     <Text style={styles.showcaseBadgeText}>✨ 신규 추천</Text>
                   </View>
-                  <View style={styles.showcaseCounterPill}>
+                  <TouchableOpacity
+                    style={styles.showcaseCounterPill}
+                    onPress={handleNextNew}
+                    hitSlop={8}
+                    activeOpacity={0.8}
+                  >
                     <Text style={styles.showcaseCounterText}>
-                      {(activeNewIdx % newUsers.length) + 1}/{newUsers.length}
+                      {(activeNewIdx % newUsers.length) + 1}/{newUsers.length} ›
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 </View>
 
                 <View style={styles.showcaseBottomMeta}>
@@ -811,6 +831,8 @@ export default function HomeScreen({ navigation }) {
               style={styles.showcaseCard}
               activeOpacity={0.92}
               onPress={() => handleProfilePress(curBestUser)}
+              onPressIn={() => setIsPausedBest(true)}
+              onPressOut={() => setIsPausedBest(false)}
             >
               <Image
                 source={{
@@ -829,11 +851,16 @@ export default function HomeScreen({ navigation }) {
                   <View style={styles.showcaseBadgeBest}>
                     <Text style={styles.showcaseBadgeText}>👑 BEST 인기</Text>
                   </View>
-                  <View style={styles.showcaseCounterPill}>
+                  <TouchableOpacity
+                    style={styles.showcaseCounterPill}
+                    onPress={handleNextBest}
+                    hitSlop={8}
+                    activeOpacity={0.8}
+                  >
                     <Text style={styles.showcaseCounterText}>
-                      {(activeBestIdx % bestUsers.length) + 1}/{bestUsers.length}
+                      {(activeBestIdx % bestUsers.length) + 1}/{bestUsers.length} ›
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 </View>
 
                 <View style={styles.showcaseBottomMeta}>

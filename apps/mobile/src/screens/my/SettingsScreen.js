@@ -38,7 +38,7 @@ const FALLBACK_MANAGED_FONTS = [
 ];
 
 export default function SettingsScreen({ navigation }) {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshMe } = useAuth();
   const userProfile = user?.profile ?? {};
 
   const nickname = userProfile?.nickname || user?.displayName || '회원님';
@@ -47,6 +47,12 @@ export default function SettingsScreen({ navigation }) {
     userProfile?.headline || '한줄 소개를 등록해 주세요.';
 
   const [pushEnabled, setPushEnabled] = useState(true);
+  const [chatPush, setChatPush] = useState(true);
+  const [livePush, setLivePush] = useState(true);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
+  const [nightPushOptIn, setNightPushOptIn] = useState(false);
+  const [hideOnlineStatus, setHideOnlineStatus] = useState(false);
+
   const [darkMode, setDarkMode] = useState(false);
   const [fontSize, setFontSize] = useState('medium');
   const [availableFonts, setAvailableFonts] = useState(() => [
@@ -67,6 +73,22 @@ export default function SettingsScreen({ navigation }) {
   const [legalBody, setLegalBody] = useState('');
   const [legalLoading, setLegalLoading] = useState(false);
   const [cacheSize, setCacheSize] = useState('계산 중...');
+
+  const [announcementsModalVisible, setAnnouncementsModalVisible] = useState(false);
+  const [announcementsList, setAnnouncementsList] = useState([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(false);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
+
+  const syncServerPreference = useCallback(async (patchObj) => {
+    try {
+      if (user?.id) {
+        await apiClient.updateUser(user.id, patchObj);
+        if (refreshMe) await refreshMe();
+      }
+    } catch (err) {
+      console.warn('Failed to sync settings with server', err);
+    }
+  }, [user?.id, refreshMe]);
 
   const calculateCacheSize = useCallback(async () => {
     try {
@@ -149,6 +171,20 @@ export default function SettingsScreen({ navigation }) {
     }
   }, []);
 
+  const openAnnouncements = useCallback(async () => {
+    setAnnouncementsModalVisible(true);
+    setAnnouncementsLoading(true);
+    setSelectedAnnouncement(null);
+    try {
+      const list = await apiClient.getAnnouncements();
+      setAnnouncementsList(Array.isArray(list) ? list : []);
+    } catch {
+      setAnnouncementsList([]);
+    } finally {
+      setAnnouncementsLoading(false);
+    }
+  }, []);
+
   const dynamicFont = useMemo(() => {
     if (selectedFont === 'system') {
       return { heading: null, body: null };
@@ -183,6 +219,101 @@ export default function SettingsScreen({ navigation }) {
     await setPushNotificationsEnabled(val);
   }, []);
 
+  const handleToggleChatPush = useCallback(async (val) => {
+    setChatPush(val);
+    await AsyncStorage.setItem('dagaon_chat_push', val ? 'true' : 'false');
+    await syncServerPreference({ chatPushOptIn: val });
+  }, [syncServerPreference]);
+
+  const handleToggleLivePush = useCallback(async (val) => {
+    setLivePush(val);
+    await AsyncStorage.setItem('dagaon_live_push', val ? 'true' : 'false');
+    await syncServerPreference({ livePushOptIn: val });
+  }, [syncServerPreference]);
+
+  const handleToggleMarketing = useCallback(async (val) => {
+    setMarketingOptIn(val);
+    if (!val) {
+      setNightPushOptIn(false);
+      await AsyncStorage.setItem('dagaon_night_push', 'false');
+      await syncServerPreference({ marketingOptIn: false, nightPushOptIn: false });
+    } else {
+      await syncServerPreference({ marketingOptIn: true });
+    }
+    await AsyncStorage.setItem('dagaon_marketing_push', val ? 'true' : 'false');
+
+    const now = new Date();
+    const dateFormatted = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
+    if (val) {
+      Alert.alert(
+        '혜택 및 마케팅 알림 수신 동의',
+        `동의 일시: ${dateFormatted}\n다가온의 이벤트, 할인 혜택 및 추천 소식 수신에 동의하셨습니다.\n(환경설정에서 언제든지 철회할 수 있습니다)`,
+      );
+    } else {
+      Alert.alert(
+        '혜택 및 마케팅 알림 수신 철회',
+        `철회 일시: ${dateFormatted}\n마케팅 정보 수신 동의가 철회되었습니다.`,
+      );
+    }
+  }, [syncServerPreference]);
+
+  const handleToggleNightPush = useCallback(async (val) => {
+    if (val && !marketingOptIn) {
+      Alert.alert('안내', '야간 혜택 알림은 마케팅 알림에 먼저 동의하신 후 설정 가능합니다.');
+      return;
+    }
+    setNightPushOptIn(val);
+    await AsyncStorage.setItem('dagaon_night_push', val ? 'true' : 'false');
+    await syncServerPreference({ nightPushOptIn: val });
+  }, [marketingOptIn, syncServerPreference]);
+
+  const handleToggleHideOnline = useCallback(async (val) => {
+    setHideOnlineStatus(val);
+    await AsyncStorage.setItem('dagaon_hide_online', val ? 'true' : 'false');
+    await syncServerPreference({ hideOnlineStatus: val });
+  }, [syncServerPreference]);
+
+  const handleToggleDarkMode = useCallback(async (val) => {
+    setDarkMode(val);
+    await AsyncStorage.setItem('dagaon_dark_mode', val ? 'true' : 'false');
+  }, []);
+
+  const handleChangeFontSize = useCallback(async (size) => {
+    setFontSize(size);
+    await AsyncStorage.setItem('dagaon_font_size', size);
+  }, []);
+
+  const themeColors = useMemo(() => {
+    if (darkMode) {
+      return {
+        background: '#0F172A',
+        card: '#1E293B',
+        headerBg: '#0F172A',
+        textPrimary: '#F8FAFC',
+        textSecondary: '#94A3B8',
+        border: '#334155',
+        borderLight: '#1E293B',
+        subtleBg: '#1E293B',
+        subRowBg: '#162032',
+        divider: '#334155',
+      };
+    }
+    return {
+      background: colors.background || '#F7F8FA',
+      card: '#FFFFFF',
+      headerBg: '#FFFFFF',
+      textPrimary: colors.textPrimary || '#191919',
+      textSecondary: colors.textSecondary || '#4A4A4A',
+      border: colors.border || '#E8EAED',
+      borderLight: colors.borderLight || '#F2F3F5',
+      subtleBg: '#F8FAFC',
+      subRowBg: '#F9FAFB',
+      divider: '#E5E7EB',
+    };
+  }, [darkMode]);
+
+  const fontScale = fontSize === 'large' ? 1.12 : 1.0;
+
   const quickActions = [
     {
       key: 'charge',
@@ -214,8 +345,61 @@ export default function SettingsScreen({ navigation }) {
     useCallback(() => {
       let active = true;
 
-      const loadCounts = async () => {
+      const loadSettingsAndCounts = async () => {
         try {
+          const [
+            savedDark,
+            savedFontSize,
+            savedChat,
+            savedLive,
+            savedMarketing,
+            savedNight,
+            savedHideOnline,
+          ] = await Promise.all([
+            AsyncStorage.getItem('dagaon_dark_mode'),
+            AsyncStorage.getItem('dagaon_font_size'),
+            AsyncStorage.getItem('dagaon_chat_push'),
+            AsyncStorage.getItem('dagaon_live_push'),
+            AsyncStorage.getItem('dagaon_marketing_push'),
+            AsyncStorage.getItem('dagaon_night_push'),
+            AsyncStorage.getItem('dagaon_hide_online'),
+          ]);
+
+          if (active) {
+            if (savedDark !== null) setDarkMode(savedDark === 'true');
+            if (savedFontSize !== null) setFontSize(savedFontSize);
+
+            if (userProfile?.chatPushOptIn !== undefined) {
+              setChatPush(userProfile.chatPushOptIn !== false);
+            } else if (savedChat !== null) {
+              setChatPush(savedChat === 'true');
+            }
+
+            if (userProfile?.livePushOptIn !== undefined) {
+              setLivePush(userProfile.livePushOptIn !== false);
+            } else if (savedLive !== null) {
+              setLivePush(savedLive === 'true');
+            }
+
+            if (userProfile?.marketingOptIn !== undefined) {
+              setMarketingOptIn(Boolean(userProfile.marketingOptIn));
+            } else if (savedMarketing !== null) {
+              setMarketingOptIn(savedMarketing === 'true');
+            }
+
+            if (userProfile?.nightPushOptIn !== undefined) {
+              setNightPushOptIn(Boolean(userProfile.nightPushOptIn));
+            } else if (savedNight !== null) {
+              setNightPushOptIn(savedNight === 'true');
+            }
+
+            if (userProfile?.hideOnlineStatus !== undefined) {
+              setHideOnlineStatus(Boolean(userProfile.hideOnlineStatus));
+            } else if (savedHideOnline !== null) {
+              setHideOnlineStatus(savedHideOnline === 'true');
+            }
+          }
+
           const [blockedRes, friendsRes, pushPref, visitsRes, followersRes, followingRes] = await Promise.allSettled([
             apiClient.getBlockedUsers(),
             apiClient.getFriendships(),
@@ -279,16 +463,22 @@ export default function SettingsScreen({ navigation }) {
         }
       };
 
-      loadCounts();
+      loadSettingsAndCounts();
       calculateCacheSize();
 
       return () => {
         active = false;
       };
-    }, [calculateCacheSize]),
+    }, [calculateCacheSize, userProfile]),
   );
 
   const supportLinks = [
+    {
+      key: 'announcements',
+      icon: 'megaphone-outline',
+      label: '공지사항 및 서비스 소식',
+      onPress: openAnnouncements,
+    },
     {
       key: 'visitors',
       icon: 'eye-outline',
@@ -510,8 +700,8 @@ export default function SettingsScreen({ navigation }) {
   const canGoBack = (navigation.getState()?.index ?? 0) > 0;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.headerBg }]} edges={['top', 'left', 'right']}>
+      <View style={[styles.header, { backgroundColor: themeColors.headerBg, borderBottomColor: themeColors.borderLight }]}>
         <View style={styles.headerLeft}>
           {canGoBack && (
             <TouchableOpacity
@@ -519,21 +709,23 @@ export default function SettingsScreen({ navigation }) {
               onPress={() => navigation.goBack()}
               hitSlop={8}
             >
-              <Ionicons name="chevron-back" size={24} color={colors.textPrimary || '#111827'} />
+              <Ionicons name="chevron-back" size={24} color={themeColors.textPrimary} />
             </TouchableOpacity>
           )}
-          <Text style={[styles.headerTitle, dynamicFont.heading]}>마이</Text>
+          <Text style={[styles.headerTitle, dynamicFont.heading, { color: themeColors.textPrimary, fontSize: 20 * fontScale }]}>
+            설정
+          </Text>
         </View>
         <View style={styles.headerRight} />
       </View>
 
       <ScrollView
-        style={{ flex: 1, backgroundColor: colors.background }}
+        style={{ flex: 1, backgroundColor: themeColors.background }}
         contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
       >
         <TouchableOpacity activeOpacity={0.9} onPress={handleOpenProfile}>
-          <View style={styles.profileCard}>
+          <View style={[styles.profileCard, { backgroundColor: themeColors.card }]}>
             <Avatar
               size={72}
               name={nickname}
@@ -542,70 +734,94 @@ export default function SettingsScreen({ navigation }) {
               style={styles.profileAvatar}
             />
             <View style={{ flex: 1 }}>
-              <Text style={[styles.profileName, dynamicFont.heading]}>{nickname}</Text>
-              <Text style={[styles.profileMeta, dynamicFont.body]}>{locationLabel}</Text>
-              <Text style={[styles.profileNote, dynamicFont.body]}>{tagline}</Text>
+              <View style={styles.profileNameRow}>
+                <Text style={[styles.profileName, dynamicFont.heading, { color: themeColors.textPrimary, fontSize: 21 * fontScale }]}>
+                  {nickname}
+                </Text>
+                {hideOnlineStatus ? (
+                  <View style={styles.incognitoBadge}>
+                    <Ionicons name="eye-off-outline" size={11} color="#64748B" />
+                    <Text style={styles.incognitoBadgeText}>시크릿</Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text style={[styles.profileMeta, dynamicFont.body, { color: themeColors.textSecondary, fontSize: 13 * fontScale }]}>
+                {locationLabel}
+              </Text>
+              <Text style={[styles.profileNote, dynamicFont.body, { color: themeColors.textSecondary, fontSize: 13 * fontScale }]}>
+                {tagline}
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+            <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
           </View>
         </TouchableOpacity>
 
         {/* 소셜 관계 카운터 바 (방문자 / 팔로워 / 팔로잉 / 친구) */}
-        <View style={styles.socialStatsBar}>
+        <View style={[styles.socialStatsBar, { backgroundColor: themeColors.card, borderColor: themeColors.borderLight }]}>
           <TouchableOpacity
             style={styles.socialStatItem}
             activeOpacity={0.7}
             onPress={() => navigation.navigate('Visitors')}
           >
-            <Text style={[styles.socialStatCount, dynamicFont.heading]}>
+            <Text style={[styles.socialStatCount, dynamicFont.heading, { color: themeColors.textPrimary, fontSize: 18 * fontScale }]}>
               {visitorsCount !== null ? visitorsCount : 0}
             </Text>
-            <Text style={[styles.socialStatLabel, dynamicFont.body]}>방문자</Text>
+            <Text style={[styles.socialStatLabel, dynamicFont.body, { color: themeColors.textSecondary, fontSize: 12 * fontScale }]}>
+              방문자
+            </Text>
           </TouchableOpacity>
 
-          <View style={styles.socialStatDivider} />
+          <View style={[styles.socialStatDivider, { backgroundColor: themeColors.divider }]} />
 
           <TouchableOpacity
             style={styles.socialStatItem}
             activeOpacity={0.7}
             onPress={() => navigation.navigate('Follows', { initialTab: 'followers' })}
           >
-            <Text style={[styles.socialStatCount, dynamicFont.heading]}>
+            <Text style={[styles.socialStatCount, dynamicFont.heading, { color: themeColors.textPrimary, fontSize: 18 * fontScale }]}>
               {followersCount !== null ? followersCount : 0}
             </Text>
-            <Text style={[styles.socialStatLabel, dynamicFont.body]}>팔로워</Text>
+            <Text style={[styles.socialStatLabel, dynamicFont.body, { color: themeColors.textSecondary, fontSize: 12 * fontScale }]}>
+              팔로워
+            </Text>
           </TouchableOpacity>
 
-          <View style={styles.socialStatDivider} />
+          <View style={[styles.socialStatDivider, { backgroundColor: themeColors.divider }]} />
 
           <TouchableOpacity
             style={styles.socialStatItem}
             activeOpacity={0.7}
             onPress={() => navigation.navigate('Follows', { initialTab: 'following' })}
           >
-            <Text style={[styles.socialStatCount, dynamicFont.heading]}>
+            <Text style={[styles.socialStatCount, dynamicFont.heading, { color: themeColors.textPrimary, fontSize: 18 * fontScale }]}>
               {followingCount !== null ? followingCount : 0}
             </Text>
-            <Text style={[styles.socialStatLabel, dynamicFont.body]}>팔로잉</Text>
+            <Text style={[styles.socialStatLabel, dynamicFont.body, { color: themeColors.textSecondary, fontSize: 12 * fontScale }]}>
+              팔로잉
+            </Text>
           </TouchableOpacity>
 
-          <View style={styles.socialStatDivider} />
+          <View style={[styles.socialStatDivider, { backgroundColor: themeColors.divider }]} />
 
           <TouchableOpacity
             style={styles.socialStatItem}
             activeOpacity={0.7}
             onPress={() => navigation.navigate('Friends')}
           >
-            <Text style={[styles.socialStatCount, dynamicFont.heading]}>
+            <Text style={[styles.socialStatCount, dynamicFont.heading, { color: themeColors.textPrimary, fontSize: 18 * fontScale }]}>
               {friendsCount !== null ? friendsCount : 0}
             </Text>
-            <Text style={[styles.socialStatLabel, dynamicFont.body]}>내 친구</Text>
+            <Text style={[styles.socialStatLabel, dynamicFont.body, { color: themeColors.textSecondary, fontSize: 12 * fontScale }]}>
+              내 친구
+            </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, dynamicFont.heading]}>빠른 설정</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, dynamicFont.heading, { color: themeColors.textPrimary, fontSize: 16 * fontScale }]}>
+            빠른 메뉴
+          </Text>
+          <View style={[styles.card, { backgroundColor: themeColors.card }]}>
             {quickActions.map((item) => (
               <TouchableOpacity
                 key={item.key}
@@ -617,20 +833,37 @@ export default function SettingsScreen({ navigation }) {
                   <Ionicons name={item.icon} size={18} color={item.accent} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.quickLabel, dynamicFont.body]}>{item.label}</Text>
-                  {!!item.value && <Text style={[styles.quickValue, dynamicFont.body]}>{item.value}</Text>}
+                  <Text style={[styles.quickLabel, dynamicFont.body, { color: themeColors.textPrimary, fontSize: 15 * fontScale }]}>
+                    {item.label}
+                  </Text>
+                  {!!item.value && (
+                    <Text style={[styles.quickValue, dynamicFont.body, { color: themeColors.textSecondary, fontSize: 13 * fontScale }]}>
+                      {item.value}
+                    </Text>
+                  )}
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+                <Ionicons name="chevron-forward" size={18} color={themeColors.textSecondary} />
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
+        {/* 2. 푸시 알림 세부 설정 (법령 준수 & 마케팅/야간/채팅 분리) */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, dynamicFont.heading]}>환경 설정</Text>
-          <View style={styles.card}>
-            <View style={styles.toggleRow}>
-              <Text style={[styles.toggleLabel, dynamicFont.body]}>푸시알림</Text>
+          <Text style={[styles.sectionTitle, dynamicFont.heading, { color: themeColors.textPrimary, fontSize: 16 * fontScale }]}>
+            알림 설정
+          </Text>
+          <View style={[styles.card, { backgroundColor: themeColors.card }]}>
+            {/* 마스터 푸시 */}
+            <View style={[styles.toggleRow, { borderTopWidth: 0 }]}>
+              <View style={styles.subToggleInfo}>
+                <Text style={[styles.toggleLabel, dynamicFont.body, { color: themeColors.textPrimary, fontSize: 15 * fontScale }]}>
+                  전체 푸시 알림
+                </Text>
+                <Text style={[styles.subToggleDesc, { color: themeColors.textSecondary, fontSize: 12 * fontScale }]}>
+                  모든 앱 알림을 일괄 수신하거나 해제합니다.
+                </Text>
+              </View>
               <Switch
                 value={pushEnabled}
                 onValueChange={handleTogglePush}
@@ -639,25 +872,194 @@ export default function SettingsScreen({ navigation }) {
               />
             </View>
 
-            <View style={styles.fontRow}>
-              <Text style={[styles.toggleLabel, dynamicFont.body]}>폰트 크기</Text>
+            {pushEnabled && (
+              <>
+                {/* 1:1 채팅 알림 */}
+                <View style={[styles.subToggleRow, { borderTopColor: themeColors.divider }]}>
+                  <View style={styles.subToggleInfo}>
+                    <Text style={[styles.subToggleLabel, dynamicFont.body, { color: themeColors.textPrimary, fontSize: 14 * fontScale }]}>
+                      대화 및 1:1 메시지
+                    </Text>
+                    <Text style={[styles.subToggleDesc, { color: themeColors.textSecondary, fontSize: 12 * fontScale }]}>
+                      새로운 쪽지 및 채팅 도착 알림
+                    </Text>
+                  </View>
+                  <Switch
+                    value={chatPush}
+                    onValueChange={handleToggleChatPush}
+                    trackColor={{ true: colors.primaryLight, false: '#E5E7EB' }}
+                    thumbColor={chatPush ? colors.primary : '#ffffff'}
+                  />
+                </View>
+
+                {/* 라이브 방송 알림 */}
+                <View style={[styles.subToggleRow, { borderTopColor: themeColors.divider }]}>
+                  <View style={styles.subToggleInfo}>
+                    <Text style={[styles.subToggleLabel, dynamicFont.body, { color: themeColors.textPrimary, fontSize: 14 * fontScale }]}>
+                      라이브 방송 시작
+                    </Text>
+                    <Text style={[styles.subToggleDesc, { color: themeColors.textSecondary, fontSize: 12 * fontScale }]}>
+                      내가 팔로우한 호스트의 실시간 방송 알림
+                    </Text>
+                  </View>
+                  <Switch
+                    value={livePush}
+                    onValueChange={handleToggleLivePush}
+                    trackColor={{ true: colors.primaryLight, false: '#E5E7EB' }}
+                    thumbColor={livePush ? colors.primary : '#ffffff'}
+                  />
+                </View>
+
+                {/* 혜택 및 이벤트 (마케팅 정보 수신) */}
+                <View style={[styles.subToggleRow, { borderTopColor: themeColors.divider }]}>
+                  <View style={styles.subToggleInfo}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={[styles.subToggleLabel, dynamicFont.body, { color: themeColors.textPrimary, fontSize: 14 * fontScale }]}>
+                        혜택 및 이벤트 알림
+                      </Text>
+                      <View style={styles.badgeMini}>
+                        <Text style={styles.badgeMiniText}>선택</Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.subToggleDesc, { color: themeColors.textSecondary, fontSize: 12 * fontScale }]}>
+                      다가온의 프로모션, 포인트 혜택 및 추천 소식 (정보통신망법 준수)
+                    </Text>
+                  </View>
+                  <Switch
+                    value={marketingOptIn}
+                    onValueChange={handleToggleMarketing}
+                    trackColor={{ true: colors.primaryLight, false: '#E5E7EB' }}
+                    thumbColor={marketingOptIn ? colors.primary : '#ffffff'}
+                  />
+                </View>
+
+                {/* 야간 혜택 알림 (21:00 ~ 08:00) */}
+                <View style={[styles.subToggleRow, { borderTopColor: themeColors.divider, opacity: marketingOptIn ? 1 : 0.45 }]}>
+                  <View style={styles.subToggleInfo}>
+                    <Text style={[styles.subToggleLabel, dynamicFont.body, { color: themeColors.textPrimary, fontSize: 14 * fontScale }]}>
+                      야간 혜택 알림 (21:00 ~ 08:00)
+                    </Text>
+                    <Text style={[styles.subToggleDesc, { color: themeColors.textSecondary, fontSize: 12 * fontScale }]}>
+                      밤 시간대 긴급 이벤트 및 타임 특가 알림 수신
+                    </Text>
+                  </View>
+                  <Switch
+                    value={nightPushOptIn}
+                    onValueChange={handleToggleNightPush}
+                    disabled={!marketingOptIn}
+                    trackColor={{ true: colors.primaryLight, false: '#E5E7EB' }}
+                    thumbColor={nightPushOptIn ? colors.primary : '#ffffff'}
+                  />
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+
+        {/* 3. 프라이버시 및 탐색 설정 */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, dynamicFont.heading, { color: themeColors.textPrimary, fontSize: 16 * fontScale }]}>
+            프라이버시 & 탐색
+          </Text>
+          <View style={[styles.card, { backgroundColor: themeColors.card }]}>
+            {/* 접속 상태 숨김 (시크릿 모드) */}
+            <View style={styles.privacyItem}>
+              <View style={styles.privacyInfo}>
+                <View style={styles.privacyLabelRow}>
+                  <Ionicons name="eye-off-outline" size={17} color={colors.primary} />
+                  <Text style={[styles.privacyLabel, dynamicFont.body, { color: themeColors.textPrimary, fontSize: 15 * fontScale }]}>
+                    접속 상태 숨기기 (시크릿 모드)
+                  </Text>
+                </View>
+                <Text style={[styles.privacyDesc, { color: themeColors.textSecondary, fontSize: 12 * fontScale }]}>
+                  홈 및 인연 탭에서 내 온라인 접속 중 표시(초록색 뱃지)를 숨깁니다.
+                </Text>
+              </View>
+              <Switch
+                value={hideOnlineStatus}
+                onValueChange={handleToggleHideOnline}
+                trackColor={{ true: colors.primaryLight, false: '#E5E7EB' }}
+                thumbColor={hideOnlineStatus ? colors.primary : '#ffffff'}
+              />
+            </View>
+
+            {/* 내가 차단한 회원 관리 */}
+            <TouchableOpacity
+              style={[styles.supportRow, { borderTopWidth: 1, borderTopColor: themeColors.divider }]}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('BlockedUsers')}
+            >
+              <Ionicons
+                name="ban-outline"
+                size={18}
+                color={themeColors.textSecondary}
+                style={{ width: 22 }}
+              />
+              <Text style={[styles.supportLabel, dynamicFont.body, { color: themeColors.textPrimary, fontSize: 15 * fontScale }]}>
+                내가 차단한 회원
+              </Text>
+              {blockedCount !== null && (
+                <Text style={[styles.supportValue, dynamicFont.body, { color: themeColors.textSecondary, fontSize: 13 * fontScale }]}>
+                  {blockedCount}명
+                </Text>
+              )}
+              <Ionicons name="chevron-forward" size={16} color={themeColors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 4. 화면 및 접근성 설정 */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, dynamicFont.heading, { color: themeColors.textPrimary, fontSize: 16 * fontScale }]}>
+            화면 및 접근성
+          </Text>
+          <View style={[styles.card, { backgroundColor: themeColors.card }]}>
+            {/* 다크모드 */}
+            <View style={[styles.toggleRow, { borderTopWidth: 0 }]}>
+              <View style={styles.subToggleInfo}>
+                <Text style={[styles.toggleLabel, dynamicFont.body, { color: themeColors.textPrimary, fontSize: 15 * fontScale }]}>
+                  다크모드
+                </Text>
+                <Text style={[styles.subToggleDesc, { color: themeColors.textSecondary, fontSize: 12 * fontScale }]}>
+                  어두운 테마로 눈의 피로를 줄입니다.
+                </Text>
+              </View>
+              <Switch
+                value={darkMode}
+                onValueChange={handleToggleDarkMode}
+                trackColor={{ true: colors.primaryLight, false: '#E5E7EB' }}
+                thumbColor={darkMode ? '#1F2937' : '#ffffff'}
+              />
+            </View>
+
+            {/* 폰트 크기 */}
+            <View style={[styles.fontRow, { borderTopColor: themeColors.divider }]}>
+              <Text style={[styles.toggleLabel, dynamicFont.body, { color: themeColors.textPrimary, fontSize: 15 * fontScale }]}>
+                글자 크기
+              </Text>
               <View style={styles.fontChoiceRow}>
                 <TouchableOpacity
                   style={[styles.fontChoice, fontSize === 'medium' && styles.fontChoiceActive]}
-                  onPress={() => setFontSize('medium')}
+                  onPress={() => handleChangeFontSize('medium')}
                 >
                   <Text
-                    style={[styles.fontChoiceText, fontSize === 'medium' && styles.fontChoiceTextActive]}
+                    style={[
+                      styles.fontChoiceText,
+                      fontSize === 'medium' && styles.fontChoiceTextActive,
+                    ]}
                   >
                     기본
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.fontChoice, fontSize === 'large' && styles.fontChoiceActive]}
-                  onPress={() => setFontSize('large')}
+                  onPress={() => handleChangeFontSize('large')}
                 >
                   <Text
-                    style={[styles.fontChoiceText, fontSize === 'large' && styles.fontChoiceTextActive]}
+                    style={[
+                      styles.fontChoiceText,
+                      fontSize === 'large' && styles.fontChoiceTextActive,
+                    ]}
                   >
                     크게
                   </Text>
@@ -665,8 +1067,11 @@ export default function SettingsScreen({ navigation }) {
               </View>
             </View>
 
-                                  <View style={styles.fontManagerRow}>
-              <Text style={[styles.toggleLabel, dynamicFont.body]}>폰트 스타일</Text>
+            {/* 폰트 스타일 */}
+            <View style={[styles.fontManagerRow, { borderTopColor: themeColors.divider }]}>
+              <Text style={[styles.toggleLabel, dynamicFont.body, { color: themeColors.textPrimary, fontSize: 15 * fontScale }]}>
+                글꼴 스타일
+              </Text>
               <TouchableOpacity
                 style={[styles.fontAddButton, fontLoading && styles.fontAddButtonDisabled]}
                 onPress={handleAddManagedFont}
@@ -705,65 +1110,75 @@ export default function SettingsScreen({ navigation }) {
               })}
             </View>
 
-            <View style={styles.fontPreviewCard}>
-              <Text style={[styles.fontPreviewLabel, dynamicFont.body]}>폰트 미리보기</Text>
+            <View style={[styles.fontPreviewCard, { backgroundColor: themeColors.subRowBg, borderColor: themeColors.divider }]}>
+              <Text style={[styles.fontPreviewLabel, dynamicFont.body, { color: themeColors.textSecondary }]}>
+                폰트 미리보기
+              </Text>
               <Text
                 style={[
                   styles.fontPreviewText,
+                  { color: themeColors.textPrimary, fontSize: 15 * fontScale },
                   selectedFont !== 'system' ? { fontFamily: selectedFont } : null,
                 ]}
               >
-                좋은 인연은 멀지 않아요. 오늘의 인사를 나눠보세요!
+                좋은 인연은 멀지 않아요. 새로운 이야기가 다가옵니다!
               </Text>
               {!!fontMessage && <Text style={styles.fontStatusText}>{fontMessage}</Text>}
-            </View>
-
-            <View style={styles.toggleRow}>
-              <Text style={[styles.toggleLabel, dynamicFont.body]}>다크모드</Text>
-              <Switch
-                value={darkMode}
-                onValueChange={setDarkMode}
-                trackColor={{ true: colors.textSecondary, false: '#E5E7EB' }}
-                thumbColor={darkMode ? '#1F2937' : '#ffffff'}
-              />
             </View>
           </View>
         </View>
 
+        {/* 5. 고객센터 & 도움말 */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, dynamicFont.heading]}>도움말</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, dynamicFont.heading, { color: themeColors.textPrimary, fontSize: 16 * fontScale }]}>
+            고객센터 & 도움말
+          </Text>
+          <View style={[styles.card, { backgroundColor: themeColors.card }]}>
             {supportLinks.map((item) => (
-              <TouchableOpacity key={item.key} style={styles.supportRow} activeOpacity={0.85} onPress={item.onPress}>
+              <TouchableOpacity
+                key={item.key}
+                style={[styles.supportRow, { borderBottomColor: themeColors.divider }]}
+                activeOpacity={0.85}
+                onPress={item.onPress}
+              >
                 <Ionicons
                   name={item.icon}
                   size={18}
-                  color={colors.textSecondary}
+                  color={themeColors.textSecondary}
                   style={{ width: 22 }}
                 />
-                <Text style={[styles.supportLabel, dynamicFont.body]}>{item.label}</Text>
+                <Text style={[styles.supportLabel, dynamicFont.body, { color: themeColors.textPrimary, fontSize: 15 * fontScale }]}>
+                  {item.label}
+                </Text>
                 {item.value ? (
-                  <Text style={[styles.supportValue, dynamicFont.body]}>{item.value}</Text>
+                  <Text style={[styles.supportValue, dynamicFont.body, { color: themeColors.textSecondary, fontSize: 13 * fontScale }]}>
+                    {item.value}
+                  </Text>
                 ) : null}
-                <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+                <Ionicons name="chevron-forward" size={16} color={themeColors.textSecondary} />
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
+        {/* 6. 계정 관리 */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, dynamicFont.heading]}>계정</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, dynamicFont.heading, { color: themeColors.textPrimary, fontSize: 16 * fontScale }]}>
+            계정 관리
+          </Text>
+          <View style={[styles.card, { backgroundColor: themeColors.card }]}>
             <TouchableOpacity
               style={styles.logoutRow}
               activeOpacity={0.85}
               onPress={handleLogout}
             >
               <Ionicons name="log-out-outline" size={20} color="#DC2626" />
-              <Text style={[styles.logoutLabel, dynamicFont.body]}>로그아웃</Text>
+              <Text style={[styles.logoutLabel, dynamicFont.body, { fontSize: 15 * fontScale }]}>
+                로그아웃
+              </Text>
             </TouchableOpacity>
 
-            <View style={styles.accountDivider} />
+            <View style={[styles.accountDivider, { backgroundColor: themeColors.divider }]} />
 
             <TouchableOpacity
               style={styles.deleteAccountRow}
@@ -771,18 +1186,23 @@ export default function SettingsScreen({ navigation }) {
               onPress={handleDeleteAccount}
             >
               <Ionicons name="trash-outline" size={18} color="#94A3B8" />
-              <Text style={[styles.deleteAccountLabel, dynamicFont.body]}>회원 탈퇴</Text>
+              <Text style={[styles.deleteAccountLabel, dynamicFont.body, { fontSize: 14 * fontScale }]}>
+                회원 탈퇴
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
+
         <TouchableOpacity
-          style={styles.footerCard}
+          style={[styles.footerCard, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}
           activeOpacity={0.9}
           onPress={handleOpenProfile}
         >
-          <Text style={[styles.footerTitle, dynamicFont.heading]}>프로필 전체 보기</Text>
-          <Text style={[styles.footerSubtitle, dynamicFont.body]}>
-            내 프로필을 확인하고 업데이트하세요.
+          <Text style={[styles.footerTitle, dynamicFont.heading, { color: themeColors.textPrimary, fontSize: 16 * fontScale }]}>
+            내 프로필 수정 및 전체 보기
+          </Text>
+          <Text style={[styles.footerSubtitle, dynamicFont.body, { color: themeColors.textSecondary, fontSize: 13 * fontScale }]}>
+            사진첩, 지역, 관심사 및 소개글을 관리하세요.
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -814,6 +1234,91 @@ export default function SettingsScreen({ navigation }) {
                 />
               ) : (
                 <Text style={styles.legalModalText}>{legalBody}</Text>
+              )}
+            </ScrollView>
+          </View>
+      </Modal>
+
+      {/* Announcements Modal */}
+      <Modal
+        visible={announcementsModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setAnnouncementsModalVisible(false)}
+      >
+        <View style={styles.legalModalBackdrop}>
+          <View style={styles.legalModalContainer}>
+            <View style={styles.legalModalHeader}>
+              <Text style={styles.legalModalTitle}>
+                {selectedAnnouncement ? '공지사항 상세' : '공지사항 및 안내'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  if (selectedAnnouncement) {
+                    setSelectedAnnouncement(null);
+                  } else {
+                    setAnnouncementsModalVisible(false);
+                  }
+                }}
+                hitSlop={8}
+                style={styles.legalCloseBtn}
+              >
+                <Ionicons
+                  name={selectedAnnouncement ? 'chevron-back' : 'close'}
+                  size={24}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.legalModalBody} showsVerticalScrollIndicator={false}>
+              {announcementsLoading ? (
+                <ActivityIndicator
+                  size="small"
+                  color={colors.primary}
+                  style={{ marginTop: 40 }}
+                />
+              ) : selectedAnnouncement ? (
+                <View style={{ paddingVertical: 8 }}>
+                  <Text style={{ fontSize: 17, fontWeight: '800', color: '#191919', lineHeight: 24, marginBottom: 8 }}>
+                    {selectedAnnouncement.title}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: '#8E8E93', marginBottom: 16 }}>
+                    {selectedAnnouncement.createdAt ? new Date(selectedAnnouncement.createdAt).toLocaleDateString('ko-KR') : ''}
+                  </Text>
+                  <View style={{ height: 1, backgroundColor: '#E8EAED', marginBottom: 16 }} />
+                  <Text style={{ fontSize: 14, color: '#4A4A4A', lineHeight: 22 }}>
+                    {selectedAnnouncement.body || selectedAnnouncement.content || '내용이 없습니다.'}
+                  </Text>
+                </View>
+              ) : announcementsList.length > 0 ? (
+                announcementsList.map((ann) => (
+                  <TouchableOpacity
+                    key={ann.id}
+                    style={{
+                      paddingVertical: 14,
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#F0F2F5',
+                    }}
+                    activeOpacity={0.8}
+                    onPress={() => setSelectedAnnouncement(ann)}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary }}>
+                        NOTICE
+                      </Text>
+                      <Text style={{ fontSize: 11, color: '#8E8E93' }}>
+                        {ann.createdAt ? new Date(ann.createdAt).toLocaleDateString('ko-KR') : ''}
+                      </Text>
+                    </View>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#191919' }} numberOfLines={1}>
+                      {ann.title}
+                    </Text>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={{ alignItems: 'center', marginTop: 40 }}>
+                  <Text style={{ color: '#8E8E93', fontSize: 14 }}>등록된 공지사항이 없습니다.</Text>
+                </View>
               )}
             </ScrollView>
           </View>
@@ -990,6 +1495,83 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: colors.text,
+  },
+  profileNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  incognitoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  incognitoBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  subToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingLeft: 8,
+    borderTopWidth: 1,
+  },
+  subToggleInfo: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  subToggleLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  subToggleDesc: {
+    marginTop: 2,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  badgeMini: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: '#FEF3C7',
+  },
+  badgeMiniText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#D97706',
+  },
+  privacyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+  },
+  privacyInfo: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  privacyLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  privacyLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  privacyDesc: {
+    marginTop: 3,
+    fontSize: 12,
+    fontWeight: '500',
   },
   fontRow: {
     paddingVertical: 14,

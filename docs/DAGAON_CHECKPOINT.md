@@ -4,6 +4,38 @@ Updated: 2026-10-13
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-13 Checkpoint 55: 모바일 설정(알림 세분화·법정고지·프라이버시·다크모드) & UI/UX(홈 쇼케이스 수동제어·채팅 말풍선 액션) & 관리자 공지 실시간 연동 (완료)
+
+### 1. 개요 및 배경
+- **배경**: Checkpoint 54에서 진행된 관리자 API 및 백엔드 개편(정보통신망법 제50조 야간 푸시 제한, 시크릿 모드 지원 등)에 발맞추어, 모바일 앱 설정(`SettingsScreen`)을 세부 분리 및 실제 DB로 영속화.
+- **UI/UX 개선**: 홈 화면 듀얼 쇼케이스 수동 전환 및 홀드 일시정지 인터랙션, 1:1 대화방 말풍선 롱프레스 컨텍스트 액션(복사, 삭제, 특정 메시지 자동 첨부 신고) 구축.
+- **관리자 공지사항 연동**: 관리자에서 발행한 실시간 공지사항 API를 모바일 앱 설정 내 공지사항 센터 모달과 직결하여 실시간 조회 지원.
+
+### 2. 주요 작업 내역
+1. **백엔드 DTO / Service / Controller 확장 (`services/api`)**:
+   - `UpdateUserDto`: `nightPushOptIn`, `chatPushOptIn`, `livePushOptIn`, `hideOnlineStatus` 옵셔널 필드 추가.
+   - `UsersService.updateProfile`: `Profile.visibility` Json 컬럼에 해당 필드들을 실시간 병합 영속화.
+   - `UsersController.serializeUser`: 클라이언트 반환 시 `profile` 내 해당 설정 플래그 정상 응답.
+2. **모바일 설정 화면 전면 개편 (`apps/mobile/src/screens/my/SettingsScreen.js`)**:
+   - **알림 설정 세분화**: 전체 푸시 마스터 스위치, 1:1 대화 알림, 라이브 시작 알림, 혜택/이벤트 알림(마케팅), 야간 혜택 알림(21시~08시).
+   - **정보통신망법 제50조 준수**: 마케팅 수신동의/철회 시 실시간 일시 안내 Alert 고지, 마케팅 미동의 시 야간 알림 자동 비활성화.
+   - **프라이버시 & 시크릿 모드**: `접속 상태 숨기기 (시크릿 모드)` 토글 스위치 제공 및 서버 DB 실시간 동기화.
+   - **화면 및 접근성**: 다크 모드 토글(`themeColors` 동적 적용 및 AsyncStorage 영속화), 글자 크기(기본/크게, fontScale 1.12배 확대) 설정 지원.
+   - **관리자 연동 공지사항 모달**: `apiClient.getAnnouncements()` 실시간 연동으로 서비스 공지 목록 및 상세 내용 조회 모달 구축.
+3. **홈 화면 UI/UX 개선 (`apps/mobile/src/screens/main/HomeScreen.js`)**:
+   - 시크릿 모드(`hideOnlineStatus`) 회원은 프로필 온라인 초록색 불 끄기 및 탐색 카드 접속 상태 숨김 처리.
+   - 신규 및 BEST 회원 듀얼 쇼케이스: 카드 길게 누름(`onPressIn`/`onPressOut`) 시 자동 롤링 일시정지, 인디케이터/카운터 뱃지 터치 시 즉시 다음 회원으로 수동 전환(`handleNextNew`, `handleNextBest`).
+4. **1:1 대화방 말풍선 인터랙션 확장 (`apps/mobile/src/screens/main/ChatRoomScreen.js`)**:
+   - 내 말풍선 및 상대 말풍선 롱프레스 터치 시 인터랙티브 컨텍스트 모달 팝업.
+   - 말풍선 텍스트 클립보드 복사(`Clipboard.setString`), 로컬 메시지 즉시 삭제, 특정 메시지 원클릭 신고(신고 팝업에 해당 메시지 내용 자동 세팅) 지원.
+
+### 3. 빌드 및 품질 검증 결과
+- **백엔드 (`services/api`)**: `nest build` TypeScript 타입 오류 0건, 컴파일 성공 (Exit code 0).
+- **관리자 웹 (`apps/admin`)**: `next build` 31개 전체 라우트(Static/Dynamic) 번들링 및 타입 검사 100% 통과 (Exit code 0).
+- **모바일 앱 (`apps/mobile`)**: `SettingsScreen.js`, `HomeScreen.js`, `ChatRoomScreen.js` 구문 및 런타임 유효성 검사 완료 (Exit code 0).
+
+---
+
 ## 2026-10-13 Checkpoint 54: 관리자 API 전면 개편 & 대한민국 법령 준수 및 미구현 기능 실DB 영속화 구축 (완료)
 
 ### 1. 개요 및 배경

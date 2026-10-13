@@ -309,6 +309,10 @@ export class UsersService {
       nickname?: string | null;
       interests?: string[];
       marketingOptIn?: boolean;
+      nightPushOptIn?: boolean;
+      chatPushOptIn?: boolean;
+      livePushOptIn?: boolean;
+      hideOnlineStatus?: boolean;
       headline?: string | null;
       avatarUri?: string | null;
     },
@@ -324,8 +328,27 @@ export class UsersService {
         : {}
     ) as Record<string, any>;
 
+    let hasVisibilityChange = false;
+
     if (payload.marketingOptIn !== undefined) {
       profileVisibility.marketingOptIn = payload.marketingOptIn;
+      hasVisibilityChange = true;
+    }
+    if (payload.nightPushOptIn !== undefined) {
+      profileVisibility.nightPushOptIn = payload.nightPushOptIn;
+      hasVisibilityChange = true;
+    }
+    if (payload.chatPushOptIn !== undefined) {
+      profileVisibility.chatPushOptIn = payload.chatPushOptIn;
+      hasVisibilityChange = true;
+    }
+    if (payload.livePushOptIn !== undefined) {
+      profileVisibility.livePushOptIn = payload.livePushOptIn;
+      hasVisibilityChange = true;
+    }
+    if (payload.hideOnlineStatus !== undefined) {
+      profileVisibility.hideOnlineStatus = payload.hideOnlineStatus;
+      hasVisibilityChange = true;
     }
 
     const profileUpdate: Prisma.ProfileUpdateInput = {};
@@ -354,7 +377,7 @@ export class UsersService {
         '회원';
     }
 
-    if (payload.marketingOptIn !== undefined) {
+    if (hasVisibilityChange) {
       profileUpdate.visibility = profileVisibility as any;
     }
 
