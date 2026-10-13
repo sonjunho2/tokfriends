@@ -38,6 +38,9 @@ Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작�
 - **백엔드 (`services/api`)**: `nest build` 수행 결과 TypeScript 타입 오류 0건, 컴파일 성공 (Exit code 0).
 - **관리자 웹 (`apps/admin`)**: `next build` 수행 결과 31개 전체 라우트(Static/Dynamic) 번들링 및 타입 검사 100% 통과 (Exit code 0).
 
+### 4. 커밋 정보
+- `f7b6fa4`: feat(admin, api): overhaul admin APIs, legal compliance, and persist control panels [Checkpoint 54]
+
 ---
 
 ## 2026-10-13 Checkpoint 53: 채팅창 및 라이브창 키보드 오픈 시 대화 입력창 가림/이탈 현상 전면 수정 (완료)
