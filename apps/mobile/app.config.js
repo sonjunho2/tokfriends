@@ -27,7 +27,7 @@ module.exports = ({ config }) => {
 
   return {
     ...resolvedConfig,
-    name: '다가온 (DAGAON)',
+    name: '다가온',
     slug: 'dagaon',
     version: '1.2.0',
     orientation: 'portrait',
@@ -43,7 +43,7 @@ module.exports = ({ config }) => {
       package: 'com.sonjunho.ddakchin',
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#0F1635',
       },
       permissions: [
         'android.permission.CAMERA',

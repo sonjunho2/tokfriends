@@ -362,7 +362,7 @@ export default function SettingsScreen({ navigation }) {
       onPress: () =>
         Alert.alert(
           '버전 정보',
-          '다가온 (DAGAON) v1.2.0\nExpo SDK 57 최신 정식 버전이 설치되어 있습니다.\n\n안정적인 실시간 소통을 위해 최신 상태를 유지하고 있습니다.',
+          '다가온 v1.2.0\nExpo SDK 57 최신 정식 버전이 설치되어 있습니다.\n\n안정적인 실시간 소통을 위해 최신 상태를 유지하고 있습니다.',
         ),
     },
   ];

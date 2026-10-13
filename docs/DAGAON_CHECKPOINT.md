@@ -1,8 +1,30 @@
 # DAGAON Development Checkpoint
 
-Updated: 2026-10-08
+Updated: 2026-10-13
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
+
+## 2026-10-13 Checkpoint 50: 신규 3D LIVE 앱 아이콘 적용 및 설치 앱 명칭 일원화("다가온") (완료)
+
+### 1. 개요 및 요구사항
+- **배경**: 브랜드 아이덴티티 강화를 위해 신규 3D LIVE 그래픽 앱 아이콘을 전역 적용하고, 앱 설치 시 기기 런처에 "다가온(DAGAON)"으로 길게 표시되던 명칭을 간결하고 직관적인 "다가온" 단일 명칭으로 일원화.
+
+### 2. 주요 작업 내용
+1. **신규 앱 아이콘 에셋 최적화 및 전역 반영**:
+   - 신규 3D LIVE 그래픽(도로 모티브 'D'자 형상, LIVE 배지, 위치 핀, 말풍선) 기반 1024x1024 고화질 에셋 생성.
+   - 외곽 여백을 아이콘 고유 테마 컬러(`rgba(15, 22, 53, 255) / #0F1635`)로 플러드필 보정하여 모든 형태의 기기 마스크(원형, 라운드 스퀘어 등)에서 깔끔한 풀 블리드 렌더링 보장.
+   - `apps/mobile/assets/icon.png`: 1024x1024 표준 고해상도 앱 아이콘.
+   - `apps/mobile/assets/adaptive-icon.png`: 안드로이드 Adaptive Safe Zone(72%) 규격 최적화 전경 아이콘.
+   - `apps/mobile/app.config.js`: `adaptiveIcon.backgroundColor`를 `#0F1635`로 업데이트.
+   - `apps/mobile/android/app/src/main/res/values/colors.xml`: `iconBackground`를 `#0F1635`로 동기화.
+   - `apps/mobile/android/app/src/main/res/mipmap-*` (mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi): 고해상도 `ic_launcher.png`, `ic_launcher_round.png`, `ic_launcher_foreground.png` 리소스 일괄 갱신.
+2. **설치 앱 표시 명칭 변경 ("다가온(DAGAON)" ➔ "다가온")**:
+   - `apps/mobile/android/app/src/main/res/values/strings.xml`: `app_name`을 `"다가온"`으로 변경.
+   - `apps/mobile/app.config.js`: `name` 필드를 `'다가온'`으로 변경.
+   - `apps/mobile/android/settings.gradle`: `rootProject.name`을 `'다가온'`으로 변경.
+   - `apps/mobile/src/screens/my/SettingsScreen.js`: 버전 정보 모달 알림 표기를 `"다가온 v1.2.0"`으로 동기화.
+
+---
 
 ## 2026-10-12 Checkpoint 49: 타사 앱(Bigo/Azar/Tinder) 스타일 다중 프로필 사진 탐색 시스템 구축 & 풀스크린 멀티 포토 뷰어 및 최신 릴리즈 APK 배포 (완료)
 
