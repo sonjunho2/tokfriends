@@ -15,7 +15,7 @@ import {
   View,
   Linking,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -202,27 +202,50 @@ export default function LiveRoomScreen({ navigation, route }) {
     }
   }, [isHost, isFocused, isCameraOff, cameraFacing]);
 
+  const insets = useSafeAreaInsets();
   // Dynamic Keyboard Height Tracking (Avoid Input Obscuring)
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [rootHeight, setRootHeight] = useState(0);
+  const [initialHeight, setInitialHeight] = useState(0);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+
+  const handleRootLayout = (event) => {
+    const height = event.nativeEvent.layout.height;
+    if (initialHeight === 0 && height > 0) {
+      setInitialHeight(height);
+    }
+    setRootHeight(height);
+  };
 
   useEffect(() => {
-    const showSub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e) => {
-        setKeyboardHeight(e.endCoordinates.height);
-      }
-    );
-    const hideSub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => {
-        setKeyboardHeight(0);
-      }
-    );
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      const h = e?.endCoordinates?.height || 0;
+      setKeyboardHeight(h);
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 80);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+      setIsInputFocused(false);
+    });
     return () => {
       showSub.remove();
       hideSub.remove();
     };
   }, []);
+
+  const isSystemResized =
+    initialHeight > 0 && rootHeight > 0 && rootHeight < initialHeight - 100;
+
+  const liveBottomOffset = keyboardHeight > 0
+    ? (Platform.OS === 'android'
+        ? (isSystemResized ? 8 : keyboardHeight + 8)
+        : keyboardHeight + 8)
+    : Math.max(insets.bottom, 12);
 
   // Agora Live Streaming States (Video + Audio)
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -957,7 +980,7 @@ export default function LiveRoomScreen({ navigation, route }) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']} onLayout={handleRootLayout}>
       {/* Background Live Video / Stream Canvas */}
       <View style={styles.streamCanvas}>
         {(streamConnecting && !isHost) ? (
@@ -1272,14 +1295,12 @@ export default function LiveRoomScreen({ navigation, route }) {
         style={[
           styles.bottomOverlay,
           {
-            bottom: keyboardHeight > 0
-              ? keyboardHeight + (Platform.OS === 'android' ? 8 : 12)
-              : (Platform.OS === 'android' ? 12 : 24),
+            bottom: liveBottomOffset,
           },
         ]}
       >
         {/* Chat message list */}
-        <View style={styles.chatListWrap}>
+        <View style={[styles.chatListWrap, keyboardHeight > 0 && styles.chatListWrapKeyboard]}>
           <FlatList
             ref={flatListRef}
             data={messages}
@@ -1287,6 +1308,7 @@ export default function LiveRoomScreen({ navigation, route }) {
             renderItem={renderMessageItem}
             contentContainerStyle={styles.chatListContent}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           />
         </View>
@@ -1294,11 +1316,20 @@ export default function LiveRoomScreen({ navigation, route }) {
         {/* Action Controls Bar */}
         <View style={styles.controlsBar}>
           <TextInput
-            style={styles.chatInput}
+            style={[
+              styles.chatInput,
+              (keyboardHeight > 0 || isInputFocused) && styles.chatInputActive,
+            ]}
             placeholder="실시간 대화에 참여해보세요..."
-            placeholderTextColor="rgba(255,255,255,0.6)"
+            placeholderTextColor={
+              keyboardHeight > 0 || isInputFocused
+                ? 'rgba(255,255,255,0.7)'
+                : 'rgba(255,255,255,0.6)'
+            }
             value={inputText}
             onChangeText={setInputText}
+            onFocus={() => setIsInputFocused(true)}
+            onBlur={() => setIsInputFocused(false)}
             onSubmitEditing={handleSendMessage}
             returnKeyType="send"
           />
@@ -1812,17 +1843,20 @@ const styles = StyleSheet.create({
   },
   bottomOverlay: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
     paddingHorizontal: 16,
-    paddingBottom: 20,
+    paddingBottom: 0,
     zIndex: 10,
   },
   chatListWrap: {
     height: 180,
     justifyContent: 'flex-end',
     marginBottom: 12,
+  },
+  chatListWrapKeyboard: {
+    height: 76,
+    marginBottom: 8,
   },
   chatListContent: {
     gap: 6,
@@ -1891,6 +1925,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     color: '#FFFFFF',
     fontSize: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  chatInputActive: {
+    backgroundColor: 'rgba(15, 22, 53, 0.95)',
+    borderColor: '#FEE500',
+    borderWidth: 1.5,
+    color: '#FFFFFF',
   },
   sendButton: {
     width: 42,

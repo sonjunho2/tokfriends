@@ -202,10 +202,29 @@ export default function ChatRoomScreen({ route, navigation }) {
   const [myPoints, setMyPoints] = useState(0);
   const giftOverlayRef = useRef(null);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [rootHeight, setRootHeight] = useState(0);
+  const [initialHeight, setInitialHeight] = useState(0);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [previewImageUri, setPreviewImageUri] = useState(null);
   const [isFavorite, setIsFavorite] = useState(route?.params?.isFavorite ?? false);
   const insets = useSafeAreaInsets();
+
+  const handleRootLayout = (event) => {
+    const height = event.nativeEvent.layout.height;
+    if (initialHeight === 0 && height > 0) {
+      setInitialHeight(height);
+    }
+    setRootHeight(height);
+  };
+
+  const isSystemResized =
+    initialHeight > 0 && rootHeight > 0 && rootHeight < initialHeight - 100;
+  const androidKeyboardOffset =
+    Platform.OS === 'android' && isKeyboardVisible
+      ? (isSystemResized ? 0 : keyboardHeight)
+      : 0;
 
   const fetchMyPoints = useCallback(async () => {
     try {
@@ -634,11 +653,21 @@ export default function ChatRoomScreen({ route, navigation }) {
   ]);
 
   useEffect(() => {
-    const showListener = Keyboard.addListener('keyboardDidShow', () => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showListener = Keyboard.addListener(showEvent, (e) => {
+      const h = e?.endCoordinates?.height || 0;
+      setKeyboardHeight(h);
       setKeyboardVisible(true);
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 80);
     });
-    const hideListener = Keyboard.addListener('keyboardDidHide', () => {
+    const hideListener = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
       setKeyboardVisible(false);
+      setIsInputFocused(false);
     });
 
     return () => {
@@ -1268,9 +1297,9 @@ export default function ChatRoomScreen({ route, navigation }) {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onLayout={handleRootLayout}>
       <StatusBar barStyle="dark-content" backgroundColor="#B2C7DA" />
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         {/* =================================================================
             1. 카카오톡 채팅방 헤더
             ================================================================= */}
@@ -1340,8 +1369,11 @@ export default function ChatRoomScreen({ route, navigation }) {
 
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.chatContainer}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
+          style={[
+            styles.chatContainer,
+            Platform.OS === 'android' && { paddingBottom: androidKeyboardOffset },
+          ]}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? (headerHeight + insets.top) : 0}
         >
           <FlatList
             ref={flatListRef}
@@ -1424,7 +1456,10 @@ export default function ChatRoomScreen({ route, navigation }) {
               카카오톡 하단 메시지 입력창
               ================================================================= */}
           <View
-            style={styles.inputContainer}
+            style={[
+              styles.inputContainer,
+              { paddingBottom: isKeyboardVisible ? 8 : Math.max(insets.bottom, 8) },
+            ]}
             onLayout={(event) => {
               const nextHeight = event.nativeEvent.layout.height;
               if (nextHeight !== composerHeight) {
@@ -1444,13 +1479,20 @@ export default function ChatRoomScreen({ route, navigation }) {
               <Ionicons name="add" size={28} color="#707070" />
             </TouchableOpacity>
 
-            <View style={styles.inputWrapper}>
+            <View
+              style={[
+                styles.inputWrapper,
+                (isKeyboardVisible || isInputFocused) && styles.inputWrapperFocused,
+              ]}
+            >
               <TextInput
                 style={styles.textInput}
                 placeholder="메시지 입력"
                 placeholderTextColor="#999999"
                 value={inputText}
                 onChangeText={handleInputTextChange}
+                onFocus={() => setIsInputFocused(true)}
+                onBlur={() => setIsInputFocused(false)}
                 multiline
                 maxLength={500}
               />
@@ -1943,7 +1985,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingTop: 8,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E8EAED',
@@ -1965,6 +2007,12 @@ const styles = StyleSheet.create({
     paddingVertical: Platform.OS === 'ios' ? 8 : 4,
     minHeight: 38,
     maxHeight: 110,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  inputWrapperFocused: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D1D5DB',
   },
   textInput: {
     flex: 1,

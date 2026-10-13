@@ -4,6 +4,31 @@ Updated: 2026-10-13
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-13 Checkpoint 53: 채팅창 및 라이브창 키보드 오픈 시 대화 입력창 가림/이탈 현상 전면 수정 (완료)
+
+### 1. 개요 및 요구사항
+- **배경**: 1:1 대화방(`ChatRoomScreen`) 및 실시간 라이브 스트리밍 룸(`LiveRoomScreen`)에서 스마트폰 가상 키보드가 활성화되었을 때, 입력창이 키보드 뒤로 가려지거나(obscured) 화면 밖으로 멀리 밀려 올라가(off-screen jump) 사용자가 무엇을 입력하고 있는지 시각적으로 확인하기 어려운 현상 발생.
+- **원인 분석**:
+  1. 안드로이드 `sticky-immersive` 네비게이션 바 모드 활성화로 인해 안드로이드 윈도우 매니저의 `adjustResize` 동작이 기기/OS 버전에 따라 비활성화되거나 불안정하게 작동.
+  2. 기존 `ChatRoomScreen`의 `KeyboardAvoidingView`가 안드로이드에서 `behavior={undefined}`로 설정되어 있어 키보드 회피 동작이 전혀 일어나지 않고 하단 `SafeAreaView edges={['bottom']}`의 고정 여백과 충돌.
+  3. `LiveRoomScreen`의 경우 하단 오버레이가 `position: 'absolute'`로 설정된 상태에서 윈도우 리사이즈 여부와 관계없이 일괄적으로 `bottom: keyboardHeight`를 가산하고, `chatListWrap`이 180dp의 큰 높이를 고정 유지하여 화면 상단 밖으로 입력창이 밀려나거나 키보드에 가려짐.
+  4. 라이브 방 입력 필드의 반투명 스타일(`rgba(255,255,255,0.15)`)로 인해 비디오 화면과 텍스트가 겹쳐 가독성이 저하됨.
+
+### 2. 주요 작업 내용
+1. **1:1 대화방 동적 키보드 리사이즈 감지 & 적응형 오프셋 탑재 (`ChatRoomScreen.js`)**:
+   - `SafeAreaView edges={['top']}`으로 하단 고정 패딩 충돌 분리.
+   - 루트 뷰 레이아웃 높이(`rootHeight`)와 초기 높이(`initialHeight`)를 실시간 추적하여, 안드로이드 시스템이 키보드로 인해 화면을 이미 축소했는지(`isSystemResized`)를 정밀 판별.
+   - 시스템 리사이즈 미동작 환경에서는 `androidKeyboardOffset = keyboardHeight`를 정확히 보정하여 키보드 바로 상단에 입력창이 밀착하도록 구현.
+   - iOS 환경에서는 `keyboardVerticalOffset={headerHeight + insets.top}`을 적용하여 부드러운 네이티브 패딩 애니메이션 완성.
+   - 키보드 오픈 시 최신 대화 목록 자동 스크롤(`scrollToEnd`) 및 입력창 포커스 시 고대비 테두리 하이라이트 제공.
+2. **실시간 라이브 방 키보드 연동 & 입력 가독성 강화 (`LiveRoomScreen.js`)**:
+   - `useSafeAreaInsets` 연동 및 `liveBottomOffset` 적응형 계산 로직 신설 (키보드 비활성 시 `Math.max(insets.bottom, 12)`, 활성 시 키보드 상단 8dp 정밀 안착).
+   - 키보드 활성화 시 채팅 메시지 스트림 목록(`chatListWrap`) 높이를 180dp에서 76dp로 컴팩트하게 자동 축소하여 화면 가림 및 상단 헤더와의 충돌을 완벽 방지.
+   - `TextInput` 포커스 및 입력 시 `chatInputActive` 고대비 테마 적용 (깊은 네이비 단색 배경 `rgba(15, 22, 53, 0.95)` + 골드 액센트 보더 `#FEE500` + 선명한 화이트 텍스트)으로 작성 중인 문구를 또렷하게 식별 가능.
+   - 리스트 터치 시 키보드 닫힘 제어(`keyboardShouldPersistTaps="handled"`).
+
+---
+
 ## 2026-10-13 Checkpoint 52: 홈 화면 전면 개편 (GNB 검색/잔여온 정리, 최상단 이벤트 배너 전진, 신규/BEST 추천 듀얼 풀블리드 슬라이드 쇼케이스 신설) (완료)
 
 ### 1. 개요 및 요구사항
