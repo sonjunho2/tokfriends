@@ -34,6 +34,12 @@ Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작�
 - **관리자 웹 (`apps/admin`)**: `next build` 31개 전체 라우트(Static/Dynamic) 번들링 및 타입 검사 100% 통과 (Exit code 0).
 - **모바일 앱 (`apps/mobile`)**: `SettingsScreen.js`, `HomeScreen.js`, `ChatRoomScreen.js` 구문 및 런타임 유효성 검사 완료 (Exit code 0).
 
+### 4. 릴리즈 APK 로컬 빌드 및 배포 (`dagaon-release.apk`)
+- **로컬 빌드**: `gradlew.bat assembleRelease` 네이티브 및 JS 번들링 성공 (BUILD SUCCESSFUL in 4m 25s, 파일 크기: 75.39MB).
+- **프로젝트 루트 배포**: `c:\Users\ION\Downloads\work\tokfriends\dagaon-release.apk`
+- **관리자 웹 다운로드 서빙**: `c:\Users\ION\Downloads\work\tokfriends\apps\admin\public\downloads\dagaon-release.apk`
+- **GitHub 저장소 반영**: `main` 브랜치에 최종 릴리즈 APK 및 소스 코드 병합/푸시 완료 (`51e8a57`).
+
 ---
 
 ## 2026-10-13 Checkpoint 54: 관리자 API 전면 개편 & 대한민국 법령 준수 및 미구현 기능 실DB 영속화 구축 (완료)
