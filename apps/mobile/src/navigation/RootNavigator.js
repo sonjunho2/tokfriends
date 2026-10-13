@@ -357,7 +357,7 @@ function MainTabs() {
             Home: focused ? 'home' : 'home-outline',
             Community: focused ? 'people' : 'people-outline',
             Live: focused ? 'radio' : 'radio-outline',
-            Chat: focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline',
+            Chat: focused ? 'chatbubbles' : 'chatbubbles-outline',
             My: focused ? 'person' : 'person-outline',
           };
           const name = iconMap[route.name] || (focused ? 'ellipse' : 'ellipse-outline');
@@ -397,7 +397,7 @@ function MainTabs() {
           tabBarLabel: '라이브',
         }}
       />
-      <Tab.Screen name="Chat" component={ChatsStack} options={{ tabBarLabel: '대화' }} />
+      <Tab.Screen name="Chat" component={ChatsStack} options={{ tabBarLabel: '인연·대화' }} />
       <Tab.Screen name="My" component={MyPageStack} options={{ tabBarLabel: '마이' }} />
     </Tab.Navigator>
   );

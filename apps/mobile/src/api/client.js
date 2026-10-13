@@ -1140,19 +1140,58 @@ export const apiClient = {
   },
 
   async getChats() {
+    let rawList = [];
     if (USE_DUMMY_AUTH) {
-      return DUMMY_CHATS;
-    }
-    try {
-      const { data } = await client.get('/chats');
-      const list = data?.data ?? data;
-      return Array.isArray(list) ? list : (USE_DUMMY_AUTH ? DUMMY_CHATS : []);
-    } catch (e) {
-      if (USE_DUMMY_AUTH || e?.status === 401 || !currentToken) {
-        return DUMMY_CHATS;
+      rawList = [...DUMMY_CHATS];
+    } else {
+      try {
+        const { data } = await client.get('/chats');
+        const list = data?.data ?? data;
+        rawList = Array.isArray(list) ? list : (USE_DUMMY_AUTH ? [...DUMMY_CHATS] : []);
+      } catch (e) {
+        if (USE_DUMMY_AUTH || e?.status === 401 || !currentToken) {
+          rawList = [...DUMMY_CHATS];
+        } else {
+          throw normalizeError(e);
+        }
       }
-      throw normalizeError(e);
     }
+
+    try {
+      const raw = await AsyncStorage.getItem('dagaon_deleted_chats');
+      const deletedIds = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(deletedIds) && deletedIds.length > 0) {
+        const set = new Set(deletedIds.map(String));
+        return rawList.filter((c) => !set.has(String(c?.id)));
+      }
+    } catch {}
+
+    return rawList;
+  },
+
+  async deleteChat(chatId) {
+    const idStr = String(chatId);
+    try {
+      const raw = await AsyncStorage.getItem('dagaon_deleted_chats');
+      const deletedIds = raw ? JSON.parse(raw) : [];
+      if (!deletedIds.includes(idStr)) {
+        deletedIds.push(idStr);
+        await AsyncStorage.setItem('dagaon_deleted_chats', JSON.stringify(deletedIds));
+      }
+    } catch {}
+
+    const dummyIdx = DUMMY_CHATS.findIndex((c) => String(c?.id) === idStr);
+    if (dummyIdx !== -1) {
+      DUMMY_CHATS.splice(dummyIdx, 1);
+    }
+    delete DUMMY_MESSAGES_STORE[idStr];
+
+    if (!USE_DUMMY_AUTH && currentToken) {
+      try {
+        await client.delete(`/chats/${idStr}`).catch(() => null);
+      } catch {}
+    }
+    return { ok: true };
   },
 
   async createChatRoom({ title, category = '일반', entryFee = 0, isGroup = false } = {}) {

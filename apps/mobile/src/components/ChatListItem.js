@@ -1,6 +1,6 @@
-// src/components/ChatListItem.js
 import React from 'react';
 import { Text, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Avatar from './Avatar';
 import colors from '../theme/colors';
 
@@ -70,7 +70,7 @@ const formatLastMessage = (content) => {
   return content;
 };
 
-export default function ChatListItem({ item, onPress }) {
+export default function ChatListItem({ item, onPress, onLongPress, onDeletePress }) {
   const timeText = formatTime(item.lastMessageAt);
   const unreadCount = Number(item.unreadCount) || 0;
   const lastMessageText = formatLastMessage(item.lastMessage);
@@ -80,6 +80,8 @@ export default function ChatListItem({ item, onPress }) {
     <TouchableOpacity
       activeOpacity={0.7}
       onPress={onPress}
+      onLongPress={onLongPress || onDeletePress}
+      delayLongPress={400}
       style={styles.container}
     >
       <View style={styles.avatarWrap}>
@@ -112,9 +114,21 @@ export default function ChatListItem({ item, onPress }) {
               </View>
             ) : null}
           </View>
-          {Boolean(timeText) && (
-            <Text style={styles.timeText}>{timeText}</Text>
-          )}
+          <View style={styles.topRightActions}>
+            {Boolean(timeText) && (
+              <Text style={styles.timeText}>{timeText}</Text>
+            )}
+            {Boolean(onDeletePress) && (
+              <TouchableOpacity
+                onPress={onDeletePress}
+                hitSlop={10}
+                style={styles.deleteOptionBtn}
+                activeOpacity={0.6}
+              >
+                <Ionicons name="ellipsis-vertical" size={16} color="#A1A1AA" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         <View style={styles.bottomRow}>
@@ -211,6 +225,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#8E8E93',
     fontWeight: '500',
+  },
+  topRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  deleteOptionBtn: {
+    padding: 3,
+    marginLeft: 2,
+    borderRadius: 12,
   },
   bottomRow: {
     flexDirection: 'row',
