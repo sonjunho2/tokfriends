@@ -1237,6 +1237,7 @@ export default function SettingsScreen({ navigation }) {
               )}
             </ScrollView>
           </View>
+        </View>
       </Modal>
 
       {/* Announcements Modal */}

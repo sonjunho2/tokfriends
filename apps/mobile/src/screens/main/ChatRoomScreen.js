@@ -1798,6 +1798,7 @@ export default function ChatRoomScreen({ route, navigation }) {
               </View>
             </TouchableWithoutFeedback>
           </View>
+        </TouchableWithoutFeedback>
       </Modal>
 
       {/* Message Long Press Context Action Modal */}
