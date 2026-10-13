@@ -1,11 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PrismaService } from 'nestjs-prisma';
 import { RolesGuard, Roles } from '../../common/roles.guard';
 import { AdminPermissions } from '../../common/admin-permissions.guard';
 import {
+  ApproveRefundDto,
   CreateAdminTeamMemberDto,
   CreateRefundDto,
+  DenyRefundDto,
   SaveAdminAuditMemoDto,
   SetUserRoleDto,
   UpdateActionPointPolicyDto,
@@ -388,15 +390,116 @@ export class AdminController {
   async approve(
     @CurrentUser() user: any,
     @Param('id') id: string,
+    @Body() dto?: ApproveRefundDto,
   ) {
     const actorId = user?.id ?? user?.sub;
 
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.refundRequest.findUnique({
         where: { id },
-        select: { status: true },
+        include: { user: true },
       });
 
+      if (!existing) {
+        throw new NotFoundException('해당 환불 요청을 찾을 수 없습니다.');
+      }
+
+      if (existing.status !== 'pending') {
+        throw new BadRequestException('이미 처리되었거나 대기 중이 아닌 환불 요청입니다.');
+      }
+
+      // 연결된 포인트 결제 내역 확인
+      const purchase = await tx.pointPurchase.findFirst({
+        where: {
+          userId: existing.userId,
+          OR: [
+            { transactionId: existing.receiptId },
+            { productId: existing.productId, status: 'completed' },
+          ],
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      const refundPoints = purchase?.points ?? 0;
+      const targetUser = existing.user;
+
+      if (!targetUser) {
+        throw new NotFoundException('환불 대상 사용자를 찾을 수 없습니다.');
+      }
+
+      // 유저의 잔여 포인트 검증 (단, forceDeduct가 아닐 때 잔여 포인트가 부족하면 차단)
+      if (refundPoints > 0 && targetUser.pointsBalance < refundPoints && !dto?.forceDeduct) {
+        throw new BadRequestException(
+          `회원의 잔여 온(ON) 포인트가 부족합니다. (현재 보유: ${targetUser.pointsBalance.toLocaleString()} 온, 회수 필요: ${refundPoints.toLocaleString()} 온). 이미 사용된 포인트는 전자상거래법에 따라 환불이 제한될 수 있습니다. 강제 회수 승인이 필요한 경우 관리자 옵션을 사용하세요.`,
+        );
+      }
+
+      const deductAmount = Math.min(targetUser.pointsBalance, refundPoints > 0 ? refundPoints : targetUser.pointsBalance);
+
+      // 1. 유저 보유 포인트 차감
+      if (deductAmount > 0) {
+        await tx.user.update({
+          where: { id: existing.userId },
+          data: {
+            pointsBalance: { decrement: deductAmount },
+          },
+        });
+
+        // 2. 활동 계정 및 지갑 원장 회수 기록
+        const activityAccount = await tx.activityAccount.findFirst({
+          where: { legacyUserId: existing.userId, status: 'active' },
+          include: { wallet: true },
+        });
+
+        if (activityAccount?.wallet) {
+          const wallet = activityAccount.wallet;
+          const actualWalletDeduct = Math.min(wallet.spendableBalance, deductAmount);
+
+          if (actualWalletDeduct > 0) {
+            const updatedWallet = await tx.wallet.update({
+              where: { id: wallet.id },
+              data: {
+                spendableBalance: { decrement: actualWalletDeduct },
+              },
+            });
+
+            await tx.walletLedgerEntry.create({
+              data: {
+                walletId: wallet.id,
+                kind: 'debit',
+                source: 'refund_clawback',
+                deltaSpendable: -actualWalletDeduct,
+                deltaRedeemable: 0,
+                deltaPending: 0,
+                spendableAfter: updatedWallet.spendableBalance,
+                redeemableAfter: updatedWallet.redeemableBalance,
+                pendingAfter: updatedWallet.pendingEarnings,
+                idempotencyKey: `refund_clawback_${existing.id}`,
+                referenceType: 'refund_request',
+                referenceId: existing.id,
+                metadata: {
+                  refundRequestId: existing.id,
+                  productId: existing.productId,
+                  platform: existing.platform,
+                  receiptId: existing.receiptId,
+                  approvedBy: actorId,
+                  memo: dto?.memo ?? null,
+                },
+              },
+            });
+          }
+        }
+      }
+
+      // 3. 결제 상태 업데이트 (환불 완료)
+      if (purchase) {
+        await tx.pointPurchase.update({
+          where: { id: purchase.id },
+          data: { status: 'refunded' },
+        });
+      }
+
+      // 4. 환불 요청 상태 변경
       const updated = await tx.refundRequest.update({
         where: { id },
         data: {
@@ -405,19 +508,32 @@ export class AdminController {
         },
       });
 
+      // 5. 감사 로그 작성
       await tx.auditLog.create({
         data: {
           actorId,
           target: `refund:${id}`,
           action: 'REFUND_REQUEST_APPROVED',
+          reason: dto?.memo ?? '환불 승인 및 포인트 회수 완료',
           context: {
-            previousStatus: existing?.status ?? null,
+            previousStatus: existing.status,
             nextStatus: 'approved',
+            userId: existing.userId,
+            deductedPoints: deductAmount,
+            purchaseId: purchase?.id ?? null,
+            platform: existing.platform,
           },
         },
       });
 
-      return updated;
+      return {
+        ok: true,
+        data: updated,
+        clawback: {
+          deductedPoints: deductAmount,
+          originalPoints: refundPoints,
+        },
+      };
     });
   }
 
@@ -426,20 +542,30 @@ export class AdminController {
   async deny(
     @CurrentUser() user: any,
     @Param('id') id: string,
+    @Body() dto?: DenyRefundDto,
   ) {
     const actorId = user?.id ?? user?.sub;
 
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.refundRequest.findUnique({
         where: { id },
-        select: { status: true },
+        select: { status: true, userId: true },
       });
+
+      if (!existing) {
+        throw new NotFoundException('해당 환불 요청을 찾을 수 없습니다.');
+      }
+
+      if (existing.status !== 'pending') {
+        throw new BadRequestException('이미 처리되었거나 대기 중이 아닌 환불 요청입니다.');
+      }
 
       const updated = await tx.refundRequest.update({
         where: { id },
         data: {
           status: 'denied',
           decidedAt: new Date(),
+          reason: dto?.reason ?? undefined,
         },
       });
 
@@ -448,14 +574,16 @@ export class AdminController {
           actorId,
           target: `refund:${id}`,
           action: 'REFUND_REQUEST_DENIED',
+          reason: dto?.reason ?? '환불 요청 반려',
           context: {
-            previousStatus: existing?.status ?? null,
+            previousStatus: existing.status,
             nextStatus: 'denied',
+            userId: existing.userId,
           },
         },
       });
 
-      return updated;
+      return { ok: true, data: updated };
     });
   }
 

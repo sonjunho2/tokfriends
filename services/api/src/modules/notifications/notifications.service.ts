@@ -260,7 +260,7 @@ export class NotificationsService implements OnModuleInit {
 
   async sendBroadcast(
     payload: SendPushPayload,
-    opts?: { role?: string; limit?: number },
+    opts?: { role?: string; limit?: number; isMarketing?: boolean },
   ): Promise<{ sent: number; failed: number; total: number; reason?: string }> {
     const where: Record<string, any> = {};
     if (opts?.role) {
@@ -269,24 +269,54 @@ export class NotificationsService implements OnModuleInit {
 
     const devices = await this.prisma.device.findMany({
       where,
-      select: { userId: true, token: true },
+      select: {
+        userId: true,
+        token: true,
+        user: {
+          select: {
+            profile: {
+              select: { visibility: true },
+            },
+          },
+        },
+      },
       take: opts?.limit ?? 5000,
       orderBy: { updatedAt: "desc" },
     });
 
-    const total = devices.length;
+    // 정보통신망법 제50조: 마케팅 광고성 정보인 경우 marketingOptIn이 true인 사용자만 필터링
+    let filteredDevices = devices;
+    if (opts?.isMarketing) {
+      filteredDevices = devices.filter((d) => {
+        const vis = d.user?.profile?.visibility as Record<string, any> | undefined;
+        return vis?.marketingOptIn === true;
+      });
+    }
+
+    const total = filteredDevices.length;
     if (total === 0) {
-      return { sent: 0, failed: 0, total: 0, reason: "no_registered_devices" };
+      return {
+        sent: 0,
+        failed: 0,
+        total: 0,
+        reason: opts?.isMarketing ? "no_marketing_opt_in_devices" : "no_registered_devices",
+      };
+    }
+
+    // 마케팅 알림인 경우 정보통신망법상 제목 앞단에 '(광고)' 필수 표기
+    let title = payload.title;
+    if (opts?.isMarketing && !title.startsWith('(광고)')) {
+      title = `(광고) ${title}`;
     }
 
     if (!this.messaging) {
       this.logger.debug(
-        `[Broadcast Fallback] Title: "${payload.title}", Devices: ${total}`,
+        `[Broadcast Fallback] Title: "${title}", Devices: ${total}`,
       );
       return { sent: total, failed: 0, total, reason: "fallback_mode" };
     }
 
-    const tokens = devices.map((d) => d.token);
+    const tokens = filteredDevices.map((d) => d.token);
     const CHUNK_SIZE = 500;
     let sent = 0;
     let failed = 0;
@@ -297,7 +327,7 @@ export class NotificationsService implements OnModuleInit {
       try {
         const response = await this.messaging.sendEachForMulticast({
           tokens: chunk,
-          notification: { title: payload.title, body: payload.body },
+          notification: { title, body: payload.body },
           data: payload.data ?? {},
           android: { priority: "high", notification: { sound: "default", channelId: "general" } },
           apns: { payload: { aps: { sound: "default", badge: 1 } } },

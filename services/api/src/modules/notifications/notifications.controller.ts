@@ -70,17 +70,38 @@ export class NotificationsController {
   @ApiBearerAuth()
   @ApiQuery({ name: "role", required: false, description: "Filter by user role" })
   @ApiQuery({ name: "limit", required: false, description: "Max device count (default 5000)" })
+  @ApiQuery({ name: "isMarketing", required: false, description: "마케팅/광고성 정보 여부 (정보통신망법 제50조 준수)" })
   async broadcastPush(
-    @Body() dto: { title: string; body: string; data?: Record<string, string> },
+    @Body() dto: { title: string; body: string; data?: Record<string, string>; isMarketing?: boolean },
     @Query("role") role?: string,
     @Query("limit") limit?: string,
+    @Query("isMarketing") isMarketing?: string,
   ) {
     if (!dto.title?.trim() || !dto.body?.trim()) {
       throw new BadRequestException("title and body are required");
     }
+
+    const marketingFlag = dto.isMarketing ?? isMarketing === 'true';
+
+    // 정보통신망법 제50조 제2항: 야간 시간(21시 ~ 익일 08시) 광고성 정보 발송 제한 확인
+    if (marketingFlag) {
+      const now = new Date();
+      // KST (UTC+9) 기준 시간 계산
+      const kstHour = (now.getUTCHours() + 9) % 24;
+      if (kstHour >= 21 || kstHour < 8) {
+        throw new BadRequestException(
+          '대한민국 정보통신망법 제50조 제2항에 따라 야간(21시~08시)에는 광고성 정보 푸시를 발송할 수 없습니다.',
+        );
+      }
+    }
+
     return this.notificationsService.sendBroadcast(
       { title: dto.title.trim(), body: dto.body.trim(), data: dto.data },
-      { role: role || undefined, limit: limit ? parseInt(limit, 10) : undefined },
+      {
+        role: role || undefined,
+        limit: limit ? parseInt(limit, 10) : undefined,
+        isMarketing: marketingFlag,
+      },
     );
   }
 

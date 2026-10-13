@@ -266,6 +266,12 @@ export async function updateUserStatus(userId: string, status: string) {
   return normalized as UserDetail
 }
 
+export async function withdrawUser(userId: string, reason?: string) {
+  const response = await api.delete(`/admin/users/${userId}`, { data: { reason } })
+  return response.data
+}
+
+
 // ---------------------------------------------------------------------------
 // ?�고 / 차단
 // ---------------------------------------------------------------------------

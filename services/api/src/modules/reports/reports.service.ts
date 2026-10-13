@@ -150,7 +150,7 @@ export class ReportsService {
     }
   }
 
-  async blockReportedUser(reportId: number, reason?: string) {
+  async blockReportedUser(reportId: number, reason?: string, adminUserId?: string) {
     const report = await this.prisma.report.findUnique({
       where: { id: reportId },
       select: { reporterId: true, reportedId: true, status: true },
@@ -181,7 +181,7 @@ export class ReportsService {
     // Create audit log entry
     await this.prisma.auditLog.create({
       data: {
-        actorId: null,
+        actorId: adminUserId ?? null,
         target: `user:${reportedId}`,
         action: 'admin.block_reported_user',
         reason: reason ?? `Blocked via report #${reportId}`,
@@ -196,6 +196,7 @@ export class ReportsService {
     reportId: number,
     action: 'WARNING' | 'SUSPEND_7D' | 'SUSPEND_30D' | 'PERMANENT_BAN',
     reason?: string,
+    adminUserId?: string,
   ) {
     const report = await this.prisma.report.findUnique({
       where: { id: reportId },
@@ -208,6 +209,7 @@ export class ReportsService {
 
     const reportedId = report.reportedId;
     const memo = reason?.trim() || `신고 #${reportId} 제재 처리 (${action})`;
+    let suspendedUntil: Date | null = null;
 
     if (action === 'WARNING') {
       await this.prisma.user.update({
@@ -219,10 +221,14 @@ export class ReportsService {
         },
       });
     } else if (action === 'SUSPEND_7D' || action === 'SUSPEND_30D') {
+      const days = action === 'SUSPEND_7D' ? 7 : 30;
+      suspendedUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
       await this.prisma.user.update({
         where: { id: reportedId },
         data: {
           status: 'suspended',
+          suspendedUntil,
           tokenVersion: { increment: 1 },
           trustScore: { decrement: 20 },
         },
@@ -231,16 +237,25 @@ export class ReportsService {
         where: { legacyUserId: reportedId },
         data: { status: 'suspended' },
       });
+      await this.prisma.activityAccount.updateMany({
+        where: { legacyUserId: reportedId },
+        data: { status: 'suspended' },
+      });
     } else if (action === 'PERMANENT_BAN') {
       await this.prisma.user.update({
         where: { id: reportedId },
         data: {
           status: 'banned',
+          suspendedUntil: null,
           tokenVersion: { increment: 1 },
           trustScore: 0,
         },
       });
       await this.prisma.owner.updateMany({
+        where: { legacyUserId: reportedId },
+        data: { status: 'banned' },
+      });
+      await this.prisma.activityAccount.updateMany({
         where: { legacyUserId: reportedId },
         data: { status: 'banned' },
       });
@@ -257,11 +272,11 @@ export class ReportsService {
     // Create Audit Log
     await this.prisma.auditLog.create({
       data: {
-        actorId: null,
+        actorId: adminUserId ?? null,
         target: `user:${reportedId}`,
         action: `admin.sanction_${action.toLowerCase()}`,
         reason: memo,
-        context: { reportId, reportedId, action },
+        context: { reportId, reportedId, action, suspendedUntil },
       },
     });
 
@@ -269,11 +284,12 @@ export class ReportsService {
       reportId,
       reportedId,
       action,
+      suspendedUntil,
       success: true,
     };
   }
 
-  async deleteReportedPost(reportId: number) {
+  async deleteReportedPost(reportId: number, adminUserId?: string) {
     const report = await this.prisma.report.findUnique({
       where: { id: reportId },
       select: { id: true, postId: true },
@@ -305,7 +321,7 @@ export class ReportsService {
     // Create Audit Log
     await this.prisma.auditLog.create({
       data: {
-        actorId: null,
+        actorId: adminUserId ?? null,
         target: `post:${postId}`,
         action: 'admin.delete_reported_post',
         reason: `신고 #${reportId}에 따른 유해 게시물 즉시 삭제`,

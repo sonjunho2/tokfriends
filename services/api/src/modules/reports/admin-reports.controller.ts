@@ -1,4 +1,3 @@
-// services/api/src/modules/reports/admin-reports.controller.ts
 import {
   BadRequestException,
   Body,
@@ -15,6 +14,7 @@ import {
 import { ApiBearerAuth, ApiBody, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ReportsService } from './reports.service';
 import { AdminPermissions } from '../../common/admin-permissions.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
 
 @ApiTags('admin/reports')
 @ApiBearerAuth()
@@ -59,7 +59,7 @@ export class AdminReportsController {
 
   @ApiParam({ name: 'id', type: Number })
   @ApiBody({ schema: { properties: { status: { type: 'string', enum: ['REVIEWING', 'RESOLVED', 'REJECTED'] } } } })
-  @AdminPermissions('reports.view')
+  @AdminPermissions('content.manage')
   @Patch(':id/status')
   async updateStatus(
     @Param('id', ParseIntPipe) id: number,
@@ -75,13 +75,15 @@ export class AdminReportsController {
 
   @ApiParam({ name: 'id', type: Number })
   @ApiBody({ schema: { properties: { reason: { type: 'string' } } } })
-  @AdminPermissions('reports.view')
+  @AdminPermissions('content.manage')
   @Post(':id/block-user')
   async blockReportedUser(
+    @CurrentUser() user: any,
     @Param('id', ParseIntPipe) id: number,
     @Body('reason') reason?: string,
   ) {
-    const result = await this.reports.blockReportedUser(id, reason);
+    const adminId = user?.id ?? user?.sub;
+    const result = await this.reports.blockReportedUser(id, reason, adminId);
     if (!result) throw new NotFoundException(`Report ${id} not found or has no reported user`);
     return { ok: true, data: result };
   }
@@ -99,9 +101,10 @@ export class AdminReportsController {
       required: ['action'],
     },
   })
-  @AdminPermissions('reports.view')
+  @AdminPermissions('content.manage')
   @Post(':id/sanction-user')
   async sanctionReportedUser(
+    @CurrentUser() user: any,
     @Param('id', ParseIntPipe) id: number,
     @Body('action') action: 'WARNING' | 'SUSPEND_7D' | 'SUSPEND_30D' | 'PERMANENT_BAN',
     @Body('reason') reason?: string,
@@ -111,15 +114,20 @@ export class AdminReportsController {
         'action must be one of: WARNING, SUSPEND_7D, SUSPEND_30D, PERMANENT_BAN',
       );
     }
-    const result = await this.reports.sanctionReportedUser(id, action, reason);
+    const adminId = user?.id ?? user?.sub;
+    const result = await this.reports.sanctionReportedUser(id, action, reason, adminId);
     return { ok: true, data: result };
   }
 
   @ApiParam({ name: 'id', type: Number })
-  @AdminPermissions('reports.view')
+  @AdminPermissions('content.manage')
   @Delete(':id/delete-post')
-  async deleteReportedPost(@Param('id', ParseIntPipe) id: number) {
-    const result = await this.reports.deleteReportedPost(id);
+  async deleteReportedPost(
+    @CurrentUser() user: any,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const adminId = user?.id ?? user?.sub;
+    const result = await this.reports.deleteReportedPost(id, adminId);
     return { ok: true, data: result };
   }
 }

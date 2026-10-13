@@ -191,3 +191,20 @@ export class UpdateCallRateSettingDto {
   @IsString()
   description?: string;
 }
+
+export class ApproveRefundDto {
+  @IsOptional()
+  @IsString()
+  memo?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  forceDeduct?: boolean;
+}
+
+export class DenyRefundDto {
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}
+

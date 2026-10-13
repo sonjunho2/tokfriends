@@ -4,6 +4,42 @@ Updated: 2026-10-13
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-13 Checkpoint 54: 관리자 API 전면 개편 & 대한민국 법령 준수 및 미구현 기능 실DB 영속화 구축 (완료)
+
+### 1. 개요 및 배경
+- **배경**: 대한민국 정식 상용 서비스 런칭을 앞두고, 앱 관리자 API의 결함, 404 미구현 엔드포인트, Mock/No-op 가짜 응답들을 정밀 진단하여 실제 DB로 영속화하고 대한민국 법령(개인정보보호법, 전자상거래법, 정보통신망법, 소득세법 등)을 철저히 준수하도록 백엔드(`services/api`)와 관리자 웹(`apps/admin`)을 단계적으로 전면 수정 및 보강.
+
+### 2. 주요 개선 및 법령 준수 내역
+1. **전자상거래법 & 결제/환불 포인트 회수 체계 완비 (`admin.controller.ts`)**:
+   - 환불 승인(`PATCH /admin/refunds/:id/approve`) 시 유저의 보유 포인트(`pointsBalance`) 및 지갑 출금가능잔액(`spendableBalance`) 유무를 정밀 검증.
+   - 포인트 부족 시 환불 거절 예외 처리(`BadRequestException`)를 발생시켜 포인트 부정 편취를 차단.
+   - 금융 원장(`WalletLedgerEntry`)에 `refund_clawback` 차감 내역을 기록하고, 결제 건의 상태를 `refunded`로 전이 및 관리자 감사 로그(`AuditLog`)에 승인자/사유 기록.
+2. **개인정보보호법 & 관리자 강제 탈퇴/영구 파기 체계 구축 (`users.service.ts`, `admin-users.controller.ts`, `apps/admin/src/lib/api.ts`)**:
+   - 관리자용 회원 탈퇴 엔드포인트 `DELETE /admin/users/:id` 신설 (`@AdminPermissions('users.manage')`).
+   - 탈퇴 처리 시 디바이스 푸시 토큰 제거뿐만 아니라 업로드된 프로필 사진(`userPhoto`, `photo`), 본인확인 이력(`phoneVerification`)을 DB에서 완전 영구 삭제.
+   - 닉네임, 프로필, 활동 계정의 식별 정보를 난수 비식별화 처리하여 개인정보보호법 제21조(개인정보의 파기) 준수.
+3. **404 미구현 온(ON) 상품 관리 CUD API 전면 구축 (`store.service.ts`, `store.controller.ts`)**:
+   - 관리자 상점 페이지(`apps/admin/src/app/store/point-products/page.tsx`) 호출 시 404 에러를 유발하던 상품 CUD 엔드포인트 신설.
+   - `POST /store/point-products` (상품 등록), `PUT /store/point-products/:id` (상품 수정), `DELETE /store/point-products/:id` (상품 삭제), `POST /store/point-products/reorder` (노출 순서 정렬) 구현.
+   - JSON 영속화 파일(`store_assets/point-products.json`) 및 인메모리 캐시 갱신 파이프라인 완비.
+4. **신고/제재 시스템 권한 분립 & 기간제 정지 DB 모델 반영 (`schema.prisma`, `reports.service.ts`, `admin-reports.controller.ts`)**:
+   - `User` 모델에 `suspendedUntil DateTime?` 컬럼 추가 및 Prisma Client 갱신.
+   - 조회 권한(`reports.view`)으로 계정 차단/제재/게시글 삭제를 수행할 수 있었던 보안 취약점을 해결하고 `content.manage` 권한으로 분리 승격.
+   - 7일(`SUSPEND_7D`), 30일(`SUSPEND_30D`) 기간제 정지 시 만료 일시를 계산하여 `User.suspendedUntil` 및 `ActivityAccount.status = 'suspended'` 반영.
+5. **정보통신망법 마케팅 푸시 야간 제한 & 수신동의 필터링 (`notifications.controller.ts`, `notifications.service.ts`)**:
+   - 정보통신망법 제50조에 따라 야간 시간대(한국시간 21:00 ~ 08:00) 마케팅 푸시 전송 원천 차단 예외 처리.
+   - `isMarketing: true` 전송 시 마케팅 수신동의 회원(`marketingOptIn === true`)만 타겟팅 필터링하고 제목 앞단에 `(광고)` 접두어를 필수 강제 부착.
+6. **매칭 & 채팅 컨트롤패널 실제 DB 영속화 (`matches-admin.controller.ts`, `chats.controller.ts`)**:
+   - 브라우저를 새로고침하면 휘발되던 매칭 프리셋, 퀵필터, 추천풀, 채팅 필터링 정책, 컨트롤패널 메모를 `AdminIntegrationSetting` 테이블에 영구 보관.
+   - 매칭 히트맵에 가짜 하드코딩 대신 실제 유저 테이블의 지역(`region1`) 통계를 실시간 GroupBy 집계하여 반영.
+   - 채팅방 운영 오버라이드 및 신고 해결 시 관리자 감사 로그 기록.
+
+### 3. 빌드 및 품질 검증 결과
+- **백엔드 (`services/api`)**: `nest build` 수행 결과 TypeScript 타입 오류 0건, 컴파일 성공 (Exit code 0).
+- **관리자 웹 (`apps/admin`)**: `next build` 수행 결과 31개 전체 라우트(Static/Dynamic) 번들링 및 타입 검사 100% 통과 (Exit code 0).
+
+---
+
 ## 2026-10-13 Checkpoint 53: 채팅창 및 라이브창 키보드 오픈 시 대화 입력창 가림/이탈 현상 전면 수정 (완료)
 
 ### 1. 개요 및 요구사항

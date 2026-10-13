@@ -556,8 +556,17 @@ export class UsersService {
 
   async deleteAccount(userId: string) {
     return this.prisma.$transaction(async (tx) => {
+      // 1. 디바이스 및 푸시 토큰 삭제
       await tx.device.deleteMany({ where: { userId } });
 
+      // 2. 프로필 사진 및 업로드 사진 완전 파기 (개인정보보호법)
+      await tx.userPhoto.deleteMany({ where: { userId } });
+      await tx.photo.deleteMany({ where: { userId } });
+
+      // 3. 휴대폰 본인확인 이력 파기
+      await tx.phoneVerification.deleteMany({ where: { userId } });
+
+      // 4. 유저 마스킹 및 비식별화
       await tx.user.update({
         where: { id: userId },
         data: {
@@ -566,9 +575,11 @@ export class UsersService {
           email: null,
           phoneHash: null,
           displayName: '탈퇴한 회원',
+          avatarUrl: null,
         },
       });
 
+      // 5. 프로필 비식별화
       await tx.profile.updateMany({
         where: { userId },
         data: {
@@ -576,13 +587,19 @@ export class UsersService {
           headline: null,
           bio: null,
           avatarUri: null,
+          interests: [],
+          badges: [],
+          visibility: {},
         },
       });
 
+      // 6. 활동 계정 탈퇴 처리
       await tx.activityAccount.updateMany({
         where: { legacyUserId: userId },
         data: {
           status: 'withdrawn',
+          displayName: '탈퇴한 회원',
+          handle: null,
         },
       });
 

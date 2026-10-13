@@ -3,6 +3,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Param,
@@ -556,6 +557,37 @@ export class AdminUsersController {
     const actorId = user?.id ?? user?.sub;
     const entry = await this.logAction(actorId, id, 'ESCALATE', body);
     return { ok: true, data: entry };
+  }
+
+  @Delete(':id')
+  async withdrawUser(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body?: { reason?: string },
+  ) {
+    await this.ensureUserExists(id);
+    const actorId = user?.id ?? user?.sub;
+
+    const result = await this.usersService.deleteAccount(id);
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorId,
+        target: `user:${id}`,
+        action: 'USER_ACTION:ACCOUNT_DELETED',
+        reason: body?.reason ?? '관리자에 의한 회원 영구 탈퇴 및 개인정보 파기',
+        context: {
+          withdrawnAt: new Date(),
+          requestedBy: actorId,
+        },
+      },
+    });
+
+    return {
+      ok: true,
+      message: '회원 계정 및 개인정보가 성공적으로 파기/탈퇴 처리되었습니다.',
+      data: result,
+    };
   }
   private resolveRiskFilter(level?: string): Prisma.IntFilter | undefined {
     if (!level) return undefined;

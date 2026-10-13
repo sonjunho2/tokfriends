@@ -1,8 +1,8 @@
-// services/api/src/modules/store/store.service.ts
 import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
@@ -16,9 +16,17 @@ export type PointProduct = {
   id: string;
   productId: string;
   label: string;
+  name?: string;
   priceText: string;
+  price?: number;
   points: number;
   recommended?: boolean;
+  isRecommended?: boolean;
+  isActive?: boolean;
+  androidProductId?: string | null;
+  iosProductId?: string | null;
+  order?: number;
+  note?: string | null;
   currency?: string;
 };
 
@@ -92,14 +100,29 @@ export class StoreService {
     },
   ];
 
+  private getPointProductsConfigPath(): string {
+    return (
+      process.env.POINT_PRODUCTS_PATH ??
+      join(process.cwd(), 'store_assets', 'point-products.json')
+    );
+  }
+
+  private async savePointProductsToFile(items: PointProduct[]): Promise<void> {
+    const configPath = this.getPointProductsConfigPath();
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({ items }, null, 2),
+      'utf8',
+    );
+    this.productsCache = undefined;
+  }
+
   async listPointProducts(): Promise<PointProduct[]> {
     if (this.productsCache && this.productsCache.expiresAt > Date.now()) {
       return this.productsCache.items;
     }
 
-    const configPath =
-      process.env.POINT_PRODUCTS_PATH ??
-      join(process.cwd(), 'store_assets', 'point-products.json');
+    const configPath = this.getPointProductsConfigPath();
 
     try {
       const raw = await fs.readFile(configPath, 'utf8');
@@ -110,26 +133,47 @@ export class StoreService {
         ? parsed
         : [];
 
-      const normalized = items
-        .map((item: any) => ({
-          id: String(item.id ?? item.productId ?? ''),
-          productId: String(item.productId ?? item.id ?? ''),
-          label: String(item.label ?? item.title ?? ''),
-          priceText: String(item.priceText ?? item.price ?? ''),
-          points: Number(item.points ?? item.amount ?? 0),
-          recommended: item.recommended === true,
-          currency: item.currency ? String(item.currency) : undefined,
-        }))
+      const normalized: PointProduct[] = items
+        .map((item: any, idx: number) => {
+          const points = Number(item.points ?? item.amount ?? 0);
+          const rawPrice = item.priceText ?? item.price ?? 0;
+          const priceNum =
+            typeof item.price === 'number'
+              ? item.price
+              : Number(String(rawPrice).replace(/[^0-9]/g, '')) || 0;
+          const priceText =
+            typeof rawPrice === 'string' && rawPrice.trim().length > 0
+              ? rawPrice
+              : `₩${priceNum.toLocaleString()}`;
+          const isRec = item.isRecommended === true || item.recommended === true;
+
+          return {
+            id: String(item.id ?? item.productId ?? `point-${idx + 1}`),
+            productId: String(item.productId ?? item.id ?? `point-${idx + 1}`),
+            label: String(item.label ?? item.name ?? item.title ?? `${points.toLocaleString()} 온 충전`),
+            name: String(item.name ?? item.label ?? item.title ?? `${points.toLocaleString()} 온 충전`),
+            priceText,
+            price: priceNum,
+            points,
+            recommended: isRec,
+            isRecommended: isRec,
+            isActive: item.isActive !== false,
+            androidProductId: item.androidProductId ?? item.productId ?? null,
+            iosProductId: item.iosProductId ?? item.productId ?? null,
+            order: typeof item.order === 'number' ? item.order : idx + 1,
+            note: item.note ?? null,
+            currency: item.currency ? String(item.currency) : 'KRW',
+          };
+        })
         .filter(
-          (item) =>
+          (item: PointProduct) =>
             item.id &&
             item.productId &&
-            item.label &&
-            item.priceText &&
             item.points > 0,
         );
 
       const result = normalized.length ? normalized : this.fallbackProducts;
+      result.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
       this.productsCache = { expiresAt: Date.now() + 60_000, items: result };
       return result;
     } catch (error: any) {
@@ -139,6 +183,123 @@ export class StoreService {
       };
       return this.fallbackProducts;
     }
+  }
+
+  async createPointProduct(dto: any): Promise<PointProduct> {
+    const items = await this.listPointProducts();
+    const id = dto.id?.trim() || dto.productId?.trim() || `point-${Date.now()}`;
+    const productId = dto.productId?.trim() || id;
+
+    if (items.some((i) => i.id === id || i.productId === productId)) {
+      throw new ConflictException('이미 존재하는 상품 ID입니다.');
+    }
+
+    const priceNum =
+      typeof dto.price === 'number'
+        ? dto.price
+        : Number(String(dto.price || '0').replace(/[^0-9]/g, '')) || 0;
+    const priceText =
+      dto.priceText || (priceNum > 0 ? `₩${priceNum.toLocaleString()}` : '₩0');
+    const points = Number(dto.points || 0);
+
+    const newProduct: PointProduct = {
+      id,
+      productId,
+      label: dto.name?.trim() || dto.label?.trim() || `${points.toLocaleString()} 온 충전`,
+      name: dto.name?.trim() || dto.label?.trim() || `${points.toLocaleString()} 온 충전`,
+      price: priceNum,
+      priceText,
+      points,
+      recommended: Boolean(dto.isRecommended ?? dto.recommended),
+      isRecommended: Boolean(dto.isRecommended ?? dto.recommended),
+      isActive: dto.isActive !== false,
+      androidProductId: dto.androidProductId ?? productId,
+      iosProductId: dto.iosProductId ?? productId,
+      order: typeof dto.order === 'number' ? dto.order : items.length + 1,
+      note: dto.note ?? null,
+      currency: dto.currency || 'KRW',
+    };
+
+    items.push(newProduct);
+    items.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    await this.savePointProductsToFile(items);
+    return newProduct;
+  }
+
+  async updatePointProduct(productId: string, dto: any): Promise<PointProduct> {
+    const items = await this.listPointProducts();
+    const idx = items.findIndex((i) => i.id === productId || i.productId === productId);
+
+    if (idx === -1) {
+      throw new NotFoundException('해당 상품을 찾을 수 없습니다.');
+    }
+
+    const target = items[idx];
+    const priceNum =
+      dto.price !== undefined
+        ? (typeof dto.price === 'number'
+            ? dto.price
+            : Number(String(dto.price).replace(/[^0-9]/g, '')) || 0)
+        : target.price;
+    const priceText =
+      dto.priceText ?? (priceNum !== undefined ? `₩${priceNum.toLocaleString()}` : target.priceText);
+    const points = dto.points !== undefined ? Number(dto.points) : target.points;
+
+    const updated: PointProduct = {
+      ...target,
+      label: dto.name?.trim() || dto.label?.trim() || target.label,
+      name: dto.name?.trim() || dto.label?.trim() || target.name || target.label,
+      price: priceNum,
+      priceText,
+      points,
+      recommended:
+        dto.isRecommended !== undefined
+          ? dto.isRecommended
+          : (dto.recommended !== undefined ? dto.recommended : target.recommended),
+      isRecommended:
+        dto.isRecommended !== undefined
+          ? dto.isRecommended
+          : (dto.recommended !== undefined ? dto.recommended : target.isRecommended),
+      isActive: dto.isActive !== undefined ? dto.isActive : target.isActive,
+      androidProductId: dto.androidProductId !== undefined ? dto.androidProductId : target.androidProductId,
+      iosProductId: dto.iosProductId !== undefined ? dto.iosProductId : target.iosProductId,
+      order: dto.order !== undefined ? Number(dto.order) : target.order,
+      note: dto.note !== undefined ? dto.note : target.note,
+    };
+
+    items[idx] = updated;
+    items.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    await this.savePointProductsToFile(items);
+    return updated;
+  }
+
+  async deletePointProduct(productId: string): Promise<{ success: boolean }> {
+    const items = await this.listPointProducts();
+    const filtered = items.filter((i) => i.id !== productId && i.productId !== productId);
+
+    if (filtered.length === items.length) {
+      throw new NotFoundException('해당 상품을 찾을 수 없습니다.');
+    }
+
+    await this.savePointProductsToFile(filtered);
+    return { success: true };
+  }
+
+  async reorderPointProducts(itemsInput: { id: string; order: number }[]): Promise<PointProduct[]> {
+    const items = await this.listPointProducts();
+    const orderMap = new Map(itemsInput.map((item) => [item.id, item.order]));
+
+    items.forEach((item) => {
+      if (orderMap.has(item.id)) {
+        item.order = orderMap.get(item.id);
+      } else if (orderMap.has(item.productId)) {
+        item.order = orderMap.get(item.productId);
+      }
+    });
+
+    items.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    await this.savePointProductsToFile(items);
+    return items;
   }
 
   private async findProduct(productId: string) {
