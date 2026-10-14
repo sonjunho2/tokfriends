@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import ws from 'ws';
 import { GoogleGenAI } from '@google/genai';
 import { OrchestratorService } from '../ai-staff/orchestrator.service';
 import { randomUUID } from 'crypto';
@@ -34,10 +35,24 @@ export class SnapshotAuditorService {
     const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY') || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (supabaseUrl && supabaseKey) {
-      this.supabase = createClient(supabaseUrl, supabaseKey);
-      this.logger.log('Supabase storage client initialized successfully.');
+      try {
+        this.supabase = createClient(supabaseUrl, supabaseKey, {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false,
+          },
+          realtime: {
+            transport: ws as any,
+          },
+        });
+        this.logger.log('Supabase storage client initialized successfully with ws transport.');
+      } catch (err) {
+        this.logger.warn(`Failed to initialize Supabase client: ${err}`);
+        this.supabase = null;
+      }
     } else {
-      this.logger.warn('SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured. Local mock storage will be used.');
+      this.logger.warn('SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured. Local fallback storage will be used.');
     }
   }
 

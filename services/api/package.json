@@ -2,7 +2,9 @@
   "name": "tokfriends-api",
   "version": "0.1.0",
   "private": true,
-  "engines": { "node": "20.x" },
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "start": "prisma migrate deploy && node dist/main.js",
     "start:prod": "prisma migrate deploy && node dist/main.js",
@@ -39,6 +41,7 @@
     "@nestjs/websockets": "10.4.20",
     "@prisma/client": "5.22.0",
     "@supabase/supabase-js": "^2.48.1",
+    "@types/ws": "^8.18.2",
     "argon2": "0.40.3",
     "bcrypt": "^5.1.1",
     "class-transformer": "0.5.1",
@@ -56,7 +59,8 @@
     "rimraf": "5.0.10",
     "rxjs": "7.8.2",
     "socket.io": "4.8.1",
-    "swagger-ui-express": "5.0.1"
+    "swagger-ui-express": "5.0.1",
+    "ws": "^8.22.0"
   },
   "devDependencies": {
     "@nestjs/cli": "10.4.9",
