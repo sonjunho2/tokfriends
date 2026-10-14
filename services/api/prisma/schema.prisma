@@ -6,12 +6,16 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
 }
 
 model User {
   id                 String               @id @default(uuid())
-  nickname           String               @unique
+  nickname           String?              @unique
+  email              String?              @unique
+  displayName        String?
+  passwordHash       String?
+  tokenVersion       Int                  @default(0)
+  provider           String?              @default("email")
   avatarUrl          String?              // 대표 원형 아이콘 URL
   bio                String?              @db.VarChar(200)
   pointBalance       Int                  @default(0) // 실제 충전/보유 온(ON) 포인트
@@ -23,8 +27,62 @@ model User {
   guestCalls         PrivateCallSession[] @relation("GuestSessions")
   giftTransactions   GiftTransaction[]
   aiDecisions        AiDecisionQueue[]
+  adminProfile       AdminProfile?
+  auditLogs          AuditLog[]
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
+}
+
+model AdminProfile {
+  userId           String      @id
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role             String      @default("MANAGER")
+  status           String      @default("ACTIVE")
+  permissions      String[]
+  twoFactorEnabled Boolean     @default(false)
+  lastLoginAt      DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+}
+
+model AdminFeatureFlag {
+  id          String   @id
+  name        String   @unique
+  description String?
+  environment String   @default("production")
+  enabled     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AdminIntegrationSetting {
+  id             String   @id
+  label          String
+  placeholder    String?
+  encryptedValue String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model AdminSettingsState {
+  id        String   @id @default("default")
+  auditMemo String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  target    String
+  action    String
+  context   Json?
+  notes     String?
+  createdAt DateTime @default(now())
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([action, createdAt])
+  @@index([actorId, createdAt])
 }
 
 enum UserStatus {

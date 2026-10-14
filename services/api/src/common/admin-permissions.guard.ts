@@ -10,6 +10,17 @@ import { UserRole, UserStatus } from '@prisma/client';
 
 export const ADMIN_PERMISSIONS_KEY = 'admin_permissions';
 
+export const ADMIN_PERMISSION_KEYS = [
+  'users.manage',
+  'reports.view',
+  'content.manage',
+  'refunds.view',
+  'refunds.manage',
+  'approvals.view',
+  'approvals.manage',
+  'settings.manage',
+] as const;
+
 export const AdminPermissions = (...permissions: string[]) =>
   SetMetadata(ADMIN_PERMISSIONS_KEY, permissions);
 
