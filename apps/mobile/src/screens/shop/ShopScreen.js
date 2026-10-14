@@ -489,23 +489,6 @@ export default function ShopScreen({ navigation }) {
           </View>
         )}
 
-        <View style={styles.banner}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.bannerSmall}>+50%의 추가 혜택</Text>
-            <Text style={styles.bannerBig}>무통장 계좌결제 시{'\n'}1.5배 더 드려요!</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.bannerCta}
-            activeOpacity={0.9}
-            onPress={() => {
-              Alert.alert('준비중', '무통장 스토어 기능을 준비중입니다.');
-            }}
-          >
-            <Text style={styles.bannerCtaText}>무통장 스토어{'\n'}바로가기</Text>
-            <Text style={styles.bannerCtaArrow}>›</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* 크리에이터 수익금 출금/환전 카드 */}
         <View style={styles.settlementCard}>
           <View style={styles.settlementTopRow}>
@@ -1137,50 +1120,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
-  banner: {
-    backgroundColor: '#D9ECFF',
-    borderRadius: RADIUS,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: 12,
-    marginBottom: 18,
-  },
-  bannerSmall: {
-    fontSize: 13,
-    color: '#2C6FB8',
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  bannerBig: {
-    fontSize: 18,
-    color: '#2C6FB8',
-    fontWeight: '800',
-    lineHeight: 24,
-  },
-  bannerCta: {
-    width: 112,
-    backgroundColor: '#ffffff',
-    borderRadius: RADIUS,
-    padding: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#B7D6F7',
-  },
-  bannerCtaText: {
-    textAlign: 'center',
-    fontSize: 12,
-    color: '#2C6FB8',
-    fontWeight: '700',
-  },
-  bannerCtaArrow: {
-    marginTop: 6,
-    fontSize: 22,
-    color: '#2C6FB8',
-    fontWeight: '800',
-    lineHeight: 22,
-  },
   row: {
     backgroundColor: '#fff',
     borderRadius: RADIUS,
@@ -1387,8 +1326,8 @@ const styles = StyleSheet.create({
   },
   // ===== Settlement Card & Modal Styles =====
   settlementCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
+    marginTop: 6,
+    marginBottom: 20,
     backgroundColor: '#F0FDF4',
     borderWidth: 1,
     borderColor: '#BBF7D0',

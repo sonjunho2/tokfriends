@@ -4,6 +4,24 @@ Updated: 2026-10-14
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-14 Checkpoint 58: 온(ON) 충전소 무통장 계좌결제 배너 제거(애플 앱스토어 인앱결제 심사 규정 준수) 및 크리에이터 출금/환전 카드 가로 비율 정렬 (완료)
+
+### 1. 개요 및 배경
+- **애플 앱스토어 심사 규정(App Store Review Guidelines 3.1.1 In-App Purchase) 준수**: 앱 내 무통장 입금 등 외부 결제 유도 문구가 존재할 경우 심사 거절(리젝) 사유가 되므로, 온 충전소 화면의 '무통장 계좌결제 시 1.5배 더 드려요!' 배너를 완전히 제거.
+- **가로 폭 비율 불균형 해소**: ScrollView에 이미 `paddingHorizontal: 16`이 적용되어 있는 상태에서 '크리에이터 출금 / 환전' 카드에 `marginHorizontal: 16`이 추가 적용되어 아래의 '무료 온 충전소' 및 '상품 충전' 카드보다 좌우로 32px 좁게 파묻혀 있던 레이아웃 문제를 완벽 해결.
+
+### 2. 주요 작업 내역
+- **무통장 계좌결제 배너 완전 제거 (`ShopScreen.js`)**:
+  - `banner` JSX 뷰 및 관련 미사용 스타일(`banner`, `bannerSmall`, `bannerBig`, `bannerCta`, `bannerCtaText`, `bannerCtaArrow`) 제거.
+- **크리에이터 출금 / 환전 카드 가로 비율 정렬 (`ShopScreen.js`)**:
+  - `styles.settlementCard`에서 불필요한 `marginHorizontal: 16`을 제거하여 다른 모든 카드(`rewardCard`, `row` 등)와 정확히 동일한 가로 폭 비율을 갖도록 맞춤.
+  - 배너 제거 후 상단 여백(`marginTop: 6`, `marginBottom: 20`) 최적화로 시각적 밸런스 확보.
+
+### 3. 검증 결과
+- **모바일 신택스 검사**: `node -c src/screens/shop/ShopScreen.js` 문법 에러 0건 통과.
+
+---
+
 ## 2026-10-14 Checkpoint 57: 당근(Karrot) 스타일 커뮤니티/홈 피드 전면 개편 & 2단계 심층 신고 모달 및 관리자 웹 100% 완전 연동 (완료)
 
 ### 1. 개요 및 배경
