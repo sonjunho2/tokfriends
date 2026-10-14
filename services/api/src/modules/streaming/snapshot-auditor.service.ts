@@ -6,6 +6,7 @@ import ws from 'ws';
 import { GoogleGenAI } from '@google/genai';
 import { OrchestratorService } from '../ai-staff/orchestrator.service';
 import { randomUUID } from 'crypto';
+import { decryptAdminSettingValue } from '../admin/admin-settings.crypto';
 
 export interface SnapshotAnalysisResult {
   riskScore: number;
@@ -17,56 +18,57 @@ export interface SnapshotAnalysisResult {
 @Injectable()
 export class SnapshotAuditorService {
   private readonly logger = new Logger(SnapshotAuditorService.name);
-  private supabase: SupabaseClient | null = null;
-  private aiClient: GoogleGenAI | null = null;
   private channelIntervals = new Map<string, number>();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly orchestratorService: OrchestratorService,
-  ) {
-    this.initSupabase();
-    this.initGemini();
-  }
+  ) {}
 
-  private initSupabase() {
-    const supabaseUrl = this.configService.get<string>('SUPABASE_URL') || process.env.SUPABASE_URL;
-    const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY') || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  /**
+   * 동적 Supabase 스토리지 클라이언트 조회 (관리자 DB 설정 우선 -> 환경 변수 폴백)
+   */
+  async getSupabaseClient(): Promise<SupabaseClient | null> {
+    let supabaseUrl = this.configService.get<string>('SUPABASE_URL') || process.env.SUPABASE_URL;
+    let supabaseKey =
+      this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY') ||
+      process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (supabaseUrl && supabaseKey) {
-      try {
-        this.supabase = createClient(supabaseUrl, supabaseKey, {
-          auth: {
-            persistSession: false,
-            autoRefreshToken: false,
-            detectSessionInUrl: false,
-          },
-          realtime: {
-            transport: ws as any,
-          },
-        });
-        this.logger.log('Supabase storage client initialized successfully with ws transport.');
-      } catch (err) {
-        this.logger.warn(`Failed to initialize Supabase client: ${err}`);
-        this.supabase = null;
+    try {
+      const urlSetting = await this.prisma.adminIntegrationSetting.findUnique({
+        where: { id: 'supabase_url' },
+      });
+      if (urlSetting?.encryptedValue) {
+        const val = decryptAdminSettingValue(urlSetting.encryptedValue, 'supabase_url');
+        if (val && val.trim()) supabaseUrl = val.trim();
       }
-    } else {
-      this.logger.warn('SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured. Local fallback storage will be used.');
-    }
-  }
 
-  private initGemini() {
-    const apiKey = this.configService.get<string>('GEMINI_API_KEY') || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY;
-    if (apiKey) {
-      try {
-        this.aiClient = new GoogleGenAI({ apiKey });
-        this.logger.log('Google Gemini AI client initialized.');
-      } catch (err) {
-        this.logger.warn(`Failed to initialize Google GenAI: ${err}`);
+      const keySetting = await this.prisma.adminIntegrationSetting.findUnique({
+        where: { id: 'supabase_service_role_key' },
+      });
+      if (keySetting?.encryptedValue) {
+        const val = decryptAdminSettingValue(keySetting.encryptedValue, 'supabase_service_role_key');
+        if (val && val.trim()) supabaseKey = val.trim();
       }
-    } else {
-      this.logger.warn('GEMINI_API_KEY not configured. Vision AI fallback heuristics will be used.');
+    } catch (e) {}
+
+    if (!supabaseUrl || !supabaseKey) return null;
+
+    try {
+      return createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+        realtime: {
+          transport: ws as any,
+        },
+      });
+    } catch (err) {
+      this.logger.warn(`Failed to create dynamic Supabase client: ${err}`);
+      return null;
     }
   }
 
@@ -93,9 +95,10 @@ export class SnapshotAuditorService {
     let snapshotUrl = `https://storage.dagaon.app/snapshots/${channelId}/${filename}`;
 
     // 1. Supabase Storage 업로드
-    if (this.supabase) {
+    const supabase = await this.getSupabaseClient();
+    if (supabase) {
       try {
-        const { data, error } = await this.supabase.storage
+        const { data, error } = await supabase.storage
           .from('stream-snapshots')
           .upload(filename, imageBuffer, {
             contentType: mimeType,
@@ -105,7 +108,7 @@ export class SnapshotAuditorService {
         if (error) {
           this.logger.error(`Supabase upload failed: ${error.message}`);
         } else if (data) {
-          const { data: pubData } = this.supabase.storage
+          const { data: pubData } = supabase.storage
             .from('stream-snapshots')
             .getPublicUrl(filename);
           snapshotUrl = pubData.publicUrl;

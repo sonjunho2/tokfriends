@@ -88,6 +88,10 @@ export const DEFAULT_INTEGRATION_SETTINGS: DefaultIntegrationSettingDef[] = [
   { id: 'ai_staff_models', label: 'AI 직원별 LLM 모델 지정 (JSON)', placeholder: '{"zev":"gemini-2.5-flash","safety":"gemini-1.5-flash","settlement":"gemini-1.5-flash","happiness":"gemini-1.5-flash","curator":"gemini-1.5-flash","director":"gemini-2.5-flash"}' },
   { id: 'ai_staff_sensitivity', label: 'AI 위험도 민감도 기준 점수 (0~100)', placeholder: '60' },
   { id: 'ai_staff_toggles', label: 'AI 직원별 ON/OFF 활성화 상태 (JSON)', placeholder: '{"zev":true,"safety":true,"settlement":true,"happiness":true,"curator":true,"director":true}' },
+
+  // 7. 클라우드 스토리지 (Supabase Storage)
+  { id: 'supabase_url', label: 'Supabase 프로젝트 URL (이미지/채증 스토리지)', placeholder: 'https://xxxx.supabase.co' },
+  { id: 'supabase_service_role_key', label: 'Supabase Service Role Key (비공개 관리자 키)', placeholder: 'eyJhbGciOiJIUzI1Ni...' },
 ];
 
 const adminProfileArgs = Prisma.validator<Prisma.AdminProfileDefaultArgs>()({
