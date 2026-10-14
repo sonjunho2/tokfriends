@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { sign as jwtSign } from 'jsonwebtoken';
-import { UserRole, UserStatus } from '@prisma/client';
+import { UserRole, UserStatus } from '../../common/user-types';
 
 @Injectable()
 export class AuthService {
@@ -43,8 +43,8 @@ export class AuthService {
           avatarUrl: `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(trimmed)}`,
           pointBalance: 10000, // 기본 10,000 온(ON) 지급
           callRatePerMinute: 1200,
-          role: UserRole.USER,
-          status: UserStatus.ACTIVE,
+          role: 'user',
+          status: 'active',
         },
         include: {
           photos: {

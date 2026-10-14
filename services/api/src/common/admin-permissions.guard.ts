@@ -6,7 +6,7 @@ import {
   SetMetadata,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { UserRole, UserStatus } from '@prisma/client';
+import { UserRole, UserStatus } from './user-types';
 
 export const ADMIN_PERMISSIONS_KEY = 'admin_permissions';
 
@@ -54,7 +54,8 @@ export class AdminPermissionsGuard implements CanActivate {
       if (!user) {
         return true;
       }
-      if (user.role && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+      const userRole = String(user.role || '').toLowerCase();
+      if (userRole && userRole !== 'admin' && userRole !== 'super_admin') {
         throw new ForbiddenException('관리자 권한이 필요합니다.');
       }
     }

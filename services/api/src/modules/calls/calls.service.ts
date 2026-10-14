@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { PrivateCallService } from './private-call.service';
-import { UserStatus } from '@prisma/client';
+import { UserStatus } from '../../common/user-types';
 
 @Injectable()
 export class CallsService {

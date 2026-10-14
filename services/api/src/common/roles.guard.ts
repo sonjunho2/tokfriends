@@ -22,6 +22,7 @@ export class RolesGuard implements CanActivate {
       return false;
     }
 
-    return handlerRoles.includes(user.role);
+    const userRole = String(user.role).toLowerCase();
+    return handlerRoles.some((r) => r.toLowerCase() === userRole);
   }
 }

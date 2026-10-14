@@ -20,8 +20,8 @@ model User {
   bio                String?              @db.VarChar(200)
   pointBalance       Int                  @default(0) // 실제 충전/보유 온(ON) 포인트
   callRatePerMinute  Int?                 // 호스트 자율 단가 (null 시 시스템 기본값)
-  status             UserStatus           @default(ACTIVE)
-  role               UserRole             @default(USER)
+  status             String               @default("active")
+  role               String               @default("user")
   photos             UserPhoto[]
   hostedCalls        PrivateCallSession[] @relation("HostSessions")
   guestCalls         PrivateCallSession[] @relation("GuestSessions")

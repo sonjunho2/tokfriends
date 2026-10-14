@@ -1,5 +1,6 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException, OnModuleInit, Logger, BadRequestException } from '@nestjs/common';
-import { Prisma, UserRole, UserStatus } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { UserRole, UserStatus } from '../../common/user-types';
 import * as argon2 from 'argon2';
 import {
   CreateAdminTeamMemberDto,
@@ -142,7 +143,7 @@ export class AdminSettingsService implements OnModuleInit {
       },
     });
 
-    if (!actor || actor.role !== UserRole.ADMIN || actor.status !== UserStatus.ACTIVE) {
+    if (!actor || actor.role?.toLowerCase() !== 'admin' || actor.status?.toLowerCase() !== 'active') {
       throw new ForbiddenException('Active admin account required');
     }
 
@@ -179,7 +180,7 @@ export class AdminSettingsService implements OnModuleInit {
     }
 
     const passwordHash = await argon2.hash(dto.password);
-    const userStatus = dto.status === 'SUSPENDED' ? UserStatus.SUSPENDED : UserStatus.ACTIVE;
+    const userStatus = dto.status === 'SUSPENDED' ? 'suspended' : 'active';
 
     const profile = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
@@ -188,7 +189,7 @@ export class AdminSettingsService implements OnModuleInit {
           nickname: dto.name.trim() || email.split('@')[0],
           passwordHash,
           provider: 'email',
-          role: UserRole.ADMIN,
+          role: 'admin',
           status: userStatus,
           displayName: dto.name.trim(),
         },
@@ -282,11 +283,11 @@ export class AdminSettingsService implements OnModuleInit {
       await tx.user.update({
         where: { id: memberId },
         data: {
-          role: UserRole.ADMIN,
+          role: 'admin',
           ...(normalizedEmail !== undefined ? { email: normalizedEmail } : {}),
           ...(dto.name !== undefined ? { displayName: dto.name.trim() } : {}),
           ...(dto.status !== undefined
-            ? { status: dto.status === 'SUSPENDED' ? UserStatus.SUSPENDED : UserStatus.ACTIVE }
+            ? { status: dto.status === 'SUSPENDED' ? 'suspended' : 'active' }
             : {}),
         },
       });
@@ -401,8 +402,8 @@ export class AdminSettingsService implements OnModuleInit {
       await tx.user.update({
         where: { id: memberId },
         data: {
-          role: UserRole.USER,
-          status: UserStatus.SUSPENDED,
+          role: 'user',
+          status: 'suspended',
           passwordHash: null,
           tokenVersion: { increment: 1 },
         },

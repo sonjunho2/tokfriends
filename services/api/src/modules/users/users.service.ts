@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
-import { UserRole, UserStatus } from '@prisma/client';
+import { UserRole, UserStatus } from '../../common/user-types';
 
 export type UserSearchFilters = {
   keyword?: string;
@@ -25,7 +25,7 @@ export class UsersService {
 
   async byPublicId(id: string) {
     return this.prisma.user.findFirst({
-      where: { id, status: UserStatus.ACTIVE },
+      where: { id, status: { in: ['ACTIVE', 'active'] } },
       select: {
         id: true,
         nickname: true,

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
-import { UserStatus } from '@prisma/client';
+import { UserStatus } from '../../common/user-types';
 
 type DecodedJwtPayload = {
   sub?: string;
@@ -30,15 +30,15 @@ export class AuthenticatedUserContextService {
       },
     });
 
-    if (!user || user.status === UserStatus.BANNED) {
+    if (!user || user.status?.toLowerCase() === 'banned') {
       return null;
     }
 
     return {
       id: user.id,
       nickname: user.nickname,
-      role: user.role,
-      status: user.status,
+      role: user.role?.toLowerCase() ?? 'user',
+      status: user.status?.toLowerCase() ?? 'active',
     };
   }
 }

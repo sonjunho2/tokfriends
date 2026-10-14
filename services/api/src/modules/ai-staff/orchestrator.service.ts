@@ -3,7 +3,8 @@ import { PrismaService } from 'nestjs-prisma';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenAI } from '@google/genai';
 import { AdminGateway } from './admin.gateway';
-import { AiDecisionStatus, AiTargetDomain, UserStatus } from '@prisma/client';
+import { AiDecisionStatus, AiTargetDomain } from '@prisma/client';
+import { UserStatus } from '../../common/user-types';
 import { ChatGateway } from '../ws/chat.gateway';
 
 export interface EscalateViolationParams {
