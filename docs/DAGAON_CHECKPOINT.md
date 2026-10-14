@@ -4,13 +4,13 @@ Updated: 2026-10-14
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
-## 2026-10-14 Checkpoint 63: 관리자 로그인/설정 오류 해결, 사업자 동적 API 키 연동 아키텍처, 6인 AI 직원 실시간 협업 타임라인 로그 투명화 & AI 업무 정책 제어(민감도/모델/개별 온오프) 구축 (완료)
+## 2026-10-14 Checkpoint 63: 관리자 로그인/설정 오류 해결, 사업자 동적 API 키 연동(Supabase 스토리지 포함), 6인 AI 직원 실시간 협업 타임라인 로그 투명화 & AI 업무 정책 제어 구축 및 깃허브 메인 병합 (완료)
 
 ### 1. 개요 및 배경
 - **관리자 접속 및 지속 오류 원인 해결**:
   - `apps/admin/src/app/api/auth/login/route.ts`가 호출하는 백엔드 `POST /v1/auth/login/email` 엔드포인트 구현 및 `argon2` 비밀번호 검증과 관리자 프로필(`AdminProfile`) 자동 복구 체계 구축으로 관리자 로그인 및 설정 저장 403 오류를 원천 해결.
 - **사업자별 동적 서버 셋팅 및 API 키 무중단 전환 아키텍처**:
-  - 실서비스 사업자 계정 및 서버 세팅 시, 코드 재빌드 없이 시스템 설정(`AdminIntegrationSetting` / `SystemSetting`)에서 Agora App ID/인증서, Toss/PortOne 결제키, Firebase 푸시, Gemini API 키 등을 입력하면 백엔드가 런타임에 DB를 우선 조회하고 즉각 반영하도록 구현.
+  - 실서비스 사업자 계정 및 서버 세팅 시, 코드 재빌드 없이 시스템 설정(`AdminIntegrationSetting` / `SystemSetting`)에서 Agora App ID/인증서, Toss/PortOne 결제키, Firebase 푸시, Gemini API 키, **Supabase 스토리지 URL 및 Service Role Key** 등을 입력하면 백엔드가 런타임에 DB를 우선 조회하고 즉각 반영하도록 구현.
 - **AI 직원 거버넌스 및 투명성(인간 관리자 최종 판단 체계)**:
   - 100% AI 독단을 방지하고 사람이 의사결정 과정을 검토할 수 있도록, 6명의 AI 직원이 하나의 사건을 두고 내부적으로 주고받은 대화를 투명하게 열람할 수 있는 실시간 협업/소통 타임라인 로그(`collaborationLog`) 탑재.
   - 관리자 AI 본부에 **[⚙️ AI 직원 업무 정책 제어]** 패널을 신설하여 Google Gemini API 키 동적 설정, 위험도 민감도 슬라이더(0~100점), 6인 직원별 LLM 모델 지정, 직원별 개별 온/오프(Toggle) 스위치 제공.
@@ -19,10 +19,11 @@ Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작�
 1. **백엔드 관리자 인증 및 오류 복구 (`services/api`)**:
    - `auth.controller.ts` & `auth.service.ts`: `POST /v1/auth/login/email` 엔드포인트 구현 (`argon2.verify` 지원 및 초기 관리자 계정 생성/비밀번호 동기화, `role: 'admin'` 보장).
    - `admin-settings.service.ts`: `requireSettingsActor`에서 admin 유저의 `adminProfile` 부재 시 `SUPER_ADMIN` 및 전체 권한 자동 생성/복구로 403 Forbidden 오류 원천 차단.
-2. **사업자 동적 API 키 연동 아키텍처 구축**:
-   - `DEFAULT_INTEGRATION_SETTINGS`에 `gemini_api_key`, `ai_staff_models`, `ai_staff_sensitivity`, `ai_staff_toggles` 공식 등록.
+2. **사업자 동적 API 키 및 스토리지 연동 아키텍처 구축**:
+   - `DEFAULT_INTEGRATION_SETTINGS`에 `gemini_api_key`, `ai_staff_models`, `ai_staff_sensitivity`, `ai_staff_toggles`, `supabase_url`, `supabase_service_role_key` 공식 등록.
    - `LiveController` (`services/api/src/modules/streaming/live.controller.ts`): 모바일 Agora 토큰 요청 시 DB의 `agora_app_id`, `agora_app_certificate`, `live_stream_mode`를 실시간 복호화하여 제공.
-   - `SnapshotAuditorService` & `OrchestratorService`: 하드코딩된 API 키를 제거하고, DB 설정 우선 조회 -> 동적 `GoogleGenAI` 인스턴스 생성 및 캐시 무효화 적용.
+   - `SnapshotAuditorService`: 하드코딩된 Supabase 환경변수 의존을 탈피하여 DB의 `supabase_url` 및 `supabase_service_role_key`를 실시간 복호화 후 스토리지 클라이언트 동적 생성.
+   - `OrchestratorService`: DB 설정 우선 조회 -> 동적 `GoogleGenAI` 인스턴스 생성 및 캐시 무효화 적용.
 3. **6인 AI 직원 실시간 협업/소통 타임라인 로그 투명화**:
    - `schema.prisma`: `AiDecisionQueue` 모델에 `collaborationLog Json?` 필드 추가.
    - `resolve-migration.js`: 배포 시 `ALTER TABLE "AiDecisionQueue" ADD COLUMN IF NOT EXISTS "collaborationLog" JSONB;` 안전 멱등 DDL 추가.
@@ -36,9 +37,10 @@ Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작�
      - 6인 직원별 LLM 모델(Gemini 2.5 Flash, 1.5 Pro, 1.5 Flash) 드롭다운 지정
      - 6인 직원별 개별 온/오프(Toggle) 스위치
      - [정책 설정 즉시 저장 및 실시간 반영] 원클릭 저장
-5. **빌드 검증**:
+5. **빌드 검증 및 깃허브 메인 병합**:
    - 백엔드 NestJS: `npx nest build` 성공 (0 errors).
    - 관리자 Next.js: `npm run build` 성공 (32개 전체 라우트 무결점 빌드 완료).
+   - Git Commit & Push: `83dcf95` 및 `5b0d314` 최신 커밋을 `origin/main` 브랜치에 무결점 병합 및 푸시 완료 (Render/Vercel 자동 배포 트리거).
 
 ---
 
