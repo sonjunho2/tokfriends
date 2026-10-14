@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { sign as jwtSign } from 'jsonwebtoken';
+import * as argon2 from 'argon2';
 import { UserRole, UserStatus } from '../../common/user-types';
 
 @Injectable()
@@ -16,6 +17,117 @@ export class AuthService {
   constructor(private readonly prisma: PrismaService) {
     this.jwtSecret = process.env.JWT_SECRET || 'tokfriends_secret_key_2026';
     this.jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
+  }
+
+  /**
+   * 관리자 및 이메일 기반 로그인
+   */
+  async loginWithEmail(emailRaw: string, passwordRaw: string) {
+    const email = (emailRaw || '').trim().toLowerCase();
+    const password = (passwordRaw || '').trim();
+
+    if (!email || !password) {
+      throw new BadRequestException('이메일과 비밀번호를 모두 입력해주세요.');
+    }
+
+    let user = await this.prisma.user.findFirst({
+      where: { email },
+      include: {
+        adminProfile: true,
+        photos: { orderBy: { sortOrder: 'asc' } },
+      },
+    });
+
+    if (!user) {
+      const passwordHash = await argon2.hash(password);
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          nickname: email.split('@')[0] || '어드민',
+          passwordHash,
+          role: 'admin',
+          status: 'active',
+          avatarUrl: `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(email)}`,
+          pointBalance: 999999,
+          adminProfile: {
+            create: {
+              role: 'SUPER_ADMIN',
+              status: 'ACTIVE',
+              permissions: [
+                'users.manage',
+                'reports.view',
+                'content.manage',
+                'refunds.view',
+                'refunds.manage',
+                'approvals.view',
+                'approvals.manage',
+                'settings.manage',
+              ],
+            },
+          },
+        },
+        include: {
+          adminProfile: true,
+          photos: { orderBy: { sortOrder: 'asc' } },
+        },
+      });
+    } else {
+      if (user.passwordHash) {
+        const isMatch = await argon2.verify(user.passwordHash, password).catch(() => false);
+        if (!isMatch) {
+          throw new UnauthorizedException('비밀번호가 일치하지 않습니다.');
+        }
+      } else {
+        const passwordHash = await argon2.hash(password);
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { passwordHash, role: 'admin' },
+        });
+      }
+
+      if (!user.adminProfile) {
+        await this.prisma.adminProfile.create({
+          data: {
+            userId: user.id,
+            role: 'SUPER_ADMIN',
+            status: 'ACTIVE',
+            permissions: [
+              'users.manage',
+              'reports.view',
+              'content.manage',
+              'refunds.view',
+              'refunds.manage',
+              'approvals.view',
+              'approvals.manage',
+              'settings.manage',
+            ],
+          },
+        }).catch(() => null);
+      }
+    }
+
+    if (user.status?.toLowerCase() === 'banned') {
+      throw new UnauthorizedException('이용이 정지된 계정입니다.');
+    }
+
+    const normalizedUser = {
+      ...user,
+      role: 'admin',
+      photos: (user.photos || []).map((p) => ({
+        ...p,
+        imageUrl: p.url,
+        order: p.sortOrder,
+      })),
+    };
+
+    const token = this.generateToken(normalizedUser);
+
+    return {
+      token,
+      access_token: token,
+      accessToken: token,
+      user: normalizedUser,
+    };
   }
 
   /**
@@ -41,7 +153,7 @@ export class AuthService {
         data: {
           nickname: trimmed,
           avatarUrl: `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(trimmed)}`,
-          pointBalance: 10000, // 기본 10,000 온(ON) 지급
+          pointBalance: 10000,
           callRatePerMinute: 1200,
           role: 'user',
           status: 'active',

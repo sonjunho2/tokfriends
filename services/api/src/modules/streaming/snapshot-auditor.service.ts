@@ -167,19 +167,24 @@ export class SnapshotAuditorService {
   }
 
   /**
-   * Google Gemini 1.5 Flash Vision 초고속 스크리닝 엔진
+   * Google Gemini Flash Vision 초고속 스크리닝 엔진 (동적 모델 및 API 키 연동)
    */
   private async screenImageWithGeminiFlash(
     imageBuffer: Buffer,
     mimeType: string,
   ): Promise<SnapshotAnalysisResult> {
-    if (!this.aiClient) {
+    const aiClient = await this.orchestratorService.getAiClient();
+    const models = await this.orchestratorService.getStaffModels();
+    const safetyModel = models.safety || 'gemini-1.5-flash';
+    const sensitivityThreshold = await this.orchestratorService.getSensitivityThreshold();
+
+    if (!aiClient) {
       // AI 클라이언트 없을 시의 안전한 Fallback 휴리스틱
       return {
         riskScore: 0,
         isViolated: false,
         violationTags: [],
-        rationale: '정상 스트림 화면 판정 (AI Mock/Heuristic Fallback)',
+        rationale: '정상 스트림 화면 판정 (AI 설정 대기 / Fallback)',
       };
     }
 
@@ -195,17 +200,19 @@ export class SnapshotAuditorService {
 3. 불법 사설 도박 배너, 성매매/조건만남 유도 문구, 피싱 사기 링크
 4. 마약류 복용 또는 불법 행위
 
+현재 설정된 위험도 판정 기준: ${sensitivityThreshold}점 이상 시 위반
+
 반드시 아래 JSON 형식만 반환하세요:
 {
   "riskScore": number (0~100),
-  "isViolated": boolean (riskScore >= 60 이거나 명백한 위반 시 true),
+  "isViolated": boolean (riskScore >= ${sensitivityThreshold} 이거나 명백한 위반 시 true),
   "violationTags": string[] (예: ["NUDITY", "GAMBLING_BANNER", "VIOLENCE", "ILLEGAL_TEXT"]),
   "rationale": string (위반 또는 정상에 대한 핵심 근거 한 줄)
 }
 `;
 
-      const response = await this.aiClient.models.generateContent({
-        model: 'gemini-1.5-flash',
+      const response = await aiClient.models.generateContent({
+        model: safetyModel,
         contents: [
           {
             role: 'user',
@@ -226,9 +233,10 @@ export class SnapshotAuditorService {
       const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
       const parsed = JSON.parse(cleanJson);
 
+      const score = typeof parsed.riskScore === 'number' ? parsed.riskScore : 0;
       return {
-        riskScore: typeof parsed.riskScore === 'number' ? parsed.riskScore : 0,
-        isViolated: !!parsed.isViolated,
+        riskScore: score,
+        isViolated: score >= sensitivityThreshold || !!parsed.isViolated,
         violationTags: Array.isArray(parsed.violationTags) ? parsed.violationTags : [],
         rationale: parsed.rationale || '판정 완료',
       };

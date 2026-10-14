@@ -7,6 +7,11 @@ export class QuickLoginDto {
   nickname: string;
 }
 
+export class EmailLoginDto {
+  email: string;
+  password: string;
+}
+
 export class TestLoginDto {
   role?: 'USER' | 'CREATOR' | 'ADMIN';
 }
@@ -22,6 +27,14 @@ export class AuthController {
   async quickLogin(@Body() dto: QuickLoginDto) {
     const data = await this.auth.quickLoginOrRegister(dto.nickname);
     return { ok: true, data };
+  }
+
+  @Public()
+  @Post('login/email')
+  @ApiOperation({ summary: '관리자 및 이메일/비밀번호 로그인' })
+  async emailLogin(@Body() dto: EmailLoginDto) {
+    const data = await this.auth.loginWithEmail(dto.email, dto.password);
+    return data;
   }
 
   @Public()

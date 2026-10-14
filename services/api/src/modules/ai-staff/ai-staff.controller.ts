@@ -48,6 +48,38 @@ export class AiStaffController {
   }
 
   /**
+   * AI 직원 업무 정책 및 모델/민감도 설정 조회
+   */
+  @Get('policy')
+  async getPolicy() {
+    const data = await this.orchestratorService.getPolicyConfig();
+    return {
+      ok: true,
+      data,
+    };
+  }
+
+  /**
+   * AI 직원 업무 정책 및 모델/민감도 설정 업데이트
+   */
+  @Post('policy')
+  async updatePolicy(
+    @Body()
+    dto: {
+      apiKey?: string;
+      sensitivity?: number;
+      models?: Record<string, string>;
+      toggles?: Record<string, boolean>;
+    },
+  ) {
+    const data = await this.orchestratorService.updatePolicyConfig(dto);
+    return {
+      ok: true,
+      data,
+    };
+  }
+
+  /**
    * 대표님 결재 대기 안건 목록 조회
    */
   @Get('decisions/pending')

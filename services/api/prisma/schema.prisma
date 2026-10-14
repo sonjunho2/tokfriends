@@ -183,6 +183,7 @@ model AiDecisionQueue {
   evidence          String?          @db.Text
   snapshotUrls      Json?            // 아고라 실시간 채증 이미지 URL 목록
   directorReview    String?          @db.Text // 총괄 팀장 AI의 검토 소견
+  collaborationLog  Json?            // 6인 AI 직원 간 협업/소통 타임라인 로그
   recommendedAction String           // "TERMINATE_CALL", "SUSPEND_30D", "BAN_USER", "DISMISS"
   rationale         String           @db.Text
   status            AiDecisionStatus @default(PENDING_APPROVAL)

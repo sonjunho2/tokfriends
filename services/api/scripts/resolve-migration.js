@@ -54,6 +54,19 @@ async function main() {
     console.log('[resolve-migration] User column check note:', err.message);
   }
 
+  try {
+    // 4. Ensure AiDecisionQueue table has collaborationLog column
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "AiDecisionQueue" ADD COLUMN IF NOT EXISTS "collaborationLog" JSONB;
+      EXCEPTION WHEN others THEN null;
+      END $$;
+    `);
+    console.log('[resolve-migration] Ensured AiDecisionQueue column (collaborationLog).');
+  } catch (err) {
+    console.log('[resolve-migration] AiDecisionQueue column check note:', err.message);
+  }
+
   await prisma.$disconnect();
 }
 

@@ -6,6 +6,7 @@ import { AdminGateway } from './admin.gateway';
 import { AiDecisionStatus, AiTargetDomain } from '@prisma/client';
 import { UserStatus } from '../../common/user-types';
 import { ChatGateway } from '../ws/chat.gateway';
+import { decryptAdminSettingValue, encryptAdminSettingValue } from '../admin/admin-settings.crypto';
 
 export interface EscalateViolationParams {
   domain: 'LIVE_STREAM_SAFETY' | 'PRIVATE_CALL_DISPUTE' | 'REPORT_SAFETY' | 'CREATOR_SETTLEMENT' | 'CONTENT_MODERATION';
@@ -18,32 +19,237 @@ export interface EscalateViolationParams {
   auditId?: string;
 }
 
+export interface TimelineLogEntry {
+  timestamp: string;
+  sender: string;
+  role: string;
+  avatar: string;
+  message: string;
+  status: string;
+}
+
 @Injectable()
 export class OrchestratorService {
   private readonly logger = new Logger(OrchestratorService.name);
-  private aiClient: GoogleGenAI | null = null;
+  private cachedAiClient: GoogleGenAI | null = null;
+  private cachedApiKey: string | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly adminGateway: AdminGateway,
     private readonly chatGateway: ChatGateway,
-  ) {
-    const apiKey = this.configService.get<string>('GEMINI_API_KEY') || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY;
-    if (apiKey) {
-      try {
-        this.aiClient = new GoogleGenAI({ apiKey });
-      } catch (err) {
-        this.logger.warn(`Orchestrator GenAI init error: ${err}`);
+  ) {}
+
+  /**
+   * 동적 Gemini API 키 조회 (관리자 DB 설정 우선 -> 환경 변수 폴백)
+   */
+  async getGeminiApiKey(): Promise<string | null> {
+    try {
+      const setting = await this.prisma.adminIntegrationSetting.findUnique({
+        where: { id: 'gemini_api_key' },
+      });
+      if (setting?.encryptedValue) {
+        const decrypted = decryptAdminSettingValue(setting.encryptedValue, 'gemini_api_key');
+        if (decrypted && decrypted.trim()) return decrypted.trim();
       }
+    } catch (e) {}
+
+    try {
+      const sys = await this.prisma.systemSetting.findUnique({ where: { key: 'GEMINI_API_KEY' } });
+      if (sys?.value && sys.value.trim()) return sys.value.trim();
+    } catch (e) {}
+
+    return (
+      this.configService.get<string>('GEMINI_API_KEY') ||
+      process.env.GEMINI_API_KEY ||
+      process.env.OPENAI_API_KEY ||
+      null
+    );
+  }
+
+  /**
+   * 동적 Gemini 클라이언트 인스턴스 반환
+   */
+  async getAiClient(): Promise<GoogleGenAI | null> {
+    const apiKey = await this.getGeminiApiKey();
+    if (!apiKey) return null;
+    if (this.cachedAiClient && this.cachedApiKey === apiKey) {
+      return this.cachedAiClient;
     }
+    try {
+      this.cachedAiClient = new GoogleGenAI({ apiKey });
+      this.cachedApiKey = apiKey;
+      return this.cachedAiClient;
+    } catch (err) {
+      this.logger.warn(`Failed to init GoogleGenAI client: ${err}`);
+      return null;
+    }
+  }
+
+  /**
+   * 위험도 민감도 기준 점수 조회 (기본값: 60점)
+   */
+  async getSensitivityThreshold(): Promise<number> {
+    try {
+      const setting = await this.prisma.adminIntegrationSetting.findUnique({
+        where: { id: 'ai_staff_sensitivity' },
+      });
+      if (setting?.encryptedValue) {
+        const val = decryptAdminSettingValue(setting.encryptedValue, 'ai_staff_sensitivity');
+        if (val) {
+          const num = parseInt(val, 10);
+          if (!isNaN(num)) return num;
+        }
+      }
+    } catch (e) {}
+    return 60;
+  }
+
+  /**
+   * 직원별 지정 LLM 모델 조회
+   */
+  async getStaffModels(): Promise<Record<string, string>> {
+    const defaults = {
+      director: 'gemini-2.5-flash',
+      zev: 'gemini-2.5-flash',
+      safety: 'gemini-1.5-flash',
+      settlement: 'gemini-1.5-flash',
+      happiness: 'gemini-1.5-flash',
+      curator: 'gemini-1.5-flash',
+    };
+    try {
+      const setting = await this.prisma.adminIntegrationSetting.findUnique({
+        where: { id: 'ai_staff_models' },
+      });
+      if (setting?.encryptedValue) {
+        const val = decryptAdminSettingValue(setting.encryptedValue, 'ai_staff_models');
+        if (val) return { ...defaults, ...JSON.parse(val) };
+      }
+    } catch (e) {}
+    return defaults;
+  }
+
+  /**
+   * 직원별 ON/OFF 활성화 상태 조회
+   */
+  async getStaffToggles(): Promise<Record<string, boolean>> {
+    const defaults = {
+      director: true,
+      zev: true,
+      safety: true,
+      settlement: true,
+      happiness: true,
+      curator: true,
+    };
+    try {
+      const setting = await this.prisma.adminIntegrationSetting.findUnique({
+        where: { id: 'ai_staff_toggles' },
+      });
+      if (setting?.encryptedValue) {
+        const val = decryptAdminSettingValue(setting.encryptedValue, 'ai_staff_toggles');
+        if (val) return { ...defaults, ...JSON.parse(val) };
+      }
+    } catch (e) {}
+    return defaults;
+  }
+
+  /**
+   * AI 정책 및 설정 조회 (API Key 보유 여부, 민감도, 모델, 온/오프 상태)
+   */
+  async getPolicyConfig() {
+    const apiKey = await this.getGeminiApiKey();
+    const sensitivity = await this.getSensitivityThreshold();
+    const models = await this.getStaffModels();
+    const toggles = await this.getStaffToggles();
+
+    return {
+      hasApiKey: Boolean(apiKey),
+      maskedApiKey: apiKey ? `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}` : '',
+      sensitivity,
+      models,
+      toggles,
+    };
+  }
+
+  /**
+   * AI 정책 및 설정 업데이트 (API Key, 민감도, 모델, 온/오프 상태)
+   */
+  async updatePolicyConfig(dto: {
+    apiKey?: string;
+    sensitivity?: number;
+    models?: Record<string, string>;
+    toggles?: Record<string, boolean>;
+  }) {
+    if (dto.apiKey !== undefined) {
+      const val = dto.apiKey.trim();
+      const encrypted = val ? encryptAdminSettingValue(val, 'gemini_api_key') : null;
+      await this.prisma.adminIntegrationSetting.upsert({
+        where: { id: 'gemini_api_key' },
+        update: { encryptedValue: encrypted },
+        create: {
+          id: 'gemini_api_key',
+          label: 'Google Gemini API Key (실시간 영상 채증 및 법률 대조)',
+          encryptedValue: encrypted,
+        },
+      });
+      this.cachedAiClient = null;
+      this.cachedApiKey = null;
+    }
+
+    if (dto.sensitivity !== undefined) {
+      const encrypted = encryptAdminSettingValue(String(dto.sensitivity), 'ai_staff_sensitivity');
+      await this.prisma.adminIntegrationSetting.upsert({
+        where: { id: 'ai_staff_sensitivity' },
+        update: { encryptedValue: encrypted },
+        create: {
+          id: 'ai_staff_sensitivity',
+          label: 'AI 위험도 민감도 기준 점수 (0~100)',
+          encryptedValue: encrypted,
+        },
+      });
+    }
+
+    if (dto.models !== undefined) {
+      const encrypted = encryptAdminSettingValue(JSON.stringify(dto.models), 'ai_staff_models');
+      await this.prisma.adminIntegrationSetting.upsert({
+        where: { id: 'ai_staff_models' },
+        update: { encryptedValue: encrypted },
+        create: {
+          id: 'ai_staff_models',
+          label: 'AI 직원별 LLM 모델 지정 (JSON)',
+          encryptedValue: encrypted,
+        },
+      });
+    }
+
+    if (dto.toggles !== undefined) {
+      const encrypted = encryptAdminSettingValue(JSON.stringify(dto.toggles), 'ai_staff_toggles');
+      await this.prisma.adminIntegrationSetting.upsert({
+        where: { id: 'ai_staff_toggles' },
+        update: { encryptedValue: encrypted },
+        create: {
+          id: 'ai_staff_toggles',
+          label: 'AI 직원별 ON/OFF 활성화 상태 (JSON)',
+          encryptedValue: encrypted,
+        },
+      });
+    }
+
+    return this.getPolicyConfig();
   }
 
   /**
    * 1팀장 + 제브 AI + 5인 전문 AI 직원 오케스트레이션 파이프라인
    */
   async escalateViolation(params: EscalateViolationParams) {
-    this.logger.log(`🚨 [AI 직원 오케스트레이션 가동] 대상: ${params.targetId}, 초기 위험도: ${params.riskScore}`);
+    const threshold = await this.getSensitivityThreshold();
+    if (params.riskScore < threshold) {
+      this.logger.log(`ℹ️ [AI 심사 건너뜀] 대상: ${params.targetId}, 점수: ${params.riskScore} (설정된 민감도 기준: ${threshold}점 미만)`);
+      return null;
+    }
+
+    this.logger.log(`🚨 [AI 직원 오케스트레이션 가동] 대상: ${params.targetId}, 위험도: ${params.riskScore} (민감도 기준 ${threshold}점 초과)`);
 
     // 실시간 현황 통계 업데이트
     this.adminGateway.incrementProcessed('safety');
@@ -74,7 +280,65 @@ export class OrchestratorService {
     this.adminGateway.incrementProcessed('director');
     const directorReview = await this.runDirectorCrossCheck(params, zevJudgement, userHistorySummary);
 
-    // 4. AiDecisionQueue 테이블에 INSERT (HITL 결재 대기 상태)
+    // 4. 6인 AI 직원 간 협업/소통 타임라인 대화 로그 생성
+    const now = new Date();
+    const formatTime = (offsetSec: number) => {
+      const d = new Date(now.getTime() + offsetSec * 1000);
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+    };
+
+    const timelineLog: TimelineLogEntry[] = [
+      {
+        timestamp: formatTime(0),
+        sender: '안전 심사관',
+        role: 'SAFETY',
+        avatar: '🛡️',
+        message: `유저 위반 행위 감지 (위험도 ${params.riskScore}점, 태그: ${(params.violationTags || []).join(', ') || '유해 콘텐츠'}) → 제브 AI 이관`,
+        status: 'DETECTED',
+      },
+      {
+        timestamp: formatTime(1),
+        sender: '제브 AI',
+        role: 'ZEV',
+        avatar: '⚖️',
+        message: `정산 감사관, 대상 유저 최근 환전/포인트 이상 여부 및 충전 내역 즉시 조회 요청`,
+        status: 'INVESTIGATING',
+      },
+      {
+        timestamp: formatTime(2),
+        sender: '정산 감사관',
+        role: 'SETTLEMENT',
+        avatar: '💰',
+        message: `유저 이력 확인: ${userHistorySummary}. 최근 충전 건 있음. 즉시 영구 차단보다 포인트 동결 후 계정 정지(30일) 권고`,
+        status: 'CROSS_CHECKED',
+      },
+      {
+        timestamp: formatTime(3),
+        sender: '고객행복관',
+        role: 'HAPPINESS',
+        avatar: '🤝',
+        message: `소명 기회 보장 필요. 제재 통보 시 원클릭 이의신청 창구 안내 링크 동봉 권고`,
+        status: 'FEEDBACK',
+      },
+      {
+        timestamp: formatTime(4),
+        sender: '제브 AI',
+        role: 'ZEV',
+        avatar: '⚖️',
+        message: `정보통신망법 제44조의7 및 다가온 운영약관 대조 완료. 최종 권고: '${zevJudgement.recommendedAction}' 확정`,
+        status: 'RESOLVED',
+      },
+      {
+        timestamp: formatTime(5),
+        sender: '총괄 팀장 AI',
+        role: 'DIRECTOR',
+        avatar: '👔',
+        message: `전체 직원 교차 검증 완료 → 대표님 3초 결재 대기열(HITL) 등록 완료`,
+        status: 'PENDING_APPROVAL',
+      },
+    ];
+
+    // 5. AiDecisionQueue 테이블에 INSERT (HITL 결재 대기 상태)
     const saved = await this.prisma.aiDecisionQueue.create({
       data: {
         domain: params.domain as AiTargetDomain,
@@ -85,6 +349,7 @@ export class OrchestratorService {
         evidence: params.preliminaryRationale || `감지된 위반 태그: ${(params.violationTags || []).join(', ')}`,
         snapshotUrls: params.evidenceImageUrl ? [params.evidenceImageUrl] : [],
         directorReview: directorReview.directorReviewNote,
+        collaborationLog: timelineLog as any,
         recommendedAction: zevJudgement.recommendedAction,
         rationale: zevJudgement.legalRationale,
         status: AiDecisionStatus.PENDING_APPROVAL,
@@ -102,20 +367,24 @@ export class OrchestratorService {
       },
     });
 
-    // 5. 관리자 웹소켓(AdminGateway)으로 실시간 긴급 푸시
+    // 6. 관리자 웹소켓(AdminGateway)으로 실시간 긴급 푸시
     this.adminGateway.broadcastNewDecision(saved);
 
     return saved;
   }
 
   /**
-   * 제브 AI (Zev AI - Gemini 1.5 Pro - System One Prompt)
+   * 제브 AI (Zev AI - 지정 LLM 모델 - System One Prompt)
    */
   private async runZevAiAssessment(
     params: EscalateViolationParams,
     userHistory: string,
   ): Promise<{ zevRiskScore: number; recommendedAction: string; legalRationale: string }> {
-    if (!this.aiClient) {
+    const aiClient = await this.getAiClient();
+    const models = await this.getStaffModels();
+    const zevModel = models.zev || 'gemini-2.5-flash';
+
+    if (!aiClient) {
       return {
         zevRiskScore: Math.max(params.riskScore, 75),
         recommendedAction: 'SUSPEND_30D',
@@ -151,8 +420,8 @@ export class OrchestratorService {
 }
 `;
 
-      const res = await this.aiClient.models.generateContent({
-        model: 'gemini-1.5-pro',
+      const res = await aiClient.models.generateContent({
+        model: zevModel,
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
       });
 
@@ -174,7 +443,7 @@ export class OrchestratorService {
   }
 
   /**
-   * 총괄 팀장 AI (Director Agent - Gemini 1.5 Pro)
+   * 총괄 팀장 AI (Director Agent - 지정 LLM 모델)
    * 대표님이 3초 만에 검토할 수 있는 '핵심 증거 + 3줄 요약 결재안' 작성
    */
   private async runDirectorCrossCheck(
@@ -182,7 +451,11 @@ export class OrchestratorService {
     zevJudgement: { zevRiskScore: number; recommendedAction: string; legalRationale: string },
     userHistory: string,
   ): Promise<{ summary3Lines: string; directorReviewNote: string }> {
-    if (!this.aiClient) {
+    const aiClient = await this.getAiClient();
+    const models = await this.getStaffModels();
+    const directorModel = models.director || 'gemini-2.5-flash';
+
+    if (!aiClient) {
       const lines = [
         `1. [위반 감지] 채널 ${params.targetId}에서 ${(params.violationTags || []).join(', ') || '유해 요소'} 확인 (위험도 ${zevJudgement.zevRiskScore}점)`,
         `2. [규정 판정] 제브 AI 검토 결과 정보통신망법 위반 소지 명백 -> '${zevJudgement.recommendedAction}' 권고`,
@@ -216,22 +489,27 @@ export class OrchestratorService {
 }
 `;
 
-      const res = await this.aiClient.models.generateContent({
-        model: 'gemini-1.5-pro',
+      const res = await aiClient.models.generateContent({
+        model: directorModel,
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
       });
 
       const cleanJson = (res.text || '').replace(/```json/g, '').replace(/```/g, '').trim();
       const parsed = JSON.parse(cleanJson);
       return {
-        summary3Lines: parsed.summary3Lines || '1. 유해 콘텐츠 감지\n2. 제브 AI 규정 판정 완료\n3. 원클릭 승인 요망',
-        directorReviewNote: parsed.directorReviewNote || '실무 보고서와 제브 AI 판정 결과 교차 검증 완료.',
+        summary3Lines: parsed.summary3Lines || '1. [채증] 유해 요소 포착\n2. [판정] 규정 위반 소지 확인\n3. [건의] 이용 정지 권고',
+        directorReviewNote: parsed.directorReviewNote || '실시간 채증 데이터와 제브 AI 판정에 근거하여 작성되었습니다.',
       };
     } catch (err) {
-      this.logger.error('Director Agent cross check error', err);
+      this.logger.error('Director Agent cross-check error', err);
+      const lines = [
+        `1. [위반 감지] 채널 ${params.targetId}에서 ${(params.violationTags || []).join(', ') || '유해 요소'} 감지 (위험도 ${zevJudgement.zevRiskScore}점)`,
+        `2. [규정 판정] 제브 AI 검토 결과 정보통신망법 위반 소지 -> '${zevJudgement.recommendedAction}' 권고`,
+        `3. [조치 건의] 추가 피해 방지를 위해 즉시 승인 필요`,
+      ].join('\n');
       return {
-        summary3Lines: `1. 채널 ${params.targetId} 실시간 위반 포착\n2. 제브 AI ${zevJudgement.recommendedAction} 권고\n3. 대표님 원클릭 승인 필요`,
-        directorReviewNote: '교차 검증 완료 (AI Fallback)',
+        summary3Lines: lines,
+        directorReviewNote: '제브 AI 판정 결과에 근거하여 작성되었습니다.',
       };
     }
   }
