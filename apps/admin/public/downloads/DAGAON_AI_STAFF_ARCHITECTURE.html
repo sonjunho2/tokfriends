@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>다가온(DAGAON) AI 직원 조직 및 제브 AI + 구글 제미나이 운영 아키텍처 가이드</title>
+  <style>
+    :root {
+      --primary: #4F46E5;
+      --primary-dark: #3730A3;
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text: #1E293B;
+      --text-muted: #64748B;
+      --border: #E2E8F0;
+      --accent: #FF3B6B;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.7;
+      color: var(--text);
+      background-color: var(--bg);
+      margin: 0;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 48px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border);
+    }
+    .header {
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+    }
+    .badge {
+      display: inline-block;
+      background: #EEF2FF;
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 13px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #0F172A;
+      margin: 0 0 12px 0;
+    }
+    .meta {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1E293B;
+      margin-top: 36px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #334155;
+      margin-top: 24px;
+    }
+    p, li {
+      font-size: 15px;
+      color: #334155;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      text-align: left;
+      font-size: 14px;
+    }
+    th {
+      background-color: #F1F5F9;
+      font-weight: 700;
+    }
+    pre {
+      background: #0F172A;
+      color: #F8FAFC;
+      padding: 18px;
+      border-radius: 10px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .highlight-box {
+      background-color: #F0FDF4;
+      border-left: 4px solid #10B981;
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .print-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--primary);
+      color: #FFFFFF;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+      border: none;
+    }
+    .print-btn:hover {
+      background: var(--primary-dark);
+    }
+    @media print {
+      .print-btn { display: none; }
+      body { background: #fff; padding: 0; }
+      .container { box-shadow: none; border: none; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="badge">DAGAON AI OPERATING SYSTEM</div>
+    <h1>다가온(DAGAON) AI 직원 조직 및 제브 AI + 구글 제미나이 운영 아키텍처</h1>
+    <div class="meta">
+      작성일: 2026-10-14 | 플랫폼: 다가온 (DAGAON) | 모델: Google Gemini (1.5 Pro / Flash) + 제브 AI (Jeb Judge)
+    </div>
+  </div>
+
+  <div class="highlight-box">
+    <strong>핵심 운영 원칙: Human-in-the-Loop (HITL)</strong><br>
+    "모든 실시간 감시와 맥락 분석, 법률 검토, 요약 보고서 작성은 AI 직원들이 24시간 수행하고, 대표님(관리자)은 3초 요약 보고서를 보고 최종 [승인/반려] 클릭 한 번만 합니다."
+  </div>
+
+  <h2>1. AI 직원 조직 구성 (총 5명)</h2>
+  <table>
+    <tr>
+      <th>직함</th>
+      <th>담당 에이전트</th>
+      <th>기반 AI 모델</th>
+      <th>주요 임무 및 역할</th>
+    </tr>
+    <tr>
+      <td><strong>총괄 판단 심사관</strong></td>
+      <td><strong>제브 AI (Jeb Judge)</strong></td>
+      <td>Gemini 1.5 Pro</td>
+      <td>실무 AI 보고서 종합 심사, 대한민국 법령/약관 교차 검증, 최종 처분 권고안 도출 및 관리자 상신</td>
+    </tr>
+    <tr>
+      <td><strong>안전·신고 심사관</strong></td>
+      <td><strong>Safety Agent</strong></td>
+      <td>Gemini 1.5 Flash</td>
+      <td>당근 스타일 2단계 신고 분석, 피드/대화 유해성 감지, 음란/사기/외부메신저 유도 증거 채증</td>
+    </tr>
+    <tr>
+      <td><strong>금융·정산 감사관</strong></td>
+      <td><strong>Fraud Audit Agent</strong></td>
+      <td>Gemini 1.5 Pro</td>
+      <td>크리에이터 출금 신청 시 자전거래, 결제 도용, 머니세탁 탐지, 3.3% 원천징수 정합성 검증</td>
+    </tr>
+    <tr>
+      <td><strong>24/7 고객응대관</strong></td>
+      <td><strong>CS Concierge</strong></td>
+      <td>Gemini 1.5 Flash</td>
+      <td>온 충전/이용방법 1차 친절 안내, 환불/장애 이슈 처리 초안 작성 및 관리자 결재 상신</td>
+    </tr>
+    <tr>
+      <td><strong>동네 활성화 큐레이터</strong></td>
+      <td><strong>Growth Agent</strong></td>
+      <td>Gemini 1.5 Flash</td>
+      <td>조용한 동네에 날씨/생활 정보 발제, 신규 가입자 웰컴 인게이지먼트 기획</td>
+    </tr>
+  </table>
+
+  <h2>2. 듀얼 티어(Two-Tier) 연동 흐름</h2>
+  <pre>
+[유저 신고 / 게시글 작성 / 출금 신청]
+                │
+                ▼
+  【1차 실무 AI: Gemini 1.5 Flash】 (초고속 실시간 스크리닝)
+                │ 위험도(riskScore) 60점 이상 포착
+                ▼
+  【총괄 판단관: 제브 AI (Gemini 1.5 Pro)】 (심층 법률 및 약관 교차 검증)
+                │ "3줄 사건 요약 + 권고 징계안" 작성
+                ▼
+  【백엔드 DB: AiDecisionQueue】 (status: PENDING_APPROVAL)
+                │ 실시간 웹소켓 푸시
+                ▼
+  👉 【관리자 웹 (apps/admin)】 대표님의 원클릭 [승인] / [반려]
+  </pre>
+
+  <h2>3. 관리자 웹 화면에서의 작동 모습</h2>
+  <div style="background: #1E293B; color: #fff; padding: 20px; border-radius: 12px; margin: 16px 0;">
+    <div style="font-weight: 800; color: #FCD34D; margin-bottom: 8px;">🤖 [제브 AI 심사 완료] 신고 #1042 — 피신고자: 김철수 (위험도: 88점)</div>
+    <div style="font-size: 13px; line-height: 1.6; color: #E2E8F0;">
+      • <strong>요약:</strong> 원치 않는 성적 만남 요구 및 외부 텔레그램 메신저 유도 포착<br>
+      • <strong>핵심 증거:</strong> "○○동 어디 살아요? 텔레그램 @xyz 로 사진 보내주면 10만 드림"<br>
+      • <strong>판단 근거:</strong> 정보통신망법 제44조의7 위반 및 성적 수치심 유발 행위 확인<br>
+      • <strong>권고 조치:</strong> <span style="color: #F87171; font-weight: 700;">[계정 30일 이용정지]</span> 및 <span style="color: #F87171; font-weight: 700;">[해당 대화방 강제 폐쇄]</span>
+    </div>
+    <div style="margin-top: 16px; display: flex; gap: 10px;">
+      <button style="background: #EF4444; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; cursor: pointer;">원클릭 승인 및 집행 (권고대로 30일 정지)</button>
+      <button style="background: #475569; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; cursor: pointer;">기각 (정상 대화)</button>
+    </div>
+  </div>
+
+  <h2>4. 실전 도입 로드맵</h2>
+  <ol>
+    <li><strong>1단계 (신고 & 안전 센터 연동)</strong>: 모바일 앱에서 접수된 신고를 Gemini 1.5 Flash로 분석하고, 제브 AI가 판정한 권고안을 관리자 웹 [신고 센터]에 카드 형태로 노출하여 원클릭 승인 체계 가동.</li>
+    <li><strong>2단계 (정산/환전 감사관 연동)</strong>: 크리에이터 출금 신청 시 자전거래 및 부정 결제를 자동 검증.</li>
+    <li><strong>3단계 (24/7 CS 봇 및 동네 피드 활성화)</strong>: RAG 기반 지식센터 연동으로 유저 상담 자동화.</li>
+  </ol>
+</div>
+
+<button class="print-btn" onclick="window.print()">📥 PDF로 저장 / 인쇄</button>
+
+</body>
+</html>
