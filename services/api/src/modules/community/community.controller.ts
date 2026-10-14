@@ -29,6 +29,9 @@ class ReportDto {
   @IsString()
   @IsNotEmpty()
   reason: string;
+
+  @IsOptional()
+  blockUser?: boolean;
 }
 
 class BlockDto {

@@ -22,6 +22,23 @@ import { useAuth } from '../../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 
+function formatTimeAgo(dateString) {
+  if (!dateString) return '방금 전';
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '방금 전';
+  const now = new Date();
+  const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffSec < 60) return '방금 전';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}분 전`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}시간 전`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}일 전`;
+  return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+}
+
 // 라이브 기본 추천 목업 (서버 방이 없을 때도 생동감 넘치게 노출)
 const DEFAULT_HOT_LIVES = [
   {
@@ -338,6 +355,17 @@ export default function HomeScreen({ navigation }) {
     navigation.navigate('Community', {
       screen: 'CommunityMain',
       params: { initialTopicId: topicId },
+    });
+  };
+
+  const handleOpenPost = (post) => {
+    if (!post?.id) {
+      handleOpenCommunity(post?.topicId);
+      return;
+    }
+    navigation.navigate('PostDetail', {
+      post,
+      postId: post.id,
     });
   };
 
@@ -921,64 +949,99 @@ export default function HomeScreen({ navigation }) {
             </ScrollView>
           )}
 
-          {/* 최근 게시글 피드 목록 */}
+          {/* 최근 게시글 피드 목록 (당근 스타일: 글 위주 컴팩트 카드 + 우측 정방형 썸네일) */}
           <View style={styles.postList}>
             {recentPosts.length > 0 ? (
-              recentPosts.map((post) => (
-                <TouchableOpacity
-                  key={post.id}
-                  style={styles.postCard}
-                  activeOpacity={0.85}
-                  onPress={() => handleOpenCommunity(post.topicId)}
-                >
-                  <View style={styles.postTopRow}>
-                    <Avatar
-                      size={32}
-                      name={post.author?.name || '이웃'}
-                      uri={post.author?.avatar}
-                    />
-                    <View style={styles.postAuthorMeta}>
-                      <Text style={styles.postAuthorName}>
-                        {post.author?.name || '동네 이웃'}
-                      </Text>
-                      <Text style={styles.postTime}>
-                        {post.topicName ? `#${post.topicName} · ` : ''}방금 전
-                      </Text>
-                    </View>
-                    <View style={styles.postCategoryBadge}>
-                      <Text style={styles.postCategoryText}>
-                        {post.topicName || '소통'}
-                      </Text>
-                    </View>
-                  </View>
+              recentPosts.map((post) => {
+                const postImages =
+                  Array.isArray(post.images) && post.images.length > 0
+                    ? post.images
+                    : Array.isArray(post.photos) && post.photos.length > 0
+                      ? post.photos
+                      : [];
+                const firstImage =
+                  typeof postImages[0] === 'string'
+                    ? postImages[0]
+                    : postImages[0]?.url || post.imageUrl || null;
+                const imagesCount = postImages.length;
+                const postRegion =
+                  post.author?.region || post.region || post.author?.location || '동네이웃';
 
-                  <Text style={styles.postContent} numberOfLines={2}>
-                    {post.content}
-                  </Text>
-
-                  <View style={styles.postBottomRow}>
-                    <View style={styles.postStats}>
-                      <View style={styles.statItem}>
-                        <Ionicons name="heart-outline" size={14} color="#9CA3AF" />
-                        <Text style={styles.statText}>
-                          {post.likesCount || 12}
-                        </Text>
-                      </View>
-                      <View style={styles.statItem}>
-                        <Ionicons
-                          name="chatbubble-ellipses-outline"
-                          size={14}
-                          color="#9CA3AF"
-                        />
-                        <Text style={styles.statText}>
-                          {post.commentsCount || 3}
+                return (
+                  <TouchableOpacity
+                    key={post.id}
+                    style={styles.karrotHomeCard}
+                    activeOpacity={0.88}
+                    onPress={() => handleOpenPost(post)}
+                  >
+                    {/* 상단 카테고리 태그 */}
+                    <View style={styles.karrotCategoryRow}>
+                      <View style={styles.karrotCategoryBadge}>
+                        <Text style={styles.karrotCategoryText}>
+                          {post.topicName || post.category || '일상'}
                         </Text>
                       </View>
                     </View>
-                    <Text style={styles.postReadMore}>자세히 보기</Text>
-                  </View>
-                </TouchableOpacity>
-              ))
+
+                    {/* 중간 본문(좌측) + 썸네일(우측) */}
+                    <View style={styles.karrotHomeBodyRow}>
+                      <View style={styles.karrotHomeTextCol}>
+                        {post.title ? (
+                          <Text style={styles.karrotHomeTitle} numberOfLines={2}>
+                            {post.title}
+                          </Text>
+                        ) : null}
+                        <Text
+                          style={[
+                            styles.karrotHomeContent,
+                            !post.title && styles.karrotHomeContentBold,
+                          ]}
+                          numberOfLines={post.title ? 2 : 3}
+                        >
+                          {post.content}
+                        </Text>
+                      </View>
+
+                      {firstImage ? (
+                        <View style={styles.karrotHomeThumbWrap}>
+                          <Image
+                            source={{ uri: firstImage }}
+                            style={styles.karrotHomeThumbImage}
+                          />
+                          {imagesCount > 1 && (
+                            <View style={styles.karrotHomeMultiBadge}>
+                              <Text style={styles.karrotHomeMultiText}>+{imagesCount}</Text>
+                            </View>
+                          )}
+                        </View>
+                      ) : null}
+                    </View>
+
+                    {/* 하단 메타: 지역 · 시간 · 조회수 & 우측 좋아요/댓글 */}
+                    <View style={styles.karrotHomeMetaRow}>
+                      <Text style={styles.karrotHomeMetaText} numberOfLines={1}>
+                        {postRegion} · {post.createdAt ? formatTimeAgo(post.createdAt) : '방금 전'}
+                        {typeof post.viewsCount === 'number' ? ` · 조회 ${post.viewsCount}` : ''}
+                      </Text>
+
+                      <View style={styles.karrotHomeStatsWrap}>
+                        {(post.likesCount || 0) > 0 && (
+                          <View style={styles.karrotHomeStatItem}>
+                            <Ionicons name="thumbs-up-outline" size={13} color="#8E8E93" />
+                            <Text style={styles.karrotHomeStatNumber}>{post.likesCount}</Text>
+                          </View>
+                        )}
+                        {(post.commentsCount || 0) > 0 && (
+                          <View style={styles.karrotHomeStatItem}>
+                            <Ionicons name="chatbubble-outline" size={13} color="#8E8E93" />
+                            <Text style={styles.karrotHomeStatNumber}>{post.commentsCount}</Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
             ) : (
               <TouchableOpacity
                 style={styles.emptyPostPrompt}
@@ -1728,74 +1791,120 @@ const styles = StyleSheet.create({
   },
   postList: {
     paddingHorizontal: 16,
-    gap: 10,
+    gap: 8,
   },
-  postCard: {
-    backgroundColor: '#FAFAFA',
+  karrotHomeCard: {
+    backgroundColor: '#FFFFFF',
     padding: 14,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#F2F3F5',
+    borderColor: '#F0F0F3',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
   },
-  postTopRow: {
+  karrotCategoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  postAuthorMeta: {
-    flex: 1,
-    marginLeft: 8,
-  },
-  postAuthorName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#191919',
-  },
-  postTime: {
-    fontSize: 11,
-    color: '#9CA3AF',
-    marginTop: 1,
-  },
-  postCategoryBadge: {
+  karrotCategoryBadge: {
     backgroundColor: '#F3F4F6',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
     borderRadius: 4,
   },
-  postCategoryText: {
+  karrotCategoryText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#6B7280',
+    color: '#4B5563',
   },
-  postContent: {
-    fontSize: 13,
-    color: '#374151',
-    lineHeight: 18,
-    marginBottom: 10,
-  },
-  postBottomRow: {
+  karrotHomeBodyRow: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
-  postStats: {
-    flexDirection: 'row',
-    gap: 12,
+  karrotHomeTextCol: {
+    flex: 1,
+    marginRight: 10,
   },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statText: {
-    fontSize: 11,
-    color: '#9CA3AF',
-    fontWeight: '600',
-  },
-  postReadMore: {
-    fontSize: 11,
+  karrotHomeTitle: {
+    fontSize: 15,
     fontWeight: '700',
+    color: '#191919',
+    lineHeight: 20,
+    marginBottom: 3,
+  },
+  karrotHomeContent: {
+    fontSize: 13,
+    color: '#4B5563',
+    lineHeight: 18,
+  },
+  karrotHomeContentBold: {
+    fontWeight: '600',
+    color: '#191919',
+    fontSize: 14,
+    lineHeight: 19,
+  },
+  karrotHomeThumbWrap: {
+    width: 66,
+    height: 66,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#F3F4F6',
+    position: 'relative',
+  },
+  karrotHomeThumbImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  karrotHomeMultiBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+  },
+  karrotHomeMultiText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  karrotHomeMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F9FAFB',
+  },
+  karrotHomeMetaText: {
+    flex: 1,
+    fontSize: 11,
     color: '#8E8E93',
+    fontWeight: '500',
+    marginRight: 8,
+  },
+  karrotHomeStatsWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  karrotHomeStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  karrotHomeStatNumber: {
+    fontSize: 11,
+    color: '#8E8E93',
+    fontWeight: '600',
   },
   emptyPostPrompt: {
     flexDirection: 'row',

@@ -20,27 +20,73 @@ export class CommunityService {
       targetAccountId?: string;
       postId?: string;
       reason: string;
+      blockUser?: boolean;
     },
   ) {
-    const reportedId =
+    let resolvedReportedId =
       dto.targetUserId || dto.targetAccountId
         ? await this.resolveTargetUserId(dto.targetUserId, dto.targetAccountId)
         : undefined;
 
-    if (reportedId === reporterId) {
-      throw new BadRequestException("You cannot report yourself.");
+    let validPostId: string | undefined = undefined;
+    let extraReasonNotes = '';
+
+    // 1. postId 검증 및 실제 DB 존재 여부 확인
+    if (dto.postId) {
+      const existingPost = await this.prisma.post.findUnique({
+        where: { id: dto.postId },
+        select: { id: true, userId: true },
+      });
+      if (existingPost) {
+        validPostId = existingPost.id;
+        // 피신고자가 미지정되었으면 게시글 작성자를 자동으로 피신고자로 지정
+        if (!resolvedReportedId && existingPost.userId) {
+          resolvedReportedId = existingPost.userId;
+        }
+      } else {
+        extraReasonNotes += `[신고게시글ID: ${dto.postId}] `;
+      }
     }
 
+    // 2. reportedId 유저 실제 DB 존재 여부 확인
+    if (resolvedReportedId) {
+      if (resolvedReportedId === reporterId) {
+        throw new BadRequestException("You cannot report yourself.");
+      }
+      const existingUser = await this.prisma.user.findUnique({
+        where: { id: resolvedReportedId },
+        select: { id: true },
+      });
+      if (!existingUser) {
+        extraReasonNotes += `[피신고자ID: ${resolvedReportedId}] `;
+        resolvedReportedId = undefined;
+      }
+    }
+
+    const finalReason = extraReasonNotes ? `${extraReasonNotes}${dto.reason}` : dto.reason;
+
+    // 3. 신고 레코드 생성
     const report = await this.prisma.report.create({
       data: {
         reporterId,
-        reportedId,
-        postId: dto.postId,
-        reason: dto.reason,
+        reportedId: resolvedReportedId,
+        postId: validPostId,
+        reason: finalReason,
       },
     });
 
-    return { ok: true, id: report.id };
+    // 4. 차단 옵션(blockUser) 선택 시 자동 차단 처리
+    let blocked = false;
+    if (dto.blockUser && resolvedReportedId && resolvedReportedId !== reporterId) {
+      try {
+        await this.block(reporterId, { blockedUserId: resolvedReportedId });
+        blocked = true;
+      } catch (e) {
+        // quiet fallback: 차단 실패가 신고 자체를 롤백시키지 않음
+      }
+    }
+
+    return { ok: true, id: report.id, blocked };
   }
 
   async block(

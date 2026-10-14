@@ -22,6 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
+import ReportModal from '../../components/ReportModal';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
@@ -71,6 +72,10 @@ export default function CommunityFeedScreen({ navigation, route }) {
   const [loadingComments, setLoadingComments] = useState(false);
   const [newCommentText, setNewCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+
+  // Report modal state
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportingPost, setReportingPost] = useState(null);
 
   // Load topics
   const loadTopics = useCallback(async () => {
@@ -272,48 +277,33 @@ export default function CommunityFeedScreen({ navigation, route }) {
   };
 
   const handleReportPost = (post) => {
-    Alert.prompt
-      ? Alert.prompt(
-          '게시글 신고',
-          '신고 사유를 입력해 주세요 (부적절한 내용, 욕설, 광고 등):',
-          [
-            { text: '취소', style: 'cancel' },
-            {
-              text: '신고',
-              onPress: async (reason) => {
-                if (!reason?.trim()) return;
-                try {
-                  await apiClient.reportUser({
-                    postId: post.id,
-                    targetUserId: post.author?.id,
-                    reason: reason.trim(),
-                  });
-                  Alert.alert('신고 접수', '신고가 접수되었습니다. 검토 후 조치하겠습니다.');
-                } catch (e) {
-                  Alert.alert('신고 실패', e?.message || '신고 처리에 실패했습니다.');
-                }
-              },
-            },
-          ],
-        )
-      : Alert.alert('게시글 신고', '부적절한 게시글로 신고하시겠습니까?', [
-          { text: '취소', style: 'cancel' },
-          {
-            text: '신고',
-            onPress: async () => {
-              try {
-                await apiClient.reportUser({
-                  postId: post.id,
-                  targetUserId: post.author?.id,
-                  reason: '부적절한 커뮤니티 게시글 신고',
-                });
-                Alert.alert('신고 접수', '신고가 접수되었습니다. 검토 후 조치하겠습니다.');
-              } catch (e) {
-                Alert.alert('신고 실패', e?.message || '신고 처리에 실패했습니다.');
-              }
-            },
-          },
-        ]);
+    setReportingPost(post);
+    setReportModalVisible(true);
+  };
+
+  const handleReportSubmit = async ({ category, reason, detail, blockUser }) => {
+    if (!reportingPost) return;
+    try {
+      await apiClient.reportPost({
+        postId: reportingPost.id,
+        targetUserId: reportingPost.author?.id,
+        reason,
+        blockUser,
+      });
+
+      if (blockUser && reportingPost.author?.id) {
+        setPosts((prev) => prev.filter((p) => p.author?.id !== reportingPost.author?.id));
+      }
+
+      setReportModalVisible(false);
+      setReportingPost(null);
+      Alert.alert(
+        '신고가 접수되었습니다',
+        '관리자가 내용을 검토한 후 운영정책에 따라 신속히 조치하겠습니다.'
+      );
+    } catch (e) {
+      Alert.alert('신고 실패', e?.message || '신고 접수 중 오류가 발생했습니다.');
+    }
   };
 
   const handleBlockAuthor = (post) => {
@@ -482,127 +472,111 @@ export default function CommunityFeedScreen({ navigation, route }) {
     const author = item.author || {};
     const isMine =
       currentUser?.id && author.id && String(currentUser.id) === String(author.id);
+    const hasMedia = Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0;
+    const thumbnailUri = hasMedia ? item.mediaUrls[0] : null;
+    const mediaCount = hasMedia ? item.mediaUrls.length : 0;
+
+    // 제목과 본문 분리 (제목 필드가 있으면 사용, 없으면 첫 줄 또는 첫 40자를 제목으로)
+    const rawContent = (item.content || '').trim();
+    const firstLineEnd = rawContent.indexOf('\n');
+    const titleText =
+      item.title ||
+      (firstLineEnd > 0 ? rawContent.slice(0, firstLineEnd).trim() : rawContent.slice(0, 50));
+    const bodyText =
+      item.title
+        ? rawContent
+        : firstLineEnd > 0
+        ? rawContent.slice(firstLineEnd).trim()
+        : (rawContent.length > 50 ? rawContent.slice(50).trim() : '');
 
     return (
-      <View style={styles.postCard}>
-        {/* Post Top Header */}
-        <View style={styles.postHeader}>
-          <TouchableOpacity
-            style={styles.authorRow}
-            activeOpacity={0.8}
-            onPress={() => handleOpenAuthorProfile(author)}
-          >
-            <Avatar size={44} name={author.name} uri={author.avatar} showBorder />
-            <View style={styles.authorMeta}>
-              <View style={styles.nameRow}>
-                <Text style={styles.authorName} numberOfLines={1}>
-                  {author.name}
-                </Text>
-                {isMine && <Text style={styles.myBadge}>내 글</Text>}
-              </View>
-              <Text style={styles.subMeta}>
-                {[author.region, formatTimeAgo(item.createdAt)].filter(Boolean).join(' · ')}
+      <TouchableOpacity
+        style={styles.karrotPostCard}
+        activeOpacity={0.88}
+        onPress={() => navigation.navigate('PostDetail', { post: item, postId: item.id })}
+      >
+        {/* 상단: 카테고리 뱃지 & 우측 더보기 메뉴 */}
+        <View style={styles.karrotTopRow}>
+          <View style={styles.karrotBadgeWrap}>
+            <View style={styles.karrotCategoryBadge}>
+              <Text style={styles.karrotCategoryBadgeText}>
+                {item.topicName || '동네생활'}
               </Text>
             </View>
-          </TouchableOpacity>
-
-          <View style={styles.headerRight}>
-            <View style={styles.topicBadge}>
-              <Text style={styles.topicBadgeText}>#{item.topicName}</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.moreButton}
-              onPress={() => handlePostOptions(item)}
-              hitSlop={8}
-            >
-              <Ionicons name="ellipsis-horizontal" size={18} color={colors.textTertiary} />
-            </TouchableOpacity>
+            {isMine && <Text style={styles.karrotMyBadge}>내 글</Text>}
           </View>
+          <TouchableOpacity
+            style={styles.karrotMoreBtn}
+            hitSlop={10}
+            onPress={() => handlePostOptions(item)}
+          >
+            <Ionicons name="ellipsis-vertical" size={16} color="#9CA3AF" />
+          </TouchableOpacity>
         </View>
 
-        {/* Post Content & Media - Tap to open PostDetail */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => navigation.navigate('PostDetail', { post: item, postId: item.id })}
-        >
-          {Boolean(item.content) && <Text style={styles.postContent}>{item.content}</Text>}
+        {/* 중앙: 좌측(글 본문/제목) + 우측(정방형 썸네일) 2분할 구조 */}
+        <View style={styles.karrotBodyRow}>
+          <View style={styles.karrotTextCol}>
+            <Text style={styles.karrotTitle} numberOfLines={2}>
+              {titleText || '동네 이야기'}
+            </Text>
+            {Boolean(bodyText) && (
+              <Text style={styles.karrotSnippet} numberOfLines={2}>
+                {bodyText}
+              </Text>
+            )}
+          </View>
 
-          {/* Post Media Attachment */}
-          {Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0 && (
-            <View style={styles.postMediaContainer}>
-              {item.mediaUrls.length === 1 ? (
-                <Image
-                  source={{ uri: item.mediaUrls[0] }}
-                  style={styles.singlePostImage}
-                  resizeMode="cover"
-                />
-              ) : (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.postMediaScroll}
-                >
-                  {item.mediaUrls.map((url, idx) => (
-                    <Image
-                      key={`feed-img-${idx}-${url}`}
-                      source={{ uri: url }}
-                      style={styles.multiPostImage}
-                      resizeMode="cover"
-                    />
-                  ))}
-                </ScrollView>
+          {/* 우측 썸네일 (이미지가 있을 때만 노출) */}
+          {hasMedia && thumbnailUri && (
+            <View style={styles.karrotThumbWrap}>
+              <Image
+                source={{ uri: thumbnailUri }}
+                style={styles.karrotThumbImage}
+                resizeMode="cover"
+              />
+              {mediaCount > 1 && (
+                <View style={styles.karrotMediaCountBadge}>
+                  <Text style={styles.karrotMediaCountText}>+{mediaCount}</Text>
+                </View>
               )}
             </View>
           )}
-        </TouchableOpacity>
-
-        {/* Post Bottom Bar */}
-        <View style={styles.postFooter}>
-          <View style={styles.footerActionsLeft}>
-            <TouchableOpacity
-              style={styles.footerActionButton}
-              onPress={() => handleToggleLike(item)}
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name={item.isLiked ? 'heart' : 'heart-outline'}
-                size={16}
-                color={item.isLiked ? '#EF4444' : colors.textSecondary}
-              />
-              <Text
-                style={[
-                  styles.footerActionText,
-                  item.isLiked && styles.footerActionTextLiked,
-                ]}
-              >
-                좋아요 {item.likesCount > 0 ? item.likesCount : ''}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.footerActionButton}
-              onPress={() => handleOpenComments(item)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="chatbubble-outline" size={15} color={colors.textSecondary} />
-              <Text style={styles.footerActionText}>
-                댓글 {item.commentsCount > 0 ? item.commentsCount : ''}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {!isMine && (
-            <TouchableOpacity
-              style={styles.footerChatButton}
-              onPress={() => handleStartChat(author)}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="chatbubble-outline" size={14} color={colors.primary} />
-              <Text style={styles.footerChatText}>1:1 대화</Text>
-            </TouchableOpacity>
-          )}
         </View>
-      </View>
+
+        {/* 하단 메타 바: 좌측(동네 · 시간 · 조회수) & 우측(좋아요 · 댓글 수) */}
+        <View style={styles.karrotMetaRow}>
+          <Text style={styles.karrotSubMeta}>
+            {[author.region || '우리동네', formatTimeAgo(item.createdAt), `조회 ${item.viewsCount ?? 1}`]
+              .filter(Boolean)
+              .join(' · ')}
+          </Text>
+
+          <View style={styles.karrotStatsRow}>
+            {Boolean(item.likesCount > 0 || item.isLiked) && (
+              <TouchableOpacity
+                style={styles.karrotStatItem}
+                onPress={() => handleToggleLike(item)}
+                hitSlop={6}
+              >
+                <Ionicons
+                  name={item.isLiked ? 'thumbs-up' : 'thumbs-up-outline'}
+                  size={13}
+                  color={item.isLiked ? '#FF6F0F' : '#6B7280'}
+                />
+                <Text style={[styles.karrotStatText, item.isLiked && styles.karrotStatTextLiked]}>
+                  {item.likesCount || 1}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            <View style={styles.karrotStatItem}>
+              <Ionicons name="chatbubble-outline" size={13} color="#6B7280" />
+              <Text style={styles.karrotStatText}>{item.commentsCount || 0}</Text>
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
     );
   };
 
@@ -972,6 +946,20 @@ export default function CommunityFeedScreen({ navigation, route }) {
           </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
+
+      {/* 당근 스타일 2단계 심층 신고 모달 */}
+      <ReportModal
+        visible={reportModalVisible}
+        targetType="post"
+        targetName={reportingPost?.author?.name || '게시글'}
+        postId={reportingPost?.id}
+        targetUserId={reportingPost?.author?.id}
+        onClose={() => {
+          setReportModalVisible(false);
+          setReportingPost(null);
+        }}
+        onSubmit={handleReportSubmit}
+      />
     </SafeAreaView>
   );
 }
@@ -1059,14 +1047,136 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   feedList: {
-    padding: 16,
-    gap: 14,
+    paddingVertical: 4,
   },
   emptyFeedList: {
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
+  },
+  // 당근 스타일 글 중심 컴팩트 포스트 카드
+  karrotPostCard: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  karrotTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  karrotBadgeWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  karrotCategoryBadge: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  karrotCategoryBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  karrotMyBadge: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FF6F0F',
+    backgroundColor: '#FFF7ED',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  karrotMoreBtn: {
+    padding: 4,
+  },
+  karrotBodyRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 8,
+  },
+  karrotTextCol: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  karrotTitle: {
+    fontSize: 15.5,
+    fontWeight: '700',
+    color: '#111827',
+    lineHeight: 22,
+    letterSpacing: -0.3,
+    marginBottom: 4,
+  },
+  karrotSnippet: {
+    fontSize: 13.5,
+    color: '#6B7280',
+    lineHeight: 19,
+    letterSpacing: -0.2,
+  },
+  karrotThumbWrap: {
+    position: 'relative',
+    width: 72,
+    height: 72,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#F3F4F6',
+  },
+  karrotThumbImage: {
+    width: '100%',
+    height: '100%',
+  },
+  karrotMediaCountBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 8,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  karrotMediaCountText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  karrotMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 2,
+  },
+  karrotSubMeta: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    letterSpacing: -0.2,
+  },
+  karrotStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  karrotStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  karrotStatText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  karrotStatTextLiked: {
+    color: '#FF6F0F',
+    fontWeight: '700',
   },
   postCard: {
     backgroundColor: colors.backgroundSecondary,

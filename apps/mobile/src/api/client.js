@@ -1866,6 +1866,7 @@ export const apiClient = {
       ...(targetAccountId ? { targetAccountId } : {}),
       ...(postId ? { postId } : {}),
       reason,
+      blockUser: Boolean(reportData?.blockUser),
     };
     const { data } = await client.post('/community/report', body);
     return data;
@@ -2622,11 +2623,12 @@ export const apiClient = {
     }
   },
 
-  async reportPost({ postId, targetUserId, reason } = {}) {
+  async reportPost({ postId, targetUserId, reason, blockUser } = {}) {
     const { data } = await client.post('/community/report', {
       ...(postId ? { postId: String(postId).trim() } : {}),
       ...(targetUserId ? { targetUserId: String(targetUserId).trim() } : {}),
       reason: String(reason || '부적절한 내용').trim(),
+      blockUser: Boolean(blockUser),
     });
     return data?.data ?? data;
   },

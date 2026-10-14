@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
+import ReportModal from '../../components/ReportModal';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
@@ -56,6 +57,7 @@ export default function PostDetailScreen({ navigation, route }) {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [likeProcessing, setLikeProcessing] = useState(false);
   const [previewImageUri, setPreviewImageUri] = useState(null);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
 
   const EMOJI_LIST = ['❤️', '👍', '😊', '👏', '✨', '🔥', '☕'];
 
@@ -253,44 +255,38 @@ export default function PostDetailScreen({ navigation, route }) {
 
   // Report Post
   const handleReportPost = () => {
-    Alert.prompt
-      ? Alert.prompt('게시글 신고', '신고 사유를 작성해주세요 (광고, 음란물, 욕설 등):', [
-          { text: '취소', style: 'cancel' },
-          {
-            text: '신고',
-            onPress: async (reason) => {
-              if (!reason?.trim()) return;
-              try {
-                await apiClient.reportPost({
-                  postId: post.id,
-                  targetUserId: post.author?.id,
-                  reason: reason.trim(),
-                });
-                Alert.alert('신고 접수', '신고가 정상 접수되었습니다. 검토 후 처리하겠습니다.');
-              } catch (e) {
-                Alert.alert('신고 실패', e?.message || '신고 처리 중 문제가 발생했습니다.');
-              }
-            },
-          },
-        ])
-      : Alert.alert('게시글 신고', '운영정책에 위배되는 부적절한 게시글로 신고하시겠습니까?', [
-          { text: '취소', style: 'cancel' },
-          {
-            text: '신고',
-            onPress: async () => {
-              try {
-                await apiClient.reportPost({
-                  postId: post.id,
-                  targetUserId: post.author?.id,
-                  reason: '부적절한 게시글 신고',
-                });
-                Alert.alert('신고 접수', '신고가 접수되었습니다. 검토 후 조치하겠습니다.');
-              } catch (e) {
-                Alert.alert('신고 실패', e?.message || '신고 처리 중 문제가 발생했습니다.');
-              }
-            },
-          },
-        ]);
+    setReportModalVisible(true);
+  };
+
+  // Submit Detailed Report
+  const handleReportSubmit = async (payload) => {
+    try {
+      await apiClient.reportPost({
+        postId: post?.id,
+        targetUserId: post?.author?.id,
+        reason: payload.reason,
+        category: payload.category,
+        detail: payload.detail,
+        blockUser: payload.blockUser,
+      });
+
+      setReportModalVisible(false);
+
+      if (payload.blockUser) {
+        Alert.alert(
+          '신고 및 차단 완료',
+          '신고가 정상 접수되었으며 해당 사용자가 차단되었습니다.',
+          [{ text: '확인', onPress: () => navigation.goBack() }]
+        );
+      } else {
+        Alert.alert(
+          '신고 접수 완료',
+          '소중한 신고가 안전하게 접수되었습니다. 운영정책에 따라 신속히 검토 및 조치하겠습니다.'
+        );
+      }
+    } catch (e) {
+      Alert.alert('신고 접수 실패', e?.message || '신고 처리 중 문제가 발생했습니다.');
+    }
   };
 
   // Block Author
@@ -653,6 +649,15 @@ export default function PostDetailScreen({ navigation, route }) {
           )}
         </View>
       </Modal>
+
+      {/* Danggeun Style Report Modal */}
+      <ReportModal
+        visible={reportModalVisible}
+        targetType="post"
+        targetName={post?.title || post?.content?.slice(0, 20) || '게시글'}
+        onClose={() => setReportModalVisible(false)}
+        onSubmit={handleReportSubmit}
+      />
     </SafeAreaView>
   );
 }
