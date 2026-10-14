@@ -1,13 +1,10 @@
-// services/api/src/modules/users/users.service.ts
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { PrismaService } from 'nestjs-prisma';
-import { createHash } from 'crypto';
+import { UserRole, UserStatus } from '@prisma/client';
 
 export type UserSearchFilters = {
   keyword?: string;
-  phone?: string;
-  status?: string;
+  status?: UserStatus;
   limit?: number;
 };
 
@@ -19,16 +16,8 @@ export class UsersService {
     return this.prisma.user.findUnique({
       where: { id },
       include: {
-        profile: true,
-        userPhotos: {
-          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
-        },
-        _count: {
-          select: {
-            posts: true,
-            reportsToMe: true,
-            messages: true,
-          },
+        photos: {
+          orderBy: { order: 'asc' },
         },
       },
     });
@@ -36,610 +25,96 @@ export class UsersService {
 
   async byPublicId(id: string) {
     return this.prisma.user.findFirst({
-      where: { id, status: 'active' },
+      where: { id, status: UserStatus.ACTIVE },
       select: {
         id: true,
-        displayName: true,
+        nickname: true,
         avatarUrl: true,
+        bio: true,
         callRatePerMinute: true,
-        region1: true,
-        region2: true,
-        userPhotos: {
-          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+        role: true,
+        photos: {
+          orderBy: { order: 'asc' },
           select: {
             id: true,
-            url: true,
-            isPrimary: true,
-            sortOrder: true,
-          },
-        },
-        profile: {
-          select: {
-            nickname: true,
-            bio: true,
-            headline: true,
-            avatarUri: true,
-            interests: true,
-            badges: true,
-          },
-        },
-        ownerBridge: {
-          select: {
-            activityAccounts: {
-              select: { id: true },
-              take: 1,
-            },
+            imageUrl: true,
+            order: true,
           },
         },
       },
     });
   }
 
-  async checkNickname(
-    nickname: string,
-    excludeUserId?: string,
-  ): Promise<{ available: boolean; reason?: string; message?: string }> {
-    const trimmed = (nickname ?? '').trim();
-    if (!trimmed) {
-      return { available: false, reason: '닉네임을 입력해 주세요.' };
+  async getMe(userId: string) {
+    const user = await this.byId(userId);
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
     }
-    if (trimmed.length < 2 || trimmed.length > 12) {
-      return {
-        available: false,
-        reason: '닉네임은 2자 이상 12자 이하로 입력해 주세요.',
-      };
-    }
+    return user;
+  }
 
-    const validPattern = /^[a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ_ ]+$/;
-    if (!validPattern.test(trimmed)) {
-      return {
-        available: false,
-        reason: '특수문자 및 기호는 사용할 수 없습니다.',
-      };
-    }
-
-    // 금칙어 검사
-    const bannedWords = await this.prisma.bannedWord.findMany({
-      select: { word: true },
-    });
-    const lower = trimmed.toLowerCase();
-    for (const bw of bannedWords) {
-      if (bw.word && lower.includes(bw.word.toLowerCase())) {
-        return {
-          available: false,
-          reason: '닉네임에 사용할 수 없는 단어가 포함되어 있습니다.',
-        };
+  async updateProfile(userId: string, data: { nickname?: string; bio?: string; avatarUrl?: string; callRatePerMinute?: number }) {
+    if (data.nickname) {
+      const existing = await this.prisma.user.findUnique({
+        where: { nickname: data.nickname },
+      });
+      if (existing && existing.id !== userId) {
+        throw new BadRequestException('이미 사용 중인 닉네임입니다.');
       }
     }
 
-    // 중복 검사 (탈퇴 유저 제외)
-    const whereClause: Prisma.UserWhereInput = {
-      status: { not: 'withdrawn' },
-      OR: [
-        { displayName: { equals: trimmed, mode: Prisma.QueryMode.insensitive } },
-        { profile: { nickname: { equals: trimmed, mode: Prisma.QueryMode.insensitive } } },
-      ],
-    };
-
-    if (excludeUserId) {
-      whereClause.id = { not: excludeUserId };
-    }
-
-    const existing = await this.prisma.user.findFirst({
-      where: whereClause,
-      select: { id: true },
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.nickname ? { nickname: data.nickname } : {}),
+        ...(data.bio !== undefined ? { bio: data.bio } : {}),
+        ...(data.avatarUrl !== undefined ? { avatarUrl: data.avatarUrl } : {}),
+        ...(data.callRatePerMinute !== undefined ? { callRatePerMinute: data.callRatePerMinute } : {}),
+      },
+      include: {
+        photos: {
+          orderBy: { order: 'asc' },
+        },
+      },
     });
-
-    if (existing) {
-      return {
-        available: false,
-        reason: '이미 다른 회원이 사용 중인 닉네임입니다.',
-      };
-    }
-
-    return {
-      available: true,
-      message: '사용 가능한 닉네임입니다.',
-    };
   }
 
-  async search(term: string, take: number = 20) {
-    const trimmed = term.trim();
-    if (!trimmed) return [];
+  async addPhoto(userId: string, imageUrl: string, order?: number) {
+    const count = await this.prisma.userPhoto.count({ where: { userId } });
+    if (count >= 9) {
+      throw new BadRequestException('사진은 최대 9장까지만 등록 가능합니다.');
+    }
 
+    return this.prisma.userPhoto.create({
+      data: {
+        userId,
+        imageUrl,
+        order: order !== undefined ? order : count + 1,
+      },
+    });
+  }
+
+  async deletePhoto(userId: string, photoId: string) {
+    return this.prisma.userPhoto.deleteMany({
+      where: { id: photoId, userId },
+    });
+  }
+
+  async searchUsers(filters: UserSearchFilters) {
+    const limit = filters.limit ? Math.min(filters.limit, 50) : 20;
     return this.prisma.user.findMany({
       where: {
-        status: 'active',
-        role: 'user',
-        OR: [
-          {
-            displayName: {
-              contains: trimmed,
-              mode: Prisma.QueryMode.insensitive,
-            },
-          },
-          {
-            profile: {
-              nickname: {
-                contains: trimmed,
-                mode: Prisma.QueryMode.insensitive,
-              },
-            },
-          },
-          {
-            profile: {
-              headline: {
-                contains: trimmed,
-                mode: Prisma.QueryMode.insensitive,
-              },
-            },
-          },
-          {
-            profile: {
-              bio: {
-                contains: trimmed,
-                mode: Prisma.QueryMode.insensitive,
-              },
-            },
-          },
-          {
-            profile: {
-              interests: {
-                has: trimmed,
-              },
-            },
-          },
-        ],
+        ...(filters.keyword ? { nickname: { contains: filters.keyword } } : {}),
+        ...(filters.status ? { status: filters.status } : {}),
       },
-      take: Math.min(50, Math.max(1, take)),
+      take: limit,
       orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        displayName: true,
-        avatarUrl: true,
-        region1: true,
-        region2: true,
-        profile: {
-          select: {
-            nickname: true,
-            bio: true,
-            headline: true,
-            avatarUri: true,
-            interests: true,
-          },
-        },
-        ownerBridge: {
-          select: {
-            status: true,
-            legacyUserId: true,
-            activityAccounts: {
-              where: { status: 'active', isPrimary: true },
-              take: 1,
-              select: { id: true },
-            },
-          },
-        },
-      },
-    });
-  }
-  async searchUsers(filters: UserSearchFilters) {
-    const where: Prisma.UserWhereInput = {};
-    const or: Prisma.UserWhereInput['OR'] = [];
-
-    const keyword = filters.keyword?.trim();
-    if (keyword) {
-      or.push(
-        { email: { contains: keyword, mode: Prisma.QueryMode.insensitive } },
-        { displayName: { contains: keyword, mode: Prisma.QueryMode.insensitive } },
-        { profile: { nickname: { contains: keyword, mode: Prisma.QueryMode.insensitive } } },
-      );
-    }
-
-    const phoneDigits = this.normalizePhone(filters.phone);
-    if (phoneDigits) {
-      where.phoneHash = this.hashPhone(phoneDigits);
-    }
-
-    if (filters.status?.trim()) {
-      where.status = filters.status.trim().toLowerCase();
-    }
-
-    if (or.length) {
-      where.OR = or;
-    }
-
-    const take = Math.min(100, Math.max(1, filters.limit ?? 50));
-
-    const users = await this.prisma.user.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take,
-      select: {
-        id: true,
-        email: true,
-        displayName: true,
-        status: true,
-        provider: true,
-        createdAt: true,
-        region1: true,
-        region2: true,
-        profile: {
-          select: {
-            nickname: true,
-            bio: true,
-            headline: true,
-            avatarUri: true,
-            interests: true,
-            badges: true,
-          },
-        },
-      },
-    });
-
-    return users.map((user) => ({
-      id: user.id,
-      email: user.email,
-      displayName: user.displayName,
-      nickname: user.profile?.nickname ?? null,
-      status: user.status,
-      provider: user.provider,
-      createdAt: user.createdAt,
-      region1: user.region1 ?? null,
-      region2: user.region2 ?? null,
-      profile: user.profile
-        ? {
-            nickname: user.profile.nickname,
-            bio: user.profile.bio ?? null,
-            headline: user.profile.headline ?? null,
-            avatarUri: user.profile.avatarUri ?? null,
-            interests: user.profile.interests ?? [],
-            badges: user.profile.badges ?? [],
-          }
-        : null,
-    }));
-  }
-
-  async updateProfile(
-    id: string,
-    payload: {
-      displayName?: string | null;
-      region1?: string | null;
-      region2?: string | null;
-      bio?: string | null;
-      nickname?: string | null;
-      interests?: string[];
-      marketingOptIn?: boolean;
-      nightPushOptIn?: boolean;
-      chatPushOptIn?: boolean;
-      livePushOptIn?: boolean;
-      hideOnlineStatus?: boolean;
-      headline?: string | null;
-      avatarUri?: string | null;
-    },
-  ) {
-    const existingProfile = await this.prisma.profile.findUnique({
-      where: { userId: id },
-      select: { nickname: true, badges: true, interests: true, visibility: true },
-    });
-
-    const profileVisibility = (
-      existingProfile?.visibility && typeof existingProfile.visibility === 'object'
-        ? { ...existingProfile.visibility }
-        : {}
-    ) as Record<string, any>;
-
-    let hasVisibilityChange = false;
-
-    if (payload.marketingOptIn !== undefined) {
-      profileVisibility.marketingOptIn = payload.marketingOptIn;
-      hasVisibilityChange = true;
-    }
-    if (payload.nightPushOptIn !== undefined) {
-      profileVisibility.nightPushOptIn = payload.nightPushOptIn;
-      hasVisibilityChange = true;
-    }
-    if (payload.chatPushOptIn !== undefined) {
-      profileVisibility.chatPushOptIn = payload.chatPushOptIn;
-      hasVisibilityChange = true;
-    }
-    if (payload.livePushOptIn !== undefined) {
-      profileVisibility.livePushOptIn = payload.livePushOptIn;
-      hasVisibilityChange = true;
-    }
-    if (payload.hideOnlineStatus !== undefined) {
-      profileVisibility.hideOnlineStatus = payload.hideOnlineStatus;
-      hasVisibilityChange = true;
-    }
-
-    const profileUpdate: Prisma.ProfileUpdateInput = {};
-
-    if (payload.bio !== undefined) {
-      profileUpdate.bio = payload.bio ?? null;
-    }
-
-    if (payload.interests !== undefined) {
-      profileUpdate.interests = payload.interests;
-    }
-
-    if (payload.headline !== undefined) {
-      profileUpdate.headline = payload.headline ?? null;
-    }
-
-    if (payload.avatarUri !== undefined) {
-      profileUpdate.avatarUri = payload.avatarUri ?? null;
-    }
-
-    if (payload.nickname !== undefined || payload.displayName !== undefined) {
-      profileUpdate.nickname =
-        payload.nickname ??
-        payload.displayName ??
-        existingProfile?.nickname ??
-        '회원';
-    }
-
-    if (hasVisibilityChange) {
-      profileUpdate.visibility = profileVisibility as any;
-    }
-
-    const updateData: Prisma.UserUpdateInput = {
-      displayName: payload.displayName ?? undefined,
-      region1: payload.region1 ?? undefined,
-      region2: payload.region2 ?? undefined,
-      ...(payload.avatarUri !== undefined ? { avatarUrl: payload.avatarUri ?? null } : {}),
-    };
-
-    if (Object.keys(profileUpdate).length > 0) {
-      updateData.profile = {
-        upsert: {
-          update: profileUpdate,
-          create: {
-            nickname:
-              payload.nickname ?? payload.displayName ?? existingProfile?.nickname ?? '회원',
-            bio: payload.bio ?? null,
-            headline: payload.headline ?? null,
-            avatarUri: payload.avatarUri ?? null,
-            interests: payload.interests ?? existingProfile?.interests ?? [],
-            badges: existingProfile?.badges ?? [],
-            visibility: Object.keys(profileVisibility).length ? (profileVisibility as any) : undefined,
-          },
-        },
-      };
-    }
-
-    const updatedUser = await this.prisma.user.update({
-      where: { id },
-      data: updateData,
       include: {
-        profile: true,
-        userPhotos: {
-          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
-        },
-        _count: {
-          select: {
-            posts: true,
-            reportsToMe: true,
-            messages: true,
-          },
+        photos: {
+          take: 3,
+          orderBy: { order: 'asc' },
         },
       },
     });
-
-    const newName = payload.nickname ?? payload.displayName;
-    if (newName) {
-      await this.prisma.activityAccount.updateMany({
-        where: { legacyUserId: id, isPrimary: true },
-        data: { displayName: newName },
-      }).catch(() => {});
-    }
-
-    return updatedUser;
-  }
-
-  async getUserPhotos(userId: string) {
-    return this.prisma.userPhoto.findMany({
-      where: { userId },
-      orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
-    });
-  }
-
-  async addUserPhoto(userId: string, url: string, makePrimary?: boolean) {
-    const trimmedUrl = (url || '').trim();
-    if (!trimmedUrl) {
-      throw new BadRequestException('사진 URL이 필요합니다.');
-    }
-
-    const currentCount = await this.prisma.userPhoto.count({
-      where: { userId },
-    });
-
-    if (currentCount >= 9) {
-      throw new BadRequestException('프로필 사진은 최대 9장까지 등록할 수 있습니다.');
-    }
-
-    const shouldBePrimary = currentCount === 0 || !!makePrimary;
-
-    return this.prisma.$transaction(async (tx) => {
-      if (shouldBePrimary) {
-        await tx.userPhoto.updateMany({
-          where: { userId, isPrimary: true },
-          data: { isPrimary: false },
-        });
-
-        await tx.user.update({
-          where: { id: userId },
-          data: { avatarUrl: trimmedUrl },
-        });
-
-        await tx.profile.updateMany({
-          where: { userId },
-          data: { avatarUri: trimmedUrl },
-        });
-      }
-
-      const nextSortOrder = currentCount;
-
-      const created = await tx.userPhoto.create({
-        data: {
-          userId,
-          url: trimmedUrl,
-          isPrimary: shouldBePrimary,
-          sortOrder: nextSortOrder,
-        },
-      });
-
-      return created;
-    });
-  }
-
-  async setPrimaryUserPhoto(userId: string, photoId: string) {
-    const photo = await this.prisma.userPhoto.findFirst({
-      where: { id: photoId, userId },
-    });
-
-    if (!photo) {
-      throw new NotFoundException('해당 사진을 찾을 수 없습니다.');
-    }
-
-    return this.prisma.$transaction(async (tx) => {
-      await tx.userPhoto.updateMany({
-        where: { userId, isPrimary: true },
-        data: { isPrimary: false },
-      });
-
-      const updated = await tx.userPhoto.update({
-        where: { id: photoId },
-        data: { isPrimary: true },
-      });
-
-      await tx.user.update({
-        where: { id: userId },
-        data: { avatarUrl: photo.url },
-      });
-
-      await tx.profile.updateMany({
-        where: { userId },
-        data: { avatarUri: photo.url },
-      });
-
-      return updated;
-    });
-  }
-
-  async deleteUserPhoto(userId: string, photoId: string) {
-    const photo = await this.prisma.userPhoto.findFirst({
-      where: { id: photoId, userId },
-    });
-
-    if (!photo) {
-      throw new NotFoundException('해당 사진을 찾을 수 없습니다.');
-    }
-
-    return this.prisma.$transaction(async (tx) => {
-      await tx.userPhoto.delete({
-        where: { id: photoId },
-      });
-
-      if (photo.isPrimary) {
-        const nextPrimary = await tx.userPhoto.findFirst({
-          where: { userId },
-          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-        });
-
-        if (nextPrimary) {
-          await tx.userPhoto.update({
-            where: { id: nextPrimary.id },
-            data: { isPrimary: true },
-          });
-
-          await tx.user.update({
-            where: { id: userId },
-            data: { avatarUrl: nextPrimary.url },
-          });
-
-          await tx.profile.updateMany({
-            where: { userId },
-            data: { avatarUri: nextPrimary.url },
-          });
-        } else {
-          await tx.user.update({
-            where: { id: userId },
-            data: { avatarUrl: null },
-          });
-
-          await tx.profile.updateMany({
-            where: { userId },
-            data: { avatarUri: null },
-          });
-        }
-      }
-
-      return { success: true };
-    });
-  }
-
-  async deleteAccount(userId: string) {
-    return this.prisma.$transaction(async (tx) => {
-      // 1. 디바이스 및 푸시 토큰 삭제
-      await tx.device.deleteMany({ where: { userId } });
-
-      // 2. 프로필 사진 및 업로드 사진 완전 파기 (개인정보보호법)
-      await tx.userPhoto.deleteMany({ where: { userId } });
-      await tx.photo.deleteMany({ where: { userId } });
-
-      // 3. 휴대폰 본인확인 이력 파기
-      await tx.phoneVerification.deleteMany({ where: { userId } });
-
-      // 4. 유저 마스킹 및 비식별화
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          status: 'withdrawn',
-          tokenVersion: { increment: 1 },
-          email: null,
-          phoneHash: null,
-          displayName: '탈퇴한 회원',
-          avatarUrl: null,
-        },
-      });
-
-      // 5. 프로필 비식별화
-      await tx.profile.updateMany({
-        where: { userId },
-        data: {
-          nickname: '탈퇴한 회원',
-          headline: null,
-          bio: null,
-          avatarUri: null,
-          interests: [],
-          badges: [],
-          visibility: {},
-        },
-      });
-
-      // 6. 활동 계정 탈퇴 처리
-      await tx.activityAccount.updateMany({
-        where: { legacyUserId: userId },
-        data: {
-          status: 'withdrawn',
-          displayName: '탈퇴한 회원',
-          handle: null,
-        },
-      });
-
-      return { success: true };
-    });
-  }
-
-  phoneHashForSearch(phone?: string) {
-    const phoneDigits = this.normalizePhone(phone);
-    return phoneDigits ? this.hashPhone(phoneDigits) : undefined;
-  }
-
-  private normalizePhone(phone?: string) {
-    return phone ? phone.replace(/[^\d]/g, '') : '';
-  }
-
-  private hashPhone(phoneDigits: string) {
-    return createHash('sha256').update(`KR:${phoneDigits}`).digest('hex');
   }
 }

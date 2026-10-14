@@ -8,17 +8,28 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CallsService } from './calls.service';
-import { StartCallDto } from './dto';
+import { PrivateCallService } from './private-call.service';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+
+export class RequestCallDto {
+  hostId: string;
+}
+
+export class EndCallDto {
+  reason?: string;
+}
 
 @ApiTags('calls')
 @Controller('calls')
 export class CallsController {
-  constructor(private readonly callsService: CallsService) {}
+  constructor(
+    private readonly callsService: CallsService,
+    private readonly privateCallService: PrivateCallService,
+  ) {}
 
   /**
-   * 호스트의 1:1 통화 단가 조회 (개별 단가 없으면 기본값 fallback)
+   * 호스트의 1:1 통화 단가 조회 (호스트 개별 단가 또는 시스템 기본값, 인메모리 캐시 적용)
    */
   @Get('rate/:hostUserId')
   async getCallRate(@Param('hostUserId') hostUserId: string) {
@@ -30,17 +41,35 @@ export class CallsController {
   }
 
   /**
-   * 1:1 프라이빗 통화 시작 및 포인트 차감
+   * 1:1 프라이빗 통화 요청 (게스트 -> 호스트)
    */
-  @Post('start')
+  @Post('request')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  async startCall(@CurrentUser() user: any, @Body() dto: StartCallDto) {
-    const callerUserId = user?.id ?? user?.sub;
-    const data = await this.callsService.startCall(callerUserId, dto);
+  async requestCall(@CurrentUser() user: any, @Body() dto: RequestCallDto) {
+    const guestId = user?.id ?? user?.sub;
+    const session = await this.privateCallService.requestCall(guestId, dto.hostId);
     return {
       ok: true,
-      data,
+      data: session,
+    };
+  }
+
+  /**
+   * 1:1 통화 수락 시: 첫 1분 분량 선차감 DB 트랜잭션($transaction) 처리
+   */
+  @Post(':sessionId/accept')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async acceptCall(
+    @CurrentUser() user: any,
+    @Param('sessionId') sessionId: string,
+  ) {
+    const hostId = user?.id ?? user?.sub;
+    const session = await this.privateCallService.acceptCall(sessionId, hostId);
+    return {
+      ok: true,
+      data: session,
     };
   }
 
@@ -53,9 +82,10 @@ export class CallsController {
   async endCall(
     @CurrentUser() user: any,
     @Param('sessionId') sessionId: string,
+    @Body() dto?: EndCallDto,
   ) {
     const userId = user?.id ?? user?.sub;
-    const data = await this.callsService.endCall(userId, sessionId);
+    const data = await this.privateCallService.endCall(sessionId, userId, dto?.reason);
     return {
       ok: true,
       data,

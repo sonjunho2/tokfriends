@@ -1,14 +1,12 @@
-import { Module } from '@nestjs/common';
-import { AdminController } from './admin.controller';
-import { AdminSettingsService } from './admin-settings.service';
-import { SettlementModule } from '../settlement/settlement.module';
-import { MatchesAdminController } from './matches-admin.controller';
+import { Module, forwardRef } from '@nestjs/common';
+import { SystemSettingsController } from './system-settings.controller';
 import { PrismaService } from 'nestjs-prisma';
+import { CallsModule } from '../calls/calls.module';
 
 @Module({
-  imports: [SettlementModule],
-  controllers: [AdminController, MatchesAdminController],
-  providers: [AdminSettingsService, PrismaService],
-  exports: [AdminSettingsService],
+  imports: [forwardRef(() => CallsModule)],
+  controllers: [SystemSettingsController],
+  providers: [PrismaService],
+  exports: [],
 })
 export class AdminModule {}

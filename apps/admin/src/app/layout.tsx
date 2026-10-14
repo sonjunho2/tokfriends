@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   MessageCircle,
   Radio,
+  Bot,
   Settings2,
   ShieldCheck,
   Shuffle,
@@ -39,6 +40,14 @@ const NAV_ITEMS: AppShellNavItem[] = [
     description: '핵심 운영 현황과 주요 지표',
     group: '대시보드',
     icon: LayoutDashboard,
+  },
+  {
+    label: 'AI 운영 본부 & HITL 결재',
+    href: '/ai-staff',
+    description: '1팀장 + 제브 AI 5인 직원 실시간 결재 센터',
+    group: 'AI 운영·안전',
+    icon: Bot,
+    accent: 'danger',
   },
   {
     label: '회원 관리',

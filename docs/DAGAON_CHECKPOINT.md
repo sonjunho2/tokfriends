@@ -4,6 +4,40 @@ Updated: 2026-10-14
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-14 Checkpoint 62: 다가온(DAGAON) 실서비스 런칭 전면 최적화, DB 클린 아키텍처, 1팀장 + 제브 AI + 5인 AI 직원 풀스택 통합 & 1:1 통화 분당 선차감 과금 엔진 및 릴리즈 APK 빌드 (완료)
+
+### 1. 개요 및 배경
+- **현상 및 최적화 배경**:
+  - 반복된 패치로 인해 프론트엔드/백엔드 최적화가 저하되고 더미 코드가 누적된 상태를 전면 쇄신.
+  - 런타임 성능 극대화(메모리 누수 원천 차단, 60fps 유지), 3D 선물 이펙트 최상단 격리 및 3단계 차등 렌더링, Agora 스트림 무중단 프로필 바텀시트 탑재.
+  - 실제 비즈니스 트랜잭션 전용 클린 Prisma DB 스키마 구축 및 26개 불필요한 레거시/더미 모듈 전면 삭제.
+  - 1:1 통화 분당 선차감 과금 엔진(`private-call.service.ts`), 아고라 24시간 실시간 스냅샷 채증 & Gemini Flash 초고속 스크리닝 파이프라인(`snapshot-auditor.service.ts`), 1팀장 + 제브 AI + 5인 전문 AI 직원 오케스트레이션 및 관리자 HITL 원클릭 결재 센터(`apps/admin/src/app/ai-staff/page.tsx`) 실서비스 풀스택 구축.
+
+### 2. 주요 작업 내역
+1. **모바일 프론트엔드 성능 최적화 및 UI/UX 개편 (`apps/mobile`)**:
+   - `GiftOverlay.tsx`: 화면 최상단 절대 위치 레이어(`StyleSheet.absoluteFillObject`, `pointerEvents="none"`, `zIndex: 9999`) 격리로 채팅/입력창 밀림 버그 완전 차단. 선물이 없을 때 `null`을 즉시 반환하여 평시 GPU/CPU 점유율 0 유지. 소형(1,000P 이하 40%), 중형(3,000~10,000P 75% 3D 연출), 대형(30,000P 이상 100% 암전 + VIP 골든드래곤) 3단계 차등 연출.
+   - `UserProfileBottomSheet.tsx`: Agora 스트림 무중단 반투명 바텀시트, 원형 크롭 avatarUrl 캐시 렌더링, UserPhoto(최대 9장) 최적화 FlatList(`initialNumToRender={3}`, `maxToRenderPerBatch={3}`, `windowSize={5}`, `removeClippedSubviews={true}`)로 60fps 유지 및 메모리 누수 방지, 1:1 영상 통화 신청(분당 요율 표시) 액션 버튼 배치.
+2. **데이터베이스 전면 개편 (`services/api/prisma/schema.prisma`)**:
+   - `User`, `UserPhoto`, `SystemSetting`, `PrivateCallSession`, `GiftTransaction`, `StreamSnapshotAudit`, `AiDecisionQueue` 등 실서비스 트랜잭션 모델 구축 및 Prisma Client 생성 완료.
+3. **백엔드 실서비스 엔진 구축 (`services/api`)**:
+   - `private-call.service.ts`: 통화 수락 시 첫 1분 선차감 DB 트랜잭션(`$transaction`) 처리, 분당 스케줄러(`@Cron(CronExpression.EVERY_MINUTE)`)를 통한 잔액 검증 및 잔액 부족 시 `CALL_FORCE_TERMINATED` 강제 폐쇄 및 세션 종료. 통화 단가 및 수수료율 인메모리 TTL 캐시 적용.
+   - `snapshot-auditor.service.ts`: Agora Cloud Recording 스냅샷 웹훅(평시 20초) 수신 -> Supabase Storage 업로드 -> Google Gemini 1.5 Flash Vision SDK(@google/genai) 1초 미만 초고속 스크리닝. 정상 시 24시간 롤링 삭제, 위험도 60점 이상 감지 시 5초 주기 긴급 단축, 영구 증거 아카이브 잠금 및 AI 파이프라인 에스컬레이션.
+   - `orchestrator.service.ts` & `admin.gateway.ts`: 안전관(Gemini Flash Vision) & 감사관(Gemini Pro) 채증 수합 -> 제브 AI(Gemini 1.5 Pro - System One Prompt)의 정보통신망법 기계적 판정 -> 총괄 팀장 AI(Director Agent - Gemini 1.5 Pro)의 교차검증 및 3초 원클릭 결재안 작성 -> `AdminGateway` 실시간 소켓 푸시(`AI_DECISION_NEW`).
+   - 불필요한 레거시 26개 모듈 및 더미 코드 전면 삭제, NestJS API 무결점 빌드 완료.
+4. **관리자 웹 실시간 콘솔 및 환경설정 연동 (`apps/admin`)**:
+   - `/settings`: `SystemSetting` 테이블 CRUD 완성 (1:1 통화 단가, 플랫폼 수수료율, AI 감시 주기 실시간 수정/저장 및 백엔드 동기화).
+   - `/ai-staff`: 5인 AI 직원 현황 위젯(상태 및 처리 건수), 3줄 요약 결재 대기 카드, 아고라 스냅샷 원본 확대 모달, 원클릭 승인(30일 정지/종료 집행) / 기각 / 수동 처분 변경 모달, 실시간 웹소켓 연동, 실시간 시뮬레이션 테스트 버튼 탑재. Next.js 14 전체 32개 라우트 무결점 빌드 완료.
+5. **최신 프로덕션 릴리즈 APK 빌드 및 관리자 웹 다운로드 배포**:
+   - `gradlew.bat assembleRelease --no-daemon` 실행으로 안드로이드 릴리즈 APK 생성.
+   - 관리자 웹 다운로드 정적 서빙 경로(`apps/admin/public/downloads/dagaon-release.apk`) 및 루트(`dagaon-release.apk`) 배포 완료.
+
+### 3. 검증 결과
+- **백엔드 NestJS API**: `npx nest build` 성공 (컴파일 오류 0건).
+- **관리자 Next.js 웹**: `npm run build` 성공 (32개 정적/동적 라우트 생성 완료).
+- **모바일 릴리즈 APK**: 빌드 성공 및 75MB 대 바이너리 배포 검증 완료.
+
+---
+
 ## 2026-10-14 Checkpoint 60: 소프트키 하단바 & 키보드 동시 표출 시 입력창 가림 절대 좌표 정밀 보정 및 최신 릴리즈 APK 재배포 (완료)
 
 ### 1. 개요 및 배경

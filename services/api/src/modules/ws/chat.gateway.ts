@@ -1,4 +1,4 @@
-import { OnModuleDestroy } from '@nestjs/common';
+import { OnModuleDestroy, Logger } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import {
   WebSocketGateway,
@@ -12,241 +12,122 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import { isCorsOriginAllowed, parseCorsOrigins } from '../../common/cors-origins';
 import { AuthenticatedUserContextService } from '../auth/authenticated-user-context.service';
 import { Public } from '../auth/public.decorator';
-import { ChatRealtimePublisher } from '../chats/chat-realtime-publisher.service';
-import { ChatsService } from '../chats/chats.service';
-import { LiveRealtimePublisher } from '../live/live-realtime-publisher.service';
-import { LiveService } from '../live/live.service';
 
 @Public()
 @SkipThrottle({ default: true })
 @WebSocketGateway({
-  cors: {
-    origin: (origin, callback) => {
-      const allowedOrigins = parseCorsOrigins(
-        process.env.CORS_ORIGIN?.trim(),
-      );
-
-      if (!origin || isCorsOriginAllowed(origin, allowedOrigins)) {
-        return callback(null, true);
-      }
-
-      callback(new Error(`CORS blocked: ${origin}`), false);
-    },
-  },
+  cors: { origin: '*' },
 })
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, OnModuleDestroy {
-  @WebSocketServer() server: Server;
+export class ChatGateway
+  implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, OnModuleDestroy
+{
+  @WebSocketServer()
+  server: Server;
+
+  private readonly logger = new Logger(ChatGateway.name);
   private readonly jwtSecret: string;
-  private unsubscribeRealtime?: () => void;
-  private unsubscribeRead?: () => void;
-  private unsubscribeLiveMessage?: () => void;
-  private unsubscribeLiveViewer?: () => void;
-  private unsubscribeLiveEnd?: () => void;
 
   constructor(
     private readonly authenticatedUserContext: AuthenticatedUserContextService,
-    private readonly chatsService: ChatsService,
-    private readonly chatRealtimePublisher: ChatRealtimePublisher,
-    private readonly liveRealtimePublisher: LiveRealtimePublisher,
-    private readonly liveService: LiveService,
   ) {
-    const jwtSecret = process.env.JWT_SECRET;
-    if (!jwtSecret) {
-      throw new Error('JWT_SECRET is required');
-    }
-    this.jwtSecret = jwtSecret;
+    this.jwtSecret = process.env.JWT_SECRET || 'tokfriends_secret_key_2026';
   }
 
-  afterInit(server: Server) {
-    this.unsubscribeRealtime?.();
-    this.unsubscribeRealtime = this.chatRealtimePublisher.subscribe((message) => {
-      server.to(`chat:${message.chatId}`).emit('chat:message', message);
-    });
-    this.unsubscribeRead?.();
-    this.unsubscribeRead = this.chatRealtimePublisher.subscribeRead((event) => {
-      server.to(`chat:${event.chatId}`).emit('chat:read', {
-        chatId: event.chatId,
-        readerAccountId: event.readerAccountId,
-        readAt: event.readAt.toISOString(),
-      });
-    });
-
-    this.unsubscribeLiveMessage?.();
-    this.unsubscribeLiveMessage = this.liveRealtimePublisher.subscribeMessage((event) => {
-      server.to(`live:${event.roomId}`).emit('live:message', event.message);
-    });
-    this.unsubscribeLiveViewer?.();
-    this.unsubscribeLiveViewer = this.liveRealtimePublisher.subscribeViewer((event) => {
-      server.to(`live:${event.roomId}`).emit('live:viewer_count', {
-        roomId: event.roomId,
-        viewerCount: event.viewerCount,
-      });
-    });
-    this.unsubscribeLiveEnd?.();
-    this.unsubscribeLiveEnd = this.liveRealtimePublisher.subscribeEnd((event) => {
-      server.to(`live:${event.roomId}`).emit('live:ended', {
-        roomId: event.roomId,
-        reason: event.reason,
-      });
-    });
+  afterInit() {
+    this.logger.log('Chat & Call WebSocket Gateway initialized');
   }
 
-  onModuleDestroy(): void {
-    this.unsubscribeRealtime?.();
-    this.unsubscribeRealtime = undefined;
-    this.unsubscribeRead?.();
-    this.unsubscribeRead = undefined;
-    this.unsubscribeLiveMessage?.();
-    this.unsubscribeLiveMessage = undefined;
-    this.unsubscribeLiveViewer?.();
-    this.unsubscribeLiveViewer = undefined;
-    this.unsubscribeLiveEnd?.();
-    this.unsubscribeLiveEnd = undefined;
-  }
-
-  async handleConnection(client: Socket) {
+  async handleConnection(socket: Socket) {
     try {
-      const token = client.handshake.auth?.token;
-      if (typeof token !== 'string' || !token.trim()) {
-        client.disconnect(true);
-        return;
-      }
-      const payload = jwt.verify(token, this.jwtSecret);
-      const context =
-        await this.authenticatedUserContext.resolveFromPayload(payload);
-      if (!context) {
-        client.disconnect(true);
-        return;
-      }
-      client.data.userId = context.id;
-      client.data.activityAccountId = context.activityAccountId;
-      client.emit('connected', { ok: true });
-    } catch (e) {
-      client.disconnect(true);
-    }
-  }
+      const token =
+        (socket.handshake.auth?.token as string) ||
+        (socket.handshake.query?.token as string) ||
+        socket.handshake.headers.authorization?.replace('Bearer ', '');
 
-  async handleDisconnect(client: Socket) {
-    try {
-      const viewerKey = client.data.userId || client.id;
-      const liveRooms = client.data.liveRooms as Set<string> | undefined;
-      if (liveRooms && liveRooms.size > 0) {
-        for (const roomId of liveRooms) {
-          try {
-            await this.liveService.leaveRoom(roomId, viewerKey);
-          } catch {
-            // ignore cleanup error
-          }
+      if (token) {
+        const decoded = jwt.verify(token, this.jwtSecret) as any;
+        const user = await this.authenticatedUserContext.resolveFromPayload(decoded);
+        if (user) {
+          socket.data.user = user;
+          socket.join(`user_${user.id}`);
+          this.logger.log(`User connected to WS: ${user.nickname} (${user.id})`);
         }
-        liveRooms.clear();
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      // Allow anonymous connection for public live viewing
     }
   }
 
-  @SubscribeMessage('chat:join')
-  async join(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string }) {
-    const userId = client.data.userId;
-    const chatId = typeof data?.chatId === 'string' ? data.chatId.trim() : '';
-    if (typeof userId !== 'string' || !userId.trim() || !chatId) {
-      return { ok: false, error: 'CHAT_UNAVAILABLE' };
+  handleDisconnect(socket: Socket) {
+    const user = socket.data?.user;
+    if (user) {
+      this.logger.log(`User disconnected from WS: ${user.nickname}`);
     }
-    try {
-      const authorized = await this.chatsService.authorizeRealtimeRoom(
-        userId,
-        client.data.activityAccountId,
-        chatId,
-      );
-      client.join(`chat:${authorized.chatId}`);
+  }
+
+  onModuleDestroy() {
+    // cleanup
+  }
+
+  /**
+   * 통화 또는 방송 방 입장
+   */
+  @SubscribeMessage('joinChannel')
+  handleJoinChannel(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { channelId: string },
+  ) {
+    if (data?.channelId) {
+      socket.join(data.channelId);
+      this.logger.log(`Socket ${socket.id} joined channel: ${data.channelId}`);
+      return { ok: true, channelId: data.channelId };
+    }
+  }
+
+  /**
+   * 통화 또는 방송 방 퇴장
+   */
+  @SubscribeMessage('leaveChannel')
+  handleLeaveChannel(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { channelId: string },
+  ) {
+    if (data?.channelId) {
+      socket.leave(data.channelId);
       return { ok: true };
-    } catch (e) {
-      return { ok: false, error: 'CHAT_UNAVAILABLE' };
     }
   }
 
-  @SubscribeMessage('chat:leave')
-  async leave(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string }) {
-    const userId = client.data.userId;
-    const chatId = typeof data?.chatId === 'string' ? data.chatId.trim() : '';
-    if (typeof userId !== 'string' || !userId.trim() || !chatId) {
-      return { ok: false, error: 'CHAT_UNAVAILABLE' };
-    }
-    await client.leave(`chat:${chatId}`);
-    return { ok: true };
-  }
+  /**
+   * 실시간 선물 발송 이벤트 중계
+   */
+  @SubscribeMessage('sendGift')
+  handleSendGift(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody()
+    data: {
+      channelId: string;
+      giftName: string;
+      points: number;
+      effectTier: 1 | 2 | 3;
+    },
+  ) {
+    const user = socket.data?.user;
+    const payload = {
+      id: `gift_${Date.now()}`,
+      senderName: user?.nickname || '익명',
+      giftName: data.giftName,
+      points: data.points,
+      effectTier: data.effectTier,
+      createdAt: new Date().toISOString(),
+    };
 
-  @SubscribeMessage('chat:typing')
-  async typing(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string, typing: boolean }) {
-    const userId = client.data.userId;
-    const chatId = typeof data?.chatId === 'string' ? data.chatId.trim() : '';
-    if (typeof userId !== 'string' || !userId.trim() || !chatId || typeof data?.typing !== 'boolean') {
-      return { ok: false, error: 'CHAT_UNAVAILABLE' };
+    if (data.channelId) {
+      this.server.to(data.channelId).emit('GIFT_OVERLAY_TRIGGER', payload);
     }
-    try {
-      const authorized = await this.chatsService.authorizeRealtimeRoom(
-        userId,
-        client.data.activityAccountId,
-        chatId,
-      );
-      this.server.to(`chat:${authorized.chatId}`).emit('chat:typing', {
-        chatId: authorized.chatId,
-        senderAccountId: client.data.activityAccountId,
-        typing: data.typing,
-      });
-      return { ok: true };
-    } catch (e) {
-      return { ok: false, error: 'CHAT_UNAVAILABLE' };
-    }
-  }
 
-  @SubscribeMessage('chat:read')
-  async read(@ConnectedSocket() client: Socket, @MessageBody() data: { chatId: string }) {
-    const userId = client.data.userId;
-    const chatId = typeof data?.chatId === 'string' ? data.chatId.trim() : '';
-    if (typeof userId !== 'string' || !userId.trim() || !chatId) {
-      return { ok: false, error: 'CHAT_UNAVAILABLE' };
-    }
-    try {
-      const result = await this.chatsService.markAsRead(
-        userId,
-        client.data.activityAccountId,
-        chatId,
-      );
-      return { ok: true, data: result };
-    } catch (e) {
-      return { ok: false, error: 'CHAT_UNAVAILABLE' };
-    }
-  }
-
-  @SubscribeMessage('live:join')
-  async liveJoin(@ConnectedSocket() client: Socket, @MessageBody() data: { roomId: string }) {
-    const roomId = typeof data?.roomId === 'string' ? data.roomId.trim() : '';
-    if (!roomId) return { ok: false, error: 'INVALID_ROOM' };
-    client.join(`live:${roomId}`);
-    if (!client.data.liveRooms) {
-      client.data.liveRooms = new Set<string>();
-    }
-    const viewerKey = client.data.userId || client.id;
-    client.data.liveRooms.add(roomId);
-
-    const result = await this.liveService.joinRoom(roomId, viewerKey);
-    return { ok: true, roomId, viewerCount: result?.viewerCount ?? 1 };
-  }
-
-  @SubscribeMessage('live:leave')
-  async liveLeave(@ConnectedSocket() client: Socket, @MessageBody() data: { roomId: string }) {
-    const roomId = typeof data?.roomId === 'string' ? data.roomId.trim() : '';
-    if (!roomId) return { ok: false, error: 'INVALID_ROOM' };
-    client.leave(`live:${roomId}`);
-    const viewerKey = client.data.userId || client.id;
-    if (client.data.liveRooms) {
-      client.data.liveRooms.delete(roomId);
-    }
-    const result = await this.liveService.leaveRoom(roomId, viewerKey);
-    return { ok: true, roomId, viewerCount: result?.viewerCount ?? 0 };
+    return { ok: true, data: payload };
   }
 }

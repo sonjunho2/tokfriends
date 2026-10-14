@@ -1,20 +1,15 @@
-// services/api/src/modules/auth/auth.controller.ts
 import { Controller, Post, Body } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
 import { Public } from './public.decorator';
 import { AuthService } from './auth.service';
-import {
-  EmailSignupDto,
-  EmailLoginDto,
-  AppleTokenDto,
-  KakaoLoginDto,
-  NaverLoginDto,
-  GoogleLoginDto,
-  PhoneRequestOtpDto,
-  PhoneVerifyDto,
-  CompletePhoneProfileDto,
-} from './dto';
+
+export class QuickLoginDto {
+  nickname: string;
+}
+
+export class TestLoginDto {
+  role?: 'USER' | 'CREATOR' | 'ADMIN';
+}
 
 @ApiTags('auth')
 @Controller('auth')
@@ -22,96 +17,18 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Public()
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @Post(['signup/email', 'signup', 'register', 'users/signup', 'users/register'])
-  @ApiOperation({
-    summary: 'Sign up with email address',
-    description: 'Accepts historical aliases used by early clients for backwards compatibility.',
-  })
-  signupEmailAliases(@Body() dto: EmailSignupDto) {
-    return this.auth.signupEmail(dto);
-  }
-
-  @Public()
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @Post(['login/email', 'login'])
-  @ApiOperation({
-    summary: 'Log in with email address',
-    description: 'Supports legacy email login endpoints to minimize breaking changes.',
-  })
-  loginEmailAliases(@Body() dto: EmailLoginDto) {
-    return this.auth.loginEmail(dto);
-  }
-
-  @Public()
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @Post('apple')
-  @ApiOperation({ summary: 'Authenticate with Apple Sign-In' })
-  loginApple(@Body() dto: AppleTokenDto) {
-    return this.auth.loginApple(dto);
-  }
-
-  @Public()
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
-  @Post('kakao')
-  @ApiOperation({ summary: 'Authenticate with Kakao Sign-In' })
-  loginKakao(@Body() dto: KakaoLoginDto) {
-    return this.auth.loginKakao(dto);
-  }
-
-  @Public()
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
-  @Post('naver')
-  @ApiOperation({ summary: 'Authenticate with Naver Sign-In' })
-  loginNaver(@Body() dto: NaverLoginDto) {
-    return this.auth.loginNaver(dto);
-  }
-
-  @Public()
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
-  @Post('google')
-  @ApiOperation({ summary: 'Authenticate with Google Sign-In' })
-  loginGoogle(@Body() dto: GoogleLoginDto) {
-    return this.auth.loginGoogle(dto);
-  }
-
-  @Public()
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @Post(['phone/request-otp', 'otp/request', 'otp/send', 'phone/otp/request'])
-  @ApiOperation({
-    summary: 'Request phone OTP',
-    description: 'Also available under /auth/otp/request and /auth/otp/send for compatibility.',
-  })
-  requestPhoneOtp(@Body() dto: PhoneRequestOtpDto) {
-    return this.auth.requestPhoneOtp(dto);
-  }
-
-  @Public()
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
-  @Post(['phone/verify', 'otp/verify', 'otp/confirm', 'phone/otp/verify'])
-  @ApiOperation({
-    summary: 'Verify phone OTP',
-    description: 'Legacy /auth/otp/verify and /auth/otp/confirm routes resolve here as aliases.',
-  })
-  verifyPhoneOtp(@Body() dto: PhoneVerifyDto) {
-    return this.auth.verifyPhoneOtp(dto);
-  }
-
-  @Public()
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @Post(['phone/complete-profile', 'otp/complete-profile', 'phone/otp/complete-profile'])
-  @ApiOperation({
-    summary: 'Complete phone profile after OTP verification',
-    description: 'Allows previously deployed clients to finish onboarding without code changes.',
-  })
-  completePhoneProfile(@Body() dto: CompletePhoneProfileDto) {
-    return this.auth.completePhoneProfile(dto);
+  @Post(['login', 'quick-login'])
+  @ApiOperation({ summary: '닉네임 기반 빠른 로그인 또는 등록' })
+  async quickLogin(@Body() dto: QuickLoginDto) {
+    const data = await this.auth.quickLoginOrRegister(dto.nickname);
+    return { ok: true, data };
   }
 
   @Public()
   @Post('test-login')
-  @ApiOperation({ summary: 'Instant test login for development/testing' })
-  testLogin() {
-    return this.auth.testLogin();
+  @ApiOperation({ summary: '테스트 및 시연용 계정 로그인' })
+  async testLogin(@Body() dto?: TestLoginDto) {
+    const data = await this.auth.testLogin(dto?.role);
+    return { ok: true, data };
   }
 }

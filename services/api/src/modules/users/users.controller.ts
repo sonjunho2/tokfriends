@@ -3,279 +3,77 @@ import {
   Body,
   Controller,
   Delete,
-  ForbiddenException,
   Get,
   NotFoundException,
   Param,
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
-import { UpdateUserDto } from './update-user.dto';
 import { CurrentUser } from '../auth/current-user.decorator';
-
-type CurrentRequestUser = {
-  id?: string;
-  activityAccountId?: string | null;
-};
+import { JwtAuthGuard } from '../auth/jwt.guard';
 
 @ApiTags('users')
 @ApiBearerAuth()
 @Controller('users')
 export class UsersController {
-  constructor(private readonly users: UsersService) {}
+  constructor(private readonly usersService: UsersService) {}
 
-  // 내 정보 조회 (JWT 토큰 기반)
   @Get('me')
-  async getMe(@CurrentUser() user: CurrentRequestUser) {
-    const userId = user?.id;
-    const userData = userId ? await this.users.byId(userId) : null;
-    if (!userData) throw new NotFoundException('User not found');
-    return {
-      ok: true,
-      data: {
-        ...this.serializeUser(userData),
-        activityAccountId: user?.activityAccountId ?? null,
-      },
-    };
+  @UseGuards(JwtAuthGuard)
+  async getMe(@CurrentUser() user: any) {
+    const userId = user?.id || user?.sub;
+    const data = await this.usersService.getMe(userId);
+    return { ok: true, data };
+  }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  async updateMyProfile(
+    @CurrentUser() user: any,
+    @Body() body: { nickname?: string; bio?: string; avatarUrl?: string; callRatePerMinute?: number },
+  ) {
+    const userId = user?.id || user?.sub;
+    const data = await this.usersService.updateProfile(userId, body);
+    return { ok: true, data };
   }
 
   @Post('me/photos')
-  async addMyPhoto(
+  @UseGuards(JwtAuthGuard)
+  async addPhoto(
     @CurrentUser() user: any,
-    @Body() body: { url: string; isPrimary?: boolean },
+    @Body() body: { imageUrl: string; order?: number },
   ) {
-    const userId = user?.sub ?? user?.id;
-    if (!userId) throw new ForbiddenException('Authentication required');
-    if (!body?.url) throw new BadRequestException('사진 URL이 필요합니다.');
-    const photo = await this.users.addUserPhoto(userId, body.url, body.isPrimary);
+    const userId = user?.id || user?.sub;
+    if (!body?.imageUrl) throw new BadRequestException('사진 URL이 필요합니다.');
+    const photo = await this.usersService.addPhoto(userId, body.imageUrl, body.order);
     return { ok: true, data: photo };
   }
 
-  @Patch('me/photos/:photoId/primary')
-  async setPrimaryPhoto(
-    @CurrentUser() user: any,
-    @Param('photoId') photoId: string,
-  ) {
-    const userId = user?.sub ?? user?.id;
-    if (!userId) throw new ForbiddenException('Authentication required');
-    const updated = await this.users.setPrimaryUserPhoto(userId, photoId);
-    return { ok: true, data: updated };
-  }
-
   @Delete('me/photos/:photoId')
+  @UseGuards(JwtAuthGuard)
   async deletePhoto(
     @CurrentUser() user: any,
     @Param('photoId') photoId: string,
   ) {
-    const userId = user?.sub ?? user?.id;
-    if (!userId) throw new ForbiddenException('Authentication required');
-    const result = await this.users.deleteUserPhoto(userId, photoId);
-    return { ok: true, ...result };
+    const userId = user?.id || user?.sub;
+    await this.usersService.deletePhoto(userId, photoId);
+    return { ok: true, message: '사진이 삭제되었습니다.' };
   }
 
-  @Delete('me')
-  async deleteMe(@CurrentUser() user: any) {
-    const userId = user?.sub ?? user?.id;
-    if (!userId) throw new ForbiddenException('Authentication required');
-    await this.users.deleteAccount(userId);
-    return { ok: true, message: '회원 탈퇴가 정상적으로 처리되었습니다.' };
-  }
-
-  @ApiQuery({ name: 'q', required: false, type: String })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @Get('search')
-  async search(
-    @Query('q') q: string = '',
-    @Query('limit') limit?: string,
-  ) {
-    const take = Math.min(50, Math.max(1, Number(limit ?? 20) || 20));
-    const results = await this.users.search(q ?? '', take);
-
-    const items = results.map((item) => ({
-      id: item.id,
-      displayName: item.displayName,
-      nickname: item.profile?.nickname ?? null,
-      headline: item.profile?.headline ?? null,
-      bio: item.profile?.bio ?? null,
-      avatarUri: item.avatarUrl ?? item.profile?.avatarUri ?? null,
-      avatarUrl: item.avatarUrl ?? item.profile?.avatarUri ?? null,
-      region1: item.region1 ?? null,
-      region2: item.region2 ?? null,
-      interests: item.profile?.interests ?? [],
-      targetAccountId: item.ownerBridge?.activityAccounts?.[0]?.id ?? null,
-    }));
-
-    return { ok: true, data: items, items };
-  }
-
-  @ApiQuery({ name: 'nickname', required: true, type: String })
-  @Get('check-nickname')
-  async checkNickname(
-    @Query('nickname') nickname: string = '',
-    @CurrentUser() user: any,
-  ) {
-    const currentUserId = user?.sub ?? user?.id;
-    const result = await this.users.checkNickname(nickname, currentUserId);
-    return { ok: true, ...result };
-  }
-
-  @Get(':id/photos')
-  async getUserPhotos(@Param('id') id: string) {
-    const photos = await this.users.getUserPhotos(id);
-    return { ok: true, data: photos };
-  }
-
-  @Patch(':id')
-  async update(
-    @Param('id') id: string,
-    @CurrentUser() user: any,
-    @Body() body: UpdateUserDto,
-  ) {
-    const authId = user?.sub ?? user?.id;
-    if (!authId || authId !== id) {
-      throw new ForbiddenException('You can only update your own profile');
-    }
-
-    const interests = this.normalizeInterests(body.interests);
-    const marketingOptIn = this.normalizeBoolean(body.marketingOptIn);
-    const nightPushOptIn = this.normalizeBoolean(body.nightPushOptIn);
-    const chatPushOptIn = this.normalizeBoolean(body.chatPushOptIn);
-    const livePushOptIn = this.normalizeBoolean(body.livePushOptIn);
-    const hideOnlineStatus = this.normalizeBoolean(body.hideOnlineStatus);
-
-    const bioValue = typeof body.bio === 'string' ? body.bio.trim() : undefined;
-    const headlineValue = typeof body.headline === 'string' ? body.headline.trim() : undefined;
-    const avatarUriValue = typeof body.avatarUri === 'string' ? body.avatarUri.trim() : undefined;
-    
-    const updated = await this.users.updateProfile(id, {
-      displayName: body.displayName?.trim() || undefined,
-      nickname: body.nickname?.trim() || undefined,
-      bio: bioValue === undefined ? undefined : bioValue.length ? bioValue : null,
-      region1: body.region1?.trim() || undefined,
-      region2: body.region2?.trim() || undefined,
-      interests,
-      marketingOptIn,
-      nightPushOptIn,
-      chatPushOptIn,
-      livePushOptIn,
-      hideOnlineStatus,
-      headline:
-        headlineValue === undefined ? undefined : headlineValue.length ? headlineValue : null,
-      avatarUri:
-        avatarUriValue === undefined ? undefined : avatarUriValue.length ? avatarUriValue : null,
-    });
-
-    return { ok: true, data: this.serializeUser(updated) };
-  }
-
-  // 공용/모바일에서 단건 조회 시 사용 예시
   @Get(':id')
-  async getUserById(@Param('id') id: string) {
-    const user = await this.users.byPublicId(id);
-    if (!user) throw new NotFoundException('User not found');
-    return { ok: true, data: this.serializePublicUser(user) };
+  async getUserPublicProfile(@Param('id') id: string) {
+    const data = await this.usersService.byPublicId(id);
+    if (!data) throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    return { ok: true, data };
   }
 
-  private serializePublicUser(user: any) {
-    return {
-      id: user.id,
-      displayName: user.displayName ?? null,
-      avatarUrl: user.avatarUrl ?? user.profile?.avatarUri ?? null,
-      callRatePerMinute: user.callRatePerMinute ?? null,
-      region1: user.region1 ?? null,
-      region2: user.region2 ?? null,
-      photos: (user.userPhotos ?? []).map((p: any) => ({
-        id: p.id,
-        url: p.url,
-        isPrimary: p.isPrimary,
-        sortOrder: p.sortOrder,
-      })),
-      profile: user.profile
-        ? {
-            nickname: user.profile.nickname ?? null,
-            bio: user.profile.bio ?? null,
-            headline: user.profile.headline ?? null,
-            avatarUri: user.avatarUrl ?? user.profile.avatarUri ?? null,
-            interests: user.profile.interests ?? [],
-            badges: user.profile.badges ?? [],
-          }
-        : null,
-      targetAccountId: user.ownerBridge?.activityAccounts?.[0]?.id ?? null,
-    };
-  }
-
-  private serializeUser(user: any) {
-    const visibility = user?.profile?.visibility as Record<string, any> | undefined;
-    return {
-      id: user.id,
-      email: user.email,
-      displayName: user.displayName ?? null,
-      status: user.status,
-      role: user.role,
-      provider: user.provider,
-      avatarUrl: user.avatarUrl ?? user.profile?.avatarUri ?? null,
-      callRatePerMinute: user.callRatePerMinute ?? null,
-      region1: user.region1 ?? null,
-      region2: user.region2 ?? null,
-      pointsBalance: user.pointsBalance ?? 0,
-      createdAt: user.createdAt,
-      photos: (user.userPhotos ?? []).map((p: any) => ({
-        id: p.id,
-        url: p.url,
-        isPrimary: p.isPrimary,
-        sortOrder: p.sortOrder,
-      })),
-      profile: user.profile
-        ? {
-            nickname: user.profile.nickname,
-            bio: user.profile.bio,
-            headline: user.profile.headline ?? null,
-            avatarUri: user.avatarUrl ?? user.profile.avatarUri ?? null,
-            interests: user.profile.interests ?? [],
-            badges: user.profile.badges ?? [],
-            marketingOptIn: visibility?.marketingOptIn ?? false,
-            nightPushOptIn: visibility?.nightPushOptIn ?? false,
-            chatPushOptIn: visibility?.chatPushOptIn !== false,
-            livePushOptIn: visibility?.livePushOptIn !== false,
-            hideOnlineStatus: visibility?.hideOnlineStatus ?? false,
-          }
-        : null,
-      counts: user._count
-        ? {
-            posts: user._count.posts ?? 0,
-            reports: user._count.reportsToMe ?? 0,
-            messages: user._count.messages ?? 0,
-          }
-        : undefined,
-    };
-  }
-
-  private normalizeInterests(value: UpdateUserDto['interests']) {
-    if (Array.isArray(value)) {
-      return value
-        .map((item) => (typeof item === 'string' ? item.trim() : ''))
-        .filter((item) => item.length > 0);
-    }
-
-    if (typeof value === 'string') {
-      return value
-        .split(',')
-        .map((item) => item.trim())
-        .filter((item) => item.length > 0);
-    }
-
-    return undefined;
-  }
-
-  private normalizeBoolean(value: UpdateUserDto['marketingOptIn']) {
-    if (value === undefined) return undefined;
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'string') {
-      return ['true', '1', 'yes', 'y'].includes(value.toLowerCase());
-    }
-    return undefined;
+  @Get()
+  async searchUsers(@Query('keyword') keyword?: string) {
+    const data = await this.usersService.searchUsers({ keyword });
+    return { ok: true, data };
   }
 }

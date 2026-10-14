@@ -1,60 +1,22 @@
-import {
-  IsOptional,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 export class UpdateUserDto {
   @IsOptional()
   @IsString()
-  @MaxLength(100)
-  displayName?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
+  @MaxLength(50)
   nickname?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(2000)
+  @MaxLength(200)
   bio?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(100)
-  region1?: string;
+  avatarUrl?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  region2?: string;
-
-  @IsOptional()
-  interests?: string[] | string;
-
-  @IsOptional()
-  marketingOptIn?: boolean | string;
-
-  @IsOptional()
-  nightPushOptIn?: boolean | string;
-
-  @IsOptional()
-  chatPushOptIn?: boolean | string;
-
-  @IsOptional()
-  livePushOptIn?: boolean | string;
-
-  @IsOptional()
-  hideOnlineStatus?: boolean | string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  headline?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(2000)
-  avatarUri?: string;
+  @IsInt()
+  @Min(0)
+  callRatePerMinute?: number;
 }

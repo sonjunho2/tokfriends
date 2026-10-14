@@ -1,13 +1,14 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { CallsController } from './calls.controller';
 import { CallsService } from './calls.service';
-import { AdminModule } from '../admin/admin.module';
+import { PrivateCallService } from './private-call.service';
+import { WsModule } from '../ws/ws.module';
 
 @Module({
-  imports: [AdminModule],
+  imports: [forwardRef(() => WsModule)],
   controllers: [CallsController],
-  providers: [CallsService, PrismaService],
-  exports: [CallsService],
+  providers: [CallsService, PrivateCallService, PrismaService],
+  exports: [CallsService, PrivateCallService],
 })
 export class CallsModule {}

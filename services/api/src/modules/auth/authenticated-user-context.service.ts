@@ -1,10 +1,12 @@
-import { Injectable } from "@nestjs/common";
-import { PrismaService } from "nestjs-prisma";
-import { buildDefaultActivityAccountSelection } from "../../common/activity-account-selection";
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from 'nestjs-prisma';
+import { UserStatus } from '@prisma/client';
 
 type DecodedJwtPayload = {
   sub?: string;
-  tokenVersion?: unknown;
+  id?: string;
+  nickname?: string;
+  role?: string;
 };
 
 @Injectable()
@@ -13,55 +15,30 @@ export class AuthenticatedUserContextService {
 
   async resolveFromPayload(payload: unknown) {
     const decodedPayload = payload as DecodedJwtPayload | null;
-    if (!decodedPayload?.sub) {
+    const userId = decodedPayload?.sub || decodedPayload?.id;
+    if (!userId) {
       return null;
     }
 
     const user = await this.prisma.user.findUnique({
-      where: { id: decodedPayload.sub },
+      where: { id: userId },
       select: {
         id: true,
+        nickname: true,
         role: true,
         status: true,
-        tokenVersion: true,
-        ownerBridge: {
-          select: {
-            id: true,
-            status: true,
-            activityAccounts: {
-              ...buildDefaultActivityAccountSelection(decodedPayload.sub),
-              take: 1,
-              select: { id: true },
-            },
-          },
-        },
       },
     });
 
-    if (!user || user.status !== "active") {
+    if (!user || user.status === UserStatus.BANNED) {
       return null;
     }
-
-    const tokenVersion =
-      typeof decodedPayload.tokenVersion === "number"
-        ? decodedPayload.tokenVersion
-        : 0;
-
-    if (user.tokenVersion !== tokenVersion) {
-      return null;
-    }
-
-    const activeConsumerOwner =
-      user.role === "user" && user.ownerBridge?.status === "active"
-        ? user.ownerBridge
-        : null;
 
     return {
       id: user.id,
+      nickname: user.nickname,
       role: user.role,
       status: user.status,
-      ownerId: activeConsumerOwner?.id ?? null,
-      activityAccountId: activeConsumerOwner?.activityAccounts[0]?.id ?? null,
     };
   }
 }
