@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Image,
   Keyboard,
+  Dimensions,
   StatusBar,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -255,23 +256,42 @@ export default function ChatRoomScreen({ route, navigation }) {
     setReportVisible(true);
   }, [selectedMessage]);
 
-  const handleRootLayout = (event) => {
-    const height = event.nativeEvent.layout.height;
-    if (initialHeight === 0 && height > 0) {
-      setInitialHeight(height);
-    }
-    setRootHeight(height);
-  };
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
-  const isActuallyResizedBySystem =
-    initialHeight > 0 &&
-    rootHeight > 0 &&
-    keyboardHeight > 0 &&
-    (initialHeight - rootHeight) >= (keyboardHeight * 0.7);
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      const screenH = Dimensions.get('screen').height;
+      const endY = e?.endCoordinates?.screenY;
+      let h = e?.endCoordinates?.height || 0;
+
+      // 안드로이드에서 소프트키(하단 내비게이션 바)가 키보드 아래에 함께 노출되는 환경을 정밀 보정
+      if (endY && endY > 0 && screenH > endY) {
+        h = Math.max(h, screenH - endY);
+      }
+
+      setKeyboardVisible(true);
+      setKeyboardHeight(h);
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 80);
+    });
+
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardVisible(false);
+      setKeyboardHeight(0);
+      setIsInputFocused(false);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const androidKeyboardOffset =
-    Platform.OS === 'android' && isKeyboardVisible
-      ? (isActuallyResizedBySystem ? 0 : keyboardHeight)
+    Platform.OS === 'android' && isKeyboardVisible && keyboardHeight > 0
+      ? keyboardHeight
       : 0;
 
   const fetchMyPoints = useCallback(async () => {
@@ -1353,7 +1373,7 @@ export default function ChatRoomScreen({ route, navigation }) {
   );
 
   return (
-    <View style={styles.container} onLayout={handleRootLayout}>
+    <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#B2C7DA" />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         {/* =================================================================

@@ -4,6 +4,34 @@ Updated: 2026-10-14
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-14 Checkpoint 60: 소프트키 하단바 & 키보드 동시 표출 시 입력창 가림 절대 좌표 정밀 보정 및 최신 릴리즈 APK 재배포 (완료)
+
+### 1. 개요 및 배경
+- **현상 및 원인 분석**:
+  - 1:1 대화방과 라이브방에서 글 입력 시 키보드와 안드로이드 시스템 내비게이션 바(소프트키)가 동시에 노출될 때 입력창이 키보드 뒤에 완전히 가려져 입력 내용을 확인할 수 없던 문제 접수.
+  - `ChatRoomScreen`: `Keyboard.addListener` 미등록으로 키보드 상태가 갱신되지 않아 오프셋이 0px로 유지되어 바닥에 방치되었음.
+  - `LiveRoomScreen`: 시스템 리사이징 오판 플래그(`isActuallyResizedBySystem`)로 인해 키보드가 떴음에도 바닥 오프셋이 `8px`로 처리되어 키보드 뒤로 숨겨졌음.
+  - **하단바(소프트키) 동시 표출 보정**: 키보드 이벤트의 단순 높이(`e.endCoordinates.height`)만 사용할 경우, 소프트키가 하단에 함께 떠 있는 기기 환경에서 바닥 기준점 오차가 발생하므로, 화면 전체 높이와 키보드 상단 절대 좌표(`screenHeight - e.endCoordinates.screenY`)를 융합 계산(`Math.max(h, screenH - endY)`)하여 하단바 유무와 무관하게 키보드 윗면에 100% 밀착되도록 설계.
+
+### 2. 주요 작업 내역
+1. **1:1 대화방 정밀 키보드 리스너 & 오프셋 구축 (`ChatRoomScreen.js`)**:
+   - `Dimensions` import 추가 및 `Keyboard.addListener`(`keyboardDidShow`/`keyboardDidHide`) 등록.
+   - `screenHeight - endY` 절대 좌표 거리 계산으로 소프트키가 노출된 상태에서도 바닥에서 키보드 상단까지의 정확한 높이를 추출하여 `androidKeyboardOffset`에 반영.
+   - 키보드가 열리면 입력창이 키보드 바로 위에 즉각 밀착 표출.
+2. **실시간 라이브방 절대 오프셋 교정 (`LiveRoomScreen.js`)**:
+   - 불안정했던 시스템 리사이즈 조건 분기(`isActuallyResizedBySystem`) 완전 폐기.
+   - `screenHeight - endY` 정밀 키보드 높이 추적 및 키보드 활성화 시 `bottom: keyboardHeight + 8`을 부여하여 라이브 입력창(`controlsBar`)이 키보드 위로 오차 없이 상승하도록 수정.
+3. **최신 프로덕션 릴리즈 APK 재빌드 및 관리자 웹 서빙 배포**:
+   - `gradlew.bat assembleRelease --no-daemon` 실행 (BUILD SUCCESSFUL in 1m 43s, 파일 크기: 75.39MB).
+   - 관리자 웹 정적 다운로드 서빙 경로(`apps/admin/public/downloads/dagaon-release.apk`) 및 루트(`dagaon-release.apk`) 즉시 최신화.
+   - 관리자 웹에서 언제든 최신 APK 다운로드 가능.
+
+### 3. 검증 결과
+- **JS 신택스 검사**: `ChatRoomScreen.js`, `LiveRoomScreen.js` 문법 에러 0건.
+- **APK 생성 및 서빙 검증**: 75,396,290 bytes 최신 바이너리 동기화 완료.
+
+---
+
 ## 2026-10-14 Checkpoint 59: 최신 안드로이드 릴리즈 APK 빌드 & 관리자 웹 다운로드 서빙 및 배포 완료 (완료)
 
 ### 1. 개요 및 배경

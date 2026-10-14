@@ -13,6 +13,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Dimensions,
   Linking,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -210,20 +211,20 @@ export default function LiveRoomScreen({ navigation, route }) {
   const [initialHeight, setInitialHeight] = useState(0);
   const [isInputFocused, setIsInputFocused] = useState(false);
 
-  const handleRootLayout = (event) => {
-    const height = event.nativeEvent.layout.height;
-    if (initialHeight === 0 && height > 0) {
-      setInitialHeight(height);
-    }
-    setRootHeight(height);
-  };
-
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
     const showSub = Keyboard.addListener(showEvent, (e) => {
-      const h = e?.endCoordinates?.height || 0;
+      const screenH = Dimensions.get('screen').height;
+      const endY = e?.endCoordinates?.screenY;
+      let h = e?.endCoordinates?.height || 0;
+
+      // 안드로이드에서 소프트키(하단 내비게이션 바)가 키보드 아래에 함께 노출되는 환경을 정밀 보정
+      if (endY && endY > 0 && screenH > endY) {
+        h = Math.max(h, screenH - endY);
+      }
+
       setKeyboardHeight(h);
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -239,16 +240,8 @@ export default function LiveRoomScreen({ navigation, route }) {
     };
   }, []);
 
-  const isActuallyResizedBySystem =
-    initialHeight > 0 &&
-    rootHeight > 0 &&
-    keyboardHeight > 0 &&
-    (initialHeight - rootHeight) >= (keyboardHeight * 0.7);
-
   const liveBottomOffset = keyboardHeight > 0
-    ? (Platform.OS === 'android'
-        ? (isActuallyResizedBySystem ? 8 : keyboardHeight + 8)
-        : keyboardHeight + 8)
+    ? keyboardHeight + 8
     : Math.max(insets.bottom, 12);
 
   // Agora Live Streaming States (Video + Audio)
@@ -984,7 +977,7 @@ export default function LiveRoomScreen({ navigation, route }) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']} onLayout={handleRootLayout}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       {/* Background Live Video / Stream Canvas */}
       <View style={styles.streamCanvas}>
         {(streamConnecting && !isHost) ? (
