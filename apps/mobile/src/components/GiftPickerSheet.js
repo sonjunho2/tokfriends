@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '../theme/colors';
 import typography from '../theme/typography';
 import { apiClient } from '../api/client';
@@ -40,6 +41,7 @@ export default function GiftPickerSheet({
   const [loading, setLoading] = useState(false);
   const [selectedGift, setSelectedGift] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const loadGifts = useCallback(async () => {
     setLoading(true);
@@ -103,7 +105,12 @@ export default function GiftPickerSheet({
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.backdrop}>
           <TouchableWithoutFeedback>
-            <View style={styles.sheetContainer}>
+            <View
+              style={[
+                styles.sheetContainer,
+                { paddingBottom: Math.max(insets.bottom, Platform.OS === 'ios' ? 34 : 28) },
+              ]}
+            >
               {/* 시트 헤더 */}
               <View style={styles.header}>
                 <View style={styles.pointsBadgeRow}>
@@ -282,8 +289,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 16,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
-    maxHeight: 460,
+    maxHeight: 480,
   },
   header: {
     flexDirection: 'row',

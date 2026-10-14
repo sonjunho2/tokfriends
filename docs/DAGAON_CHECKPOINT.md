@@ -1,8 +1,36 @@
 # DAGAON Development Checkpoint
 
-Updated: 2026-10-13
+Updated: 2026-10-14
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
+
+## 2026-10-14 Checkpoint 56: 시스템 내비게이션 바 자동 숨김 & 선물 팝업 세이프에어리어 & 채팅/라이브 키보드 입력창 가림 해결 & 라이브 헤더 밸런스 개선 (완료)
+
+### 1. 개요 및 배경
+- **배경**: 실기기 테스트 중 안드로이드 시스템 하단바(소프트키 내비게이션 바)가 고정 노출되어 선물 모달 하단의 [선물 보내기] 버튼을 가리는 현상과, 1:1 채팅방 및 라이브방에서 키보드가 활성화되었을 때 대화 입력창이 키보드 아래로 파묻혀 입력 내용을 확인할 수 없는 치명적인 UX 문제 접수.
+- **라이브방 상단 헤더 불균형**: 라이브 화면 좌측 상단의 호스트/LIVE 박스(`hostPill`)가 가로 폭의 65% 이상을 과도하게 차지하여 우측 시청자 목록 영역이 답답하게 축소되어 있던 시각적 레이아웃 개선 요구 반영.
+
+### 2. 주요 작업 내역
+1. **안드로이드 네이티브 시스템 내비게이션 바 자동 숨김 강화 (`MainActivity.kt`)**:
+   - `WindowCompat.setDecorFitsSystemWindows(window, false)` 설정으로 에지-투-에지(Edge-to-Edge) 레이아웃 안정화.
+   - `setupAutoHidingNavigationBar()`를 추가하여 사용자 터치나 화면 전환으로 시스템 내비게이션 바가 표출되더라도 **1.5초 후 자동으로 다시 스르륵 숨겨지는(STICKY_IMMERSIVE auto-hide)** 핸들러 및 리스너 등록.
+   - 앱 복귀(`onResume`) 및 윈도우 포커스 회복(`onWindowFocusChanged`) 시 몰입형 모드 즉각 갱신.
+2. **선물 팝업 하단 세이프에어리어 여백 보강 (`GiftPickerSheet.js`)**:
+   - `useSafeAreaInsets` 훅을 연동하여 바텀시트 컨테이너에 `paddingBottom: Math.max(insets.bottom, 28)` 안전 여백 적용.
+   - 시스템 내비게이션 바가 나타나 있는 상태에서도 하단 [선물 보내기] 버튼과 포인트 차감 안내 문구가 소프트키에 가려지지 않도록 조치.
+3. **1:1 대화방 & 라이브방 키보드 입력창 가림 전면 해결 (`ChatRoomScreen.js`, `LiveRoomScreen.js`)**:
+   - **기존 원인**: 안드로이드에서 화면 높이가 100px만 줄어도 시스템 리사이즈 완료로 오판(`isSystemResized = true`)하여 키보드 오프셋을 `0`으로 처리함. 그러나 전체화면/몰입형 환경에서는 시스템이 윈도우를 줄이지 않거나 키보드가 오버레이되어 300px 높이의 키보드 뒤로 입력창이 완전히 가려짐.
+   - **판별 로직 교정 (`isActuallyResizedBySystem`)**: 실제로 루트 뷰 높이가 키보드 높이의 70% 이상 줄어들었을 때만 시스템 리사이즈로 판단하도록 정밀화.
+   - 화면이 리사이징되지 않은 환경에서는 `ChatRoomScreen`의 `androidKeyboardOffset = keyboardHeight` 및 `LiveRoomScreen`의 `liveBottomOffset = keyboardHeight + 8`을 부여하여, **키보드가 나타나는 즉시 입력창(`+ [메시지 입력] 🎁 ⬆️`, `실시간 대화에 참여해보세요...`)이 키보드 바로 위에 오차 없이 밀착 표시**되도록 완성.
+4. **라이브방 상단 헤더 호스트 캡슐 축소 & 시청자 영역 확장 (`LiveRoomScreen.js`)**:
+   - **호스트 LIVE 캡슐 슬림화**: 기존 너비 65%에서 `maxWidth: 150`으로 컴팩트하게 제한하고, 아바타 크기(36px ➔ 30px), 닉네임/지역 텍스트 크기(12px / 10px, 1줄 말줄임 보장), 🔴 LIVE 태그 패딩 및 폰트(9px) 최적화.
+   - **우측 시청자 영역 확장**: `topHeaderRight`를 `flex: 1`, `justifyContent: 'flex-end'`로 개편하여 좌측에서 절약된 공간을 활용, 상단 노출 시청자 아바타(`viewerAvatars`) 최대 개수를 3명에서 **4명 이상**으로 확대하고 썸네일과 카운트가 시원하게 보이도록 배치.
+
+### 3. 검증 결과
+- **API 연동성 검사**: `npm run check:api` 정상 통과 (Exit code 0, 817ms).
+- **정적 코드 및 신택스 검사**: `GiftPickerSheet.js`, `LiveRoomScreen.js`, `ChatRoomScreen.js` 문법 및 런타임 오류 없음 확인.
+
+---
 
 ## 2026-10-13 Checkpoint 55: 모바일 설정(알림 세분화·법정고지·프라이버시·다크모드) & UI/UX(홈 쇼케이스 수동제어·채팅 말풍선 액션) & 관리자 공지 실시간 연동 (완료)
 

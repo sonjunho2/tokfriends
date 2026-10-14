@@ -139,7 +139,7 @@ export default function LiveRoomScreen({ navigation, route }) {
     };
   }, [navigation]);
 
-  // Extract up to 3 viewer avatars for top header display
+  // Extract up to 4 viewer avatars for expanded top header display
   const viewerAvatars = useMemo(() => {
     const list = [];
     const seen = new Set();
@@ -152,23 +152,24 @@ export default function LiveRoomScreen({ navigation, route }) {
           seen.add(id);
           list.push({ id, name, avatar });
         }
-        if (list.length >= 3) break;
+        if (list.length >= 4) break;
       }
     }
-    if (list.length < 3) {
+    if (list.length < 4) {
       const fallback = [
         { id: 'f1', name: '디우', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100' },
         { id: 'f2', name: 'Adil', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100' },
         { id: 'f3', name: 'hemi', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100' },
+        { id: 'f4', name: '지수', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100' },
       ];
       for (const f of fallback) {
-        if (!seen.has(f.id) && list.length < 3) {
+        if (!seen.has(f.id) && list.length < 4) {
           seen.add(f.id);
           list.push(f);
         }
       }
     }
-    return list.slice(0, 3);
+    return list.slice(0, 4);
   }, [messages]);
 
   // Calculate my contributed points in this room
@@ -238,12 +239,15 @@ export default function LiveRoomScreen({ navigation, route }) {
     };
   }, []);
 
-  const isSystemResized =
-    initialHeight > 0 && rootHeight > 0 && rootHeight < initialHeight - 100;
+  const isActuallyResizedBySystem =
+    initialHeight > 0 &&
+    rootHeight > 0 &&
+    keyboardHeight > 0 &&
+    (initialHeight - rootHeight) >= (keyboardHeight * 0.7);
 
   const liveBottomOffset = keyboardHeight > 0
     ? (Platform.OS === 'android'
-        ? (isSystemResized ? 8 : keyboardHeight + 8)
+        ? (isActuallyResizedBySystem ? 8 : keyboardHeight + 8)
         : keyboardHeight + 8)
     : Math.max(insets.bottom, 12);
 
@@ -1150,7 +1154,7 @@ export default function LiveRoomScreen({ navigation, route }) {
           }}
         >
           <Avatar
-            size={36}
+            size={30}
             name={room?.host?.name}
             uri={room?.host?.avatar}
           />
@@ -1158,7 +1162,7 @@ export default function LiveRoomScreen({ navigation, route }) {
             <Text style={styles.hostPillName} numberOfLines={1}>
               {room?.host?.name || '호스트'}
             </Text>
-            <Text style={styles.hostPillRegion}>
+            <Text style={styles.hostPillRegion} numberOfLines={1}>
               {room?.host?.region || '지역 미설정'}
             </Text>
           </View>
@@ -1171,7 +1175,7 @@ export default function LiveRoomScreen({ navigation, route }) {
         <View style={styles.topHeaderRight}>
           {Boolean(room?.totalGiftsPoints && room.totalGiftsPoints > 0) && (
             <View style={styles.giftTotalBadge}>
-              <Ionicons name="gift" size={13} color="#F59E0B" />
+              <Ionicons name="gift" size={12} color="#F59E0B" />
               <Text style={styles.giftTotalBadgeText}>
                 {Number(room.totalGiftsPoints).toLocaleString()}P
               </Text>
@@ -1190,7 +1194,7 @@ export default function LiveRoomScreen({ navigation, route }) {
                   key={`v_hdr_${v.id || i}`}
                   style={[
                     styles.viewerAvatarMiniWrap,
-                    { marginLeft: i === 0 ? 0 : -8, zIndex: 3 - i },
+                    { marginLeft: i === 0 ? 0 : -6, zIndex: 5 - i },
                   ]}
                   onPress={() => handleOpenParticipantProfile(v)}
                   activeOpacity={0.8}
@@ -1687,48 +1691,52 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 24,
-    padding: 4,
-    paddingRight: 10,
-    gap: 8,
-    maxWidth: '65%',
+    borderRadius: 20,
+    padding: 3,
+    paddingRight: 8,
+    gap: 6,
+    maxWidth: 150,
   },
   hostPillMeta: {
-    flex: 1,
+    flexShrink: 1,
+    maxWidth: 68,
   },
   hostPillName: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: '#FFFFFF',
   },
   hostPillRegion: {
-    fontSize: 11,
+    fontSize: 10,
     color: 'rgba(255,255,255,0.7)',
   },
   liveTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     backgroundColor: LIVE_ACCENT,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
   liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
     backgroundColor: '#FFFFFF',
   },
   liveTagText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     color: '#FFFFFF',
   },
   topHeaderRight: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'flex-end',
+    gap: 6,
+    marginLeft: 8,
   },
   rtcBadge: {
     flexDirection: 'row',

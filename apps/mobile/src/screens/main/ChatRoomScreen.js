@@ -263,11 +263,15 @@ export default function ChatRoomScreen({ route, navigation }) {
     setRootHeight(height);
   };
 
-  const isSystemResized =
-    initialHeight > 0 && rootHeight > 0 && rootHeight < initialHeight - 100;
+  const isActuallyResizedBySystem =
+    initialHeight > 0 &&
+    rootHeight > 0 &&
+    keyboardHeight > 0 &&
+    (initialHeight - rootHeight) >= (keyboardHeight * 0.7);
+
   const androidKeyboardOffset =
     Platform.OS === 'android' && isKeyboardVisible
-      ? (isSystemResized ? 0 : keyboardHeight)
+      ? (isActuallyResizedBySystem ? 0 : keyboardHeight)
       : 0;
 
   const fetchMyPoints = useCallback(async () => {
