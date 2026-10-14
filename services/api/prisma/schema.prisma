@@ -99,14 +99,15 @@ enum UserRole {
 }
 
 model UserPhoto {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  imageUrl  String
-  order     Int      // 1 ~ 9 순서 정렬
+  url       String
+  sortOrder Int      @default(0)
+  isPrimary Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  @@index([userId, order])
+  @@index([userId, sortOrder])
 }
 
 model SystemSetting {

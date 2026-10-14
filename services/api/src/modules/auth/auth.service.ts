@@ -31,7 +31,7 @@ export class AuthService {
       where: { nickname: trimmed },
       include: {
         photos: {
-          orderBy: { order: 'asc' },
+          orderBy: { sortOrder: 'asc' },
         },
       },
     });
@@ -48,23 +48,32 @@ export class AuthService {
         },
         include: {
           photos: {
-            orderBy: { order: 'asc' },
+            orderBy: { sortOrder: 'asc' },
           },
         },
       });
     }
 
-    if (user.status === UserStatus.BANNED) {
+    if (user.status?.toLowerCase() === 'banned') {
       throw new UnauthorizedException('이용이 영구 정지된 계정입니다.');
     }
-    if (user.status === UserStatus.SUSPENDED) {
+    if (user.status?.toLowerCase() === 'suspended') {
       throw new UnauthorizedException('운영 정책 위반으로 일시 이용 정지된 계정입니다.');
     }
 
-    const token = this.generateToken(user);
+    const normalizedUser = {
+      ...user,
+      photos: (user.photos || []).map((p) => ({
+        ...p,
+        imageUrl: p.url,
+        order: p.sortOrder,
+      })),
+    };
+
+    const token = this.generateToken(normalizedUser);
 
     return {
-      user,
+      user: normalizedUser,
       token,
       accessToken: token,
     };

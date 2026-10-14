@@ -13,18 +13,27 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async byId(id: string) {
-    return this.prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
         photos: {
-          orderBy: { order: 'asc' },
+          orderBy: { sortOrder: 'asc' },
         },
       },
     });
+    if (!user) return null;
+    return {
+      ...user,
+      photos: (user.photos || []).map((p) => ({
+        ...p,
+        imageUrl: p.url,
+        order: p.sortOrder,
+      })),
+    };
   }
 
   async byPublicId(id: string) {
-    return this.prisma.user.findFirst({
+    const user = await this.prisma.user.findFirst({
       where: { id, status: { in: ['ACTIVE', 'active'] } },
       select: {
         id: true,
@@ -34,15 +43,25 @@ export class UsersService {
         callRatePerMinute: true,
         role: true,
         photos: {
-          orderBy: { order: 'asc' },
+          orderBy: { sortOrder: 'asc' },
           select: {
             id: true,
-            imageUrl: true,
-            order: true,
+            url: true,
+            sortOrder: true,
+            isPrimary: true,
           },
         },
       },
     });
+    if (!user) return null;
+    return {
+      ...user,
+      photos: (user.photos || []).map((p) => ({
+        ...p,
+        imageUrl: p.url,
+        order: p.sortOrder,
+      })),
+    };
   }
 
   async getMe(userId: string) {
@@ -63,7 +82,7 @@ export class UsersService {
       }
     }
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
         ...(data.nickname ? { nickname: data.nickname } : {}),
@@ -73,10 +92,19 @@ export class UsersService {
       },
       include: {
         photos: {
-          orderBy: { order: 'asc' },
+          orderBy: { sortOrder: 'asc' },
         },
       },
     });
+
+    return {
+      ...updated,
+      photos: (updated.photos || []).map((p) => ({
+        ...p,
+        imageUrl: p.url,
+        order: p.sortOrder,
+      })),
+    };
   }
 
   async addPhoto(userId: string, imageUrl: string, order?: number) {
@@ -85,13 +113,19 @@ export class UsersService {
       throw new BadRequestException('사진은 최대 9장까지만 등록 가능합니다.');
     }
 
-    return this.prisma.userPhoto.create({
+    const created = await this.prisma.userPhoto.create({
       data: {
         userId,
-        imageUrl,
-        order: order !== undefined ? order : count + 1,
+        url: imageUrl,
+        sortOrder: order !== undefined ? order : count + 1,
       },
     });
+
+    return {
+      ...created,
+      imageUrl: created.url,
+      order: created.sortOrder,
+    };
   }
 
   async deletePhoto(userId: string, photoId: string) {
@@ -102,7 +136,7 @@ export class UsersService {
 
   async searchUsers(filters: UserSearchFilters) {
     const limit = filters.limit ? Math.min(filters.limit, 50) : 20;
-    return this.prisma.user.findMany({
+    const users = await this.prisma.user.findMany({
       where: {
         ...(filters.keyword ? { nickname: { contains: filters.keyword } } : {}),
         ...(filters.status ? { status: filters.status } : {}),
@@ -112,9 +146,18 @@ export class UsersService {
       include: {
         photos: {
           take: 3,
-          orderBy: { order: 'asc' },
+          orderBy: { sortOrder: 'asc' },
         },
       },
     });
+
+    return users.map((u) => ({
+      ...u,
+      photos: (u.photos || []).map((p) => ({
+        ...p,
+        imageUrl: p.url,
+        order: p.sortOrder,
+      })),
+    }));
   }
 }
