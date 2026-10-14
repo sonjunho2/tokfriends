@@ -4,6 +4,25 @@ Updated: 2026-10-14
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-14 Checkpoint 59: 최신 안드로이드 릴리즈 APK 빌드 & 관리자 웹 다운로드 서빙 및 배포 완료 (완료)
+
+### 1. 개요 및 배경
+- **최신 앱 기능 통합 배포**: Checkpoint 56부터 58까지 구현된 핵심 기능들(안드로이드 하단바 자동 숨김, 1:1 대화 및 라이브방 키보드 입력창 오차 없는 밀착 노출, 라이브 상단 헤더 호스트 슬림화 및 시청자 영역 확장, 당근 스타일 글 중심 커뮤니티/홈 피드 리뉴얼, 2단계 심층 신고 모달 및 관리자 100% 연동, 온 충전소 무통장 제거 및 크리에이터 출금 카드 가로 폭 맞춤)을 모두 반영한 최신 프로덕션 릴리즈 APK 빌드 및 관리자 웹 다운로드 서빙.
+
+### 2. 주요 작업 내역
+- **로컬 릴리즈 APK 네이티브 빌드**:
+  - `gradlew.bat assembleRelease --no-daemon` 실행 (BUILD SUCCESSFUL in 2m 45s, 712 actionable tasks 완료).
+  - 산출물: `apps/mobile/android/app/build/outputs/apk/release/app-release.apk` (파일 크기: 75.39MB).
+- **관리자 웹 다운로드 및 루트 배포**:
+  - 관리자 웹 정적 서빙 경로: `apps/admin/public/downloads/dagaon-release.apk` 갱신 완료.
+  - 프로젝트 루트 편의 배포: `dagaon-release.apk` 갱신 완료.
+  - 관리자 대시보드(`apps/admin/src/app/dashboard`)의 **[APK 파일 다운로드]** 버튼 및 상단 글로벌 헤더(`app-shell.tsx`)의 **[앱 (APK) 다운로드]** 버튼을 통해 원클릭으로 최신 빌드 파일 다운로드 지원.
+
+### 3. 검증 결과
+- **APK 생성 및 서빙 검증**: 파일 존재 및 타임스탬프 최신화 확인 (75,395,798 bytes).
+
+---
+
 ## 2026-10-14 Checkpoint 58: 온(ON) 충전소 무통장 계좌결제 배너 제거(애플 앱스토어 인앱결제 심사 규정 준수) 및 크리에이터 출금/환전 카드 가로 비율 정렬 (완료)
 
 ### 1. 개요 및 배경
