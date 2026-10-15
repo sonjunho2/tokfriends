@@ -1095,6 +1095,7 @@ function normalizeChatSnapshot(payload: unknown): ChatSafetySnapshot {
   const rooms = normalizeMatchArray(raw.rooms ?? raw.chatRooms, ['rooms', 'chatRooms'], (value, index) => {
     const item = (value as Record<string, unknown>) ?? {}
     return {
+      ...item,
       id: ensureStringId(item.id ?? item.roomId, `chat-room-${index}`),
       title: typeof item.title === 'string' ? item.title : (item.name as string | undefined),
       category: typeof item.category === 'string' ? item.category : (item.segment as string | undefined),
@@ -1105,20 +1106,27 @@ function normalizeChatSnapshot(payload: unknown): ChatSafetySnapshot {
       participants:
         typeof item.participants === 'number'
           ? item.participants
-          : Number(item.participant_count ?? item.members ?? 0),
+          : Number(item.participant_count ?? item.members ?? 2),
       status: typeof item.status === 'string' ? item.status : (item.state as string | undefined),
       isFallback: Boolean(item.isFallback ?? item.sample ?? false),
       createdAt: typeof item.createdAt === 'string' ? item.createdAt : (item.created_at as string | undefined),
       lastMessageAt: typeof item.lastMessageAt === 'string' ? item.lastMessageAt : (item.last_message_at as string | undefined),
+      lastMessage: typeof item.lastMessage === 'string' ? item.lastMessage : undefined,
+      flaggedReason: typeof item.flaggedReason === 'string' ? item.flaggedReason : undefined,
+      userA: item.userA,
+      userB: item.userB,
+      messages: item.messages,
     }
   })
 
   const reports = normalizeMatchArray(raw.reports ?? raw.safetyReports, ['reports', 'safetyReports'], (value, index) => {
     const item = (value as Record<string, unknown>) ?? {}
     return {
+      ...item,
       id: ensureStringId(item.id ?? item.reportId, `chat-report-${index}`),
       roomId: typeof item.roomId === 'string' ? item.roomId : (item.room_id as string | undefined),
       reporter: typeof item.reporter === 'string' ? item.reporter : (item.user as string | undefined),
+      target: typeof item.target === 'string' ? item.target : undefined,
       reason: typeof item.reason === 'string' ? item.reason : (item.detail as string | undefined),
       status: typeof item.status === 'string' ? item.status : (item.state as string | undefined),
       createdAt: typeof item.createdAt === 'string' ? item.createdAt : (item.created_at as string | undefined),
