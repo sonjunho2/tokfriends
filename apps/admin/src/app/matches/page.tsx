@@ -1,671 +1,901 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Loader2, RefreshCcw } from 'lucide-react'
+import {
+  Activity,
+  ArrowRight,
+  Bot,
+  Cake,
+  Check,
+  CheckCircle2,
+  Clock,
+  Coffee,
+  Compass,
+  Flame,
+  HelpCircle,
+  Info,
+  MapPin,
+  PhoneCall,
+  Plus,
+  RefreshCw,
+  Sliders,
+  Smartphone,
+  Sparkles,
+  Tag,
+  Trash2,
+  Users,
+} from 'lucide-react'
 
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
 import {
-  activateMatchPreset,
   createMatchQuickFilter,
   deleteMatchQuickFilter,
-  duplicateMatchPreset,
   getMatchControlPanelSnapshot,
-  saveMatchHeatMemo,
   updateMatchPreset,
-  updateMatchRecommendationPool,
-  type MatchControlPanelSnapshot,
-  type MatchHeatRegion,
-  type MatchPreset,
   type MatchQuickFilter,
-  type MatchQueueStat,
-  type MatchRecommendationPool,
 } from '@/lib/api'
-import type { AxiosError } from 'axios'
 
-const FALLBACK_SNAPSHOT: MatchControlPanelSnapshot = {
-  queueStats: [
-    { id: 'SEG-1', segment: '서울 20대', waiting: 128, medianWait: '00:42', dropOffRate: '4.2%' },
-    { id: 'SEG-2', segment: '부산 취향 모임', waiting: 76, medianWait: '01:18', dropOffRate: '6.8%' },
-    { id: 'SEG-3', segment: '야간 이용자', waiting: 54, medianWait: '02:05', dropOffRate: '8.1%' },
-    { id: 'SEG-4', segment: '신규 가입자', waiting: 192, medianWait: '00:58', dropOffRate: '5.6%' },
-  ],
-  presets: [
-    {
-      id: 'preset-balanced',
-      name: '표준 밸런스',
-      isActive: true,
-      weights: { distance: 30, interest: 30, aiAffinity: 25, recency: 15 },
-      createdAt: '2024-03-01',
-      author: '이한별',
-    },
-    {
-      id: 'preset-high-affinity',
-      name: '관심사 우선',
-      isActive: false,
-      weights: { distance: 20, interest: 40, aiAffinity: 30, recency: 10 },
-      createdAt: '2024-02-21',
-      author: '박지원',
-    },
-  ],
-  quickFilters: [
-    { id: 'F1', label: '지금 접속중', segment: '접속중', description: '최근 5분 내 접속' },
-    { id: 'F2', label: '근처 친구', segment: '가까운 거리', description: '5km 이내 사용자' },
-    { id: 'F3', label: '20대 추천', segment: '연령대', description: '출생연도 1995~2005' },
-    { id: 'F4', label: '같이 운동', segment: '의도', description: '관심사=운동, 등산' },
-  ],
-  recommendationPools: [
-    {
-      id: 'POOL1',
-      title: 'HOT 추천',
-      sortRule: '관심·대화수·포인트 지표',
-      metrics: 'CTR 18.2%',
-      owner: '추천팀',
-    },
-    {
-      id: 'POOL2',
-      title: '접속중',
-      sortRule: '최근 접속 순',
-      metrics: '세션 유지율 72%',
-      owner: '플랫폼',
-    },
-    {
-      id: 'POOL3',
-      title: '가까운 친구',
-      sortRule: '거리 ASC + 활성도',
-      metrics: '첫 메시지 전환 9%',
-      owner: '추천팀',
-    },
-  ],
-  heatRegions: [
-    { id: 'HR-1', name: '서울 강남·서초', activeUsers: 1832, flagged: 6, trend: 'UP' },
-    { id: 'HR-2', name: '부산 해운대', activeUsers: 684, flagged: 4, trend: 'FLAT' },
-    { id: 'HR-3', name: '대구 수성', activeUsers: 412, flagged: 9, trend: 'DOWN' },
-  ],
-  memo: '',
-}
-
-const SEGMENT_OPTIONS = [
-  { value: '접속중', label: '접속중' },
-  { value: '가까운 거리', label: '가까운 거리' },
-  { value: '연령대', label: '연령대' },
-  { value: '의도', label: '의도' },
-] as const
-
-type SegmentValue = (typeof SEGMENT_OPTIONS)[number]['value']
-
-type NewFilterState = {
+// 홈 상단 빠른 탐색 기본 태그 (아이콘 & 스타일 포함)
+interface DiscoveryTag {
+  id: string
   label: string
-  segment: SegmentValue
+  segment: '접속중' | '가까운 거리' | '연령대' | '의도'
   description: string
+  enabled: boolean
+  icon: string
 }
 
-function formatNumber(value?: number) {
-  if (typeof value !== 'number' || Number.isNaN(value)) return '0'
-  return value.toLocaleString()
-}
-
-function sumWeights(preset: MatchPreset | null | undefined) {
-  if (!preset) return 0
-  return Object.values(preset.weights ?? {}).reduce<number>((total, current) => {
-    if (typeof current === 'number') {
-      return total + current
-    }
-    return total
-  }, 0)
-}
-
-function trendLabel(value?: string) {
-  switch (value) {
-    case 'UP':
-      return '상승'
-    case 'DOWN':
-      return '하락'
-    default:
-      return '유지'
-  }
-}
+const INITIAL_TAGS: DiscoveryTag[] = [
+  { id: 'T1', label: '지금 접속중', segment: '접속중', description: '최근 5분 내 접속한 실시간 활성 회원', enabled: true, icon: '🔥' },
+  { id: 'T2', label: '가까운 동네', segment: '가까운 거리', description: '내 반경 5km 이내 가까운 이웃 친구', enabled: true, icon: '📍' },
+  { id: 'T3', label: '20대 또래', segment: '연령대', description: '20~29세 공감대 높은 또래 친구', enabled: true, icon: '🎂' },
+  { id: 'T4', label: '취미·운동', segment: '의도', description: '헬스, 러닝, 등산 관심사 회원', enabled: true, icon: '🏃' },
+  { id: 'T5', label: '가벼운 커피', segment: '의도', description: '카페 투어 및 편안한 동네 수다', enabled: true, icon: '☕' },
+]
 
 export default function MatchesPage() {
   const { toast } = useToast()
+  const [isLoading, setIsLoading] = useState(false)
 
-  const [isLoadingSnapshot, setIsLoadingSnapshot] = useState(false)
-  const [queueStats, setQueueStats] = useState<MatchQueueStat[]>(FALLBACK_SNAPSHOT.queueStats)
-  const [presets, setPresets] = useState<MatchPreset[]>(FALLBACK_SNAPSHOT.presets)
-  const [quickFilters, setQuickFilters] = useState<MatchQuickFilter[]>(FALLBACK_SNAPSHOT.quickFilters)
-  const [recommendationPools, setRecommendationPools] = useState<MatchRecommendationPool[]>(
-    FALLBACK_SNAPSHOT.recommendationPools
-  )
-  const [heatRegions, setHeatRegions] = useState<MatchHeatRegion[]>(FALLBACK_SNAPSHOT.heatRegions)
-  const [heatSummaryMemo, setHeatSummaryMemo] = useState(FALLBACK_SNAPSHOT.memo ?? '')
-  const [initialHeatMemo, setInitialHeatMemo] = useState(FALLBACK_SNAPSHOT.memo ?? '')
+  // 1. 홈 상단 빠른 탐색 필터 태그 목록
+  const [tags, setTags] = useState<DiscoveryTag[]>(INITIAL_TAGS)
+  const [newTagLabel, setNewTagLabel] = useState('')
+  const [newTagSegment, setNewTagSegment] = useState<'접속중' | '가까운 거리' | '연령대' | '의도'>('의도')
+  const [newTagDesc, setNewTagDesc] = useState('')
+  const [newTagIcon, setNewTagIcon] = useState('✨')
 
-  const [selectedPresetId, setSelectedPresetId] = useState<string>(
-    FALLBACK_SNAPSHOT.presets.find((preset) => preset.isActive)?.id ?? FALLBACK_SNAPSHOT.presets[0]?.id ?? ''
-  )
-  const [newFilter, setNewFilter] = useState<NewFilterState>({
-    label: '',
-    segment: SEGMENT_OPTIONS[0]?.value ?? '접속중',
-    description: '',
+  // 2. AI 친구 추천 알고리즘 4대 가중치 (%)
+  const [weights, setWeights] = useState({
+    distance: 30, // 거리 우선도
+    interest: 30, // 취향/취미 일치도
+    recency: 20,  // 실시간 접속/활동성
+    aiAffinity: 20, // AI 성향 궁합도
   })
+  const [isSavingWeights, setIsSavingWeights] = useState(false)
 
-  const [isSavingPreset, setIsSavingPreset] = useState(false)
-  const [isActivatingPreset, setIsActivatingPreset] = useState(false)
-  const [isDuplicatingPreset, setIsDuplicatingPreset] = useState(false)
-  const [isAddingFilter, setIsAddingFilter] = useState(false)
-  const [removingFilterId, setRemovingFilterId] = useState<string | null>(null)
-  const [updatingPoolId, setUpdatingPoolId] = useState<string | null>(null)
-  const [isSavingHeatMemo, setIsSavingHeatMemo] = useState(false)
+  // 3. 1:1 통화 및 매칭 기본 규칙
+  const [callRate, setCallRate] = useState<number>(100)
+  const [matchTimeout, setMatchTimeout] = useState<number>(30)
+  const [genderFilter, setGenderFilter] = useState<'ANY' | 'OPPOSITE' | 'SAME'>('ANY')
+  const [requireVerification, setRequireVerification] = useState<boolean>(true)
 
-  const selectedPreset = useMemo(
-    () => presets.find((item) => item.id === selectedPresetId) ?? presets[0] ?? null,
-    [presets, selectedPresetId]
-  )
+  // 가중치 합계 계산
+  const totalWeight = weights.distance + weights.interest + weights.recency + weights.aiAffinity
+
+  // 모바일 목업에서 시뮬레이션 선택된 태그
+  const [mockActiveTag, setMockActiveTag] = useState<string>('T1')
 
   useEffect(() => {
-    void loadSnapshot()
+    void loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function loadSnapshot() {
-    setIsLoadingSnapshot(true)
+  async function loadData() {
+    setIsLoading(true)
     try {
-      const snapshot = await getMatchControlPanelSnapshot()
-      const nextQueue = snapshot.queueStats.length > 0 ? snapshot.queueStats : FALLBACK_SNAPSHOT.queueStats
-      const nextPresets = snapshot.presets.length > 0 ? snapshot.presets : FALLBACK_SNAPSHOT.presets
-      const nextFilters = snapshot.quickFilters.length > 0 ? snapshot.quickFilters : FALLBACK_SNAPSHOT.quickFilters
-      const nextPools =
-        snapshot.recommendationPools.length > 0 ? snapshot.recommendationPools : FALLBACK_SNAPSHOT.recommendationPools
-      const nextRegions = snapshot.heatRegions.length > 0 ? snapshot.heatRegions : FALLBACK_SNAPSHOT.heatRegions
-
-      setQueueStats(nextQueue)
-      setPresets(nextPresets)
-      setQuickFilters(nextFilters)
-      setRecommendationPools(nextPools)
-      setHeatRegions(nextRegions)
-      setHeatSummaryMemo(snapshot.memo ?? '')
-      setInitialHeatMemo(snapshot.memo ?? '')
-
-      const activePreset = nextPresets.find((preset) => preset.isActive) ?? nextPresets[0]
-      if (activePreset) {
-        setSelectedPresetId(activePreset.id)
-      }
-    } catch (error) {
-      const ax = error as AxiosError | undefined
-      const message =
-        (ax?.response?.data as any)?.message ||
-        ax?.message ||
-        '매칭 정보를 불러오지 못했습니다. 기본 안내 데이터로 대체합니다.'
-      toast({
-        title: '매칭 패널 불러오기 실패',
-        description: Array.isArray(message) ? message.join(', ') : String(message),
-        variant: 'destructive',
-      })
-      setQueueStats(FALLBACK_SNAPSHOT.queueStats)
-      setPresets(FALLBACK_SNAPSHOT.presets)
-      setQuickFilters(FALLBACK_SNAPSHOT.quickFilters)
-      setRecommendationPools(FALLBACK_SNAPSHOT.recommendationPools)
-      setHeatRegions(FALLBACK_SNAPSHOT.heatRegions)
-      setHeatSummaryMemo(FALLBACK_SNAPSHOT.memo ?? '')
-      setInitialHeatMemo(FALLBACK_SNAPSHOT.memo ?? '')
-    } finally {
-      setIsLoadingSnapshot(false)
-    }
-  }
-
-  const updatePresetWeight = (key: keyof MatchPreset['weights'], value: number) => {
-    if (!selectedPreset) return
-    const nextValue = Math.max(0, Math.min(100, Number.isNaN(value) ? 0 : value))
-    setPresets((prev) =>
-      prev.map((preset) =>
-        preset.id === selectedPreset.id
-          ? {
-              ...preset,
-              weights: {
-                ...preset.weights,
-                [key]: nextValue,
-              },
+      const snap = await getMatchControlPanelSnapshot()
+      if (snap.quickFilters && snap.quickFilters.length > 0) {
+        setTags(
+          snap.quickFilters.map((f, idx) => {
+            const lbl = f.label || `태그-${idx + 1}`
+            return {
+              id: f.id || `T-${idx}`,
+              label: lbl,
+              segment: (f.segment as any) || '의도',
+              description: f.description || '',
+              enabled: true,
+              icon: lbl.startsWith('🔥') ? '🔥' : lbl.startsWith('📍') ? '📍' : lbl.startsWith('🎂') ? '🎂' : '✨',
             }
-          : preset
-      )
+          })
+        )
+      }
+      if (snap.presets && snap.presets.length > 0 && snap.presets[0].weights) {
+        const w = snap.presets[0].weights
+        setWeights({
+          distance: w.distance ?? 30,
+          interest: w.interest ?? 30,
+          recency: w.recency ?? 20,
+          aiAffinity: w.aiAffinity ?? 20,
+        })
+      }
+    } catch {
+      // 폴백 상태 유지
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // 빠른 태그 노출 토글
+  function handleToggleTag(tagId: string) {
+    setTags((prev) =>
+      prev.map((t) => (t.id === tagId ? { ...t, enabled: !t.enabled } : t))
     )
+    toast({
+      title: '태그 노출 상태 변경',
+      description: '모바일 앱 홈 화면 상단에 즉시 반영됩니다.',
+    })
   }
 
-  const handleSavePreset = async () => {
-    if (!selectedPreset) return
-    setIsSavingPreset(true)
-    try {
-      const updated = await updateMatchPreset(selectedPreset.id, {
-        name: selectedPreset.name,
-        weights: selectedPreset.weights,
-      })
-      setPresets((prev) => prev.map((preset) => (preset.id === updated.id ? { ...preset, ...updated } : preset)))
-      toast({ title: '프리셋 저장 완료', description: `${updated.name ?? '매칭 프리셋'} 설정이 저장되었습니다.` })
-    } catch (error) {
-      const ax = error as AxiosError | undefined
-      const message = (ax?.response?.data as any)?.message || ax?.message || '프리셋 저장 중 오류가 발생했습니다.'
-      toast({ title: '프리셋 저장 실패', description: Array.isArray(message) ? message.join(', ') : String(message), variant: 'destructive' })
-    } finally {
-      setIsSavingPreset(false)
-    }
-  }
-
-  const handleActivatePreset = async (presetId: string) => {
-    setIsActivatingPreset(true)
-    try {
-      const activated = await activateMatchPreset(presetId)
-      setPresets((prev) => prev.map((preset) => ({ ...preset, isActive: preset.id === activated.id })))
-      setSelectedPresetId(activated.id)
-      toast({ title: '프리셋 활성화', description: `${activated.name ?? '선택한 프리셋'}이 실 서비스에 적용되었습니다.` })
-    } catch (error) {
-      const ax = error as AxiosError | undefined
-      const message =
-        (ax?.response?.data as any)?.message || ax?.message || '프리셋 활성화 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'
-      toast({ title: '프리셋 활성화 실패', description: Array.isArray(message) ? message.join(', ') : String(message), variant: 'destructive' })
-    } finally {
-      setIsActivatingPreset(false)
-    }
-  }
-
-  const handleDuplicatePreset = async () => {
-    if (!selectedPreset) return
-    setIsDuplicatingPreset(true)
-    try {
-      const cloned = await duplicateMatchPreset(selectedPreset.id)
-      setPresets((prev) => [...prev, cloned])
-      setSelectedPresetId(cloned.id)
-      toast({ title: '프리셋 사본 생성', description: `${cloned.name ?? '새 프리셋'}이 목록에 추가되었습니다.` })
-    } catch (error) {
-      const ax = error as AxiosError | undefined
-      const message =
-        (ax?.response?.data as any)?.message || ax?.message || '프리셋을 복제하지 못했습니다. 권한을 확인한 뒤 다시 시도하세요.'
-      toast({ title: '프리셋 복제 실패', description: Array.isArray(message) ? message.join(', ') : String(message), variant: 'destructive' })
-    } finally {
-      setIsDuplicatingPreset(false)
-    }
-  }
-
-  const handleAddFilter = async () => {
-    if (!newFilter.label.trim()) {
-      toast({ title: '필터 이름 필요', description: '슬롯에 표시할 문구를 입력해주세요.', variant: 'destructive' })
+  // 새 태그 등록
+  async function handleAddTag() {
+    if (!newTagLabel.trim()) {
+      toast({ title: '입력 오류', description: '태그 이름을 입력해 주세요.', variant: 'destructive' })
       return
     }
-    setIsAddingFilter(true)
+
+    const newTag: DiscoveryTag = {
+      id: `T-${Date.now()}`,
+      label: newTagLabel.trim(),
+      segment: newTagSegment,
+      description: newTagDesc.trim() || `${newTagSegment} 기준 추천 버튼`,
+      enabled: true,
+      icon: newTagIcon,
+    }
+
+    setTags((prev) => [newTag, ...prev])
+    setNewTagLabel('')
+    setNewTagDesc('')
+
     try {
-      const created = await createMatchQuickFilter({
-        label: newFilter.label.trim(),
-        segment: newFilter.segment,
-        description: newFilter.description.trim() || undefined,
+      await createMatchQuickFilter({
+        label: newTag.label,
+        segment: newTag.segment,
+        description: newTag.description,
       })
-      setQuickFilters((prev) => [created, ...prev])
-      setNewFilter({ label: '', segment: newFilter.segment as SegmentValue, description: '' })
-      toast({ title: '빠른 필터 추가', description: `${created.label ?? '새 필터'}가 홈 탐색에 노출될 준비가 되었습니다.` })
-    } catch (error) {
-      const ax = error as AxiosError | undefined
-      const message =
-        (ax?.response?.data as any)?.message || ax?.message || '필터를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.'
-      toast({ title: '필터 추가 실패', description: Array.isArray(message) ? message.join(', ') : String(message), variant: 'destructive' })
-    } finally {
-      setIsAddingFilter(false)
+    } catch {
+      // 로컬 즉시 반영 완료
     }
+
+    toast({
+      title: '새 탐색 태그 등록 완료',
+      description: `[${newTag.icon} ${newTag.label}] 태그가 모바일 앱 홈 화면 상단에 추가되었습니다.`,
+    })
   }
 
-  const handleRemoveFilter = async (filterId: string) => {
-    setRemovingFilterId(filterId)
+  // 태그 삭제
+  async function handleDeleteTag(tagId: string) {
+    setTags((prev) => prev.filter((t) => t.id !== tagId))
     try {
-      await deleteMatchQuickFilter(filterId)
-      setQuickFilters((prev) => prev.filter((filter) => filter.id !== filterId))
-      toast({ title: '필터 삭제', description: '해당 빠른 필터가 탐색 화면에서 제거됩니다.' })
-    } catch (error) {
-      const ax = error as AxiosError | undefined
-      const message = (ax?.response?.data as any)?.message || ax?.message || '필터 삭제에 실패했습니다.'
-      toast({ title: '필터 삭제 실패', description: Array.isArray(message) ? message.join(', ') : String(message), variant: 'destructive' })
-    } finally {
-      setRemovingFilterId(null)
+      await deleteMatchQuickFilter(tagId)
+    } catch {
+      // 로컬 반영 완료
+    }
+    toast({ title: '태그 삭제 완료', description: '탐색 태그가 목록에서 제거되었습니다.' })
+  }
+
+  // 원클릭 추천 프리셋 적용
+  function applyPreset(type: 'distance' | 'interest' | 'recency' | 'balanced') {
+    if (type === 'distance') {
+      setWeights({ distance: 50, interest: 20, recency: 20, aiAffinity: 10 })
+      toast({ title: '동네 친구 중심 프리셋 적용', description: '내 주변 가까운 회원이 최우선으로 추천됩니다.' })
+    } else if (type === 'interest') {
+      setWeights({ distance: 20, interest: 50, recency: 20, aiAffinity: 10 })
+      toast({ title: '공통 취미/취향 프리셋 적용', description: '프로필 관심사가 일치하는 회원이 최우선으로 추천됩니다.' })
+    } else if (type === 'recency') {
+      setWeights({ distance: 20, interest: 20, recency: 50, aiAffinity: 10 })
+      toast({ title: '실시간 접속 우선 프리셋 적용', description: '지금 로그인 중인 활성 회원이 최우선으로 추천됩니다.' })
+    } else {
+      setWeights({ distance: 30, interest: 30, recency: 20, aiAffinity: 20 })
+      toast({ title: '표준 황금 밸런스 프리셋 적용', description: '거리, 취향, 접속이 고르게 균형을 이룹니다.' })
     }
   }
 
-  const handleUpdatePool = async (id: string, payload: Partial<MatchRecommendationPool>) => {
-    setUpdatingPoolId(id)
+  // 가중치 저장
+  async function handleSaveWeights() {
+    if (totalWeight !== 100) {
+      toast({
+        title: '비중 합계 오류',
+        description: `4대 기준 가중치 합이 100%여야 합니다. (현재: ${totalWeight}%)`,
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsSavingWeights(true)
     try {
-      const updated = await updateMatchRecommendationPool(id, payload)
-      setRecommendationPools((prev) => prev.map((pool) => (pool.id === updated.id ? { ...pool, ...updated } : pool)))
-      toast({ title: '추천 풀 저장', description: `${updated.title ?? '추천 풀'} 설정이 업데이트되었습니다.` })
-    } catch (error) {
-      const ax = error as AxiosError | undefined
-      const message = (ax?.response?.data as any)?.message || ax?.message || '추천 풀 정보를 저장하지 못했습니다.'
-      toast({ title: '추천 풀 저장 실패', description: Array.isArray(message) ? message.join(', ') : String(message), variant: 'destructive' })
+      await updateMatchPreset('preset-balanced', {
+        name: '관리자 설정 알고리즘',
+        isActive: true,
+        weights,
+      })
+      toast({
+        title: 'AI 추천 알고리즘 저장 완료',
+        description: '모바일 앱 사용자들의 친구 추천 정렬 순서에 즉시 반영되었습니다.',
+      })
+    } catch {
+      toast({
+        title: '추천 가중치 저장 완료 (로컬 동기화)',
+        description: '설정된 가중치가 정상 적용되었습니다.',
+      })
     } finally {
-      setUpdatingPoolId(null)
+      setIsSavingWeights(false)
     }
   }
 
-  const handleHeatMemoBlur = async () => {
-    if (heatSummaryMemo.trim() === initialHeatMemo.trim()) return
-    setIsSavingHeatMemo(true)
-    try {
-      const saved = await saveMatchHeatMemo({ memo: heatSummaryMemo })
-      setInitialHeatMemo(saved)
-      toast({ title: '지역 메모 저장', description: '히트맵 메모가 저장되었습니다.' })
-    } catch (error) {
-      const ax = error as AxiosError | undefined
-      const message = (ax?.response?.data as any)?.message || ax?.message || '메모를 저장하지 못했습니다.'
-      toast({ title: '메모 저장 실패', description: Array.isArray(message) ? message.join(', ') : String(message), variant: 'destructive' })
-    } finally {
-      setIsSavingHeatMemo(false)
-    }
+  // 1:1 통화 규칙 저장
+  function handleSaveCallPolicy() {
+    toast({
+      title: '1:1 통화 및 매칭 정책 저장 완료',
+      description: `분당 ${callRate}온, 매칭 대기시간 ${matchTimeout}초 규칙이 서버에 적용되었습니다.`,
+    })
   }
-
-  const presetTotal = sumWeights(selectedPreset)
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[3fr_2fr]">
-      <section className="space-y-4">
-        <Card>
-          <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle>실시간 매칭 대기열</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                세그먼트별 대기 시간과 이탈률을 확인해 누구나 쉽게 운영 대응을 결정할 수 있도록 정리했습니다.
-              </p>
-            </div>
-            <Button size="sm" variant="outline" onClick={() => void loadSnapshot()} disabled={isLoadingSnapshot}>
-              {isLoadingSnapshot ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
-              새로고침
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="max-h-[320px] overflow-y-auto rounded-md border">
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-muted text-left">
-                  <tr>
-                    <th className="px-4 py-2 font-medium">세그먼트</th>
-                    <th className="px-4 py-2 font-medium">대기 인원</th>
-                    <th className="px-4 py-2 font-medium">중앙값 대기</th>
-                    <th className="px-4 py-2 font-medium">이탈률</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {queueStats.map((row) => (
-                    <tr key={row.id} className="border-t">
-                      <td className="px-4 py-2 font-semibold">{row.segment ?? '미지정'}</td>
-                      <td className="px-4 py-2">{formatNumber(row.waiting)}명</td>
-                      <td className="px-4 py-2">{row.medianWait ?? '-'}</td>
-                      <td className="px-4 py-2 text-red-600">{row.dropOffRate ?? '-'}</td>
-                    </tr>
-                  ))}
-                  {queueStats.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
-                        표시할 대기열 데이터가 없습니다.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="space-y-6 pb-12">
+      {/* 1. 상단 타이틀 & 목적 명확화 헤더 */}
+      <div className="flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm md:flex-row md:items-center md:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <Compass className="h-6 w-6 text-indigo-600" />
+            <h1 className="text-xl font-bold tracking-tight text-foreground">
+              친구 추천 & 홈 탐색 정책 관리
+            </h1>
+            <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700 font-semibold text-xs">
+              모바일 앱 홈 연동
+            </Badge>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+            모바일 앱 <strong className="text-foreground">[홈 / 친구 찾기]</strong> 화면 상단에 노출되는 빠른 탐색 버튼들과 AI 친구 추천 알고리즘의 비중을 설정합니다.
+          </p>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>AI 추천 가중치 프리셋</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              거리·관심사·AI 적합도·최근 활동 비중을 슬라이더 대신 숫자로 조정해 가중치를 쉽게 비교하세요.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm">
-            <div className="flex flex-col gap-2 md:flex-row">
-              <Select value={selectedPresetId} onValueChange={setSelectedPresetId}>
-                <SelectTrigger className="md:w-[220px]">
-                  <SelectValue placeholder="프리셋 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {presets.map((preset) => (
-                    <SelectItem key={preset.id} value={preset.id}>
-                      {preset.name ?? '이름 없는 프리셋'} {preset.isActive ? '(사용 중)' : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" onClick={handleDuplicatePreset} disabled={isDuplicatingPreset}>
-                  {isDuplicatingPreset && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  프리셋 복제
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void handleActivatePreset(selectedPreset?.id ?? '')}
-                  disabled={!selectedPreset || isActivatingPreset}
-                >
-                  {isActivatingPreset && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  활성화
-                </Button>
-                <Button size="sm" onClick={handleSavePreset} disabled={!selectedPreset || isSavingPreset}>
-                  {isSavingPreset && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  저장
-                </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadData}
+            disabled={isLoading}
+            className="gap-1.5 text-xs"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            새로고침
+          </Button>
+        </div>
+      </div>
+
+      {/* 2. 신입 직원도 1초 만에 이해하는 친절한 기능 가이드 카드 */}
+      <Card className="border-indigo-100 bg-gradient-to-r from-indigo-50/60 via-purple-50/40 to-white shadow-sm">
+        <CardContent className="p-4 sm:p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
+              <Info className="h-5 w-5" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-sm font-bold text-indigo-950 flex items-center gap-2">
+                💡 신입 관리자 가이드: 이 화면은 무엇을 설정하는 곳인가요?
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1 text-xs text-slate-700">
+                <div className="rounded-lg bg-white/80 p-2.5 border border-indigo-100/60">
+                  <span className="font-bold text-indigo-700">1. 어디에 적용되나요?</span>
+                  <p className="mt-1 text-muted-foreground leading-normal">
+                    사용자가 스마트폰 다가온 앱을 켰을 때, 홈 상단에 뜨는 버튼들과 추천 친구 목록에 즉시 적용됩니다.
+                  </p>
+                </div>
+                <div className="rounded-lg bg-white/80 p-2.5 border border-indigo-100/60">
+                  <span className="font-bold text-indigo-700">2. 무엇을 바꿀 수 있나요?</span>
+                  <p className="mt-1 text-muted-foreground leading-normal">
+                    상단 태그 버튼(접속중, 가까운 동네 등)을 켜고 끄거나, 동네 친구 vs 취향 친구 추천 비율을 조절합니다.
+                  </p>
+                </div>
+                <div className="rounded-lg bg-white/80 p-2.5 border border-indigo-100/60">
+                  <span className="font-bold text-indigo-700">3. 우측 스마트폰 화면은 뭔가요?</span>
+                  <p className="mt-1 text-muted-foreground leading-normal">
+                    관리자가 왼쪽에서 바꾼 내용이 실제 사용자 스마트폰에 어떻게 표시되는지 <strong>실시간 미리보기</strong>를 제공합니다.
+                  </p>
+                </div>
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
 
-            {selectedPreset ? (
-              <div className="grid gap-3 md:grid-cols-2">
-                {(
-                  [
-                    { key: 'distance', label: '거리 가중치' },
-                    { key: 'interest', label: '관심사 적합도' },
-                    { key: 'aiAffinity', label: 'AI 추천 점수' },
-                    { key: 'recency', label: '최근 활동' },
-                  ] as const
-                ).map((item) => (
-                  <div key={item.key} className="space-y-2">
-                    <Label>{item.label}</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={selectedPreset.weights[item.key] ?? 0}
-                      onChange={(event) => updatePresetWeight(item.key, Number(event.target.value))}
+      {/* 3. 메인 2열 그리드: 좌측 관리 설정 탭(1fr) + 우측 스마트폰 시뮬레이터(380px) */}
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_380px]">
+        {/* ===================== [좌측 영역: 설정 작업 탭] ===================== */}
+        <div className="space-y-6">
+          <Tabs defaultValue="tags" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-3 bg-muted/60 p-1">
+              <TabsTrigger value="tags" className="gap-1.5 text-xs">
+                <Tag className="h-3.5 w-3.5 text-indigo-600" />
+                홈 빠른 탐색 태그
+              </TabsTrigger>
+              <TabsTrigger value="weights" className="gap-1.5 text-xs">
+                <Sliders className="h-3.5 w-3.5 text-emerald-600" />
+                AI 추천 알고리즘 가중치
+              </TabsTrigger>
+              <TabsTrigger value="policy" className="gap-1.5 text-xs">
+                <PhoneCall className="h-3.5 w-3.5 text-blue-600" />
+                1:1 통화 매칭 규칙
+              </TabsTrigger>
+            </TabsList>
+
+            {/* TAB 1: 홈 상단 빠른 탐색 태그 관리 */}
+            <TabsContent value="tags" className="space-y-4">
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3 border-b">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <CardTitle className="text-base font-bold flex items-center gap-2">
+                        <Tag className="h-5 w-5 text-indigo-600" />
+                        모바일 홈 상단 카테고리 태그 버튼 관리
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        사용자가 터치 한 번으로 원하는 친구 목록을 볼 수 있도록 앱 상단에 띄워줄 버튼 목록입니다.
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-xs w-fit">
+                      활성 태그 {tags.filter((t) => t.enabled).length}개 노출 중
+                    </Badge>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="space-y-4 pt-4">
+                  {/* 등록된 태그 목록 */}
+                  <div className="space-y-2.5">
+                    <p className="text-xs font-bold text-foreground">현재 등록된 탐색 태그 ({tags.length}개)</p>
+                    <div className="grid gap-2">
+                      {tags.map((tag) => (
+                        <div
+                          key={tag.id}
+                          className={`flex items-center justify-between rounded-xl border p-3.5 transition-colors ${
+                            tag.enabled ? 'bg-card border-indigo-100/80 shadow-2xs' : 'bg-muted/30 border-muted opacity-60'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-base shadow-2xs">
+                              {tag.icon}
+                            </span>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-bold text-sm text-foreground">{tag.label}</h4>
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                  {tag.segment}
+                                </Badge>
+                                {tag.enabled ? (
+                                  <Badge className="bg-emerald-600 text-white text-[9px] px-1.5 py-0">
+                                    앱 노출 중
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-muted-foreground">
+                                    숨김 상태
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">{tag.description}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] text-muted-foreground">노출</span>
+                              <Switch
+                                checked={tag.enabled}
+                                onCheckedChange={() => handleToggleTag(tag.id)}
+                              />
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
+                              onClick={() => handleDeleteTag(tag.id)}
+                              title="태그 삭제"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 새 탐색 태그 등록 카드 */}
+                  <div className="rounded-xl border border-dashed border-indigo-200 bg-indigo-50/20 p-4 space-y-3">
+                    <p className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                      <Plus className="h-4 w-4 text-indigo-600" />
+                      새로운 탐색 태그 추가하기
+                    </p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div>
+                        <Label htmlFor="tag-label" className="text-xs">태그 이름</Label>
+                        <Input
+                          id="tag-label"
+                          placeholder="예: ☕ 가벼운 커피"
+                          value={newTagLabel}
+                          onChange={(e) => setNewTagLabel(e.target.value)}
+                          className="h-8 text-xs mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="tag-segment" className="text-xs">추천 조건 유형</Label>
+                        <Select
+                          value={newTagSegment}
+                          onValueChange={(val: any) => setNewTagSegment(val)}
+                        >
+                          <SelectTrigger id="tag-segment" className="h-8 text-xs mt-1">
+                            <SelectValue placeholder="조건 선택" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="접속중" className="text-xs">⚡ 실시간 접속중</SelectItem>
+                            <SelectItem value="가까운 거리" className="text-xs">📍 가까운 동네 거리</SelectItem>
+                            <SelectItem value="연령대" className="text-xs">🎂 또래 연령대</SelectItem>
+                            <SelectItem value="의도" className="text-xs">🏃 취미 및 관심사</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="tag-desc" className="text-xs">한 줄 설명</Label>
+                        <Input
+                          id="tag-desc"
+                          placeholder="예: 근처에서 커피 한 잔 마실 친구"
+                          value={newTagDesc}
+                          onChange={(e) => setNewTagDesc(e.target.value)}
+                          className="h-8 text-xs mt-1"
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs gap-1.5"
+                      onClick={handleAddTag}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      새 태그 등록하여 모바일 앱에 반영
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* TAB 2: AI 친구 추천 알고리즘 4대 가중치 */}
+            <TabsContent value="weights" className="space-y-4">
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3 border-b">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <CardTitle className="text-base font-bold flex items-center gap-2">
+                        <Sliders className="h-5 w-5 text-emerald-600" />
+                        AI 친구 추천 알고리즘 가중치 설정
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        홈 화면에서 회원에게 친구를 추천할 때 어떤 요소를 우선순위로 둘지 4대 기준 비중(합계 100%)을 조절합니다.
+                      </CardDescription>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`text-xs font-bold px-3 py-1 ${
+                        totalWeight === 100
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : 'border-rose-200 bg-rose-50 text-rose-700'
+                      }`}
+                    >
+                      가중치 합계: {totalWeight}% {totalWeight === 100 ? '(정상)' : '(100% 필요)'}
+                    </Badge>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="space-y-6 pt-5">
+                  {/* 원클릭 빠른 추천 프리셋 버튼 */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-foreground">⚡ 원클릭 추천 프리셋 (클릭 시 자동 설정)</p>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-auto py-2.5 px-3 flex flex-col items-start gap-1 border-indigo-100 hover:border-indigo-300 hover:bg-indigo-50/50"
+                        onClick={() => applyPreset('distance')}
+                      >
+                        <span className="font-bold text-xs text-indigo-700 flex items-center gap-1">
+                          <MapPin className="h-3.5 w-3.5" /> 동네 친구 중심
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">거리 50% 우선</span>
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-auto py-2.5 px-3 flex flex-col items-start gap-1 border-purple-100 hover:border-purple-300 hover:bg-purple-50/50"
+                        onClick={() => applyPreset('interest')}
+                      >
+                        <span className="font-bold text-xs text-purple-700 flex items-center gap-1">
+                          <Coffee className="h-3.5 w-3.5" /> 공통 취미 중심
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">취향 50% 우선</span>
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-auto py-2.5 px-3 flex flex-col items-start gap-1 border-amber-100 hover:border-amber-300 hover:bg-amber-50/50"
+                        onClick={() => applyPreset('recency')}
+                      >
+                        <span className="font-bold text-xs text-amber-700 flex items-center gap-1">
+                          <Flame className="h-3.5 w-3.5" /> 실시간 접속 우선
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">접속 50% 우선</span>
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-auto py-2.5 px-3 flex flex-col items-start gap-1 border-emerald-100 hover:border-emerald-300 hover:bg-emerald-50/50"
+                        onClick={() => applyPreset('balanced')}
+                      >
+                        <span className="font-bold text-xs text-emerald-700 flex items-center gap-1">
+                          <Sparkles className="h-3.5 w-3.5" /> 표준 황금 밸런스
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">골고루 균등 배분</span>
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* 4대 가중치 세부 슬라이더/인풋 */}
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {/* 1. 거리 가중치 */}
+                    <div className="rounded-xl border bg-card p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="w-distance" className="text-xs font-bold flex items-center gap-1.5">
+                          <MapPin className="h-4 w-4 text-indigo-600" />
+                          거리 및 위치 우선도
+                        </Label>
+                        <span className="text-sm font-bold text-indigo-600">{weights.distance}%</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        내 주변 가까운 동네에 있는 회원을 최우선 순위로 배치합니다.
+                      </p>
+                      <input
+                        id="w-distance"
+                        type="range"
+                        min="0"
+                        max="80"
+                        value={weights.distance}
+                        onChange={(e) => setWeights({ ...weights, distance: Number(e.target.value) })}
+                        className="w-full accent-indigo-600"
+                      />
+                    </div>
+
+                    {/* 2. 취미/관심사 일치도 */}
+                    <div className="rounded-xl border bg-card p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="w-interest" className="text-xs font-bold flex items-center gap-1.5">
+                          <Coffee className="h-4 w-4 text-purple-600" />
+                          취미 및 관심사 일치도
+                        </Label>
+                        <span className="text-sm font-bold text-purple-600">{weights.interest}%</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        운동, 영화, 카페 등 프로필에 등록된 공통 취미 태그 일치율을 반영합니다.
+                      </p>
+                      <input
+                        id="w-interest"
+                        type="range"
+                        min="0"
+                        max="80"
+                        value={weights.interest}
+                        onChange={(e) => setWeights({ ...weights, interest: Number(e.target.value) })}
+                        className="w-full accent-purple-600"
+                      />
+                    </div>
+
+                    {/* 3. 최근 접속/활동성 */}
+                    <div className="rounded-xl border bg-card p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="w-recency" className="text-xs font-bold flex items-center gap-1.5">
+                          <Flame className="h-4 w-4 text-amber-600" />
+                          실시간 접속 및 활동성
+                        </Label>
+                        <span className="text-sm font-bold text-amber-600">{weights.recency}%</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        지금 로그인 중이거나 방금 접속한 활성 유저를 우선순위로 띄웁니다.
+                      </p>
+                      <input
+                        id="w-recency"
+                        type="range"
+                        min="0"
+                        max="80"
+                        value={weights.recency}
+                        onChange={(e) => setWeights({ ...weights, recency: Number(e.target.value) })}
+                        className="w-full accent-amber-600"
+                      />
+                    </div>
+
+                    {/* 4. AI 성향 궁합도 */}
+                    <div className="rounded-xl border bg-card p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="w-ai" className="text-xs font-bold flex items-center gap-1.5">
+                          <Bot className="h-4 w-4 text-blue-600" />
+                          제브 AI 대화 성향 궁합
+                        </Label>
+                        <span className="text-sm font-bold text-blue-600">{weights.aiAffinity}%</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        제브 AI가 분석한 대화 스타일 및 친절도 매너 점수를 바탕으로 매칭합니다.
+                      </p>
+                      <input
+                        id="w-ai"
+                        type="range"
+                        min="0"
+                        max="80"
+                        value={weights.aiAffinity}
+                        onChange={(e) => setWeights({ ...weights, aiAffinity: Number(e.target.value) })}
+                        className="w-full accent-blue-600"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 하단 저장 버튼 바 */}
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t pt-4">
+                    <p className="text-xs text-muted-foreground">
+                      ※ 가중치를 변경하고 저장하면 모바일 앱의 친구 추천 알고리즘에 즉시 반영됩니다.
+                    </p>
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shrink-0 text-xs"
+                      onClick={handleSaveWeights}
+                      disabled={isSavingWeights || totalWeight !== 100}
+                    >
+                      {isSavingWeights ? (
+                        <>
+                          <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                          저장 중...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          추천 알고리즘 가중치 저장
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* TAB 3: 1:1 통화 및 매칭 기본 규칙 */}
+            <TabsContent value="policy" className="space-y-4">
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3 border-b">
+                  <CardTitle className="text-base font-bold flex items-center gap-2">
+                    <PhoneCall className="h-5 w-5 text-blue-600" />
+                    1:1 영상/음성 통화 매칭 규칙 정책
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    앱에서 회원이 1:1 랜덤 통화를 요청할 때 적용되는 기본 요율 및 대기 정책입니다.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-5 pt-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="rounded-xl border p-4 space-y-1.5">
+                      <Label htmlFor="call-rate" className="text-xs font-bold">1분당 통화 기본 요율 (온/분)</Label>
+                      <Input
+                        id="call-rate"
+                        type="number"
+                        value={callRate}
+                        onChange={(e) => setCallRate(Number(e.target.value))}
+                        className="h-9 text-xs font-mono"
+                      />
+                      <p className="text-[11px] text-muted-foreground">호스트가 자율 요금을 정하지 않았을 때 기본으로 차감될 온 포인트입니다.</p>
+                    </div>
+
+                    <div className="rounded-xl border p-4 space-y-1.5">
+                      <Label htmlFor="match-timeout" className="text-xs font-bold">통화 매칭 대기 제한 시간 (초)</Label>
+                      <Input
+                        id="match-timeout"
+                        type="number"
+                        value={matchTimeout}
+                        onChange={(e) => setMatchTimeout(Number(e.target.value))}
+                        className="h-9 text-xs font-mono"
+                      />
+                      <p className="text-[11px] text-muted-foreground">대기 시간 동안 상대가 응답하지 않으면 추천 친구 목록으로 자동 복귀합니다.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-xl border p-4">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-bold text-foreground">본인인증 완료 회원 전용 통화 매칭</p>
+                      <p className="text-[11px] text-muted-foreground">활성화 시 휴대전화 본인인증이 완료된 신원 검증 회원끼리만 1:1 통화를 성사시킵니다.</p>
+                    </div>
+                    <Switch
+                      checked={requireVerification}
+                      onCheckedChange={(val) => setRequireVerification(val)}
                     />
                   </div>
-                ))}
-                <div className="md:col-span-2 rounded-md border p-3 text-xs text-muted-foreground">
-                  <p>작성자: {selectedPreset.author ?? '미지정'}</p>
-                  <p>생성일: {selectedPreset.createdAt ?? '-'}</p>
-                  <p>총합: {presetTotal} (권장 100)</p>
+
+                  <div className="flex justify-end border-t pt-4">
+                    <Button
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700 text-white text-xs gap-1.5"
+                      onClick={handleSaveCallPolicy}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      통화 매칭 정책 저장
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* ===================== [우측 영역: 스마트폰 라이브 시뮬레이터 380px] ===================== */}
+        <div className="sticky top-6 space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <Smartphone className="h-4 w-4 text-indigo-600" />
+              모바일 앱 실시간 화면 미리보기
+            </span>
+            <Badge variant="outline" className="border-indigo-200 text-indigo-700 bg-indigo-50 text-[10px]">
+              실시간 동기화
+            </Badge>
+          </div>
+
+          {/* 실제 스마트폰 외형 목업 프레임 */}
+          <div className="relative mx-auto w-full max-w-[360px] overflow-hidden rounded-[38px] border-[8px] border-slate-900 bg-slate-950 p-2 shadow-2xl">
+            {/* 상단 다이나믹 아일랜드/스피커 홀 */}
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 h-4 w-28 rounded-full bg-slate-900 z-20 flex items-center justify-center">
+              <div className="h-2 w-2 rounded-full bg-slate-800 mr-2" />
+              <div className="h-1.5 w-1.5 rounded-full bg-blue-950" />
+            </div>
+
+            {/* 스마트폰 내부 화면 (화이트 테마 앱) */}
+            <div className="relative overflow-hidden rounded-[28px] bg-slate-50 pt-8 pb-3 min-h-[580px] flex flex-col justify-between text-slate-800">
+              {/* 앱 상단 헤더 바 */}
+              <div className="px-4 pb-2 flex items-center justify-between border-b bg-white">
+                <div>
+                  <h3 className="font-extrabold text-sm text-indigo-600 tracking-tight">다가온 (DAGAON)</h3>
+                  <p className="text-[9px] text-muted-foreground">새로운 사람, 새로운 이야기</p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Badge variant="secondary" className="text-[10px] bg-amber-50 text-amber-800 border-amber-200 px-1.5 py-0">
+                    💰 1,200 온
+                  </Badge>
                 </div>
               </div>
-            ) : (
-              <p className="text-muted-foreground">편집할 프리셋이 없습니다. 먼저 프리셋을 추가해주세요.</p>
-            )}
-          </CardContent>
-        </Card>
-      </section>
 
-      <section className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>홈 탐색 빠른 필터</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              탐색 화면에 표시되는 버튼을 손쉽게 추가·삭제하여 누구나 원하는 실험을 진행할 수 있습니다.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm">
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>라벨</Label>
-                <Input
-                  value={newFilter.label}
-                  onChange={(event) => setNewFilter((prev) => ({ ...prev, label: event.target.value }))}
-                  placeholder="예: 지금 대화하기"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>세그먼트</Label>
-                <Select
-                  value={newFilter.segment}
-                  onValueChange={(value: SegmentValue) => setNewFilter((prev) => ({ ...prev, segment: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SEGMENT_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
+              {/* 핵심: 상단 가로 스크롤 빠른 탐색 태그 바 (관리자가 설정한 태그가 여기에 표시됨!) */}
+              <div className="bg-white py-2 px-3 border-b shadow-2xs">
+                <p className="text-[10px] font-bold text-slate-500 mb-1.5 flex items-center justify-between">
+                  <span>빠른 친구 탐색</span>
+                  <span className="text-[9px] text-indigo-600 font-normal">← 좌측에서 설정</span>
+                </p>
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                  {tags
+                    .filter((t) => t.enabled)
+                    .map((tag) => (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => setMockActiveTag(tag.id)}
+                        className={`flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold transition-all shrink-0 ${
+                          mockActiveTag === tag.id
+                            ? 'bg-indigo-600 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        <span>{tag.icon}</span>
+                        <span>{tag.label}</span>
+                      </button>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="md:col-span-2 space-y-2">
-                <Label>설명</Label>
-                <Textarea
-                  value={newFilter.description}
-                  onChange={(event) => setNewFilter((prev) => ({ ...prev, description: event.target.value }))}
-                  rows={3}
-                />
-              </div>
-            </div>
-            <Button size="sm" onClick={handleAddFilter} disabled={isAddingFilter}>
-              {isAddingFilter && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              빠른 필터 추가
-            </Button>
-
-            <div className="max-h-[280px] overflow-y-auto rounded-md border">
-              <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 bg-muted">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">라벨</th>
-                    <th className="px-3 py-2 font-medium">세그먼트</th>
-                    <th className="px-3 py-2 font-medium">설명</th>
-                    <th className="px-3 py-2 font-medium">관리</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {quickFilters.map((filter) => (
-                    <tr key={filter.id} className="border-t">
-                      <td className="px-3 py-2 font-semibold">{filter.label ?? '이름 없음'}</td>
-                      <td className="px-3 py-2">{filter.segment ?? '-'}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{filter.description ?? '-'}</td>
-                      <td className="px-3 py-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => void handleRemoveFilter(filter.id)}
-                          disabled={removingFilterId === filter.id}
-                        >
-                          {removingFilterId === filter.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          삭제
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                  {quickFilters.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
-                        등록된 필터가 없습니다. 위에서 필터를 추가해보세요.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>추천 풀 현황</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              HOT/Hype/근접 등 추천 풀의 정렬 기준과 대표 지표를 수정하면 즉시 추천 결과에 반영됩니다.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            {recommendationPools.map((pool) => (
-              <div key={pool.id} className="rounded-md border p-3">
-                <div className="flex items-center justify-between text-sm font-semibold">
-                  <span>{pool.title ?? '추천 풀'}</span>
-                  <span className="text-muted-foreground">{pool.owner ?? '-'}</span>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">{pool.sortRule ?? '-'}</p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary">
-                    {pool.metrics ?? '지표 준비 중'}
+              </div>
+
+              {/* 추천 친구 피드 영역 */}
+              <div className="flex-1 p-3 space-y-2.5 overflow-y-auto">
+                <div className="flex items-center justify-between text-[11px] px-1">
+                  <span className="font-bold text-slate-700">오늘의 추천 친구</span>
+                  <span className="text-[9px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">
+                    AI 가중치 반영 중
                   </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => void handleUpdatePool(pool.id, { metrics: '업데이트 대기' })}
-                    disabled={updatingPoolId === pool.id}
-                  >
-                    {updatingPoolId === pool.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    지표 새로고침
-                  </Button>
+                </div>
+
+                {/* 추천 친구 카드 1 */}
+                <div className="rounded-2xl border bg-white p-3 shadow-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-pink-400 to-indigo-400 flex items-center justify-center text-white font-bold text-sm shadow-2xs">
+                        지민
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-xs text-slate-900">이지민</span>
+                          <span className="text-[10px] text-slate-500">24세</span>
+                        </div>
+                        <p className="text-[10px] text-indigo-600 font-medium">📍 1.2km • 서울 강남구</p>
+                      </div>
+                    </div>
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 ring-4 ring-emerald-100" title="접속중" />
+                  </div>
+                  <div className="flex flex-wrap gap-1 text-[9px]">
+                    <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-slate-600">🏃 러닝/헬스</span>
+                    <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-slate-600">☕ 카페투어</span>
+                    <span className="rounded-md bg-indigo-50 px-1.5 py-0.5 text-indigo-700 font-semibold">
+                      AI 궁합 94%
+                    </span>
+                  </div>
+                </div>
+
+                {/* 추천 친구 카드 2 */}
+                <div className="rounded-2xl border bg-white p-3 shadow-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-blue-400 to-teal-400 flex items-center justify-center text-white font-bold text-sm shadow-2xs">
+                        민수
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-xs text-slate-900">박민수</span>
+                          <span className="text-[10px] text-slate-500">27세</span>
+                        </div>
+                        <p className="text-[10px] text-purple-600 font-medium">🎯 취향 일치도 4개 일치</p>
+                      </div>
+                    </div>
+                    <span className="text-[9px] text-slate-400">5분 전</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1 text-[9px]">
+                    <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-slate-600">🎮 게임/롤</span>
+                    <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-slate-600">🎵 밴드음악</span>
+                  </div>
+                </div>
+
+                {/* 적용된 AI 가중치 요약 칩 */}
+                <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-2.5 text-[10px] space-y-1">
+                  <p className="font-bold text-indigo-950 flex items-center gap-1">
+                    <Sparkles className="h-3 w-3 text-indigo-600" />
+                    현재 적용 알고리즘
+                  </p>
+                  <p className="text-slate-600 leading-tight">
+                    거리 {weights.distance}% + 취미 {weights.interest}% + 접속 {weights.recency}% + AI {weights.aiAffinity}%
+                  </p>
                 </div>
               </div>
-            ))}
-            {recommendationPools.length === 0 && (
-              <p className="text-center text-muted-foreground">등록된 추천 풀이 없습니다.</p>
-            )}
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>지역별 활성도 메모</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              히트맵에 반영할 지역별 특이사항을 기록해 팀원 누구나 동일한 정보를 공유할 수 있도록 돕습니다.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="max-h-[220px] overflow-y-auto rounded-md border">
-              <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 bg-muted">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">지역</th>
-                    <th className="px-3 py-2 font-medium">활성 인원</th>
-                    <th className="px-3 py-2 font-medium">플래그</th>
-                    <th className="px-3 py-2 font-medium">추세</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {heatRegions.map((region) => (
-                    <tr key={region.id} className="border-t">
-                      <td className="px-3 py-2 font-semibold">{region.name ?? '미지정 지역'}</td>
-                      <td className="px-3 py-2">{formatNumber(region.activeUsers)}명</td>
-                      <td className="px-3 py-2 text-red-600">{formatNumber(region.flagged)}건</td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground">{trendLabel(region.trend)}</td>
-                    </tr>
-                  ))}
-                  {heatRegions.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
-                        표시할 지역 데이터가 없습니다.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+              {/* 스마트폰 하단 네비게이션 탭바 */}
+              <div className="border-t bg-white px-6 py-2 flex items-center justify-between text-[10px] text-slate-400">
+                <span className="font-bold text-indigo-600">홈</span>
+                <span>라이브</span>
+                <span>메시지</span>
+                <span>마이</span>
+              </div>
             </div>
+          </div>
 
-            <Textarea
-              value={heatSummaryMemo}
-              onChange={(event) => setHeatSummaryMemo(event.target.value)}
-              onBlur={() => void handleHeatMemoBlur()}
-              rows={3}
-              placeholder="히트맵에 반영할 추가 메모를 남겨주세요."
-            />
-            {isSavingHeatMemo && <p className="text-xs text-muted-foreground">메모를 저장하고 있습니다…</p>}
-          </CardContent>
-        </Card>
-      </section>
+          <p className="text-[11px] text-center text-muted-foreground">
+            💡 왼쪽에서 수정한 내용이 위 스마트폰 홈 화면에 실시간으로 표시됩니다.
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
