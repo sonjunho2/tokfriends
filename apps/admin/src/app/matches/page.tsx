@@ -15,15 +15,16 @@ import {
   HelpCircle,
   Info,
   MapPin,
-  PhoneCall,
   Plus,
   RefreshCw,
+  ShieldCheck,
   Sliders,
   Smartphone,
   Sparkles,
   Tag,
   Trash2,
   Users,
+  Video,
 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -40,10 +41,9 @@ import {
   deleteMatchQuickFilter,
   getMatchControlPanelSnapshot,
   updateMatchPreset,
-  type MatchQuickFilter,
 } from '@/lib/api'
 
-// 홈 상단 빠른 탐색 기본 태그 (아이콘 & 스타일 포함)
+// 홈 상단 빠른 탐색 기본 태그
 interface DiscoveryTag {
   id: string
   label: string
@@ -81,11 +81,11 @@ export default function MatchesPage() {
   })
   const [isSavingWeights, setIsSavingWeights] = useState(false)
 
-  // 3. 1:1 통화 및 매칭 기본 규칙
-  const [callRate, setCallRate] = useState<number>(100)
-  const [matchTimeout, setMatchTimeout] = useState<number>(30)
-  const [genderFilter, setGenderFilter] = useState<'ANY' | 'OPPOSITE' | 'SAME'>('ANY')
+  // 3. 홈 추천 피드 노출 & 안전 정책
   const [requireVerification, setRequireVerification] = useState<boolean>(true)
+  const [hideNoPhotoUsers, setHideNoPhotoUsers] = useState<boolean>(true)
+  const [excludeReportedUsers, setExcludeReportedUsers] = useState<boolean>(true)
+  const [liveStreamerBoost, setLiveStreamerBoost] = useState<boolean>(true)
 
   // 가중치 합계 계산
   const totalWeight = weights.distance + weights.interest + weights.recency + weights.aiAffinity
@@ -171,7 +171,7 @@ export default function MatchesPage() {
         description: newTag.description,
       })
     } catch {
-      // 로컬 즉시 반영 완료
+      // 로컬 즉시 반영
     }
 
     toast({
@@ -240,11 +240,11 @@ export default function MatchesPage() {
     }
   }
 
-  // 1:1 통화 규칙 저장
-  function handleSaveCallPolicy() {
+  // 추천 피드 안전 정책 저장
+  function handleSaveSafetyPolicy() {
     toast({
-      title: '1:1 통화 및 매칭 정책 저장 완료',
-      description: `분당 ${callRate}온, 매칭 대기시간 ${matchTimeout}초 규칙이 서버에 적용되었습니다.`,
+      title: '추천 피드 노출 정책 저장 완료',
+      description: '본인인증 및 안전 심사 필터가 모바일 홈 피드에 정상 적용되었습니다.',
     })
   }
 
@@ -331,9 +331,9 @@ export default function MatchesPage() {
                 <Sliders className="h-3.5 w-3.5 text-emerald-600" />
                 AI 추천 알고리즘 가중치
               </TabsTrigger>
-              <TabsTrigger value="policy" className="gap-1.5 text-xs">
-                <PhoneCall className="h-3.5 w-3.5 text-blue-600" />
-                1:1 통화 매칭 규칙
+              <TabsTrigger value="safety" className="gap-1.5 text-xs">
+                <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
+                피드 노출 & 안전 정책
               </TabsTrigger>
             </TabsList>
 
@@ -683,49 +683,23 @@ export default function MatchesPage() {
               </Card>
             </TabsContent>
 
-            {/* TAB 3: 1:1 통화 및 매칭 기본 규칙 */}
-            <TabsContent value="policy" className="space-y-4">
+            {/* TAB 3: 추천 피드 노출 & 안전 정책 */}
+            <TabsContent value="safety" className="space-y-4">
               <Card className="shadow-sm">
                 <CardHeader className="pb-3 border-b">
                   <CardTitle className="text-base font-bold flex items-center gap-2">
-                    <PhoneCall className="h-5 w-5 text-blue-600" />
-                    1:1 영상/음성 통화 매칭 규칙 정책
+                    <ShieldCheck className="h-5 w-5 text-blue-600" />
+                    홈 추천 피드 노출 & 안전 심사 정책
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    앱에서 회원이 1:1 랜덤 통화를 요청할 때 적용되는 기본 요율 및 대기 정책입니다.
+                    모바일 앱 홈 피드에 친구 목록을 노출할 때 안전성과 프로필 신뢰도를 검증하는 규칙입니다.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-5 pt-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="rounded-xl border p-4 space-y-1.5">
-                      <Label htmlFor="call-rate" className="text-xs font-bold">1분당 통화 기본 요율 (온/분)</Label>
-                      <Input
-                        id="call-rate"
-                        type="number"
-                        value={callRate}
-                        onChange={(e) => setCallRate(Number(e.target.value))}
-                        className="h-9 text-xs font-mono"
-                      />
-                      <p className="text-[11px] text-muted-foreground">호스트가 자율 요금을 정하지 않았을 때 기본으로 차감될 온 포인트입니다.</p>
-                    </div>
-
-                    <div className="rounded-xl border p-4 space-y-1.5">
-                      <Label htmlFor="match-timeout" className="text-xs font-bold">통화 매칭 대기 제한 시간 (초)</Label>
-                      <Input
-                        id="match-timeout"
-                        type="number"
-                        value={matchTimeout}
-                        onChange={(e) => setMatchTimeout(Number(e.target.value))}
-                        className="h-9 text-xs font-mono"
-                      />
-                      <p className="text-[11px] text-muted-foreground">대기 시간 동안 상대가 응답하지 않으면 추천 친구 목록으로 자동 복귀합니다.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between rounded-xl border p-4">
+                <CardContent className="space-y-4 pt-4">
+                  <div className="flex items-center justify-between rounded-xl border p-4 bg-card">
                     <div className="space-y-0.5">
-                      <p className="text-xs font-bold text-foreground">본인인증 완료 회원 전용 통화 매칭</p>
-                      <p className="text-[11px] text-muted-foreground">활성화 시 휴대전화 본인인증이 완료된 신원 검증 회원끼리만 1:1 통화를 성사시킵니다.</p>
+                      <p className="text-xs font-bold text-foreground">본인인증 완료 회원 우선 노출</p>
+                      <p className="text-[11px] text-muted-foreground">휴대전화 본인인증이 완료된 검증 회원을 추천 피드 상단에 배치합니다.</p>
                     </div>
                     <Switch
                       checked={requireVerification}
@@ -733,14 +707,47 @@ export default function MatchesPage() {
                     />
                   </div>
 
+                  <div className="flex items-center justify-between rounded-xl border p-4 bg-card">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-bold text-foreground">프로필 사진 미등록 회원 피드 숨김</p>
+                      <p className="text-[11px] text-muted-foreground">얼굴 또는 프로필 사진을 1장 이상 등록하지 않은 계정은 추천 피드에서 제외합니다.</p>
+                    </div>
+                    <Switch
+                      checked={hideNoPhotoUsers}
+                      onCheckedChange={(val) => setHideNoPhotoUsers(val)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-xl border p-4 bg-card">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-bold text-foreground">신고·제재 이력 회원 자동 제외</p>
+                      <p className="text-[11px] text-muted-foreground">최근 신고 누적으로 경고를 받았거나 심사 중인 계정은 홈 화면 추천에서 자동 필터링합니다.</p>
+                    </div>
+                    <Switch
+                      checked={excludeReportedUsers}
+                      onCheckedChange={(val) => setExcludeReportedUsers(val)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-xl border p-4 bg-card">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-bold text-foreground">라이브 방송 중인 호스트 상단 부스트</p>
+                      <p className="text-[11px] text-muted-foreground">현재 1:N 라이브 방송 또는 1:1 프라이빗 라이브 방송을 진행 중인 호스트에게 라이브 뱃지를 부여하고 추천 우선순위를 높입니다.</p>
+                    </div>
+                    <Switch
+                      checked={liveStreamerBoost}
+                      onCheckedChange={(val) => setLiveStreamerBoost(val)}
+                    />
+                  </div>
+
                   <div className="flex justify-end border-t pt-4">
                     <Button
                       size="sm"
                       className="bg-blue-600 hover:bg-blue-700 text-white text-xs gap-1.5"
-                      onClick={handleSaveCallPolicy}
+                      onClick={handleSaveSafetyPolicy}
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" />
-                      통화 매칭 정책 저장
+                      피드 안전 정책 저장
                     </Button>
                   </div>
                 </CardContent>
@@ -835,7 +842,10 @@ export default function MatchesPage() {
                         <p className="text-[10px] text-indigo-600 font-medium">📍 1.2km • 서울 강남구</p>
                       </div>
                     </div>
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 ring-4 ring-emerald-100" title="접속중" />
+                    <Badge variant="outline" className="border-rose-200 bg-rose-50 text-rose-600 text-[9px] px-1.5 py-0 font-bold flex items-center gap-1">
+                      <Video className="h-2.5 w-2.5" />
+                      1:1 방송 가능
+                    </Badge>
                   </div>
                   <div className="flex flex-wrap gap-1 text-[9px]">
                     <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-slate-600">🏃 러닝/헬스</span>
@@ -858,10 +868,10 @@ export default function MatchesPage() {
                           <span className="font-bold text-xs text-slate-900">박민수</span>
                           <span className="text-[10px] text-slate-500">27세</span>
                         </div>
-                        <p className="text-[10px] text-purple-600 font-medium">🎯 취향 일치도 4개 일치</p>
+                        <p className="text-[10px] text-purple-600 font-medium">🎯 취향 4개 일치</p>
                       </div>
                     </div>
-                    <span className="text-[9px] text-slate-400">5분 전</span>
+                    <span className="text-[9px] text-slate-400">5분 전 접속</span>
                   </div>
                   <div className="flex flex-wrap gap-1 text-[9px]">
                     <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-slate-600">🎮 게임/롤</span>

@@ -55,9 +55,9 @@ const DEFAULT_KPIS: KpiMetric[] = [
     trendType: 'positive',
   },
   {
-    label: '통화 및 매칭 세션',
+    label: '1:1 및 1:N 라이브 방송 세션',
     value: '4,980건',
-    hint: '1:1 영상/음성 통화 성공률 98%',
+    hint: '실시간 라이브 방송 송출률 98%',
     icon: 'calls',
     trend: '+8.7%',
     trendType: 'positive',
@@ -131,9 +131,9 @@ export default function DashboardPage() {
               trendType: 'positive',
             },
             {
-              label: '통화 및 매칭 세션',
+              label: '1:1 및 1:N 라이브 방송 세션',
               value: metrics.matchRequests ? `${metrics.matchRequests.toLocaleString()}건` : DEFAULT_KPIS[1].value,
-              hint: '1:1 영상/음성 통화 세션',
+              hint: '실시간 라이브 방송 송출 세션',
               icon: 'calls',
               trend: metrics.matchGrowth || '+8.7%',
               trendType: 'positive',
@@ -324,13 +324,13 @@ export default function DashboardPage() {
 
       {/* 4. 하단 그리드: 주간 매칭 추세 & 6인 AI 직원 실시간 관제 현황 */}
       <section className="grid gap-6 lg:grid-cols-3">
-        {/* 주간 통화 매칭 완료 추세 (Bar Chart) */}
+        {/* 주간 라이브 방송 진행 추세 (Bar Chart) */}
         <Card className="lg:col-span-2 shadow-sm">
           <CardHeader className="pb-3 border-b">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base font-bold text-foreground">주간 통화 및 매칭 완료 추세</CardTitle>
-                <CardDescription className="text-xs">주차별 1:1 통화 세션 성사 건수를 비교합니다.</CardDescription>
+                <CardTitle className="text-base font-bold text-foreground">주간 라이브 방송 진행 추세</CardTitle>
+                <CardDescription className="text-xs">주차별 1:1 및 1:N 라이브 방송 진행 건수를 비교합니다.</CardDescription>
               </div>
               <Badge variant="outline" className="text-xs text-emerald-700 bg-emerald-50 border-emerald-200">
                 주간 누적

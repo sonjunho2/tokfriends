@@ -392,12 +392,12 @@ export default function UserDetailPage() {
           </CardContent>
         </Card>
 
-        {/* 1분 통화 요율 */}
+        {/* 1:1 프라이빗 라이브 방송 호스트 요율 */}
         <Card className="border-indigo-200/60 bg-gradient-to-br from-indigo-50/40 via-white to-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold text-indigo-900">호스트 통화 요율</CardTitle>
+            <CardTitle className="text-xs font-semibold text-indigo-900">1:1 프라이빗 라이브 호스트 요율</CardTitle>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
-              <PhoneCall className="h-4 w-4" />
+              <Video className="h-4 w-4" />
             </div>
           </CardHeader>
           <CardContent>
@@ -411,14 +411,14 @@ export default function UserDetailPage() {
                 <span className="text-base text-muted-foreground font-normal">기본 (100 온/분)</span>
               )}
             </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">1:1 영상/음성 통화 분당 단가</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">1:1 프라이빗 라이브 방송 분당 단가</p>
           </CardContent>
         </Card>
 
-        {/* 통화 이용 실적 */}
+        {/* 라이브 방송 참여 실적 */}
         <Card className="border-blue-200/60 bg-gradient-to-br from-blue-50/40 via-white to-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold text-blue-900">통화 이용 세션</CardTitle>
+            <CardTitle className="text-xs font-semibold text-blue-900">라이브 방송 참여 세션</CardTitle>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
               <Video className="h-4 w-4" />
             </div>
@@ -428,7 +428,7 @@ export default function UserDetailPage() {
               {stats.hostedCalls + stats.guestCalls} <span className="text-sm font-normal text-muted-foreground">회</span>
             </div>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              호스트 {stats.hostedCalls}회 · 게스트 {stats.guestCalls}회
+              호스트 방송 {stats.hostedCalls}회 · 시청/게스트 {stats.guestCalls}회
             </p>
           </CardContent>
         </Card>
