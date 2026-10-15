@@ -85,6 +85,34 @@ model AuditLog {
   @@index([actorId, createdAt])
 }
 
+model AdminApprovalRequest {
+  id             String              @id @default(cuid())
+  action         String
+  target         String
+  reason         String?
+  requestedById  String
+  decidedById    String?
+  status         AdminApprovalStatus @default(PENDING)
+  decisionReason String?
+  context        Json?
+  metadata       Json?
+  idempotencyKey String?
+  expiresAt      DateTime?
+  decidedAt      DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([status, createdAt])
+  @@index([requestedById])
+}
+
+enum AdminApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
 enum UserStatus {
   ACTIVE
   WARNING

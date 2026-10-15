@@ -382,7 +382,25 @@ export class OrchestratorService {
   ): Promise<{ zevRiskScore: number; recommendedAction: string; legalRationale: string }> {
     const aiClient = await this.getAiClient();
     const models = await this.getStaffModels();
-    const zevModel = models.zev || 'gemini-2.5-flash';
+
+    let dynamicZevModel = '';
+    let dynamicPolicy = '';
+    try {
+      const modelSetting = await this.prisma.adminIntegrationSetting.findUnique({
+        where: { id: 'zev_ai_model' },
+      });
+      if (modelSetting?.encryptedValue) {
+        dynamicZevModel = decryptAdminSettingValue(modelSetting.encryptedValue, 'zev_ai_model') || '';
+      }
+      const policySetting = await this.prisma.adminIntegrationSetting.findUnique({
+        where: { id: 'zev_ai_prompt_policy' },
+      });
+      if (policySetting?.encryptedValue) {
+        dynamicPolicy = decryptAdminSettingValue(policySetting.encryptedValue, 'zev_ai_prompt_policy') || '';
+      }
+    } catch (e) {}
+
+    const zevModel = dynamicZevModel?.trim() || models.zev || 'gemini-2.5-flash';
 
     if (!aiClient) {
       return {
@@ -397,7 +415,7 @@ export class OrchestratorService {
 [SYSTEM: ZEV AI - SYSTEM ONE PROMPT]
 당신은 대한민국 정보통신망 이용촉진 및 정보보호 등에 관한 법률 제44조의7 및 다가온(DAGAON) 운영원칙을 기계적으로 적용하는 '제브 AI'입니다.
 감정이나 온정주의를 100% 배제하고, 사실관계와 규정에 입각하여 냉정하고 단호하게 판정하십시오.
-
+${dynamicPolicy ? `\n[관리자 특별 대조 지침]\n${dynamicPolicy}\n` : ''}
 [사건 개요]
 - 도메인: ${params.domain}
 - 채증 식별자: ${params.targetId}

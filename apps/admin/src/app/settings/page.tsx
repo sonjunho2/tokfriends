@@ -17,6 +17,12 @@ import {
   Sparkles,
   Video,
   Coins,
+  Copy,
+  Download,
+  Bot,
+  Database,
+  FileText,
+  Check,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -59,10 +65,122 @@ const PERMISSION_HINT = 'users.manage, reports.view'
 
 type SettingsSection = 'overview' | 'team' | 'security' | 'product' | 'integrations' | 'pointPolicy'
 
+type IntegrationCategory = 'oauth' | 'pg' | 'push' | 'streaming' | 'ai_storage'
+
+interface DefaultIntegrationItemDef {
+  id: string
+  label: string
+  placeholder: string
+  envKey: string
+  category: IntegrationCategory
+}
+
+const DEFAULT_INTEGRATION_ITEMS: DefaultIntegrationItemDef[] = [
+  // 1. 소셜 로그인 (OAuth)
+  { id: 'oauth_kakao_client_id', label: '카카오 REST API 키', placeholder: '카카오 디벨로퍼스 앱 키 > REST API 키', envKey: 'KAKAO_CLIENT_ID', category: 'oauth' },
+  { id: 'oauth_kakao_client_secret', label: '카카오 Client Secret', placeholder: '카카오 로그인 > 보안 > Client Secret', envKey: 'KAKAO_CLIENT_SECRET', category: 'oauth' },
+  { id: 'oauth_naver_client_id', label: '네이버 Client ID', placeholder: '네이버 디벨로퍼스 Client ID', envKey: 'NAVER_CLIENT_ID', category: 'oauth' },
+  { id: 'oauth_naver_client_secret', label: '네이버 Client Secret', placeholder: '네이버 디벨로퍼스 Client Secret', envKey: 'NAVER_CLIENT_SECRET', category: 'oauth' },
+  { id: 'oauth_google_client_id', label: '구글 OAuth Web Client ID', placeholder: 'Google Cloud Console OAuth 클라이언트 ID', envKey: 'GOOGLE_CLIENT_ID', category: 'oauth' },
+  { id: 'oauth_google_client_secret', label: '구글 OAuth Client Secret', placeholder: 'Google Cloud Console 클라이언트 보안 비밀', envKey: 'GOOGLE_CLIENT_SECRET', category: 'oauth' },
+  { id: 'oauth_apple_service_id', label: 'Apple Service ID (로그인 식별자)', placeholder: '예: com.sonjunho.ddakchin.signin', envKey: 'APPLE_SERVICE_ID', category: 'oauth' },
+  { id: 'oauth_apple_team_id', label: 'Apple Team ID', placeholder: '10자리 Apple Developer Team ID', envKey: 'APPLE_TEAM_ID', category: 'oauth' },
+  { id: 'oauth_apple_key_id', label: 'Apple Key ID', placeholder: '10자리 Sign in with Apple Key ID', envKey: 'APPLE_KEY_ID', category: 'oauth' },
+  { id: 'oauth_apple_private_key', label: 'Apple AuthKey (.p8 내용)', placeholder: '-----BEGIN PRIVATE KEY----- ...', envKey: 'APPLE_PRIVATE_KEY', category: 'oauth' },
+
+  // 2. 결제 및 PG 연동
+  { id: 'toss_payments_client_key', label: '토스페이먼츠 클라이언트 키', placeholder: 'live_ck_... 또는 test_ck_...', envKey: 'TOSS_CLIENT_KEY', category: 'pg' },
+  { id: 'toss_payments_secret_key', label: '토스페이먼츠 시크릿 키', placeholder: 'live_sk_... 또는 test_sk_...', envKey: 'TOSS_SECRET_KEY', category: 'pg' },
+  { id: 'portone_store_id', label: '포트원(아임포트) Store ID', placeholder: '예: store-1234abcd-...', envKey: 'PORTONE_STORE_ID', category: 'pg' },
+  { id: 'portone_api_key', label: '포트원 REST API Key', placeholder: '포트원 콘솔 V1/V2 API Key', envKey: 'PORTONE_API_KEY', category: 'pg' },
+  { id: 'portone_api_secret', label: '포트원 API Secret', placeholder: '포트원 콘솔 V1/V2 API Secret', envKey: 'PORTONE_API_SECRET', category: 'pg' },
+  { id: 'iap_apple_shared_secret', label: 'Apple 인앱결제 Shared Secret', placeholder: 'App Store Connect 앱 전용 공유 암호', envKey: 'APPLE_IAP_SHARED_SECRET', category: 'pg' },
+  { id: 'iap_google_service_account', label: 'Google 인앱결제 Service Account JSON', placeholder: 'Google Play Console 서비스 계정 키 JSON 전체', envKey: 'GOOGLE_IAP_SERVICE_ACCOUNT', category: 'pg' },
+
+  // 3. 실시간 푸시 알림
+  { id: 'firebase_project_id', label: 'Firebase 프로젝트 ID', placeholder: '예: dagaon-firebase-prod', envKey: 'FIREBASE_PROJECT_ID', category: 'push' },
+  { id: 'firebase_service_account_json', label: 'Firebase 서비스 계정 비공개 키 JSON', placeholder: 'Firebase Console 서비스 계정 키 JSON 전체', envKey: 'FIREBASE_SERVICE_ACCOUNT', category: 'push' },
+  { id: 'apns_team_id', label: 'Apple APNs Team ID', placeholder: '10자리 Apple Developer Team ID', envKey: 'APNS_TEAM_ID', category: 'push' },
+  { id: 'apns_key_id', label: 'Apple APNs Key ID', placeholder: '10자리 APNs 인증키 Key ID', envKey: 'APNS_KEY_ID', category: 'push' },
+  { id: 'apns_auth_key', label: 'Apple APNs AuthKey (.p8 내용)', placeholder: '-----BEGIN PRIVATE KEY----- ...', envKey: 'APNS_AUTH_KEY', category: 'push' },
+  { id: 'apns_bundle_id', label: 'Apple APNs Bundle ID', placeholder: '예: com.sonjunho.ddakchin', envKey: 'APNS_BUNDLE_ID', category: 'push' },
+
+  // 4. 실시간 라이브 스트리밍
+  { id: 'agora_app_id', label: 'Agora 라이브 App ID', placeholder: 'Agora 콘솔 > 프로젝트 관리 > App ID', envKey: 'AGORA_APP_ID', category: 'streaming' },
+  { id: 'agora_app_certificate', label: 'Agora 라이브 App Certificate', placeholder: 'Agora 콘솔 > Primary Certificate', envKey: 'AGORA_APP_CERTIFICATE', category: 'streaming' },
+  { id: 'live_stream_mode', label: '라이브 스트리밍 송출 방식 (AGORA_RTC / CDN_HLS)', placeholder: 'AGORA_RTC', envKey: 'LIVE_STREAM_MODE', category: 'streaming' },
+  { id: 'live_cdn_hls_url_pattern', label: 'CDN HLS 재생 URL 템플릿', placeholder: 'https://live-cdn.dagaon.app/live/{roomId}/index.m3u8', envKey: 'LIVE_CDN_HLS_URL_PATTERN', category: 'streaming' },
+  { id: 'live_cdn_rtmp_push_url', label: 'Agora Media Push RTMP 수신 주소', placeholder: 'rtmp://live-push.dagaon.app/live/{roomId}', envKey: 'LIVE_CDN_RTMP_PUSH_URL', category: 'streaming' },
+
+  // 5. 제브 AI (Zev AI) 및 AI 직원 거버넌스 & 클라우드 스토리지
+  { id: 'gemini_api_key', label: 'Google Gemini API Key (실시간 영상 채증 및 법률 대조)', placeholder: 'AIzaSy... (채증/법률 대조/AI 직원)', envKey: 'GEMINI_API_KEY', category: 'ai_storage' },
+  { id: 'zev_ai_model', label: '제브 AI (Zev AI) 수석 판정관 LLM 모델', placeholder: 'gemini-2.5-flash (권장) 또는 gemini-1.5-pro', envKey: 'ZEV_AI_MODEL', category: 'ai_storage' },
+  { id: 'zev_ai_prompt_policy', label: '제브 AI 법률/약관 대조 기준 지침', placeholder: '정보통신망법 제44조의7 및 다가온 운영원칙 준용', envKey: 'ZEV_AI_PROMPT_POLICY', category: 'ai_storage' },
+  { id: 'ai_staff_models', label: 'AI 직원별 LLM 모델 지정 (JSON)', placeholder: '{"director":"gemini-2.5-flash",...}', envKey: 'AI_STAFF_MODELS', category: 'ai_storage' },
+  { id: 'supabase_url', label: 'Supabase 프로젝트 URL', placeholder: 'https://xxxx.supabase.co', envKey: 'SUPABASE_URL', category: 'ai_storage' },
+  { id: 'supabase_service_role_key', label: 'Supabase Service Role Key', placeholder: 'eyJhbGciOiJIUzI1Ni... (스토리지/채증 관리자 키)', envKey: 'SUPABASE_SERVICE_ROLE_KEY', category: 'ai_storage' },
+]
+
 type AdminIntegrationDraft = AdminIntegrationSetting & {
   draftValue?: string
   dirty?: boolean
   clearRequested?: boolean
+}
+
+function mergeWithDefaultIntegrations(incoming: AdminIntegrationSetting[] = []): AdminIntegrationDraft[] {
+  const existingMap = new Map((incoming || []).map((item) => [item.id, item]))
+
+  return DEFAULT_INTEGRATION_ITEMS.map((def) => {
+    const found = existingMap.get(def.id)
+    return {
+      id: def.id,
+      label: def.label,
+      placeholder: def.placeholder,
+      value: found?.value ?? '',
+      draftValue: '',
+      dirty: false,
+      clearRequested: false,
+    }
+  })
+}
+
+function generateEnvProductionText(integrations: AdminIntegrationDraft[]): string {
+  const byId = new Map(integrations.map((i) => [i.id, i]))
+  const lines: string[] = [
+    '# ==============================================================================',
+    '# 다가온 (DAGAON) 본서버 실서비스 환경설정 (.env.production)',
+    `# 내보내기 일시: ${new Date().toLocaleString('ko-KR')}`,
+    '# 본 파일의 내용을 본서버(Render / Vercel / Docker / 자체 서버)의 환경변수에 주입하세요.',
+    '# ==============================================================================',
+    '',
+    '# --- 1. 소셜 로그인 (OAuth) ---',
+  ]
+
+  const categories: { key: IntegrationCategory; title: string }[] = [
+    { key: 'oauth', title: '1. 소셜 로그인 (OAuth)' },
+    { key: 'pg', title: '2. 결제 및 PG 연동 (온(ON) 상점)' },
+    { key: 'push', title: '3. 실시간 푸시 알림 (FCM & APNs)' },
+    { key: 'streaming', title: '4. 실시간 라이브 스트리밍 (Agora & CDN)' },
+    { key: 'ai_storage', title: '5. AI 직원 & 클라우드 스토리지 (Gemini & Supabase)' },
+  ]
+
+  for (const cat of categories) {
+    lines.push(`\n# --- ${cat.title} ---`)
+    const items = DEFAULT_INTEGRATION_ITEMS.filter((item) => item.category === cat.key)
+    for (const item of items) {
+      const draft = byId.get(item.id)
+      const val = draft?.draftValue?.trim() || (draft?.value && draft.value !== '********' ? draft.value : '')
+      lines.push(`${item.envKey}=${val}`)
+    }
+  }
+
+  lines.push('\n# --- 시스템 공통 설정 ---')
+  lines.push('NODE_ENV=production')
+  lines.push('PORT=4000')
+  lines.push('API_PREFIX=v1')
+  lines.push('MOBILE_BUNDLE_SCHEME=tokfriends')
+
+  return lines.join('\n')
 }
 
 function parsePermissionInput(input: string | string[]): string[] {
@@ -300,9 +418,9 @@ export default function SettingsPage() {
     setIsLoading(true)
     try {
       const snapshot = await getAdminSettingsSnapshot()
-      setMembers(snapshot.members)
-      setFlags(snapshot.featureFlags)
-      setIntegrations(snapshot.integrations)
+      setMembers(snapshot.members || [])
+      setFlags(snapshot.featureFlags || [])
+      setIntegrations(mergeWithDefaultIntegrations(snapshot.integrations || []))
       setAuditLog(snapshot.auditMemo ?? '')
       setInitialAuditLog(snapshot.auditMemo ?? '')
       if (snapshot.actionPointPolicy) {
@@ -312,17 +430,17 @@ export default function SettingsPage() {
         setCallRate(snapshot.callRate)
       }
     } catch (error) {
-        const ax = error as AxiosError | undefined
-        const message =
-          (ax?.response?.data as any)?.message || ax?.message || '설정 정보를 불러오지 못했습니다. 기본 예시를 보여드립니다.'
-        toast({
-          title: '설정 데이터 불러오기 실패',
-          description: Array.isArray(message) ? message.join(', ') : String(message),
-          variant: 'destructive',
-        })
+      const ax = error as AxiosError | undefined
+      const message =
+        (ax?.response?.data as any)?.message || ax?.message || '설정 정보를 불러오지 못했습니다. 기본 입력 폼을 상시 제공합니다.'
+      toast({
+        title: '연결 지연 안내 (기본 폼 상시 표시)',
+        description: Array.isArray(message) ? message.join(', ') : String(message),
+        variant: 'default',
+      })
       setMembers([])
       setFlags([])
-      setIntegrations([])
+      setIntegrations(mergeWithDefaultIntegrations([]))
       setAuditLog('')
       setInitialAuditLog('')
     } finally {
@@ -547,6 +665,52 @@ export default function SettingsPage() {
     )
   }
 
+  const [copiedEnv, setCopiedEnv] = useState(false)
+
+  const handleCopyEnv = async () => {
+    try {
+      const text = generateEnvProductionText(integrations)
+      await navigator.clipboard.writeText(text)
+      setCopiedEnv(true)
+      toast({
+        title: '.env.production 복사 완료',
+        description: '본서버 환경설정 내용이 클립보드에 복사되었습니다. 서버 .env 파일에 붙여넣으세요.',
+      })
+      setTimeout(() => setCopiedEnv(false), 2000)
+    } catch {
+      toast({
+        title: '복사 실패',
+        description: '클립보드 접근 권한이 없어 복사하지 못했습니다. 다운로드 버튼을 이용해주세요.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleDownloadEnv = () => {
+    try {
+      const text = generateEnvProductionText(integrations)
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = '.env.production'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      toast({
+        title: '.env.production 다운로드 완료',
+        description: '.env.production 파일이 다운로드되었습니다.',
+      })
+    } catch {
+      toast({
+        title: '다운로드 실패',
+        description: '파일 생성 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const saveIntegrations = async () => {
     const dirtyIntegrations = integrations.filter((integration) => integration.dirty)
     if (dirtyIntegrations.length === 0) {
@@ -561,7 +725,7 @@ export default function SettingsPage() {
       )
       const updatedById = new Map(updatedIntegrations.map((integration) => [integration.id, integration]))
       setIntegrations((prev) => prev.map((integration) => updatedById.get(integration.id) ?? integration))
-      toast({ title: '통합 설정 저장', description: '변경한 외부 서비스 키가 저장되었습니다.' })
+      toast({ title: '통합 설정 저장', description: '변경한 외부 서비스 키가 안전하게 암호화 저장되었습니다.' })
     } catch (error) {
       const ax = error as AxiosError | undefined
       const message = (ax?.response?.data as any)?.message || ax?.message || '통합 설정 변경사항을 저장하지 못했습니다.'
@@ -1117,13 +1281,46 @@ export default function SettingsPage() {
                   사업자 등록 및 제휴 승인 후 발급받은 키를 등록하면, <strong>서버 재배포 없이 즉시 실서비스와 안전하게 연동</strong>됩니다.
                 </p>
               </div>
-              <Button
-                onClick={() => void saveIntegrations()}
-                disabled={savingIntegrationId === 'bulk'}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 shadow-sm"
-              >
-                {savingIntegrationId === 'bulk' ? '암호화 저장 중…' : '모든 변경사항 즉시 저장'}
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyEnv}
+                  className="gap-1.5 text-xs font-semibold border-border hover:bg-accent"
+                >
+                  {copiedEnv ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 text-emerald-500" />
+                      <span>복사됨!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5 text-primary" />
+                      <span>.env.production 복사</span>
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadEnv}
+                  className="gap-1.5 text-xs font-semibold border-border hover:bg-accent"
+                >
+                  <Download className="h-3.5 w-3.5 text-primary" />
+                  <span>.env 파일 다운로드</span>
+                </Button>
+
+                <Button
+                  onClick={() => void saveIntegrations()}
+                  disabled={savingIntegrationId === 'bulk'}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 shadow-sm text-xs h-9"
+                >
+                  {savingIntegrationId === 'bulk' ? '암호화 저장 중…' : '모든 변경사항 즉시 저장'}
+                </Button>
+              </div>
             </div>
 
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200 mt-2 flex items-start gap-2">
@@ -1529,42 +1726,92 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* 5. 기타 광고 및 리워드 설정 (기존 항목 보존, 포인트 정책 제외) */}
-            {integrations.some((item) => !item.id.startsWith('oauth_') && !item.id.startsWith('toss_') && !item.id.startsWith('portone_') && !item.id.startsWith('iap_') && !item.id.startsWith('firebase_') && !item.id.startsWith('apns_') && !item.id.startsWith('agora_') && !item.id.startsWith('live_') && !item.id.startsWith('point_policy_')) && (
-              <div className="rounded-xl border bg-card p-5 space-y-4">
-                <div className="flex items-center gap-2 border-b pb-3">
-                  <Sparkles className="h-5 w-5 text-yellow-500" />
-                  <h3 className="font-bold text-base text-foreground">5. 광고 및 리워드 설정</h3>
+            {/* 5. AI 직원 엔진 & 클라우드 스토리지 (Google Gemini & Supabase) */}
+            <div className="rounded-xl border bg-card p-5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
+                <div className="flex items-center gap-2">
+                  <Bot className="h-5 w-5 text-purple-500" />
+                  <h3 className="font-bold text-base text-foreground">5. 제브 AI (Zev AI) & AI 직원 거버넌스 및 클라우드 스토리지</h3>
+                  <span className="text-xs text-muted-foreground">실시간 채증, 법률 대조, 수석 판정관 제브 AI 및 증거 스토리지 연동</span>
                 </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  {integrations
-                    .filter((item) => !item.id.startsWith('oauth_') && !item.id.startsWith('toss_') && !item.id.startsWith('portone_') && !item.id.startsWith('iap_') && !item.id.startsWith('firebase_') && !item.id.startsWith('apns_') && !item.id.startsWith('agora_') && !item.id.startsWith('live_') && !item.id.startsWith('point_policy_'))
-                    .map((integration) => {
-                      const isConfigured = Boolean((integration.value ?? '').length > 0);
-                      return (
-                        <div key={integration.id} className="rounded-lg border bg-background/50 p-3.5 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label className="font-semibold text-xs text-foreground">
-                              {integration.label ?? integration.id}
-                            </Label>
-                            {isConfigured && (
-                              <span className="text-[11px] font-medium text-emerald-600">등록됨</span>
-                            )}
-                          </div>
-                          <Input
-                            type="text"
-                            value={integration.draftValue ?? ''}
-                            placeholder={isConfigured ? '••••••••' : (integration.placeholder ?? '')}
-                            onChange={(event) => updateIntegration(integration.id, event.target.value)}
-                            disabled={savingIntegrationId === 'bulk'}
-                            className="text-xs h-9"
-                          />
-                        </div>
-                      );
-                    })}
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <a
+                    href="https://aistudio.google.com/app/apikey"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    Google AI Studio <ExternalLink className="h-3 w-3" />
+                  </a>
+                  <span className="text-muted-foreground">·</span>
+                  <a
+                    href="https://supabase.com/dashboard"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    Supabase Console <ExternalLink className="h-3 w-3" />
+                  </a>
                 </div>
               </div>
-            )}
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {integrations
+                  .filter((item) => item.id.startsWith('gemini_') || item.id.startsWith('zev_') || item.id.startsWith('ai_staff_') || item.id.startsWith('supabase_'))
+                  .map((integration) => {
+                    const isConfigured = Boolean((integration.value ?? '').length > 0);
+                    const isPasswordType =
+                      integration.id.includes('secret') ||
+                      integration.id.includes('key');
+                    return (
+                      <div key={integration.id} className="rounded-lg border bg-background/50 p-3.5 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="font-semibold text-xs text-foreground flex items-center gap-1.5">
+                            {integration.label ?? integration.id}
+                          </Label>
+                          {isConfigured ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                              <CheckCircle2 className="h-3 w-3" /> 등록됨
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 bg-zinc-500/10 px-2 py-0.5 rounded-full border border-zinc-500/20">
+                              <AlertCircle className="h-3 w-3" /> 미등록
+                            </span>
+                          )}
+                        </div>
+                        <Input
+                          type={isPasswordType ? 'password' : 'text'}
+                          value={integration.draftValue ?? ''}
+                          placeholder={
+                            isConfigured
+                              ? isPasswordType
+                                ? '••••••••  (등록 완료됨, 변경 시 입력)'
+                                : integration.value ?? ''
+                              : integration.placeholder ?? '설정값을 입력하세요'
+                          }
+                          autoComplete="off"
+                          onChange={(event) => updateIntegration(integration.id, event.target.value)}
+                          disabled={savingIntegrationId === 'bulk'}
+                          className="text-xs h-9 font-mono"
+                        />
+                        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                          <span className="truncate max-w-[240px]">{integration.placeholder}</span>
+                          {isConfigured && (
+                            <button
+                              type="button"
+                              onClick={() => clearIntegration(integration.id)}
+                              disabled={savingIntegrationId === 'bulk'}
+                              className="text-red-500 hover:text-red-600 underline font-medium"
+                            >
+                              {integration.clearRequested ? '삭제 취소' : '저장값 초기화'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
 
             <div className="flex items-center justify-between pt-4 border-t">
               <Button asChild size="sm" variant="link" className="text-xs">

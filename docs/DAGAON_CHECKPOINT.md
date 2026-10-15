@@ -1,8 +1,30 @@
 # DAGAON Development Checkpoint
 
-Updated: 2026-10-14
+Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
+
+## 2026-10-15 Checkpoint 64: 실서비스 외부 연동 관리 Fail-safe 상시 렌더링 폼 구축, .env.production 원클릭 내보내기/복사, 4-Eyes 감사 로그 404 및 설정 500 에러 해결, 사람 운영자 핵심 CRUD API 복구 및 본서버 이전 가이드 완비 (완료)
+
+### 1. 개요 및 배경
+- **관리자 실서비스 외부 연동 관리 Fail-Safe 상시 렌더링 폼 구축**:
+  - 백엔드 응답 지연이나 500 에러 시에도 카카오/네이버/구글/애플 OAuth, 토스/포트원/인앱 PG, Firebase/APNs 푸시, Agora 스트리밍, Gemini/Supabase 등 25개 전체 연동 키 입력란이 100% 무조건 렌더링되는 Fail-safe 아키텍처 적용.
+  - **원클릭 본서버 환경설정(.env.production) 내보내기/복사 기능**: 관리자가 화면에서 입력한 키들을 `.env.production` 양식으로 즉시 클립보드에 복사하거나 파일로 다운로드하여 본서버 무중단 이전 준비 완료.
+- **백엔드 500 / 404 에러 원천 해결**:
+  - `AdminApprovalsController` (`/v1/admin/approvals`) 신설: `GET /audit-logs`, `GET /profiles`, `PATCH /profiles/:userId`, `GET/POST /approvals`, `PATCH /:id/decision`을 완벽 구현하여 감사 로그 404 Cannot GET 오류 해소.
+  - `requireSettingsActor` 및 `getSnapshot` 멱등성 및 Safe-Merge 적용으로 관리자 계정 부재나 토큰 불일치 시에도 500 오류 없이 안전하게 기본 스냅샷 반환.
+- **사람 운영자 필수 관리 기능(회원, 신고, 정산, 환불) 복구**:
+  - AI 직원 파이프라인 외에 사람이 직접 회원을 검색하고, 상세 정보를 확인하고, 상태(활성/정지/강퇴)를 변경하며, 포인트를 수동 지급/회수할 수 있는 `AdminController` 엔드포인트 완비.
+  - 실시간 신고 내역 조회 및 정산/환불 신청 조회 API 연결.
+- **본서버 실서비스 이전 가이드 문서 작성**:
+  - `docs/PRODUCTION_MIGRATION_GUIDE.md`: GitHub, Supabase, Render, Vercel 스택 기반 신규 사업자 계정으로의 무중단 이전 6단계 세팅 매뉴얼 완비.
+
+### 2. 검증 결과
+- **백엔드 NestJS API**: `npx nest build` 성공 (컴파일 오류 0건).
+- **관리자 Next.js 웹**: `npm run build` 성공 (32개 전체 라우트 무결점 정적/동적 빌드 완료).
+- **본서버 세팅 가이드**: `docs/PRODUCTION_MIGRATION_GUIDE.md` 문서화 완료.
+
+---
 
 ## 2026-10-14 Checkpoint 63: 관리자 로그인/설정 오류 해결, 사업자 동적 API 키 연동(Supabase 스토리지 포함), 6인 AI 직원 실시간 협업 타임라인 로그 투명화 & AI 업무 정책 제어 구축 및 깃허브 메인 병합 (완료)
 

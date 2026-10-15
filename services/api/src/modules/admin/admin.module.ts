@@ -5,10 +5,11 @@ import { CallsModule } from '../calls/calls.module';
 
 import { AdminController } from './admin.controller';
 import { AdminSettingsService } from './admin-settings.service';
+import { AdminApprovalsController } from './admin-approvals.controller';
 
 @Module({
   imports: [forwardRef(() => CallsModule)],
-  controllers: [AdminController, SystemSettingsController],
+  controllers: [AdminController, SystemSettingsController, AdminApprovalsController],
   providers: [AdminSettingsService, PrismaService],
   exports: [AdminSettingsService],
 })
