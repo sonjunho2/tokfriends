@@ -172,6 +172,18 @@ const STATUS_LABELS: Record<string, { label: string; badgeClass: string; icon: a
   },
 }
 
+function formatDate(value?: string) {
+  if (!value) return '-'
+  const d = new Date(value)
+  if (isNaN(d.getTime())) return value
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const h = String(d.getHours()).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  return `${y}-${m}-${day} ${h}:${min}`
+}
+
 type StatusFilterTab = 'ALL' | 'ACTIVE' | 'UNDER_REVIEW' | 'PENDING_VERIFICATION' | 'SUSPENDED'
 
 const SORT_OPTIONS = [
@@ -233,7 +245,7 @@ export default function UsersPage() {
     let result = [...users]
 
     if (statusFilter !== 'ALL') {
-      result = result.filter((u) => u.status?.toUpperCase() === statusFilter)
+      result = result.filter((u) => (u.status || '').toUpperCase() === statusFilter)
     }
 
     if (searchKeyword.trim()) {
@@ -415,7 +427,7 @@ export default function UsersPage() {
               <div>
                 <p className="text-xs text-muted-foreground">정상 활동 회원</p>
                 <p className="text-2xl font-bold mt-1 text-emerald-600">
-                  {users.filter((u) => u.status === 'ACTIVE').length.toLocaleString()}명
+                  {users.filter((u) => (u.status || '').toUpperCase() === 'ACTIVE').length.toLocaleString()}명
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">정상 서비스 이용 중</p>
               </div>
@@ -434,7 +446,7 @@ export default function UsersPage() {
                   심사 대기 (신고 접수)
                 </p>
                 <p className="text-2xl font-bold mt-1 text-amber-600">
-                  {users.filter((u) => u.status === 'UNDER_REVIEW').length.toLocaleString()}명
+                  {users.filter((u) => (u.status || '').toUpperCase() === 'UNDER_REVIEW').length.toLocaleString()}명
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">운영자 검토 필요</p>
               </div>
@@ -450,7 +462,7 @@ export default function UsersPage() {
               <div>
                 <p className="text-xs text-muted-foreground">이용 정지 / 제재 회원</p>
                 <p className="text-2xl font-bold mt-1 text-red-600">
-                  {users.filter((u) => u.status === 'SUSPENDED').length.toLocaleString()}명
+                  {users.filter((u) => (u.status || '').toUpperCase() === 'SUSPENDED').length.toLocaleString()}명
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">접속 및 활동 차단</p>
               </div>
@@ -535,7 +547,7 @@ export default function UsersPage() {
               className="h-7 text-xs flex items-center gap-1"
             >
               <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-              정상 활동 ({users.filter((u) => u.status === 'ACTIVE').length})
+              정상 활동 ({users.filter((u) => (u.status || '').toUpperCase() === 'ACTIVE').length})
             </Button>
             <Button
               variant={statusFilter === 'UNDER_REVIEW' ? 'default' : 'outline'}
@@ -544,7 +556,7 @@ export default function UsersPage() {
               className="h-7 text-xs flex items-center gap-1 border-amber-300 text-amber-800 dark:border-amber-800 dark:text-amber-200"
             >
               <AlertTriangle className="h-3 w-3 text-amber-600" />
-              🚨 심사 대기 ({users.filter((u) => u.status === 'UNDER_REVIEW').length})
+              🚨 심사 대기 ({users.filter((u) => (u.status || '').toUpperCase() === 'UNDER_REVIEW').length})
             </Button>
             <Button
               variant={statusFilter === 'PENDING_VERIFICATION' ? 'default' : 'outline'}
@@ -553,7 +565,7 @@ export default function UsersPage() {
               className="h-7 text-xs flex items-center gap-1"
             >
               <Phone className="h-3 w-3 text-blue-600" />
-              본인인증 대기 ({users.filter((u) => u.status === 'PENDING_VERIFICATION').length})
+              본인인증 대기 ({users.filter((u) => (u.status || '').toUpperCase() === 'PENDING_VERIFICATION').length})
             </Button>
             <Button
               variant={statusFilter === 'SUSPENDED' ? 'default' : 'outline'}
@@ -562,7 +574,7 @@ export default function UsersPage() {
               className="h-7 text-xs flex items-center gap-1 border-red-300 text-red-800 dark:border-red-800 dark:text-red-200"
             >
               <Ban className="h-3 w-3 text-red-600" />
-              이용 정지 ({users.filter((u) => u.status === 'SUSPENDED').length})
+              이용 정지 ({users.filter((u) => (u.status || '').toUpperCase() === 'SUSPENDED').length})
             </Button>
           </div>
         </CardHeader>
@@ -584,8 +596,13 @@ export default function UsersPage() {
               </thead>
               <tbody className="divide-y">
                 {visibleUsers.map((user) => {
-                  const statusInfo = STATUS_LABELS[user.status ?? 'ACTIVE'] ?? STATUS_LABELS.ACTIVE
+                  const statusKey = (user.status ?? 'ACTIVE').toUpperCase()
+                  const statusInfo = STATUS_LABELS[statusKey] ?? STATUS_LABELS.ACTIVE
                   const StatusIcon = statusInfo.icon
+                  const isSocialGoogle =
+                    (user as any)?.provider === 'google' ||
+                    String(user.email ?? '').includes('google_') ||
+                    String(user.email ?? '').includes('@social')
 
                   return (
                     <tr key={user.id} className="hover:bg-accent/40 transition">
@@ -615,13 +632,27 @@ export default function UsersPage() {
 
                       {/* 2. 연락처 / 계정 */}
                       <td className="px-3.5 py-3">
-                        <div className="font-medium text-foreground">{String(user.phoneNumber ?? '-')}</div>
-                        <div className="text-[11px] text-muted-foreground truncate max-w-[150px]">{String(user.email ?? '-')}</div>
+                        {user.phoneNumber ? (
+                          <div className="font-medium text-foreground">{String(user.phoneNumber)}</div>
+                        ) : isSocialGoogle ? (
+                          <div className="font-medium text-blue-700 text-[11px] flex items-center gap-1">
+                            <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-800">
+                              Google 간편가입
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="font-medium text-muted-foreground text-[11px]">-</div>
+                        )}
+                        <div className="text-[11px] text-muted-foreground truncate max-w-[150px]">
+                          {String(user.email ?? '-')}
+                        </div>
                       </td>
 
                       {/* 3. 거주 지역 */}
                       <td className="px-3.5 py-3">
-                        <span className="font-medium text-foreground">{String(user.region ?? '미입력')}</span>
+                        <span className="font-medium text-foreground">
+                          {user.region ? String(user.region) : <span className="text-muted-foreground">지역 미설정</span>}
+                        </span>
                       </td>
 
                       {/* 4. 상태 뱃지 */}
@@ -654,8 +685,8 @@ export default function UsersPage() {
 
                       {/* 6. 가입일 / 최근활동 */}
                       <td className="px-3.5 py-3 text-muted-foreground text-[11px]">
-                        <div>가입: {user.createdAt ?? '-'}</div>
-                        <div>최근: {user.lastActiveAt ?? '-'}</div>
+                        <div>가입: {formatDate(user.createdAt)}</div>
+                        <div>최근: {formatDate(user.lastActiveAt)}</div>
                       </td>
 
                       {/* 7. 신속 관리 액션 버튼들 */}

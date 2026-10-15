@@ -15,6 +15,7 @@ import {
   Copy,
   Gift,
   ImageIcon,
+  Info,
   Mail,
   MinusCircle,
   Phone,
@@ -91,6 +92,9 @@ export default function UserDetailPage() {
   const [customRateDraft, setCustomRateDraft] = useState<string>('')
   const [contractMemoDraft, setContractMemoDraft] = useState<string>('')
   const [isUpdatingContract, setIsUpdatingContract] = useState(false)
+
+  // 가이드 열기/닫기
+  const [showGuide, setShowGuide] = useState(true)
 
   // 복사 피드백
   const [isCopiedId, setIsCopiedId] = useState(false)
@@ -374,7 +378,54 @@ export default function UserDetailPage() {
         </div>
       </div>
 
-      {/* 2. 핵심 4대 메트릭 KPI 카드 그리드 */}
+      {/* 2. 신입 운영자를 위한 회원 상세 검토 3단계 실무 가이드 */}
+      <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-4 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            💡 신입 운영자를 위한 회원 상세 검토 3단계 실무 가이드
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowGuide(!showGuide)}
+            className="h-7 text-xs text-amber-700 hover:text-amber-900 dark:text-amber-300"
+          >
+            {showGuide ? '가이드 접기' : '가이드 보기'}
+          </Button>
+        </div>
+
+        {showGuide && (
+          <div className="mt-3 grid gap-3 text-xs sm:grid-cols-3">
+            <div className="rounded-md border border-amber-200/80 bg-white/60 p-3 shadow-sm dark:border-amber-900/40 dark:bg-black/20">
+              <span className="inline-block rounded bg-amber-200 px-1.5 py-0.5 font-bold text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                1단계: 기본 신원 & 위험도 파악
+              </span>
+              <p className="mt-1.5 text-muted-foreground">
+                프로필 사진, 신고 누적 횟수, 가입 일시, 소셜 연동 여부를 확인하여 블랙리스트 또는 불량 회원 여부를 확인합니다.
+              </p>
+            </div>
+            <div className="rounded-md border border-amber-200/80 bg-white/60 p-3 shadow-sm dark:border-amber-900/40 dark:bg-black/20">
+              <span className="inline-block rounded bg-amber-200 px-1.5 py-0.5 font-bold text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                2단계: 활동 실적 & 보유 자산 확인
+              </span>
+              <p className="mt-1.5 text-muted-foreground">
+                보유 온(ON) 잔액, 1:N 라이브 방송 및 1:1 프라이빗 라이브 참여 세션, 선물 교환 내역을 종합 검토합니다.
+              </p>
+            </div>
+            <div className="rounded-md border border-amber-200/80 bg-white/60 p-3 shadow-sm dark:border-amber-900/40 dark:bg-black/20">
+              <span className="inline-block rounded bg-amber-200 px-1.5 py-0.5 font-bold text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                3단계: 즉각 제재 & 등급 계약 설정
+              </span>
+              <p className="mt-1.5 text-muted-foreground">
+                규정 위반 시 좌측의 <b>[계정 상태 즉각 변경]</b>에서 정지 처리하고, 호스트인 경우 우측 탭에서 <b>[스트리머 등급 계약]</b>을 체결합니다.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 3. 핵심 4대 메트릭 KPI 카드 그리드 */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* 온(ON) 포인트 */}
         <Card className="border-amber-200/60 bg-gradient-to-br from-amber-50/40 via-white to-white shadow-sm">
