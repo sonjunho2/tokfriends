@@ -29,11 +29,23 @@ interface AppShellProps {
 export function AppShell({ items, adminName = '관리자', children }: AppShellProps) {
   const router = useRouter()
   const pathname = usePathname()
+  const checkIsActive = (itemHref: string) => {
+    if (pathname === itemHref) return true
+    if (pathname.startsWith(`${itemHref}/`)) {
+      const hasMoreSpecificMatch = items.some(
+        (other) =>
+          other.href !== itemHref &&
+          other.href.startsWith(`${itemHref}/`) &&
+          (pathname === other.href || pathname.startsWith(`${other.href}/`))
+      )
+      return !hasMoreSpecificMatch
+    }
+    return false
+  }
+
   const activeItem = useMemo(
-    () =>
-      items.find(
-        (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
-      ) ?? items[0],
+    () => items.find((item) => checkIsActive(item.href)) ?? items[0],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [items, pathname]
   )
   const groupedItems = useMemo(() => {
@@ -82,8 +94,7 @@ export function AppShell({ items, adminName = '관리자', children }: AppShellP
                   {group}
                 </p>
                 {groupItems.map((item) => {
-                  const isActive =
-                    pathname === item.href || pathname.startsWith(`${item.href}/`)
+                  const isActive = checkIsActive(item.href)
                   const Icon = item.icon
                   return (
                     <Link

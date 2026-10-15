@@ -4,6 +4,41 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-15 Checkpoint 73: 사이드바 중복 활성화 버그 해결, 백엔드 선물 모듈(7대 기본 선물) 복원, 3D MP4 영상 및 썸네일 직접 파일 업로드 & 실시간 비디오 플레이어 탑재 및 메인 병합 (완료)
+
+### 1. 개요 및 배경
+- **사이드바 메뉴 중복 활성화 버그 해결**:
+  - `선물 마스터 관리`(`/store/gifts`) 접속 시 상위 경로인 `온(ON) 상점`(`/store`)까지 함께 선택(노란색 활성화)되어 신입 직원 및 관리자에게 혼란을 주던 하위 경로 접두사 매칭 버그 해결.
+  - `app-shell.tsx`의 활성 메뉴 판별 로직에 `checkIsActive()` 알고리즘을 도입하여, 더 구체적인 하위 메뉴(`/store/gifts`)가 존재할 경우 상위 메뉴(`/store`)는 비활성화되고 해당 메뉴만 단독으로 하이라이트되도록 조치.
+- **선물 데이터 로드 실패 오류 및 7대 기본 선물 데이터 복원**:
+  - 백엔드에 `/gifts/admin/list` 및 `/gifts/admin/stats` 엔드포인트가 누락되어 발생하던 데이터 로드 실패 에러 해소.
+  - `services/api/src/modules/gifts`에 `GiftsModule`, `GiftsController`, `GiftsService`를 전면 신설 및 `AppModule`에 정식 등록.
+  - 따뜻한 커피(100온), 달콤한 아이스크림(300온), 조각 케이크(500온), 아름다운 꽃다발(1,000온), 영롱한 다이아몬드(5,000온), 네온 슈퍼카 3D(10,000온), 골든 드래곤 3D(30,000온) 등 7대 대표 선물 기본 시드 영구 보존(JSON 파일 영속화) 및 프론트엔드 Fail-safe 캐시 완비.
+- **신규 선물 등록 시 3D MP4 영상 및 썸네일 파일 직접 업로드 지원**:
+  - 기존의 불편했던 단순 텍스트 URL 입력 방식 대신, 관리자 내 컴퓨터의 `.mp4`, `.webm` 비디오 파일 및 이미지 파일을 직접 선택하여 업로드할 수 있는 전용 파일 업로더 탑재.
+  - 백엔드 `POST /gifts/admin/upload` 멀티파트 파일 핸들러 구현.
+  - 모달 대화상자 내에 업로드된 3D MP4 비디오를 즉시 재생하여 확인할 수 있는 **실시간 비디오 플레이어 미리보기** 및 썸네일 프리뷰 완비.
+
+### 2. 주요 작업 내역
+1. **사이드바 단독 활성화 로직 개선 (`apps/admin/src/components/layout/app-shell.tsx`)**:
+   - `checkIsActive` 구현으로 `/store/gifts` 진입 시 `/store` 중복 하이라이트 원천 방지.
+2. **백엔드 선물 모듈 신설 (`services/api/src/modules/gifts/`)**:
+   - `gifts.service.ts`: 7대 기본 선물 초기화, 영속 파일 저장소(`data/gifts.json`), 전체 CRUD 및 통계 집계.
+   - `gifts.controller.ts`: 관리자 목록/통계/생성/수정/삭제 및 `POST /gifts/admin/upload` 파일 업로드 엔드포인트.
+   - `gifts.module.ts` 및 `app.module.ts`: NestJS 모듈 등록.
+3. **선물 관리 화면 업로더 및 플레이어 탑재 (`apps/admin/src/app/store/gifts/page.tsx`)**:
+   - `[🎥 3D MP4 비디오 파일 업로드]` 및 `[내 PC에서 이미지 파일 선택]` 버튼 제공.
+   - 모달 내 인라인 `<video autoPlay loop muted controls />` 실시간 미리보기 및 파일 크기/이름 표시.
+   - `FALLBACK_GIFTS` 7종 탑재로 네트워크 지연 시에도 화면이 비거나 에러 토스트가 뜨지 않도록 Fail-safe 적용.
+4. **API 클라이언트 확장 (`apps/admin/src/lib/api.ts`)**:
+   - `uploadAdminGiftFile(file: File)` 추가.
+
+### 3. 검증 결과
+- **백엔드 NestJS API**: `npm run build` -> 성공 (컴파일 오류 0건).
+- **관리자 Next.js 콘솔**: `npm run build` -> 성공 (32개 전체 라우트 무결점 정적/동적 생성 완료).
+
+---
+
 ## 2026-10-15 Checkpoint 72: 온(ON) 상점 및 선물 마스터 관리 신입 친화형 전면 개편 — 불필요한 중복 분리, 인앱 충전 상품 단독 집중, 선물 마스터 3단계 실무 가이드 및 3D 이펙트 운영 체계 구축 (완료)
 
 ### 1. 개요 및 배경

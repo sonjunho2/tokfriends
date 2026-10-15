@@ -2368,6 +2368,17 @@ export async function deleteAdminGift(id: string): Promise<boolean> {
   return (response.data as any)?.ok ?? true;
 }
 
+export async function uploadAdminGiftFile(file: File): Promise<{ ok: boolean; url: string; filename?: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post('/gifts/admin/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+}
+
 // ===== 자체 광고(Advertisement) 관리 API =====
 export interface AdminAdvertisementItem {
   id: string;

@@ -12,6 +12,7 @@ import { CallsModule } from './modules/calls/calls.module';
 import { StreamingModule } from './modules/streaming/streaming.module';
 import { AiStaffModule } from './modules/ai-staff/ai-staff.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { GiftsModule } from './modules/gifts/gifts.module';
 import { WsModule } from './modules/ws/ws.module';
 import { JwtAuthGuard } from './modules/auth/jwt.guard';
 import { AdminPermissionsGuard } from './common/admin-permissions.guard';
@@ -31,6 +32,7 @@ import { AppController } from './app.controller';
     StreamingModule,
     AiStaffModule,
     AdminModule,
+    GiftsModule,
     WsModule,
   ],
   providers: [
