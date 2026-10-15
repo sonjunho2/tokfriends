@@ -4,11 +4,15 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   Coins,
   Edit2,
   Film,
   Gift,
+  HelpCircle,
+  Info,
   Loader2,
   Plus,
   RefreshCcw,
@@ -72,6 +76,7 @@ export default function AdminGiftsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<AdminGiftItem | null>(null)
   const [saving, setSaving] = useState(false)
+  const [guideExpanded, setGuideExpanded] = useState(true)
 
   // Form Fields
   const [formCode, setFormCode] = useState('')
@@ -240,18 +245,16 @@ export default function AdminGiftsPage() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-            <Link href="/store" className="hover:underline flex items-center gap-1">
-              <ArrowLeft className="h-3.5 w-3.5" /> 상점 운영
-            </Link>
-            <ChevronRight className="h-3 w-3" />
+            <span>수익 및 선물</span>
+            <span>&gt;</span>
             <span className="text-foreground font-medium">선물 마스터 관리</span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Gift className="h-6 w-6 text-primary" />
-            선물 마스터 & 3D 이펙트 센터
+            선물 마스터 &amp; 3D 이펙트 관리
           </h1>
-          <p className="text-sm text-muted-foreground">
-            채팅방과 라이브 방송에서 후원하는 선물 아이템, 온(ON) 가격 및 3D 투명 알파 비디오 이펙트를 관리합니다.
+          <p className="text-sm text-muted-foreground mt-0.5">
+            1:1 채팅방 및 라이브 방송(1:N 및 1:1 라이브)에서 유저들이 후원하는 선물 아이템, 온(ON) 소비 가격, 노출 채널 및 3D 투명 알파 비디오 이펙트를 관리합니다.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -265,6 +268,71 @@ export default function AdminGiftsPage() {
           </Button>
         </div>
       </div>
+
+      {/* 💡 신입 운영자를 위한 선물 마스터 & 3D 이펙트 3단계 실무 가이드 */}
+      <Card className="border-primary/20 bg-primary/5 shadow-sm overflow-hidden">
+        <CardHeader
+          className="py-3 px-4 flex flex-row items-center justify-between cursor-pointer hover:bg-primary/10 transition-colors"
+          onClick={() => setGuideExpanded((prev) => !prev)}
+        >
+          <div className="flex items-center gap-2 text-primary font-semibold text-sm">
+            <Info className="h-4 w-4" />
+            💡 신입 운영자를 위한 선물 마스터 &amp; 3D 이펙트 3단계 실무 가이드
+          </div>
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary">
+            {guideExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        </CardHeader>
+
+        {guideExpanded && (
+          <CardContent className="px-4 pb-4 pt-1 text-xs text-muted-foreground leading-relaxed border-t border-primary/10 space-y-3">
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-primary/10 shadow-sm space-y-1">
+                <div className="font-semibold text-primary flex items-center gap-1">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-[11px] font-bold">1</span>
+                  식별 코드 및 카테고리 정의
+                </div>
+                <p className="text-[11px] text-foreground font-medium">
+                  실시간 웹소켓 식별용 고유 코드
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  고유 식별 코드(예: <code className="font-mono bg-muted px-1 rounded">gift-dragon</code>)는 채팅/라이브 실시간 통신 시 아이템을 식별하는 키입니다. 일반/스페셜/VIP 카테고리로 모바일 선물 시트의 탭이 자동 분류됩니다.
+                </p>
+              </div>
+
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-primary/10 shadow-sm space-y-1">
+                <div className="font-semibold text-primary flex items-center gap-1">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-[11px] font-bold">2</span>
+                  온(ON) 소비 가격 및 3D 이펙트
+                </div>
+                <p className="text-[11px] text-foreground font-medium">
+                  투명 3D 알파 비디오 &amp; 파티클 렌더러
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  <b>3D 투명 알파 비디오</b>는 화면 전체를 덮는 최고급 이펙트(Alpha MP4 URL 등록)입니다. 그 외 3D 입체 폭죽쇼, 3D 하트 폭풍 등 프리셋 렌더러를 아이템 성격에 맞게 선택하세요.
+                </p>
+              </div>
+
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-primary/10 shadow-sm space-y-1">
+                <div className="font-semibold text-primary flex items-center gap-1">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-[11px] font-bold">3</span>
+                  노출 채널 지정 및 안전한 삭제/비활성화
+                </div>
+                <p className="text-[11px] text-foreground font-medium">
+                  채팅·라이브 노출 분리 &amp; 숨김 처리 권장
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  1:1 채팅방 및 라이브 방송(1:N / 1:1 라이브) 중 원하는 채널에만 노출할 수 있습니다. 이미 선물 교환이 일어난 아이템은 데이터 무결성을 위해 삭제보다 <b>[숨김(비활성화)]</b> 처리를 권장합니다.
+                </p>
+              </div>
+            </div>
+            <div className="text-[11px] text-muted-foreground/80 flex items-center gap-1">
+              <HelpCircle className="h-3.5 w-3.5 text-primary" />
+              <span>유저의 온(ON) 충전 상품 패키지 관리는 좌측 사이드바의 <b>[온(ON) 상점]</b> 메뉴에서 별도로 운영됩니다.</span>
+            </div>
+          </CardContent>
+        )}
+      </Card>
 
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
