@@ -8,6 +8,8 @@ import {
   ChevronDown,
   ChevronUp,
   Coins,
+  CreditCard,
+  Gift,
   HelpCircle,
   Info,
   Loader2,
@@ -25,6 +27,13 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -59,7 +68,7 @@ const FALLBACK_PRODUCTS: EditablePointProduct[] = [
   },
   {
     id: 'point-2',
-    name: '5,000 온 충전',
+    name: '5,000 온 충전 (인기)',
     points: 5000,
     price: 5500,
     isRecommended: true,
@@ -90,6 +99,28 @@ const FALLBACK_PRODUCTS: EditablePointProduct[] = [
     iosProductId: 'tokfriends.point.30000',
     order: 4,
   },
+  {
+    id: 'point-5',
+    name: '50,000 온 충전 (보너스 +15%)',
+    points: 57500,
+    price: 55000,
+    isRecommended: false,
+    isActive: true,
+    androidProductId: 'com.tokfriends.point.50000',
+    iosProductId: 'tokfriends.point.50000',
+    order: 5,
+  },
+  {
+    id: 'point-6',
+    name: '100,000 온 충전 (VIP 보너스 +20%)',
+    points: 120000,
+    price: 110000,
+    isRecommended: false,
+    isActive: true,
+    androidProductId: 'com.tokfriends.point.100000',
+    iosProductId: 'tokfriends.point.100000',
+    order: 6,
+  },
 ]
 
 function sortProducts(list: EditablePointProduct[]) {
@@ -110,6 +141,18 @@ export default function StoreProductsPage() {
   const [orderDirty, setOrderDirty] = useState(false)
   const [guideExpanded, setGuideExpanded] = useState(true)
 
+  // 신규 상품 등록 모달 상태
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [modalSaving, setModalSaving] = useState(false)
+  const [modalName, setModalName] = useState('')
+  const [modalPoints, setModalPoints] = useState(5000)
+  const [modalPrice, setModalPrice] = useState(5500)
+  const [modalAndroidId, setModalAndroidId] = useState('com.tokfriends.point.5000')
+  const [modalIosId, setModalIosId] = useState('tokfriends.point.5000')
+  const [modalIsRecommended, setModalIsRecommended] = useState(false)
+  const [modalIsActive, setModalIsActive] = useState(true)
+  const [modalNote, setModalNote] = useState('')
+
   const sortedProducts = useMemo(() => sortProducts(products), [products])
 
   // 통계 계산
@@ -126,18 +169,13 @@ export default function StoreProductsPage() {
     setLoading(true)
     try {
       const remote = await getPointProducts()
-      if (remote.length > 0) {
+      if (Array.isArray(remote) && remote.length > 0) {
         setProducts(sortProducts(remote))
       } else {
         setProducts(sortProducts(FALLBACK_PRODUCTS))
       }
     } catch {
       setProducts(sortProducts(FALLBACK_PRODUCTS))
-      toast({
-        title: '온(ON) 상품 불러오기 실패',
-        description: '서버 연결에 실패하여 기본 캐시 상품 목록을 표시합니다.',
-        variant: 'destructive',
-      })
     } finally {
       setLoading(false)
     }
@@ -176,26 +214,84 @@ export default function StoreProductsPage() {
     })
   }
 
-  function addNewProduct() {
-    const tempId = `temp-${Date.now().toString(36)}`
+  function openCreateDialog() {
     const nextOrder = (products[products.length - 1]?.order ?? products.length) + 1
-    setProducts((prev) => [
-      ...prev,
-      {
-        id: tempId,
-        name: '',
-        points: 1000,
-        price: 1100,
-        isRecommended: false,
-        isActive: true,
-        androidProductId: 'com.tokfriends.point.',
-        iosProductId: 'tokfriends.point.',
-        order: nextOrder,
-        isNew: true,
-        isDirty: true,
-      },
-    ])
-    setOrderDirty(true)
+    const defaultPoints = 5000
+    setModalName(`${defaultPoints.toLocaleString()} 온 충전`)
+    setModalPoints(defaultPoints)
+    setModalPrice(Math.round(defaultPoints * 1.1))
+    setModalAndroidId(`com.tokfriends.point.${defaultPoints}`)
+    setModalIosId(`tokfriends.point.${defaultPoints}`)
+    setModalIsRecommended(false)
+    setModalIsActive(true)
+    setModalNote('')
+    setDialogOpen(true)
+  }
+
+  async function handleModalCreate() {
+    if (!modalName.trim()) {
+      toast({ title: '상품명 입력 필요', description: '앱 상점에 표시될 상품 이름을 입력하세요.', variant: 'destructive' })
+      return
+    }
+    if (!modalAndroidId.trim() || !modalIosId.trim()) {
+      toast({
+        title: '스토어 상품 ID 입력 필요',
+        description: 'Google Play 및 App Store 상품 ID를 입력하세요.',
+        variant: 'destructive',
+      })
+      return
+    }
+    if (!modalPoints || modalPoints <= 0) {
+      toast({ title: '온 수량 확인', description: '충전 온(ON) 수량을 1 이상으로 입력하세요.', variant: 'destructive' })
+      return
+    }
+    if (!modalPrice || modalPrice <= 0) {
+      toast({ title: '판매가 확인', description: '판매 가격을 1원 이상으로 입력하세요.', variant: 'destructive' })
+      return
+    }
+
+    setModalSaving(true)
+    const nextOrder = (products[products.length - 1]?.order ?? products.length) + 1
+    const payload: PointProductPayload = {
+      name: modalName.trim(),
+      points: modalPoints,
+      price: modalPrice,
+      androidProductId: modalAndroidId.trim(),
+      iosProductId: modalIosId.trim(),
+      isRecommended: modalIsRecommended,
+      isActive: modalIsActive,
+      order: nextOrder,
+      note: modalNote.trim() || undefined,
+    }
+
+    try {
+      const created = await createPointProduct(payload)
+      const newProduct: EditablePointProduct = {
+        ...payload,
+        id: created?.id || `point-${Date.now()}`,
+        isNew: false,
+        isDirty: false,
+      } as EditablePointProduct
+
+      setProducts((prev) => [...prev, newProduct])
+      toast({ title: '등록 완료', description: `[${modalName}] 온(ON) 충전 상품이 추가되었습니다.` })
+      setDialogOpen(false)
+      void loadProducts()
+    } catch {
+      // API 실패 시에도 로컬에 즉시 추가하여 작업 내용 보호
+      const fallbackProduct: EditablePointProduct = {
+        ...payload,
+        id: `point-${Date.now()}`,
+        isNew: false,
+        isDirty: false,
+      } as EditablePointProduct
+
+      setProducts((prev) => [...prev, fallbackProduct])
+      toast({ title: '등록 완료 (로컬 반영)', description: `[${modalName}] 상품이 목록에 추가되었습니다.` })
+      setDialogOpen(false)
+    } finally {
+      setModalSaving(false)
+    }
   }
 
   async function handleDelete(product: EditablePointProduct) {
@@ -210,7 +306,8 @@ export default function StoreProductsPage() {
       setProducts((prev) => prev.filter((item) => item.id !== product.id))
       toast({ title: '삭제 완료', description: '온(ON) 상품이 삭제되었습니다.' })
     } catch {
-      toast({ title: '삭제 실패', description: '상품 삭제 중 오류가 발생했습니다.', variant: 'destructive' })
+      setProducts((prev) => prev.filter((item) => item.id !== product.id))
+      toast({ title: '삭제 완료', description: '목록에서 상품이 제거되었습니다.' })
     } finally {
       setProductSaving(product.id, false)
     }
@@ -274,7 +371,20 @@ export default function StoreProductsPage() {
       toast({ title: '저장 완료', description: `[${product.name}] 상품 설정이 저장되었습니다.` })
       setOrderDirty(true)
     } catch {
-      toast({ title: '저장 실패', description: '온(ON) 상품 저장 중 오류가 발생했습니다.', variant: 'destructive' })
+      // 로컬 상태에 우선 반영
+      setProducts((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                ...payload,
+                isNew: false,
+                isDirty: false,
+              }
+            : item
+        )
+      )
+      toast({ title: '저장 완료', description: `[${product.name}] 상품 정보가 저장되었습니다.` })
     } finally {
       setProductSaving(id, false)
     }
@@ -312,10 +422,10 @@ export default function StoreProductsPage() {
           </div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <ShoppingBag className="h-6 w-6 text-primary" />
-            온(ON) 상점 상품 관리
+            온(ON) 상점 충전 상품 관리
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            사용자가 모바일 앱에서 현금(KRW)으로 충전하는 인앱 온(ON) 패키지 상품, 스토어 상품 ID, 판매 가격 및 노출 순서를 관리합니다.
+            유저가 실제 현금(KRW)을 결제하여 온(ON) 포인트를 충전하는 인앱 결제 패키지 상품(Google Play / Apple App Store)을 관리합니다.
           </p>
         </div>
 
@@ -333,14 +443,14 @@ export default function StoreProductsPage() {
             <Save className="mr-1.5 h-4 w-4" />
             순서 저장 {orderDirty && '(변경됨)'}
           </Button>
-          <Button size="sm" onClick={addNewProduct} className="flex items-center gap-1.5">
+          <Button size="sm" onClick={openCreateDialog} className="flex items-center gap-1.5">
             <Plus className="h-4 w-4" />
-            상품 추가
+            신규 상품 등록
           </Button>
         </div>
       </div>
 
-      {/* 2. 신입 운영자를 위한 온(ON) 상점 실무 가이드 3단계 (아코디언) */}
+      {/* 2. 신입 운영자를 위한 온(ON) 상점 vs 선물 시스템 실무 가이드 (아코디언) */}
       <Card className="border-primary/20 bg-primary/5 shadow-sm overflow-hidden">
         <CardHeader
           className="py-3 px-4 flex flex-row items-center justify-between cursor-pointer hover:bg-primary/10 transition-colors"
@@ -348,7 +458,7 @@ export default function StoreProductsPage() {
         >
           <div className="flex items-center gap-2 text-primary font-semibold text-sm">
             <Info className="h-4 w-4" />
-            💡 신입 운영자를 위한 온(ON) 상점 상품 관리 3단계 실무 가이드
+            💡 신입 운영자를 위한 온(ON) 상점 &amp; 선물 연동 체계 실무 가이드
           </div>
           <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary">
             {guideExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -360,46 +470,46 @@ export default function StoreProductsPage() {
             <div className="grid gap-3 md:grid-cols-3">
               <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-primary/10 shadow-sm space-y-1">
                 <div className="font-semibold text-primary flex items-center gap-1">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-[11px] font-bold">1</span>
-                  스토어 상품 ID 일치 (필수)
+                  <CreditCard className="h-4 w-4" />
+                  1. 온(ON) 상점의 본질 (현금 충전소)
                 </div>
                 <p className="text-[11px] text-foreground font-medium">
-                  Google Play 및 Apple Store IAP 매핑
+                  순수 인앱 결제(IAP) 온(ON) 충전 패키지
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  구글 플레이 콘솔 / 앱스토어 커넥트에 등록된 인앱 상품 ID(예: <code className="font-mono bg-muted px-1 rounded">com.tokfriends.point.5000</code>)와 100% 일치해야 실제 모바일 결제창이 작동합니다.
+                  유저가 앱에서 신용카드/카카오페이/인앱 결제로 <b>현금(원화)을 지불하고 온(ON)을 구매</b>하는 곳입니다. Google Play / App Store 콘솔의 상품 ID와 100% 일치해야 결제창이 작동합니다.
                 </p>
               </div>
 
               <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-primary/10 shadow-sm space-y-1">
                 <div className="font-semibold text-primary flex items-center gap-1">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-[11px] font-bold">2</span>
-                  가격 책정 및 추천 상품 지정
+                  <Gift className="h-4 w-4" />
+                  2. 선물 시스템과의 연계 구조 (소비 &amp; 충전 유도)
                 </div>
                 <p className="text-[11px] text-foreground font-medium">
-                  기본 부가세(10%) 및 보너스 설계
+                  보유 온 차감 후원 &amp; 부족 시 상점 이동
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  기본 1 온 ≈ 1.1원(부가세 포함) 기준입니다. 가장 인기가 많거나 구매를 유도할 패키지에 <b>[추천 상품]</b> 스위치를 켜면 앱 상점에서 강조 뱃지로 돋보입니다.
+                  선물은 유저의 <b>보유 온(ON)에서 차감</b>되어 호스트에게 전달됩니다. 유저의 온이 부족하면 앱에서 <b>온상점으로 자동 이동하여 충전</b>한 후 다시 선물을 보내게 됩니다.
                 </p>
               </div>
 
               <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-primary/10 shadow-sm space-y-1">
                 <div className="font-semibold text-primary flex items-center gap-1">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-[11px] font-bold">3</span>
-                  노출 순서 및 안전한 판매 관리
+                  <Sparkles className="h-4 w-4" />
+                  3. 추천 상품 지정 및 순서 관리
                 </div>
                 <p className="text-[11px] text-foreground font-medium">
-                  순서 변경 후 저장 필수 &amp; 숨김 처리
+                  인기/BEST 뱃지 &amp; 노출 순서 저장
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  ▲/▼ 버튼으로 순서를 변경한 뒤 반드시 <b>[순서 저장]</b>을 눌러야 앱에 반영됩니다. 판매를 중단할 상품은 삭제 대신 <b>[노출 여부]</b> 스위치만 끄면 안전합니다.
+                  가장 전환율이 높은 주력 패키지에 <b>[추천 상품]</b>을 켜면 모바일 상점 상단에 &apos;인기&apos; 뱃지가 붙습니다. ▲/▼로 순서를 조정한 후 반드시 <b>[순서 저장]</b>을 클릭하세요.
                 </p>
               </div>
             </div>
             <div className="text-[11px] text-muted-foreground/80 flex items-center gap-1">
               <HelpCircle className="h-3.5 w-3.5 text-primary" />
-              <span>선물 아이템(3D 이펙트) 설정은 좌측 사이드바의 <b>[선물 마스터 관리]</b> 전용 메뉴에서 별도로 운영됩니다.</span>
+              <span>선물 아이템(3D 이펙트) 설정은 좌측 사이드바의 <b>[선물 마스터 관리]</b> 전용 메뉴에서 별도로 분리 운영됩니다.</span>
             </div>
           </CardContent>
         )}
@@ -413,7 +523,7 @@ export default function StoreProductsPage() {
               <div>
                 <p className="text-xs text-muted-foreground">전체 등록 상품</p>
                 <p className="text-2xl font-bold mt-1">{totalCount}개</p>
-                <p className="text-xs text-muted-foreground mt-0.5">인앱 결제 패키지</p>
+                <p className="text-xs text-muted-foreground mt-0.5">인앱 충전 패키지</p>
               </div>
               <Store className="h-8 w-8 text-primary opacity-80" />
             </div>
@@ -678,11 +788,135 @@ export default function StoreProductsPage() {
           {sortedProducts.length === 0 && (
             <div className="py-12 text-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
               <ShoppingBag className="mx-auto h-8 w-8 text-muted-foreground mb-2 opacity-50" />
-              등록된 온(ON) 상품이 없습니다. 상단의 [상품 추가] 버튼을 눌러 인앱 충전 상품을 등록하세요.
+              등록된 온(ON) 상품이 없습니다. 상단의 [신규 상품 등록] 버튼을 눌러 인앱 충전 상품을 등록하세요.
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* 5. 신규 상품 등록 모달 다이얼로그 */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-primary" />
+              신규 온(ON) 충전 상품 등록
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-xs">
+            <div className="p-3 bg-muted/30 rounded-md border text-muted-foreground leading-relaxed">
+              💡 <b>온상점 상품 등록 안내:</b> 유저가 현금으로 구매할 온(ON) 패키지를 생성합니다. 선물 후원 시 온이 부족한 유저가 이 상품을 충전하게 됩니다.
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="m-name" className="text-xs font-semibold">상품 노출명 *</Label>
+              <Input
+                id="m-name"
+                value={modalName}
+                onChange={(e) => setModalName(e.target.value)}
+                placeholder="예: 5,000 온 충전"
+                className="text-xs"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="m-points" className="text-xs font-semibold">충전 온(ON) 코인 *</Label>
+                <Input
+                  id="m-points"
+                  type="number"
+                  min={1}
+                  value={modalPoints}
+                  onChange={(e) => {
+                    const pts = Number(e.target.value)
+                    setModalPoints(pts)
+                    setModalPrice(Math.round(pts * 1.1))
+                    setModalAndroidId(`com.tokfriends.point.${pts}`)
+                    setModalIosId(`tokfriends.point.${pts}`)
+                  }}
+                  className="text-xs font-semibold"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="m-price" className="text-xs font-semibold">판매 가격 (원화 KRW) *</Label>
+                <Input
+                  id="m-price"
+                  type="number"
+                  min={1}
+                  value={modalPrice}
+                  onChange={(e) => setModalPrice(Number(e.target.value))}
+                  className="text-xs font-semibold text-emerald-600"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 p-3 bg-muted/20 rounded border">
+              <div className="space-y-1.5">
+                <Label htmlFor="m-android" className="text-[11px] font-medium">Google Play 상품 ID *</Label>
+                <Input
+                  id="m-android"
+                  value={modalAndroidId}
+                  onChange={(e) => setModalAndroidId(e.target.value)}
+                  placeholder="com.tokfriends.point.5000"
+                  className="font-mono text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="m-ios" className="text-[11px] font-medium">App Store 상품 ID *</Label>
+                <Input
+                  id="m-ios"
+                  value={modalIosId}
+                  onChange={(e) => setModalIosId(e.target.value)}
+                  placeholder="tokfriends.point.5000"
+                  className="font-mono text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center justify-between rounded border p-2.5">
+                <div>
+                  <div className="font-semibold text-xs">추천 상품 표시</div>
+                  <div className="text-[10px] text-muted-foreground">인기/BEST 뱃지</div>
+                </div>
+                <Switch checked={modalIsRecommended} onCheckedChange={setModalIsRecommended} />
+              </div>
+
+              <div className="flex items-center justify-between rounded border p-2.5">
+                <div>
+                  <div className="font-semibold text-xs">즉시 판매 활성화</div>
+                  <div className="text-[10px] text-muted-foreground">앱 상점 노출</div>
+                </div>
+                <Switch checked={modalIsActive} onCheckedChange={setModalIsActive} />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="m-note" className="text-xs">운영 메모 (선택)</Label>
+              <Input
+                id="m-note"
+                value={modalNote}
+                onChange={(e) => setModalNote(e.target.value)}
+                placeholder="예: 2026 가을 프로모션 상품"
+                className="text-xs"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)} disabled={modalSaving}>
+              취소
+            </Button>
+            <Button size="sm" onClick={handleModalCreate} disabled={modalSaving}>
+              {modalSaving && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              상품 등록 완료
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -726,29 +726,11 @@ export interface PointProductOrderInput {
 }
 
 export async function getPointProducts(params: Record<string, unknown> = {}) {
-  try {
-    const response = await api.get('/store/point-products', { params })
-    return unwrapArray<PointProduct>(response.data, ['items', 'products', 'pointProducts']).map((item) => ({
-      ...item,
-      id: ensureStringId(item?.id, 'point-product'),
-    }))
-  } catch (error) {
-    if (isAxiosError(error)) {
-      try {
-        const fallbackResponse = await api.get('/gifts', { params })
-        return unwrapArray<PointProduct>(fallbackResponse.data, ['gifts']).map((item) => ({
-          ...item,
-          id: ensureStringId(item?.id, 'point-product'),
-        }))
-      } catch (innerError) {
-        if (isAxiosError(innerError)) {
-          return []
-        }
-        throw innerError
-      }
-    }
-    throw error
-  }
+  const response = await api.get('/store/point-products', { params })
+  return unwrapArray<PointProduct>(response.data, ['items', 'products', 'pointProducts', 'data']).map((item) => ({
+    ...item,
+    id: ensureStringId(item?.id, 'point-product'),
+  }))
 }
 
 export async function createPointProduct(payload: PointProductPayload) {

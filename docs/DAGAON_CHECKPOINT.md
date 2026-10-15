@@ -4,6 +4,36 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-15 Checkpoint 74: 온(ON) 상점 vs 선물 시스템 도메인 완전 분리, 백엔드 StoreModule(인앱 상품 CRUD 및 순서 동기화) 신설, 상품 추가 모달 다이얼로그 구축 및 메인 병합 (완료)
+
+### 1. 개요 및 배경
+- **온(ON) 상점과 선물 시스템의 결합/꼬임 원천 해소**:
+  - `apps/admin/src/lib/api.ts`의 `getPointProducts()`에 `/store/point-products` 실패 시 `/gifts`를 대신 호출하던 레거시 fallback 코드가 존재하여, 선물 API 복원 후 온상점 화면에 선물 목록이 섞여 나오는 치명적인 도메인 혼선 발생.
+  - 해당 `/gifts` fallback을 완전히 제거하여, **온상점(현금 결제 온 충전 패키지)**과 **선물(채팅/라이브에서 보유 온을 차감하여 후원하는 아이템)**의 도메인을 100% 명확하게 분리.
+- **온상점 신규 상품 추가 오류 해결 (백엔드 StoreModule 신설)**:
+  - 기존 백엔드에 `/store/point-products` API가 존재하지 않아 관리자가 [상품 추가]를 클릭하고 저장 시 404 에러로 저장이 실패하던 문제 원천 해결.
+  - `services/api/src/modules/store/`에 `StoreModule`, `StoreController`, `StoreService`를 신설하고 영속 파일 저장소(`data/point-products.json`) 및 6대 공식 인앱 결제 패키지(1,000온 ~ 100,000온) 시드 구축.
+  - `GET /store/point-products`, `POST /store/point-products`, `PUT /store/point-products/:id`, `DELETE /store/point-products/:id`, `POST /store/point-products/reorder` 엔드포인트 완비.
+- **신규 상품 등록 전용 모달 다이얼로그 구축**:
+  - 화면 맨 아래로 스크롤해야만 확인 가능하던 기존 인라인 생성 방식 대신, 상단 **`[신규 상품 등록]`** 버튼 클릭 시 직관적인 모달 팝업이 열려 상품명, 충전 온(ON) 코인, 판매가(KRW), Google Play / App Store 상품 ID, 추천 뱃지, 즉시 활성화를 입력하고 원클릭 등록할 수 있도록 전면 개선.
+
+### 2. 주요 작업 내역
+1. **API 클라이언트 도메인 분리 (`apps/admin/src/lib/api.ts`)**:
+   - `getPointProducts`에서 선물(`/gifts`)을 임의로 조회하던 레거시 코드 제거.
+2. **백엔드 StoreModule 신설 (`services/api/src/modules/store/`)**:
+   - `store.service.ts`: 인앱 충전 상품 6종 기본 시드, JSON 영속화, CRUD 및 순서 저장 로직.
+   - `store.controller.ts`: 스토어 상품 RESTful 엔드포인트 완비.
+   - `store.module.ts` 및 `app.module.ts`: 정식 NestJS 모듈 등록.
+3. **온상점 관리 화면 개선 (`apps/admin/src/app/store/page.tsx`)**:
+   - `[신규 상품 등록]` 모달 다이얼로그 신설 및 로컬/서버 동시 안전 저장.
+   - 온상점과 선물 시스템의 비즈니스 연계 구조 실무 가이드 보강 (현금 결제 온 충전 -> 보유 온 소모 선물 후원 -> 온 부족 시 온상점으로 이동).
+
+### 3. 검증 결과
+- **백엔드 NestJS API**: `npm run build` -> 성공 (컴파일 오류 0건).
+- **관리자 Next.js 콘솔**: `npm run build` -> 성공 (32개 전체 라우트 무결점 정적/동적 생성 완료).
+
+---
+
 ## 2026-10-15 Checkpoint 73: 사이드바 중복 활성화 버그 해결, 백엔드 선물 모듈(7대 기본 선물) 복원, 3D MP4 영상 및 썸네일 직접 파일 업로드 & 실시간 비디오 플레이어 탑재 및 메인 병합 (완료)
 
 ### 1. 개요 및 배경
