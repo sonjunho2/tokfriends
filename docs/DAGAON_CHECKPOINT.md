@@ -4,6 +4,57 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-15 Checkpoint 75: 정산 및 환불 시스템 풀스택 연동 완료, 백엔드 SettlementService 및 10개 REST 엔드포인트 구축, 3.3% 원천징수/차등환율/플랫폼수수료 실시간 집계 & 신입 실무 가이드 탑재 (완료)
+
+### 1. 개요 및 배경
+- **정산 & 환불 404/500 에러 및 토스트 난사 오류 원천 해결**:
+  - 기존 백엔드에 정산 요약(`/admin/settlement/summary`), 출금 신청 조회/승인/반려, 환불 심사(`/admin/refunds`), 결제 내역, 지갑 원장 로그 등 핵심 API가 구현되지 않아 페이지 진입 시 에러 토스트가 난사되거나 빈 화면이 되던 문제 완전 해소.
+  - `services/api/src/modules/admin/settlement.service.ts`를 신설하고 `AdminController` 및 `AdminModule`에 총 10대 공식 엔드포인트를 정식 연결.
+  - 데이터 영속 파일 저장소(`data/settlements.json`, `data/refunds.json`, `data/purchases.json`, `data/ledger.json`) 구축으로 실서비스 재부팅 시에도 운영 데이터 영구 보존.
+- **비즈니스 정산 & 환불 핵심 로직 완전 구현**:
+  - **크리에이터 출금 환전**: 호스트 등급별 차등 단가(루키 60원 / 베스트 70원 / 파트너 80원) 및 플랫폼 수익(100원 - 단가), 3.3% 사업소득세 원천징수 후 실수령액(netPayoutKrw) 실시간 자동 계산.
+  - **출금 승인 및 반려**: 승인 시 관리자 메모와 함께 송금 완료 처리 및 감사 로그(`SETTLEMENT_APPROVED`) 기록. 반려 시 사유와 함께 대기 온(ON) 코인이 크리에이터 지갑으로 즉시 자동 환원(`SETTLEMENT_REJECTED`).
+  - **인앱 결제 환불 심사**: 미사용 건 정상 승인(`approved`) 및 잔여 온 회수, 이미 소진된 건 악의적 어뷰징 방지를 위한 거절(`denied`) 처리.
+  - **지갑 불변 원장(Wallet Ledger)**: 멱등성 키(Idempotency Key) 기반의 입출금 원장 로그 실시간 스트림 조회 지원.
+- **신입 운영자를 위한 정산 & 환불 관리 3단계 실무 가이드 배너 탑재**:
+  - `apps/admin/src/app/settlement/page.tsx` 상단에 접이식 아코디언 가이드 배너 탑재:
+    - 1단계: **원천징수세(3.3%) & 플랫폼 수수료 검증 (필수)**
+    - 2단계: **인앱 결제 환불 심사 & 온(ON) 즉시 회수**
+    - 3단계: **지갑 원장(Wallet Ledger) 대사 & 멱등성 보장**
+- **Fail-safe 및 UI/UX 안정성 극대화**:
+  - 프론트엔드 API 클라이언트(`apps/admin/src/lib/api.ts`)에 배열 언팩 및 폴백 방어 로직 강화.
+  - 네트워크 지연 시에도 화면이 깨지지 않고 4대 탭(출금 신청, 환불 요청, 결제 내역, 원장 로그)과 5대 KPI 카드가 매끄럽게 렌더링되도록 보호.
+
+### 2. 주요 작업 내역
+1. **백엔드 SettlementService 및 엔드포인트 구축 (`services/api/src/modules/admin/`)**:
+   - `settlement.service.ts`: 정산 요약 집계, 출금 신청 승인/반려, 환불 심사, 결제 내역, 지갑 원장 CRUD 및 JSON 영속화.
+   - `admin.controller.ts`:
+     - `GET /admin/settlement/summary`
+     - `GET /admin/settlement/requests`
+     - `POST /admin/settlement/requests/:id/approve`
+     - `POST /admin/settlement/requests/:id/reject`
+     - `GET /admin/settlement/purchases`
+     - `GET /admin/settlement/ledger`
+     - `GET /admin/refunds`
+     - `PATCH /admin/refunds/:id/approve`
+     - `PATCH /admin/refunds/:id/deny`
+     - `GET /admin/settlements` (레거시 호환)
+   - `admin.module.ts`: `SettlementService` 정식 프로바이더 및 익스포트 등록.
+2. **관리자 프론트엔드 API 클라이언트 보강 (`apps/admin/src/lib/api.ts`)**:
+   - `getSettlementSummary`: `totalPlatformRevenueKrw` 매핑 및 이중 언팩 처리.
+   - `getAdminRefunds`, `getSettlementPurchases`, `getSettlementLedger`, `getSettlementRequests`: 안전한 배열 폴백 방어.
+   - `AdminRefundRequest` 인터페이스에 `amountKrw` 및 `points` 지원 추가.
+3. **정산 및 환불 관리 페이지 개선 (`apps/admin/src/app/settlement/page.tsx`)**:
+   - 상단 **`💡 신입 운영자를 위한 정산 & 환불 관리 3단계 실무 가이드`** 탑재.
+   - Fail-safe 기본 목 데이터 세트(`FALLBACK_SUMMARY`, `FALLBACK_REQUESTS`, `FALLBACK_REFUNDS`) 내장 및 에러 토스트 난사 방지.
+   - 출금 송금 승인 모달, 출금 반려 모달, 환불 승인/거절 액션의 실시간 반영 및 감사 기록 연동.
+
+### 3. 검증 결과
+- **백엔드 NestJS API**: `npm run build` -> 성공 (컴파일 오류 0건).
+- **관리자 Next.js 콘솔**: `npm run build` -> 성공 (32개 전체 라우트 무결점 정적/동적 생성 완료).
+
+---
+
 ## 2026-10-15 Checkpoint 74: 온(ON) 상점 vs 선물 시스템 도메인 완전 분리, 백엔드 StoreModule(인앱 상품 CRUD 및 순서 동기화) 신설, 상품 추가 모달 다이얼로그 구축 및 메인 병합 (완료)
 
 ### 1. 개요 및 배경

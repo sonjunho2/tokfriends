@@ -1759,6 +1759,8 @@ export interface AdminRefundRequest {
   platform: string
   productId: string
   receiptId: string
+  amountKrw?: number
+  points?: number
   reason?: string | null
   status: 'pending' | 'approved' | 'denied' | string
   createdAt: string
@@ -1890,7 +1892,7 @@ export interface WalletLedgerItem {
 export async function getAdminRefunds(): Promise<AdminRefundRequest[]> {
   const response = await api.get('/admin/refunds')
   const d = response.data
-  return Array.isArray(d) ? d : []
+  return Array.isArray(d) ? d : Array.isArray((d as any)?.items) ? (d as any).items : []
 }
 
 export async function approveAdminRefund(id: string): Promise<AdminRefundRequest> {
@@ -1905,7 +1907,7 @@ export async function denyAdminRefund(id: string): Promise<AdminRefundRequest> {
 
 export async function getSettlementSummary(): Promise<SettlementSummary> {
   const response = await api.get('/admin/settlement/summary')
-  const d = (response.data as any)?.data ?? {}
+  const d = (response.data as any)?.data ?? response.data ?? {}
   return {
     totalPurchasesCount: Number(d.totalPurchasesCount ?? 0),
     totalPointsPurchased: Number(d.totalPointsPurchased ?? 0),
@@ -1917,6 +1919,7 @@ export async function getSettlementSummary(): Promise<SettlementSummary> {
     totalSpendableBalance: Number(d.totalSpendableBalance ?? 0),
     totalRedeemableBalance: Number(d.totalRedeemableBalance ?? 0),
     totalPendingEarnings: Number(d.totalPendingEarnings ?? 0),
+    totalPlatformRevenueKrw: Number(d.totalPlatformRevenueKrw ?? 0),
     recentPurchases: Array.isArray(d.recentPurchases) ? d.recentPurchases : [],
   }
 }
@@ -1934,14 +1937,14 @@ export async function getSettlementPurchases(params: {
     limit: Number(d?.limit ?? 20),
     total: Number(d?.total ?? 0),
     totalPages: Number(d?.totalPages ?? 1),
-    items: Array.isArray(d?.items) ? d.items : [],
+    items: Array.isArray(d?.items) ? d.items : Array.isArray(d) ? d : [],
   }
 }
 
 export async function getSettlementLedger(take = 20): Promise<WalletLedgerItem[]> {
   const response = await api.get('/admin/settlement/ledger', { params: { take } })
   const d = response.data as any
-  return Array.isArray(d?.items) ? d.items : []
+  return Array.isArray(d?.items) ? d.items : Array.isArray(d) ? d : []
 }
 
 export async function getSettlementRequests(params: {
@@ -1958,7 +1961,7 @@ export async function getSettlementRequests(params: {
     limit: Number(d?.limit ?? 15),
     total: Number(d?.total ?? 0),
     totalPages: Number(d?.totalPages ?? 1),
-    items: Array.isArray(d?.items) ? d.items : [],
+    items: Array.isArray(d?.items) ? d.items : Array.isArray(d) ? d : [],
   }
 }
 

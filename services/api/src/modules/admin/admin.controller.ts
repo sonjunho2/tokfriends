@@ -28,6 +28,7 @@ import {
 } from './dto';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AdminSettingsService } from './admin-settings.service';
+import { SettlementService } from './settlement.service';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -37,6 +38,7 @@ import { AdminSettingsService } from './admin-settings.service';
 export class AdminController {
   constructor(
     private readonly adminSettings: AdminSettingsService,
+    private readonly settlementService: SettlementService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -410,30 +412,112 @@ export class AdminController {
   // ==========================================
   // [사람 운영자 필수 관리 기능: 정산 & 환불]
   // ==========================================
-  @Get('settlements')
-  async getSettlements() {
-    try {
-      const list = await (this.prisma as any).settlementRequest.findMany({
-        take: 50,
-        orderBy: { createdAt: 'desc' },
-      });
-      return list;
-    } catch {
-      return [];
-    }
+  @Get('settlement/summary')
+  async getSettlementSummary() {
+    return this.settlementService.getSummary();
+  }
+
+  @Get('settlement/requests')
+  async getSettlementRequests(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.settlementService.getSettlementRequests({ page, limit, status, search });
+  }
+
+  @Post('settlement/requests/:id/approve')
+  async approveSettlementRequest(
+    @CurrentUser() actor: any,
+    @Param('id') id: string,
+    @Body() dto: { adminMemo?: string },
+  ) {
+    const actorId = actor?.id ?? actor?.sub;
+    const result = await this.settlementService.approveSettlement(id, dto?.adminMemo);
+    await this.prisma.auditLog.create({
+      data: {
+        actorId,
+        target: `settlement:${id}`,
+        action: 'SETTLEMENT_APPROVED',
+        notes: `points=${result.pointsAmount};netKrw=${result.netAmount};bank=${result.bankName};memo=${dto?.adminMemo || ''}`,
+      },
+    }).catch(() => null);
+    return result;
+  }
+
+  @Post('settlement/requests/:id/reject')
+  async rejectSettlementRequest(
+    @CurrentUser() actor: any,
+    @Param('id') id: string,
+    @Body() dto: { reason: string },
+  ) {
+    const actorId = actor?.id ?? actor?.sub;
+    const result = await this.settlementService.rejectSettlement(id, dto?.reason);
+    await this.prisma.auditLog.create({
+      data: {
+        actorId,
+        target: `settlement:${id}`,
+        action: 'SETTLEMENT_REJECTED',
+        notes: `reason=${dto?.reason || ''};refundPoints=${result.pointsAmount}`,
+      },
+    }).catch(() => null);
+    return result;
+  }
+
+  @Get('settlement/purchases')
+  async getSettlementPurchases(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('platform') platform?: string,
+  ) {
+    return this.settlementService.getPurchases({ page, limit, platform });
+  }
+
+  @Get('settlement/ledger')
+  async getSettlementLedger(@Query('take') take?: number) {
+    return this.settlementService.getLedger(take);
   }
 
   @Get('refunds')
   async getRefunds() {
-    try {
-      const list = await (this.prisma as any).refundRequest.findMany({
-        take: 50,
-        orderBy: { createdAt: 'desc' },
-      });
-      return list;
-    } catch {
-      return [];
-    }
+    return this.settlementService.getRefundRequests();
+  }
+
+  @Patch('refunds/:id/approve')
+  async approveRefund(@CurrentUser() actor: any, @Param('id') id: string) {
+    const actorId = actor?.id ?? actor?.sub;
+    const result = await this.settlementService.approveRefund(id);
+    await this.prisma.auditLog.create({
+      data: {
+        actorId,
+        target: `refund:${id}`,
+        action: 'REFUND_APPROVED',
+        notes: `points=${result.points};krw=${result.amountKrw};platform=${result.platform}`,
+      },
+    }).catch(() => null);
+    return result;
+  }
+
+  @Patch('refunds/:id/deny')
+  async denyRefund(@CurrentUser() actor: any, @Param('id') id: string) {
+    const actorId = actor?.id ?? actor?.sub;
+    const result = await this.settlementService.denyRefund(id);
+    await this.prisma.auditLog.create({
+      data: {
+        actorId,
+        target: `refund:${id}`,
+        action: 'REFUND_DENIED',
+        notes: `points=${result.points};krw=${result.amountKrw};platform=${result.platform}`,
+      },
+    }).catch(() => null);
+    return result;
+  }
+
+  @Get('settlements')
+  async getSettlements() {
+    const res = await this.settlementService.getSettlementRequests({ limit: 50 });
+    return res.items;
   }
 
   @Get('metrics/dashboard')
