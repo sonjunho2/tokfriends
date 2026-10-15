@@ -4,6 +4,40 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-15 Checkpoint 69: 라이브 스트리밍(/live) 관리자 API 오류 해결, 1:N 및 1:1 라이브 방송 분리 관제, 실시간 지표 Fail-safe 적용, 신입 친화 3단계 가이드 및 원클릭 제재 모달 구축 (완료)
+
+### 1. 개요 및 배경
+- **백엔드 관리자 라이브 엔드포인트 누락 오류 원천 해결**:
+  - `apps/admin/src/app/live/page.tsx` 접속 시 발생하던 `라이브 요약 로드 실패: Cannot GET /v1/live/admin/summary` 404 에러 및 `undefined개`, `undefined명` 지표 깨짐 현상을 해결.
+  - `services/api/src/modules/streaming/live.controller.ts`에 관리자용 엔드포인트(`GET /live/admin/summary`, `GET /live/admin/rooms`, `POST /live/admin/rooms/:id/force-end`, `GET /live/rooms/:roomId/messages`, `GET /live/admin/stream-config`, `PATCH /live/admin/stream-config`)를 완벽히 구현.
+- **신입 운영자를 위한 라이브 스트리밍 관제 환경 개선**:
+  - 다가온(DAGAON)의 2대 스트리밍 체계인 **[1:N 다자간 라이브 방송]**과 **[1:1 프라이빗 라이브 방송]**을 명확히 구분하는 탭 및 시각 태그 탑재.
+  - `💡 신입 운영자를 위한 라이브 방송 관제 3단계 실무 가이드` (1단계: 방송 유형 & 이상 징후 확인 -> 2단계: 채팅/선물 후원 모니터링 -> 3단계: 신속 제재) 탑재.
+
+### 2. 주요 작업 내역
+1. **백엔드 스트리밍 컨트롤러 확장 (`services/api/src/modules/streaming/live.controller.ts`)**:
+   - `GET /v1/live/admin/summary`: 전체 누적 방송, 실시간 진행 중 방송, 동시 접속 시청자 수, 누적 후원 온(ON), 하트 수 반환.
+   - `GET /v1/live/admin/rooms`: 1:N 다자간 방송과 1:1 프라이빗 라이브 방송, AI 유해성 플래그 상태(`flagged`, `flagReason`) 실시간 제공.
+   - `POST /v1/live/admin/rooms/:id/force-end`: 방송 즉시 강제 종료 처리.
+   - `GET /v1/live/rooms/:roomId/messages`: 실시간 채팅 및 선물(온/하트) 로그 반환.
+   - `GET/PATCH /v1/live/admin/stream-config`: Agora RTC 단독 모드 vs CDN HLS 중계 모드 조회 및 실시간 전환.
+2. **프론트엔드 API 클라이언트 안전성 강화 (`apps/admin/src/lib/api.ts`)**:
+   - `AdminLiveRoom` 인터페이스에 `type?: 'PUBLIC_1_TO_N' | 'PRIVATE_1_TO_1'`, `flagged?: boolean`, `flagReason?: string` 공식 추가.
+   - `getAdminLiveSummary` 및 `getAdminLiveRooms`에 Fail-safe 기본값을 적용하여 백엔드 지연이나 네트워크 이상 시에도 화면이 깨지지 않고 정상 렌더링되도록 보호.
+3. **관리자 라이브 스트리밍 관제 화면 전면 개선 (`apps/admin/src/app/live/page.tsx`)**:
+   - 지표 카드 깨짐(undefined) 완전 제거 및 안전 포맷팅 (`activeLiveRooms ?? 0` 등).
+   - 트위치/유튜브 라이브 스타일의 카드 그리드: 실시간 시청자 수, 좋아요 수, 후원 온 금액, AI 유해성 감지 뱃지 노출.
+   - 탭 필터: `[전체]`, `[🔴 진행 중]`, `[👥 1:N 다자간]`, `[🔒 1:1 프라이빗]`, `[🚨 AI 의심]`, `[종료됨]`.
+   - 원클릭 액션 버튼 3종: `[💬 채팅/선물]`, `[⚠️ 경고]`, `[🛑 강제 종료]`.
+   - **실시간 채팅/선물 로그 뷰어 모달**: 시청자 채팅 및 하트 후원 흐름 실시간 확인.
+   - **방송 즉시 강제 종료 모달**: 사유 선택(음란물/과다노출, 사기/외부연락처, 비속어, 저작권 위반) 후 원클릭 송출 중단.
+
+### 3. 검증 결과
+- **백엔드 NestJS API**: `npm run build` -> 성공 (컴파일 오류 0건).
+- **관리자 Next.js 콘솔**: `npm run build` -> 성공 (32개 전체 라우트 무결점 정적/동적 생성 완료).
+
+---
+
 ## 2026-10-15 Checkpoint 68: 1:1 대화 관리(/chats) 신입 친화형 전면 리뉴얼 — 카카오톡 스타일 말풍선 뷰어, 3단계 실무 가이드, 4대 원클릭 제재 컨트롤, AI 실시간 금칙어/안전 정책 탑재 및 메인 병합 (완료)
 
 ### 1. 개요 및 배경

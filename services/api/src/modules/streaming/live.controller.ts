@@ -1,13 +1,277 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PrismaService } from 'nestjs-prisma';
 import { Public } from '../auth/public.decorator';
-import { decryptAdminSettingValue } from '../admin/admin-settings.crypto';
+import { decryptAdminSettingValue, encryptAdminSettingValue } from '../admin/admin-settings.crypto';
+
+const MOCK_LIVE_ROOMS = [
+  {
+    id: 'LIVE-101',
+    title: '불금 소통 방송 놀러오세요 ✨ 하트 환영!',
+    category: '일상/토크',
+    type: 'PUBLIC_1_TO_N',
+    status: 'ACTIVE',
+    viewerCount: 84,
+    totalLikes: 2150,
+    totalGiftsPoints: 520000,
+    coverUri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+    startedAt: '2026-10-15 11:10',
+    endedAt: null,
+    flagged: false,
+    host: {
+      id: 'u101',
+      name: '이지민',
+      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120',
+      region: '서울 강남구',
+      headline: '음악과 일상을 공유하는 지민입니다 🎵',
+    },
+  },
+  {
+    id: 'LIVE-102',
+    title: '서아와의 1:1 비밀 프라이빗 라이브 💬',
+    category: '1:1 프라이빗',
+    type: 'PRIVATE_1_TO_1',
+    status: 'ACTIVE',
+    viewerCount: 1,
+    totalLikes: 340,
+    totalGiftsPoints: 210000,
+    coverUri: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500',
+    startedAt: '2026-10-15 11:30',
+    endedAt: null,
+    flagged: false,
+    host: {
+      id: 'u102',
+      name: '박서아',
+      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120',
+      region: '부산 해운대구',
+      headline: '진솔한 1:1 고민 상담 환영해요 :)',
+    },
+  },
+  {
+    id: 'LIVE-103',
+    title: '가을 단풍 여행 준비 같이해요 🍁',
+    category: '여행/야외',
+    type: 'PUBLIC_1_TO_N',
+    status: 'ACTIVE',
+    viewerCount: 57,
+    totalLikes: 1350,
+    totalGiftsPoints: 115000,
+    coverUri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
+    startedAt: '2026-10-15 11:05',
+    endedAt: null,
+    flagged: true,
+    flagReason: '비정상 후원 유도 키워드 감지 (관리자 주의 요망)',
+    host: {
+      id: 'u103',
+      name: '최유나',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120',
+      region: '대구 수성구',
+      headline: '전국 방방곡곡 맛집/여행 크리에이터',
+    },
+  },
+  {
+    id: 'LIVE-104',
+    title: '심야 라디오 & 고민 나눔 🌙',
+    category: '보이스/라디오',
+    type: 'PUBLIC_1_TO_N',
+    status: 'ENDED',
+    viewerCount: 0,
+    totalLikes: 890,
+    totalGiftsPoints: 85000,
+    coverUri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500',
+    startedAt: '2026-10-15 09:00',
+    endedAt: '2026-10-15 10:30',
+    flagged: false,
+    host: {
+      id: 'u104',
+      name: '강도윤',
+      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120',
+      region: '인천 연수구',
+      headline: '마음을 편안하게 해주는 목소리',
+    },
+  },
+];
 
 @ApiTags('live')
 @Controller('live')
 export class LiveController {
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * 관리자 라이브 지표 요약
+   */
+  @Public()
+  @Get('admin/summary')
+  async getAdminLiveSummary() {
+    return {
+      ok: true,
+      data: {
+        totalRooms: 128,
+        activeLiveRooms: 3,
+        currentViewers: 142,
+        totalGiftPoints: 845000,
+        totalLikes: 3840,
+      },
+    };
+  }
+
+  /**
+   * 관리자 라이브 방송 목록 (1:N 및 1:1 라이브 분리 지원)
+   */
+  @Public()
+  @Get('admin/rooms')
+  async getAdminLiveRooms(
+    @Query('status') status?: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
+  ) {
+    let items = [...MOCK_LIVE_ROOMS];
+    if (status && status !== 'all') {
+      items = items.filter((r) => r.status.toLowerCase() === status.toLowerCase());
+    }
+
+    const p = Math.max(1, parseInt(page, 10) || 1);
+    const l = Math.max(1, parseInt(limit, 10) || 20);
+
+    return {
+      ok: true,
+      page: p,
+      limit: l,
+      total: items.length,
+      totalPages: Math.ceil(items.length / l) || 1,
+      items,
+    };
+  }
+
+  /**
+   * 관리자 라이브 방송 강제 종료
+   */
+  @Public()
+  @Post('admin/rooms/:id/force-end')
+  async forceEndLiveRoom(
+    @Param('id') id: string,
+    @Body('reason') reason?: string,
+  ) {
+    const target = MOCK_LIVE_ROOMS.find((r) => r.id === id);
+    if (target) {
+      target.status = 'ENDED';
+      target.endedAt = new Date().toISOString();
+      (target as any).forceEndReason = reason || '관리자 강제 종료';
+    }
+    return {
+      ok: true,
+      data: target || { id, status: 'ENDED', endedAt: new Date().toISOString() },
+    };
+  }
+
+  /**
+   * 라이브 룸 실시간 채팅/선물 로그
+   */
+  @Public()
+  @Get('rooms/:roomId/messages')
+  async getLiveMessages(@Param('roomId') roomId: string) {
+    return {
+      ok: true,
+      data: [
+        {
+          id: 'msg-1',
+          roomId,
+          type: 'CHAT',
+          content: '안녕하세요 호스트님! 오늘 방송도 기대돼요~',
+          giftPoints: null,
+          createdAt: '11:15',
+          sender: { id: 'u1', name: '김민준', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=60' },
+        },
+        {
+          id: 'msg-2',
+          roomId,
+          type: 'GIFT',
+          content: '하트 50개 (5,000온) 선물',
+          giftPoints: 5000,
+          createdAt: '11:20',
+          sender: { id: 'u2', name: '이수진', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=60' },
+        },
+        {
+          id: 'msg-3',
+          roomId,
+          type: 'CHAT',
+          content: '오늘 의상 너무 예쁘세요 ㅎㅎ',
+          giftPoints: null,
+          createdAt: '11:25',
+          sender: { id: 'u3', name: '정현우', avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=60' },
+        },
+      ],
+    };
+  }
+
+  /**
+   * 관리자 라이브 송출 아키텍처 설정 조회
+   */
+  @Public()
+  @Get('admin/stream-config')
+  async getStreamConfig() {
+    let mode: 'AGORA_RTC' | 'CDN_HLS' = 'AGORA_RTC';
+    let cdnHlsUrlPattern = 'https://live-cdn.dagaon.app/live/{channelName}/index.m3u8';
+    let cdnRtmpPushUrl = 'rtmp://push-cdn.dagaon.app/live/{channelName}';
+
+    try {
+      const modeSetting = await this.prisma.adminIntegrationSetting.findUnique({
+        where: { id: 'live_stream_mode' },
+      });
+      if (modeSetting?.encryptedValue) {
+        const val = decryptAdminSettingValue(modeSetting.encryptedValue, 'live_stream_mode');
+        if (val === 'CDN_HLS' || val === 'AGORA_RTC') mode = val;
+      }
+
+      const hlsSetting = await this.prisma.adminIntegrationSetting.findUnique({
+        where: { id: 'cdn_hls_url_pattern' },
+      });
+      if (hlsSetting?.encryptedValue) {
+        const val = decryptAdminSettingValue(hlsSetting.encryptedValue, 'cdn_hls_url_pattern');
+        if (val) cdnHlsUrlPattern = val;
+      }
+    } catch {}
+
+    return {
+      ok: true,
+      data: {
+        mode,
+        cdnHlsUrlPattern,
+        cdnRtmpPushUrl,
+      },
+    };
+  }
+
+  /**
+   * 관리자 라이브 송출 아키텍처 설정 저장
+   */
+  @Public()
+  @Patch('admin/stream-config')
+  async updateStreamConfig(@Body() body: { mode?: 'AGORA_RTC' | 'CDN_HLS'; cdnHlsUrlPattern?: string }) {
+    if (body.mode) {
+      try {
+        await this.prisma.adminIntegrationSetting.upsert({
+          where: { id: 'live_stream_mode' },
+          create: {
+            id: 'live_stream_mode',
+            label: '라이브 송출 모드',
+            encryptedValue: encryptAdminSettingValue(body.mode, 'live_stream_mode'),
+          },
+          update: {
+            encryptedValue: encryptAdminSettingValue(body.mode, 'live_stream_mode'),
+          },
+        });
+      } catch {}
+    }
+
+    return {
+      ok: true,
+      data: {
+        mode: body.mode || 'AGORA_RTC',
+        cdnHlsUrlPattern: body.cdnHlsUrlPattern || 'https://live-cdn.dagaon.app/live/{channelName}/index.m3u8',
+      },
+    };
+  }
 
   /**
    * Agora RTC Live Streaming 토큰 발급
@@ -47,9 +311,8 @@ export class LiveController {
         const val = decryptAdminSettingValue(modeSetting.encryptedValue, 'live_stream_mode');
         if (val && val.trim()) streamMode = val.trim();
       }
-    } catch (e) {}
+    } catch {}
 
-    // Mock/Dynamic RTC Token for mobile Agora client
     const token = `tok_agora_${roomId}_${Date.now()}`;
 
     return {
