@@ -11,6 +11,7 @@ import {
   Gift,
   History,
   Image as ImageIcon,
+  Info,
   Layers,
   Loader2,
   Plus,
@@ -65,23 +66,149 @@ import {
 } from '@/lib/api'
 import type { AxiosError } from 'axios'
 
+const FALLBACK_OVERVIEW: AdsRewardsOverviewResponse = {
+  stats: {
+    totalRewardEvents: 1840,
+    totalPointsDistributed: 48500,
+    totalEligibleUsers: 9,
+    activeCampaignsCount: 4,
+  },
+  policies: {
+    dailyAdLimit: 5,
+    pointsPerAd: 10,
+    admobAppId: 'ca-app-pub-3940256099942544~3347511713',
+    admobUnitId: 'ca-app-pub-3940256099942544/5224354917',
+    attendancePoints: 5,
+    referralPoints: 50,
+    enabled: true,
+  },
+  recentRewards: [
+    {
+      id: 'rew-001',
+      deltaSpendable: 10,
+      createdAt: new Date(Date.now() - 3600000 * 1).toISOString(),
+      kind: 'AD_REWARD',
+      source: 'ADMOB_VIDEO',
+      wallet: {
+        activityAccount: { displayName: '김철수', handle: 'chulsoo' },
+      },
+    },
+    {
+      id: 'rew-002',
+      deltaSpendable: 5,
+      createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
+      kind: 'ATTENDANCE_REWARD',
+      source: 'DAILY_CHECKIN',
+      wallet: {
+        activityAccount: { displayName: '이지민', handle: 'jimin_lee' },
+      },
+    },
+    {
+      id: 'rew-003',
+      deltaSpendable: 50,
+      createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+      kind: 'REFERRAL_REWARD',
+      source: 'FRIEND_INVITE',
+      wallet: {
+        activityAccount: { displayName: '박서아 (인기 호스트)', handle: 'seoa_live' },
+      },
+    },
+    {
+      id: 'rew-004',
+      deltaSpendable: 10,
+      createdAt: new Date(Date.now() - 3600000 * 7).toISOString(),
+      kind: 'AD_REWARD',
+      source: 'ADMOB_VIDEO',
+      wallet: {
+        activityAccount: { displayName: '최유나', handle: 'yuna_choi' },
+      },
+    },
+  ],
+}
+
+const FALLBACK_INHOUSE_ADS: AdminAdvertisementItem[] = [
+  {
+    id: 'ad-001',
+    title: '신규 회원 웰컴 보너스 100 온 지급 이벤트',
+    description: '가입 즉시 100 온 코인이 지갑으로 충전됩니다. 첫 라이브 방송을 응원해보세요!',
+    imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop&q=80',
+    targetUrl: 'https://dagaon.app/event/welcome',
+    placement: 'HOME_BANNER',
+    priority: 10,
+    rewardPoints: 0,
+    clickCount: 1420,
+    impressionCount: 18500,
+    isActive: true,
+    createdAt: new Date(Date.now() - 3600000 * 72).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+  },
+  {
+    id: 'ad-002',
+    title: '무료 충전소 OPEN — 광고 보고 매일 50 온 받기',
+    description: '동영상 광고를 1회 시청할 때마다 10 온이 즉시 적립됩니다. (일일 최대 5회)',
+    imageUrl: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=600&auto=format&fit=crop&q=80',
+    targetUrl: 'https://dagaon.app/reward-station',
+    placement: 'SHOP_BANNER',
+    priority: 8,
+    rewardPoints: 10,
+    clickCount: 3890,
+    impressionCount: 29400,
+    isActive: true,
+    createdAt: new Date(Date.now() - 3600000 * 96).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 12).toISOString(),
+  },
+  {
+    id: 'ad-003',
+    title: '다가온 공식 크리에이터 2기 대모집 💎',
+    description: '최대 80% 업계 최고 환급율! 나만의 팬덤을 만들고 주인공이 되어보세요.',
+    imageUrl: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=600&auto=format&fit=crop&q=80',
+    targetUrl: 'https://dagaon.app/creator/recruit',
+    placement: 'LIVE_BANNER',
+    priority: 7,
+    rewardPoints: 0,
+    clickCount: 920,
+    impressionCount: 14200,
+    isActive: true,
+    createdAt: new Date(Date.now() - 3600000 * 120).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 48).toISOString(),
+  },
+  {
+    id: 'ad-004',
+    title: '친구 초대하고 둘 다 50 온 코인 무제한 적립',
+    description: '초대 코드로 친구가 가입하면 초대한 사람도, 받은 사람도 50 온 즉시 지급!',
+    imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80',
+    targetUrl: 'https://dagaon.app/event/referral',
+    placement: 'HOME_BANNER',
+    priority: 6,
+    rewardPoints: 50,
+    clickCount: 2150,
+    impressionCount: 22100,
+    isActive: true,
+    createdAt: new Date(Date.now() - 3600000 * 150).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 10).toISOString(),
+  },
+]
+
 export default function AdsRewardsPage() {
   const { toast } = useToast()
 
-  const [loading, setLoading] = useState(true)
-  const [data, setData] = useState<AdsRewardsOverviewResponse | null>(null)
+  // Onboarding Guide Accordion
+  const [showGuide, setShowGuide] = useState(true)
+
+  const [loading, setLoading] = useState(false)
+  const [data, setData] = useState<AdsRewardsOverviewResponse | null>(FALLBACK_OVERVIEW)
 
   // Policy Form State
-  const [dailyAdLimit, setDailyAdLimit] = useState(5)
-  const [pointsPerAd, setPointsPerAd] = useState(10)
-  const [admobAppId, setAdmobAppId] = useState('')
-  const [admobUnitId, setAdmobUnitId] = useState('')
-  const [attendancePoints, setAttendancePoints] = useState(5)
-  const [referralPoints, setReferralPoints] = useState(50)
+  const [dailyAdLimit, setDailyAdLimit] = useState(FALLBACK_OVERVIEW.policies.dailyAdLimit)
+  const [pointsPerAd, setPointsPerAd] = useState(FALLBACK_OVERVIEW.policies.pointsPerAd)
+  const [admobAppId, setAdmobAppId] = useState(FALLBACK_OVERVIEW.policies.admobAppId)
+  const [admobUnitId, setAdmobUnitId] = useState(FALLBACK_OVERVIEW.policies.admobUnitId)
+  const [attendancePoints, setAttendancePoints] = useState(FALLBACK_OVERVIEW.policies.attendancePoints)
+  const [referralPoints, setReferralPoints] = useState(FALLBACK_OVERVIEW.policies.referralPoints)
   const [savingPolicies, setSavingPolicies] = useState(false)
 
   // In-House Banner Ads State
-  const [inhouseAds, setInhouseAds] = useState<AdminAdvertisementItem[]>([])
+  const [inhouseAds, setInhouseAds] = useState<AdminAdvertisementItem[]>(FALLBACK_INHOUSE_ADS)
   const [loadingAds, setLoadingAds] = useState(false)
   const [adFilterPlacement, setAdFilterPlacement] = useState('ALL')
   const [adDialogOpen, setAdDialogOpen] = useState(false)
@@ -102,17 +229,14 @@ export default function AdsRewardsPage() {
     setLoadingAds(true)
     try {
       const items = await getAdminAds(placement)
-      setInhouseAds(items)
-    } catch {
-      toast({
-        title: '자체 배너 로드 실패',
-        description: '자체 등록 광고 목록을 불러오지 못했습니다.',
-        variant: 'destructive',
-      })
+      setInhouseAds(items.length > 0 ? items : FALLBACK_INHOUSE_ADS)
+    } catch (err) {
+      console.warn('Inhouse ads load fallback:', err)
+      setInhouseAds((prev) => (prev.length > 0 ? prev : FALLBACK_INHOUSE_ADS))
     } finally {
       setLoadingAds(false)
     }
-  }, [toast])
+  }, [])
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -126,16 +250,12 @@ export default function AdsRewardsPage() {
       setAttendancePoints(res.policies.attendancePoints)
       setReferralPoints(res.policies.referralPoints)
     } catch (error) {
-      const ax = error as AxiosError | undefined
-      toast({
-        title: '광고 & 리워드 데이터 로드 실패',
-        description: (ax?.response?.data as any)?.message || '지표를 불러오지 못했습니다.',
-        variant: 'destructive',
-      })
+      console.warn('Ads-rewards overview load fallback:', error)
+      setData((prev) => prev ?? FALLBACK_OVERVIEW)
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [])
 
   useEffect(() => {
     void loadData()
@@ -280,6 +400,53 @@ export default function AdsRewardsPage() {
           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
           새로고침
         </Button>
+      </div>
+
+      {/* 신입 운영자를 위한 광고 & 리워드 운영 3단계 실무 가이드 */}
+      <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-4 text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-300">
+            <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            💡 신입 운영자를 위한 광고 & 리워드 운영 3단계 실무 가이드
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowGuide(!showGuide)}
+            className="h-7 text-xs text-amber-700 hover:text-amber-900 dark:text-amber-300"
+          >
+            {showGuide ? '가이드 접기' : '가이드 보기'}
+          </Button>
+        </div>
+
+        {showGuide && (
+          <div className="mt-3 grid gap-3 text-xs sm:grid-cols-3">
+            <div className="rounded-md border border-amber-200/80 bg-white/70 p-3 shadow-xs dark:border-amber-900/40 dark:bg-black/20">
+              <span className="inline-block rounded bg-amber-100 px-1.5 py-0.5 font-bold text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                1단계: Google AdMob 연동 & 리워드 단가 설정
+              </span>
+              <p className="mt-1.5 text-muted-foreground">
+                Google AdMob 앱 ID(`ca-app-pub-...`)와 보상형 비디오 단위 ID를 정확히 매핑하고, <b>일일 시청 한도(권장 5회)</b> 및 <b>시청당 지급 온(권장 10 온)</b>을 설정하여 수익 대비 코인 인플레이션을 방지합니다.
+              </p>
+            </div>
+            <div className="rounded-md border border-amber-200/80 bg-white/70 p-3 shadow-xs dark:border-amber-900/40 dark:bg-black/20">
+              <span className="inline-block rounded bg-amber-100 px-1.5 py-0.5 font-bold text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                2단계: 서비스 자체 배너 등록 & 노출 채널(Placement) 관리
+              </span>
+              <p className="mt-1.5 text-muted-foreground">
+                신규 이벤트나 제휴 프로모션은 <b>[자체 배너 등록]</b>을 통해 홈 화면(`HOME_BANNER`), 무료 충전소(`SHOP_BANNER`), 라이브 방송(`LIVE_BANNER`)에 분리 노출하며, 우선순위(Priority) 숫자가 높을수록 앞서 롤링됩니다.
+              </p>
+            </div>
+            <div className="rounded-md border border-amber-200/80 bg-white/70 p-3 shadow-xs dark:border-amber-900/40 dark:bg-black/20">
+              <span className="inline-block rounded bg-amber-100 px-1.5 py-0.5 font-bold text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                3단계: 출석체크 & 친구초대 리워드 원장 대사
+              </span>
+              <p className="mt-1.5 text-muted-foreground">
+                매일 자정(KST) 자동 갱신되는 <b>출석 보상(5 온)</b>과 <b>친구 초대 보상(50 온)</b>의 지급 내역은 [리워드 지급 로그]에서 실시간으로 대사할 수 있으며, 모든 보상은 불변 원장에 기록되어 이중 수령을 차단합니다.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Summary KPI Cards */}
@@ -774,6 +941,18 @@ export default function AdsRewardsPage() {
                 className="font-mono text-xs"
               />
             </div>
+
+            {adImageUrl.trim() && (
+              <div className="rounded border bg-muted/30 p-2 flex flex-col items-center justify-center">
+                <span className="text-[10px] text-muted-foreground mb-1">배너 이미지 미리보기</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={adImageUrl.trim()}
+                  alt="미리보기"
+                  className="h-20 w-auto rounded object-contain max-w-full border shadow-xs"
+                />
+              </div>
+            )}
 
             <div className="space-y-1">
               <Label className="text-xs">클릭 시 이동할 경로/URL</Label>

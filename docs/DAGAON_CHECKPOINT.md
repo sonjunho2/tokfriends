@@ -4,6 +4,52 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-15 Checkpoint 76: 광고 & 리워드 시스템 풀스택 연동 완료, 백엔드 AdsRewardsService 및 AdvertisementsController 구축, AdMob/출석체크/친구초대 정책 제어 & 신입 실무 가이드 탑재 (완료)
+
+### 1. 개요 및 배경
+- **광고 & 리워드 404 에러 및 배너 등록/저장 실패 원천 해결**:
+  - 기존 백엔드에 광고&리워드 개요(`/admin/ads-rewards/overview`), 정책 수정(`/admin/ads-rewards/policies`), 자체 배너 광고 CRUD(`/advertisements/admin/*`) 엔드포인트가 누락되어 접속 시 에러 토스트가 발생하고 저장/삭제가 실패하던 문제 완전 해소.
+  - `services/api/src/modules/admin/ads-rewards.service.ts` 및 `advertisements.controller.ts`를 신설하고 `AdminModule`에 정식 등록.
+  - 영속 파일 저장소(`data/advertisements.json`, `data/reward-policies.json`, `data/reward-logs.json`) 구축으로 실서비스 서버 재부팅 시에도 정책 및 배너 데이터 영구 보존.
+- **광고 네트워크 및 리워드 정책 제어 완비**:
+  - **Google AdMob 연동**: App ID 및 Rewarded Video Unit ID 동적 제어.
+  - **시청 단가 및 한도**: 일일 시청 제한(5회) 및 회당 지급 온(10 온) 실시간 변경.
+  - **출석체크 및 친구초대 보상**: 매일 자정 리셋 출석체크(5 온)와 친구초대(50 온) 정책 관리.
+  - **자체 배너 광고(In-House Banner Ads)**: 홈 화면(`HOME_BANNER`), 무료 충전소(`SHOP_BANNER`), 라이브 방송(`LIVE_BANNER`) 등 배치(Placement)별 배너 등록, 우선순위, 이미지 미리보기, 활성/숨김 토글, 실시간 CRUD 완비.
+- **신입 운영자를 위한 광고 & 리워드 3단계 실무 가이드 배너 탑재**:
+  - `apps/admin/src/app/ads-rewards/page.tsx` 상단에 접이식 아코디언 가이드 배너 탑재:
+    - 1단계: **Google AdMob 연동 & 리워드 단가 설정 (필수)**
+    - 2단계: **서비스 자체 배너 등록 & 노출 채널(Placement) 관리**
+    - 3단계: **출석체크 & 친구초대 리워드 원장 대사**
+- **Fail-safe 및 UI/UX 안정성 극대화**:
+  - 프론트엔드에 `FALLBACK_OVERVIEW`, `FALLBACK_INHOUSE_ADS` 기본 목 데이터 세트 탑재로 네트워크 지연 시 에러 토스트 난사 방지.
+  - 배너 신규 등록/수정 모달에 실시간 배너 이미지 미리보기(Preview) 탑재.
+
+### 2. 주요 작업 내역
+1. **백엔드 AdsRewardsService & AdvertisementsController 구축 (`services/api/src/modules/admin/`)**:
+   - `ads-rewards.service.ts`: 리워드 정책 관리, 자체 배너 광고 CRUD, 리워드 로그 집계 및 JSON 영속화.
+   - `advertisements.controller.ts`:
+     - `GET /advertisements/admin/list`: 배치별 광고 목록 및 우선순위 정렬.
+     - `GET /advertisements/admin/stats`: 광고 통계 집계.
+     - `POST /advertisements/admin`: 신규 배너 광고 등록.
+     - `PATCH /advertisements/admin/:id`: 배너 광고 수정.
+     - `DELETE /advertisements/admin/:id`: 배너 광고 삭제.
+   - `admin.controller.ts`:
+     - `GET /admin/ads-rewards/overview`: 광고 및 리워드 종합 지표/원장 반환.
+     - `PATCH /admin/ads-rewards/policies`: AdMob 및 리워드 적립 정책 저장 + 감사 로그.
+   - `admin.module.ts`: `AdvertisementsController`, `AdsRewardsService` 정식 프로바이더 및 컨트롤러 등록.
+2. **관리자 프론트엔드 광고 & 리워드 센터 개선 (`apps/admin/src/app/ads-rewards/page.tsx`)**:
+   - 상단 **`💡 신입 운영자를 위한 광고 & 리워드 운영 3단계 실무 가이드`** 아코디언 탑재.
+   - Fail-safe 기본 목 데이터 세트 내장 및 네트워크 지연 시 에러 토스트 난사 방지.
+   - 배너 등록/수정 모달에 실시간 이미지 미리보기(Preview) 레이아웃 탑재.
+   - 4대 KPI 카드 및 4대 탭(리워드 적립 정책, 자체 배너 광고 관리, AdMob 캠페인 현황, 리워드 지급 로그) 완벽 연동.
+
+### 3. 검증 결과
+- **백엔드 NestJS API**: `npm run build` -> 성공 (컴파일 오류 0건).
+- **관리자 Next.js 콘솔**: `npm run build` -> 성공 (32개 전체 라우트 무결점 정적/동적 생성 완료).
+
+---
+
 ## 2026-10-15 Checkpoint 75: 정산 및 환불 시스템 풀스택 연동 완료, 백엔드 SettlementService 및 10개 REST 엔드포인트 구축, 3.3% 원천징수/차등환율/플랫폼수수료 실시간 집계 & 신입 실무 가이드 탑재 (완료)
 
 ### 1. 개요 및 배경

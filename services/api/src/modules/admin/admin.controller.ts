@@ -29,6 +29,7 @@ import {
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AdminSettingsService } from './admin-settings.service';
 import { SettlementService } from './settlement.service';
+import { AdsRewardsService } from './ads-rewards.service';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -39,6 +40,7 @@ export class AdminController {
   constructor(
     private readonly adminSettings: AdminSettingsService,
     private readonly settlementService: SettlementService,
+    private readonly adsRewardsService: AdsRewardsService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -518,6 +520,33 @@ export class AdminController {
   async getSettlements() {
     const res = await this.settlementService.getSettlementRequests({ limit: 50 });
     return res.items;
+  }
+
+  // ==========================================
+  // [사람 운영자 필수 관리 기능: 광고 & 리워드]
+  // ==========================================
+  @Get('ads-rewards/overview')
+  async getAdsRewardsOverview() {
+    const data = await this.adsRewardsService.getOverview();
+    return { ok: true, data };
+  }
+
+  @Patch('ads-rewards/policies')
+  async updateAdsRewardsPolicies(
+    @CurrentUser() actor: any,
+    @Body() dto: any,
+  ) {
+    const actorId = actor?.id ?? actor?.sub;
+    const result = await this.adsRewardsService.updatePolicies(dto);
+    await this.prisma.auditLog.create({
+      data: {
+        actorId,
+        target: 'policies:ads-rewards',
+        action: 'ADS_REWARDS_POLICY_UPDATED',
+        notes: `dailyLimit=${dto?.dailyAdLimit};pointsPerAd=${dto?.pointsPerAd};attendance=${dto?.attendancePoints};referral=${dto?.referralPoints}`,
+      },
+    }).catch(() => null);
+    return { ok: true, data: result.policies };
   }
 
   @Get('metrics/dashboard')
