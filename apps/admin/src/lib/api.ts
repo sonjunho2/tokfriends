@@ -266,6 +266,12 @@ export async function updateUserStatus(userId: string, status: string) {
   return normalized as UserDetail
 }
 
+export async function adjustUserPoints(userId: string, amount: number, reason: string) {
+  const route = buildRoutePath('users.adjustPoints', { userId })
+  const response = await api.post(route, { amount, reason })
+  return response.data
+}
+
 export async function withdrawUser(userId: string, reason?: string) {
   const response = await api.delete(`/admin/users/${userId}`, { data: { reason } })
   return response.data
