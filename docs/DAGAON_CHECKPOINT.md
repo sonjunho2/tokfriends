@@ -4,6 +4,34 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-17 Checkpoint 83: 시스템 설정 센터 UI/UX 강화 & 사업자 API 키 연동 실무 가이드 및 4대 KPI 요약 탑재 (완료)
+
+### 1. 개요 및 배경
+- **시스템 설정 센터 신입 실무 가이드 및 가독성 개선**:
+  - `apps/admin/src/app/settings/page.tsx` 상단에 접이식 **`💡 신입 운영자를 위한 시스템 설정 & 사업자 API 키 연동 3단계 실무 가이드`** 배너를 탑재하여 신규 운영자가 실수 없이 안전하게 Agora, Toss, Gemini, Supabase, 1:1 통화 요금 정책을 설정할 수 있도록 체계화.
+  - 1단계: **사업자 동적 API 키 연동 (Agora, Toss, Gemini, Supabase)**
+  - 2단계: **비즈니스 과금 정책 설정 (1:1 통화 분당 단가 1,500P & 수수료율 30%)**
+  - 3단계: **실서비스 환경변수 (.env.production) 원클릭 추출 및 긴급 점검 롤아웃**
+- **4대 핵심 KPI 카드 & 섹션 내비게이션 최적화**:
+  - 연동 완료된 외부 API 키 (`configuredIntegrationCount / total`), 1:1 통화 단가 및 수수료율, 활성 피처 플래그, 2FA 적용 관리자 현황을 한눈에 식별할 수 있도록 개선.
+- **요청된 6대 어드민 페이지 전면 개편 대장정 완수**:
+  1. `신고 & 안전 센터` (`/reports-safety`) -> Checkpoint 78 완료
+  2. `푸시 알림 센터` (`/notifications`) -> Checkpoint 79 완료
+  3. `지표 & 성장 분석 센터` (`/analytics`) -> Checkpoint 80 완료
+  4. `API 모니터링 & 트래픽 제어 센터` (`/api-manager`) -> Checkpoint 81 완료
+  5. `관리자 권한 & 2인 결재 센터` (`/admin-permissions`) -> Checkpoint 82 완료
+  6. `시스템 설정 센터` (`/settings`) -> Checkpoint 83 완료
+
+### 2. 주요 작업 내역
+1. **관리자 웹 설정 센터 개선 (`apps/admin/src/app/settings/page.tsx`)**:
+   - `guideOpen` 상태 선언 및 상단 접이식 3단계 실무 가이드 배너 탑재.
+   - 외부 연동 키, 통화 요율, 피처 플래그, 2FA 보안 KPI 가독성 강화.
+2. **풀스택 무결점 빌드 검증**:
+   - 백엔드 NestJS API: `npm run build` -> 0 errors (성공).
+   - 관리자 Next.js 콘솔: `npm run build` -> 32개 전체 라우트 무결점 정적/동적 생성 완료.
+
+---
+
 ## 2026-10-17 Checkpoint 82: 관리자 권한 & 2인 결재 센터 풀스택 전면 개편 — 2인 교차 결재(Dual-Approval) 워크플로우, 셀프 결재 방지, RBAC 권한 매트릭스 & 신입 실무 가이드 탑재 (완료)
 
 ### 1. 개요 및 배경
