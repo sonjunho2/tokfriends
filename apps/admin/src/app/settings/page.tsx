@@ -26,6 +26,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -784,65 +785,67 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       {/* 💡 신입 운영자를 위한 3단계 실무 가이드 배너 */}
-      <Card className="border-cyan-500/30 bg-gradient-to-r from-cyan-950/40 via-slate-900/50 to-slate-900/40 overflow-hidden shadow-xl">
-        <div
+      <Card className="overflow-hidden border-cyan-200/70 bg-gradient-to-r from-cyan-50/80 via-blue-50/50 to-indigo-50/80 shadow-2xs dark:border-cyan-900/40 dark:from-cyan-950/20">
+        <CardHeader
           onClick={() => setGuideOpen(!guideOpen)}
-          className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-800/30 transition-colors"
+          className="cursor-pointer pb-3 hover:opacity-90 transition-opacity"
         >
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-cyan-500/20 text-cyan-300">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="font-semibold text-cyan-200 text-base flex items-center gap-2">
-                💡 신입 운영자를 위한 시스템 설정 & 사업자 API 키 연동 3단계 실무 가이드
-                <span className="bg-cyan-500/20 text-cyan-300 text-[11px] px-2 py-0.5 rounded font-medium">운영 매뉴얼</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-100 text-cyan-700">
+                <Sparkles className="h-5 w-5" />
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Agora 영상 스트리밍, Toss/PortOne 결제키, Gemini AI 및 1:1 통화 단가를 무중단 실시간 설정하는 지침입니다.
-              </p>
+              <div>
+                <CardTitle className="text-sm font-bold text-cyan-950 flex items-center gap-2">
+                  신입 운영자를 위한 시스템 설정 & 사업자 API 키 연동 3단계 실무 가이드
+                  <Badge className="bg-cyan-100 text-cyan-700 border-cyan-200 text-[10px] px-1.5 py-0 font-medium">운영 매뉴얼</Badge>
+                </CardTitle>
+                <p className="text-xs text-cyan-700/80">
+                  Agora 영상 스트리밍, Toss/PortOne 결제키, Gemini AI 및 1:1 통화 단가를 무중단 실시간 설정하는 지침입니다.
+                </p>
+              </div>
             </div>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-cyan-600">
+              {guideOpen ? '접기' : '펼치기'}
+            </Button>
           </div>
-          <Button variant="ghost" size="sm" className="text-cyan-300 hover:text-white">
-            {guideOpen ? '가이드 접기' : '가이드 펼치기'}
-          </Button>
-        </div>
+        </CardHeader>
 
         {guideOpen && (
-          <CardContent className="pt-0 pb-4 px-4 border-t border-cyan-500/20 mt-2">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3">
-              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-cyan-500/20">
-                <div className="flex items-center gap-2 text-cyan-400 font-semibold text-sm mb-1.5">
-                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-cyan-500/30 text-xs text-cyan-300 font-bold">
+          <CardContent className="border-t border-cyan-100/80 pt-3 pb-4 text-xs text-muted-foreground">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-lg border border-cyan-100 bg-white/80 p-3 shadow-2xs">
+                <div className="flex items-center gap-2 font-semibold text-cyan-900">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-100 text-cyan-700 font-bold">
                     1
                   </span>
                   사업자 동적 API 키 연동 (Agora, Toss, Gemini)
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="mt-1.5 leading-relaxed text-slate-600">
                   외부 연동 탭에서 <strong>Agora App ID</strong>, <strong>토스/포트원 결제키</strong>, <strong>Gemini API Key</strong>, <strong>Supabase 키</strong>를 입력 후 저장하면 백엔드가 DB를 우선 조회하여 서버 재빌드 없이 즉시 반영합니다.
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-indigo-500/20">
-                <div className="flex items-center gap-2 text-indigo-400 font-semibold text-sm mb-1.5">
-                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-500/30 text-xs text-indigo-300 font-bold">
+              <div className="rounded-lg border border-indigo-100 bg-white/80 p-3 shadow-2xs">
+                <div className="flex items-center gap-2 font-semibold text-indigo-900">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 font-bold">
                     2
                   </span>
                   비즈니스 과금 정책 설정 (1:1 통화 요금 & 수수료)
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="mt-1.5 leading-relaxed text-slate-600">
                   <strong>1:1 프라이빗 통화 분당 요금(기본 1,500P)</strong>과 <strong>플랫폼 수수료율(30%)</strong>, 채팅방 생성 온 소모량을 조정합니다. 변경 즉시 모바일 앱의 1:1 통화 신청 팝업에 동기화됩니다.
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-emerald-500/20">
-                <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm mb-1.5">
-                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/30 text-xs text-emerald-300 font-bold">
+              <div className="rounded-lg border border-emerald-100 bg-white/80 p-3 shadow-2xs">
+                <div className="flex items-center gap-2 font-semibold text-emerald-900">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold">
                     3
                   </span>
                   실서비스 환경변수 (.env.production) 원클릭 추출
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="mt-1.5 leading-relaxed text-slate-600">
                   신규 본서버(Render / Vercel / 자체 도커) 배포 시 <strong>[.env.production 복사]</strong> 버튼을 눌러 전체 환경변수 템플릿을 추출하고 클라우드 콘솔에 즉시 주입할 수 있습니다.
                 </p>
               </div>

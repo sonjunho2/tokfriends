@@ -311,29 +311,29 @@ export default function AnalyticsPage() {
 
   // Color generator for retention table
   function getRetentionColor(pct: number) {
-    if (pct >= 60) return 'bg-emerald-600/20 text-emerald-400 font-bold border-emerald-500/30'
-    if (pct >= 45) return 'bg-teal-600/20 text-teal-300 font-medium border-teal-500/30'
-    if (pct >= 30) return 'bg-amber-600/20 text-amber-300 font-medium border-amber-500/30'
-    return 'bg-slate-800/40 text-slate-400 border-slate-700/30'
+    if (pct >= 60) return 'bg-emerald-50 text-emerald-700 font-bold border-emerald-200'
+    if (pct >= 45) return 'bg-teal-50 text-teal-700 font-medium border-teal-200'
+    if (pct >= 30) return 'bg-amber-50 text-amber-700 font-medium border-amber-200'
+    return 'bg-slate-100 text-slate-500 border-slate-200'
   }
 
   return (
-    <div className="min-h-screen bg-[#080B14] text-slate-100 p-6 space-y-6">
+    <div className="space-y-6">
       {/* 1. Header Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white shadow-lg shadow-indigo-500/20">
+            <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-2xs">
               <TrendingUp className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
                 지표 & 성장 분석 센터
-                <Badge variant="outline" className="bg-indigo-500/10 text-indigo-400 border-indigo-500/30 text-xs">
+                <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-xs">
                   Analytics Hub
                 </Badge>
               </h1>
-              <p className="text-sm text-slate-400 mt-0.5">
+              <p className="text-sm text-muted-foreground mt-0.5">
                 DAU/MAU 성장세, 주차별 코호트 잔존율, 1:1 통화/충전 퍼널, 자동화 리포트 원장을 실시간 집계합니다.
               </p>
             </div>
@@ -345,16 +345,15 @@ export default function AnalyticsPage() {
             variant="outline"
             size="sm"
             onClick={() => setIsNewMetricModalOpen(true)}
-            className="border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-200"
           >
-            <Plus className="w-4 h-4 mr-1.5 text-indigo-400" />
+            <Plus className="w-4 h-4 mr-1.5 text-indigo-600" />
             신규 지표 등록
           </Button>
 
           <Button
             size="sm"
             onClick={() => setIsExportModalOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/25"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs"
           >
             <Download className="w-4 h-4 mr-1.5" />
             즉시 원장 추출
@@ -365,7 +364,6 @@ export default function AnalyticsPage() {
             size="sm"
             onClick={loadAllData}
             disabled={isLoading}
-            className="border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-200"
           >
             <RefreshCcw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
@@ -373,65 +371,67 @@ export default function AnalyticsPage() {
       </div>
 
       {/* 2. 신입 운영자를 위한 3단계 실무 가이드 배너 (Collapsible) */}
-      <Card className="border-indigo-500/30 bg-gradient-to-r from-indigo-950/40 via-slate-900/50 to-slate-900/40 overflow-hidden shadow-xl">
-        <div
+      <Card className="overflow-hidden border-indigo-200/70 bg-gradient-to-r from-indigo-50/80 via-blue-50/50 to-purple-50/80 shadow-2xs dark:border-indigo-900/40 dark:from-indigo-950/20">
+        <CardHeader
           onClick={() => setGuideOpen(!guideOpen)}
-          className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-800/30 transition-colors"
+          className="cursor-pointer pb-3 hover:opacity-90 transition-opacity"
         >
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-indigo-500/20 text-indigo-300">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="font-semibold text-indigo-200 text-base flex items-center gap-2">
-                💡 신입 운영자를 위한 지표 분석 & 코호트 3단계 실무 가이드
-                <Badge className="bg-indigo-500/20 text-indigo-300 border-none text-[11px] px-2">운영 매뉴얼</Badge>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
+                <Sparkles className="h-5 w-5" />
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                플랫폼 성장 지표와 코호트 잔존율, 정기 리포트 발송을 정확하게 판독하고 조치하는 가이드라인입니다.
-              </p>
+              <div>
+                <CardTitle className="text-sm font-bold text-indigo-950 flex items-center gap-2">
+                  신입 운영자를 위한 지표 분석 & 코호트 3단계 실무 가이드
+                  <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 text-[10px] px-1.5 py-0 font-medium">운영 매뉴얼</Badge>
+                </CardTitle>
+                <p className="text-xs text-indigo-700/80">
+                  플랫폼 성장 지표와 코호트 잔존율, 정기 리포트 발송을 정확하게 판독하고 조치하는 가이드라인입니다.
+                </p>
+              </div>
             </div>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-indigo-600">
+              {guideOpen ? '접기' : '펼치기'}
+            </Button>
           </div>
-          <Button variant="ghost" size="sm" className="text-indigo-300 hover:text-white">
-            {guideOpen ? '가이드 접기' : '가이드 펼치기'}
-          </Button>
-        </div>
+        </CardHeader>
 
         {guideOpen && (
-          <CardContent className="pt-0 pb-4 px-4 border-t border-indigo-500/20 mt-2">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3">
-              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-indigo-500/20">
-                <div className="flex items-center gap-2 text-indigo-400 font-semibold text-sm mb-1.5">
-                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-500/30 text-xs text-indigo-300">
+          <CardContent className="border-t border-indigo-100/80 pt-3 pb-4 text-xs text-muted-foreground">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-lg border border-indigo-100 bg-white/80 p-3 shadow-2xs">
+                <div className="flex items-center gap-2 font-semibold text-indigo-900">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 font-bold">
                     1
                   </span>
                   핵심 성장 지표 모니터링 (DAU/MAU)
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="mt-1.5 leading-relaxed text-slate-600">
                   매일 아침 09시 <strong>DAU(4.8만명)</strong>와 <strong>유료 결제 전환율(8.7%)</strong> 추이를 확인합니다. 전주 대비 10% 이상 급감 시 푸시 알림 및 서버 접속 장애를 즉시 점검하십시오.
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-cyan-500/20">
-                <div className="flex items-center gap-2 text-cyan-400 font-semibold text-sm mb-1.5">
-                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-cyan-500/30 text-xs text-cyan-300">
+              <div className="rounded-lg border border-blue-100 bg-white/80 p-3 shadow-2xs">
+                <div className="flex items-center gap-2 font-semibold text-blue-900">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-blue-700 font-bold">
                     2
                   </span>
                   코호트 잔존율 & 행동 퍼널 진단
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="mt-1.5 leading-relaxed text-slate-600">
                   가입 주차별 <strong>D+1(목표 70%)</strong> 및 <strong>D+7(목표 40%)</strong> 잔존율을 분석하고, 탐색 ➔ 1:1 통화 단계의 이탈률을 모니터링하여 온보딩 혜택(신규 온 지급)을 조정합니다.
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-emerald-500/20">
-                <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm mb-1.5">
-                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/30 text-xs text-emerald-300">
+              <div className="rounded-lg border border-purple-100 bg-white/80 p-3 shadow-2xs">
+                <div className="flex items-center gap-2 font-semibold text-purple-900">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-purple-100 text-purple-700 font-bold">
                     3
                   </span>
                   정기 다이제스트 & 원장 추출
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="mt-1.5 leading-relaxed text-slate-600">
                   경영진용 <strong>Daily Slack 다이제스트</strong>가 정상 전송 중인지 확인하고, 월말 회계/세무 정산 및 투자자 보고 시 <strong>[즉시 원장 추출]</strong>을 통해 CSV/엑셀 파일을 다운로드합니다.
                 </p>
               </div>
@@ -441,96 +441,88 @@ export default function AnalyticsPage() {
       </Card>
 
       {/* 3. 4대 핵심 KPI 카드 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* DAU */}
-        <Card className="bg-slate-900/70 border-slate-800 border-l-4 border-l-blue-500 shadow-md">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-400">일간 활성 사용자 (DAU)</span>
-              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
-                <Users className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-white tracking-tight">{dauMetric?.value || '48,230명'}</span>
-              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[11px] font-semibold">
+        <Card className="border-l-4 border-l-blue-500 shadow-2xs">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">일간 활성 사용자 (DAU)</CardTitle>
+            <Users className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-2">
+              <div className="text-2xl font-bold text-foreground">{dauMetric?.value || '48,230명'}</div>
+              <Badge variant="outline" className="text-emerald-700 bg-emerald-50 border-emerald-200 text-[11px] font-semibold">
                 <ArrowUpRight className="w-3 h-3 mr-0.5 inline" />
                 {dauMetric?.delta || '+6.2%'}
               </Badge>
             </div>
-            <p className="text-[11px] text-slate-500 mt-1.5">최근 24시간 실시간 접속 고유 회원</p>
+            <p className="text-xs text-muted-foreground mt-1">최근 24시간 실시간 접속 고유 회원</p>
           </CardContent>
         </Card>
 
         {/* MAU */}
-        <Card className="bg-slate-900/70 border-slate-800 border-l-4 border-l-purple-500 shadow-md">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-400">월간 활성 사용자 (MAU)</span>
-              <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
-                <Activity className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-white tracking-tight">{mauMetric?.value || '182,450명'}</span>
-              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[11px] font-semibold">
+        <Card className="border-l-4 border-l-purple-500 shadow-2xs">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">월간 활성 사용자 (MAU)</CardTitle>
+            <Activity className="h-4 w-4 text-purple-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-2">
+              <div className="text-2xl font-bold text-foreground">{mauMetric?.value || '182,450명'}</div>
+              <Badge variant="outline" className="text-emerald-700 bg-emerald-50 border-emerald-200 text-[11px] font-semibold">
                 <ArrowUpRight className="w-3 h-3 mr-0.5 inline" />
                 {mauMetric?.delta || '+12.4%'}
               </Badge>
             </div>
-            <p className="text-[11px] text-slate-500 mt-1.5">당월 1회 이상 로그인/활동 회원</p>
+            <p className="text-xs text-muted-foreground mt-1">당월 1회 이상 로그인/활동 회원</p>
           </CardContent>
         </Card>
 
         {/* PUR */}
-        <Card className="bg-slate-900/70 border-slate-800 border-l-4 border-l-emerald-500 shadow-md">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-400">유료 결제 전환율 (PUR)</span>
-              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
-                <Zap className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-white tracking-tight">{purMetric?.value || '8.7%'}</span>
-              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[11px] font-semibold">
+        <Card className="border-l-4 border-l-emerald-500 shadow-2xs">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">유료 결제 전환율 (PUR)</CardTitle>
+            <Zap className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-2">
+              <div className="text-2xl font-bold text-foreground">{purMetric?.value || '8.7%'}</div>
+              <Badge variant="outline" className="text-emerald-700 bg-emerald-50 border-emerald-200 text-[11px] font-semibold">
                 <ArrowUpRight className="w-3 h-3 mr-0.5 inline" />
                 {purMetric?.delta || '+0.8%p'}
               </Badge>
             </div>
-            <p className="text-[11px] text-slate-500 mt-1.5">온(ON) 결제 경험자 비율 (업계 평균 4.2%)</p>
+            <p className="text-xs text-muted-foreground mt-1">온(ON) 결제 경험자 비율 (업계 평균 4.2%)</p>
           </CardContent>
         </Card>
 
         {/* 1:1 Call Duration */}
-        <Card className="bg-slate-900/70 border-slate-800 border-l-4 border-l-amber-500 shadow-md">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-400">1:1 통화 총 체류 시간</span>
-              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
-                <Clock className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-white tracking-tight">{callDurationMetric?.value || '34,200분/일'}</span>
-              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[11px] font-semibold">
+        <Card className="border-l-4 border-l-amber-500 shadow-2xs">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">1:1 통화 총 체류 시간</CardTitle>
+            <Clock className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-2">
+              <div className="text-2xl font-bold text-foreground">{callDurationMetric?.value || '34,200분/일'}</div>
+              <Badge variant="outline" className="text-emerald-700 bg-emerald-50 border-emerald-200 text-[11px] font-semibold">
                 <ArrowUpRight className="w-3 h-3 mr-0.5 inline" />
                 {callDurationMetric?.delta || '+14.5%'}
               </Badge>
             </div>
-            <p className="text-[11px] text-slate-500 mt-1.5">일일 성사된 1:1 영상/음성 통화 총 시간</p>
+            <p className="text-xs text-muted-foreground mt-1">일일 성사된 1:1 영상/음성 통화 총 시간</p>
           </CardContent>
         </Card>
       </div>
 
       {/* 4. Tab Navigation */}
-      <div className="flex items-center gap-2 border-b border-slate-800">
+      <div className="flex items-center gap-2 border-b">
         <button
           onClick={() => setActiveTab('cohort')}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all ${
             activeTab === 'cohort'
-              ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
+              ? 'border-indigo-600 text-indigo-600 font-semibold bg-indigo-50/40'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
           <BarChart3 className="w-4 h-4" />
@@ -541,8 +533,8 @@ export default function AnalyticsPage() {
           onClick={() => setActiveTab('funnel')}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all ${
             activeTab === 'funnel'
-              ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
+              ? 'border-indigo-600 text-indigo-600 font-semibold bg-indigo-50/40'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
           <LineChart className="w-4 h-4" />
@@ -553,8 +545,8 @@ export default function AnalyticsPage() {
           onClick={() => setActiveTab('reports')}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all ${
             activeTab === 'reports'
-              ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
+              ? 'border-indigo-600 text-indigo-600 font-semibold bg-indigo-50/40'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
           <FileSpreadsheet className="w-4 h-4" />
@@ -567,19 +559,19 @@ export default function AnalyticsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* 좌측: 코호트 잔존율 매트릭스 표 (2/3) */}
-            <Card className="lg:col-span-2 bg-slate-900/60 border-slate-800">
-              <CardHeader className="pb-3 border-b border-slate-800/80">
+            <Card className="lg:col-span-2 shadow-2xs">
+              <CardHeader className="pb-3 border-b">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-base text-white flex items-center gap-2">
-                      <BarChart3 className="w-4 h-4 text-indigo-400" />
+                    <CardTitle className="text-base text-foreground flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-indigo-600" />
                       주차별 신규 유저 코호트 리텐션 매트릭스 (Cohort Retention)
                     </CardTitle>
-                    <CardDescription className="text-xs text-slate-400 mt-0.5">
+                    <CardDescription className="text-xs text-muted-foreground mt-0.5">
                       가입 시점별 유저가 특정 경과일(D+N) 후에도 앱에 재접속한 비율(%)을 히트맵으로 시각화합니다.
                     </CardDescription>
                   </div>
-                  <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 text-xs">
+                  <Badge variant="outline" className="border-emerald-200 text-emerald-700 bg-emerald-50 text-xs font-medium">
                     업계 상위 5% 리텐션
                   </Badge>
                 </div>
@@ -587,7 +579,7 @@ export default function AnalyticsPage() {
               <CardContent className="pt-4 overflow-x-auto">
                 <table className="w-full text-xs text-left">
                   <thead>
-                    <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase">
+                    <tr className="border-b bg-muted/40 text-muted-foreground font-semibold uppercase">
                       <th className="py-2.5 px-3">가입 코호트</th>
                       <th className="py-2.5 px-3">모수(명)</th>
                       <th className="py-2.5 px-3 text-center">D+1</th>
@@ -597,14 +589,14 @@ export default function AnalyticsPage() {
                       <th className="py-2.5 px-3 text-center">D+30</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody className="divide-y">
                     {cohorts.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="py-3 px-3 font-medium text-white flex items-center gap-2">
-                          <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+                      <tr key={idx} className="hover:bg-muted/30 transition-colors">
+                        <td className="py-3 px-3 font-medium text-foreground flex items-center gap-2">
+                          <Calendar className="w-3.5 h-3.5 text-indigo-600" />
                           {row.cohortDate}
                         </td>
-                        <td className="py-3 px-3 text-slate-300 font-mono">
+                        <td className="py-3 px-3 text-muted-foreground font-mono">
                           {row.usersCount.toLocaleString()}명
                         </td>
                         <td className="py-3 px-2 text-center">
@@ -641,13 +633,13 @@ export default function AnalyticsPage() {
 
             {/* 우측: 플랫폼 매출 구성비 & 핵심 커스텀 지표 (1/3) */}
             <div className="space-y-6">
-              <Card className="bg-slate-900/60 border-slate-800">
-                <CardHeader className="pb-3 border-b border-slate-800/80">
-                  <CardTitle className="text-base text-white flex items-center gap-2">
-                    <PieChart className="w-4 h-4 text-emerald-400" />
+              <Card className="shadow-2xs">
+                <CardHeader className="pb-3 border-b">
+                  <CardTitle className="text-base text-foreground flex items-center gap-2">
+                    <PieChart className="w-4 h-4 text-emerald-600" />
                     수익 모델별 매출 비중 (Revenue Mix)
                   </CardTitle>
-                  <CardDescription className="text-xs text-slate-400">
+                  <CardDescription className="text-xs text-muted-foreground">
                     당월 누적 총 매출 ₩831,200,000 기준
                   </CardDescription>
                 </CardHeader>
@@ -655,27 +647,27 @@ export default function AnalyticsPage() {
                   {/* 1:1 통화 과금 */}
                   <div>
                     <div className="flex justify-between text-xs mb-1.5">
-                      <span className="text-slate-300 font-medium flex items-center gap-1.5">
+                      <span className="text-slate-700 font-medium flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block" />
                         1:1 프라이빗 영상/음성 통화
                       </span>
-                      <span className="text-white font-bold font-mono">58% (₩482.0M)</span>
+                      <span className="text-slate-900 font-bold font-mono">58% (₩482.0M)</span>
                     </div>
-                    <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-                      <div className="bg-indigo-500 h-2 rounded-full" style={{ width: '58%' }} />
+                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                      <div className="bg-indigo-600 h-2 rounded-full" style={{ width: '58%' }} />
                     </div>
                   </div>
 
                   {/* 온 충전소 인앱결제 */}
                   <div>
                     <div className="flex justify-between text-xs mb-1.5">
-                      <span className="text-slate-300 font-medium flex items-center gap-1.5">
+                      <span className="text-slate-700 font-medium flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 inline-block" />
                         온(ON) 충전소 인앱결제 (IAP)
                       </span>
-                      <span className="text-white font-bold font-mono">28% (₩232.8M)</span>
+                      <span className="text-slate-900 font-bold font-mono">28% (₩232.8M)</span>
                     </div>
-                    <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                       <div className="bg-cyan-500 h-2 rounded-full" style={{ width: '28%' }} />
                     </div>
                   </div>
@@ -683,54 +675,54 @@ export default function AnalyticsPage() {
                   {/* 라이브 스트리밍 선물 후원 */}
                   <div>
                     <div className="flex justify-between text-xs mb-1.5">
-                      <span className="text-slate-300 font-medium flex items-center gap-1.5">
+                      <span className="text-slate-700 font-medium flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
                         라이브 방송 3D 선물 후원 수수료
                       </span>
-                      <span className="text-white font-bold font-mono">14% (₩116.4M)</span>
+                      <span className="text-slate-900 font-bold font-mono">14% (₩116.4M)</span>
                     </div>
-                    <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                       <div className="bg-amber-500 h-2 rounded-full" style={{ width: '14%' }} />
                     </div>
                   </div>
 
-                  <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300 mt-2">
+                  <div className="p-3 rounded-lg bg-indigo-50 border border-indigo-100 text-xs text-indigo-900 mt-2 leading-relaxed">
                     💡 <strong>인사이트</strong>: 분당 선차감 과금 엔진 도입 이후 1:1 통화 매출 기여도가 42% ➔ 58%로 가파르게 상승했습니다.
                   </div>
                 </CardContent>
               </Card>
 
               {/* 추가 모니터링 지표 리스트 */}
-              <Card className="bg-slate-900/60 border-slate-800">
-                <CardHeader className="pb-3 border-b border-slate-800/80">
+              <Card className="shadow-2xs">
+                <CardHeader className="pb-3 border-b">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base text-white flex items-center gap-2">
-                      <Sliders className="w-4 h-4 text-purple-400" />
+                    <CardTitle className="text-base text-foreground flex items-center gap-2">
+                      <Sliders className="w-4 h-4 text-purple-600" />
                       등록 지표 요약 ({metrics.length})
                     </CardTitle>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setIsNewMetricModalOpen(true)}
-                      className="text-xs text-indigo-400 hover:text-indigo-300 h-7"
+                      className="text-xs text-indigo-600 hover:text-indigo-700 h-7"
                     >
                       + 추가
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-3 divide-y divide-slate-800/60 max-h-64 overflow-y-auto">
+                <CardContent className="pt-3 divide-y max-h-64 overflow-y-auto">
                   {metrics.map((m) => (
                     <div key={m.id} className="py-2.5 flex items-center justify-between text-xs">
                       <div>
-                        <div className="text-white font-medium flex items-center gap-1.5">
+                        <div className="text-foreground font-medium flex items-center gap-1.5">
                           {m.name}
-                          {m.pinned && <Badge className="bg-amber-500/10 text-amber-400 border-none text-[10px] px-1 py-0">고정</Badge>}
+                          {m.pinned && <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] px-1 py-0 font-medium">고정</Badge>}
                         </div>
-                        <p className="text-[11px] text-slate-400 truncate max-w-[160px]">{m.description}</p>
+                        <p className="text-[11px] text-muted-foreground truncate max-w-[160px]">{m.description}</p>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-slate-100 font-mono">{m.value}</div>
-                        <div className="text-[10px] text-emerald-400">{m.delta}</div>
+                        <div className="font-bold text-foreground font-mono">{m.value}</div>
+                        <div className="text-[10px] text-emerald-600 font-medium">{m.delta}</div>
                       </div>
                     </div>
                   ))}
@@ -746,45 +738,45 @@ export default function AnalyticsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* 좌측: 6단계 전환 퍼널 */}
-            <Card className="bg-slate-900/60 border-slate-800">
-              <CardHeader className="pb-3 border-b border-slate-800/80">
-                <CardTitle className="text-base text-white flex items-center gap-2">
-                  <LineChart className="w-4 h-4 text-indigo-400" />
+            <Card className="shadow-2xs">
+              <CardHeader className="pb-3 border-b">
+                <CardTitle className="text-base text-foreground flex items-center gap-2">
+                  <LineChart className="w-4 h-4 text-indigo-600" />
                   신규 유저 행동 전환 퍼널 (End-to-End Funnel)
                 </CardTitle>
-                <CardDescription className="text-xs text-slate-400">
+                <CardDescription className="text-xs text-muted-foreground">
                   앱 설치부터 온(ON) 결제까지 단계별 유저 도달률과 이탈률을 정밀 추적합니다.
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
                 {funnel.map((step) => (
-                  <div key={step.step} className="p-3 rounded-xl bg-slate-800/40 border border-slate-800">
+                  <div key={step.step} className="p-3 rounded-xl bg-slate-50/80 border border-slate-200">
                     <div className="flex items-center justify-between text-xs mb-1.5">
                       <div className="flex items-center gap-2">
-                        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold text-[11px]">
+                        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[11px]">
                           {step.step}
                         </span>
-                        <span className="text-white font-medium">{step.name}</span>
+                        <span className="text-foreground font-medium">{step.name}</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-slate-400 font-mono">{step.count.toLocaleString()}명</span>
-                        <Badge className="bg-indigo-500/10 text-indigo-300 border-indigo-500/30 font-mono text-[11px]">
+                        <span className="text-muted-foreground font-mono">{step.count.toLocaleString()}명</span>
+                        <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 font-mono text-[11px]">
                           {step.conversionRate}%
                         </Badge>
                       </div>
                     </div>
 
-                    <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden mt-1.5">
+                    <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden mt-1.5">
                       <div
-                        className="bg-gradient-to-r from-indigo-500 to-cyan-400 h-2 rounded-full transition-all duration-500"
+                        className="bg-gradient-to-r from-indigo-500 to-cyan-500 h-2 rounded-full transition-all duration-500"
                         style={{ width: `${step.conversionRate}%` }}
                       />
                     </div>
 
                     {step.dropRate > 0 && (
-                      <div className="flex justify-between items-center text-[11px] text-slate-400 mt-1.5">
+                      <div className="flex justify-between items-center text-[11px] text-muted-foreground mt-1.5">
                         <span>전 단계 대비 이탈:</span>
-                        <span className="text-rose-400 font-semibold font-mono flex items-center">
+                        <span className="text-rose-600 font-semibold font-mono flex items-center">
                           <ArrowDownRight className="w-3 h-3 mr-0.5 inline" />
                           -{step.dropRate}% 이탈
                         </span>
@@ -796,23 +788,23 @@ export default function AnalyticsPage() {
             </Card>
 
             {/* 우측: 24시간 피크타임 트래픽 & 1:1 통화 시간 차트 */}
-            <Card className="bg-slate-900/60 border-slate-800">
-              <CardHeader className="pb-3 border-b border-slate-800/80">
+            <Card className="shadow-2xs">
+              <CardHeader className="pb-3 border-b">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base text-white flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-cyan-400" />
+                  <CardTitle className="text-base text-foreground flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-cyan-600" />
                     24시간 트래픽 & 피크타임 핫스팟 (Hourly Traffic)
                   </CardTitle>
-                  <Badge className="bg-amber-500/20 text-amber-300 border-none text-[11px]">
+                  <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[11px] font-medium">
                     🔥 21시~01시 야간 피크
                   </Badge>
                 </div>
-                <CardDescription className="text-xs text-slate-400">
+                <CardDescription className="text-xs text-muted-foreground">
                   시간대별 동시 접속자 수(DAU)와 1:1 통화 소비 시간(분) 분포를 표시합니다.
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
-                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200">
+                <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
                   ⚡ <strong>운영 최적화 안내</strong>: 저녁 21:00부터 익일 01:00까지 트래픽이 4.8만명으로 집중됩니다. 이 시간대 푸시 알림 타겟팅과 AI 안전관 검수 리소스를 2배 집중 배치하십시오.
                 </div>
 
@@ -825,23 +817,23 @@ export default function AnalyticsPage() {
                         key={i}
                         className={`p-2.5 rounded-lg border text-xs flex items-center gap-3 transition-colors ${
                           isPeak
-                            ? 'bg-amber-950/20 border-amber-500/30'
-                            : 'bg-slate-800/30 border-slate-800'
+                            ? 'bg-amber-50/60 border-amber-200'
+                            : 'bg-slate-50 border-slate-200'
                         }`}
                       >
-                        <span className="w-12 font-mono text-slate-300 font-semibold">{h.hour}</span>
+                        <span className="w-12 font-mono text-slate-700 font-semibold">{h.hour}</span>
                         <div className="flex-1">
-                          <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
+                          <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
                             <div
-                              className={`h-2 rounded-full ${isPeak ? 'bg-amber-400' : 'bg-cyan-500'}`}
+                              className={`h-2 rounded-full ${isPeak ? 'bg-amber-500' : 'bg-cyan-500'}`}
                               style={{ width: `${barWidth}%` }}
                             />
                           </div>
                         </div>
-                        <div className="w-24 text-right font-mono text-slate-200 font-medium">
+                        <div className="w-24 text-right font-mono text-foreground font-medium">
                           {h.activeUsers.toLocaleString()}명
                         </div>
-                        <div className="w-24 text-right font-mono text-indigo-400 text-[11px]">
+                        <div className="w-24 text-right font-mono text-indigo-600 font-semibold text-[11px]">
                           {h.callMinutes.toLocaleString()}분
                         </div>
                       </div>
@@ -858,44 +850,44 @@ export default function AnalyticsPage() {
       {activeTab === 'reports' && (
         <div className="space-y-6">
           {/* 상단: 정기 리포트 스케줄러 카드 */}
-          <Card className="bg-slate-900/60 border-slate-800">
-            <CardHeader className="pb-3 border-b border-slate-800/80">
+          <Card className="shadow-2xs">
+            <CardHeader className="pb-3 border-b">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base text-white flex items-center gap-2">
-                    <Send className="w-4 h-4 text-indigo-400" />
+                  <CardTitle className="text-base text-foreground flex items-center gap-2">
+                    <Send className="w-4 h-4 text-indigo-600" />
                     자동화 리포트 스케줄러 (Scheduled Digest Jobs)
                   </CardTitle>
-                  <CardDescription className="text-xs text-slate-400">
+                  <CardDescription className="text-xs text-muted-foreground">
                     지정한 주기마다 Slack 채널, 이메일, 빅쿼리 데이터셋으로 실시간 지표 요약본을 자동 발송합니다.
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="pt-4 divide-y divide-slate-800/80">
+            <CardContent className="pt-4 divide-y">
               {reportJobs.map((job) => (
                 <div key={job.id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-white text-sm">{job.name}</span>
-                      <Badge className="bg-indigo-500/10 text-indigo-400 border-indigo-500/30 text-[10px]">
+                      <span className="font-semibold text-foreground text-sm">{job.name}</span>
+                      <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px]">
                         {job.cadence}
                       </Badge>
-                      <Badge className="bg-slate-800 text-slate-300 border-none text-[10px]">
+                      <Badge variant="secondary" className="text-[10px]">
                         {job.destination}
                       </Badge>
-                      <Badge className="bg-slate-800 text-slate-300 border-none text-[10px]">
+                      <Badge variant="secondary" className="text-[10px]">
                         {job.format}
                       </Badge>
                     </div>
-                    <p className="text-xs text-slate-400">
-                      수신 채널: <span className="text-slate-200 font-mono">{job.destination === 'Slack' ? '#dagaon-kpi-daily' : 'growth@dagaon.app'}</span>
+                    <p className="text-xs text-muted-foreground">
+                      수신 채널: <span className="text-foreground font-mono">{job.destination === 'Slack' ? '#dagaon-kpi-daily' : 'growth@dagaon.app'}</span>
                     </p>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor={`switch-${job.id}`} className="text-xs text-slate-400 cursor-pointer">
+                      <Label htmlFor={`switch-${job.id}`} className="text-xs text-muted-foreground cursor-pointer">
                         {job.active ? '발송 활성' : '일시정지'}
                       </Label>
                       <Switch
@@ -910,7 +902,7 @@ export default function AnalyticsPage() {
                       size="sm"
                       disabled={runningJobId === job.id}
                       onClick={() => handleTriggerJob(job)}
-                      className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs h-8"
+                      className="text-xs h-8"
                     >
                       {runningJobId === job.id ? (
                         <>
@@ -919,7 +911,7 @@ export default function AnalyticsPage() {
                         </>
                       ) : (
                         <>
-                          <Play className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
+                          <Play className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
                           지금 테스트 발송
                         </>
                       )}
@@ -931,22 +923,22 @@ export default function AnalyticsPage() {
           </Card>
 
           {/* 하단: 생성된 데이터 원장 및 다운로드 히스토리 */}
-          <Card className="bg-slate-900/60 border-slate-800">
-            <CardHeader className="pb-3 border-b border-slate-800/80">
+          <Card className="shadow-2xs">
+            <CardHeader className="pb-3 border-b">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base text-white flex items-center gap-2">
-                    <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                  <CardTitle className="text-base text-foreground flex items-center gap-2">
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                     추출 완료된 데이터 원장 이력 (Export Logs)
                   </CardTitle>
-                  <CardDescription className="text-xs text-slate-400">
+                  <CardDescription className="text-xs text-muted-foreground">
                     최근 생성된 정산, 코호트, 안전 감사 보고서 원장 파일 목록입니다.
                   </CardDescription>
                 </div>
                 <Button
                   size="sm"
                   onClick={() => setIsExportModalOpen(true)}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs h-8"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs h-8"
                 >
                   <Download className="w-3.5 h-3.5 mr-1.5" />
                   신규 원장 추출
@@ -956,7 +948,7 @@ export default function AnalyticsPage() {
             <CardContent className="pt-4 overflow-x-auto">
               <table className="w-full text-xs text-left">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase">
+                  <tr className="border-b bg-muted/40 text-muted-foreground font-semibold uppercase">
                     <th className="py-2.5 px-3">원장 식별 ID</th>
                     <th className="py-2.5 px-3">보고서 명칭</th>
                     <th className="py-2.5 px-3">분석 차원</th>
@@ -966,22 +958,22 @@ export default function AnalyticsPage() {
                     <th className="py-2.5 px-3 text-right">다운로드</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y">
                   {exportLogs.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="py-3 px-3 font-mono text-slate-400">{item.id}</td>
-                      <td className="py-3 px-3 font-semibold text-white">{item.title}</td>
+                    <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="py-3 px-3 font-mono text-muted-foreground">{item.id}</td>
+                      <td className="py-3 px-3 font-semibold text-foreground">{item.title}</td>
                       <td className="py-3 px-3">
-                        <Badge variant="outline" className="border-indigo-500/30 text-indigo-300 bg-indigo-500/10 text-[10px]">
+                        <Badge variant="outline" className="border-indigo-200 text-indigo-700 bg-indigo-50 text-[10px]">
                           {item.dimension || 'Cohort'}
                         </Badge>
                       </td>
-                      <td className="py-3 px-3 text-slate-400 font-mono">{item.generatedAt}</td>
-                      <td className="py-3 px-3 text-slate-300 font-mono">
+                      <td className="py-3 px-3 text-muted-foreground font-mono">{item.generatedAt}</td>
+                      <td className="py-3 px-3 text-slate-700 font-mono">
                         {item.fileSize || '2.4 MB'} ({item.format || 'CSV'})
                       </td>
                       <td className="py-3 px-3">
-                        <Badge className="bg-emerald-500/20 text-emerald-300 border-none text-[10px] flex items-center w-fit gap-1">
+                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] flex items-center w-fit gap-1">
                           <CheckCircle2 className="w-3 h-3" />
                           {item.status}
                         </Badge>
@@ -996,7 +988,7 @@ export default function AnalyticsPage() {
                               description: `[${item.title}] 파일 다운로드가 시작되었습니다.`,
                             })
                           }}
-                          className="text-xs text-indigo-400 hover:text-indigo-300 h-7 px-2"
+                          className="text-xs text-indigo-600 hover:text-indigo-700 h-7 px-2"
                         >
                           <Download className="w-3.5 h-3.5 mr-1" />
                           다운로드
@@ -1013,61 +1005,61 @@ export default function AnalyticsPage() {
 
       {/* 8. Modal: 신규 커스텀 지표 등록 */}
       <Dialog open={isNewMetricModalOpen} onOpenChange={setIsNewMetricModalOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-indigo-400">
+            <DialogTitle className="flex items-center gap-2 text-indigo-600">
               <Plus className="w-5 h-5" />
               신규 커스텀 지표 등록
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
+            <DialogDescription className="text-xs text-muted-foreground">
               대시보드 상단 또는 지표 목록에 표시할 새로운 성장 지표를 생성합니다.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div>
-              <Label className="text-xs text-slate-300">지표명 (KPI Name)</Label>
+              <Label className="text-xs font-semibold">지표명 (KPI Name)</Label>
               <Input
                 placeholder="예: VIP 온 충전 유저 수"
                 value={metricForm.name}
                 onChange={(e) => setMetricForm({ ...metricForm, name: e.target.value })}
-                className="bg-slate-800 border-slate-700 text-white mt-1 text-sm"
+                className="mt-1 text-sm"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-slate-300">현재 값 (Current Value)</Label>
+                <Label className="text-xs font-semibold">현재 값 (Current Value)</Label>
                 <Input
                   placeholder="예: 1,420명"
                   value={metricForm.value}
                   onChange={(e) => setMetricForm({ ...metricForm, value: e.target.value })}
-                  className="bg-slate-800 border-slate-700 text-white mt-1 text-sm"
+                  className="mt-1 text-sm"
                 />
               </div>
               <div>
-                <Label className="text-xs text-slate-300">전월 대비 증감 (Delta)</Label>
+                <Label className="text-xs font-semibold">전월 대비 증감 (Delta)</Label>
                 <Input
                   placeholder="예: +8.4%"
                   value={metricForm.delta}
                   onChange={(e) => setMetricForm({ ...metricForm, delta: e.target.value })}
-                  className="bg-slate-800 border-slate-700 text-white mt-1 text-sm"
+                  className="mt-1 text-sm"
                 />
               </div>
             </div>
 
             <div>
-              <Label className="text-xs text-slate-300">지표 상세 설명</Label>
+              <Label className="text-xs font-semibold">지표 상세 설명</Label>
               <Textarea
                 placeholder="지표 산출 기준 및 설명을 입력하세요."
                 value={metricForm.description}
                 onChange={(e) => setMetricForm({ ...metricForm, description: e.target.value })}
-                className="bg-slate-800 border-slate-700 text-white mt-1 text-xs resize-none h-20"
+                className="mt-1 text-xs resize-none h-20"
               />
             </div>
 
             <div className="flex items-center justify-between pt-2">
-              <Label htmlFor="pin-switch" className="text-xs text-slate-300 cursor-pointer">
+              <Label htmlFor="pin-switch" className="text-xs font-medium cursor-pointer">
                 상단 핵심 지표 카드 고정 여부
               </Label>
               <Switch
@@ -1083,14 +1075,13 @@ export default function AnalyticsPage() {
               variant="outline"
               size="sm"
               onClick={() => setIsNewMetricModalOpen(false)}
-              className="border-slate-700 text-slate-300"
             >
               취소
             </Button>
             <Button
               size="sm"
               onClick={handleCreateMetric}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
             >
               지표 추가 완료
             </Button>
@@ -1100,39 +1091,39 @@ export default function AnalyticsPage() {
 
       {/* 9. Modal: 즉시 데이터 원장 추출 */}
       <Dialog open={isExportModalOpen} onOpenChange={setIsExportModalOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-indigo-400">
+            <DialogTitle className="flex items-center gap-2 text-indigo-600">
               <Download className="w-5 h-5" />
               즉시 데이터 원장 추출 (Export)
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
+            <DialogDescription className="text-xs text-muted-foreground">
               원하는 기간 및 분석 차원의 원장 데이터를 즉시 계산하여 파일로 생성합니다.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div>
-              <Label className="text-xs text-slate-300">보고서 명칭</Label>
+              <Label className="text-xs font-semibold">보고서 명칭</Label>
               <Input
                 placeholder="예: 2026년 10월 3주차 가입자 잔존 분석"
                 value={exportForm.title}
                 onChange={(e) => setExportForm({ ...exportForm, title: e.target.value })}
-                className="bg-slate-800 border-slate-700 text-white mt-1 text-sm"
+                className="mt-1 text-sm"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-slate-300">분석 차원 (Dimension)</Label>
+                <Label className="text-xs font-semibold">분석 차원 (Dimension)</Label>
                 <Select
                   value={exportForm.dimension}
                   onValueChange={(val) => setExportForm({ ...exportForm, dimension: val })}
                 >
-                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white mt-1 text-xs">
+                  <SelectTrigger className="mt-1 text-xs">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                  <SelectContent>
                     <SelectItem value="Cohort">코호트 리텐션</SelectItem>
                     <SelectItem value="Revenue">매출 & 온 과금</SelectItem>
                     <SelectItem value="Safety">신고 & AI 채증</SelectItem>
@@ -1142,15 +1133,15 @@ export default function AnalyticsPage() {
               </div>
 
               <div>
-                <Label className="text-xs text-slate-300">파일 포맷</Label>
+                <Label className="text-xs font-semibold">파일 포맷</Label>
                 <Select
                   value={exportForm.format}
                   onValueChange={(val) => setExportForm({ ...exportForm, format: val })}
                 >
-                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white mt-1 text-xs">
+                  <SelectTrigger className="mt-1 text-xs">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                  <SelectContent>
                     <SelectItem value="CSV">CSV 파일 (.csv)</SelectItem>
                     <SelectItem value="XLSX">엑셀 스프레드시트 (.xlsx)</SelectItem>
                   </SelectContent>
@@ -1159,12 +1150,12 @@ export default function AnalyticsPage() {
             </div>
 
             <div>
-              <Label className="text-xs text-slate-300">추출 목적 및 메모</Label>
+              <Label className="text-xs font-semibold">추출 목적 및 메모</Label>
               <Textarea
                 placeholder="원장 추출 사유(예: 투자자 정기 보고, 세무 정산용)를 기재하세요."
                 value={exportForm.note}
                 onChange={(e) => setExportForm({ ...exportForm, note: e.target.value })}
-                className="bg-slate-800 border-slate-700 text-white mt-1 text-xs resize-none h-20"
+                className="mt-1 text-xs resize-none h-20"
               />
             </div>
           </div>
@@ -1174,7 +1165,6 @@ export default function AnalyticsPage() {
               variant="outline"
               size="sm"
               onClick={() => setIsExportModalOpen(false)}
-              className="border-slate-700 text-slate-300"
             >
               취소
             </Button>
@@ -1182,7 +1172,7 @@ export default function AnalyticsPage() {
               size="sm"
               disabled={submittingExport}
               onClick={handleCreateExport}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
             >
               {submittingExport ? (
                 <>

@@ -4,6 +4,34 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-17 Checkpoint 84: 관리자 콘솔 전 페이지 라이트 테마(화이트/파스텔) 시각적 일관화 전면 완료 (완료)
+
+### 1. 개요 및 배경
+- **배경색 및 테마 불일치 이슈 해소**:
+  - `푸시 알림 센터` 및 `신고 & 안전`까지는 화사하고 깔끔한 화이트/소프트 그레이 바탕에 파스텔 가이드 배너와 깨끗한 카드가 적용되어 있었으나, `지표 분석`, `API 모니터링`, `관리자 권한`, `시스템 설정` 페이지 일부에 개발용 다크 테마(`min-h-screen bg-[#080B14] text-slate-100`, `bg-slate-900`, `border-slate-800` 등)가 하드코딩되어 있어 일관성이 훼손되었던 문제를 완벽히 해결.
+- **통일된 라이트 콘솔 디자인 시스템 원칙 준수**:
+  - 최상위 컨테이너: `<div className="space-y-6">` 구조로 일원화 (`AppShell`의 `bg-muted/20` 연회색/화이트 바탕과 자연스럽게 결합).
+  - 상단 3단계 실무 가이드: 투명하고 세련된 라이트 파스텔 그라데이션(`border-indigo-200/70 bg-gradient-to-r from-indigo-50/80 via-blue-50/50 to-purple-50/80`, 내부 가이드 카드 `bg-white/80 border-slate-200/80`) 적용.
+  - 핵심 KPI 요약 카드: 푸시알림센터와 동일한 `border-l-4`, `shadow-2xs`, `bg-white` 일관화.
+  - 테이블 & 히트맵 & 차트: 연한 민트/에메랄드/블루/퍼플/앰버 히트맵 및 깔끔한 화이트 카드/헤더 적용.
+  - 모달 팝업 & 배지: 다크 오버레이 및 다크 모달을 완전히 제거하고 화사한 모던 라이트 다이얼로그로 통일.
+
+### 2. 주요 작업 내역
+1. **지표 & 성장 분석 센터 (`apps/admin/src/app/analytics/page.tsx`)**:
+   - 다크 배경 제거, 라이트 가이드 배너, 라이트 코호트 잔존율 매트릭스 표(`bg-emerald-50 text-emerald-700` 등), 유저 여정 퍼널, 수익 모델 프로그레스 바, 신규 지표/원장 추출 모달 2종 화이트 테마 전환.
+2. **API 모니터링 & 트래픽 제어 센터 (`apps/admin/src/app/api-manager/page.tsx`)**:
+   - `METHOD_BADGES` (GET, POST, PUT, PATCH, DELETE)를 라이트 파스텔 톤으로 전환.
+   - 엔드포인트 목록 아이템, 핑 테스트 버튼, 모듈 점유율 차트, 외부 연동 헬스체크 카드, 감사 로그 테이블, 등록 모달을 모두 밝은 흰색 카드(`bg-white border-slate-200 shadow-2xs`)로 통일.
+3. **관리자 권한 & 2인 결재 센터 (`apps/admin/src/app/admin-permissions/page.tsx`)**:
+   - `APPROVAL_STATUS_BADGES`, `ROLE_BADGES` 라이트 파스텔 톤 적용.
+   - 4대 KPI 요약 카드, 2인 결재 대기열 카드, RBAC 매트릭스 테이블, 3대 결재/신규상신/역할수정 모달 라이트 테마 전환.
+4. **시스템 설정 센터 (`apps/admin/src/app/settings/page.tsx`)**:
+   - 상단 실무 가이드 배너의 다크 클래스를 라이트 파스텔 톤으로 일원화. `Badge` import 무결점 보강.
+5. **빌드 검증**:
+   - Next.js 관리자 콘솔 `npm run build` 결과 32개 전체 라우트 100% 정상 생성 (Exit code 0).
+
+---
+
 ## 2026-10-17 Checkpoint 83: 시스템 설정 센터 UI/UX 강화 & 사업자 API 키 연동 실무 가이드 및 4대 KPI 요약 탑재 (완료)
 
 ### 1. 개요 및 배경
