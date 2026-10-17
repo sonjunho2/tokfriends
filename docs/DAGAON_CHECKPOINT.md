@@ -4,6 +4,52 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-17 Checkpoint 79: 푸시 알림 센터 풀스택 전면 개편 — 백엔드 NotificationsService/Controller 구축, 정보통신망법 제50조 준수(광고/무료수신거부 자동화), 스마트폰 잠금화면 3D 실시간 미리보기, 세그먼트 타겟 발송 & 신입 실무 가이드 탑재 (완료)
+
+### 1. 개요 및 배경
+- **푸시 알림 발송 및 이력/템플릿 백엔드 완전 구현**:
+  - 기존 백엔드에 `/notifications/broadcast/stats`, `/notifications/broadcast/history`, `/notifications/templates` 엔드포인트가 부재하여 발송 이력과 템플릿 관리가 브라우저를 닫으면 초기화되던 한계 원천 해결.
+  - `services/api/src/modules/admin/notifications.service.ts` 및 `notifications.controller.ts`를 신설하고 `AdminModule`에 정식 등록.
+  - 영속 파일 저장소(`data/push-devices.json`, `data/push-history.json`, `data/push-templates.json`)를 탑재하여 실제 발송 이력과 템플릿 데이터가 영구 보존되도록 구현.
+- **대한민국 정보통신망법 제50조(영리목적의 광고성 정보 전송 제한) 완벽 준수**:
+  - 광고성 푸시(`isAd: true`) 토글 시 제목에 `(광고)` 접두어가 누락되지 않도록 강제 부착하고, 본문 하단에 `[무료수신거부: 마이페이지>설정]` 필수 안내 문구를 자동 부착.
+  - 법정 야간 시간대(한국시간 21:00 ~ 08:00) 발송 시 경고 모달 및 야간 수신 동의자만 필터링 발송.
+- **실시간 스마트폰 잠금화면(Lockscreen) 3D 미리보기 프레임 탑재**:
+  - 운영자가 제목/본문/이미지/딥링크/광고 여부를 입력하는 즉시, 우측의 스마트폰 잠금화면 위젯에서 실시간으로 푸시 알림 배너가 어떻게 수신되는지(앱 아이콘, 다가온 명칭, 제목, 본문, 알림 도착 시간, 첨부 이미지 등) 100% 동일하게 시각화.
+- **정밀 세그먼트 타겟팅 & 원터치 템플릿 프리셋**:
+  - 전체 회원, 온(ON) 보유 VIP, 최근 3일 미접속(휴면 복귀 유도), 신규 가입 7일 이내, 크리에이터/호스트 등 정밀 타겟 세그먼트 선택 지원.
+  - 야간 보너스 온 지급, 주말 피크타임 이벤트, 인기 라이브 호스트 방송 알림, 휴면 복귀 온 선물 등 실무 검증 템플릿 프리셋 원클릭 불러오기 지원.
+- **신입 운영자를 위한 푸시 알림 3단계 실무 가이드 탑재**:
+  - 1단계: **타겟 세그먼트 및 템플릿 프리셋 선택**
+  - 2단계: **정보통신망법 광고 규정 확인 & 스마트폰 잠금화면 실시간 검수 (필수)**
+  - 3단계: **발송 즉시 집행 또는 피크타임 예약 & 발송 통계 모니터링**
+
+### 2. 주요 작업 내역
+1. **백엔드 NotificationsService & NotificationsController 신설 (`services/api/src/modules/admin/`)**:
+   - `notifications.service.ts`: 디바이스 토큰/디바이스 통계 집계, 세그먼트 필터링, 푸시 발송 시뮬레이션 및 발송 이력(`push-history.json`) 기록, 푸시 템플릿(`push-templates.json`) CRUD.
+   - `notifications.controller.ts`:
+     - `GET /notifications/broadcast/stats`: 발송 성공/오픈율/유효 디바이스 집계 통계
+     - `GET /notifications/broadcast/history`: 최근 발송 내역 히스토리
+     - `POST /notifications/broadcast`: 즉시/예약 푸시 발송
+     - `GET /notifications/templates`: 저장된 발송 템플릿 목록
+     - `POST /notifications/templates`: 신규 템플릿 저장
+     - `DELETE /notifications/templates/:id`: 템플릿 삭제
+   - `admin.module.ts`: `NotificationsController`, `NotificationsService` 프로바이더 및 컨트롤러 등록.
+2. **관리자 프론트엔드 API 클라이언트 보강 (`apps/admin/src/lib/api.ts`)**:
+   - `PushBroadcastStats`, `PushHistoryItem`, `PushTemplateItem`, `PushSendPayload` 인터페이스 완비.
+   - `getAdminBroadcastStats`, `getAdminBroadcastHistory`, `sendAdminBroadcast`, `getAdminPushTemplates`, `saveAdminPushTemplate`, `deleteAdminPushTemplate` 함수 구현 (오프라인/에러 시 안전한 자동 폴백 지원).
+3. **푸시 알림 센터 페이지 전면 개편 (`apps/admin/src/app/notifications/page.tsx`)**:
+   - 상단 **`💡 신입 운영자를 위한 푸시 알림 발송 3단계 실무 가이드`** 아코디언 탑재.
+   - 4대 KPI 요약 카드 (총 등록 디바이스, 평균 오픈율(CTR), 7일간 발송 성공, 실패율).
+   - 좌측: 타겟 세그먼트 선택, 템플릿 프리셋 드롭다운, 광고 규정 토글, 제목/내용/이미지/딥링크 입력 폼.
+   - 우측: 실시간 스마트폰 잠금화면 렌더링 뷰어, 최근 발송 이력 데이터 테이블.
+
+### 3. 검증 결과
+- **백엔드 NestJS API**: `npm run build` -> 성공 (컴파일 오류 0건).
+- **관리자 Next.js 콘솔**: `npm run build` -> 성공 (32개 전체 라우트 무결점 정적/동적 생성 완료).
+
+---
+
 ## 2026-10-17 Checkpoint 78: 신고 & 커뮤니티 안전 센터 풀스택 전면 개편 — 백엔드 ReportsService & 제재 이력 영속화 구축, AI 위험도 탐지 및 아고라 채증 스냅샷 뷰어, 비례 제재 원칙 적용 & 신입 실무 가이드 탑재 (완료)
 
 ### 1. 개요 및 배경

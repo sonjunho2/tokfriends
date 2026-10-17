@@ -12,6 +12,8 @@ import { AdvertisementsController } from './advertisements.controller';
 import { ContentController } from './content.controller';
 import { ContentService } from './content.service';
 import { ReportsService } from './reports.service';
+import { NotificationsController } from './notifications.controller';
+import { NotificationsService } from './notifications.service';
 
 @Module({
   imports: [forwardRef(() => CallsModule)],
@@ -21,6 +23,7 @@ import { ReportsService } from './reports.service';
     AdminApprovalsController,
     AdvertisementsController,
     ContentController,
+    NotificationsController,
   ],
   providers: [
     AdminSettingsService,
@@ -28,6 +31,7 @@ import { ReportsService } from './reports.service';
     AdsRewardsService,
     ContentService,
     ReportsService,
+    NotificationsService,
     PrismaService,
   ],
   exports: [
@@ -36,6 +40,7 @@ import { ReportsService } from './reports.service';
     AdsRewardsService,
     ContentService,
     ReportsService,
+    NotificationsService,
   ],
 })
 export class AdminModule {}
