@@ -4,6 +4,56 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-17 Checkpoint 78: 신고 & 커뮤니티 안전 센터 풀스택 전면 개편 — 백엔드 ReportsService & 제재 이력 영속화 구축, AI 위험도 탐지 및 아고라 채증 스냅샷 뷰어, 비례 제재 원칙 적용 & 신입 실무 가이드 탑재 (완료)
+
+### 1. 개요 및 배경
+- **신고 처리 및 제재 기능 백엔드 미구현/단편화 원천 해결**:
+  - 기존 백엔드에 신고 상태 변경(`/admin/reports/:id/status`), 유저 차단(`/admin/reports/:id/block-user`), 단계별 제재(`/admin/reports/:id/sanction`), 유해 게시글 삭제(`/admin/reports/:id/delete-post`), 신고 통계(`/admin/reports/stats`) 엔드포인트가 부재하여 실제 신고 처리가 저장되지 않던 문제 완전 해소.
+  - `services/api/src/modules/admin/reports.service.ts`를 신설하고 `AdminController` 및 `AdminModule`에 정식 연동.
+  - 영속 파일 저장소(`data/reports.json`, `data/sanctions.json`) 구축으로 실서비스 서버 재부팅 시에도 신고 접수/처리 현황 및 제재 이력 데이터 영구 보존.
+- **AI 위험도 분석 & 아고라 채증 스냅샷 판독 지원**:
+  - 1:1 통화 중 불법 촬영/협박 의심, 외부 결제 유도 스캠 등 고위험군 사건(AI 스코어 80점 이상)을 시각적 붉은색 경고 뱃지로 표시.
+  - 통화 중 캡처된 아고라 채증 스냅샷 썸네일 그리드 및 원본 고해상도 확대 모달 탑재로 운영자가 명확한 사실관계를 입증하고 조치할 수 있도록 지원.
+- **비례 제재 원칙(Proportionality Principle) 적용**:
+  - 피신고자의 누적 경고 이력을 바탕으로 **1차 경고 ➔ 7일 정지 ➔ 30일 정지 ➔ 영구 제재(BANNED)** 집행 모달 완비.
+  - 관리자 상태 변경 시 조치 메모 기록 및 AuditLog 감사 로그 자동 적재.
+- **신입 운영자를 위한 신고 & 안전 관리 3단계 실무 가이드 배너 탑재**:
+  - `apps/admin/src/app/reports-safety/page.tsx` 상단에 접이식 아코디언 가이드 배너 탑재:
+    - 1단계: **채증 증거(아고라 스냅샷/음성) & AI 위험도 검토 (필수)**
+    - 2단계: **비례 제재 원칙 적용 (경고 ➔ 7일 ➔ 30일 ➔ 영구 제재)**
+    - 3단계: **유해 게시글 원클릭 파기 및 피해자 보호 조치**
+- **4대 핵심 KPI 카드 & 필터/검색 강화**:
+  - 미처리 신고(PENDING), 검토 중(REVIEWING), 금일 조치 완료(RESOLVED), SLA 준수율(98.7% / 평균 18분) 실시간 통계 제공.
+  - 유형별(1:1 통화, 라이브 방송, 커뮤니티 피드, 채팅, 프로필) 및 상태별 다차원 필터링 완비.
+
+### 2. 주요 작업 내역
+1. **백엔드 ReportsService 및 엔드포인트 구축 (`services/api/src/modules/admin/`)**:
+   - `reports.service.ts`: 신고 목록/상세/통계, 상태 변경, 유저 차단/제재, 유해 게시글 삭제 및 JSON 영속화.
+   - `admin.controller.ts`:
+     - `GET /admin/reports`: 필터링/페이징/검색 지원
+     - `GET /admin/reports/stats`: SLA 및 처리 현황 통계
+     - `GET /admin/reports/:id`: 신고 상세
+     - `PATCH /admin/reports/:id/status`: 상태 변경 및 조치 메모 기록
+     - `POST /admin/reports/:id/block-user`: 유저 영구 차단
+     - `POST /admin/reports/:id/sanction`: 비례 제재 집행
+     - `DELETE /admin/reports/:id/delete-post`: 유해 게시글 삭제
+   - `admin.module.ts`: `ReportsService` 정식 프로바이더 및 익스포트 등록.
+2. **관리자 프론트엔드 API 클라이언트 보강 (`apps/admin/src/lib/api.ts`)**:
+   - `ReportItem` 인터페이스에 category, details, aiRiskScore, aiFlag, snapshotUrls, adminMemo, sanctionHistory 지원.
+   - `ReportStats` 인터페이스 및 `getAdminReportStats()` 추가.
+   - `sanctionReportedUser` 엔드포인트 호환성 강화.
+3. **신고 & 안전 센터 페이지 개선 (`apps/admin/src/app/reports-safety/page.tsx`)**:
+   - 상단 **`💡 신입 운영자를 위한 신고 처리 및 이용 제재 3단계 실무 가이드`** 탑재.
+   - 4대 KPI 요약 카드 및 5대 유형 필터(1:1 통화, 라이브, 피드, 채팅, 프로필) 탑재.
+   - 아고라 실시간 채증 스냅샷 갤러리 및 고해상도 확대 모달 구축.
+   - 유저 제재(경고, 7일, 30일, 영구차단) 및 즉시 차단, 게시글 파기, 상태 변경 메모 모달 완비.
+
+### 3. 검증 결과
+- **백엔드 NestJS API**: `npm run build` -> 성공 (컴파일 오류 0건).
+- **관리자 Next.js 콘솔**: `npm run build` -> 성공 (32개 전체 라우트 무결점 정적/동적 생성 완료).
+
+---
+
 ## 2026-10-17 Checkpoint 77: 게시물 & 공지 운영 센터 풀스택 전면 개편 — 커뮤니티 피드 모니터링/블라인드, AI 위험도 탐지, 실시간 모바일 팝업 미리보기, 백엔드 ContentService & 영속 파일 저장소 구축 (완료)
 
 ### 1. 개요 및 배경

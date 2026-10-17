@@ -11,6 +11,7 @@ import { AdminApprovalsController } from './admin-approvals.controller';
 import { AdvertisementsController } from './advertisements.controller';
 import { ContentController } from './content.controller';
 import { ContentService } from './content.service';
+import { ReportsService } from './reports.service';
 
 @Module({
   imports: [forwardRef(() => CallsModule)],
@@ -26,6 +27,7 @@ import { ContentService } from './content.service';
     SettlementService,
     AdsRewardsService,
     ContentService,
+    ReportsService,
     PrismaService,
   ],
   exports: [
@@ -33,6 +35,7 @@ import { ContentService } from './content.service';
     SettlementService,
     AdsRewardsService,
     ContentService,
+    ReportsService,
   ],
 })
 export class AdminModule {}

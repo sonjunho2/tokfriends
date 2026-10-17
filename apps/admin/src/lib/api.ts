@@ -1787,18 +1787,30 @@ export type ReportStatus = 'PENDING' | 'REVIEWING' | 'RESOLVED' | 'REJECTED'
 
 export interface ReportItem {
   id: number
+  category?: 'PRIVATE_CALL' | 'LIVE_STREAM' | 'POST' | 'CHAT_MESSAGE' | 'PROFILE' | string
   reason: string
+  details?: string
   status: ReportStatus
+  aiRiskScore?: number
+  aiFlag?: string
+  snapshotUrls?: string[]
+  evidenceUrls?: string[]
+  adminMemo?: string
+  sanctionHistory?: string[]
+  resolvedAt?: string | null
   createdAt: string
-  reporter: { id: string; email?: string; displayName?: string; nickname?: string; avatarUri?: string } | null
+  reporter: { id: string; email?: string; displayName?: string; nickname?: string; avatarUri?: string; avatarUrl?: string; role?: string; status?: string; trustScore?: number } | null
   reported: {
     id: string
     email?: string
     displayName?: string
     nickname?: string
     avatarUri?: string
+    avatarUrl?: string
     status?: string
     trustScore?: number
+    warningCount?: number
+    role?: string
   } | null
   post: {
     id: string
@@ -1808,6 +1820,17 @@ export interface ReportItem {
     createdAt?: string
     authorName?: string
   } | null
+}
+
+export interface ReportStats {
+  total: number
+  pending: number
+  reviewing: number
+  resolved: number
+  rejected: number
+  highRisk: number
+  slaComplianceRate: string
+  avgResolutionMinutes: number
 }
 
 export interface ReportListResponse {
@@ -1822,8 +1845,17 @@ export interface ReportListResponse {
 function normalizeReportItem(raw: any): ReportItem {
   return {
     id: typeof raw?.id === 'number' ? raw.id : Number(raw?.id ?? 0),
+    category: raw?.category ?? 'PRIVATE_CALL',
     reason: typeof raw?.reason === 'string' ? raw.reason : '',
+    details: raw?.details ?? '',
     status: (raw?.status ?? 'PENDING') as ReportStatus,
+    aiRiskScore: typeof raw?.aiRiskScore === 'number' ? raw.aiRiskScore : undefined,
+    aiFlag: raw?.aiFlag ?? undefined,
+    snapshotUrls: Array.isArray(raw?.snapshotUrls) ? raw.snapshotUrls : [],
+    evidenceUrls: Array.isArray(raw?.evidenceUrls) ? raw.evidenceUrls : [],
+    adminMemo: raw?.adminMemo ?? '',
+    sanctionHistory: Array.isArray(raw?.sanctionHistory) ? raw.sanctionHistory : [],
+    resolvedAt: raw?.resolvedAt ?? null,
     createdAt: raw?.createdAt ?? raw?.created_at ?? new Date().toISOString(),
     reporter: raw?.reporter ?? null,
     reported: raw?.reported ?? null,
@@ -1833,12 +1865,14 @@ function normalizeReportItem(raw: any): ReportItem {
 
 export async function getAdminReports(params: {
   status?: string
+  category?: string
+  search?: string
   page?: number
   limit?: number
 } = {}): Promise<ReportListResponse> {
   const response = await api.get('/admin/reports', { params })
   const d = response.data as any
-  const items = (d?.items ?? d?.data ?? []).map(normalizeReportItem)
+  const items = (d?.items ?? d?.data ?? (Array.isArray(d) ? d : [])).map(normalizeReportItem)
   return {
     ok: true,
     page: d?.page ?? 1,
@@ -1849,11 +1883,18 @@ export async function getAdminReports(params: {
   }
 }
 
+export async function getAdminReportStats(): Promise<ReportStats> {
+  const response = await api.get('/admin/reports/stats')
+  const d = (response.data as any)?.data ?? response.data
+  return d as ReportStats
+}
+
 export async function updateAdminReportStatus(
   id: number,
   status: Exclude<ReportStatus, 'PENDING'>,
+  memo?: string,
 ): Promise<ReportItem> {
-  const response = await api.patch(`/admin/reports/${id}/status`, { status })
+  const response = await api.patch(`/admin/reports/${id}/status`, { status, memo })
   const d = (response.data as any)?.data ?? response.data
   return normalizeReportItem(d)
 }
@@ -1878,9 +1919,15 @@ export async function sanctionReportedUser(
     reason?: string
   },
 ): Promise<{ reportId: number; reportedId: string; action: string; success: boolean }> {
-  const response = await api.post(`/admin/reports/${id}/sanction-user`, data)
-  const d = (response.data as any)?.data ?? response.data
-  return d
+  try {
+    const response = await api.post(`/admin/reports/${id}/sanction`, data)
+    const d = (response.data as any)?.data ?? response.data
+    return d
+  } catch {
+    const response = await api.post(`/admin/reports/${id}/sanction-user`, data)
+    const d = (response.data as any)?.data ?? response.data
+    return d
+  }
 }
 
 export async function deleteReportedPost(

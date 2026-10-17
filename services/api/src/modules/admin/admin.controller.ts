@@ -30,6 +30,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { AdminSettingsService } from './admin-settings.service';
 import { SettlementService } from './settlement.service';
 import { AdsRewardsService } from './ads-rewards.service';
+import { ReportsService } from './reports.service';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -41,6 +42,7 @@ export class AdminController {
     private readonly adminSettings: AdminSettingsService,
     private readonly settlementService: SettlementService,
     private readonly adsRewardsService: AdsRewardsService,
+    private readonly reportsService: ReportsService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -386,29 +388,119 @@ export class AdminController {
   // [사람 운영자 필수 관리 기능: 신고 관리]
   // ==========================================
   @Get('reports')
-  async getReports(@Query('status') status?: string) {
-    try {
-      const reports = await (this.prisma as any).report.findMany({
-        take: 50,
-        orderBy: { createdAt: 'desc' },
-      });
-      return reports;
-    } catch {
-      return [];
-    }
+  async getReports(
+    @Query('status') status?: string,
+    @Query('category') category?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const res = this.reportsService.getReports({
+      status,
+      category,
+      search,
+      page: page ? Number(page) : 1,
+      limit: limit ? Number(limit) : 20,
+    });
+    return { ok: true, ...res, data: res.items };
+  }
+
+  @Get('reports/stats')
+  async getReportStats() {
+    return { ok: true, data: this.reportsService.getReportStats() };
   }
 
   @Get('reports/recent')
   async getRecentReports() {
-    try {
-      const reports = await (this.prisma as any).report.findMany({
-        take: 10,
-        orderBy: { createdAt: 'desc' },
-      });
-      return reports;
-    } catch {
-      return [];
-    }
+    return this.reportsService.getRecentReports();
+  }
+
+  @Get('reports/:id')
+  async getReportById(@Param('id') id: string) {
+    return { ok: true, data: this.reportsService.getReportById(Number(id)) };
+  }
+
+  @Patch('reports/:id/status')
+  async updateReportStatus(
+    @CurrentUser() actor: any,
+    @Param('id') id: string,
+    @Body() dto: { status: any; memo?: string },
+  ) {
+    const actorId = actor?.id ?? actor?.sub;
+    const updated = this.reportsService.updateReportStatus(Number(id), dto.status, dto.memo);
+    await this.prisma.auditLog
+      .create({
+        data: {
+          actorId,
+          target: `report:${id}`,
+          action: 'REPORT_STATUS_UPDATED',
+          notes: `status=${dto.status};memo=${dto.memo}`,
+        },
+      })
+      .catch(() => null);
+    return { ok: true, data: updated };
+  }
+
+  @Post('reports/:id/block-user')
+  async blockReportedUser(
+    @CurrentUser() actor: any,
+    @Param('id') id: string,
+    @Body() dto: { reason?: string },
+  ) {
+    const actorId = actor?.id ?? actor?.sub;
+    const res = this.reportsService.blockReportedUser(Number(id), dto.reason, actorId);
+    await this.prisma.auditLog
+      .create({
+        data: {
+          actorId,
+          target: `user:${res.reportedId}`,
+          action: 'USER_BLOCKED_BY_REPORT',
+          notes: `reportId=${id};reason=${dto.reason}`,
+        },
+      })
+      .catch(() => null);
+    return { ok: true, data: res };
+  }
+
+  @Post('reports/:id/sanction')
+  async sanctionReportedUser(
+    @CurrentUser() actor: any,
+    @Param('id') id: string,
+    @Body() dto: { action: any; reason?: string },
+  ) {
+    const actorId = actor?.id ?? actor?.sub;
+    const res = this.reportsService.sanctionUser(Number(id), dto, actorId);
+    await this.prisma.auditLog
+      .create({
+        data: {
+          actorId,
+          target: `user:${res.reportedId}`,
+          action: `USER_SANCTIONED_${dto.action}`,
+          notes: `reportId=${id};reason=${dto.reason}`,
+        },
+      })
+      .catch(() => null);
+    return { ok: true, data: res };
+  }
+
+  @Delete('reports/:id/delete-post')
+  async deleteReportedPost(
+    @CurrentUser() actor: any,
+    @Param('id') id: string,
+  ) {
+    const actorId = actor?.id ?? actor?.sub;
+    const res = this.reportsService.deleteReportedPost(Number(id));
+    await this.prisma.auditLog
+      .create({
+        data: {
+          actorId,
+          target: `report:${id}:post:${res.postId}`,
+          action: 'REPORTED_POST_DELETED',
+          notes: `reportId=${id};postId=${res.postId}`,
+        },
+      })
+      .catch(() => null);
+    return { ok: true, data: res };
   }
 
   // ==========================================
