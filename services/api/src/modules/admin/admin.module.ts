@@ -18,6 +18,7 @@ import { AnalyticsController } from './analytics.controller';
 import { AnalyticsService } from './analytics.service';
 import { ApiManagerController } from './api-manager.controller';
 import { ApiManagerService } from './api-manager.service';
+import { LegalDocumentsController } from './legal-documents.controller';
 
 @Module({
   imports: [forwardRef(() => CallsModule)],
@@ -30,6 +31,7 @@ import { ApiManagerService } from './api-manager.service';
     NotificationsController,
     AnalyticsController,
     ApiManagerController,
+    LegalDocumentsController,
   ],
   providers: [
     AdminSettingsService,

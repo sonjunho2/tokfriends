@@ -1,0 +1,90 @@
+[
+  {
+    "id": "led-001",
+    "walletId": "wal-user-1",
+    "kind": "CHARGE",
+    "source": "GOOGLE_IAP",
+    "deltaSpendable": 10000,
+    "deltaRedeemable": 0,
+    "deltaPending": 0,
+    "spendableAfter": 34000,
+    "redeemableAfter": 0,
+    "pendingAfter": 0,
+    "idempotencyKey": "idem-chg-20261015-01",
+    "createdAt": "2026-10-17T03:17:08.747Z",
+    "wallet": {
+      "id": "wal-user-1",
+      "activityAccountId": "act-user-1",
+      "activityAccount": {
+        "displayName": "김철수",
+        "handle": "chulsoo"
+      }
+    }
+  },
+  {
+    "id": "led-002",
+    "walletId": "wal-user-1",
+    "kind": "GIFT_SEND",
+    "source": "LIVE_STREAM",
+    "deltaSpendable": -1000,
+    "deltaRedeemable": 0,
+    "deltaPending": 0,
+    "spendableAfter": 33000,
+    "redeemableAfter": 0,
+    "pendingAfter": 0,
+    "idempotencyKey": "idem-gft-20261015-02",
+    "createdAt": "2026-10-17T04:17:08.747Z",
+    "wallet": {
+      "id": "wal-user-1",
+      "activityAccountId": "act-user-1",
+      "activityAccount": {
+        "displayName": "김철수",
+        "handle": "chulsoo"
+      }
+    }
+  },
+  {
+    "id": "led-003",
+    "walletId": "wal-host-1",
+    "kind": "GIFT_RECEIVE",
+    "source": "LIVE_STREAM",
+    "deltaSpendable": 0,
+    "deltaRedeemable": 1000,
+    "deltaPending": 0,
+    "spendableAfter": 15000,
+    "redeemableAfter": 480000,
+    "pendingAfter": 50000,
+    "idempotencyKey": "idem-gft-20261015-03",
+    "createdAt": "2026-10-17T04:17:08.747Z",
+    "wallet": {
+      "id": "wal-host-1",
+      "activityAccountId": "act-host-1",
+      "activityAccount": {
+        "displayName": "박서아 (인기 호스트)",
+        "handle": "seoa_live"
+      }
+    }
+  },
+  {
+    "id": "led-004",
+    "walletId": "wal-host-1",
+    "kind": "SETTLEMENT_REQUEST",
+    "source": "PAYOUT_SYSTEM",
+    "deltaSpendable": 0,
+    "deltaRedeemable": -50000,
+    "deltaPending": 50000,
+    "spendableAfter": 15000,
+    "redeemableAfter": 430000,
+    "pendingAfter": 50000,
+    "idempotencyKey": "idem-set-20261015-04",
+    "createdAt": "2026-10-17T02:17:08.747Z",
+    "wallet": {
+      "id": "wal-host-1",
+      "activityAccountId": "act-host-1",
+      "activityAccount": {
+        "displayName": "박서아 (인기 호스트)",
+        "handle": "seoa_live"
+      }
+    }
+  }
+]

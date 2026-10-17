@@ -1,0 +1,96 @@
+[
+  {
+    "id": "set-20261015-001",
+    "activityAccountId": "act-host-1",
+    "pointsAmount": 50000,
+    "exchangeRate": 70,
+    "tier": "BEST",
+    "krwAmount": 3500000,
+    "platformFeeKrw": 1500000,
+    "taxAmount": 115500,
+    "netAmount": 3384500,
+    "bankName": "국민은행",
+    "accountNumber": "479001-04-129481",
+    "accountHolder": "박서아",
+    "status": "PENDING",
+    "createdAt": "2026-10-17T02:17:08.747Z",
+    "updatedAt": "2026-10-17T02:17:08.747Z",
+    "activityAccount": {
+      "id": "act-host-1",
+      "displayName": "박서아 (인기 호스트)",
+      "handle": "seoa_live",
+      "owner": {
+        "legacyUser": {
+          "id": "u-host-1",
+          "email": "seoa.park@example.com",
+          "displayName": "박서아",
+          "streamerTier": "BEST"
+        }
+      }
+    }
+  },
+  {
+    "id": "set-20261014-002",
+    "activityAccountId": "act-host-2",
+    "pointsAmount": 20000,
+    "exchangeRate": 60,
+    "tier": "ROOKIE",
+    "krwAmount": 1200000,
+    "platformFeeKrw": 800000,
+    "taxAmount": 39600,
+    "netAmount": 1160400,
+    "bankName": "신한은행",
+    "accountNumber": "110-384-918274",
+    "accountHolder": "최유나",
+    "status": "APPROVED",
+    "adminMemo": "신한은행 계좌 정상 입금 확인 완료 (이체번호: 20261014-991)",
+    "createdAt": "2026-10-16T02:17:08.747Z",
+    "updatedAt": "2026-10-16T10:17:08.747Z",
+    "processedAt": "2026-10-16T10:17:08.747Z",
+    "activityAccount": {
+      "id": "act-host-2",
+      "displayName": "최유나",
+      "handle": "yuna_choi",
+      "owner": {
+        "legacyUser": {
+          "id": "u-host-2",
+          "email": "yuna.choi@example.com",
+          "displayName": "최유나",
+          "streamerTier": "ROOKIE"
+        }
+      }
+    }
+  },
+  {
+    "id": "set-20261013-003",
+    "activityAccountId": "act-host-3",
+    "pointsAmount": 100000,
+    "exchangeRate": 80,
+    "tier": "PARTNER",
+    "krwAmount": 8000000,
+    "platformFeeKrw": 2000000,
+    "taxAmount": 264000,
+    "netAmount": 7736000,
+    "bankName": "카카오뱅크",
+    "accountNumber": "3333-01-9283741",
+    "accountHolder": "이소희",
+    "status": "APPROVED",
+    "adminMemo": "VIP 파트너 크리에이터 정산 완료",
+    "createdAt": "2026-10-15T02:17:08.747Z",
+    "updatedAt": "2026-10-15T06:17:08.747Z",
+    "processedAt": "2026-10-15T06:17:08.747Z",
+    "activityAccount": {
+      "id": "act-host-3",
+      "displayName": "이소희 💎",
+      "handle": "sohee_vip",
+      "owner": {
+        "legacyUser": {
+          "id": "u-host-3",
+          "email": "sohee.lee@example.com",
+          "displayName": "이소희",
+          "streamerTier": "PARTNER"
+        }
+      }
+    }
+  }
+]

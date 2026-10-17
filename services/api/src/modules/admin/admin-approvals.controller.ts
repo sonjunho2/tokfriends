@@ -211,8 +211,8 @@ export class AdminApprovalsController {
     }
 
     const data: Prisma.AdminProfileUpdateInput = {};
-    if (dto.role) data.role = dto.role;
-    if (dto.status) data.status = dto.status;
+    if (dto.role) data.role = dto.role as any;
+    if (dto.status) data.status = dto.status as any;
     if (dto.permissions) data.permissions = dto.permissions;
 
     const updated = await this.prisma.adminProfile.update({

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "ad-001",
+    "title": "신규 회원 웰컴 보너스 100 온 지급 이벤트",
+    "description": "가입 즉시 100 온 코인이 지갑으로 충전됩니다. 첫 라이브 방송을 응원해보세요!",
+    "imageUrl": "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop&q=80",
+    "targetUrl": "https://dagaon.app/event/welcome",
+    "placement": "HOME_BANNER",
+    "priority": 10,
+    "rewardPoints": 0,
+    "clickCount": 1420,
+    "impressionCount": 18500,
+    "isActive": true,
+    "createdAt": "2026-10-14T06:17:08.750Z",
+    "updatedAt": "2026-10-16T06:17:08.750Z"
+  },
+  {
+    "id": "ad-002",
+    "title": "무료 충전소 OPEN — 광고 보고 매일 50 온 받기",
+    "description": "동영상 광고를 1회 시청할 때마다 10 온이 즉시 적립됩니다. (일일 최대 5회)",
+    "imageUrl": "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=600&auto=format&fit=crop&q=80",
+    "targetUrl": "https://dagaon.app/reward-station",
+    "placement": "SHOP_BANNER",
+    "priority": 8,
+    "rewardPoints": 10,
+    "clickCount": 3890,
+    "impressionCount": 29400,
+    "isActive": true,
+    "createdAt": "2026-10-13T06:17:08.750Z",
+    "updatedAt": "2026-10-16T18:17:08.750Z"
+  },
+  {
+    "id": "ad-003",
+    "title": "다가온 공식 크리에이터 2기 대모집 💎",
+    "description": "최대 80% 업계 최고 환급율! 나만의 팬덤을 만들고 주인공이 되어보세요.",
+    "imageUrl": "https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=600&auto=format&fit=crop&q=80",
+    "targetUrl": "https://dagaon.app/creator/recruit",
+    "placement": "LIVE_BANNER",
+    "priority": 7,
+    "rewardPoints": 0,
+    "clickCount": 920,
+    "impressionCount": 14200,
+    "isActive": true,
+    "createdAt": "2026-10-12T06:17:08.750Z",
+    "updatedAt": "2026-10-15T06:17:08.750Z"
+  },
+  {
+    "id": "ad-004",
+    "title": "친구 초대하고 둘 다 50 온 코인 무제한 적립",
+    "description": "초대 코드로 친구가 가입하면 초대한 사람도, 받은 사람도 50 온 즉시 지급!",
+    "imageUrl": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80",
+    "targetUrl": "https://dagaon.app/event/referral",
+    "placement": "HOME_BANNER",
+    "priority": 6,
+    "rewardPoints": 50,
+    "clickCount": 2150,
+    "impressionCount": 22100,
+    "isActive": true,
+    "createdAt": "2026-10-11T00:17:08.750Z",
+    "updatedAt": "2026-10-16T20:17:08.750Z"
+  }
+]

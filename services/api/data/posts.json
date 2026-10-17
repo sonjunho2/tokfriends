@@ -1,0 +1,204 @@
+[
+  {
+    "id": "post-101",
+    "authorId": "admin-official",
+    "authorNickname": "다가온 공식운영팀",
+    "authorDisplayName": "DAGAON Official",
+    "authorAvatarUrl": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80",
+    "authorRole": "ADMIN",
+    "category": "OFFICIAL",
+    "title": "🎉 다가온(DAGAON) 커뮤니티 라운지 정식 오픈!",
+    "content": "새로운 사람이 다가오고, 새로운 이야기가 시작되는 다가온 커뮤니티 라운지에 오신 것을 환영합니다! 일상 속 소소한 이야기부터 취미, 고민, 라이브 방송 소식까지 자유롭게 공유해주세요.",
+    "mediaUrls": [
+      "https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=800&auto=format&fit=crop&q=80"
+    ],
+    "tags": [
+      "공식환영",
+      "커뮤니티오픈",
+      "다가온"
+    ],
+    "likesCount": 248,
+    "commentsCount": 36,
+    "viewsCount": 3820,
+    "reportCount": 0,
+    "status": "ACTIVE",
+    "isPinned": true,
+    "comments": [
+      {
+        "id": "cmt-1",
+        "authorId": "usr-001",
+        "authorNickname": "민트초코러버",
+        "authorAvatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+        "content": "와 드디어 공식 커뮤니티 오픈했네요 축하드립니다!! 🎉",
+        "createdAt": "2026-10-15T14:17:08.796Z"
+      },
+      {
+        "id": "cmt-2",
+        "authorId": "usr-002",
+        "authorNickname": "달리는루키",
+        "authorAvatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+        "content": "좋은 사람들과 즐거운 인연 많이 만들고 싶어요 :)",
+        "createdAt": "2026-10-15T22:17:08.796Z"
+      }
+    ],
+    "createdAt": "2026-10-15T06:17:08.796Z",
+    "updatedAt": "2026-10-15T06:17:08.796Z"
+  },
+  {
+    "id": "post-102",
+    "authorId": "usr-201",
+    "authorNickname": "라이더민수",
+    "authorDisplayName": "김민수",
+    "authorAvatarUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
+    "authorRole": "USER",
+    "category": "DAILY",
+    "title": "오늘 저녁 한강 야간 라이딩 가실 분 계신가요?",
+    "content": "여의도에서 반포까지 선선한 강바람 맞으면서 달려요! 코스도 편하고 끝나고 편의점 라면 한 그릇 함께 하실 분 댓글 남겨주세요 🚴‍♂️✨",
+    "mediaUrls": [
+      "https://images.unsplash.com/photo-1541625602330-2277a4c46182?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=800&auto=format&fit=crop&q=80"
+    ],
+    "tags": [
+      "한강라이딩",
+      "자전거",
+      "친목모임",
+      "야경"
+    ],
+    "likesCount": 52,
+    "commentsCount": 9,
+    "viewsCount": 640,
+    "reportCount": 0,
+    "status": "ACTIVE",
+    "isPinned": false,
+    "comments": [
+      {
+        "id": "cmt-3",
+        "authorId": "usr-205",
+        "authorNickname": "자전거홀릭",
+        "content": "몇 시쯤 모이시나요? 저도 반포 쪽이라 참여하고 싶어요!",
+        "createdAt": "2026-10-16T12:17:08.796Z"
+      }
+    ],
+    "createdAt": "2026-10-16T06:17:08.796Z",
+    "updatedAt": "2026-10-16T10:17:08.796Z"
+  },
+  {
+    "id": "post-103",
+    "authorId": "creator-301",
+    "authorNickname": "은별_Live 🎙️",
+    "authorDisplayName": "이은별 (파트너 호스트)",
+    "authorAvatarUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
+    "authorRole": "CREATOR",
+    "category": "LIVE",
+    "title": "오늘 밤 10시! 신청곡 라이브 방송 오픈합니다 🎵",
+    "content": "오늘 밤 10시에 신청곡 피아노 라이브 방송 진행해요! 신청곡 댓글로 미리 남겨주시면 방송에서 우선적으로 불러드릴게요. 많은 온(ON) 응원 부탁드려요 💖",
+    "mediaUrls": [
+      "https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=800&auto=format&fit=crop&q=80"
+    ],
+    "tags": [
+      "라이브방송",
+      "신청곡",
+      "음악소통",
+      "호스트은별"
+    ],
+    "likesCount": 142,
+    "commentsCount": 28,
+    "viewsCount": 1950,
+    "reportCount": 0,
+    "status": "ACTIVE",
+    "isPinned": false,
+    "comments": [],
+    "createdAt": "2026-10-16T16:17:08.796Z",
+    "updatedAt": "2026-10-16T22:17:08.796Z"
+  },
+  {
+    "id": "post-104",
+    "authorId": "bad-user-99",
+    "authorNickname": "조건문의_카톡ID",
+    "authorDisplayName": "불량 유저",
+    "authorAvatarUrl": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+    "authorRole": "USER",
+    "category": "DAILY",
+    "title": "심심한 분 카톡 open-chat 링크로 오세요",
+    "content": "앱 내 통화 말고 외부 카카오톡으로 바로 연락 주실 분 구합니다. 조건 맞춰드립니다. 카톡: quick9988",
+    "mediaUrls": [],
+    "tags": [
+      "카톡",
+      "조건"
+    ],
+    "likesCount": 1,
+    "commentsCount": 0,
+    "viewsCount": 88,
+    "reportCount": 5,
+    "aiRiskScore": 94,
+    "aiFlag": "EXTERNAL_COMMUNICATION_AND_SOLICITATION",
+    "status": "REPORTED",
+    "hiddenReason": "외부 연락처 공유 유도 및 성매매/불법 조건 만남 의심 (AI 위험도 94점)",
+    "isPinned": false,
+    "comments": [],
+    "createdAt": "2026-10-17T00:17:08.796Z",
+    "updatedAt": "2026-10-17T05:17:08.796Z"
+  },
+  {
+    "id": "post-105",
+    "authorId": "spammer-01",
+    "authorNickname": "대출상담사",
+    "authorDisplayName": "스팸 계정",
+    "authorAvatarUrl": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80",
+    "authorRole": "USER",
+    "category": "QA",
+    "title": "신용불량자도 가능한 즉시 당일 대출",
+    "content": "무직자, 연체자 모두 승인 가능. 텔레그램 @loan_money 로 문의주시면 10분 내 송금 완료.",
+    "mediaUrls": [],
+    "tags": [
+      "대출",
+      "스팸"
+    ],
+    "likesCount": 0,
+    "commentsCount": 0,
+    "viewsCount": 32,
+    "reportCount": 8,
+    "aiRiskScore": 98,
+    "aiFlag": "FINANCIAL_SPAM_TELEGRAM",
+    "status": "HIDDEN",
+    "hiddenReason": "불법 금융 스팸 및 텔레그램 유도 — 관리자 직권 블라인드 조치",
+    "isPinned": false,
+    "comments": [],
+    "createdAt": "2026-10-16T18:17:08.796Z",
+    "updatedAt": "2026-10-16T20:17:08.796Z"
+  },
+  {
+    "id": "post-106",
+    "authorId": "usr-405",
+    "authorNickname": "초보호스트루나",
+    "authorDisplayName": "루나",
+    "authorAvatarUrl": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
+    "authorRole": "CREATOR",
+    "category": "QA",
+    "title": "호스트 첫 출금 신청 질문드려요!",
+    "content": "이번 주에 처음으로 모은 온(ON) 포인트 출금 신청해봤는데 보통 며칠 정도 뒤에 계좌 입금되나요? 정산 경험 있으신 선배 호스트님들 팁 부탁드려요!",
+    "mediaUrls": [],
+    "tags": [
+      "호스트팁",
+      "정산질문",
+      "초보호스트"
+    ],
+    "likesCount": 19,
+    "commentsCount": 5,
+    "viewsCount": 410,
+    "reportCount": 0,
+    "status": "ACTIVE",
+    "isPinned": false,
+    "comments": [
+      {
+        "id": "cmt-4",
+        "authorId": "creator-301",
+        "authorNickname": "은별_Live 🎙️",
+        "content": "출금 신청하면 매주 화요일 정산 주기에 맞춰 3.3% 원천징수 공제 후 깔끔하게 입금돼요! 첫 출금 축하드려요 ㅎㅎ",
+        "createdAt": "2026-10-17T02:17:08.796Z"
+      }
+    ],
+    "createdAt": "2026-10-16T22:17:08.796Z",
+    "updatedAt": "2026-10-17T02:17:08.796Z"
+  }
+]

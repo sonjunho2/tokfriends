@@ -1,0 +1,54 @@
+[
+  {
+    "id": "rew-001",
+    "deltaSpendable": 10,
+    "createdAt": "2026-10-17T05:17:08.750Z",
+    "kind": "AD_REWARD",
+    "source": "ADMOB_VIDEO",
+    "wallet": {
+      "activityAccount": {
+        "displayName": "김철수",
+        "handle": "chulsoo"
+      }
+    }
+  },
+  {
+    "id": "rew-002",
+    "deltaSpendable": 5,
+    "createdAt": "2026-10-17T03:17:08.750Z",
+    "kind": "ATTENDANCE_REWARD",
+    "source": "DAILY_CHECKIN",
+    "wallet": {
+      "activityAccount": {
+        "displayName": "이지민",
+        "handle": "jimin_lee"
+      }
+    }
+  },
+  {
+    "id": "rew-003",
+    "deltaSpendable": 50,
+    "createdAt": "2026-10-17T01:17:08.750Z",
+    "kind": "REFERRAL_REWARD",
+    "source": "FRIEND_INVITE",
+    "wallet": {
+      "activityAccount": {
+        "displayName": "박서아 (인기 호스트)",
+        "handle": "seoa_live"
+      }
+    }
+  },
+  {
+    "id": "rew-004",
+    "deltaSpendable": 10,
+    "createdAt": "2026-10-16T23:17:08.750Z",
+    "kind": "AD_REWARD",
+    "source": "ADMOB_VIDEO",
+    "wallet": {
+      "activityAccount": {
+        "displayName": "최유나",
+        "handle": "yuna_choi"
+      }
+    }
+  }
+]

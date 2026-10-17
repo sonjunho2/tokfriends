@@ -1,0 +1,47 @@
+[
+  {
+    "id": "push-801",
+    "title": "[안내] 다가온 커뮤니티 라운지 오픈 기념 이벤트",
+    "body": "일상과 취미를 공유하고 새로운 친구를 만날 수 있는 커뮤니티 라운지가 열렸습니다! 지금 바로 글을 작성해보세요.",
+    "audience": "전체 사용자",
+    "deepLink": "dagaon://community",
+    "isAd": false,
+    "scheduleType": "IMMEDIATE",
+    "sentAt": "2026-10-17T01:17:08.803Z",
+    "total": 14820,
+    "sent": 14750,
+    "failed": 70,
+    "openRate": "16.8%",
+    "status": "COMPLETED"
+  },
+  {
+    "id": "push-802",
+    "title": "🔥 금요일 심야 실시간 라이브 부스트",
+    "body": "불타는 금요일 밤! 지금 인기 호스트들이 라이브 방송을 진행하고 있습니다. 놓치지 마세요!",
+    "audience": "일반 회원",
+    "deepLink": "dagaon://live",
+    "isAd": false,
+    "scheduleType": "IMMEDIATE",
+    "sentAt": "2026-10-16T04:17:08.803Z",
+    "total": 12400,
+    "sent": 12320,
+    "failed": 80,
+    "openRate": "19.4%",
+    "status": "COMPLETED"
+  },
+  {
+    "id": "push-803",
+    "title": "(광고) 친구 초대하고 둘 다 50 온 코인 무제한 적립 혜택",
+    "body": "내 초대 코드로 친구가 가입하면 초대한 분도, 친구도 50 온 즉시 지급! [수신거부: 마이페이지>설정]",
+    "audience": "휴면 회원 (7일 이상)",
+    "deepLink": "dagaon://event/invite",
+    "isAd": true,
+    "scheduleType": "IMMEDIATE",
+    "sentAt": "2026-10-15T04:17:08.803Z",
+    "total": 3120,
+    "sent": 3080,
+    "failed": 40,
+    "openRate": "11.2%",
+    "status": "COMPLETED"
+  }
+]

@@ -1,0 +1,68 @@
+[
+  {
+    "id": "point-1",
+    "name": "1,000 온 충전",
+    "points": 1000,
+    "price": 1100,
+    "isRecommended": false,
+    "isActive": true,
+    "androidProductId": "com.tokfriends.point.1000",
+    "iosProductId": "tokfriends.point.1000",
+    "order": 1
+  },
+  {
+    "id": "point-2",
+    "name": "5,000 온 충전 (인기)",
+    "points": 5000,
+    "price": 5500,
+    "isRecommended": true,
+    "isActive": true,
+    "androidProductId": "com.tokfriends.point.5000",
+    "iosProductId": "tokfriends.point.5000",
+    "order": 2
+  },
+  {
+    "id": "point-3",
+    "name": "10,000 온 충전",
+    "points": 10000,
+    "price": 11000,
+    "isRecommended": false,
+    "isActive": true,
+    "androidProductId": "com.tokfriends.point.10000",
+    "iosProductId": "tokfriends.point.10000",
+    "order": 3
+  },
+  {
+    "id": "point-4",
+    "name": "30,000 온 충전 (보너스 +10%)",
+    "points": 33000,
+    "price": 33000,
+    "isRecommended": true,
+    "isActive": true,
+    "androidProductId": "com.tokfriends.point.30000",
+    "iosProductId": "tokfriends.point.30000",
+    "order": 4
+  },
+  {
+    "id": "point-5",
+    "name": "50,000 온 충전 (보너스 +15%)",
+    "points": 57500,
+    "price": 55000,
+    "isRecommended": false,
+    "isActive": true,
+    "androidProductId": "com.tokfriends.point.50000",
+    "iosProductId": "tokfriends.point.50000",
+    "order": 5
+  },
+  {
+    "id": "point-6",
+    "name": "100,000 온 충전 (VIP 보너스 +20%)",
+    "points": 120000,
+    "price": 110000,
+    "isRecommended": false,
+    "isActive": true,
+    "androidProductId": "com.tokfriends.point.100000",
+    "iosProductId": "tokfriends.point.100000",
+    "order": 6
+  }
+]

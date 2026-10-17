@@ -1,0 +1,39 @@
+[
+  {
+    "id": "ref-20261015-01",
+    "userId": "u-user-1",
+    "user": {
+      "id": "u-user-1",
+      "displayName": "김철수",
+      "email": "chulsoo.kim@example.com",
+      "pointsBalance": 12500
+    },
+    "platform": "google",
+    "productId": "com.tokfriends.point.10000",
+    "receiptId": "GPA.3391-4820-1928-48192",
+    "amountKrw": 11000,
+    "points": 10000,
+    "reason": "실수로 잘못 결제했습니다. 충전된 온(ON) 코인을 아직 전혀 사용하지 않았습니다.",
+    "status": "pending",
+    "createdAt": "2026-10-17T04:17:08.747Z"
+  },
+  {
+    "id": "ref-20261014-02",
+    "userId": "u-user-2",
+    "user": {
+      "id": "u-user-2",
+      "displayName": "정우성",
+      "email": "woosung.jung@example.com",
+      "pointsBalance": 5000
+    },
+    "platform": "apple",
+    "productId": "tokfriends.point.5000",
+    "receiptId": "APL_REC_9812749182",
+    "amountKrw": 5500,
+    "points": 5000,
+    "reason": "앱 내 결제 테스트 건 (즉시 취소 요청)",
+    "status": "approved",
+    "createdAt": "2026-10-16T00:17:08.747Z",
+    "decidedAt": "2026-10-16T08:17:08.747Z"
+  }
+]

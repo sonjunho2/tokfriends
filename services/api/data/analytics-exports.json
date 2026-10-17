@@ -1,0 +1,32 @@
+[
+  {
+    "id": "exp-9001",
+    "title": "2026년 10월 1~2주차 가입 유저 코호트 리텐션 원장",
+    "generatedAt": "2026. 10. 17. 오후 1:17:15",
+    "status": "SUCCESS",
+    "fileSize": "4.8 MB",
+    "downloadUrl": "/api/admin/analytics/downloads/exp-9001.csv",
+    "dimension": "Cohort",
+    "format": "CSV"
+  },
+  {
+    "id": "exp-9002",
+    "title": "1:1 영상통화 과금 & 플랫폼 수수료 일일 정산 요약본",
+    "generatedAt": "2026. 10. 17. 오전 3:17:15",
+    "status": "SUCCESS",
+    "fileSize": "1.2 MB",
+    "downloadUrl": "/api/admin/analytics/downloads/exp-9002.xlsx",
+    "dimension": "Revenue",
+    "format": "XLSX"
+  },
+  {
+    "id": "exp-9003",
+    "title": "AI 안전 스크리닝 및 유해 신고 제재 이력 감사 보고서",
+    "generatedAt": "2026. 10. 16. 오후 3:17:15",
+    "status": "SUCCESS",
+    "fileSize": "840 KB",
+    "downloadUrl": "/api/admin/analytics/downloads/exp-9003.csv",
+    "dimension": "Safety",
+    "format": "CSV"
+  }
+]

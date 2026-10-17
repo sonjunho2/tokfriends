@@ -3,16 +3,27 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from './public.decorator';
 import { AuthService } from './auth.service';
 
+import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+
 export class QuickLoginDto {
+  @IsString()
+  @IsNotEmpty()
   nickname: string;
 }
 
 export class EmailLoginDto {
+  @IsEmail()
+  @IsNotEmpty()
   email: string;
+
+  @IsString()
+  @IsNotEmpty()
   password: string;
 }
 
 export class TestLoginDto {
+  @IsOptional()
+  @IsString()
   role?: 'USER' | 'CREATOR' | 'ADMIN';
 }
 

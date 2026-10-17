@@ -1,0 +1,70 @@
+[
+  {
+    "id": "pur-001",
+    "userId": "u-user-1",
+    "user": {
+      "id": "u-user-1",
+      "displayName": "김철수",
+      "email": "chulsoo.kim@example.com"
+    },
+    "platform": "android",
+    "productId": "com.tokfriends.point.10000",
+    "productName": "10,000 온 충전",
+    "transactionId": "GPA.3391-4820-1928-48192",
+    "amountKrw": 11000,
+    "points": 10000,
+    "status": "COMPLETED",
+    "createdAt": "2026-10-17T03:17:08.747Z"
+  },
+  {
+    "id": "pur-002",
+    "userId": "u-host-1",
+    "user": {
+      "id": "u-host-1",
+      "displayName": "박서아",
+      "email": "seoa.park@example.com"
+    },
+    "platform": "ios",
+    "productId": "tokfriends.point.30000",
+    "productName": "30,000 온 충전 (보너스 +10%)",
+    "transactionId": "APL_TX_848201923",
+    "amountKrw": 33000,
+    "points": 33000,
+    "status": "COMPLETED",
+    "createdAt": "2026-10-16T18:17:08.747Z"
+  },
+  {
+    "id": "pur-003",
+    "userId": "u-user-3",
+    "user": {
+      "id": "u-user-3",
+      "displayName": "이지민",
+      "email": "jimin.lee@example.com"
+    },
+    "platform": "android",
+    "productId": "com.tokfriends.point.5000",
+    "productName": "5,000 온 충전 (인기)",
+    "transactionId": "GPA.8271-9381-0192-38471",
+    "amountKrw": 5500,
+    "points": 5000,
+    "status": "COMPLETED",
+    "createdAt": "2026-10-16T05:17:08.747Z"
+  },
+  {
+    "id": "pur-004",
+    "userId": "u-user-4",
+    "user": {
+      "id": "u-user-4",
+      "displayName": "강태양",
+      "email": "taeyang.kang@example.com"
+    },
+    "platform": "web",
+    "productId": "com.tokfriends.point.50000",
+    "productName": "50,000 온 충전 (대용량)",
+    "transactionId": "TOSS_PAY_2026101309812",
+    "amountKrw": 55000,
+    "points": 50000,
+    "status": "COMPLETED",
+    "createdAt": "2026-10-15T14:17:08.747Z"
+  }
+]

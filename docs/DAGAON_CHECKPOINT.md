@@ -4,6 +4,39 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-17 Checkpoint 86: Playwright 실브라우저 기반 어드민 전수 점검 및 4대 핵심 오류 완전 해결 (완료)
+
+### 1. 개요 및 배경
+- **Playwright 실브라우저 전수 점검**:
+  - 관리자 콘솔(`apps/admin`)과 백엔드(`services/api`)를 로컬 가동한 뒤 Playwright 브라우저 인스턴스를 통해 로그인부터 전체 18개 관리자 라우트를 전수 탐색 및 실시간 콘솔 오류/네트워크 오류를 추적 검증.
+- **발견된 4대 핵심 오류 및 원인 분석**:
+  1. **관리자 이메일 로그인 400 Bad Request 에러**:
+     - 원인: NestJS 전역 `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })`가 활성화되어 있으나, `auth.controller.ts`의 `EmailLoginDto`, `QuickLoginDto`, `TestLoginDto`에 class-validator 데코레이터가 누락되어 모든 프로퍼티가 제거되거나 거부됨.
+  2. **관리자 로그인 시 502/500 PrismaClientKnownRequestError**:
+     - 원인 1: DB `User` 테이블에 `bio` 컬럼 부재로 `SELECT` 시 컬럼 부재 예외 발생.
+     - 원인 2: `AdminProfile`의 `role`, `status` 컬럼이 DB상 PostgreSQL Enum(`AdminTeamRole`, `AdminTeamStatus`)인데, `schema.prisma`에는 `String`으로 선언되어 Prisma 역직렬화 시 타입 불일치 에러 발생.
+  3. **AI 운영 본부 & 거버넌스(`/ai-staff`) 진입 시 500 에러**:
+     - 원인: `AiDecisionQueue`, `StreamSnapshotAudit` 테이블 및 관련 Enum이 DB에 생성되지 않아 `getPendingDecisions` 쿼리 시 테이블 미존재 에러 발생.
+  4. **법적 문서 관리 센터(`/settings/legal`) 진입 시 404 에러**:
+     - 원인: 프론트엔드가 `/legal-documents/:slug`를 조회/수정하나, 백엔드에 해당 컨트롤러 및 API 엔드포인트가 전무하여 404 발생.
+
+### 2. 주요 작업 내역
+1. **로그인 DTO 유효성 검사 데코레이터 탑재 (`services/api/src/modules/auth/auth.controller.ts`)**:
+   - `EmailLoginDto`, `QuickLoginDto`, `TestLoginDto`에 `@IsEmail()`, `@IsString()`, `@IsNotEmpty()`, `@IsOptional()` 데코레이터 추가하여 정상 파싱 보장.
+2. **Prisma 스키마 & PostgreSQL Enum 및 테이블 무결점 동기화**:
+   - `User.bio` 컬럼 안전 추가.
+   - `schema.prisma`에 `AdminTeamRole`, `AdminTeamStatus` enum 정의 및 `AdminProfile` 매핑.
+   - `CallStatus`, `AiDecisionStatus`, `AiTargetDomain` enum 및 `PrivateCallSession`, `StreamSnapshotAudit`, `AiDecisionQueue` 테이블 DDL 실행 완료.
+3. **법적 문서 풀스택 API 엔드포인트 신설 (`services/api/src/modules/admin/legal-documents.controller.ts`, `admin.module.ts`)**:
+   - `GET /v1/legal-documents/:slug`: 기본 약관 자동 시딩 및 버전 히스토리 일괄 반환.
+   - `PUT /v1/legal-documents/:slug`: 약관 내용 저장 및 `LegalDocumentVersion` 불변 이력 보존.
+   - `schema.prisma`에 `LegalDocument`, `LegalDocumentVersion` 모델 등록 및 `prisma generate` 반영.
+4. **Playwright 실브라우저 전수 검증 결과 (18개 라우트)**:
+   - `/dashboard`, `/ai-staff`, `/users`, `/matches`, `/chats`, `/live`, `/store`, `/store/gifts`, `/settlement`, `/ads-rewards`, `/content`, `/reports-safety`, `/notifications`, `/analytics`, `/api-manager`, `/admin-permissions`, `/settings`, `/settings/legal`
+   - **전체 18개 페이지 콘솔 에러 0건 (No console logs matching error criteria)**.
+
+---
+
 ## 2026-10-17 Checkpoint 85: 시스템 설정 센터 사업자 API 키 암호화 저장 500 에러 원천 해결 및 벌크(Bulk) 원자적 저장 파이프라인 완비 (완료)
 
 ### 1. 개요 및 배경

@@ -1,0 +1,9 @@
+{
+  "dailyAdLimit": 5,
+  "pointsPerAd": 10,
+  "admobAppId": "ca-app-pub-3940256099942544~3347511713",
+  "admobUnitId": "ca-app-pub-3940256099942544/5224354917",
+  "attendancePoints": 5,
+  "referralPoints": 50,
+  "enabled": true
+}

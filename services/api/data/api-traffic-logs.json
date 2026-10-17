@@ -1,0 +1,52 @@
+[
+  {
+    "id": "log-1001",
+    "timestamp": "오후 3:17:14",
+    "method": "POST",
+    "path": "/v1/calls/private/initiate",
+    "statusCode": 200,
+    "latencyMs": 62,
+    "clientIp": "121.134.82.11",
+    "userAgent": "Dagaon/1.2.0 (Android 14; Galaxy S24)"
+  },
+  {
+    "id": "log-1002",
+    "timestamp": "오후 3:17:12",
+    "method": "GET",
+    "path": "/v1/discover",
+    "statusCode": 200,
+    "latencyMs": 29,
+    "clientIp": "211.234.110.45",
+    "userAgent": "Dagaon/1.2.0 (iOS 17.5; iPhone 15 Pro)"
+  },
+  {
+    "id": "log-1003",
+    "timestamp": "오후 3:17:09",
+    "method": "POST",
+    "path": "/v1/chats/room-882/messages",
+    "statusCode": 200,
+    "latencyMs": 34,
+    "clientIp": "175.223.18.90",
+    "userAgent": "Dagaon/1.2.0 (Android 13; Galaxy A54)"
+  },
+  {
+    "id": "log-1004",
+    "timestamp": "오후 3:17:05",
+    "method": "POST",
+    "path": "/v1/store/charge/verify",
+    "statusCode": 200,
+    "latencyMs": 112,
+    "clientIp": "220.89.14.77",
+    "userAgent": "Dagaon/1.2.0 (iOS 17.4; iPhone 14)"
+  },
+  {
+    "id": "log-1005",
+    "timestamp": "오후 3:17:00",
+    "method": "POST",
+    "path": "/v1/streaming/webhook/snapshot",
+    "statusCode": 200,
+    "latencyMs": 91,
+    "clientIp": "34.64.120.8",
+    "userAgent": "Agora-Cloud-Recorder/3.0"
+  }
+]
