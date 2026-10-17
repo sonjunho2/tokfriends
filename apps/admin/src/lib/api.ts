@@ -381,7 +381,7 @@ export async function listTopicPosts(topicId: string, params: Record<string, unk
 
 export async function listPosts(params: Record<string, unknown> = {}) {
   const response = await api.get('/posts', { params })
-  return unwrapArray<Post>(response.data, ['posts'])
+  return unwrapArray<Post>(response.data, ['posts', 'data'])
 }
 
 export async function updatePost(postId: string, payload: Record<string, unknown>) {
@@ -393,6 +393,141 @@ export async function updatePost(postId: string, payload: Record<string, unknown
 
 export async function deletePost(postId: string) {
   await api.delete(`/posts/${postId}`)
+}
+
+// ---------------------------------------------------------------------------
+// 커뮤니티 게시물 (Community Posts & Moderation)
+// ---------------------------------------------------------------------------
+
+export interface CommunityPostComment {
+  id: string
+  authorId: string
+  authorNickname: string
+  authorAvatarUrl?: string
+  content: string
+  createdAt: string
+}
+
+export interface CommunityPost {
+  id: string
+  authorId: string
+  authorNickname: string
+  authorDisplayName: string
+  authorAvatarUrl: string
+  authorRole: 'USER' | 'CREATOR' | 'ADMIN'
+  category: 'OFFICIAL' | 'DAILY' | 'SOCIAL' | 'LIVE' | 'QA'
+  title?: string
+  content: string
+  mediaUrls: string[]
+  tags: string[]
+  likesCount: number
+  commentsCount: number
+  viewsCount: number
+  reportCount: number
+  aiRiskScore?: number
+  aiFlag?: string
+  status: 'ACTIVE' | 'REPORTED' | 'HIDDEN' | 'DELETED'
+  hiddenReason?: string
+  isPinned: boolean
+  comments: CommunityPostComment[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PostStats {
+  total: number
+  active: number
+  reported: number
+  hidden: number
+  pinned: number
+  todayNew: number
+  totalLikes: number
+  totalComments: number
+  activeAnnouncementsCount: number
+  totalAnnouncementsCount: number
+}
+
+export interface FaqItem {
+  id: string
+  category: 'ON_STORE' | 'SETTLEMENT' | 'SAFETY' | 'ACCOUNT' | 'CHAT_LIVE'
+  question: string
+  answer: string
+  priority: number
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export async function getAdminPosts(params: Record<string, unknown> = {}) {
+  const response = await api.get('/admin/posts', { params })
+  const raw = response.data as any
+  const items = unwrapArray<CommunityPost>(raw, ['items', 'posts', 'data'])
+  return {
+    items,
+    total: raw?.total ?? items.length,
+    page: raw?.page ?? 1,
+    limit: raw?.limit ?? 20,
+    totalPages: raw?.totalPages ?? 1,
+  }
+}
+
+export async function getAdminPostStats(): Promise<PostStats> {
+  const response = await api.get('/admin/posts/stats')
+  const d = (response.data as any)?.data ?? response.data
+  return d as PostStats
+}
+
+export async function getAdminPostDetail(postId: string): Promise<CommunityPost> {
+  const response = await api.get(`/admin/posts/${postId}`)
+  const d = (response.data as any)?.data ?? response.data
+  return d as CommunityPost
+}
+
+export async function createAdminPost(payload: Partial<CommunityPost>): Promise<CommunityPost> {
+  const response = await api.post('/admin/posts', payload)
+  const d = (response.data as any)?.data ?? response.data
+  return d as CommunityPost
+}
+
+export async function updateAdminPostStatus(
+  postId: string,
+  payload: { status?: string; hiddenReason?: string; isPinned?: boolean },
+): Promise<CommunityPost> {
+  const response = await api.patch(`/admin/posts/${postId}/status`, payload)
+  const d = (response.data as any)?.data ?? response.data
+  return d as CommunityPost
+}
+
+export async function deleteAdminPost(postId: string) {
+  const response = await api.delete(`/admin/posts/${postId}`)
+  return response.data
+}
+
+export async function deleteAdminPostComment(postId: string, commentId: string) {
+  const response = await api.delete(`/admin/posts/${postId}/comments/${commentId}`)
+  return response.data
+}
+
+export async function getAdminFaqs(): Promise<FaqItem[]> {
+  const response = await api.get('/admin/faqs')
+  return unwrapArray<FaqItem>(response.data, ['faqs', 'data'])
+}
+
+export async function createAdminFaq(payload: Partial<FaqItem>): Promise<FaqItem> {
+  const response = await api.post('/admin/faqs', payload)
+  const d = (response.data as any)?.data ?? response.data
+  return d as FaqItem
+}
+
+export async function updateAdminFaq(faqId: string, payload: Partial<FaqItem>): Promise<FaqItem> {
+  const response = await api.patch(`/admin/faqs/${faqId}`, payload)
+  const d = (response.data as any)?.data ?? response.data
+  return d as FaqItem
+}
+
+export async function deleteAdminFaq(faqId: string) {
+  const response = await api.delete(`/admin/faqs/${faqId}`)
+  return response.data
 }
 
 // ---------------------------------------------------------------------------
@@ -420,6 +555,8 @@ export interface Announcement {
   audience?: string | null
   link?: string | null
   isActive?: boolean
+  isPopup?: boolean
+  isImportant?: boolean
   startsAt?: string | null
   endsAt?: string | null
   scheduledAt?: string | null
@@ -430,13 +567,18 @@ export interface Announcement {
 }
 
 export async function getAnnouncements(params: Record<string, unknown> = {}) {
-  const response = await api.get('/announcements', { params })
-  return unwrapArray<Announcement>(response.data, ['announcements', 'data'])
+  try {
+    const response = await api.get('/admin/announcements', { params })
+    return unwrapArray<Announcement>(response.data, ['announcements', 'data', 'items'])
+  } catch {
+    const response = await api.get('/announcements', { params })
+    return unwrapArray<Announcement>(response.data, ['announcements', 'data', 'items'])
+  }
 }
 
 export async function getActiveAnnouncements() {
   const response = await api.get('/announcements/active')
-  return unwrapArray<Announcement>(response.data, ['announcements', 'data'])
+  return unwrapArray<Announcement>(response.data, ['announcements', 'data', 'items'])
 }
 
 export async function createAnnouncement(payload: AnnouncementWritePayload) {

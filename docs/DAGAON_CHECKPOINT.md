@@ -4,6 +4,54 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-17 Checkpoint 77: 게시물 & 공지 운영 센터 풀스택 전면 개편 — 커뮤니티 피드 모니터링/블라인드, AI 위험도 탐지, 실시간 모바일 팝업 미리보기, 백엔드 ContentService & 영속 파일 저장소 구축 (완료)
+
+### 1. 개요 및 배경
+- **게시물(커뮤니티 피드) 부재 및 공지 관리 기능 한계 전면 해결**:
+  - 기존 `게시물 & 공지`(`/content`) 화면에는 커뮤니티 피드(게시물) 관리 기능이 전무하고, 단순 공지 입력폼과 몇 개의 캠페인 토글만 존재하여 실제 유저들이 작성하는 일상/소셜/라이브 피드를 모니터링하거나 유해 콘텐츠를 블라인드 처리할 수 없던 구조적 결함 해결.
+  - 백엔드에 `/admin/announcements`, `/admin/posts`, `/admin/faqs` 관련 엔드포인트가 누락되어 발생하던 데이터 로드 지연 및 저장 실패 원천 해소.
+- **백엔드 ContentService 및 ContentController 신설 (`services/api/src/modules/admin/`)**:
+  - `ContentService`: 공지사항, 커뮤니티 게시물, FAQ 영속 파일 저장소(`data/announcements.json`, `data/posts.json`, `data/faqs.json`) 구축으로 실서버 재부팅 시에도 운영 데이터 영구 보존.
+  - `ContentController` 14대 핵심 REST API 구축 및 `AdminModule` 정식 등록:
+    - 공개/모바일 앱 연동: `GET /announcements`, `GET /announcements/active`, `GET /posts`
+    - 공지사항 CRUD: `GET /admin/announcements`, `POST /admin/announcements`, `PATCH /admin/announcements/:id`, `DELETE /admin/announcements/:id`
+    - 커뮤니티 게시물 검수/제재: `GET /admin/posts`, `GET /admin/posts/stats`, `GET /admin/posts/:id`, `POST /admin/posts`, `PATCH /admin/posts/:id/status`, `DELETE /admin/posts/:id`, `DELETE /admin/posts/:id/comments/:commentId`
+    - 고객지원 FAQ 관리: `GET /admin/faqs`, `POST /admin/faqs`, `PATCH /admin/faqs/:id`, `DELETE /admin/faqs/:id`
+- **커뮤니티 피드 검수 및 악성 콘텐츠 즉각 차단 체계 완비**:
+  - **AI 위험도(Risk Score) 뱃지 및 플래그**: 외부 연락처(카카오톡/텔레그램) 유도, 금융 대출 스팸, 성매매/조건만남 의심 게시글을 붉은색 경고 박스로 시각화.
+  - **게시물 상세 검수 모달**: 고해상도 사진 갤러리, 작성자 프로필, 댓글 목록 조회 및 악성 댓글 개별 삭제, 블라인드 사유 입력 후 원클릭 숨김/복원/영구 삭제.
+  - **공식 게시글 발행 & 상단 고정(PIN)**: 다가온 공식 운영팀 명의로 피드 작성(제목, 본문, 이미지 URL, 해시태그) 및 피드 최상단 고정 기능 완비.
+- **실시간 스마트폰 인앱 팝업 미리보기 (Mobile In-App Popup Preview)**:
+  - 공지사항 탭 우측에 3D 글래스모피즘 모바일 앱 렌더링 프레임 탑재.
+  - 운영자가 작성/선택한 공지가 실제 다가온 스마트폰 앱 화면에서 어떻게 팝업 모달로 뜨는지 실시간 확인 가능.
+- **신입 운영자를 위한 게시물 & 공지 운영 3단계 실무 가이드 탑재**:
+  - 1단계: **공식 공지 & 긴급 점검 팝업 발행 (필수)**
+  - 2단계: **커뮤니티 유해 게시물 신속 블라인드**
+  - 3단계: **공식 이벤트 피드 작성 & 상단 고정 (PIN)**
+
+### 2. 주요 작업 내역
+1. **백엔드 ContentService & ContentController 신설 (`services/api/src/modules/admin/`)**:
+   - `content.service.ts`: 공지사항, 피드 게시물, FAQ 영속화 및 풍부한 초기 시드 데이터 탑재.
+   - `content.controller.ts`: 공개 모바일 앱 및 관리자 전용 14대 REST 엔드포인트 완비.
+   - `admin.module.ts`: `ContentController`, `ContentService` 정식 프로바이더 및 컨트롤러 등록.
+2. **관리자 프론트엔드 API 클라이언트 보강 (`apps/admin/src/lib/api.ts`)**:
+   - `CommunityPost`, `CommunityPostComment`, `PostStats`, `FaqItem` 인터페이스 정의.
+   - `getAdminPosts`, `getAdminPostStats`, `getAdminPostDetail`, `createAdminPost`, `updateAdminPostStatus`, `deleteAdminPost`, `deleteAdminPostComment`, `getAdminFaqs`, `createAdminFaq`, `updateAdminFaq`, `deleteAdminFaq` 추가.
+   - `getAnnouncements`, `getActiveAnnouncements`의 이중 언팩 및 안전한 폴백 방어.
+3. **게시물 & 공지 운영 센터 페이지 전면 개편 (`apps/admin/src/app/content/page.tsx`)**:
+   - 상단 **`💡 신입 운영자를 위한 게시물 & 공지 운영 3단계 실무 가이드`** 아코디언 탑재.
+   - 4대 KPI 요약 카드 (전체 커뮤니티 게시물, 신고/검수 대기, 활성 공식 공지/팝업, 피드 참여 상호작용).
+   - 3대 탭 인터페이스:
+     - 탭 1: **📰 커뮤니티 게시물 관리** (카테고리/상태 필터, 검색, 공식 게시글 발행 모달, 상세 검수 & 댓글 삭제 모달).
+     - 탭 2: **📢 공식 공지 & 인앱 팝업** (공지 CRUD 모달, 스마트폰 인앱 팝업 실시간 3D 미리보기 프레임).
+     - 탭 3: **💡 FAQ & 고객 문의 지원** (자주 묻는 질문 큐레이션 및 1:1 고객 문의 실시간 티켓 처리).
+
+### 3. 검증 결과
+- **백엔드 NestJS API**: `npm run build` -> 성공 (컴파일 오류 0건).
+- **관리자 Next.js 콘솔**: `npm run build` -> 성공 (32개 전체 라우트 무결점 정적/동적 생성 완료).
+
+---
+
 ## 2026-10-15 Checkpoint 76: 광고 & 리워드 시스템 풀스택 연동 완료, 백엔드 AdsRewardsService 및 AdvertisementsController 구축, AdMob/출석체크/친구초대 정책 제어 & 신입 실무 가이드 탑재 (완료)
 
 ### 1. 개요 및 배경

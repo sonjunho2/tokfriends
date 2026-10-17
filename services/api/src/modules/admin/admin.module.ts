@@ -9,6 +9,8 @@ import { SettlementService } from './settlement.service';
 import { AdsRewardsService } from './ads-rewards.service';
 import { AdminApprovalsController } from './admin-approvals.controller';
 import { AdvertisementsController } from './advertisements.controller';
+import { ContentController } from './content.controller';
+import { ContentService } from './content.service';
 
 @Module({
   imports: [forwardRef(() => CallsModule)],
@@ -17,8 +19,20 @@ import { AdvertisementsController } from './advertisements.controller';
     SystemSettingsController,
     AdminApprovalsController,
     AdvertisementsController,
+    ContentController,
   ],
-  providers: [AdminSettingsService, SettlementService, AdsRewardsService, PrismaService],
-  exports: [AdminSettingsService, SettlementService, AdsRewardsService],
+  providers: [
+    AdminSettingsService,
+    SettlementService,
+    AdsRewardsService,
+    ContentService,
+    PrismaService,
+  ],
+  exports: [
+    AdminSettingsService,
+    SettlementService,
+    AdsRewardsService,
+    ContentService,
+  ],
 })
 export class AdminModule {}
