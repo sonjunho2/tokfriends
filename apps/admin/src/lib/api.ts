@@ -1741,6 +1741,22 @@ export async function updateAdminIntegrationSetting(settingId: string, payload: 
   return normalizeAdminSettings({ integrations: [response.data] }).integrations[0]
 }
 
+export async function updateAdminIntegrationsBulk(items: Array<{ id: string; value: string }>) {
+  try {
+    const response = await api.patch('/admin/settings/integrations/bulk', { items })
+    const dataList = Array.isArray(response.data) ? response.data : (response.data as any)?.items || []
+    return normalizeAdminSettings({ integrations: dataList }).integrations
+  } catch {
+    // 벌크 엔드포인트 미지원 또는 오류 시 순차적 안전 저장 폴백
+    const results = []
+    for (const item of items) {
+      const res = await updateAdminIntegrationSetting(item.id, { value: item.value })
+      results.push(res)
+    }
+    return results
+  }
+}
+
 export async function saveAdminAuditMemo(payload: { memo: string }) {
   const response = await api.post('/admin/settings/audit-log', payload)
   return (response.data as { memo?: string } | undefined)?.memo ?? payload.memo

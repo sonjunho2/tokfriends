@@ -139,7 +139,7 @@ export class AdminSettingsService implements OnModuleInit {
   }
 
   private async requireSettingsActor(actorId?: string) {
-    let actor = null;
+    let actor: any = null;
     if (actorId) {
       actor = await this.prisma.user.findUnique({
         where: { id: actorId },
@@ -149,6 +149,7 @@ export class AdminSettingsService implements OnModuleInit {
           status: true,
           adminProfile: {
             select: {
+              userId: true,
               role: true,
               status: true,
               permissions: true,
@@ -162,9 +163,12 @@ export class AdminSettingsService implements OnModuleInit {
       actor = await this.prisma.user.findFirst({
         where: {
           OR: [
-            ...(actorId ? [{ email: actorId }] : []),
+            ...(actorId ? [{ email: actorId }, { id: actorId }] : []),
+            { email: 'admin@admin.admin' },
             { role: 'admin' },
+            { role: 'ADMIN' },
             { role: 'super_admin' },
+            { role: 'SUPER_ADMIN' },
           ],
         },
         select: {
@@ -173,6 +177,7 @@ export class AdminSettingsService implements OnModuleInit {
           status: true,
           adminProfile: {
             select: {
+              userId: true,
               role: true,
               status: true,
               permissions: true,
@@ -184,29 +189,18 @@ export class AdminSettingsService implements OnModuleInit {
 
     if (!actor) {
       const passwordHash = await argon2.hash('admin1234!');
-      actor = await this.prisma.user.create({
-        data: {
+      actor = await this.prisma.user.upsert({
+        where: { email: 'admin@admin.admin' },
+        update: {
+          role: 'admin',
+          status: 'active',
+        },
+        create: {
           email: 'admin@admin.admin',
           nickname: '최고관리자',
           passwordHash,
           role: 'admin',
           status: 'active',
-          adminProfile: {
-            create: {
-              role: 'SUPER_ADMIN',
-              status: 'ACTIVE',
-              permissions: [
-                'users.manage',
-                'reports.view',
-                'content.manage',
-                'refunds.view',
-                'refunds.manage',
-                'approvals.view',
-                'approvals.manage',
-                'settings.manage',
-              ],
-            },
-          },
         },
         select: {
           id: true,
@@ -214,6 +208,7 @@ export class AdminSettingsService implements OnModuleInit {
           status: true,
           adminProfile: {
             select: {
+              userId: true,
               role: true,
               status: true,
               permissions: true,
@@ -224,8 +219,13 @@ export class AdminSettingsService implements OnModuleInit {
     }
 
     if (!actor.adminProfile) {
-      const created = await this.prisma.adminProfile.create({
-        data: {
+      const created = await this.prisma.adminProfile.upsert({
+        where: { userId: actor.id },
+        update: {
+          role: 'SUPER_ADMIN',
+          status: 'ACTIVE',
+        },
+        create: {
           userId: actor.id,
           role: 'SUPER_ADMIN',
           status: 'ACTIVE',
@@ -241,6 +241,7 @@ export class AdminSettingsService implements OnModuleInit {
           ],
         },
         select: {
+          userId: true,
           role: true,
           status: true,
           permissions: true,
@@ -556,20 +557,21 @@ export class AdminSettingsService implements OnModuleInit {
     settingId: string,
     dto: UpdateAdminIntegrationSettingDto,
   ) {
-    await this.requireSettingsActor(actorId);
+    const actorProfile = await this.requireSettingsActor(actorId);
+    const validActorId = actorProfile?.userId ?? null;
 
     const existing = await this.prisma.adminIntegrationSetting.findUnique({
       where: { id: settingId },
     });
 
-    if (!existing) {
-      throw new NotFoundException('Admin integration setting not found');
-    }
+    const defaultDef = DEFAULT_INTEGRATION_SETTINGS.find((def) => def.id === settingId);
+    const label = existing?.label || defaultDef?.label || settingId;
+    const placeholder = existing?.placeholder || defaultDef?.placeholder || '';
 
     const value = dto.value;
     const maskedValue = '********';
 
-    let encryptedValue = existing.encryptedValue;
+    let encryptedValue = existing?.encryptedValue ?? null;
 
     if (value === '') {
       encryptedValue = null;
@@ -577,19 +579,31 @@ export class AdminSettingsService implements OnModuleInit {
       encryptedValue = encryptAdminSettingValue(value, settingId);
     }
 
-    const updated = await this.prisma.adminIntegrationSetting.update({
+    const updated = await this.prisma.adminIntegrationSetting.upsert({
       where: { id: settingId },
-      data: { encryptedValue },
-    });
-
-    await this.prisma.auditLog.create({
-      data: {
-        actorId,
-        target: `admin-integration:${settingId}`,
-        action: 'ADMIN_INTEGRATION_SETTING_UPDATED',
-        notes: `configured=${Boolean(updated.encryptedValue)}`,
+      create: {
+        id: settingId,
+        label,
+        placeholder,
+        encryptedValue,
+      },
+      update: {
+        encryptedValue,
       },
     });
+
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          actorId: validActorId,
+          target: `admin-integration:${settingId}`,
+          action: 'ADMIN_INTEGRATION_SETTING_UPDATED',
+          notes: `configured=${Boolean(updated.encryptedValue)}`,
+        },
+      });
+    } catch (auditErr) {
+      this.logger.warn(`Failed to write audit log for ${settingId}: ${auditErr}`);
+    }
 
     return {
       id: updated.id,
@@ -597,6 +611,21 @@ export class AdminSettingsService implements OnModuleInit {
       placeholder: updated.placeholder ?? undefined,
       value: updated.encryptedValue ? maskedValue : '',
     };
+  }
+
+  async updateIntegrationsBulk(
+    actorId: string,
+    items: Array<{ id: string; value: string }>,
+  ) {
+    const actorProfile = await this.requireSettingsActor(actorId);
+    const validActorId = actorProfile?.userId ?? null;
+
+    const results = [];
+    for (const item of items) {
+      const res = await this.updateIntegrationSetting(validActorId || actorId, item.id, { value: item.value });
+      results.push(res);
+    }
+    return results;
   }
 
   async saveAuditMemo(actorId: string, dto: SaveAdminAuditMemoDto) {

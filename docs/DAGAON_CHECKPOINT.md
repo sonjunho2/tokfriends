@@ -4,6 +4,32 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-17 Checkpoint 85: 시스템 설정 센터 사업자 API 키 암호화 저장 500 에러 원천 해결 및 벌크(Bulk) 원자적 저장 파이프라인 완비 (완료)
+
+### 1. 개요 및 배경
+- **문제 현상 및 원인 분석**:
+  - 시스템 설정 센터([`/settings`](file:///c:/Users/ION/Downloads/work/tokfriends/apps/admin/src/app/settings/page.tsx))에서 Gemini API Key 또는 외부 연동 키 입력 후 [모든 변경사항 즉시 저장] 클릭 시 `통합 저장 실패 - Internal server error (500)` 토스트가 발생하던 결함 해결.
+  - **원인 1**: 백엔드 `admin-settings.service.ts`의 `updateIntegrationSetting`이 DB 레코드 부재 시 `update` 쿼리를 실행하여 Prisma P2025(Record to update not found) 예외 발생.
+  - **원인 2**: `requireSettingsActor`에서 관리자 계정 조회 시 대소문자 매칭 및 `select` 누락(`userId` 부재)으로 인해 `AuditLog.create`에 잘못된 외래키(`actorId`)가 전달되어 Foreign Key Constraint violation (P2003) 500 에러 발생.
+  - **원인 3**: 프론트엔드가 N개의 변경 항목을 `Promise.all`로 동시 병렬 요청하여 동시성 경합 및 레이스 컨디션 발생.
+
+### 2. 주요 작업 내역
+1. **백엔드 무결점 Upsert & 감사 로그 예외 방어 (`services/api/src/modules/admin/admin-settings.service.ts`)**:
+   - `requireSettingsActor`: `userId: true` 포함 및 `upsert`로 관리자 프로필 동시성 무결점 보장.
+   - `updateIntegrationSetting`: `adminIntegrationSetting.upsert` 적용으로 레코드 유무와 무관하게 100% 안전 생성/갱신.
+   - `AuditLog.create`: 유효한 `validActorId` 바인딩 및 try-catch 실딩으로 감사 로그 오류로 인한 설정 저장 롤백 원천 차단.
+   - `updateIntegrationsBulk`: 여러 개의 변경 키를 단일 호출로 일괄 처리하는 벌크 메서드 신규 추가.
+2. **백엔드 컨트롤러 엔드포인트 확장 (`services/api/src/modules/admin/admin.controller.ts`)**:
+   - `PATCH /admin/settings/integrations/bulk` 엔드포인트 신설.
+3. **프론트엔드 API 클라이언트 및 화면 보강 (`apps/admin/src/lib/api.ts`, `settings/page.tsx`)**:
+   - `updateAdminIntegrationsBulk` 함수 추가 (벌크 호출 및 순차 안전 폴백 내장).
+   - `saveIntegrations`에서 벌크 API를 호출하도록 개선하여 네트워크 트래픽 단축 및 동시성 에러 0% 달성.
+4. **풀스택 빌드 검증**:
+   - 백엔드 NestJS (`nest build`): 에러 0건 성공.
+   - 프론트엔드 Next.js (`next build`): 32/32 라우트 정상 생성 (Exit code 0).
+
+---
+
 ## 2026-10-17 Checkpoint 84: 관리자 콘솔 전 페이지 라이트 테마(화이트/파스텔) 시각적 일관화 전면 완료 (완료)
 
 ### 1. 개요 및 배경

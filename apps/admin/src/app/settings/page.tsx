@@ -50,6 +50,7 @@ import {
   updateActionPointPolicy,
   updateAdminFeatureFlag,
   updateAdminIntegrationSetting,
+  updateAdminIntegrationsBulk,
   updateAdminTeamMember,
   updateAdminTeamMemberPassword,
   type ActionPointPolicy,
@@ -722,9 +723,8 @@ export default function SettingsPage() {
 
     setSavingIntegrationId('bulk')
     try {
-      const updatedIntegrations = await Promise.all(
-        dirtyIntegrations.map((integration) => updateAdminIntegrationSetting(integration.id, { value: integration.draftValue ?? '' }))
-      )
+      const itemsToUpdate = dirtyIntegrations.map((i) => ({ id: i.id, value: i.draftValue ?? '' }))
+      const updatedIntegrations = await updateAdminIntegrationsBulk(itemsToUpdate)
       const updatedById = new Map(updatedIntegrations.map((integration) => [integration.id, integration]))
       setIntegrations((prev) => prev.map((integration) => updatedById.get(integration.id) ?? integration))
       toast({ title: '통합 설정 저장', description: '변경한 외부 서비스 키가 안전하게 암호화 저장되었습니다.' })

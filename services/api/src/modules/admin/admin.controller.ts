@@ -100,6 +100,15 @@ export class AdminController {
     return this.adminSettings.updateFeatureFlag(actorId, flagId, dto);
   }
 
+  @Patch('settings/integrations/bulk')
+  async updateSettingsIntegrationsBulk(
+    @CurrentUser() user: any,
+    @Body() dto: { items: Array<{ id: string; value: string }> },
+  ) {
+    const actorId = user?.id ?? user?.sub;
+    return this.adminSettings.updateIntegrationsBulk(actorId, dto.items || []);
+  }
+
   @Patch('settings/integrations/:settingId')
   async updateSettingsIntegration(
     @CurrentUser() user: any,
