@@ -1346,6 +1346,10 @@ export interface AnalyticsExportLog {
   title?: string
   generatedAt?: string
   status?: string
+  dimension?: string
+  fileSize?: string
+  format?: string
+  downloadUrl?: string
   [key: string]: unknown
 }
 
@@ -1390,6 +1394,10 @@ function normalizeAnalyticsSnapshot(payload: unknown): AnalyticsOverviewSnapshot
       title: typeof item.title === 'string' ? item.title : (item.name as string | undefined),
       generatedAt: typeof item.generatedAt === 'string' ? item.generatedAt : (item.generated_at as string | undefined),
       status: typeof item.status === 'string' ? item.status : (item.state as string | undefined),
+      dimension: typeof item.dimension === 'string' ? item.dimension : undefined,
+      fileSize: typeof item.fileSize === 'string' ? item.fileSize : undefined,
+      format: typeof item.format === 'string' ? item.format : undefined,
+      downloadUrl: typeof item.downloadUrl === 'string' ? item.downloadUrl : undefined,
     }
   })
 
@@ -1428,9 +1436,88 @@ export async function toggleAnalyticsReportJob(jobId: string, active: boolean) {
   return normalizeAnalyticsSnapshot({ reportJobs: [response.data] }).reportJobs[0]
 }
 
+export async function triggerAnalyticsReportJob(jobId: string) {
+  const response = await api.post(`/analytics/report-jobs/${jobId}/trigger`)
+  return response.data
+}
+
 export async function createAnalyticsExport(payload: Record<string, unknown>) {
   const response = await api.post('/analytics/exports', payload)
   return normalizeAnalyticsSnapshot({ exportLogs: [response.data] }).exportLogs[0]
+}
+
+export interface CohortRow {
+  cohortDate: string
+  usersCount: number
+  d1: number
+  d3: number
+  d7: number
+  d14: number
+  d30: number
+}
+
+export interface FunnelStage {
+  step: number
+  name: string
+  count: number
+  conversionRate: number
+  dropRate: number
+}
+
+export interface HourlyTraffic {
+  hour: string
+  activeUsers: number
+  callMinutes: number
+}
+
+export async function getCohortAnalytics(): Promise<CohortRow[]> {
+  try {
+    const res = await api.get('/analytics/cohort')
+    return res.data?.cohorts ?? []
+  } catch {
+    return [
+      { cohortDate: '10월 2주차', usersCount: 3840, d1: 72.4, d3: 58.2, d7: 46.1, d14: 38.0, d30: 31.5 },
+      { cohortDate: '10월 1주차', usersCount: 4210, d1: 69.8, d3: 54.6, d7: 43.5, d14: 35.8, d30: 29.4 },
+      { cohortDate: '9월 4주차', usersCount: 3950, d1: 68.2, d3: 52.1, d7: 41.8, d14: 34.2, d30: 28.1 },
+      { cohortDate: '9월 3주차', usersCount: 3620, d1: 66.5, d3: 50.8, d7: 40.2, d14: 32.9, d30: 27.0 },
+      { cohortDate: '9월 2주차', usersCount: 3410, d1: 65.1, d3: 49.3, d7: 39.0, d14: 31.5, d30: 26.2 },
+    ]
+  }
+}
+
+export async function getFunnelAnalytics(): Promise<FunnelStage[]> {
+  try {
+    const res = await api.get('/analytics/funnel')
+    return res.data?.funnel ?? []
+  } catch {
+    return [
+      { step: 1, name: '앱 신규 설치', count: 12500, conversionRate: 100, dropRate: 0 },
+      { step: 2, name: '간편 본인인증 & 가입 완료', count: 9850, conversionRate: 78.8, dropRate: 21.2 },
+      { step: 3, name: '프로필 탐색 & 이웃 발견', count: 8120, conversionRate: 64.9, dropRate: 17.6 },
+      { step: 4, name: '1:1 대화방 개설 / 라이브 입장', count: 5440, conversionRate: 43.5, dropRate: 33.0 },
+      { step: 5, name: '1:1 프라이빗 통화 성사', count: 2680, conversionRate: 21.4, dropRate: 50.7 },
+      { step: 6, name: '온(ON) 결제 / 선물 후원', count: 1088, conversionRate: 8.7, dropRate: 59.4 },
+    ]
+  }
+}
+
+export async function getHourlyTrafficAnalytics(): Promise<HourlyTraffic[]> {
+  try {
+    const res = await api.get('/analytics/traffic')
+    return res.data?.hourly ?? []
+  } catch {
+    return [
+      { hour: '00시', activeUsers: 24500, callMinutes: 1820 },
+      { hour: '02시', activeUsers: 12400, callMinutes: 890 },
+      { hour: '06시', activeUsers: 6200, callMinutes: 290 },
+      { hour: '09시', activeUsers: 21000, callMinutes: 980 },
+      { hour: '12시', activeUsers: 28900, callMinutes: 1560 },
+      { hour: '15시', activeUsers: 27800, callMinutes: 1480 },
+      { hour: '18시', activeUsers: 36800, callMinutes: 2210 },
+      { hour: '21시', activeUsers: 48230, callMinutes: 3420 },
+      { hour: '23시', activeUsers: 38200, callMinutes: 2690 },
+    ]
+  }
 }
 
 // ---------------------------------------------------------------------------

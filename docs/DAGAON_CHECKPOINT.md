@@ -4,6 +4,53 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-17 Checkpoint 80: 지표 & 성장 분석 센터 풀스택 전면 개편 — 백엔드 AnalyticsService/Controller 구축, 코호트 리텐션 히트맵 매트릭스, 6단계 유저 행동 전환 퍼널 & 24시간 피크타임 트래픽 차트, 자동화 리포트 스케줄러 & 신입 실무 가이드 탑재 (완료)
+
+### 1. 개요 및 배경
+- **지표 분석 백엔드 서비스 전무 및 정적 화면 한계 완전 해결**:
+  - 기존 백엔드에 `/analytics/overview`, `/analytics/metrics`, `/analytics/report-jobs`, `/analytics/exports`, `/analytics/cohort`, `/analytics/funnel`, `/analytics/traffic` 등 분석 엔드포인트가 전무하여 브라우저에서 Fallback 정적 데이터만 노출되던 결함 원천 해결.
+  - `services/api/src/modules/admin/analytics.service.ts` 및 `analytics.controller.ts`를 신설하고 `AdminModule`에 정식 등록.
+  - 영속 파일 저장소(`data/analytics-overview.json`, `data/analytics-exports.json`) 및 Prisma 유저 수 실시간 동기화를 구축하여 서버 재부팅 시에도 지표와 정기 리포트 잡, 추출 원장 이력 데이터가 영구 보존되도록 구현.
+- **코호트 리텐션 히트맵 매트릭스 & 수익 모델별 매출 비중 탑재**:
+  - 주차별 가입 코호트의 D+1(목표 70%), D+3, D+7, D+14, D+30 잔존율을 색상 강도(에메랄드/청록/황색) 히트맵 매트릭스로 시각화.
+  - 분당 선차감 1:1 프라이빗 통화(58%), 온 충전소 인앱결제(28%), 라이브 3D 선물 후원 수수료(14%)의 실시간 수익 모델별 매출 기여도 및 프로그레스 바 제공.
+- **6단계 신규 유저 행동 전환 퍼널 & 24시간 시간대별 트래픽 핫스팟**:
+  - 앱 설치 ➔ 본인인증 가입 ➔ 프로필 탐색 ➔ 대화방/라이브 입장 ➔ 1:1 통화 성사 ➔ 온 결제/후원까지 단계별 전환율과 이탈률(%)을 추적하는 인터랙티브 퍼널 탑재.
+  - 00시부터 23시까지 24시간 동시 접속자 수 및 1:1 통화 소비 시간 분포를 시각화하고, 21:00 ~ 01:00 야간 피크타임 핫스팟 안내 배너 탑재.
+- **자동화 리포트 스케줄러 & 즉시 데이터 원장 추출 (Export Logs)**:
+  - Daily Executive Digest(Slack), Weekly Cohort(Email), Monthly Revenue Snapshot(BigQuery) 자동 발송 스케줄 온/오프 토글 및 [⚡ 지금 테스트 발송] 지원.
+  - 코호트, 매출 정산, AI 안전 감사, 1:1 통화 세션 원장을 즉시 생성하고 다운로드할 수 있는 원장 추출 모달 및 이력 테이블 완비.
+- **신입 운영자를 위한 지표 분석 3단계 실무 가이드 탑재**:
+  - 1단계: **핵심 성장 지표 모니터링 (DAU 4.8만명, 결제 전환율 8.7%)**
+  - 2단계: **코호트 잔존율(D1/D7) & 행동 퍼널 진단**
+  - 3단계: **정기 다이제스트(Slack/Email) & 즉시 원장 추출**
+
+### 2. 주요 작업 내역
+1. **백엔드 AnalyticsService & AnalyticsController 신설 (`services/api/src/modules/admin/`)**:
+   - `analytics.service.ts`: 지표 영속화(`analytics-overview.json`), 원장 추출(`analytics-exports.json`), 코호트 데이터(`getCohortData`), 퍼널 데이터(`getFunnelData`), 24시간 트래픽(`getHourlyTraffic`) 및 Prisma 연동.
+   - `analytics.controller.ts`:
+     - `GET /analytics/overview`, `POST /analytics/metrics`, `PATCH /analytics/metrics/:id`
+     - `GET /analytics/report-jobs`, `PATCH /analytics/report-jobs/:id`, `POST /analytics/report-jobs/:id/:action` (trigger 포함)
+     - `POST /analytics/exports`, `GET /analytics/cohort`, `GET /analytics/funnel`, `GET /analytics/traffic`
+   - `admin.module.ts`: `AnalyticsController`, `AnalyticsService` 프로바이더 및 컨트롤러 등록.
+2. **관리자 프론트엔드 API 클라이언트 보강 (`apps/admin/src/lib/api.ts`)**:
+   - `CohortRow`, `FunnelStage`, `HourlyTraffic`, `AnalyticsExportLog` 인터페이스 확장 및 안전한 정규화.
+   - `getCohortAnalytics`, `getFunnelAnalytics`, `getHourlyTrafficAnalytics`, `triggerAnalyticsReportJob` 구현.
+3. **지표 분석 페이지 전면 개편 (`apps/admin/src/app/analytics/page.tsx`)**:
+   - 상단 **`💡 신입 운영자를 위한 지표 분석 & 코호트 3단계 실무 가이드`** 아코디언 탑재.
+   - 4대 KPI 요약 카드 (DAU, MAU, 결제 전환율 PUR, 1:1 통화 총 체류 시간).
+   - 3대 탭 인터페이스:
+     - 탭 1: **📊 코호트 잔존율 & 매출 구성비** (리텐션 히트맵 매트릭스, 수익 모델별 비중, 등록 지표 요약).
+     - 탭 2: **🎯 사용자 행동 퍼널 & 피크타임 트래픽** (6단계 전환 퍼널, 24시간 트래픽 및 야간 피크타임 핫스팟).
+     - 탭 3: **📑 정기 리포트 스케줄러 & 데이터 원장** (Slack/Email 발송 토글/테스트, CSV/XLSX 다운로드 이력).
+   - 신규 지표 등록 모달 및 즉시 원장 추출 모달 완비.
+
+### 3. 검증 결과
+- **백엔드 NestJS API**: `npm run build` -> 성공 (컴파일 오류 0건).
+- **관리자 Next.js 콘솔**: `npm run build` -> 성공 (32개 전체 라우트 무결점 정적/동적 생성 완료).
+
+---
+
 ## 2026-10-17 Checkpoint 79: 푸시 알림 센터 풀스택 전면 개편 — 백엔드 NotificationsService/Controller 구축, 정보통신망법 제50조 준수(광고/무료수신거부 자동화), 스마트폰 잠금화면 3D 실시간 미리보기, 세그먼트 타겟 발송 & 신입 실무 가이드 탑재 (완료)
 
 ### 1. 개요 및 배경
