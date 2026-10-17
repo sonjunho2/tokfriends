@@ -16,6 +16,8 @@ import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 import { AnalyticsController } from './analytics.controller';
 import { AnalyticsService } from './analytics.service';
+import { ApiManagerController } from './api-manager.controller';
+import { ApiManagerService } from './api-manager.service';
 
 @Module({
   imports: [forwardRef(() => CallsModule)],
@@ -27,6 +29,7 @@ import { AnalyticsService } from './analytics.service';
     ContentController,
     NotificationsController,
     AnalyticsController,
+    ApiManagerController,
   ],
   providers: [
     AdminSettingsService,
@@ -36,6 +39,7 @@ import { AnalyticsService } from './analytics.service';
     ReportsService,
     NotificationsService,
     AnalyticsService,
+    ApiManagerService,
     PrismaService,
   ],
   exports: [
@@ -46,6 +50,7 @@ import { AnalyticsService } from './analytics.service';
     ReportsService,
     NotificationsService,
     AnalyticsService,
+    ApiManagerService,
   ],
 })
 export class AdminModule {}

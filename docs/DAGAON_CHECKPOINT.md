@@ -4,6 +4,54 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-17 Checkpoint 81: API 모니터링 & 트래픽 제어 센터 풀스택 전면 개편 — 백엔드 ApiManagerService/Controller 구축, 실시간 헬스 PING 테스트, 엔드포인트별 Rate Limit & 503 킬스위치, 외부 연동 헬스 모니터링 & 신입 실무 가이드 탑재 (완료)
+
+### 1. 개요 및 배경
+- **API 관리 백엔드 서비스 전무 및 더미 화면 완전 해결**:
+  - 기존 `api-manager` 화면이 `FALLBACK_ENDPOINTS` 하드코딩과 클라이언트 타임아웃 목업(`setTimeout`)으로만 작동하여 Rate Limit 수정 및 활성 토글이 실서버에 전혀 반영되지 않던 결함 원천 해결.
+  - `services/api/src/modules/admin/api-manager.service.ts` 및 `api-manager.controller.ts`를 신설하고 `AdminModule`에 정식 등록.
+  - 영속 파일 저장소(`data/api-endpoints.json`, `data/api-traffic-logs.json`) 구축으로 28개 핵심 마이크로서비스 API 엔드포인트의 Rate Limit 설정, 킬스위치 상태, 실시간 지연시간(Latency), 24시간 호출량 및 에러 수가 서버 재부팅 후에도 영구 보존되도록 구현.
+- **실시간 엔드포인트 헬스 PING 테스트 & 지연시간 측정**:
+  - 각 API 엔드포인트 카드 우측에 **[🏓 핑 테스트]** 버튼을 탑재하여 백엔드 게이트웨이와의 실시간 왕복 지연시간(ms) 및 HTTP 상태 코드(200 OK / 503 Service Unavailable)를 즉각 검증 지원.
+- **분당 호출 제한 (Rate Limit) 및 장애 대비 긴급 킬스위치 (Kill-Switch)**:
+  - 1:1 통화, 아고라 토큰, 결제 영수증 검증, 커뮤니티 피드 등 엔드포인트별 `req/min` 한도를 관리자가 실시간 변경 가능.
+  - 비정상 트래픽 폭증 또는 외부 결제/스트리밍 모듈 장애 시 원터치 스위치로 해당 API를 즉시 비활성화(503 긴급 점검 반환)하여 백엔드 DB 과부하 및 앱 크래시 방어.
+- **외부 핵심 연동 인프라 헬스체크 & 비즈니스 모듈별 트래픽 점유율**:
+  - 아고라 RTC 엔진(24ms, 99.99%), Google Gemini 1.5 Flash Vision(380ms, 99.95%), 토스페이먼츠(85ms, 99.98%), Supabase DB(8ms, 100%) 등 외부 인프라 실시간 가용성 모니터링.
+  - 1:1 통화/아고라(38%), 인연 탐색(26%), 1:1 대화(22%), 상점 결제(8%), 커뮤니티(6%) 등 24시간 누적 1,842,500건 트래픽의 모듈별 점유율 시각화.
+- **신입 운영자를 위한 API 모니터링 3단계 실무 가이드 탑재**:
+  - 1단계: **핵심 API 가용성 & 응답속도 점검 (평균 42ms)**
+  - 2단계: **비정상 트래픽 탐지 & Rate Limit 즉시 조정**
+  - 3단계: **장애 발생 시 긴급 킬스위치(Kill-Switch) 가동**
+
+### 2. 주요 작업 내역
+1. **백엔드 ApiManagerService & ApiManagerController 신설 (`services/api/src/modules/admin/`)**:
+   - `api-manager.service.ts`: 엔드포인트 영속화(`api-endpoints.json`), 실시간 트래픽 로그(`api-traffic-logs.json`), Rate Limit/활성화 갱신, 핑(Ping) 테스트, 신규 엔드포인트 CUD.
+   - `api-manager.controller.ts`:
+     - `GET /admin/api-manager/snapshot`: 엔드포인트 목록, 24시간 통계, 외부 서비스 헬스, 최근 감사 로그 응답
+     - `PATCH /admin/api-manager/endpoints/:id`: 활성화 상태 및 Rate Limit 즉시 갱신
+     - `POST /admin/api-manager/endpoints/:id/ping`: 실시간 핑 측정 및 상태 검증
+     - `POST /admin/api-manager/endpoints`: 커스텀 엔드포인트 신규 등록
+     - `DELETE /admin/api-manager/endpoints/:id`: 엔드포인트 삭제
+   - `admin.module.ts`: `ApiManagerController`, `ApiManagerService` 프로바이더 및 컨트롤러 등록.
+2. **관리자 프론트엔드 API 클라이언트 보강 (`apps/admin/src/lib/api.ts`)**:
+   - `ApiEndpointInfo`, `ApiRequestLog`, `ExternalServiceStatus`, `ApiManagerSnapshot` 인터페이스 확장.
+   - `getApiManagerSnapshot`, `updateApiEndpoint`, `pingApiEndpoint`, `createApiEndpoint`, `deleteApiEndpoint` 함수 구현.
+3. **API 모니터링 페이지 전면 개편 (`apps/admin/src/app/api-manager/page.tsx`)**:
+   - 상단 **`💡 신입 운영자를 위한 API 모니터링 & 트래픽 제어 3단계 실무 가이드`** 아코디언 탑재.
+   - 4대 KPI 요약 카드 (24시간 총 요청량, 평균 응답 지연시간 42ms, 서비스 가용성 99.92%, 활성 엔드포인트 가동률).
+   - 3대 탭 인터페이스:
+     - 탭 1: **🌐 API 엔드포인트 & Rate Limit 제어** (검색/모듈/Method 필터, 인증필수 뱃지, Rate Limit 인라인 수정, 실시간 핑 테스트, 킬스위치 토글).
+     - 탭 2: **⚡ 트래픽 점유율 & 외부 서비스 헬스체크** (모듈별 호출 비중 프로그레스 바, Agora/Gemini/Toss/Supabase 헬스 그리드).
+     - 탭 3: **📜 실시간 인바운드 호출 감사 로그** (클라이언트 IP, 기기 User-Agent, HTTP 상태코드, 실시간 지연시간).
+   - 신규 엔드포인트 등록 모달 완비.
+
+### 3. 검증 결과
+- **백엔드 NestJS API**: `npm run build` -> 성공 (컴파일 오류 0건).
+- **관리자 Next.js 콘솔**: `npm run build` -> 성공 (32개 전체 라우트 무결점 정적/동적 생성 완료).
+
+---
+
 ## 2026-10-17 Checkpoint 80: 지표 & 성장 분석 센터 풀스택 전면 개편 — 백엔드 AnalyticsService/Controller 구축, 코호트 리텐션 히트맵 매트릭스, 6단계 유저 행동 전환 퍼널 & 24시간 피크타임 트래픽 차트, 자동화 리포트 스케줄러 & 신입 실무 가이드 탑재 (완료)
 
 ### 1. 개요 및 배경
