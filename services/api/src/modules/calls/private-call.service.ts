@@ -267,6 +267,7 @@ export class PrivateCallService {
     return {
       ...updated,
       ...agoraData,
+      agoraToken: agoraData.token,
     };
   }
 
