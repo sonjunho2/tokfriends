@@ -4,6 +4,30 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-19 Checkpoint 90: 모바일 앱 4단계 라이브 스트리밍 룸 개편 — 3D 선물 오버레이 격리, 무중단 프로필 바텀시트, 아고라 스냅샷 24시간 실시간 AI 채증 파이프라인 완비 (완료)
+
+### 1. 개요 및 배경
+- **라이브 스트리밍 모바일 UI & 백엔드 채증 파이프라인 프로덕션 레벨 고도화**:
+  - 선물이 터질 때 채팅창과 하단 입력창이 위로 밀려나던 레이아웃 버그를 원천 차단하고, 방송 시청 중 유저 프로필 조회 시 방송 영상이 깜빡이거나 중단되지 않도록 전역 바텀시트 오버레이 연동.
+  - 백엔드에 Agora Cloud Recording 스냅샷 실시간 채증 및 Google Gemini 1.5 Flash Vision 초고속 스크리닝 파이프라인 완비.
+- **4대 핵심 작업 내역**:
+  1. **모바일 3D 선물 오버레이 격리 (`apps/mobile/src/components/streaming/GiftOverlay.tsx`)**:
+     - `StyleSheet.absoluteFillObject`, `pointerEvents="none"`, `zIndex: 9999` 투명 레이어 격리로 채팅/입력창 밀림 100% 차단.
+     - 3단계 차등 이펙트 렌더링: 1단계(1,000P 이하) 40% 파티클, 2단계(3,000~10,000P) 75% 3D 효과, 3단계(30,000P 이상) 100% 화면 점유 + 배경 일시 암전 + 골든 드래곤 풀스크린 연출.
+     - 애니메이션 종료 시 `onAnimationFinish` 콜백으로 뷰 완전 언마운트(`null` 반환) 처리하여 GPU/메모리 점유율 0 유지.
+  2. **라이브 방송 중 화면 유지 프로필 바텀시트 연동 (`LiveRoomScreen.js` ↔ `GlobalBottomSheet`)**:
+     - 채팅창 아바타나 상단 시청자 목록 터치 시 방송 Agora 영상/오디오가 끊기지 않고 화면 위에 부드럽게 오버레이.
+     - 대상 유저의 9장 사진 갤러리 그리드/라이트박스와 닉네임, 1:1 통화(음성/영상) 및 대화 신청 버튼 완비.
+  3. **백엔드 아고라 스냅샷 24시간 실시간 채증 파이프라인 (`services/api/src/modules/streaming/`)**:
+     - Agora Cloud Recording 웹훅 핸들러(`POST /v1/streaming/webhook/snapshot`) 탑재.
+     - Supabase Storage 스냅샷 업로드 후 Gemini 1.5 Flash Vision 1초 미만 초고속 안전 스크리닝(신체 노출, 도박, 불법 연락처 등) 수행.
+     - `StreamSnapshotAudit` 테이블에 결과(riskScore, isViolated, violationTags) 적재 및 위험 포착(riskScore >= 60) 시 캡처 주기를 5초로 긴급 단축, `AiDecisionQueue`로 즉시 에스컬레이션.
+  4. **라이브 엠프티 뷰 리디자인 (`apps/mobile/src/screens/main/LiveScreen.js`, `LiveListScreen.js`)**:
+     - 썰렁했던 레거시 빈 화면을 탈피하고 1단계 `EmptyStateView(preset="live")` 탑재.
+     - "지금 첫 라이브의 주인공이 되어 팬들과 소통해 보세요!" 유도 문구와 함께 [🎥 내가 먼저 라이브 시작하기] 네온 핑크 CTA 버튼 배치.
+
+---
+
 ## 2026-10-19 Checkpoint 89: 모바일 앱 3단계 인연·대화(Discover/Chat) 탭 전면 리디자인 및 실시간 매칭 엔진 결합 (완료)
 
 ### 1. 개요 및 배경

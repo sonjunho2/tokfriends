@@ -1,4 +1,13 @@
-import React, { memo, useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import React, {
+  memo,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+} from 'react';
 import {
   View,
   Text,
@@ -6,9 +15,7 @@ import {
   Dimensions,
   Animated,
   Easing,
-  Platform,
 } from 'react-native';
-import LottieView from 'lottie-react-native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -19,11 +26,20 @@ export interface GiftItem {
   giftName: string;
   points: number;
   effectTier?: 1 | 2 | 3;
+  animationUrl?: string;
+  thumbnailUrl?: string;
 }
 
-interface GiftOverlayProps {
-  currentGift: GiftItem | null;
+export interface GiftOverlayProps {
+  currentGift?: GiftItem | null;
+  onAnimationFinish?: () => void;
   onAnimationEnd?: () => void;
+}
+
+export interface GiftOverlayRef {
+  showGift: (gift: GiftItem) => void;
+  enqueueGift: (gift: any) => void;
+  clearQueue: () => void;
 }
 
 // Tier determination based on points
@@ -36,28 +52,89 @@ const getTier = (points: number, explicitTier?: number): 1 | 2 | 3 => {
   return 1;
 };
 
-export const GiftOverlay = memo(({ currentGift, onAnimationEnd }: GiftOverlayProps) => {
-  // If no gift is currently playing, return null immediately to keep GPU/CPU usage at 0
-  if (!currentGift) {
-    return null;
-  }
+export const GiftOverlay = memo(
+  forwardRef<GiftOverlayRef, GiftOverlayProps>(
+    ({ currentGift: propGift, onAnimationFinish, onAnimationEnd }, ref) => {
+      const [activeGift, setActiveGift] = useState<GiftItem | null>(null);
+      const queueRef = useRef<GiftItem[]>([]);
 
-  return (
-    <GiftAnimationInner
-      gift={currentGift}
-      onAnimationEnd={onAnimationEnd}
-    />
-  );
-});
+      const handleEnd = useCallback(() => {
+        setActiveGift(null);
+        if (onAnimationFinish) {
+          onAnimationFinish();
+        } else if (onAnimationEnd) {
+          onAnimationEnd();
+        }
+
+        // Process next gift in queue if any
+        if (queueRef.current.length > 0) {
+          const next = queueRef.current.shift()!;
+          setTimeout(() => {
+            setActiveGift(next);
+          }, 50);
+        }
+      }, [onAnimationFinish, onAnimationEnd]);
+
+      useImperativeHandle(ref, () => ({
+        showGift: (gift: GiftItem) => {
+          if (!activeGift) {
+            setActiveGift(gift);
+          } else {
+            queueRef.current.push(gift);
+          }
+        },
+        enqueueGift: (gift: any) => {
+          const item: GiftItem = {
+            id: gift.giftId || String(Date.now()),
+            senderName: gift.senderNickname || gift.senderName || '팬',
+            giftName: gift.giftName || '선물',
+            points: Number(gift.pricePoints || gift.points || 1000),
+            animationUrl: gift.animationUrl,
+            thumbnailUrl: gift.thumbnailUrl,
+          };
+          if (!activeGift) {
+            setActiveGift(item);
+          } else {
+            queueRef.current.push(item);
+          }
+        },
+        clearQueue: () => {
+          queueRef.current = [];
+          setActiveGift(null);
+        },
+      }));
+
+      useEffect(() => {
+        if (propGift) {
+          setActiveGift(propGift);
+        }
+      }, [propGift]);
+
+      // If no gift is active, return null completely to ensure 0 CPU/GPU usage
+      const displayedGift = activeGift || propGift;
+      if (!displayedGift) {
+        return null;
+      }
+
+      return (
+        <GiftAnimationInner
+          key={displayedGift.id}
+          gift={displayedGift}
+          onAnimationFinish={handleEnd}
+        />
+      );
+    }
+  )
+);
 
 interface GiftAnimationInnerProps {
   gift: GiftItem;
-  onAnimationEnd?: () => void;
+  onAnimationFinish?: () => void;
 }
 
-const GiftAnimationInner = memo(({ gift, onAnimationEnd }: GiftAnimationInnerProps) => {
+const GiftAnimationInner = memo(({ gift, onAnimationFinish }: GiftAnimationInnerProps) => {
   const tier = useMemo(() => getTier(gift.points, gift.effectTier), [gift.points, gift.effectTier]);
-  
+
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.5)).current;
@@ -65,14 +142,7 @@ const GiftAnimationInner = memo(({ gift, onAnimationEnd }: GiftAnimationInnerPro
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const darkBackdropAnim = useRef(new Animated.Value(0)).current;
 
-  const handleEnd = useCallback(() => {
-    if (onAnimationEnd) {
-      onAnimationEnd();
-    }
-  }, [onAnimationEnd]);
-
   useEffect(() => {
-    // Reset values
     fadeAnim.setValue(0);
     scaleAnim.setValue(tier === 3 ? 0.3 : 0.6);
     translateYAnim.setValue(20);
@@ -81,7 +151,6 @@ const GiftAnimationInner = memo(({ gift, onAnimationEnd }: GiftAnimationInnerPro
 
     const duration = tier === 3 ? 3500 : tier === 2 ? 2500 : 1800;
 
-    // Parallel entrance animations
     const animations = [
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -105,7 +174,7 @@ const GiftAnimationInner = memo(({ gift, onAnimationEnd }: GiftAnimationInnerPro
     if (tier === 3) {
       animations.push(
         Animated.timing(darkBackdropAnim, {
-          toValue: 0.85,
+          toValue: 0.88,
           duration: 400,
           useNativeDriver: true,
         }),
@@ -168,7 +237,9 @@ const GiftAnimationInner = memo(({ gift, onAnimationEnd }: GiftAnimationInnerPro
           useNativeDriver: true,
         }),
       ]).start(() => {
-        handleEnd();
+        if (onAnimationFinish) {
+          onAnimationFinish();
+        }
       });
     }, duration);
 
@@ -182,7 +253,7 @@ const GiftAnimationInner = memo(({ gift, onAnimationEnd }: GiftAnimationInnerPro
 
   return (
     <View style={styles.absoluteContainer} pointerEvents="none">
-      {/* Tier 3 Special Dark Background */}
+      {/* 3단계: 화면 100% 점유 시 배경 일시 암전 */}
       {tier === 3 && (
         <Animated.View
           style={[
@@ -193,9 +264,9 @@ const GiftAnimationInner = memo(({ gift, onAnimationEnd }: GiftAnimationInnerPro
         />
       )}
 
-      {/* Main Effect Layer */}
+      {/* 메인 이펙트 렌더링 레이어 */}
       <View style={styles.centerContainer}>
-        {/* Tier 1: Small (40% width) - Simple Particle */}
+        {/* 1단계(소형, 1,000P 이하): 가로 40% 영역 파티클 */}
         {tier === 1 && (
           <Animated.View
             style={[
@@ -206,7 +277,7 @@ const GiftAnimationInner = memo(({ gift, onAnimationEnd }: GiftAnimationInnerPro
               },
             ]}
           >
-            <View style={styles.lottiePlaceholder}>
+            <View style={styles.particleWrap}>
               <Text style={styles.tier1Emoji}>✨🎁✨</Text>
             </View>
             <View style={styles.badgeContainer}>
@@ -218,7 +289,7 @@ const GiftAnimationInner = memo(({ gift, onAnimationEnd }: GiftAnimationInnerPro
           </Animated.View>
         )}
 
-        {/* Tier 2: Medium (75% width) - Dynamic 3D Display */}
+        {/* 2단계(중형, 3,000~10,000P): 가로 75% 영역 3D 효과 */}
         {tier === 2 && (
           <Animated.View
             style={[
@@ -244,7 +315,7 @@ const GiftAnimationInner = memo(({ gift, onAnimationEnd }: GiftAnimationInnerPro
           </Animated.View>
         )}
 
-        {/* Tier 3: Large (100% fullscreen) - Golden Dragon Fullscreen Effect */}
+        {/* 3단계(대형, 30,000P 이상): 화면 100% 점유 + 골든 드래곤 풀스크린 연출 */}
         {tier === 3 && (
           <Animated.View
             style={[
@@ -269,6 +340,8 @@ const GiftAnimationInner = memo(({ gift, onAnimationEnd }: GiftAnimationInnerPro
     </View>
   );
 });
+
+export default GiftOverlay;
 
 const styles = StyleSheet.create({
   absoluteContainer: {
@@ -300,7 +373,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 8,
   },
-  lottiePlaceholder: {
+  particleWrap: {
     marginVertical: 4,
   },
   tier1Emoji: {
@@ -323,95 +396,86 @@ const styles = StyleSheet.create({
   },
   tier2Box: {
     width: SCREEN_WIDTH * 0.75,
-    backgroundColor: 'rgba(15, 15, 35, 0.92)',
-    borderRadius: 28,
-    padding: 24,
+    backgroundColor: 'rgba(30, 10, 45, 0.9)',
+    borderRadius: 24,
+    padding: 20,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#A855F7',
-    shadowColor: '#C084FC',
+    borderColor: '#FF3B6B',
+    shadowColor: '#FF3B6B',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    elevation: 15,
+    shadowOpacity: 0.7,
+    shadowRadius: 16,
+    elevation: 12,
   },
   glowRing: {
     position: 'absolute',
-    top: -10,
-    left: -10,
-    right: -10,
-    bottom: -10,
-    borderRadius: 34,
+    width: '110%',
+    height: '110%',
+    borderRadius: 28,
     borderWidth: 1,
-    borderColor: 'rgba(168, 85, 247, 0.4)',
+    borderColor: 'rgba(255, 59, 107, 0.4)',
   },
   tier2Emoji: {
-    fontSize: 64,
-    marginBottom: 10,
+    fontSize: 54,
+    marginVertical: 8,
   },
   badgeContainerTier2: {
     alignItems: 'center',
   },
   senderTextTier2: {
-    color: '#F472B6',
-    fontSize: 16,
+    color: '#FFF',
+    fontSize: 15,
     fontWeight: '800',
     textAlign: 'center',
   },
   giftInfoTextTier2: {
-    color: '#60A5FA',
-    fontSize: 14,
+    color: '#FF3B6B',
+    fontSize: 13,
     fontWeight: '700',
     marginTop: 4,
   },
   tier3Box: {
-    width: '100%',
-    height: '100%',
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
     justifyContent: 'center',
     alignItems: 'center',
   },
   dragonBanner: {
-    width: '90%',
     alignItems: 'center',
-    backgroundColor: 'rgba(25, 20, 5, 0.95)',
-    borderWidth: 3,
-    borderColor: '#F59E0B',
-    borderRadius: 32,
-    paddingVertical: 36,
     paddingHorizontal: 20,
-    shadowColor: '#F59E0B',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 1,
-    shadowRadius: 30,
-    elevation: 25,
   },
   vipCrown: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#FBBF24',
+    color: '#FFD700',
     letterSpacing: 2,
     marginBottom: 8,
+    textShadowColor: 'rgba(255, 215, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
   },
   tier3Dragon: {
-    fontSize: 82,
+    fontSize: 72,
     marginVertical: 12,
   },
   tier3SenderName: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '900',
-    color: '#FFF',
+    color: '#FFFFFF',
     textAlign: 'center',
-    textShadowColor: 'rgba(245, 158, 11, 0.8)',
+    textShadowColor: 'rgba(0, 0, 0, 0.9)',
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
+    textShadowRadius: 6,
   },
   tier3GiftDetails: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
-    color: '#FCD34D',
+    color: '#FFD700',
     marginTop: 8,
     textAlign: 'center',
+    textShadowColor: 'rgba(255, 215, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
 });
-
-export default GiftOverlay;

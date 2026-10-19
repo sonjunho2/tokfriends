@@ -24,12 +24,15 @@ import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
 import ReportModal from '../../components/ReportModal';
 import GiftEffectOverlay from '../../components/GiftEffectOverlay';
+import GiftOverlay from '../../components/streaming/GiftOverlay';
+import { GlobalBottomSheet } from '../../components/common';
 import GiftPickerSheet from '../../components/GiftPickerSheet';
 import LiveViewerRankingSheet from '../../components/LiveViewerRankingSheet';
 import LiveParticipantProfileSheet from '../../components/LiveParticipantProfileSheet';
 import FloatingHeartsOverlay from '../../components/FloatingHeartsOverlay';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
 import { createChatSocket, LIVE_SOCKET_EVENTS } from '../../realtime/chatSocket';
 
 const LIVE_ACCENT = '#FF3B6B';
@@ -868,10 +871,71 @@ export default function LiveRoomScreen({ navigation, route }) {
     );
   };
 
-  const handleOpenParticipantProfile = (participantData) => {
+  const handleOpenParticipantProfile = async (participantData) => {
     if (!participantData) return;
-    setSelectedParticipant(participantData);
+    const initialProfile = {
+      ...participantData,
+      photos: participantData.avatar ? [{ id: 'p1', url: participantData.avatar, isPrimary: true }] : [],
+    };
+    setSelectedParticipant(initialProfile);
     setProfileSheetVisible(true);
+
+    // 9장 갤러리 사진 비동기 조회 및 주입
+    const uid = participantData.userId || participantData.id;
+    if (uid) {
+      try {
+        const photos = await apiClient.getUserPhotos(uid);
+        if (Array.isArray(photos) && photos.length > 0) {
+          setSelectedParticipant((prev) => (prev ? { ...prev, photos } : prev));
+        }
+      } catch {}
+    }
+  };
+
+  const handleStartCallFromProfile = (targetUser) => {
+    if (!targetUser) return;
+    Alert.alert(
+      '1:1 다이렉트 통화 신청',
+      `${targetUser.name}님에게 통화를 연결하시겠습니까?\n(분당 1,500P가 소진됩니다)`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '통화 연결',
+          onPress: () => {
+            setProfileSheetVisible(false);
+            Alert.alert('통화 연결 중', `${targetUser.name}님의 응답을 기다리고 있습니다... 📞`);
+          },
+        },
+      ]
+    );
+  };
+
+  const handleStartDMFromProfile = (targetUser) => {
+    if (!targetUser?.id) return;
+    setProfileSheetVisible(false);
+    checkAndConfirmActionPoint({
+      actionType: 'chatRoomCreate',
+      actionName: '1:1 대화방 개설',
+      navigation,
+      onConfirm: async () => {
+        try {
+          const room = await apiClient.ensureDirectRoom({ targetUserId: targetUser.id });
+          const roomId = room?.id || room?._id;
+          if (roomId) {
+            navigation.navigate('Chat', {
+              screen: 'ChatRoom',
+              params: {
+                id: roomId,
+                room,
+                user: targetUser,
+              },
+            });
+          }
+        } catch (e) {
+          Alert.alert('안내', e?.message || '대화방을 생성할 수 없습니다.');
+        }
+      },
+    });
   };
 
   const handleMessagePress = (msg) => {
@@ -1379,8 +1443,8 @@ export default function LiveRoomScreen({ navigation, route }) {
       {/* Floating Animated Hearts Reaction Overlay */}
       <FloatingHeartsOverlay ref={floatingHeartsRef} />
 
-      {/* Fullscreen 3D Gift Effect Overlay (FIFO Queue) */}
-      <GiftEffectOverlay ref={giftOverlayRef} />
+      {/* Fullscreen 3D Gift Effect Overlay (pointerEvents="none", zIndex: 9999) */}
+      <GiftOverlay ref={giftOverlayRef} />
 
       {/* Gift Picker Bottom Sheet */}
       <GiftPickerSheet
@@ -1415,18 +1479,35 @@ export default function LiveRoomScreen({ navigation, route }) {
         }}
       />
 
-      {/* Live Participant Profile Bottom Sheet (Bigo/Azar style) */}
-      <LiveParticipantProfileSheet
+      {/* 화면 유지 전역 프로필 바텀시트 (방송 Agora 끊김 없이 오버레이) */}
+      <GlobalBottomSheet
         visible={profileSheetVisible}
         onClose={() => setProfileSheetVisible(false)}
-        participant={selectedParticipant}
-        currentUser={currentUser}
-        onNavigateToShop={() => navigation.navigate('Shop')}
-        onOpenReport={(target) => {
-          setReportTarget(target);
-          setReportModalVisible(true);
-        }}
-        onBlockUser={handleBlockUser}
+        user={
+          selectedParticipant
+            ? {
+                id: selectedParticipant.id || selectedParticipant.userId,
+                name: selectedParticipant.name,
+                avatar: selectedParticipant.avatar,
+                headline:
+                  selectedParticipant.headline ||
+                  selectedParticipant.bio ||
+                  '라이브 방송에 참여 중이에요 ✨',
+                bio: selectedParticipant.bio,
+                region: selectedParticipant.region,
+                photos:
+                  selectedParticipant.photos && selectedParticipant.photos.length > 0
+                    ? selectedParticipant.photos
+                    : selectedParticipant.avatar
+                    ? [{ id: 'p1', url: selectedParticipant.avatar, isPrimary: true }]
+                    : [],
+                pointsPerMinute: 1500,
+              }
+            : null
+        }
+        onCallVoice={handleStartCallFromProfile}
+        onCallVideo={handleStartCallFromProfile}
+        onStartChat={handleStartDMFromProfile}
       />
     </SafeAreaView>
   );

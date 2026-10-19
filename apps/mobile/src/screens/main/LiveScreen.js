@@ -20,6 +20,7 @@ import Avatar from '../../components/Avatar';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
+import { EmptyStateView } from '../../components/common';
 
 const LIVE_COLOR = '#FF3B6B';
 
@@ -267,23 +268,14 @@ export default function LiveScreen({ navigation }) {
             />
           }
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconWrap}>
-                <Ionicons name="radio-outline" size={48} color={LIVE_COLOR} />
-              </View>
-              <Text style={styles.emptyTitle}>진행 중인 라이브가 없습니다</Text>
-              <Text style={styles.emptySubtitle}>
-                지금 바로 첫 번째 라이브 방송을 시작하고{'\n'}새로운 친구들과 실시간으로 소통해보세요!
-              </Text>
-              <TouchableOpacity
-                style={styles.emptyStartButton}
-                onPress={() => setModalVisible(true)}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="videocam-outline" size={18} color="#FFFFFF" />
-                <Text style={styles.emptyStartButtonText}>내가 먼저 라이브 시작하기</Text>
-              </TouchableOpacity>
-            </View>
+            <EmptyStateView
+              preset="live"
+              title="진행 중인 라이브 방송이 없습니다"
+              description="지금 첫 라이브의 주인공이 되어 팬들과 소통해 보세요!"
+              ctaLabel="🎥 내가 먼저 라이브 시작하기"
+              onCtaPress={() => setModalVisible(true)}
+              style={{ marginTop: 40 }}
+            />
           }
         />
       )}
