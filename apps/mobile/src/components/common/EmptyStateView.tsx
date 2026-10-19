@@ -17,6 +17,7 @@ export type EmptyStatePreset =
   | 'notifications'
   | 'search'
   | 'favorites'
+  | 'feed'
   | 'default';
 
 export interface EmptyStateViewProps {
@@ -74,6 +75,12 @@ const PRESET_CONFIGS: Record<
     title: '찜한 친구가 없습니다',
     description: '관심 있는 친구를 찜해두고 빠르게 소식을 받아보세요.',
     ctaLabel: '인연 탐색하기',
+  },
+  feed: {
+    icon: 'chatbubble-ellipses-outline',
+    title: '우리 동네의 첫 번째 이야기 주인공이 되어보세요! ✨',
+    description: '이웃들과 나누고 싶은 소소한 일상이나 궁금한 점을 남겨보세요.',
+    ctaLabel: '✍️ 첫 동네 이야기 쓰기',
   },
   default: {
     icon: 'sparkles-outline',
