@@ -389,7 +389,7 @@ export default function LoginScreen({ navigation }) {
                     activeOpacity={0.88}
                   >
                     <LinearGradient
-                      colors={tokens.colors.gradients.primaryPink}
+                      colors={tokens.colors.gradients.primaryPink || ['#FF3B6B', '#FF758C']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                       style={styles.submitButtonGrad}

@@ -216,7 +216,7 @@ export default function OnboardingScreen({ navigation }) {
             {/* 유저 아바타 & 정보 */}
             <View style={styles.frontCardAvatarWrap}>
               <LinearGradient
-                colors={tokens.colors.gradients.primaryPink}
+                colors={tokens.colors.gradients.primaryPink || ['#FF3B6B', '#FF758C']}
                 style={styles.frontAvatarGrad}
               >
                 <Ionicons name="person" size={32} color="#FFFFFF" />
@@ -477,7 +477,7 @@ export default function OnboardingScreen({ navigation }) {
           activeOpacity={0.88}
         >
           <LinearGradient
-            colors={tokens.colors.gradients.primaryPink}
+            colors={tokens.colors.gradients.primaryPink || ['#FF3B6B', '#FF758C']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.ctaBtnGradient}

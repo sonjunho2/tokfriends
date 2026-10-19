@@ -44,6 +44,7 @@ export const colors = {
   // Borders
   border: '#E2E8F0',
   borderLight: '#F1F5F9',
+  borderMedium: '#CBD5E1',
   borderStrong: '#CBD5E1',
   borderFocus: '#FF3B6B',
 
@@ -59,6 +60,8 @@ export const colors = {
   // Gradients
   gradients: {
     primary: ['#FF3B6B', '#FF758C'] as const,
+    primaryPink: ['#FF3B6B', '#FF758C'] as const,
+    pink: ['#FF3B6B', '#FF758C'] as const,
     primaryPurple: ['#FF3B6B', '#8B5CF6'] as const,
     purple: ['#8B5CF6', '#6366F1'] as const,
     live: ['#FF3B6B', '#E11D48'] as const,

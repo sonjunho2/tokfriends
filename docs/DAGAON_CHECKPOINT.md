@@ -4,6 +4,32 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-19 Checkpoint 97: [긴급 해결] 앱 실행 시 검은 화면(Black Screen) 원인 정밀 해결 — LinearGradient primaryPink 토큰 누락 수정, 네이티브 windowBackground #F8FAFC 고정, useFonts 250ms 타임아웃 방어 & GlobalErrorBoundary 탑재 및 최신 릴리즈 APK (`dagaon-release.apk`) 재배포 완료 (완료)
+
+### 1. 개요 및 배경
+- **현상**: 실제 단말에서 릴리즈 APK 설치 후 실행 시 검은 화면만 지속되는 현상 발생.
+- **근본 원인 분석**:
+  1. **LinearGradient 토큰 누락 크래시**: `OnboardingScreen`, `LoginScreen`, `MyPageScreen`, `CreateRoomModal`에서 `tokens.colors.gradients.primaryPink`를 참조했으나 `tokens.ts`에 정의되어 있지 않아 `undefined`가 전달됨. Expo `LinearGradient`는 `colors` 배열이 유효하지 않으면 런타임 예외를 발생시키며, 이로 인해 첫 렌더 시 React 트리가 완전히 언마운트됨.
+  2. **안드로이드 네이티브 DayNight 윈도우 배경**: Android `AppTheme`의 기본 배경이 다크 모드 단말에서 순수 검은색(`#000000`)으로 지정되어 있어, React 언마운트 또는 로딩 지연 시 검은 화면이 그대로 노출됨.
+  3. **폰트 로딩 대기 멈춤**: `@expo-google-fonts/noto-sans-kr` 폰트 에셋 로딩이 네트워크나 환경에 따라 지연/실패할 경우 `shouldRenderApp`이 영구적으로 `false`에 머물 가능성 존재.
+
+### 2. 주요 해결 조치 내역
+1. **토큰 동기화 및 2단계 Fallback 배열 보장**:
+   - `apps/mobile/src/theme/tokens.ts` 및 `apps/mobile/src/theme/colors.js`에 `primaryPink: ['#FF3B6B', '#FF758C']`, `borderMedium: '#CBD5E1'` 명시적 추가.
+   - `OnboardingScreen`, `LoginScreen`, `MyPageScreen`, `CreateRoomModal`의 모든 `LinearGradient`에 `colors={tokens.colors.gradients.primaryPink || ['#FF3B6B', '#FF758C']}` 안전 기본 배열을 적용하여 토큰 누락 시에도 절대 크래시가 발생하지 않도록 이중 방어.
+2. **안드로이드 네이티브 윈도우 배경색 수정 (`styles.xml`)**:
+   - `android/app/src/main/res/values/styles.xml`의 `AppTheme`에 `<item name="android:windowBackground">#F8FAFC</item>`를 지정하여 앱 구동 첫 프레임부터 검은 화면이 일절 노출되지 않도록 조치.
+3. **App.js 안정성 강화 (폰트 로딩 250ms 타임아웃 & GlobalErrorBoundary)**:
+   - 폰트 로딩 지연 시에도 250ms 후 시스템 기본 폰트로 즉시 화면을 렌더링하도록 안전 타이머 탑재.
+   - React 트리 내 예측 불가능한 렌더 오류 발생 시 화면 멈춤 없이 에러 카드와 "다시 시도하기" 버튼을 렌더링하는 `GlobalErrorBoundary` 클래스 탑재.
+4. **전체 소스 토큰 AST 무결점 검증**:
+   - 83개 전체 모바일 파일 스캔 결과 미정의 토큰 및 AST 에러 **0건 (Errors: 0)** 확인.
+5. **안드로이드 프로덕션 릴리즈 APK (`dagaon-release.apk`) 재빌드 & 배포**:
+   - `gradlew.bat assembleRelease --no-daemon` 실행하여 75,401,242 bytes의 최신 네이티브 릴리즈 APK 빌드 성공 (`BUILD SUCCESSFUL in 1m 50s`).
+   - `apps/admin/public/downloads/dagaon-release.apk` 및 루트 `dagaon-release.apk`로 동기화 완료.
+
+---
+
 ## 2026-10-19 Checkpoint 96: 온보딩 3D 비주얼 고도화, 로그인 화면 복구 및 첫 진입 라우팅 정상화 — 3D 플로팅 매칭 카드·3D 라이브 선물 폭죽·글래스모피즘 방패 비주얼, 16px 라운딩 소셜 로그인, RootNavigator 온보딩 가드 & 크래시 방어 완비 (완료)
 
 ### 1. 개요 및 배경

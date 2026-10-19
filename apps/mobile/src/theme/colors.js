@@ -20,6 +20,7 @@ export default {
   // 보더 & 디바이더
   border: '#E2E8F0',
   borderStrong: '#CBD5E1',
+  borderMedium: '#CBD5E1',
   borderLight: '#F1F5F9',
 
   // 메인 브랜드 컬러 (Neon Coral Pink & Purple Subtone)
@@ -53,8 +54,11 @@ export default {
   // 그라데이션
   gradients: {
     primary: ['#FF3B6B', '#FF758C'],
+    primaryPink: ['#FF3B6B', '#FF758C'],
+    primaryPurple: ['#FF3B6B', '#8B5CF6'],
     sunset: ['#FF3B6B', '#8B5CF6'],
     purple: ['#8B5CF6', '#6366F1'],
     darkOverlay: ['transparent', 'rgba(15, 23, 42, 0.75)'],
+    cardOverlay: ['transparent', 'rgba(15, 23, 42, 0.9)'],
   },
 };
