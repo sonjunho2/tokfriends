@@ -22,7 +22,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 
-export default function TestLoginButton({ onSuccess, style }) {
+export default function TestLoginButton({ onSuccess, onLoginSuccess, style }) {
   const { testLogin } = useAuth();
   const [loading, setLoading] = useState(false);
 
@@ -33,7 +33,8 @@ export default function TestLoginButton({ onSuccess, style }) {
     try {
       const result = await testLogin();
       if (result.success) {
-        onSuccess?.(result.user);
+        const callback = onSuccess || onLoginSuccess;
+        callback?.(result.user);
       } else {
         Alert.alert(
           '테스트 로그인 실패',
