@@ -85,7 +85,26 @@ export class CallsController {
     @Body() dto?: EndCallDto,
   ) {
     const userId = user?.id ?? user?.sub;
-    const data = await this.privateCallService.endCall(sessionId, userId, dto?.reason);
+    const data = await this.privateCallService.terminateCall(sessionId, userId, dto?.reason);
+    return {
+      ok: true,
+      data,
+    };
+  }
+
+  /**
+   * 1:1 통화 강제/정상 종료 (terminateCall)
+   */
+  @Post(':sessionId/terminate')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async terminateCall(
+    @CurrentUser() user: any,
+    @Param('sessionId') sessionId: string,
+    @Body() dto?: EndCallDto,
+  ) {
+    const userId = user?.id ?? user?.sub;
+    const data = await this.privateCallService.terminateCall(sessionId, userId, dto?.reason);
     return {
       ok: true,
       data,

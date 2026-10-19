@@ -44,8 +44,8 @@ export class CallsService {
 
     let ratePerMinute = host.callRatePerMinute;
     if (!isCustom || !ratePerMinute) {
-      const defaultRateStr = await this.privateCallService.getSystemSetting('DEFAULT_CALL_RATE', '1200');
-      ratePerMinute = parseInt(defaultRateStr, 10) || 1200;
+      const defaultRateStr = await this.privateCallService.getSystemSetting('DEFAULT_CALL_RATE', '1500');
+      ratePerMinute = parseInt(defaultRateStr, 10) || 1500;
     }
 
     return {

@@ -4,6 +4,35 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-19 Checkpoint 93: 백엔드 7단계 1:1 통화 분당 선차감 과금 엔진 및 트랜잭션 실구현 — Prisma $transaction 원자성, 실시간 과금 스케줄러 루프, 포인트 고갈 시 강제 퇴장, 5분 TTL 인메모리 캐시 완비 (완료)
+
+### 1. 개요 및 배경
+- **1:1 프라이빗 음성/영상 통화 분당 선차감 과금 엔진 실서비스 완성**:
+  - 모바일에서 신청된 1:1 통화가 실제 포인트 차감 및 크리에이터 정산과 연동되도록 백엔드(`services/api`)의 통화 모듈(`private-call.service.ts`)과 과금 스케줄러 루프를 완비.
+- **4대 핵심 작업 내역**:
+  1. **통화 수락 및 첫 1분 선차감 트랜잭션 (`acceptCall`)**:
+     - Prisma `$transaction`으로 게스트 잔여 포인트 검증 및 첫 1분 요금 선차감(`pointBalance decrement`).
+     - 호스트 자율 단가(`callRatePerMinute`) 우선 적용, 미설정 시 `SystemSetting('DEFAULT_CALL_RATE', 1500)` 적용.
+     - 잔액 부족 시 `BadRequestException('포인트가 부족합니다')` 예외 발생.
+     - `PLATFORM_FEE_PERCENT`(기본 35%) 기준으로 `platformFee`와 `creatorRevenue`를 계산하여 호스트 정산금 동시 적립 및 세션 레코드 반영.
+     - Agora RTC 채널 참여용 토큰(`agoraToken`) 및 `appId` 발급 및 반환, WebSocket `CALL_CONNECTED` 브로드캐스트.
+  2. **백엔드 실시간 과금 스케줄러 루프 (`handleCallBillingLoop` - `@Cron('* * * * *')`)**:
+     - 매 1분 주기로 `CONNECTED` 상태인 모든 활성 세션을 일괄 조회.
+     - 1) 잔액 부족 시 (`pointBalance < ratePerMinute`):
+        - SocketGateway를 통해 `channelId` 및 사용자 방으로 `CALL_FORCE_TERMINATED` (사유: `POINT_DEPLETED`) 실시간 브로드캐스트.
+        - 세션 상태 `TERMINATED`, `endReason: 'POINT_DEPLETED'`, `endedAt: new Date()`로 업데이트 및 Agora 채널 강제 종료.
+     - 2) 잔액 충분 시:
+        - Prisma `$transaction`으로 다음 1분 포인트 차감, 호스트 수익 적립, 세션 통계(`billedMinutes`, `totalDeducted`, `creatorRevenue`) 누적.
+        - SocketGateway로 `CALL_BILLED_TICK` (`{ billedMinutes, remainingPoints }`) 실시간 과금 갱신 이벤트 발송.
+  3. **정상 통화 종료 핸들러 (`terminateCall`)**:
+     - 호스트 또는 게스트의 통화 종료 요청 시 `status`를 `TERMINATED`로 변경하고 `endedAt` 및 `endReason` 기록.
+     - 크리에이터 누적 정산금(`creatorRevenue`)의 확정 반영 및 SocketGateway `CALL_ENDED` 이벤트 브로드캐스트.
+  4. **성능 최적화 및 5분 TTL 인메모리 캐시 매니저**:
+     - `SystemSetting` 조회 시 매 초 DB 쿼리가 발생하지 않도록 5분(300초) TTL 인메모리 `InMemoryCacheManager` 구축.
+     - `nest build` 0건 에러 무결점 빌드 완료.
+
+---
+
 ## 2026-10-19 Checkpoint 92: 모바일 앱 6단계 마이페이지(MyPage) & 대화방 개설 모달(CreateRoomModal) 전면 개편 — 위피/토스 스타일 프리미엄 소셜 UI, 온(ON) 자산 카드, 1:1 통화 단가 설정 및 VIP 프라이빗 룸 완비 (완료)
 
 ### 1. 개요 및 배경
