@@ -203,7 +203,17 @@ const DEFAULT_COMMUNITY_POSTS = [
 ];
 
 export default function HomeScreen({ navigation }) {
-  const { user: authUser } = useAuth();
+  const authContext = useAuth() || {};
+  const authUser = authContext.user || null;
+  const safeUser = authUser || {
+    id: 'guest',
+    displayName: '회원',
+    profile: {
+      nickname: '회원',
+      avatarUri: null,
+      headline: '새로운 인연을 만나보세요 ✨',
+    },
+  };
 
   // 상태 관리
   const [liveRooms, setLiveRooms] = useState(DEFAULT_LIVES);
@@ -413,15 +423,15 @@ export default function HomeScreen({ navigation }) {
           >
             <View style={styles.storyRingInner}>
               <UserAvatar
-                uri={authUser?.profile?.avatarUri}
-                name={authUser?.displayName || authUser?.profile?.nickname || '나'}
+                uri={safeUser?.profile?.avatarUri}
+                name={safeUser?.displayName || safeUser?.profile?.nickname || '나'}
                 size={34}
               />
             </View>
           </LinearGradient>
           <View style={styles.welcomeTextWrap}>
             <Text style={styles.welcomeName} numberOfLines={1}>
-              {authUser?.displayName || authUser?.profile?.nickname || '회원'}님
+              {safeUser?.displayName || safeUser?.profile?.nickname || '회원'}님
             </Text>
             <Text style={styles.welcomeSub}>새로운 인연을 만나보세요 ✨</Text>
           </View>

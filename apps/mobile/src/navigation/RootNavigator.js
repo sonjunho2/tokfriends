@@ -30,7 +30,11 @@ import ProfileDetailScreen from '../screens/main/ProfileDetailScreen';
 import LiveRoomScreen from '../screens/live/LiveRoomScreen';
 import NotificationsScreen from '../screens/main/NotificationsScreen';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { tokens } from '../theme/tokens';
+
 // ===== 인증 =====
+import OnboardingScreen from '../screens/auth/OnboardingScreen';
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import PhoneEntryScreen from '../screens/auth/PhoneEntryScreen';
@@ -47,12 +51,13 @@ const MyPageStackNav = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 /** ===== 인증 플로우 ===== */
-function AuthFlow() {
+function AuthFlow({ initialRoute = 'Onboarding' }) {
   return (
     <AuthStack.Navigator
-      initialRouteName="Welcome"
+      initialRouteName={initialRoute}
       screenOptions={{ headerShown: false }}
     >
+      <AuthStack.Screen name="Onboarding" component={OnboardingScreen} />
       <AuthStack.Screen name="Welcome" component={WelcomeScreen} />
       <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="PhoneEntry" component={PhoneEntryScreen} />
@@ -343,18 +348,44 @@ function AppFlow() {
 export default function RootNavigator() {
   const { user, token, initializing, isOffline } = useAuth();
   useAuthStoreSync();
-  
-  if (initializing) {
+
+  const [checkingOnboarding, setCheckingOnboarding] = React.useState(true);
+  const [isOnboarded, setIsOnboarded] = React.useState(false);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    async function checkOnboarding() {
+      try {
+        const flag = await AsyncStorage.getItem('@dagaon_onboarded');
+        if (isMounted) {
+          setIsOnboarded(flag === 'true');
+        }
+      } catch (err) {
+        console.warn('[RootNavigator] check onboarding error:', err);
+      } finally {
+        if (isMounted) {
+          setCheckingOnboarding(false);
+        }
+      }
+    }
+    checkOnboarding();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // 초기화 중이거나 온보딩 상태 검사 중: 깔끔한 tokens.colors.background(#F8FAFC) + #FF3B6B 스피너 렌더링
+  if (initializing || checkingOnboarding) {
     return (
       <View style={styles.splashContainer}>
         <View style={styles.splashBrandBox}>
           <View style={styles.splashIconCircle}>
-            <Ionicons name="sparkles" size={32} color="#191919" />
+            <Ionicons name="sparkles" size={32} color={tokens.colors.primary} />
           </View>
           <Text style={styles.splashTitle}>다가온</Text>
           <Text style={styles.splashSubtitle}>새로운 인연이 다가옵니다</Text>
         </View>
-        <ActivityIndicator size="small" color="#191919" style={styles.splashSpinner} />
+        <ActivityIndicator size="large" color={tokens.colors.primary} style={styles.splashSpinner} />
       </View>
     );
   }
@@ -364,7 +395,7 @@ export default function RootNavigator() {
   const isSignedIn = tokenExists || userHasIdentifier;
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: tokens.colors.background }}>
       {isOffline && (
         <View style={styles.offlineNoticeBar}>
           <Ionicons name="cloud-offline" size={13} color="#92400E" />
@@ -373,7 +404,11 @@ export default function RootNavigator() {
           </Text>
         </View>
       )}
-      {isSignedIn ? <AppFlow /> : <AuthFlow />}
+      {isSignedIn ? (
+        <AppFlow />
+      ) : (
+        <AuthFlow initialRoute={isOnboarded ? 'Login' : 'Onboarding'} />
+      )}
     </View>
   );
 }
@@ -383,39 +418,41 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FAFC',
   },
   splashBrandBox: {
     alignItems: 'center',
   },
   splashIconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#FEE500',
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#FFF0F3',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
-    shadowColor: '#FEE500',
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    borderWidth: 1,
+    borderColor: '#FFE4E8',
+    shadowColor: '#FF3B6B',
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
     elevation: 4,
   },
   splashTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '900',
-    color: '#191919',
+    color: '#0F172A',
     letterSpacing: -0.5,
   },
   splashSubtitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
     marginTop: 6,
   },
   splashSpinner: {
-    marginTop: 32,
+    marginTop: 36,
   },
   offlineNoticeBar: {
     position: 'absolute',
