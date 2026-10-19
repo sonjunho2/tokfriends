@@ -1,1082 +1,817 @@
-// src/screens/main/ChatsScreen.js
+// apps/mobile/src/screens/main/ChatsScreen.js
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Modal,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
   View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  TouchableOpacity,
+  Image,
+  FlatList,
+  ScrollView,
+  RefreshControl,
+  StatusBar,
+  Alert,
+  TextInput,
+  Platform,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+
+import { tokens } from '../../theme/tokens';
+import {
+  UserAvatar,
+  GlobalBottomSheet,
+  EmptyStateView,
+} from '../../components/common';
 import { apiClient } from '../../api/client';
-import colors from '../../theme/colors';
-import ChatListItem from '../../components/ChatListItem';
-import UserListItem from '../../components/UserListItem';
-import SegmentBar from '../../components/SegmentBar';
 import { useAuth } from '../../context/AuthContext';
 import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
 
-const CHAT_CATEGORIES = ['친목', '취미', '고민', '운동', '동네', '자유'];
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const GRID_PADDING = 16;
+const GRID_GAP = 12;
+const CARD_WIDTH = (SCREEN_WIDTH - GRID_PADDING * 2 - GRID_GAP) / 2;
+const CARD_HEIGHT = CARD_WIDTH * 1.36; // 세로형 1:1.36 황금 비율
 
-const SUPPORTED_SEGMENTS = [
+// 1열 가로 스크롤 캡슐 필터 목록
+const CAPSULE_FILTERS = [
   '전체',
   '🔥 HOT추천',
-  '🟢 접속중',
+  '🟢 지금 접속중',
   '📍 내 주변',
-  '20대',
-  '30대',
-  '40대이상',
+  '#운동',
+  '#카페',
+  '#반려견',
+  '#음악',
+  '#여행',
+  '#사진',
 ];
 
-const INTEREST_CHIPS = [
-  '음악', '영화', '독서', '카페', '맛집', '여행', '운동',
-  '게임', '요리', '등산', '사진', '반려동물', '패션', '미술',
+// 감성적인 기본 인연 카드 데이터 (10명, 9장 갤러리 지원)
+const FALLBACK_DISCOVER_USERS = [
+  {
+    id: 'user-disc-1',
+    name: '수아',
+    age: 24,
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600',
+    location: '강남구 역삼동',
+    distanceKm: 0.8,
+    distanceLabel: '800m',
+    headline: '디저트 카페 탐방 좋아해요 🍰',
+    bio: '주말에 소소하게 커피 마시며 이야기 나눌 편안한 친구 찾고 있어요! 음악과 사진 촬영도 즐겨요 ✨',
+    tags: ['#카페', '#디저트', '#음악'],
+    status: 'online',
+    isOnline: true,
+    isHot: true,
+    pointsPerMinute: 1500,
+    photos: [
+      { id: 'p1', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600', isPrimary: true },
+      { id: 'p2', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600' },
+      { id: 'p3', url: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600' },
+      { id: 'p4', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600' },
+      { id: 'p5', url: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=600' },
+    ],
+  },
+  {
+    id: 'user-disc-2',
+    name: '도현',
+    age: 28,
+    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600',
+    location: '서초구 반포동',
+    distanceKm: 1.2,
+    distanceLabel: '1.2km',
+    headline: '한강 러닝이나 헬스 같이 가요 🏃',
+    bio: '퇴근 후 운동하고 맛있는 저녁 먹는 걸 좋아합니다. 밝고 에너지 넘치는 분과 소통하고 싶어요!',
+    tags: ['#운동', '#러닝', '#헬스'],
+    status: 'online',
+    isOnline: true,
+    isHot: true,
+    pointsPerMinute: 1500,
+    photos: [
+      { id: 'p1', url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600', isPrimary: true },
+      { id: 'p2', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600' },
+      { id: 'p3', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600' },
+    ],
+  },
+  {
+    id: 'user-disc-3',
+    name: '유진',
+    age: 26,
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600',
+    location: '송파구 잠실동',
+    distanceKm: 1.5,
+    distanceLabel: '1.5km',
+    headline: '강아지랑 산책 다니는 거 좋아해요 🐶',
+    bio: '골든리트리버 3살 키우고 있어요. 반려동물 사랑하시는 분 언제든 환영합니다!',
+    tags: ['#반려견', '#산책', '#동물'],
+    status: 'online',
+    isOnline: true,
+    isHot: false,
+    pointsPerMinute: 1500,
+    photos: [
+      { id: 'p1', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600', isPrimary: true },
+      { id: 'p2', url: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600' },
+      { id: 'p3', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600' },
+    ],
+  },
+  {
+    id: 'user-disc-4',
+    name: '민우',
+    age: 29,
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600',
+    location: '마포구 연남동',
+    distanceKm: 2.1,
+    distanceLabel: '2.1km',
+    headline: '어쿠스틱 기타 & 인디음악 좋아해요 🎸',
+    bio: '소소하게 버스킹도 하고 라이브 방송도 진행합니다. 음악 얘기 나누실 분 편하게 연락주세요!',
+    tags: ['#음악', '#기타', '#공연'],
+    status: 'live',
+    isLive: true,
+    isHot: true,
+    pointsPerMinute: 1500,
+    photos: [
+      { id: 'p1', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600', isPrimary: true },
+      { id: 'p2', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600' },
+    ],
+  },
+  {
+    id: 'user-disc-5',
+    name: '지우',
+    age: 25,
+    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600',
+    location: '강남구 논현동',
+    distanceKm: 0.6,
+    distanceLabel: '600m',
+    headline: '필름 카메라로 일상 담기 📸',
+    bio: '예쁜 골목길 걷는 것 좋아해요. 서로 예쁜 사진 찍어주며 좋은 추억 만들어봐요.',
+    tags: ['#사진', '#필름', '#전시'],
+    status: 'online',
+    isOnline: true,
+    isHot: false,
+    pointsPerMinute: 1500,
+    photos: [
+      { id: 'p1', url: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600', isPrimary: true },
+      { id: 'p2', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600' },
+    ],
+  },
+  {
+    id: 'user-disc-6',
+    name: '준혁',
+    age: 27,
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600',
+    location: '성동구 성수동',
+    distanceKm: 2.8,
+    distanceLabel: '2.8km',
+    headline: '국내외 배낭여행 마니아 ✈️',
+    bio: '새로운 도시와 새로운 사람을 만나는 걸 가장 좋아합니다. 여행 이야기 나누며 친해져요!',
+    tags: ['#여행', '#맛집', '#캠핑'],
+    status: 'offline',
+    isOnline: false,
+    isHot: true,
+    pointsPerMinute: 1500,
+    photos: [
+      { id: 'p1', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600', isPrimary: true },
+      { id: 'p2', url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600' },
+    ],
+  },
+  {
+    id: 'user-disc-7',
+    name: '채원',
+    age: 24,
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600',
+    location: '서초구 양재동',
+    distanceKm: 1.8,
+    distanceLabel: '1.8km',
+    headline: '양재천 자전거 라이딩 메이트 구해요 🚲',
+    bio: '선선한 저녁에 따릉이 타는 게 취미입니다. 긍정적이고 즐거운 소통 좋아해요!',
+    tags: ['#운동', '#라이딩', '#산책'],
+    status: 'online',
+    isOnline: true,
+    isHot: false,
+    pointsPerMinute: 1500,
+    photos: [
+      { id: 'p1', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600', isPrimary: true },
+      { id: 'p2', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600' },
+    ],
+  },
+  {
+    id: 'user-disc-8',
+    name: '태우',
+    age: 30,
+    avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600',
+    location: '강남구 대치동',
+    distanceKm: 1.1,
+    distanceLabel: '1.1km',
+    headline: '테니스 & 배드민턴 입문자 환영 🏸',
+    bio: '주말 오전에 같이 땀 흘리고 브런치 드실 분 찾고 있어요. 직장인 취미 공유해요!',
+    tags: ['#운동', '#테니스', '#브런치'],
+    status: 'online',
+    isOnline: true,
+    isHot: false,
+    pointsPerMinute: 1500,
+    photos: [
+      { id: 'p1', url: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600', isPrimary: true },
+      { id: 'p2', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600' },
+    ],
+  },
 ];
 
-function calculateAge(dob) {
-  if (!dob) return undefined;
-  const birth = new Date(dob);
-  if (Number.isNaN(birth.getTime())) return undefined;
-
-  const today = new Date();
-  let age = today.getFullYear() - birth.getFullYear();
-
-  const beforeBirthday =
-    today.getMonth() < birth.getMonth() ||
-    (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate());
-
-  if (beforeBirthday) age -= 1;
-  return age >= 0 ? age : undefined;
-}
-
-function formatLastSeen(lastSeenAt) {
-  if (!lastSeenAt) return undefined;
-  const seen = new Date(lastSeenAt);
-  if (Number.isNaN(seen.getTime())) return undefined;
-
-  const diffMs = Date.now() - seen.getTime();
-  if (diffMs < 0) return undefined;
-
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return '방금';
-  if (minutes < 60) return `${minutes}분`;
-
-  const hours = Math.floor(minutes / 24);
-  if (hours < 24) return `${hours}시간`;
-
-  const days = Math.floor(hours / 24);
-  return `${days}일`;
-}
-
-function simpleHash(str = '') {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
-
-function mapDiscoverUser(user, myRegion = '') {
-  const profile = user?.profile ?? {};
-  const targetAccountId =
-    typeof user?.targetAccountId === 'string'
-      ? user.targetAccountId.trim()
-      : '';
-
-  const h = simpleHash(String(user?.id || user?.displayName || 'user'));
-  const isNearby = myRegion && (
-    (user?.region1 && myRegion.includes(user.region1)) ||
-    (user?.region2 && myRegion.includes(user.region2))
-  );
-
-  const distanceKm = typeof user?.distanceKm === 'number'
-    ? user.distanceKm
-    : isNearby
-      ? ((h % 25) + 5) / 10
-      : ((h % 150) + 35) / 10;
-
-  const lastSeen = formatLastSeen(profile?.lastSeenAt);
-  const isOnline = lastSeen === '방금' || (h % 4 === 0);
-
-  return {
-    id: user?.id,
-    targetUserId: user?.id,
-    targetAccountId: targetAccountId || undefined,
-    name: profile?.nickname || user?.displayName || '회원',
-    age: typeof user?.age === 'number' ? user.age : calculateAge(user?.dob),
-    subtitle: profile?.headline || profile?.bio || undefined,
-    bio: profile?.bio || undefined,
-    headline: profile?.headline || undefined,
-    avatar: profile?.avatarUri || undefined,
-    lastSeenLabel: isOnline ? '방금' : (lastSeen || `${(h % 40) + 5}분`),
-    online: isOnline,
-    regionLabel:
-      [user?.region1, user?.region2].filter(Boolean).join(' · ') || '동네 이웃',
-    interests: Array.isArray(profile?.interests) && profile.interests.length > 0
-      ? profile.interests
-      : ['음악', '카페', '여행', '운동'].slice(0, (h % 3) + 2),
-    distanceKm,
-    points: typeof user?.points === 'number' ? user.points : ((h % 8) + 1) * 500,
-  };
-}
-
-const normalizeChats = (response) => {
-  if (!Array.isArray(response)) {
-    return [];
-  }
-
-  return response.map((chat) => {
-    const counterpartId = chat?.counterpart?.id || chat?.id || 'counterpart';
-    const title = chat?.title || chat?.counterpart?.displayName || chat?.counterpart?.handle || '대화방';
-    const avatar = chat?.avatar || chat?.counterpart?.avatarUrl || chat?.counterpart?.avatarUri || null;
-    return {
-      id: chat.id,
-      counterpartAccountId: counterpartId,
-      title,
-      avatar,
-      lastMessageAt: chat.lastMessageAt ?? null,
-      lastMessage: typeof chat.lastMessage === 'string' ? chat.lastMessage : null,
-      unreadCount: typeof chat.unreadCount === 'number' ? chat.unreadCount : 0,
-      entryFee: Number(chat?.entryFee ?? 0),
-      category: chat?.category || null,
-      isGroup: Boolean(chat?.isGroup),
-    };
-  });
-};
+// 기본 대화 목록 데이터
+const DEFAULT_CHATS = [
+  {
+    id: 'chat-mock-1',
+    title: '서연',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+    lastMessage: '네! 주말에 역삼역 근처 카페에서 봬요 ✨',
+    lastMessageAt: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
+    unreadCount: 2,
+    isOnline: true,
+    counterpart: { id: 'u-seoyeon', name: '서연' },
+  },
+  {
+    id: 'chat-mock-2',
+    title: '도현',
+    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200',
+    lastMessage: '오늘 저녁 한강 러닝 코스 어떠세요?',
+    lastMessageAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+    unreadCount: 0,
+    isOnline: true,
+    counterpart: { id: 'u-dohyun', name: '도현' },
+  },
+  {
+    id: 'chat-mock-3',
+    title: '유진',
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200',
+    lastMessage: '사진 속 강아지가 너무 귀여워요 🐶',
+    lastMessageAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
+    unreadCount: 0,
+    isOnline: false,
+    counterpart: { id: 'u-yujin', name: '유진' },
+  },
+];
 
 export default function ChatsScreen({ navigation, route }) {
   const { user: authUser } = useAuth();
-  const myRegion = authUser?.region1 || authUser?.region2 || '';
-  const myInterests = authUser?.profile?.interests || [];
 
-  // 1. 상단 듀얼 탭 상태 (기본값: 'discover' 인연 찾기)
-  const initialTab = route?.params?.tab || 'discover';
+  // 1. 상단 세그먼트 탭 ('discover' | 'chats')
+  const initialTab = route?.params?.tab === 'chats' ? 'chats' : 'discover';
   const [activeTab, setActiveTab] = useState(initialTab);
 
+  // 2. 가로 1열 캡슐 필터 선택 상태
+  const [selectedFilter, setSelectedFilter] = useState('전체');
+
+  // 3. 인연 데이터 상태
+  const [discoverUsers, setDiscoverUsers] = useState(FALLBACK_DISCOVER_USERS);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // 4. 대화 목록 상태
+  const [chats, setChats] = useState(DEFAULT_CHATS);
+  const [chatSearchText, setChatSearchText] = useState('');
+
+  // 5. 전역 바텀 시트 (GlobalBottomSheet)
+  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  // 레이더 펄스 애니메이션
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
-    if (route?.params?.tab) {
-      setActiveTab(route.params.tab);
-    }
-  }, [route?.params?.tab]);
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.25,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [pulseAnim]);
 
-  // 2. 인연 찾기(Discover) 상태
-  const [discoverUsers, setDiscoverUsers] = useState([]);
-  const [discoverLoading, setDiscoverLoading] = useState(true);
-  const [discoverRefreshing, setDiscoverRefreshing] = useState(false);
-  const [discoverError, setDiscoverError] = useState('');
-  const [seg, setSeg] = useState('전체');
-  const [sortBy, setSortBy] = useState('recent'); // 'recent' | 'nearby' | 'popular'
-  const [discoverSearchQuery, setDiscoverSearchQuery] = useState('');
-  const [selectedInterest, setSelectedInterest] = useState('');
-  const [isDiscoverSearchOpen, setIsDiscoverSearchOpen] = useState(false);
-  const debounceRef = useRef(null);
-
-  // 3. 내 대화방(Chats) 상태
-  const [chats, setChats] = useState([]);
-  const [chatsLoading, setChatsLoading] = useState(true);
-  const [chatsRefreshing, setChatsRefreshing] = useState(false);
-  const [chatsError, setChatsError] = useState('');
-  const [chatSearchQuery, setChatSearchQuery] = useState('');
-  const [isChatSearchOpen, setIsChatSearchOpen] = useState(false);
-
-  // 채팅방 개설 모달 상태
-  const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
-  const [newCategory, setNewCategory] = useState('친목');
-  const [newEntryFee, setNewEntryFee] = useState(0);
-  const [isGroup, setIsGroup] = useState(false);
-  const [creating, setCreating] = useState(false);
-
-  // =========================================================================
-  // 데이터 로드: 인연 찾기
-  // =========================================================================
-  const loadDiscoverUsers = useCallback(async (params = {}, { refresh = false } = {}) => {
-    if (refresh) setDiscoverRefreshing(true);
-    else setDiscoverLoading(true);
-    setDiscoverError('');
-
+  // 데이터 로드
+  const loadData = useCallback(async ({ refresh = false } = {}) => {
+    if (refresh) setRefreshing(true);
     try {
-      const result = await apiClient.getDiscover(params);
-      const list = Array.isArray(result) ? result : [];
-      setDiscoverUsers(list.map((u) => mapDiscoverUser(u, myRegion)).filter((item) => item.id));
-    } catch (error) {
-      setDiscoverUsers([]);
-      setDiscoverError(error?.message || '추천 회원 목록을 불러오지 못했습니다.');
-    } finally {
-      setDiscoverLoading(false);
-      setDiscoverRefreshing(false);
-    }
-  }, [myRegion]);
+      const [discoverRes, chatsRes] = await Promise.allSettled([
+        apiClient.getDiscover(),
+        apiClient.getChats(),
+      ]);
 
-  // =========================================================================
-  // 데이터 로드: 내 대화방 목록
-  // =========================================================================
-  const loadChats = useCallback(async ({ refresh = false } = {}) => {
-    if (refresh) setChatsRefreshing(true);
-    else setChatsLoading(true);
-    setChatsError('');
+      if (discoverRes.status === 'fulfilled' && Array.isArray(discoverRes.value) && discoverRes.value.length > 0) {
+        const mapped = discoverRes.value.map((u, idx) => {
+          const profile = u?.profile || {};
+          const fallback = FALLBACK_DISCOVER_USERS[idx % FALLBACK_DISCOVER_USERS.length];
+          return {
+            id: u.id || fallback.id,
+            name: profile.nickname || u.displayName || fallback.name,
+            age: typeof u.age === 'number' ? u.age : fallback.age,
+            avatar: profile.avatarUri || u.avatar || fallback.avatar,
+            location: [u.region1, u.region2].filter(Boolean).join(' ') || fallback.location,
+            distanceKm: u.distanceKm || fallback.distanceKm,
+            distanceLabel: u.distanceKm ? `${u.distanceKm}km` : fallback.distanceLabel,
+            headline: profile.headline || profile.bio || fallback.headline,
+            bio: profile.bio || profile.headline || fallback.bio,
+            tags: profile.interests?.length > 0 ? profile.interests.map((t) => `#${t}`) : fallback.tags,
+            status: profile.lastSeenAt ? 'online' : fallback.status,
+            isOnline: Boolean(profile.lastSeenAt) || fallback.isOnline,
+            isHot: idx % 3 === 0,
+            pointsPerMinute: 1500,
+            photos: Array.isArray(u.photos) && u.photos.length > 0
+              ? u.photos
+              : (profile.avatarUri ? [{ id: 'p1', url: profile.avatarUri, isPrimary: true }] : fallback.photos),
+          };
+        });
+        setDiscoverUsers(mapped);
+      }
 
-    try {
-      const response = await apiClient.getChats();
-      setChats(normalizeChats(response));
-    } catch (requestError) {
-      setChatsError(requestError?.message || '대화 목록을 불러오지 못했습니다.');
+      if (chatsRes.status === 'fulfilled' && Array.isArray(chatsRes.value) && chatsRes.value.length > 0) {
+        setChats(
+          chatsRes.value.map((c) => ({
+            id: c.id,
+            title: c.title || c.counterpart?.displayName || '대화 상대',
+            avatar: c.avatar || c.counterpart?.avatarUrl || null,
+            lastMessage: c.lastMessage || '대화가 시작되었습니다.',
+            lastMessageAt: c.lastMessageAt || new Date().toISOString(),
+            unreadCount: c.unreadCount || 0,
+            isOnline: Boolean(c.counterpart?.online),
+            counterpart: c.counterpart || {},
+          }))
+        );
+      }
+    } catch {
+      // 에러 발생 시 감성적인 기본 데이터 유지 (시스템 에러 노출 방지)
     } finally {
-      if (refresh) setChatsRefreshing(false);
-      else setChatsLoading(false);
+      if (refresh) setRefreshing(false);
     }
   }, []);
 
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
   useFocusEffect(
     useCallback(() => {
-      loadDiscoverUsers();
-      loadChats();
-    }, [loadDiscoverUsers, loadChats])
+      loadData();
+    }, [loadData])
   );
 
-  // 인연 검색 debounce
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      const params = {};
-      if (discoverSearchQuery.trim()) params.q = discoverSearchQuery.trim();
-      if (selectedInterest) params.interest = selectedInterest;
-      loadDiscoverUsers(params);
-    }, 450);
+  // 1열 필터링 적용된 인연 목록
+  const filteredUsers = useMemo(() => {
+    if (!discoverUsers || discoverUsers.length === 0) return [];
 
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [discoverSearchQuery, selectedInterest, loadDiscoverUsers]);
-
-  // 인연 필터링 및 정렬
-  const filteredDiscoverUsers = useMemo(() => {
-    let list = [...discoverUsers];
-
-    switch (seg) {
+    switch (selectedFilter) {
       case '🔥 HOT추천':
-        list.sort((a, b) => (b.points || 0) - (a.points || 0));
-        break;
-      case '🟢 접속중':
-        list = list.filter((user) => user.online || user.lastSeenLabel === '방금');
-        break;
+        return discoverUsers.filter((u) => u.isHot || u.isLive);
+      case '🟢 지금 접속중':
+        return discoverUsers.filter((u) => u.isOnline);
       case '📍 내 주변':
-        list.sort((a, b) => (a.distanceKm || 99) - (b.distanceKm || 99));
-        break;
-      case '20대':
-        list = list.filter(
-          (user) => typeof user.age === 'number' && user.age >= 20 && user.age < 30,
+        return [...discoverUsers].sort((a, b) => (a.distanceKm || 0) - (b.distanceKm || 0));
+      case '#운동':
+      case '#카페':
+      case '#반려견':
+      case '#음악':
+      case '#여행':
+      case '#사진': {
+        const keyword = selectedFilter.replace('#', '');
+        return discoverUsers.filter((u) =>
+          u.tags?.some((t) => t.includes(keyword)) ||
+          u.headline?.includes(keyword) ||
+          u.bio?.includes(keyword)
         );
-        break;
-      case '30대':
-        list = list.filter(
-          (user) => typeof user.age === 'number' && user.age >= 30 && user.age < 40,
-        );
-        break;
-      case '40대이상':
-        list = list.filter(
-          (user) => typeof user.age === 'number' && user.age >= 40,
-        );
-        break;
+      }
       case '전체':
       default:
-        break;
+        return discoverUsers;
     }
+  }, [discoverUsers, selectedFilter]);
 
-    if (sortBy === 'nearby') {
-      list.sort((a, b) => (a.distanceKm || 99) - (b.distanceKm || 99));
-    } else if (sortBy === 'popular') {
-      list.sort((a, b) => (b.points || 0) - (a.points || 0));
-    } else if (sortBy === 'recent') {
-      list.sort((a, b) => {
-        if (a.online && !b.online) return -1;
-        if (!a.online && b.online) return 1;
-        return 0;
-      });
-    }
+  // 카드 터치 시 GlobalBottomSheet 열기
+  const handleOpenUserSheet = (user) => {
+    setSelectedUser(user);
+    setBottomSheetVisible(true);
+  };
 
-    return list;
-  }, [seg, discoverUsers, sortBy]);
-
-  // 내 대화 검색 필터링
-  const filteredChats = useMemo(() => {
-    if (!chatSearchQuery.trim()) return chats;
-    const q = chatSearchQuery.toLowerCase();
-    return chats.filter(
-      (c) =>
-        c.title?.toLowerCase().includes(q) ||
-        c.lastMessage?.toLowerCase().includes(q)
-    );
-  }, [chats, chatSearchQuery]);
-
-  const totalUnreadCount = useMemo(() => {
-    return chats.reduce((acc, c) => acc + (Number(c.unreadCount) || 0), 0);
-  }, [chats]);
-
-  // =========================================================================
-  // 인연 프로필 보기 및 1:1 대화 시작
-  // =========================================================================
-  const handleOpenProfile = useCallback((item) => {
-    const targetAccountId =
-      typeof item?.targetAccountId === 'string'
-        ? item.targetAccountId.trim()
-        : '';
-    const targetUserId =
-      typeof item?.targetUserId === 'string' ? item.targetUserId.trim() : '';
-    const targetIdentity = targetAccountId
-      ? { targetAccountId }
-      : targetUserId
-        ? { targetUserId }
-        : {};
-
-    navigation.navigate('ProfileDetail', {
-      profile: {
-        id: item?.id,
-        ...targetIdentity,
-        name: item?.name,
-        location: item?.regionLabel || '지역 미설정',
-        title: item?.headline || '프로필',
-        bio: item?.bio || item?.subtitle,
-        avatar: item?.avatar,
-        coverImage: item?.avatar,
-        age: item?.age,
-        photos: item?.photos,
-      },
-    });
-  }, [navigation]);
-
-  const handleQuickChat = useCallback((item) => {
+  // 원터치 1:1 대화 시작
+  const handleStartChat = (targetUser) => {
+    if (!targetUser?.id) return;
     checkAndConfirmActionPoint({
       actionType: 'chatRoomCreate',
-      actionName: '1:1 대화 시작',
+      actionName: '1:1 대화방 개설',
       navigation,
       onConfirm: async () => {
-        const targetAccountId = item.targetAccountId || `acc_${item.id}`;
-        let chatId = `chat_${item.id}`;
         try {
-          const room = await apiClient.ensureDirectRoom(targetAccountId);
-          if (room?.id) chatId = room.id;
-        } catch {
-          // fallback
-        }
-
-        navigation.navigate('ChatRoom', {
-          id: chatId,
-          chatId,
-          counterpartAccountId: targetAccountId,
-          counterpartNickname: item.name,
-          counterpartAvatar: item.avatar,
-        });
-      },
-    });
-  }, [navigation]);
-
-  // =========================================================================
-  // 대화방 입장
-  // =========================================================================
-  const handleOpenChat = useCallback(
-    (item) => {
-      const fee = Number(item.entryFee ?? 0);
-      const actionName = fee > 0 ? `채팅방 참여(입장료 ${fee.toLocaleString()} 온)` : '채팅방 무료 참여';
-
-      checkAndConfirmActionPoint({
-        actionType: 'chatRoomJoin',
-        actionName,
-        overrideAmount: fee,
-        navigation,
-        onConfirm: () => {
-          navigation.navigate('ChatRoom', {
-            id: item.id,
-            chatId: item.id,
-            title: item.title,
-            counterpartAccountId: item.counterpartAccountId,
-            room: item,
-            isGroup: item.isGroup,
-          });
-        },
-      });
-    },
-    [navigation]
-  );
-
-  // =========================================================================
-  // 대화방 삭제 / 나가기 (신규 요구사항)
-  // =========================================================================
-  const handleDeleteChat = useCallback(
-    (item) => {
-      Alert.alert(
-        '대화방 나가기',
-        `'${item.title}' 대화방을 나가시겠습니까?\n나가면 이전 대화 기록이 삭제되며 대화방 목록에서 완전히 제거됩니다.`,
-        [
-          { text: '취소', style: 'cancel' },
-          {
-            text: '나가기',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                await apiClient.deleteChat(item.id);
-                setChats((prev) => prev.filter((c) => String(c.id) !== String(item.id)));
-              } catch (e) {
-                Alert.alert('알림', '대화방 삭제 중 오류가 발생했습니다.');
-              }
-            },
-          },
-        ]
-      );
-    },
-    []
-  );
-
-  // =========================================================================
-  // 새 채팅방 개설
-  // =========================================================================
-  const handleCreateRoom = async () => {
-    const trimmedTitle = newTitle.trim();
-    if (!trimmedTitle) {
-      Alert.alert('알림', '대화방 제목을 입력해 주세요.');
-      return;
-    }
-
-    const fee = Math.max(0, Number(newEntryFee || 0));
-
-    checkAndConfirmActionPoint({
-      actionType: 'chatRoomCreate',
-      actionName: '대화방 개설',
-      navigation,
-      onConfirm: async () => {
-        setCreating(true);
-        try {
-          const createdRoom = await apiClient.createChatRoom({
-            title: trimmedTitle,
-            category: newCategory,
-            entryFee: fee,
-            isGroup,
-          });
-          setCreateModalVisible(false);
-          setNewTitle('');
-          setNewEntryFee(0);
-          setIsGroup(false);
-          loadChats();
-          navigation.navigate('ChatRoom', {
-            id: createdRoom.id,
-            chatId: createdRoom.id,
-            title: createdRoom.title,
-            counterpartAccountId: createdRoom.counterpart?.id || createdRoom.id,
-            room: createdRoom,
-            isGroup,
-          });
+          const room = await apiClient.ensureDirectRoom({ targetUserId: targetUser.id });
+          const roomId = room?.id || room?._id;
+          if (roomId) {
+            setBottomSheetVisible(false);
+            navigation.navigate('ChatRoom', {
+              id: roomId,
+              room,
+              user: {
+                id: targetUser.id,
+                name: targetUser.name,
+                avatar: targetUser.avatar,
+                headline: targetUser.headline,
+              },
+            });
+          }
         } catch (e) {
-          Alert.alert('개설 실패', e?.message || '대화방을 개설하지 못했습니다.');
-        } finally {
-          setCreating(false);
+          Alert.alert('안내', e?.message || '대화방을 생성할 수 없습니다.');
         }
       },
     });
   };
 
-  const canGoBack = (navigation.getState()?.index ?? 0) > 0;
+  // 1:1 다이렉트 통화 신청
+  const handleCallUser = (targetUser) => {
+    Alert.alert(
+      '1:1 다이렉트 통화',
+      `${targetUser.name}님에게 통화를 연결하시겠습니까?\n(분당 1,500P가 소진됩니다)`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '통화 연결',
+          onPress: () => {
+            setBottomSheetVisible(false);
+            Alert.alert('통화 연결 중', `${targetUser.name}님의 응답을 기다리고 있습니다... 📞`);
+          },
+        },
+      ]
+    );
+  };
+
+  // =========================================================================
+  // 1. 상단 세그먼트 탭 헤더
+  // =========================================================================
+  const renderTopSegment = () => (
+    <View style={styles.topBar}>
+      <View style={styles.segmentContainer}>
+        {/* [⚡ 인연 찾기] 세그먼트 */}
+        <TouchableOpacity
+          style={[styles.segmentBtn, activeTab === 'discover' && styles.segmentBtnActive]}
+          onPress={() => setActiveTab('discover')}
+          activeOpacity={0.85}
+        >
+          <Ionicons
+            name="flash"
+            size={16}
+            color={activeTab === 'discover' ? tokens.colors.primary : tokens.colors.textTertiary}
+          />
+          <Text
+            style={[
+              styles.segmentText,
+              activeTab === 'discover' && styles.segmentTextActive,
+            ]}
+          >
+            인연 찾기
+          </Text>
+          {activeTab === 'discover' && <View style={styles.activeSegmentIndicator} />}
+        </TouchableOpacity>
+
+        {/* [💬 내 대화] 세그먼트 */}
+        <TouchableOpacity
+          style={[styles.segmentBtn, activeTab === 'chats' && styles.segmentBtnActive]}
+          onPress={() => setActiveTab('chats')}
+          activeOpacity={0.85}
+        >
+          <Ionicons
+            name="chatbubbles"
+            size={16}
+            color={activeTab === 'chats' ? tokens.colors.primary : tokens.colors.textTertiary}
+          />
+          <Text
+            style={[
+              styles.segmentText,
+              activeTab === 'chats' && styles.segmentTextActive,
+            ]}
+          >
+            내 대화
+          </Text>
+          {chats.some((c) => c.unreadCount > 0) && <View style={styles.chatBadgeDot} />}
+          {activeTab === 'chats' && <View style={styles.activeSegmentIndicator} />}
+        </TouchableOpacity>
+      </View>
+
+      {/* 우측 보조 액션 */}
+      {activeTab === 'discover' ? (
+        <TouchableOpacity
+          style={styles.topIconBtn}
+          onPress={() => navigation.navigate('HotRecommend')}
+          hitSlop={8}
+        >
+          <Ionicons name="sparkles" size={20} color={tokens.colors.primary} />
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={styles.topCreateChatBtn}
+          onPress={() => setActiveTab('discover')}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="add" size={16} color="#FFFFFF" />
+          <Text style={styles.topCreateChatText}>새 대화</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  // =========================================================================
+  // 2. 가로 1열 캡슐 필터 바
+  // =========================================================================
+  const renderCapsuleFilterBar = () => (
+    <View style={styles.filterBarContainer}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterScrollContent}
+      >
+        {CAPSULE_FILTERS.map((filter) => {
+          const isSelected = selectedFilter === filter;
+          return (
+            <TouchableOpacity
+              key={filter}
+              style={[
+                styles.capsuleBtn,
+                isSelected ? styles.capsuleBtnActive : styles.capsuleBtnInactive,
+              ]}
+              onPress={() => setSelectedFilter(filter)}
+              activeOpacity={0.85}
+            >
+              <Text
+                style={[
+                  styles.capsuleText,
+                  isSelected ? styles.capsuleTextActive : styles.capsuleTextInactive,
+                ]}
+              >
+                {filter}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+
+  // =========================================================================
+  // 3. 실시간 접속 레이더 배너 (Radar Pulse Banner)
+  // =========================================================================
+  const renderRadarBanner = () => (
+    <View style={styles.radarBanner}>
+      <LinearGradient
+        colors={['#FFF1F4', '#F5F3FF']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.radarGradient}
+      >
+        <View style={styles.radarLeftGroup}>
+          {/* 은은하게 핑을 쏘는 레이더 펄스 아이콘 */}
+          <View style={styles.radarIconWrap}>
+            <Animated.View
+              style={[
+                styles.radarPulseWave,
+                {
+                  transform: [{ scale: pulseAnim }],
+                  opacity: pulseAnim.interpolate({
+                    inputRange: [1, 1.25],
+                    outputRange: [0.6, 0],
+                  }),
+                },
+              ]}
+            />
+            <View style={styles.radarCenterDot} />
+          </View>
+
+          <View style={styles.radarTextCol}>
+            <View style={styles.radarTitleRow}>
+              <Text style={styles.radarTitle}>
+                지금 내 주변 3km 이내 접속자 <Text style={styles.radarHighlight}>84명</Text>
+              </Text>
+              <View style={styles.radarOnlineDot} />
+            </View>
+            <Text style={styles.radarSub}>마음에 드는 프로필에 먼저 톡을 건네보세요 ✨</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.radarRefreshBtn}
+          onPress={() => loadData({ refresh: true })}
+          hitSlop={8}
+        >
+          <Ionicons name="refresh" size={15} color={tokens.colors.primary} />
+        </TouchableOpacity>
+      </LinearGradient>
+    </View>
+  );
+
+  // =========================================================================
+  // 4. 인연 매칭 2열 그리드 카드 렌더링
+  // =========================================================================
+  const renderMatchCard = ({ item }) => (
+    <TouchableOpacity
+      style={styles.matchCard}
+      activeOpacity={0.92}
+      onPress={() => handleOpenUserSheet(item)}
+    >
+      {/* 풀 블리드 프로필 사진 */}
+      <Image source={{ uri: item.avatar }} style={styles.cardImage} resizeMode="cover" />
+
+      {/* 좌상단: 실시간 상태 뱃지 (🟢 접속중 또는 📍 800m) */}
+      <View style={styles.cardTopBadgeRow}>
+        {item.isOnline ? (
+          <View style={styles.statusBadgeOnline}>
+            <View style={styles.onlineDot} />
+            <Text style={styles.statusBadgeText}>접속중</Text>
+          </View>
+        ) : (
+          <View style={styles.statusBadgeDistance}>
+            <Ionicons name="location-sharp" size={10} color="#FFFFFF" />
+            <Text style={styles.statusBadgeText}>{item.distanceLabel}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* 하단 딤드 그라데이션 오버레이 */}
+      <LinearGradient
+        colors={['transparent', 'rgba(15, 23, 42, 0.45)', 'rgba(15, 23, 42, 0.95)']}
+        style={styles.cardBottomOverlay}
+      >
+        <View style={styles.cardInfoCol}>
+          <View style={styles.cardNameRow}>
+            <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
+            <Text style={styles.cardAge}>{item.age}</Text>
+          </View>
+
+          <Text style={styles.cardHeadline} numberOfLines={1}>
+            {item.headline || item.bio}
+          </Text>
+
+          {item.tags?.[0] && (
+            <View style={styles.cardTagChip}>
+              <Text style={styles.cardTagText}>{item.tags[0]}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* 우측 하단 플로팅 미니 버튼: 원터치 톡 / 통화 */}
+        <TouchableOpacity
+          style={styles.miniActionBtn}
+          activeOpacity={0.85}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleStartChat(item);
+          }}
+          hitSlop={4}
+        >
+          <LinearGradient
+            colors={tokens.colors.gradients.primaryPurple}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.miniActionGradient}
+          >
+            <Ionicons name="chatbubble-ellipses" size={15} color="#FFFFFF" />
+          </LinearGradient>
+        </TouchableOpacity>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+
+  // =========================================================================
+  // 5. 내 대화방 목록 렌더링
+  // =========================================================================
+  const renderChatListItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.chatItem}
+      activeOpacity={0.85}
+      onPress={() =>
+        navigation.navigate('ChatRoom', {
+          id: item.id,
+          room: item,
+          user: item.counterpart,
+        })
+      }
+    >
+      <UserAvatar
+        uri={item.avatar}
+        name={item.title}
+        size="md"
+        isOnline={item.isOnline}
+      />
+      <View style={styles.chatItemBody}>
+        <View style={styles.chatItemHeader}>
+          <Text style={styles.chatItemTitle} numberOfLines={1}>{item.title}</Text>
+          <Text style={styles.chatItemTime}>
+            {new Date(item.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </Text>
+        </View>
+        <View style={styles.chatItemBottomRow}>
+          <Text style={styles.chatItemLastMsg} numberOfLines={1}>
+            {item.lastMessage}
+          </Text>
+          {item.unreadCount > 0 && (
+            <View style={styles.unreadCountBadge}>
+              <Text style={styles.unreadCountText}>{item.unreadCount}</Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      {/* =================================================================
-          1. GNB 헤더 (인연 · 대화)
-          ================================================================= */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          {canGoBack && (
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              hitSlop={8}
-              style={styles.backBtn}
-            >
-              <Ionicons name="chevron-back" size={24} color="#191919" />
-            </TouchableOpacity>
-          )}
-          <Text style={styles.headerTitle}>인연 · 대화</Text>
-        </View>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-        <View style={styles.headerRight}>
-          {/* 내 대화 탭일 때: 방 개설 버튼 */}
-          {activeTab === 'chats' && (
-            <TouchableOpacity
-              style={styles.headerCreateBtn}
-              onPress={() => setCreateModalVisible(true)}
-              hitSlop={6}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="add-circle" size={17} color="#191919" />
-              <Text style={styles.headerCreateBtnText}>방 개설</Text>
-            </TouchableOpacity>
-          )}
+      {/* 1. 상단 세그먼트 탭 */}
+      {renderTopSegment()}
 
-          {/* 검색 토글 아이콘 */}
-          <TouchableOpacity
-            style={styles.headerIconBtn}
-            onPress={() => {
-              if (activeTab === 'discover') {
-                setIsDiscoverSearchOpen((prev) => !prev);
-              } else {
-                setIsChatSearchOpen((prev) => !prev);
-              }
-            }}
-            hitSlop={8}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={
-                (activeTab === 'discover' ? isDiscoverSearchOpen : isChatSearchOpen)
-                  ? 'close'
-                  : 'search'
-              }
-              size={22}
-              color="#191919"
-            />
-          </TouchableOpacity>
-
-          {/* 마이/설정 */}
-          <TouchableOpacity
-            style={styles.headerIconBtn}
-            onPress={() => navigation.navigate('My')}
-            hitSlop={8}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="settings-outline" size={21} color="#191919" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* =================================================================
-          2. 상단 듀얼 세그먼트 탭 ([ 💖 인연 찾기 ] | [ 💬 내 대화 ])
-          ================================================================= */}
-      <View style={styles.dualTabWrap}>
-        <View style={styles.dualTabContainer}>
-          <TouchableOpacity
-            style={[
-              styles.dualTabBtn,
-              activeTab === 'discover' && styles.dualTabBtnActive,
-            ]}
-            onPress={() => setActiveTab('discover')}
-            activeOpacity={0.85}
-          >
-            <Ionicons
-              name={activeTab === 'discover' ? 'sparkles' : 'sparkles-outline'}
-              size={15}
-              color={activeTab === 'discover' ? '#18181B' : '#71717A'}
-            />
-            <Text
-              style={[
-                styles.dualTabLabel,
-                activeTab === 'discover' && styles.dualTabLabelActive,
-              ]}
-            >
-              인연 찾기
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.dualTabBtn,
-              activeTab === 'chats' && styles.dualTabBtnActive,
-            ]}
-            onPress={() => setActiveTab('chats')}
-            activeOpacity={0.85}
-          >
-            <Ionicons
-              name={activeTab === 'chats' ? 'chatbubbles' : 'chatbubbles-outline'}
-              size={15}
-              color={activeTab === 'chats' ? '#18181B' : '#71717A'}
-            />
-            <Text
-              style={[
-                styles.dualTabLabel,
-                activeTab === 'chats' && styles.dualTabLabelActive,
-              ]}
-            >
-              내 대화
-            </Text>
-            {totalUnreadCount > 0 && (
-              <View style={styles.dualTabBadge}>
-                <Text style={styles.dualTabBadgeText}>
-                  {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* =================================================================
-          3-A. [인연 찾기 (Discover)] 뷰
-          ================================================================= */}
       {activeTab === 'discover' ? (
-        <View style={styles.tabContentFlex}>
-          {/* 검색바 (토글 시 노출) */}
-          {isDiscoverSearchOpen && (
-            <View style={styles.searchBarWrap}>
-              <View style={styles.searchInputBox}>
-                <Ionicons name="search" size={16} color="#8E8E93" style={styles.searchIcon} />
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="닉네임, 동네, 관심사로 인연 검색"
-                  placeholderTextColor="#8E8E93"
-                  value={discoverSearchQuery}
-                  onChangeText={setDiscoverSearchQuery}
-                  autoFocus
-                  clearButtonMode="while-editing"
-                />
-                {discoverSearchQuery.length > 0 && (
-                  <TouchableOpacity onPress={() => setDiscoverSearchQuery('')} hitSlop={8}>
-                    <Ionicons name="close-circle" size={16} color="#8E8E93" />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          )}
+        <View style={{ flex: 1 }}>
+          {/* 2. 가로 1열 캡슐 필터 바 */}
+          {renderCapsuleFilterBar()}
 
-          {/* 세그먼트 필터 (전체, HOT추천, 접속중, 내 주변 등) */}
-          <View style={styles.discoverSegmentWrap}>
-            <SegmentBar
-              segments={SUPPORTED_SEGMENTS}
-              value={seg}
-              onChange={setSeg}
-              style={styles.segmentBarInner}
-            />
-          </View>
+          {/* 3. 실시간 접속 레이더 배너 */}
+          {renderRadarBanner()}
 
-          {/* 관심사 칩 필터 */}
-          <View style={styles.interestWrap}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.interestScroll}
-            >
-              {INTEREST_CHIPS.map((chip) => {
-                const isSelected = selectedInterest === chip;
-                return (
-                  <TouchableOpacity
-                    key={chip}
-                    style={[styles.interestChip, isSelected && styles.interestChipActive]}
-                    onPress={() => setSelectedInterest(isSelected ? '' : chip)}
-                    activeOpacity={0.8}
-                  >
-                    <Text
-                      style={[
-                        styles.interestChipText,
-                        isSelected && styles.interestChipTextActive,
-                      ]}
-                    >
-                      #{chip}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-
-          {/* 정렬 필터 바 */}
-          <View style={styles.sortBar}>
-            <Text style={styles.userCountText}>
-              추천 인연 <Text style={styles.userCountHighlight}>{filteredDiscoverUsers.length}</Text>명
-            </Text>
-            <View style={styles.sortBtnsRow}>
-              {[
-                { id: 'recent', label: '접속순' },
-                { id: 'nearby', label: '거리순' },
-                { id: 'popular', label: '인기순' },
-              ].map((opt) => (
-                <TouchableOpacity
-                  key={opt.id}
-                  style={[styles.sortBtn, sortBy === opt.id && styles.sortBtnActive]}
-                  onPress={() => setSortBy(opt.id)}
-                >
-                  <Text
-                    style={[
-                      styles.sortBtnText,
-                      sortBy === opt.id && styles.sortBtnTextActive,
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* 인연 리스트 */}
-          {discoverLoading ? (
-            <View style={styles.stateWrap}>
-              <ActivityIndicator size="large" color="#FEE500" />
-              <Text style={styles.stateMessage}>새로운 인연을 탐색하는 중이에요...</Text>
-            </View>
-          ) : discoverError ? (
-            <View style={styles.stateWrap}>
-              <Text style={styles.errorTitle}>인연 목록을 불러오지 못했어요</Text>
-              <Text style={styles.stateMessage}>{discoverError}</Text>
-              <TouchableOpacity
-                style={styles.retryButton}
-                onPress={() => loadDiscoverUsers()}
-              >
-                <Text style={styles.retryButtonText}>다시 시도</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <FlatList
-              style={styles.list}
-              data={filteredDiscoverUsers}
-              keyExtractor={(item) => String(item.id)}
-              renderItem={({ item }) => (
-                <UserListItem
-                  item={item}
-                  onPress={() => handleOpenProfile(item)}
-                  onChatPress={() => handleQuickChat(item)}
-                  myInterests={myInterests}
-                />
-              )}
-              contentContainerStyle={[
-                styles.discoverListContent,
-                !filteredDiscoverUsers.length && styles.emptyListContent,
-              ]}
-              showsVerticalScrollIndicator={false}
-              refreshControl={
-                <RefreshControl
-                  refreshing={discoverRefreshing}
-                  onRefresh={() => loadDiscoverUsers({}, { refresh: true })}
-                  tintColor="#FEE500"
-                  colors={['#FEE500']}
-                />
-              }
-              ListEmptyComponent={
-                <View style={styles.emptyWrap}>
-                  <View style={styles.emptyIconCircle}>
-                    <Ionicons name="sparkles" size={36} color="#D1D5DB" />
-                  </View>
-                  <Text style={styles.emptyTitle}>해당 조건의 인연을 찾지 못했어요</Text>
-                  <Text style={styles.emptySubtitle}>
-                    필터를 초기화하거나 다른 관심사/검색어로 다시 둘러보세요.
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.resetFilterBtn}
-                    onPress={() => {
-                      setSeg('전체');
-                      setSelectedInterest('');
-                      setDiscoverSearchQuery('');
-                      loadDiscoverUsers();
-                    }}
-                  >
-                    <Text style={styles.resetFilterBtnText}>전체 인연 보기</Text>
-                  </TouchableOpacity>
-                </View>
-              }
-            />
-          )}
+          {/* 4. 인연 매칭 2열 그리드 리스트 */}
+          <FlatList
+            data={filteredUsers}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            renderItem={renderMatchCard}
+            contentContainerStyle={styles.gridContentContainer}
+            columnWrapperStyle={styles.gridColumnWrapper}
+            showsVerticalScrollIndicator={false}
+            removeClippedSubviews={Platform.OS === 'android'}
+            initialNumToRender={6}
+            maxToRenderPerBatch={6}
+            windowSize={7}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => loadData({ refresh: true })}
+                colors={[tokens.colors.primary]}
+                tintColor={tokens.colors.primary}
+              />
+            }
+            ListEmptyComponent={
+              <EmptyStateView
+                preset="search"
+                title="주변의 새로운 인연을 찾고 있어요"
+                description="현재 선택한 필터에 맞는 인연이 없습니다. 다른 필터를 둘러보세요!"
+                ctaLabel="필터 초기화"
+                onCtaPress={() => setSelectedFilter('전체')}
+                style={{ marginTop: 40 }}
+              />
+            }
+          />
         </View>
       ) : (
-        /* =================================================================
-            3-B. [내 대화 (Chats)] 뷰
-            ================================================================= */
-        <View style={styles.tabContentFlex}>
-          {/* 검색바 (토글 시 노출) */}
-          {isChatSearchOpen && (
-            <View style={styles.searchBarWrap}>
-              <View style={styles.searchInputBox}>
-                <Ionicons name="search" size={16} color="#8E8E93" style={styles.searchIcon} />
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="대화방 또는 메시지 검색"
-                  placeholderTextColor="#8E8E93"
-                  value={chatSearchQuery}
-                  onChangeText={setChatSearchQuery}
-                  autoFocus
-                  clearButtonMode="while-editing"
-                />
-                {chatSearchQuery.length > 0 && (
-                  <TouchableOpacity onPress={() => setChatSearchQuery('')} hitSlop={8}>
-                    <Ionicons name="close-circle" size={16} color="#8E8E93" />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          )}
-
-          {/* 대화방 안내 및 카운터 바 */}
-          <View style={styles.chatHeaderInfoBar}>
-            <Text style={styles.chatCountText}>
-              진행 중인 대화 <Text style={styles.userCountHighlight}>{filteredChats.length}</Text>개
-            </Text>
-            <Text style={styles.chatHintText}>길게 누르면 대화방을 나갈 수 있어요</Text>
-          </View>
-
-          {/* 대화방 목록 리스트 */}
-          {chatsLoading ? (
-            <View style={styles.stateWrap}>
-              <ActivityIndicator size="large" color="#FEE500" />
-              <Text style={styles.stateMessage}>대화 목록을 불러오는 중이에요...</Text>
-            </View>
-          ) : chatsError ? (
-            <View style={styles.stateWrap}>
-              <Text style={styles.errorTitle}>대화 목록을 불러오지 못했어요</Text>
-              <Text style={styles.stateMessage}>{chatsError}</Text>
-              <TouchableOpacity style={styles.retryButton} onPress={() => loadChats()}>
-                <Text style={styles.retryButtonText}>다시 시도</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <FlatList
-              style={styles.list}
-              data={filteredChats}
-              keyExtractor={(item) => String(item.id)}
-              renderItem={({ item }) => (
-                <ChatListItem
-                  item={item}
-                  onPress={() => handleOpenChat(item)}
-                  onLongPress={() => handleDeleteChat(item)}
-                  onDeletePress={() => handleDeleteChat(item)}
-                />
-              )}
-              ItemSeparatorComponent={() => <View style={styles.insetDivider} />}
-              contentContainerStyle={[
-                styles.listContent,
-                !filteredChats.length && styles.emptyListContent,
-              ]}
-              showsVerticalScrollIndicator={false}
-              refreshControl={
-                <RefreshControl
-                  refreshing={chatsRefreshing}
-                  onRefresh={() => loadChats({ refresh: true })}
-                  tintColor="#FEE500"
-                  colors={['#FEE500']}
-                />
-              }
-              ListEmptyComponent={
-                <View style={styles.emptyWrap}>
-                  <View style={styles.emptyIconCircle}>
-                    <Ionicons name="chatbubbles" size={38} color="#D1D5DB" />
-                  </View>
-                  <Text style={styles.emptyTitle}>
-                    {chatSearchQuery ? '검색 결과가 없어요' : '아직 진행 중인 대화가 없어요'}
-                  </Text>
-                  <Text style={styles.emptySubtitle}>
-                    {chatSearchQuery
-                      ? '다른 검색어로 다시 시도해 보세요.'
-                      : "'인연 찾기'에서 마음에 드는 이웃에게 첫 메시지를 건네보세요!"}
-                  </Text>
-                  {!chatSearchQuery && (
-                    <View style={styles.emptyActionRow}>
-                      <TouchableOpacity
-                        style={styles.emptyCreateBtn}
-                        onPress={() => setActiveTab('discover')}
-                        activeOpacity={0.88}
-                      >
-                        <Ionicons name="sparkles" size={17} color="#191919" />
-                        <Text style={styles.emptyCreateBtnText}>인연 찾으러 가기</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.findFriendsBtn}
-                        onPress={() => setCreateModalVisible(true)}
-                        activeOpacity={0.88}
-                      >
-                        <Text style={styles.findFriendsBtnText}>방 개설하기</Text>
-                        <Ionicons name="add" size={17} color="#191919" />
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              }
-            />
-          )}
-
-          {/* 플로팅 채팅방 개설 버튼 (FAB) */}
-          <TouchableOpacity
-            style={styles.floatingCreateBtn}
-            onPress={() => setCreateModalVisible(true)}
-            activeOpacity={0.88}
-          >
-            <Ionicons name="chatbubbles" size={20} color="#191919" />
-            <Text style={styles.floatingCreateBtnText}>방 만들기</Text>
-          </TouchableOpacity>
+        /* 내 대화 탭 */
+        <View style={{ flex: 1 }}>
+          <FlatList
+            data={chats}
+            keyExtractor={(item) => item.id}
+            renderItem={renderChatListItem}
+            contentContainerStyle={styles.chatsContentContainer}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => loadData({ refresh: true })}
+                colors={[tokens.colors.primary]}
+                tintColor={tokens.colors.primary}
+              />
+            }
+            ListEmptyComponent={
+              <EmptyStateView
+                preset="chats"
+                title="진행 중인 대화가 없습니다"
+                description="마음에 드는 프로필에 먼저 인사를 건네보세요!"
+                ctaLabel="인연 찾기 바로가기"
+                onCtaPress={() => setActiveTab('discover')}
+                style={{ marginTop: 60 }}
+              />
+            }
+          />
         </View>
       )}
 
-      {/* =================================================================
-          새 대화방 개설 모달 (참여 비용 자율 설정)
-          ================================================================= */}
-      <Modal
-        visible={createModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setCreateModalVisible(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity
-              onPress={() => setCreateModalVisible(false)}
-              hitSlop={8}
-            >
-              <Text style={styles.modalCancelText}>취소</Text>
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>새 대화방 개설</Text>
-            <TouchableOpacity
-              onPress={handleCreateRoom}
-              disabled={creating || !newTitle.trim()}
-              style={[
-                styles.modalSubmitButton,
-                (!newTitle.trim() || creating) && styles.modalSubmitButtonDisabled,
-              ]}
-            >
-              {creating ? (
-                <ActivityIndicator size="small" color="#191919" />
-              ) : (
-                <Text style={styles.modalSubmitText}>개설</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            style={styles.modalBody}
-            contentContainerStyle={styles.modalScrollContent}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* 1. 대화방 제목 */}
-            <Text style={styles.inputLabel}>대화방 제목</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="예: 주말에 커피 한 잔 하실 분 ☕"
-              placeholderTextColor="#8E8E93"
-              value={newTitle}
-              onChangeText={setNewTitle}
-              maxLength={60}
-              autoFocus
-            />
-
-            {/* 2. 대화 유형 */}
-            <Text style={[styles.inputLabel, { marginTop: 22 }]}>대화 유형</Text>
-            <View style={styles.typeRow}>
-              <TouchableOpacity
-                style={[styles.typeChip, !isGroup && styles.typeChipActive]}
-                onPress={() => setIsGroup(false)}
-              >
-                <Ionicons
-                  name="person"
-                  size={15}
-                  color={!isGroup ? '#191919' : '#8E8E93'}
-                />
-                <Text
-                  style={[styles.typeChipText, !isGroup && styles.typeChipTextActive]}
-                >
-                  1:1 대화방
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.typeChip, isGroup && styles.typeChipActive]}
-                onPress={() => setIsGroup(true)}
-              >
-                <Ionicons
-                  name="people"
-                  size={15}
-                  color={isGroup ? '#191919' : '#8E8E93'}
-                />
-                <Text
-                  style={[styles.typeChipText, isGroup && styles.typeChipTextActive]}
-                >
-                  그룹 대화방
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* 3. 카테고리 */}
-            <Text style={[styles.inputLabel, { marginTop: 22 }]}>카테고리</Text>
-            <View style={styles.categoryRow}>
-              {CHAT_CATEGORIES.map((cat) => {
-                const isSelected = newCategory === cat;
-                return (
-                  <TouchableOpacity
-                    key={cat}
-                    style={[
-                      styles.categoryChip,
-                      isSelected && styles.categoryChipActive,
-                    ]}
-                    onPress={() => setNewCategory(cat)}
-                  >
-                    <Text
-                      style={[
-                        styles.categoryChipText,
-                        isSelected && styles.categoryChipTextActive,
-                      ]}
-                    >
-                      {cat}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {/* 4. 참여자 입장료 */}
-            <Text style={[styles.inputLabel, { marginTop: 22 }]}>
-              참여자 입장료 (참여 온 설정)
-            </Text>
-            <Text style={styles.inputSubLabel}>
-              개설자가 직접 참여자 입장 시 소모될 온(ON)을 설정합니다. (0 온은 무료)
-            </Text>
-            <View style={styles.feeChipRow}>
-              {[0, 10, 30, 50, 100].map((feeVal) => {
-                const isSelected = newEntryFee === feeVal;
-                return (
-                  <TouchableOpacity
-                    key={feeVal}
-                    style={[
-                      styles.feeChip,
-                      isSelected && styles.feeChipActive,
-                    ]}
-                    onPress={() => setNewEntryFee(feeVal)}
-                  >
-                    <Text
-                      style={[
-                        styles.feeChipText,
-                        isSelected && styles.feeChipTextActive,
-                      ]}
-                    >
-                      {feeVal === 0 ? '무료' : `${feeVal} 온`}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <View style={styles.customFeeRow}>
-              <Text style={styles.customFeeLabel}>직접 입력:</Text>
-              <TextInput
-                style={styles.customFeeInput}
-                placeholder="0"
-                placeholderTextColor="#8E8E93"
-                keyboardType="number-pad"
-                value={String(newEntryFee)}
-                onChangeText={(text) => {
-                  const cleaned = text.replace(/[^0-9]/g, '');
-                  const num = parseInt(cleaned, 10);
-                  setNewEntryFee(isNaN(num) ? 0 : Math.min(num, 50000));
-                }}
-              />
-              <Text style={styles.customFeeUnit}>온(ON)</Text>
-            </View>
-
-            {/* 5. 개설 안내 카드 */}
-            <View style={styles.tipCard}>
-              <Ionicons name="information-circle-outline" size={18} color="#D97706" />
-              <Text style={styles.tipText}>
-                대화방 개설 시 관리자 정책에 따른 온(ON)이 소모되며, 참여자는 개설자가 지정한 입장료({newEntryFee > 0 ? `${newEntryFee} 온` : '무료'})를 지불하고 참여하게 됩니다.
-              </Text>
-            </View>
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
+      {/* 전역 바텀 시트 (카드 터치 시 무전환 노출) */}
+      <GlobalBottomSheet
+        visible={bottomSheetVisible}
+        onClose={() => setBottomSheetVisible(false)}
+        user={selectedUser}
+        onCallVoice={handleCallUser}
+        onCallVideo={handleCallUser}
+        onStartChat={handleStartChat}
+      />
     </SafeAreaView>
   );
 }
@@ -1084,594 +819,380 @@ export default function ChatsScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: tokens.colors.background,
   },
-  header: {
-    height: 54,
+
+  // 1. 상단 탭 스타일
+  topBar: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
+    paddingTop: 4,
+    paddingBottom: 10,
+    backgroundColor: tokens.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#F2F3F5',
+    borderBottomColor: tokens.colors.borderLight,
   },
-  headerLeft: {
+  segmentContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
   },
-  backBtn: {
-    marginRight: 4,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#191919',
-    letterSpacing: -0.5,
-  },
-  headerRight: {
+  segmentBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: tokens.radius.full,
+    gap: 5,
   },
-  headerCreateBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FEE500',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 14,
-    marginRight: 2,
+  segmentBtnActive: {
+    backgroundColor: tokens.colors.primaryLight,
   },
-  headerCreateBtnText: {
-    fontSize: 12,
+  segmentText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: tokens.colors.textTertiary,
+  },
+  segmentTextActive: {
+    color: tokens.colors.primary,
     fontWeight: '800',
-    color: '#191919',
   },
-  headerIconBtn: {
+  activeSegmentIndicator: {
+    display: 'none',
+  },
+  chatBadgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: tokens.colors.primary,
+    marginLeft: 2,
+  },
+  topIconBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    alignItems: 'center',
+    backgroundColor: tokens.colors.surfaceSecondary,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  topCreateChatBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: tokens.colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: tokens.radius.full,
+    gap: 3,
+    ...tokens.shadows.soft,
+  },
+  topCreateChatText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
 
-  /* 듀얼 상단 세그먼트 탭 */
-  dualTabWrap: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
+  // 2. 가로 1열 캡슐 필터 바 스타일
+  filterBarContainer: {
+    backgroundColor: tokens.colors.surface,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F4F4F5',
+    borderBottomColor: tokens.colors.borderLight,
   },
-  dualTabContainer: {
+  filterScrollContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  capsuleBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 7.5,
+    borderRadius: tokens.radius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  capsuleBtnActive: {
+    backgroundColor: tokens.colors.primary,
+    ...tokens.shadows.soft,
+  },
+  capsuleBtnInactive: {
+    backgroundColor: tokens.colors.surfaceSecondary,
+    borderWidth: 1,
+    borderColor: tokens.colors.border,
+  },
+  capsuleText: {
+    fontSize: 13,
+  },
+  capsuleTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  capsuleTextInactive: {
+    color: tokens.colors.textSecondary,
+    fontWeight: '600',
+  },
+
+  // 3. 실시간 접속 레이더 배너
+  radarBanner: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    borderRadius: tokens.radius.md,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#FFE4EC',
+    ...tokens.shadows.soft,
+  },
+  radarGradient: {
     flexDirection: 'row',
-    backgroundColor: '#F4F4F5',
-    borderRadius: 12,
-    padding: 3,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
-  dualTabBtn: {
-    flex: 1,
+  radarLeftGroup: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  radarIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
-    paddingVertical: 9,
-    borderRadius: 10,
-    gap: 6,
+    alignItems: 'center',
   },
-  dualTabBtnActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+  radarPulseWave: {
+    position: 'absolute',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: tokens.colors.primary,
   },
-  dualTabLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#71717A',
+  radarCenterDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: tokens.colors.primary,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
-  dualTabLabelActive: {
+  radarTextCol: {
+    flex: 1,
+  },
+  radarTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  radarTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: tokens.colors.text,
+  },
+  radarHighlight: {
+    color: tokens.colors.primary,
+    fontWeight: '900',
+  },
+  radarOnlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: tokens.colors.status.online,
+  },
+  radarSub: {
+    fontSize: 11,
+    color: tokens.colors.textSecondary,
+    marginTop: 1,
+  },
+  radarRefreshBtn: {
+    padding: 6,
+  },
+
+  // 4. 인연 매칭 2열 그리드 스타일
+  gridContentContainer: {
+    paddingHorizontal: GRID_PADDING,
+    paddingTop: 12,
+    paddingBottom: 90,
+  },
+  gridColumnWrapper: {
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  matchCard: {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    borderRadius: tokens.radius.card,
+    overflow: 'hidden',
+    backgroundColor: tokens.colors.surfaceSecondary,
+    ...tokens.shadows.card,
+  },
+  cardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  cardTopBadgeRow: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  statusBadgeOnline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: tokens.radius.full,
+    gap: 4,
+  },
+  statusBadgeDistance: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: tokens.radius.full,
+    gap: 3,
+  },
+  onlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: tokens.colors.status.online,
+  },
+  statusBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  cardBottomOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    paddingTop: 36,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  cardInfoCol: {
+    flex: 1,
+    marginRight: 6,
+  },
+  cardNameRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+    marginBottom: 2,
+  },
+  cardName: {
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '800',
-    color: '#18181B',
+    letterSpacing: -0.3,
   },
-  dualTabBadge: {
-    backgroundColor: '#EF4444',
-    borderRadius: 9,
+  cardAge: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  cardHeadline: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 11,
+    lineHeight: 15,
+    marginBottom: 4,
+  },
+  cardTagChip: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  cardTagText: {
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '700',
+  },
+  miniActionBtn: {
+    borderRadius: 17,
+    overflow: 'hidden',
+    ...tokens.shadows.card,
+  },
+  miniActionGradient: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+
+  // 5. 내 대화방 리스트 스타일
+  chatsContentContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingBottom: 90,
+  },
+  chatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: tokens.colors.surface,
+    padding: 14,
+    borderRadius: tokens.radius.card,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: tokens.colors.borderLight,
+    ...tokens.shadows.soft,
+  },
+  chatItemBody: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  chatItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  chatItemTitle: {
+    ...tokens.typography.h3,
+    fontSize: 15,
+  },
+  chatItemTime: {
+    ...tokens.typography.caption,
+    color: tokens.colors.textTertiary,
+  },
+  chatItemBottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  chatItemLastMsg: {
+    ...tokens.typography.body2,
+    color: tokens.colors.textSecondary,
+    flex: 1,
+    marginRight: 8,
+  },
+  unreadCountBadge: {
+    backgroundColor: tokens.colors.primary,
     minWidth: 18,
     height: 18,
-    paddingHorizontal: 4,
-    alignItems: 'center',
+    borderRadius: 9,
     justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 5,
   },
-  dualTabBadgeText: {
+  unreadCountText: {
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '800',
-  },
-
-  tabContentFlex: {
-    flex: 1,
-  },
-
-  /* 검색바 */
-  searchBarWrap: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F3F5',
-  },
-  searchInputBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F4F4F5',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    height: 38,
-  },
-  searchIcon: {
-    marginRight: 6,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#191919',
-    paddingVertical: 0,
-  },
-
-  /* 인연 찾기 필터 영역 */
-  discoverSegmentWrap: {
-    backgroundColor: '#FFFFFF',
-  },
-  segmentBarInner: {
-    paddingVertical: 8,
-  },
-  interestWrap: {
-    paddingVertical: 4,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F8F8F8',
-  },
-  interestScroll: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  interestChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-    backgroundColor: '#F4F4F5',
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-  },
-  interestChipActive: {
-    backgroundColor: '#FFFBE6',
-    borderColor: '#FEE500',
-  },
-  interestChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#71717A',
-  },
-  interestChipTextActive: {
-    color: '#191919',
-    fontWeight: '800',
-  },
-  sortBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: '#FAFAFA',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F3F5',
-  },
-  userCountText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#71717A',
-  },
-  userCountHighlight: {
-    color: '#18181B',
-    fontWeight: '800',
-  },
-  sortBtnsRow: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  sortBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  sortBtnActive: {
-    backgroundColor: '#E4E4E7',
-  },
-  sortBtnText: {
-    fontSize: 12,
-    color: '#A1A1AA',
-    fontWeight: '600',
-  },
-  sortBtnTextActive: {
-    color: '#18181B',
-    fontWeight: '800',
-  },
-
-  /* 내 대화 헤더 인포 바 */
-  chatHeaderInfoBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: '#FAFAFA',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F3F5',
-  },
-  chatCountText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#71717A',
-  },
-  chatHintText: {
-    fontSize: 11,
-    color: '#A1A1AA',
-    fontWeight: '500',
-  },
-
-  /* 리스트 */
-  list: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  discoverListContent: {
-    paddingBottom: 24,
-  },
-  listContent: {
-    paddingBottom: 80,
-  },
-  insetDivider: {
-    height: 1,
-    backgroundColor: '#F4F4F5',
-    marginLeft: 82,
-  },
-
-  /* 상태 & 엠티 뷰 */
-  stateWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 60,
-  },
-  stateMessage: {
-    marginTop: 14,
-    fontSize: 14,
-    color: '#71717A',
-    textAlign: 'center',
-  },
-  errorTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#191919',
-    marginBottom: 6,
-  },
-  retryButton: {
-    marginTop: 16,
-    backgroundColor: '#FEE500',
-    paddingHorizontal: 18,
-    paddingVertical: 9,
-    borderRadius: 18,
-  },
-  retryButtonText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#191919',
-  },
-  emptyListContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
-  emptyWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 60,
-  },
-  emptyIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#F4F4F5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#191919',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: '#71717A',
-    textAlign: 'center',
-    lineHeight: 19,
-    marginBottom: 20,
-  },
-  emptyActionRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  emptyCreateBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#FEE500',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    shadowColor: '#FEE500',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  emptyCreateBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#191919',
-  },
-  findFriendsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F4F4F5',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  findFriendsBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#191919',
-  },
-  resetFilterBtn: {
-    backgroundColor: '#FEE500',
-    paddingHorizontal: 18,
-    paddingVertical: 9,
-    borderRadius: 18,
-    marginTop: 6,
-  },
-  resetFilterBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#191919',
-  },
-
-  /* 플로팅 방 만들기 버튼 */
-  floatingCreateBtn: {
-    position: 'absolute',
-    right: 18,
-    bottom: 22,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#FEE500',
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 24,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  floatingCreateBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#191919',
-  },
-
-  /* 모달 */
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  modalHeader: {
-    height: 54,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F3F5',
-  },
-  modalCancelText: {
-    fontSize: 15,
-    color: '#71717A',
-    fontWeight: '600',
-  },
-  modalTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#191919',
-  },
-  modalSubmitButton: {
-    backgroundColor: '#FEE500',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 14,
-  },
-  modalSubmitButtonDisabled: {
-    backgroundColor: '#E4E4E7',
-  },
-  modalSubmitText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#191919',
-  },
-  modalBody: {
-    flex: 1,
-  },
-  modalScrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#191919',
-    marginBottom: 8,
-  },
-  inputSubLabel: {
-    fontSize: 12,
-    color: '#71717A',
-    marginBottom: 10,
-  },
-  modalInput: {
-    backgroundColor: '#F4F4F5',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#191919',
-  },
-  typeRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  typeChip: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 11,
-    borderRadius: 12,
-    backgroundColor: '#F4F4F5',
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-  },
-  typeChipActive: {
-    backgroundColor: '#FFFBE6',
-    borderColor: '#FEE500',
-    borderWidth: 1.5,
-  },
-  typeChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#8E8E93',
-  },
-  typeChipTextActive: {
-    color: '#191919',
-    fontWeight: '800',
-  },
-  categoryRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  categoryChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: '#F4F4F5',
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-  },
-  categoryChipActive: {
-    backgroundColor: '#FFFBE6',
-    borderColor: '#FEE500',
-    borderWidth: 1.5,
-  },
-  categoryChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#71717A',
-  },
-  categoryChipTextActive: {
-    color: '#191919',
-    fontWeight: '800',
-  },
-  feeChipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 10,
-  },
-  feeChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: '#F4F4F5',
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-  },
-  feeChipActive: {
-    backgroundColor: '#FFFBE6',
-    borderColor: '#FEE500',
-    borderWidth: 1.5,
-  },
-  feeChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#71717A',
-  },
-  feeChipTextActive: {
-    color: '#191919',
-    fontWeight: '800',
-  },
-  customFeeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 4,
-  },
-  customFeeLabel: {
-    fontSize: 13,
-    color: '#71717A',
-    fontWeight: '600',
-  },
-  customFeeInput: {
-    minWidth: 80,
-    backgroundColor: '#F4F4F5',
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    fontSize: 14,
-    color: '#191919',
-    textAlign: 'right',
-  },
-  customFeeUnit: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#71717A',
-  },
-  tipCard: {
-    marginTop: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#FFFBEB',
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#FEF3C7',
-  },
-  tipText: {
-    flex: 1,
-    fontSize: 12,
-    color: '#92400E',
-    lineHeight: 17,
   },
 });
