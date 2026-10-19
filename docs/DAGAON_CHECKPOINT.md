@@ -4,6 +4,23 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-19 Checkpoint 95: 최신 안드로이드 프로덕션 릴리즈 APK (`dagaon-release.apk`) 네이티브 빌드 & 관리자 웹 정적 다운로드 서빙 및 배포 완료 (완료)
+
+### 1. 개요 및 배경
+- **최신 1~7단계 리디자인 및 과금 엔진이 모두 탑재된 프로덕션 릴리즈 APK 바이너리 생성**:
+  - 홈 화면, 인연/대화 탭, 라이브 룸 3D 선물 오버레이, 동네 커뮤니티 감성 피드, 마이페이지/방 개설 모달 및 백엔드 1:1 통화 실시간 과금 엔진 연동을 모두 포함한 최신 모바일 앱을 네이티브 릴리즈 바이너리로 컴파일.
+- **주요 작업 내역**:
+  1. **안드로이드 네이티브 릴리즈 APK 빌드**:
+     - `cd apps/mobile/android && ./gradlew assembleRelease --no-daemon` 실행.
+     - Metro 번들러를 통해 전체 1,492개 모듈 및 에셋을 번들링하고 CMake arm64-v8a 링크 완료 (`BUILD SUCCESSFUL in 2m 42s`).
+     - 산출물: `apps/mobile/android/app/build/outputs/apk/release/app-release.apk` (75,387,462 bytes, 약 75.38MB).
+  2. **관리자 웹 다운로드 정적 서빙 및 루트 배포 동기화**:
+     - **관리자 웹 정적 서빙**: `apps/admin/public/downloads/dagaon-release.apk` 최신 파일로 즉시 덮어쓰기 완료.
+     - **프로젝트 루트 배포**: `dagaon-release.apk` 최신 파일로 동기화 완료.
+     - 관리자 대시보드 및 상단 네비게이션 헤더의 **[앱 (APK) 다운로드]** 버튼 클릭 시 최신 바이너리가 즉각 다운로드 서빙됨.
+
+---
+
 ## 2026-10-19 Checkpoint 94: 풀스택 실서비스 가동을 위한 연동 및 E2E 무결점 최종 검증 — 모바일(81개 파일)·백엔드·관리자웹(32개 라우트) 전체 빌드 통과 & 1:1 과금·스냅샷 채증 핵심 파이프라인 E2E 20/20 검증 완료 (최종 릴리즈 준비 완료)
 
 ### 1. 개요 및 배경
