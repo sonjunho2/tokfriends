@@ -44,6 +44,10 @@ Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작�
 4. **검증 및 빌드 통과**:
    - Expo SDK 57 / Babel AST 트랜스파일: 모바일 82개 전체 소스 파일(스크린, 컴포넌트, 내비게이션) 검사 결과 **에러 0건 (0 errors)** 통과.
 
+5. **최신 프로덕션 릴리즈 APK (`dagaon-release.apk`) 네이티브 빌드 & 관리자 웹 정적 서빙 배포**:
+   - `gradlew.bat assembleRelease --no-daemon` 실행하여 최신 온보딩 3D 비주얼, 로그인 화면, 라우팅 가드가 적용된 네이티브 APK(75,398,770 bytes) 빌드 완료 (`BUILD SUCCESSFUL in 1m 31s`).
+   - `apps/admin/public/downloads/dagaon-release.apk` 및 프로젝트 루트 `dagaon-release.apk`로 최신 바이너리 복사 및 배포 완료.
+
 ---
 
 ## 2026-10-19 Checkpoint 95: 최신 안드로이드 프로덕션 릴리즈 APK (`dagaon-release.apk`) 네이티브 빌드 & 관리자 웹 정적 다운로드 서빙 및 배포 완료 (완료)
