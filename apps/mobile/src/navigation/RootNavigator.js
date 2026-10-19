@@ -317,91 +317,7 @@ function MyPageStack() {
   );
 }
 
-/** ===== 하단 탭 (5개 표준: 홈, 커뮤니티, 라이브, 대화, 마이) ===== */
-function MainTabs() {
-  const insets = useSafeAreaInsets();
-  // 안드로이드 3버튼 소프트키(48~56dp) 및 아이폰 홈 인디케이터에 맞춘 안전 영역 확보
-  const bottomPadding = Math.max(
-    insets.bottom,
-    Platform.OS === 'android' ? 16 : 24
-  );
-  const tabHeight = 56 + bottomPadding;
-
-  return (
-    <Tab.Navigator
-      initialRouteName="Home"
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: '#191919',
-        tabBarInactiveTintColor: '#9CA3AF',
-        tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#F2F3F5',
-          borderTopWidth: 1,
-          height: tabHeight,
-          paddingBottom: bottomPadding,
-          paddingTop: 8,
-          elevation: 12,
-          shadowColor: '#000000',
-          shadowOffset: { width: 0, height: -3 },
-          shadowOpacity: 0.06,
-          shadowRadius: 10,
-        },
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '700',
-          marginTop: 2,
-        },
-        tabBarIcon: ({ focused, color, size }) => {
-          const iconMap = {
-            Home: focused ? 'home' : 'home-outline',
-            Community: focused ? 'people' : 'people-outline',
-            Live: focused ? 'radio' : 'radio-outline',
-            Chat: focused ? 'chatbubbles' : 'chatbubbles-outline',
-            My: focused ? 'person' : 'person-outline',
-          };
-          const name = iconMap[route.name] || (focused ? 'ellipse' : 'ellipse-outline');
-          const isLiveTab = route.name === 'Live';
-          const iconColor = isLiveTab && focused ? '#EF4444' : color;
-          return <Ionicons name={name} size={21} color={iconColor} />;
-        },
-      })}
-    >
-      {/* 홈 탭은 내부에 HomeStack을 둔다 */}
-      <Tab.Screen
-        name="Home"
-        component={HomeStack}
-        options={{ tabBarLabel: '홈' }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            e.preventDefault();
-            navigation.navigate('Home', { screen: 'HomeMain' });
-          },
-        })}
-      />
-      <Tab.Screen
-        name="Community"
-        component={CommunityStack}
-        options={{ tabBarLabel: '커뮤니티' }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            e.preventDefault();
-            navigation.navigate('Community', { screen: 'CommunityMain' });
-          },
-        })}
-      />
-      <Tab.Screen
-        name="Live"
-        component={LiveStack}
-        options={{
-          tabBarLabel: '라이브',
-        }}
-      />
-      <Tab.Screen name="Chat" component={ChatsStack} options={{ tabBarLabel: '인연·대화' }} />
-      <Tab.Screen name="My" component={MyPageStack} options={{ tabBarLabel: '마이' }} />
-    </Tab.Navigator>
-  );
-}
+import TabNavigator from './TabNavigator';
 
 /** ===== 로그인 후 메인 앱 플로우 (라이브 룸 풀화면 분리) ===== */
 const AppStackNav = createNativeStackNavigator();
@@ -409,7 +325,7 @@ const AppStackNav = createNativeStackNavigator();
 function AppFlow() {
   return (
     <AppStackNav.Navigator screenOptions={{ headerShown: false }}>
-      <AppStackNav.Screen name="MainTabs" component={MainTabs} />
+      <AppStackNav.Screen name="MainTabs" component={TabNavigator} />
       <AppStackNav.Screen
         name="LiveRoom"
         component={LiveRoomScreen}

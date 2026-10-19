@@ -1,59 +1,60 @@
 // src/theme/colors.js
 export default {
-  // 배경/서피스 (Kakao style Clean & Warm Comfort)
-  background: '#F7F8FA',
-  bg: '#F7F8FA',
+  // 배경/서피스 (Figma Clean & Modern Foundation)
+  background: '#F8FAFC',
+  bg: '#F8FAFC',
   backgroundSecondary: '#FFFFFF',
-  backgroundTertiary: '#F0F2F5',
+  backgroundTertiary: '#F1F5F9',
   surface: '#FFFFFF',
-  surfaceSecondary: '#F7F8FA',
-  surfaceMuted: '#EFF1F4',
+  surfaceSecondary: '#F1F5F9',
+  surfaceMuted: '#E2E8F0',
 
-  // 텍스트 계층 (카카오톡 특유의 깊은 다크 차콜 & 부드러운 그레이)
-  text: '#191919',
-  textPrimary: '#191919',
-  textSecondary: '#4A4A4A',
-  textTertiary: '#8E8E93',
-  textDisabled: '#C7C7CC',
+  // 텍스트 계층 (Slate Palette)
+  text: '#0F172A',
+  textPrimary: '#0F172A',
+  textSecondary: '#475569',
+  textTertiary: '#94A3B8',
+  textDisabled: '#CBD5E1',
   textInverse: '#FFFFFF',
 
-  // 보더 & 디바이더 (카카오 1px 섬세한 라인)
-  border: '#E8EAED',
-  borderStrong: '#D2D6DC',
-  borderLight: '#F2F3F5',
+  // 보더 & 디바이더
+  border: '#E2E8F0',
+  borderStrong: '#CBD5E1',
+  borderLight: '#F1F5F9',
 
-  // 메인 브랜드 컬러 (Kakao Yellow & Point Black)
-  primary: '#F59E0B',           // 가독성과 액센트를 살린 웜 골드/앰버
-  primaryDark: '#D97706',
-  primaryLight: '#FEF3C7',
-  primaryMuted: 'rgba(245, 158, 11, 0.1)',
+  // 메인 브랜드 컬러 (Neon Coral Pink & Purple Subtone)
+  primary: '#FF3B6B',           // 네온 코랄 핑크
+  primaryDark: '#E02956',
+  primaryLight: '#FFEBF0',
+  primaryMuted: 'rgba(255, 59, 107, 0.12)',
   
-  // 카카오 시그니처
+  // 카카오 및 액센트
   kakaoYellow: '#FEE500',
   kakaoBlack: '#191919',
   kakaoBrown: '#3A1D1D',
-  accentPink: '#FF5353',
+  accentPink: '#FF3B6B',
+  accentPurple: '#8B5CF6',
 
   // 상태 / 액센트 컬러
   success: '#10B981',
   warning: '#F59E0B',
   info: '#3B82F6',
   accentMint: '#06B6D4',
-  accentPurple: '#8B5CF6',
   error: '#EF4444',
   
   // 탭 / 세그먼트 / 필터
-  pillBg: '#F0F2F5',
+  pillBg: '#F1F5F9',
   pillActiveBg: '#FFFFFF',
-  pillActiveBorder: '#F59E0B',
+  pillActiveBorder: '#FF3B6B',
 
   // 그림자 (Figma Soft Shadow)
-  shadowColor: '#000000',
+  shadowColor: '#0F172A',
 
   // 그라데이션
   gradients: {
-    primary: ['#FEE500', '#F59E0B'],
-    sunset: ['#F59E0B', '#EF4444'],
-    darkOverlay: ['transparent', 'rgba(0, 0, 0, 0.75)'],
+    primary: ['#FF3B6B', '#FF758C'],
+    sunset: ['#FF3B6B', '#8B5CF6'],
+    purple: ['#8B5CF6', '#6366F1'],
+    darkOverlay: ['transparent', 'rgba(15, 23, 42, 0.75)'],
   },
 };
