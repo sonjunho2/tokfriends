@@ -6,6 +6,7 @@ import HomeScreen from '../screens/main/HomeScreen';
 import LiveScreen from '../screens/main/LiveScreen';
 import ChatsScreen from '../screens/main/ChatsScreen';
 import ShopScreen from '../screens/shop/ShopScreen';
+import MyPageScreen from '../screens/main/MyPageScreen';
 import SettingsScreen from '../screens/my/SettingsScreen';
 import ProfileEditScreen from '../screens/my/ProfileEditScreen';
 import BlockedUsersScreen from '../screens/my/BlockedUsersScreen';
@@ -209,7 +210,7 @@ export function ChatsStack() {
 export function MyPageStack() {
   return (
     <MyPageStackNav.Navigator screenOptions={{ headerShown: false }}>
-      <MyPageStackNav.Screen name="MyPageMain" component={SettingsScreen} />
+      <MyPageStackNav.Screen name="MyPageMain" component={MyPageScreen} />
       <MyPageStackNav.Screen
         name="ProfileDetail"
         component={ProfileDetailScreen}

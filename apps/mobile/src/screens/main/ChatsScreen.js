@@ -27,6 +27,7 @@ import {
   GlobalBottomSheet,
   EmptyStateView,
 } from '../../components/common';
+import CreateRoomModal from '../../components/chat/CreateRoomModal';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
@@ -276,6 +277,9 @@ export default function ChatsScreen({ navigation, route }) {
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
+  // 6. 대화방 개설 모달 (CreateRoomModal)
+  const [createRoomModalVisible, setCreateRoomModalVisible] = useState(false);
+
   // 레이더 펄스 애니메이션
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -512,7 +516,7 @@ export default function ChatsScreen({ navigation, route }) {
       ) : (
         <TouchableOpacity
           style={styles.topCreateChatBtn}
-          onPress={() => setActiveTab('discover')}
+          onPress={() => setCreateRoomModalVisible(true)}
           activeOpacity={0.8}
         >
           <Ionicons name="add" size={16} color="#FFFFFF" />
@@ -811,6 +815,23 @@ export default function ChatsScreen({ navigation, route }) {
         onCallVoice={handleCallUser}
         onCallVideo={handleCallUser}
         onStartChat={handleStartChat}
+      />
+
+      {/* 대화방 개설 모달 */}
+      <CreateRoomModal
+        visible={createRoomModalVisible}
+        onClose={() => setCreateRoomModalVisible(false)}
+        onRoomCreated={(newRoom) => {
+          loadData();
+          if (newRoom?.id) {
+            navigation.navigate('ChatRoom', {
+              id: newRoom.id,
+              room: newRoom,
+              user: newRoom.counterpart,
+            });
+          }
+        }}
+        navigation={navigation}
       />
     </SafeAreaView>
   );
