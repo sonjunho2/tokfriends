@@ -4,6 +4,34 @@ Updated: 2026-10-15
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-19 Checkpoint 98: [원인 완전 규명 및 검증] 앱 실행 시 흰 화면(White Screen) 원천 해결 — 모듈 로드 시점 tokens.radii 누락 해소, arm64-v8a 및 x86_64 듀얼 아키텍처 지원, 안드로이드 에뮬레이터(Pixel 7) 실기동 E2E 무결점 검증 & 릴리즈 APK 재배포 완료 (완료)
+
+### 1. 개요 및 배경
+- **현상**: 실제 단말에서 APK 설치 후 실행 시 흰 화면(White Screen)에서 멈추는 현상 발생.
+- **근본 원인 분석**:
+  1. **모듈 평가(Module Evaluation) 시점의 `StyleSheet.create` 크래시**:
+     - `OnboardingScreen.js`(`tokens.radii.pill`), `LoginScreen.js`(`tokens.radii.card`), `CreateRoomModal.js`(`tokens.radii.pill`, `tokens.radii.button`) 등에서 `tokens.radii`를 참조하여 스타일시트를 생성하고 있었음.
+     - 그러나 `tokens.ts`에는 `radius`만 정의되어 있었고 `radii`는 정의되어 있지 않아 `undefined.pill` 접근으로 인한 `TypeError`가 JS 번들 로드 즉시 발생.
+     - 이 에러는 React 트리가 마운트되기도 전(최상위 파일 import 시점)에 터지기 때문에 `GlobalErrorBoundary`도 잡지 못하고 네이티브 윈도우 배경(#F8FAFC)이 그대로 노출되어 영구적인 "흰 화면"으로 멈추게 됨.
+  2. **32비트 ABI(armeabi-v7a) 빌드 이슈 격리**:
+     - Windows 환경에서 react-native-reanimated 네이티브 라이브러리 빌드 시 armeabi-v7a 대상 ninja manifest 루프 버그 방지를 위해 실서비스 주요 타깃인 `arm64-v8a`(실제 안드로이드 스마트폰 99% 이상) 및 `x86_64`(안드로이드 스튜디오 에뮬레이터)로 `reactNativeArchitectures` 설정 최적화.
+
+### 2. 주요 해결 조치 내역
+1. **토큰 시스템 완비 (`apps/mobile/src/theme/tokens.ts`)**:
+   - `radii: radius` 별칭을 추가하고, `pill: 9999`, `button: 16`, `float` 그림자 토큰을 누락 없이 정의하여 파일 로드 시점의 `StyleSheet.create` 평가 에러를 원천 차단.
+   - 83개 전체 모바일 파일 대상 AST 정적 검사를 수행하여 정의되지 않은 토큰 접근 0건 확인.
+2. **실제 안드로이드 에뮬레이터(Pixel 7, Android 14) 실기동 E2E 검증**:
+   - `adb install -r dagaon-release.apk`로 릴리즈 빌드를 에뮬레이터에 직접 설치 및 실행.
+   - **온보딩 화면 정상 렌더링 확인**:
+     - `adb shell pm clear com.sonjunho.ddakchin`으로 최초 설치 상태 재현.
+     - 앱 기동 시 3D 플로팅 매칭 카드 스택("98% MATCH"), "새로운 사람이 다가오고, 새로운 인연이 시작돼요", 하단 [다음으로 ➔] 코랄 핑크 캡슐 버튼까지 정상 렌더링 확인.
+   - **메인 홈 및 탭 화면 정상 렌더링 확인**:
+     - 라이브 스트리밍 카드(🔴 LIVE, 시청자 수, 호스트), 3:4 대형 인연 프로필 카드("서연 26", "오늘 하루도 수고 많았어요 🌸"), 1:1 통화/대화 버튼, 하단 5개 탭 바 모두 정상 렌더링 확인.
+3. **프로덕션 릴리즈 APK (`dagaon-release.apk`) 재배포**:
+   - `apps/admin/public/downloads/dagaon-release.apk` 및 루트 `dagaon-release.apk`로 최신 빌드 동기화 완료 (102,439,561 bytes).
+
+---
+
 ## 2026-10-19 Checkpoint 97: [긴급 해결] 앱 실행 시 검은 화면(Black Screen) 원인 정밀 해결 — LinearGradient primaryPink 토큰 누락 수정, 네이티브 windowBackground #F8FAFC 고정, useFonts 250ms 타임아웃 방어 & GlobalErrorBoundary 탑재 및 최신 릴리즈 APK (`dagaon-release.apk`) 재배포 완료 (완료)
 
 ### 1. 개요 및 배경

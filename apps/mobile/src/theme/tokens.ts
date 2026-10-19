@@ -76,11 +76,15 @@ export const radius = {
   sm: 8,
   md: 12,
   card: 16,     // 16px 기본 카드 라운드
+  button: 16,   // 16px 기본 버튼 라운드
   lg: 20,
   xl: 24,
   sheet: 24,    // 24px 바텀시트 탑 라운드
+  pill: 9999,   // 캡슐/알약 라운드
   full: 9999,
 };
+
+export const radii = radius;
 
 export const spacing = {
   xs: 4,
@@ -113,6 +117,13 @@ export const shadows = {
     shadowOpacity: 0.08,
     shadowRadius: 16,
     elevation: 3,
+  },
+  float: {
+    shadowColor: '#FF3B6B',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22,
+    shadowRadius: 18,
+    elevation: 6,
   },
   fab: {
     shadowColor: '#FF3B6B',
@@ -215,6 +226,7 @@ export const badges = {
 export const tokens = {
   colors,
   radius,
+  radii,
   spacing,
   shadows,
   typography,
