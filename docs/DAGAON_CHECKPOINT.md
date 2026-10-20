@@ -5491,7 +5491,19 @@ First Owner/ActivityAccount migration must:
   - `LiveRoomScreen.js` 상단 `topContributors` 개별 아바타에 중첩되어 있던 `TouchableOpacity` 및 `handleOpenParticipantProfile` 제거.
   - 상단 랭킹 아바타 그룹 클릭 시 지시사항대로 **`LiveViewerRankingSheet` (접속자 기여도 랭킹 / 실시간 시청자 모달 창)**가 열리도록 동작 일원화.
   - 프로필 상세 시트는 해당 랭킹/시청자 목록 모달 내부에서 유저를 탭했을 때 오픈되도록 정상 파이프라인 정립.
-- **`GlobalBottomSheet.tsx` 1:1 LIVE 단가 개편**:
-  - 프로필 바텀시트 내 폐지된 "1:1 다이렉트 통화 (1,500P / 분)" 문구를 **"1:1 LIVE (프라이빗 방송)" (`{rate} 온 / 분`)**으로 전면 교체.
-
+### 4. 라이브방송 채팅 유지 및 선물/후원자 연동 정상화 패치 (2026-10-20)
+- **채팅 메시지 증발 버그 원천 차단**:
+  - `LiveRoomScreen.js`: 5초 주기 폴링(`fetchMessages`) 시 단순 덮어쓰기(`setMessages`)를 제거하고, 기존 로컬 메시지와 서버 메시지를 고유 ID 기준으로 안전 병합(`Map` Merge)하여 본인이 작성한 글이 화면에서 지워지지 않고 영구 보존되도록 개선.
+  - `live.controller.ts`: `sendLiveMessage` 시 메모리 저장소(`liveMessagesStore`)에 메시지를 누적 저장하고, `chatGateway.emitLiveMessage`를 통해 방 내 모든 접속자에게 실시간 웹소켓 이벤트(`live:message`) 브로드캐스트.
+  - `getLiveMessages`: 하드코딩된 mock 3개 반환 대신 방별 실제 저장소(`getRoomMessages`) 메시지 목록 반환.
+- **선물 보내기 & 3D 애니메이션 이펙트 & 후원자 표출 정상화**:
+  - `live.controller.ts`: 선물 전송 시 후원자의 닉네임, 아바타, 선물명, 포인트, 애니메이션 메타데이터가 담긴 `gift` 메시지를 생성하여 저장 및 소켓 브로드캐스트.
+  - `LiveRoomScreen.js`:
+    - 선물 전송 즉시 로컬 채팅 목록에 선물 메시지를 추가하고 소켓으로 전송.
+    - `giftOverlayRef.current?.enqueueGift`를 통해 화면 중앙에 3D 하트/폭죽 애니메이션 즉시 표출.
+    - `renderMessageItem`: 대소문자(`GIFT`/`gift`) 무관하게 감지하여 `🎁 [선물명] 000온 후원!`과 함께 후원자 닉네임이 눈에 띄게 표시되도록 UI 개선.
+    - 상단 기여도 랭킹 및 접속자 시트의 후원 포인트 계산도 정확하게 반영.
+- **배포 및 빌드**:
+  - `main` 브랜치 병합 및 푸시 완료 (`9e80e2f`).
+  - 루트 경로 최신 릴리즈 APK 생성 완료: `dagaon-release.apk` (102.4 MB).
 
