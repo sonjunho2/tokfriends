@@ -111,12 +111,34 @@ import { Inject, forwardRef } from '@nestjs/common';
 @Controller('live')
 export class LiveController {
   private readonly roomActiveViewers = new Map<string, Set<string>>();
+  private readonly liveMessagesStore = new Map<string, any[]>();
 
   constructor(
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => ChatGateway))
     private readonly chatGateway: ChatGateway,
   ) {}
+
+  private getRoomMessages(roomId: string): any[] {
+    let list = this.liveMessagesStore.get(roomId);
+    if (!list) {
+      list = [
+        {
+          id: `welcome-${roomId}`,
+          roomId,
+          type: 'chat',
+          content: '🎉 라이브 방송이 시작되었습니다! 매너 채팅과 따뜻한 소통 부탁드립니다.',
+          giftPoints: null,
+          createdAt: new Date().toISOString(),
+          senderId: 'system',
+          senderName: '시스템',
+          sender: { id: 'system', name: '시스템' },
+        },
+      ];
+      this.liveMessagesStore.set(roomId, list);
+    }
+    return list;
+  }
 
   /**
    * 관리자 라이브 지표 요약
@@ -408,19 +430,37 @@ export class LiveController {
     @Body() body: any,
     @CurrentUser() user?: any,
   ) {
+    const userId = user?.id || user?.sub || body.senderId || 'guest';
+    const senderName = user?.nickname || user?.displayName || body.senderName || '참여자';
+    const senderAvatar = user?.avatarUrl || body.senderAvatar || null;
+
     const msg = {
-      id: `msg-${Date.now()}`,
+      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       roomId,
-      type: body.type || 'CHAT',
+      type: body.type || 'chat',
       content: body.content || '',
       giftPoints: body.giftPoints || null,
       createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      senderId: userId,
+      senderName,
       sender: {
-        id: user?.id || body.senderId || 'guest',
-        name: user?.nickname || body.senderName || '참여자',
-        avatar: user?.avatarUrl || body.senderAvatar || null,
+        id: userId,
+        name: senderName,
+        displayName: senderName,
+        nickname: senderName,
+        avatar: senderAvatar,
+        avatarUrl: senderAvatar,
       },
     };
+
+    // 메모리 저장소에 보관 (폴링 시 유지)
+    this.getRoomMessages(roomId).push(msg);
+
+    // 실시간 WebSocket 브로드캐스트
+    try {
+      this.chatGateway.emitLiveMessage(roomId, msg);
+    } catch {}
+
     return { ok: true, data: msg, message: msg };
   }
 
@@ -435,19 +475,30 @@ export class LiveController {
     @CurrentUser() user?: any,
   ) {
     const userId = user?.id || user?.sub || 'usr_guest';
-    const points = Number(body.points || 100);
+    const points = Number(body.points || body.pricePoints || 100);
     const giftId = body.giftId || 'gift-1';
+    const giftName = body.giftName || body.name || '선물';
+    const animationType = body.animationType || (points >= 3000 ? 'fireworks' : '3d_heart');
+
+    let updatedBalance: number | null = null;
+    let senderName = user?.nickname || user?.displayName || body.senderNickname || body.senderName || '시청자';
+    let senderAvatar = user?.avatarUrl || body.senderAvatar || null;
 
     try {
       const dbUser = await this.prisma.user.findUnique({ where: { id: userId } });
-      if (dbUser && dbUser.pointBalance < points) {
-        throw new BadRequestException('보유 온(ON) 포인트가 부족합니다.');
-      }
       if (dbUser) {
-        await this.prisma.user.update({
+        if (dbUser.pointBalance < points) {
+          throw new BadRequestException('보유 온(ON) 포인트가 부족합니다.');
+        }
+        senderName = dbUser.nickname || dbUser.displayName || senderName;
+        senderAvatar = dbUser.avatarUrl || senderAvatar;
+
+        const updated = await this.prisma.user.update({
           where: { id: userId },
           data: { pointBalance: { decrement: points } },
+          select: { pointBalance: true },
         });
+        updatedBalance = updated.pointBalance;
       }
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
@@ -458,6 +509,43 @@ export class LiveController {
       room.totalGiftsPoints = (room.totalGiftsPoints || 0) + points;
     }
 
+    const giftMeta = {
+      giftId,
+      giftName,
+      pricePoints: points,
+      senderNickname: senderName,
+      senderAvatar,
+      animationType,
+      message: body.message || '',
+    };
+
+    const giftMsg = {
+      id: `gift-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      roomId,
+      type: 'gift',
+      content: JSON.stringify(giftMeta),
+      giftPoints: points,
+      createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      senderId: userId,
+      senderName,
+      sender: {
+        id: userId,
+        name: senderName,
+        displayName: senderName,
+        nickname: senderName,
+        avatar: senderAvatar,
+        avatarUrl: senderAvatar,
+      },
+    };
+
+    // 메모리 저장소에 보관 (폴링 시 유지)
+    this.getRoomMessages(roomId).push(giftMsg);
+
+    // 실시간 WebSocket 브로드캐스트
+    try {
+      this.chatGateway.emitLiveMessage(roomId, giftMsg);
+    } catch {}
+
     return {
       ok: true,
       success: true,
@@ -465,7 +553,11 @@ export class LiveController {
       giftId,
       points,
       tier: points >= 30000 ? 3 : (points >= 3000 ? 2 : 1),
-      message: `${points} ON 선물이 전달되었습니다!`,
+      newBalance: updatedBalance,
+      remainingBalance: updatedBalance,
+      totalGiftsPoints: room?.totalGiftsPoints || points,
+      data: giftMsg,
+      message: giftMsg,
     };
   }
 
@@ -475,37 +567,10 @@ export class LiveController {
   @Public()
   @Get('rooms/:roomId/messages')
   async getLiveMessages(@Param('roomId') roomId: string) {
+    const list = this.getRoomMessages(roomId);
     return {
       ok: true,
-      data: [
-        {
-          id: 'msg-1',
-          roomId,
-          type: 'CHAT',
-          content: '안녕하세요 호스트님! 오늘 방송도 기대돼요~',
-          giftPoints: null,
-          createdAt: '11:15',
-          sender: { id: 'u1', name: '김민준', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=60' },
-        },
-        {
-          id: 'msg-2',
-          roomId,
-          type: 'GIFT',
-          content: '하트 50개 (5,000온) 선물',
-          giftPoints: 5000,
-          createdAt: '11:20',
-          sender: { id: 'u2', name: '이수진', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=60' },
-        },
-        {
-          id: 'msg-3',
-          roomId,
-          type: 'CHAT',
-          content: '오늘 의상 너무 예쁘세요 ㅎㅎ',
-          giftPoints: null,
-          createdAt: '11:25',
-          sender: { id: 'u3', name: '정현우', avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=60' },
-        },
-      ],
+      data: list,
     };
   }
 

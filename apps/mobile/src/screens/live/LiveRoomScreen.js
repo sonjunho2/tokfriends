@@ -151,18 +151,28 @@ export default function LiveRoomScreen({ navigation, route }) {
     const contributorMap = new Map();
     if (Array.isArray(messages)) {
       for (const m of messages) {
-        if (m.type === 'gift' && (m.senderId || m.sender?.id)) {
-          const id = m.senderId || m.sender?.id;
+        const mType = String(m?.type || '').toLowerCase();
+        if (mType === 'gift') {
+          let giftMeta = {};
+          try {
+            giftMeta = typeof m.content === 'string' ? JSON.parse(m.content) : (m.content || {});
+          } catch {}
+
+          const id = m.senderId || m.sender?.id || giftMeta?.senderId || `user_${giftMeta?.senderNickname || 'anon'}`;
           const name =
+            giftMeta?.senderNickname ||
             m.senderName ||
             m.sender?.nickname ||
             m.sender?.displayName ||
             m.sender?.name ||
             '후원자';
-          const avatar = m.senderAvatar || m.sender?.avatar || m.sender?.profileImage;
-          const pts = Number(m.giftPoints || 0);
+          const avatar = giftMeta?.senderAvatar || m.senderAvatar || m.sender?.avatar || m.sender?.profileImage;
+          const pts = Number(giftMeta?.pricePoints || m.giftPoints || 0);
+
           const prev = contributorMap.get(id) || { id, name, avatar, points: 0 };
           prev.points += pts;
+          if (name && name !== '후원자') prev.name = name;
+          if (avatar) prev.avatar = avatar;
           contributorMap.set(id, prev);
         }
       }
@@ -191,8 +201,13 @@ export default function LiveRoomScreen({ navigation, route }) {
     const myId = String(currentUser?.id || '');
     if (Array.isArray(messages) && myId) {
       for (const m of messages) {
-        if (m.type === 'gift' && (String(m.senderId) === myId || String(m.sender?.id) === myId)) {
-          total += Number(m.giftPoints || 0);
+        const mType = String(m?.type || '').toLowerCase();
+        if (mType === 'gift' && (String(m.senderId) === myId || String(m.sender?.id) === myId)) {
+          let giftMeta = {};
+          try {
+            giftMeta = typeof m.content === 'string' ? JSON.parse(m.content) : (m.content || {});
+          } catch {}
+          total += Number(giftMeta?.pricePoints || m.giftPoints || 0);
         }
       }
     }
@@ -582,57 +597,58 @@ export default function LiveRoomScreen({ navigation, route }) {
           return [...prev, msg];
         });
 
-        if (msg.type === 'like') {
+        const msgType = String(msg.type || '').toLowerCase();
+        if (msgType === 'like') {
           setLikeCount((c) => c + 1);
           floatingHeartsRef.current?.addHeart();
-        } else if (msg.type === 'gift') {
-          if (typeof msg.giftPoints === 'number' && msg.giftPoints > 0) {
+        } else if (msgType === 'gift') {
+          const giftPts = Number(msg.giftPoints || 0);
+          if (giftPts > 0) {
             setRoom((prev) =>
               prev
                 ? {
                     ...prev,
-                    totalGiftsPoints: (prev.totalGiftsPoints || 0) + msg.giftPoints,
+                    totalGiftsPoints: (prev.totalGiftsPoints || 0) + giftPts,
                   }
                 : prev,
             );
           }
           if (!processedGiftMessageIdsRef.current.has(msg.id)) {
             processedGiftMessageIdsRef.current.add(msg.id);
+            let giftMeta = {};
             try {
-              const giftMeta = JSON.parse(msg.content);
-              const resolvedType =
-                giftMeta.animationType ||
-                (giftMeta.giftName?.includes('폭죽')
-                  ? 'fireworks'
-                  : giftMeta.giftName?.includes('하트')
-                  ? '3d_heart'
-                  : giftMeta.animationUrl
-                  ? 'alpha_video'
-                  : (msg.giftPoints >= 3000 ? 'fireworks' : '3d_heart'));
-
-              giftOverlayRef.current?.enqueueGift({
-                giftId: giftMeta.giftId,
-                giftName: giftMeta.giftName,
-                pricePoints: giftMeta.pricePoints || msg.giftPoints,
-                senderNickname:
-                  giftMeta.senderNickname ||
-                  msg.sender?.name ||
-                  msg.sender?.profile?.nickname ||
-                  '시청자',
-                animationUrl: giftMeta.animationUrl,
-                animationType: resolvedType,
-                thumbnailUrl: giftMeta.thumbnailUrl,
-              });
+              giftMeta = typeof msg.content === 'string' ? JSON.parse(msg.content) : (msg.content || {});
             } catch {
-              giftOverlayRef.current?.enqueueGift({
-                giftId: 'gift',
-                giftName: '선물',
-                pricePoints: msg.giftPoints,
-                senderNickname:
-                  msg.sender?.name || msg.sender?.profile?.nickname || '시청자',
-                animationType: msg.giftPoints >= 3000 ? 'fireworks' : '3d_heart',
-              });
+              giftMeta = {};
             }
+
+            const resolvedType =
+              giftMeta.animationType ||
+              (giftMeta.giftName?.includes('폭죽')
+                ? 'fireworks'
+                : giftMeta.giftName?.includes('하트')
+                ? '3d_heart'
+                : giftMeta.animationUrl
+                ? 'alpha_video'
+                : (giftPts >= 3000 ? 'fireworks' : '3d_heart'));
+
+            const donorName =
+              giftMeta.senderNickname ||
+              msg.senderName ||
+              msg.sender?.nickname ||
+              msg.sender?.displayName ||
+              msg.sender?.name ||
+              '시청자';
+
+            giftOverlayRef.current?.enqueueGift({
+              giftId: giftMeta.giftId || 'gift',
+              giftName: giftMeta.giftName || '선물',
+              pricePoints: giftMeta.pricePoints || giftPts,
+              senderNickname: donorName,
+              animationUrl: giftMeta.animationUrl,
+              animationType: resolvedType,
+              thumbnailUrl: giftMeta.thumbnailUrl,
+            });
           }
         }
       });
@@ -694,48 +710,59 @@ export default function LiveRoomScreen({ navigation, route }) {
     if (!roomId) return;
     try {
       const msgs = await apiClient.getLiveMessages(roomId);
-      setMessages(msgs);
-
-      // 수신된 3D 선물 메시지 자동 감지 및 FIFO 큐 재생
       if (Array.isArray(msgs)) {
-        msgs.forEach((msg) => {
-          if (msg.type === 'gift' && msg.id && !processedGiftMessageIdsRef.current.has(msg.id)) {
-            processedGiftMessageIdsRef.current.add(msg.id);
-            try {
-              const giftMeta = JSON.parse(msg.content);
-              const resolvedType =
-                giftMeta.animationType ||
-                (giftMeta.giftName?.includes('폭죽')
-                  ? 'fireworks'
-                  : giftMeta.giftName?.includes('하트')
-                  ? '3d_heart'
-                  : giftMeta.animationUrl
-                  ? 'alpha_video'
-                  : (msg.giftPoints >= 3000 ? 'fireworks' : '3d_heart'));
+        // 기존 작성 메시지가 지워지지 않도록 ID 기준 병합(Merge)
+        setMessages((prev) => {
+          const map = new Map();
+          (prev || []).forEach((m) => {
+            if (m?.id) map.set(m.id, m);
+          });
+          msgs.forEach((m) => {
+            if (m?.id) map.set(m.id, m);
+          });
+          return Array.from(map.values());
+        });
 
-              giftOverlayRef.current?.enqueueGift({
-                giftId: giftMeta.giftId,
-                giftName: giftMeta.giftName,
-                pricePoints: giftMeta.pricePoints || msg.giftPoints,
-                senderNickname:
-                  giftMeta.senderNickname ||
-                  msg.sender?.profile?.nickname ||
-                  msg.sender?.displayName ||
-                  '시청자',
-                animationUrl: giftMeta.animationUrl,
-                animationType: resolvedType,
-                thumbnailUrl: giftMeta.thumbnailUrl,
-              });
+        // 수신된 3D 선물 메시지 자동 감지 및 FIFO 큐 재생
+        msgs.forEach((msg) => {
+          const mType = String(msg?.type || '').toLowerCase();
+          if (mType === 'gift' && msg?.id && !processedGiftMessageIdsRef.current.has(msg.id)) {
+            processedGiftMessageIdsRef.current.add(msg.id);
+            let giftMeta = {};
+            try {
+              giftMeta = typeof msg.content === 'string' ? JSON.parse(msg.content) : (msg.content || {});
             } catch {
-              giftOverlayRef.current?.enqueueGift({
-                giftId: 'gift',
-                giftName: '선물',
-                pricePoints: msg.giftPoints,
-                senderNickname:
-                  msg.sender?.profile?.nickname || msg.sender?.displayName || '시청자',
-                animationType: msg.giftPoints >= 3000 ? 'fireworks' : '3d_heart',
-              });
+              giftMeta = {};
             }
+
+            const giftPts = Number(giftMeta.pricePoints || msg.giftPoints || 0);
+            const resolvedType =
+              giftMeta.animationType ||
+              (giftMeta.giftName?.includes('폭죽')
+                ? 'fireworks'
+                : giftMeta.giftName?.includes('하트')
+                ? '3d_heart'
+                : giftMeta.animationUrl
+                ? 'alpha_video'
+                : (giftPts >= 3000 ? 'fireworks' : '3d_heart'));
+
+            const donorName =
+              giftMeta.senderNickname ||
+              msg.senderName ||
+              msg.sender?.nickname ||
+              msg.sender?.displayName ||
+              msg.sender?.name ||
+              '시청자';
+
+            giftOverlayRef.current?.enqueueGift({
+              giftId: giftMeta.giftId || 'gift',
+              giftName: giftMeta.giftName || '선물',
+              pricePoints: giftPts,
+              senderNickname: donorName,
+              animationUrl: giftMeta.animationUrl,
+              animationType: resolvedType,
+              thumbnailUrl: giftMeta.thumbnailUrl,
+            });
           }
         });
       }
@@ -755,13 +782,22 @@ export default function LiveRoomScreen({ navigation, route }) {
     if (!text || sending) return;
     setSending(true);
     try {
-      const newMsg = await apiClient.sendLiveMessage({
+      const res = await apiClient.sendLiveMessage({
         roomId,
         content: text,
         type: 'chat',
       });
+      const newMsg = res?.data || res?.message || res;
       setInputText('');
-      setMessages((prev) => [...prev, newMsg]);
+      if (newMsg?.id) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
+        if (socketRef.current?.connected) {
+          socketRef.current.emit(LIVE_SOCKET_EVENTS.MESSAGE, newMsg);
+        }
+      }
       flatListRef.current?.scrollToEnd({ animated: true });
     } catch (e) {
       Alert.alert('전송 실패', e?.message || '메시지 전송에 실패했습니다.');
@@ -774,12 +810,15 @@ export default function LiveRoomScreen({ navigation, route }) {
     setLikeCount((prev) => prev + 1);
     floatingHeartsRef.current?.addHeartsBurst(3);
     try {
-      await apiClient.sendLiveMessage({
+      const res = await apiClient.sendLiveMessage({
         roomId,
         content: '❤️ 하트를 보냈습니다!',
         type: 'like',
       });
-      fetchMessages();
+      const likeMsg = res?.data || res?.message || res;
+      if (socketRef.current?.connected && likeMsg?.id) {
+        socketRef.current.emit(LIVE_SOCKET_EVENTS.MESSAGE, likeMsg);
+      }
     } catch {
       // quiet fallback
     }
@@ -796,10 +835,13 @@ export default function LiveRoomScreen({ navigation, route }) {
       const idempotencyKey = `live_${roomId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const res = await apiClient.sendLiveGift(roomId, {
         giftId: gift.id,
+        points: gift.pricePoints,
+        giftName: gift.name,
+        animationType: gift.animationType,
         idempotencyKey,
       });
 
-      const updatedBalance = res?.newBalance ?? res?.data?.newBalance;
+      const updatedBalance = res?.newBalance ?? res?.remainingBalance ?? res?.data?.newBalance;
       if (updatedBalance !== undefined && updatedBalance !== null) {
         setMyPoints(Number(updatedBalance));
       }
@@ -819,17 +861,35 @@ export default function LiveRoomScreen({ navigation, route }) {
           ? 'alpha_video'
           : (gift.pricePoints >= 3000 ? 'fireworks' : '3d_heart'));
 
+      const myNickname = currentUser?.nickname || currentUser?.displayName || currentUser?.name || '나';
+
       giftOverlayRef.current?.enqueueGift({
         giftId: gift.id,
         giftName: gift.name,
         pricePoints: gift.pricePoints,
-        senderNickname: currentUser?.displayName || currentUser?.name || '나',
+        senderNickname: myNickname,
         animationUrl: gift.animationUrl,
         animationType: resolvedSendType,
         thumbnailUrl: gift.thumbnailUrl,
       });
 
-      fetchMessages();
+      // 선물 메시지를 로컬 채팅 목록에도 즉시 반영하여 누가 보냈는지 표시
+      const giftMsg = res?.data || res?.message;
+      if (giftMsg && giftMsg.id) {
+        if (!processedGiftMessageIdsRef.current.has(giftMsg.id)) {
+          processedGiftMessageIdsRef.current.add(giftMsg.id);
+        }
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === giftMsg.id)) return prev;
+          return [...prev, giftMsg];
+        });
+        if (socketRef.current?.connected) {
+          socketRef.current.emit(LIVE_SOCKET_EVENTS.MESSAGE, giftMsg);
+        }
+        flatListRef.current?.scrollToEnd({ animated: true });
+      } else {
+        fetchMessages();
+      }
     } catch (e) {
       Alert.alert('선물 실패', e?.message || '선물 보내기에 실패했습니다.');
     }
@@ -1024,29 +1084,32 @@ export default function LiveRoomScreen({ navigation, route }) {
   };
 
   const renderMessageItem = ({ item }) => {
-    const isGift = item.type === 'gift';
-    const isLike = item.type === 'like';
+    const mType = String(item?.type || '').toLowerCase();
+    const isGift = mType === 'gift';
+    const isLike = mType === 'like';
 
-    let displayContent = item.content;
+    let displayContent = item?.content || '';
     let giftMeta = null;
 
     if (isGift) {
       try {
-        giftMeta = typeof item.content === 'string' ? JSON.parse(item.content) : item.content;
-        const giftTitle = giftMeta?.giftName || '선물';
+        giftMeta = typeof item.content === 'string' ? JSON.parse(item.content) : (item.content || {});
+        const giftTitle = giftMeta?.giftName || item.giftName || '선물';
         const points = giftMeta?.pricePoints || item.giftPoints || 0;
         const note = giftMeta?.message ? ` "${giftMeta.message}"` : '';
-        displayContent = `🎁 [${giftTitle}] 후원! (${Number(points).toLocaleString()} 온)${note}`;
+        displayContent = `🎁 [${giftTitle}] ${Number(points).toLocaleString()}온 후원!${note}`;
       } catch {
-        displayContent = `🎁 선물 후원! (${Number(item.giftPoints || 0).toLocaleString()} 온)`;
+        displayContent = `🎁 선물 후원! (${Number(item?.giftPoints || 0).toLocaleString()}온)`;
       }
     }
 
     const authorName =
-      (isGift && giftMeta?.senderNickname) ||
-      item.sender?.name ||
-      item.sender?.profile?.nickname ||
-      '참여자';
+      giftMeta?.senderNickname ||
+      item?.senderName ||
+      item?.sender?.nickname ||
+      item?.sender?.displayName ||
+      item?.sender?.name ||
+      '시청자';
 
     return (
       <TouchableOpacity

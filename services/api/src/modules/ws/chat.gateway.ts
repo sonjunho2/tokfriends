@@ -217,6 +217,28 @@ export class ChatGateway
   }
 
   /**
+   * 실시간 채팅/선물 메시지 수신 및 브로드캐스트
+   */
+  @SubscribeMessage('live:message')
+  handleLiveMessage(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { roomId: string; message: any },
+  ) {
+    if (data?.roomId && data?.message) {
+      this.server.to(`live_room_${data.roomId}`).emit('live:message', data.message);
+    }
+    return { ok: true };
+  }
+
+  /**
+   * 외부(컨트롤러)에서 실시간 메시지/선물 브로드캐스트
+   */
+  emitLiveMessage(roomId: string, message: any) {
+    const channel = `live_room_${roomId}`;
+    this.server.to(channel).emit('live:message', message);
+  }
+
+  /**
    * 외부(컨트롤러)에서 실시간 시청자 수 브로드캐스트
    */
   emitLiveViewerCount(roomId: string, count: number) {
