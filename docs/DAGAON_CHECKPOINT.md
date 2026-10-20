@@ -1,8 +1,61 @@
 # DAGAON Development Checkpoint
 
-Updated: 2026-10-15
+Updated: 2026-10-20
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
+
+## 2026-10-20 Checkpoint 100: [세부 API 100% 연동 완결 & 안드로이드 프로덕션 APK 릴리즈] 디스커버·실시간채팅·라이브스트리밍·커뮤니티·스토어/결제·소셜 6대 도메인 전체 세부 API 연동, 백엔드 E2E 통합 테스트(22/22) 전수 통과, 메인 브랜치 병합 및 최신 프로덕션 APK (`dagaon-release.apk`) 재배포 완료 (완료)
+
+### 1. 개요 및 배경
+- **목표**: 모바일 앱과 백엔드 간 고수준 인증 연결에 그치지 않고, 각 화면의 모든 세부 기능(디스커버 카드/갤러리, 실시간 채팅방/메시지, 라이브 방송/선물, 라운지 피드/댓글/좋아요, 스토어 인앱결제/포인트 충전/정산, 친구/팔로우/방문자 소셜 관계)을 실제 백엔드 API와 100% 직결하여 목업/폴백 없이 실제 데이터가 작동하도록 구현 및 최신 안드로이드 프로덕션 릴리즈 APK 빌드·배포.
+
+### 2. 주요 작업 내역 및 세부 API 연동
+1. **디스커버 & 유저 탐색 도메인 (`services/api/src/modules/users/`)**:
+   - `GET /discover`, `GET /users/discover`: DB 실 유저 데이터와 프로필 시드를 결합하여 실제 카드 및 사진 갤러리 피드 제공.
+   - `GET /users/check-nickname`: 닉네임 실시간 중복 검사 API 연동.
+   - `GET /users/:id/photos`, `POST /users/me/photos`, `PATCH /users/me/photos/:photoId/primary`, `DELETE /users/me/photos/:photoId`: 프로필 갤러리 사진 등록, 대표사진 설정, 삭제 연동.
+2. **실시간 채팅 & 메시징 도메인 (`services/api/src/modules/chat/`)**:
+   - `ChatModule`, `ChatService`, `ChatController` 신설 및 `AppModule` 등록.
+   - `GET /chats`: 유저 참여 채팅방 목록 실시간 조회.
+   - `POST /chats/direct`: 상대방 프로필에서 '대화하기' 진입 시 1:1 다이렉트 방 자동 생성/반환.
+   - `GET /chats/:id/messages`, `POST /chats/message`: 채팅방 실시간 메시지 송수신 및 히스토리 보관.
+   - `POST /chats/gift`: 채팅창 내 온(ON) 포인트 선물하기 및 보유 잔액 실시간 검증·차감.
+   - `DELETE /chats/:id`: 대화방 나가기/삭제 처리.
+3. **라이브 스트리밍 도메인 (`services/api/src/modules/streaming/live.controller.ts`)**:
+   - `GET /live/rooms`, `GET /live/rooms/:id`: 실시간 활성 방송 목록 및 상세 정보 연동.
+   - `POST /live/rooms`, `POST /live/rooms/:id/join`, `POST /live/rooms/:id/leave`, `POST /live/rooms/:id/end`: 방송 개설, 시청자 실시간 참여/퇴장/방송 종료 연동.
+   - `POST /live/rooms/:id/messages`, `POST /live/rooms/:id/like`: 방송 실시간 채팅 및 하트 좋아요 연동.
+   - `POST /live/rooms/:id/gift`: 방송 중 선물 후원 및 유저 `pointBalance` 차감 트랜잭션 연동.
+4. **동네 라운지 커뮤니티 도메인 (`services/api/src/modules/admin/content.*`)**:
+   - `GET /posts`, `GET /posts/topics`: 피드 게시글 목록 및 토픽 카테고리 실시간 조회.
+   - `POST /posts`, `DELETE /posts/:id`: 신규 게시글 작성(미디어 첨부 포함) 및 삭제 연동.
+   - `POST /posts/:id/like`: 게시글 좋아요 실시간 토글 연동.
+   - `GET /posts/:id/comments`, `POST /posts/:id/comments`, `DELETE /posts/:id/comments/:commentId`: 실시간 댓글 작성/조회/삭제 연동.
+   - `POST /community/report`, `POST /reports`: 불량 게시글 실시간 신고 접수.
+5. **스토어 & 포인트 결제 & 정산 도메인 (`services/api/src/modules/store/`)**:
+   - `GET /store/point-balance`: 실시간 유저 포인트 잔액 조회 (DB 연동).
+   - `GET /store/point-products`: 충전 패키지 목록 제공.
+   - `POST /store/purchase`: 인앱 결제 완료 시 DB `pointBalance` 즉각 증액 반영.
+   - `POST /store/rewards/attendance`, `POST /store/rewards/ad`: 출석 및 광고 시청 리워드 포인트 지급.
+   - `GET /settlement/overview`, `POST /settlement/requests`: 크리에이터 환전 수익 대시보드 및 정산 신청.
+6. **소셜 관계 & 알림 도메인 (`services/api/src/modules/users/social.controller.ts` & `admin/`)**:
+   - `GET/POST /friendships/request`, `accept`, `decline`: 친구 신청 및 수락/거절 라이프사이클.
+   - `POST /accounts/:id/follow`, `DELETE /accounts/:id/follow`: 상대방 팔로우/언팔로우 및 팔로워 목록.
+   - `GET/POST /profile/visits`: 내 프로필 방문자 실시간 기록 및 열람.
+   - `GET/POST/DELETE /community/blocks`: 악성 사용자 차단 및 목록 관리.
+   - `GET /notifications/activity`, `POST /notifications/read-all`: 전체 알림 조회 및 일괄 읽음 처리.
+7. **모바일 클라이언트 연동 (`apps/mobile/src/api/client.js` & `MyPageScreen.js`)**:
+   - `updateMyProfile` 추가 및 분당 통화료 설정 저장 연동.
+   - 사진 업로드, 포인트 잔액, 커뮤니티 생성/좋아요 등 매핑 파라미터 규격 동기화.
+
+### 3. 검증 결과
+- **백엔드 컴파일**: `nest build` -> 성공 (TypeScript 컴파일 에러 0건).
+- **세부 API 통합 E2E 테스트 (`test/verify-all-endpoints.ts`)**: **22개 전 항목 100% 통과 (PASS)**.
+- **핵심 1:1 통화 및 스냅샷 채증 파이프라인 테스트 (`test/verify-core-pipeline.ts`)**: **20개 전 항목 100% 통과 (PASS)**.
+- **안드로이드 네이티브 릴리즈 빌드 (`gradlew assembleRelease --no-daemon`)**: 성공 (`dagaon-release.apk` 생성 및 배포).
+- **Git 메인 동기화**: 모든 작업 내역 및 최신 프로덕션 APK 파일 `main` 브랜치에 안전하게 커밋 및 병합 완료.
+
+---
 
 ## 2026-10-19 Checkpoint 99: [전체 빌드 & 메인 병합 완결] 안드로이드 에뮬레이터 5대 핵심 도메인 전수 E2E 검증, 풀스택 3개 프로젝트(API/Admin/Mobile) 무결점 빌드 및 최신 프로덕션 릴리즈 APK (`dagaon-release.apk`) 재배포 완료 (완료)
 

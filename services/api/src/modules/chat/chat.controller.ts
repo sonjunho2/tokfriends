@@ -1,0 +1,90 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ChatService } from './chat.service';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt.guard';
+import { Public } from '../auth/public.decorator';
+
+@ApiTags('chats')
+@ApiBearerAuth()
+@Controller('chats')
+export class ChatController {
+  constructor(private readonly chatService: ChatService) {}
+
+  @Public()
+  @Get()
+  async getChats(@CurrentUser() user?: any) {
+    const userId = user?.id || user?.sub || 'guest';
+    const list = await this.chatService.getChats(userId);
+    return { ok: true, data: list, items: list };
+  }
+
+  @Public()
+  @Post('direct')
+  async ensureDirectRoom(@CurrentUser() user: any, @Body() body: any) {
+    const userId = user?.id || user?.sub || 'guest';
+    const targetUserId = body.targetUserId || body.targetAccountId;
+    const room = await this.chatService.ensureDirectRoom(userId, targetUserId);
+    return { ok: true, data: room, room };
+  }
+
+  @Public()
+  @Post('rooms')
+  async createChatRoom(@CurrentUser() user: any, @Body() body: any) {
+    const userId = user?.id || user?.sub || 'guest';
+    const room = await this.chatService.createChatRoom(userId, body);
+    return { ok: true, data: room, room };
+  }
+
+  @Public()
+  @Get(':id')
+  async getChatRoom(@Param('id') id: string) {
+    const room = await this.chatService.getRoomById(id);
+    return { ok: true, data: room, room };
+  }
+
+  @Public()
+  @Get(':id/messages')
+  async getChatMessages(@Param('id') id: string, @Query('limit') limit?: string) {
+    const res = await this.chatService.getMessages(id, limit ? Number(limit) : 50);
+    return { ok: true, data: res.items, items: res.items, pageInfo: res.pageInfo };
+  }
+
+  @Public()
+  @Post('message')
+  async sendChatMessage(@CurrentUser() user: any, @Body() body: any) {
+    const userId = user?.id || user?.sub || 'guest';
+    const msg = await this.chatService.sendMessage(userId, body);
+    return { ok: true, data: msg, message: msg };
+  }
+
+  @Public()
+  @Delete(':id')
+  async deleteChat(@CurrentUser() user: any, @Param('id') id: string) {
+    const userId = user?.id || user?.sub || 'guest';
+    const res = await this.chatService.deleteChat(userId, id);
+    return { ok: true, ...res };
+  }
+
+  @Public()
+  @Post('gift')
+  async sendChatGift(@CurrentUser() user: any, @Body() body: any) {
+    const userId = user?.id || user?.sub || 'guest';
+    const points = Number(body.points || 100);
+    const msg = await this.chatService.sendMessage(userId, {
+      chatId: body.chatId,
+      content: `🎁 선물을 보냈습니다! (+${points} ON)`,
+      type: 'gift',
+    });
+    return { ok: true, data: msg, transactionId: `gift-tx-${Date.now()}` };
+  }
+}

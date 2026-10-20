@@ -15,6 +15,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { GiftsModule } from './modules/gifts/gifts.module';
 import { StoreModule } from './modules/store/store.module';
 import { WsModule } from './modules/ws/ws.module';
+import { ChatModule } from './modules/chat/chat.module';
 import { JwtAuthGuard } from './modules/auth/jwt.guard';
 import { AdminPermissionsGuard } from './common/admin-permissions.guard';
 import { AppController } from './app.controller';
@@ -36,6 +37,7 @@ import { AppController } from './app.controller';
     GiftsModule,
     StoreModule,
     WsModule,
+    ChatModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

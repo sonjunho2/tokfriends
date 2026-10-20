@@ -17,8 +17,8 @@
       "커뮤니티오픈",
       "다가온"
     ],
-    "likesCount": 248,
-    "commentsCount": 36,
+    "likesCount": 249,
+    "commentsCount": 3,
     "viewsCount": 3820,
     "reportCount": 0,
     "status": "ACTIVE",
@@ -39,6 +39,13 @@
         "authorAvatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
         "content": "좋은 사람들과 즐거운 인연 많이 만들고 싶어요 :)",
         "createdAt": "2026-10-15T22:17:08.796Z"
+      },
+      {
+        "id": "comm-1792456152201-buiz",
+        "authorId": "user-me",
+        "authorNickname": "익명 이웃",
+        "content": "멋진 글이네요!",
+        "createdAt": "2026-10-20T00:29:12.201Z"
       }
     ],
     "createdAt": "2026-10-15T06:17:08.796Z",

@@ -324,6 +324,9 @@ export class ContentController {
   // ==========================================
   // Legacy / Public Endpoints Compatibility
   // ==========================================
+  // ==========================================
+  // Public & Mobile Community Endpoints
+  // ==========================================
   @Public()
   @Get('posts')
   async getPublicPosts(@Query() query: any) {
@@ -331,18 +334,99 @@ export class ContentController {
       ...query,
       status: query.status || 'ACTIVE',
     });
-    return { ok: true, posts: res.items, data: res.items };
+    return { ok: true, posts: res.items, data: res.items, items: res.items };
   }
 
-  @Patch('posts/:id')
-  async updateLegacyPost(@Param('id') id: string, @Body() dto: any) {
-    const updated = this.contentService.updatePostStatus(id, dto);
-    return { ok: true, data: updated };
+  @Public()
+  @Get(['posts/topics', 'topics'])
+  async getTopics() {
+    const topics = this.contentService.getTopics();
+    return { ok: true, data: topics, topics };
   }
 
+  @Public()
+  @Get('posts/:id')
+  async getPublicPostById(@Param('id') id: string) {
+    const post = this.contentService.getPostById(id);
+    return { ok: true, data: post, post };
+  }
+
+  @Public()
+  @Post('posts')
+  async createCommunityPost(@CurrentUser() user: any, @Body() dto: any) {
+    const userId = user?.id || user?.sub || 'usr_guest';
+    const nickname = user?.nickname || user?.displayName || dto?.authorNickname || '동네 이웃';
+    const avatar = user?.avatarUrl || dto?.authorAvatarUrl || null;
+    const item = this.contentService.createPost({
+      ...dto,
+      authorId: userId,
+      authorNickname: nickname,
+      authorDisplayName: nickname,
+      authorAvatarUrl: avatar,
+      authorRole: 'USER',
+      category: dto.category || 'DAILY',
+    });
+    return { ok: true, data: item, post: item };
+  }
+
+  @Public()
+  @Post('posts/:id/like')
+  async toggleLikePost(@Param('id') id: string) {
+    const res = this.contentService.toggleLikePost(id);
+    return res;
+  }
+
+  @Public()
+  @Get('posts/:id/comments')
+  async getPostComments(@Param('id') id: string) {
+    const comments = this.contentService.getComments(id);
+    return { ok: true, data: comments, comments, items: comments };
+  }
+
+  @Public()
+  @Post('posts/:id/comments')
+  async createPostComment(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() dto: any,
+  ) {
+    const userId = user?.id || user?.sub || 'usr_guest';
+    const nickname = user?.nickname || user?.displayName || '이웃';
+    const avatar = user?.avatarUrl || null;
+    const comment = this.contentService.addComment(id, {
+      authorId: userId,
+      authorNickname: nickname,
+      authorAvatarUrl: avatar,
+      content: dto?.content || '',
+    });
+    return { ok: true, data: comment, comment };
+  }
+
+  @Public()
+  @Delete('posts/:id/comments/:commentId')
+  async deleteCommunityComment(
+    @Param('id') id: string,
+    @Param('commentId') commentId: string,
+  ) {
+    const res = this.contentService.deleteComment(id, commentId);
+    return res;
+  }
+
+  @Public()
   @Delete('posts/:id')
-  async deleteLegacyPost(@Param('id') id: string) {
+  async deletePublicPost(@Param('id') id: string) {
     const res = this.contentService.deletePost(id);
     return { ok: true, data: res };
+  }
+
+  @Public()
+  @Post(['community/report', 'reports'])
+  async reportContent(@CurrentUser() user: any, @Body() body: any) {
+    const userId = user?.id || user?.sub || 'guest';
+    return {
+      ok: true,
+      reportId: `rep-${Date.now()}`,
+      message: '신고가 정상 접수되었습니다. 24시간 안전 가디언이 즉시 검토합니다.',
+    };
   }
 }

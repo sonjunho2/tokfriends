@@ -103,6 +103,9 @@ export default function MyPageScreen({ navigation }) {
   const handleSaveCallRate = useCallback(async (rate) => {
     setCurrentCallRate(rate);
     await AsyncStorage.setItem('dagaon_call_rate', String(rate));
+    try {
+      await apiClient.updateMyProfile({ callRatePerMinute: rate });
+    } catch {}
     setCallRateModalVisible(false);
     Alert.alert('설정 완료', `1:1 영상/음성 통화 단가가 분당 ${rate.toLocaleString()} ON으로 변경되었습니다.`);
   }, []);

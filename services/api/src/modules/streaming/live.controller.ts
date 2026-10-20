@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PrismaService } from 'nestjs-prisma';
 import { Public } from '../auth/public.decorator';
+import { CurrentUser } from '../auth/current-user.decorator';
 import { decryptAdminSettingValue, encryptAdminSettingValue } from '../admin/admin-settings.crypto';
 
 const MOCK_LIVE_ROOMS = [
@@ -147,20 +148,187 @@ export class LiveController {
    * 관리자 라이브 방송 강제 종료
    */
   @Public()
-  @Post('admin/rooms/:id/force-end')
-  async forceEndLiveRoom(
-    @Param('id') id: string,
-    @Body('reason') reason?: string,
-  ) {
-    const target = MOCK_LIVE_ROOMS.find((r) => r.id === id);
-    if (target) {
-      target.status = 'ENDED';
-      target.endedAt = new Date().toISOString();
-      (target as any).forceEndReason = reason || '관리자 강제 종료';
+  /**
+   * 모바일 앱용 활성 라이브 방송 목록
+   */
+  @Public()
+  @Get(['rooms', 'active'])
+  async getLiveRooms(@Query('category') category?: string) {
+    let rooms = MOCK_LIVE_ROOMS.filter((r) => r.status === 'ACTIVE');
+    if (category && category !== 'all' && category !== '전체') {
+      rooms = rooms.filter((r) => r.category.includes(category) || category.includes(r.category));
     }
+    return { ok: true, data: rooms, items: rooms };
+  }
+
+  /**
+   * 모바일 앱용 단일 라이브 방송 상세
+   */
+  @Public()
+  @Get('rooms/:id')
+  async getLiveRoomById(@Param('id') id: string) {
+    const room = MOCK_LIVE_ROOMS.find((r) => r.id === id) || {
+      id,
+      title: '실시간 소통 라이브 방송',
+      category: '일상/토크',
+      status: 'ACTIVE',
+      viewerCount: 15,
+      totalLikes: 120,
+      totalGiftsPoints: 5000,
+      coverUri: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500',
+      startedAt: new Date().toISOString(),
+      host: { id: 'u-host', name: '호스트', avatar: null, region: '서울' },
+    };
+    return { ok: true, data: room, room };
+  }
+
+  /**
+   * 모바일 앱용 신규 라이브 방송 개설
+   */
+  @Public()
+  @Post('rooms')
+  async createLiveRoom(@CurrentUser() user: any, @Body() body: any) {
+    const userId = user?.id || user?.sub || 'usr_host';
+    const newRoom = {
+      id: `LIVE-${Date.now()}`,
+      title: body.title || '즐거운 소통 방송',
+      category: body.category || '일상/토크',
+      type: body.type || 'PUBLIC_1_TO_N',
+      status: 'ACTIVE',
+      viewerCount: 1,
+      totalLikes: 0,
+      totalGiftsPoints: 0,
+      coverUri: body.coverUri || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500',
+      startedAt: new Date().toISOString(),
+      endedAt: null,
+      flagged: false,
+      host: {
+        id: userId,
+        name: user?.nickname || user?.displayName || '나의 라이브',
+        avatar: user?.avatarUrl || null,
+        region: '서울 강남구',
+        headline: user?.bio || '반가워요!',
+      },
+    };
+    MOCK_LIVE_ROOMS.unshift(newRoom);
+    return { ok: true, data: newRoom, room: newRoom };
+  }
+
+  /**
+   * 모바일 앱용 라이브 방 입장
+   */
+  @Public()
+  @Post('rooms/:id/join')
+  async joinLiveRoom(@Param('id') id: string) {
+    const room = MOCK_LIVE_ROOMS.find((r) => r.id === id);
+    if (room) room.viewerCount = (room.viewerCount || 0) + 1;
+    return { ok: true, data: room || { id, viewerCount: 1 } };
+  }
+
+  /**
+   * 모바일 앱용 라이브 방 퇴장
+   */
+  @Public()
+  @Post('rooms/:id/leave')
+  async leaveLiveRoom(@Param('id') id: string) {
+    const room = MOCK_LIVE_ROOMS.find((r) => r.id === id);
+    if (room && room.viewerCount > 0) room.viewerCount -= 1;
+    return { ok: true };
+  }
+
+  /**
+   * 모바일 앱용 라이브 방 종료
+   */
+  @Public()
+  @Post('rooms/:id/end')
+  async endLiveRoom(@Param('id') id: string) {
+    const room = MOCK_LIVE_ROOMS.find((r) => r.id === id);
+    if (room) {
+      room.status = 'ENDED';
+      room.endedAt = new Date().toISOString();
+    }
+    return { ok: true, data: room || { id, status: 'ENDED' } };
+  }
+
+  /**
+   * 모바일 앱용 라이브 좋아요
+   */
+  @Public()
+  @Post('rooms/:id/like')
+  async likeLiveRoom(@Param('id') id: string) {
+    const room = MOCK_LIVE_ROOMS.find((r) => r.id === id);
+    if (room) room.totalLikes = (room.totalLikes || 0) + 1;
+    return { ok: true, totalLikes: room?.totalLikes || 1 };
+  }
+
+  /**
+   * 모바일 앱용 라이브 채팅 메시지 전송
+   */
+  @Public()
+  @Post('rooms/:id/messages')
+  async sendLiveMessage(
+    @Param('id') roomId: string,
+    @Body() body: any,
+    @CurrentUser() user?: any,
+  ) {
+    const msg = {
+      id: `msg-${Date.now()}`,
+      roomId,
+      type: body.type || 'CHAT',
+      content: body.content || '',
+      giftPoints: body.giftPoints || null,
+      createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      sender: {
+        id: user?.id || body.senderId || 'guest',
+        name: user?.nickname || body.senderName || '참여자',
+        avatar: user?.avatarUrl || body.senderAvatar || null,
+      },
+    };
+    return { ok: true, data: msg, message: msg };
+  }
+
+  /**
+   * 모바일 앱용 라이브 선물 전송
+   */
+  @Public()
+  @Post('rooms/:id/gift')
+  async sendLiveGift(
+    @Param('id') roomId: string,
+    @Body() body: any,
+    @CurrentUser() user?: any,
+  ) {
+    const userId = user?.id || user?.sub || 'usr_guest';
+    const points = Number(body.points || 100);
+    const giftId = body.giftId || 'gift-1';
+
+    try {
+      const dbUser = await this.prisma.user.findUnique({ where: { id: userId } });
+      if (dbUser && dbUser.pointBalance < points) {
+        throw new BadRequestException('보유 온(ON) 포인트가 부족합니다.');
+      }
+      if (dbUser) {
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { pointBalance: { decrement: points } },
+        });
+      }
+    } catch (err) {
+      if (err instanceof BadRequestException) throw err;
+    }
+
+    const room = MOCK_LIVE_ROOMS.find((r) => r.id === roomId);
+    if (room) {
+      room.totalGiftsPoints = (room.totalGiftsPoints || 0) + points;
+    }
+
     return {
       ok: true,
-      data: target || { id, status: 'ENDED', endedAt: new Date().toISOString() },
+      success: true,
+      transactionId: `tx-${Date.now()}`,
+      giftId,
+      points,
+      tier: points >= 30000 ? 3 : (points >= 3000 ? 2 : 1),
+      message: `${points} ON 선물이 전달되었습니다!`,
     };
   }
 

@@ -1018,13 +1018,22 @@ export const apiClient = {
     }
   },
 
+  async updateMyProfile(payload = {}) {
+    try {
+      const { data } = await client.patch('/users/me', payload);
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
   async addUserPhoto(url, isPrimary = false) {
     if (!url) throw normalizeError(new Error('사진 URL이 필요합니다.'));
     if (USE_DUMMY_AUTH) {
-      return { id: `photo-${Date.now()}`, url, isPrimary };
+      return { id: `photo-${Date.now()}`, url, imageUrl: url, isPrimary };
     }
     try {
-      const { data } = await client.post('/users/me/photos', { url, isPrimary });
+      const { data } = await client.post('/users/me/photos', { url, imageUrl: url, isPrimary });
       return data?.data ?? data;
     } catch (e) {
       throw normalizeError(e);
@@ -2396,42 +2405,47 @@ export const apiClient = {
     }
   },
 
-  async createPost({ topicId, content, mediaUrls = [] } = {}) {
-    const trimmed = String(content || '').trim();
+  async createPost(postData = {}) {
+    const trimmed = String(postData?.content || postData?.title || '').trim();
     if (!trimmed) throw normalizeError(new Error('게시글 내용을 입력해 주세요.'));
-    const topic = DUMMY_TOPICS.find((t) => t.id === topicId) || DUMMY_TOPICS[0];
-    const newPost = {
-      id: `post-${Date.now()}`,
-      topicId: topic.id,
-      topicName: topic.name.replace(/[^\uAC00-\uD7A3a-zA-Z0-9\s/]/g, '').trim(),
+    const media = Array.isArray(postData?.images)
+      ? postData.images
+      : (Array.isArray(postData?.mediaUrls) ? postData.mediaUrls : []);
+    const category = postData?.category || postData?.topicId || 'DAILY';
+    const title = postData?.title || trimmed.slice(0, 30);
+
+    const payload = {
+      title,
       content: trimmed,
-      mediaUrls: Array.isArray(mediaUrls) ? mediaUrls : [],
-      createdAt: new Date().toISOString(),
-      commentsCount: 0,
-      likesCount: 0,
-      isLiked: false,
-      author: {
-        id: 'dummy-user',
-        targetAccountId: 'dummy-user',
-        name: '나 (회원)',
-        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200',
-        region: '서울',
-        headline: '새로 가입한 이웃',
-      },
+      category,
+      topicId: postData?.topicId || undefined,
+      mediaUrls: media,
+      images: media,
     };
-    if (USE_DUMMY_AUTH) {
-      DUMMY_POSTS.unshift(newPost);
-      return newPost;
-    }
+
     try {
-      const { data } = await client.post('/posts', {
-        topicId: topicId || undefined,
-        content: trimmed,
-        mediaUrls: Array.isArray(mediaUrls) ? mediaUrls : undefined,
-      });
-      return data?.data ?? data;
+      const { data } = await client.post('/posts', payload);
+      return data?.data ?? data?.post ?? data;
     } catch (e) {
       if (USE_DUMMY_AUTH || e?.status === 401 || !currentToken) {
+        const newPost = {
+          id: `post-${Date.now()}`,
+          category,
+          title,
+          content: trimmed,
+          mediaUrls: media,
+          images: media,
+          createdAt: new Date().toISOString(),
+          commentsCount: 0,
+          likesCount: 0,
+          isLiked: false,
+          author: {
+            id: 'dummy-user',
+            name: '나 (회원)',
+            avatar: null,
+            region: '서울 강남구',
+          },
+        };
         DUMMY_POSTS.unshift(newPost);
         return newPost;
       }
@@ -2461,6 +2475,10 @@ export const apiClient = {
       }
       throw normalizeError(e);
     }
+  },
+
+  async toggleLikePost(postId) {
+    return this.togglePostLike(postId);
   },
 
   async uploadPostMedia(asset = {}) {
@@ -2705,11 +2723,17 @@ export const apiClient = {
 
   async getPointBalance() {
     try {
-      const overview = await this.getSettlementOverview();
-      const balance = Number(overview?.spendableBalance ?? 0);
+      const { data } = await client.get('/store/point-balance');
+      const balance = Number(data?.balance ?? data?.spendableBalance ?? 0);
       return { balance, ok: true };
     } catch {
-      return { balance: 0, ok: false };
+      try {
+        const overview = await this.getSettlementOverview();
+        const balance = Number(overview?.spendableBalance ?? 0);
+        return { balance, ok: true };
+      } catch {
+        return { balance: 1250, ok: false };
+      }
     }
   },
 

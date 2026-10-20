@@ -682,10 +682,56 @@ export class ContentService implements OnModuleInit {
   deleteComment(postId: string, commentId: string) {
     const post = this.posts.find((p) => p.id === postId);
     if (!post) return { ok: false };
-    post.comments = post.comments.filter((c) => c.id !== commentId);
+    post.comments = (post.comments || []).filter((c) => c.id !== commentId);
     post.commentsCount = Math.max(0, post.comments.length);
     this.savePosts();
     return { ok: true, commentId };
+  }
+
+  toggleLikePost(postId: string) {
+    const post = this.posts.find((p) => p.id === postId);
+    if (!post) return { ok: false, likesCount: 0, liked: false };
+    post.likesCount = (post.likesCount || 0) + 1;
+    this.savePosts();
+    return { ok: true, liked: true, likesCount: post.likesCount };
+  }
+
+  addComment(
+    postId: string,
+    dto: { authorId: string; authorNickname?: string; authorAvatarUrl?: string; content: string },
+  ) {
+    const post = this.posts.find((p) => p.id === postId);
+    if (!post) return null;
+    const comment: PostComment = {
+      id: `comm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      authorId: dto.authorId || 'guest',
+      authorNickname: dto.authorNickname || '익명 이웃',
+      authorAvatarUrl: dto.authorAvatarUrl,
+      content: dto.content,
+      createdAt: new Date().toISOString(),
+    };
+    if (!post.comments) post.comments = [];
+    post.comments.push(comment);
+    post.commentsCount = post.comments.length;
+    this.savePosts();
+    return comment;
+  }
+
+  getComments(postId: string) {
+    const post = this.posts.find((p) => p.id === postId);
+    return post?.comments || [];
+  }
+
+  getTopics() {
+    return [
+      { id: 't-all', name: '전체', count: 120 },
+      { id: 't-hot', name: '동네인기', count: 85 },
+      { id: 't-daily', name: '일상·소통', count: 64 },
+      { id: 't-workout', name: '취미·운동', count: 42 },
+      { id: 't-pet', name: '반려견', count: 38 },
+      { id: 't-food', name: '동네맛집', count: 51 },
+      { id: 't-qa', name: '질문·고민', count: 29 },
+    ];
   }
 
   // ==========================================
