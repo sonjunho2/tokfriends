@@ -26,6 +26,14 @@ export interface PostComment {
   authorId: string;
   authorNickname: string;
   authorAvatarUrl?: string;
+  author?: {
+    id: string;
+    name?: string;
+    displayName?: string;
+    nickname?: string;
+    avatar?: string | null;
+    avatarUrl?: string | null;
+  };
   content: string;
   createdAt: string;
 }
@@ -37,10 +45,21 @@ export interface CommunityPostItem {
   authorDisplayName: string;
   authorAvatarUrl: string;
   authorRole: 'USER' | 'CREATOR' | 'ADMIN';
+  author?: {
+    id: string;
+    name?: string;
+    displayName?: string;
+    nickname?: string;
+    avatar?: string | null;
+    avatarUrl?: string | null;
+    region?: string;
+    headline?: string;
+  };
   category: 'OFFICIAL' | 'DAILY' | 'SOCIAL' | 'LIVE' | 'QA';
   title?: string;
   content: string;
   mediaUrls: string[];
+  images?: string[];
   tags: string[];
   likesCount: number;
   commentsCount: number;
@@ -56,6 +75,25 @@ export interface CommunityPostItem {
   updatedAt: string;
 }
 
+export interface ReportItem {
+  id: number | string;
+  category: 'PRIVATE_CALL' | 'LIVE_STREAM' | 'POST' | 'CHAT_MESSAGE' | 'PROFILE';
+  reason: string;
+  details?: string;
+  status: 'PENDING' | 'REVIEWING' | 'RESOLVED' | 'REJECTED';
+  reporterId?: string;
+  reporterNickname?: string;
+  reportedId: string;
+  reportedNickname?: string;
+  targetType?: string;
+  targetId?: string;
+  post?: any;
+  createdAt: string;
+  updatedAt?: string;
+  adminMemo?: string;
+  sanctionAction?: string;
+}
+
 export interface FaqItem {
   id: string;
   category: 'ON_STORE' | 'SETTLEMENT' | 'SAFETY' | 'ACCOUNT' | 'CHAT_LIVE';
@@ -66,6 +104,23 @@ export interface FaqItem {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface SupportTicketItem {
+  id: string;
+  user: string;
+  category: 'FAQ' | '문의' | '버그 신고' | '결제/환불' | string;
+  status: '대기' | '진행' | '완료';
+  createdAt: string;
+  message?: string;
+  contact?: string;
+  userId?: string;
+}
+
+const INITIAL_SUPPORT_TICKETS: SupportTicketItem[] = [
+  { id: 'TKT-701', user: '010-3210-1101 (초보호스트루나)', category: '문의', status: '진행', createdAt: '2026-10-17 08:30', message: '출금 계좌 번호 오타 수정 요청드립니다.' },
+  { id: 'TKT-702', user: '010-4477-4404 (라이더민수)', category: 'FAQ', status: '대기', createdAt: '2026-10-17 07:15', message: '커뮤니티 사진 업로드 최대 장수가 몇 장인가요?' },
+  { id: 'TKT-703', user: '010-5624-2202 (김은지)', category: '버그 신고', status: '완료', createdAt: '2026-10-16 22:10', message: '아이폰 15 프로에서 3D 선물 이펙트 끊김 현상 제보' },
+];
 
 const INITIAL_ANNOUNCEMENTS: AnnouncementItem[] = [
   {
@@ -359,6 +414,37 @@ const INITIAL_FAQS: FaqItem[] = [
   },
 ];
 
+const INITIAL_REPORTS: ReportItem[] = [
+  {
+    id: 1001,
+    category: 'PRIVATE_CALL',
+    reason: '1:1 영상 통화 중 불법 녹화 및 외부 메신저 유도 협박',
+    details: '영상 통화 연결 후 3분 만에 카카오톡 아이디를 요구하며 사적인 영상을 캡처했다고 협박했습니다.',
+    status: 'PENDING',
+    reporterId: 'usr-102',
+    reporterNickname: '행복한하루',
+    reportedId: 'bad-user-99',
+    reportedNickname: '조건문의_카톡ID',
+    createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 3).toISOString(),
+  },
+  {
+    id: 1002,
+    category: 'POST',
+    reason: '커뮤니티 내 불법 대출 스팸 광고 및 텔레그램 링크 홍보',
+    details: '신용불량자 당일 대출이라며 텔레그램 계정을 지속적으로 도배 게시글로 올리고 있습니다.',
+    status: 'REVIEWING',
+    reporterId: 'usr-205',
+    reporterNickname: '자전거홀릭',
+    reportedId: 'spammer-01',
+    reportedNickname: '대출상담사',
+    targetType: 'POST',
+    targetId: 'post-105',
+    createdAt: new Date(Date.now() - 3600000 * 8).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+  },
+];
+
 @Injectable()
 export class ContentService implements OnModuleInit {
   private readonly logger = new Logger(ContentService.name);
@@ -366,6 +452,8 @@ export class ContentService implements OnModuleInit {
   private announcements: AnnouncementItem[] = [];
   private posts: CommunityPostItem[] = [];
   private faqs: FaqItem[] = [];
+  private reports: ReportItem[] = [];
+  private tickets: SupportTicketItem[] = [];
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -409,14 +497,54 @@ export class ContentService implements OnModuleInit {
         this.saveFaqs();
       }
 
+      // Reports
+      const reportsPath = path.join(this.dataDir, 'reports.json');
+      if (fs.existsSync(reportsPath)) {
+        const raw = fs.readFileSync(reportsPath, 'utf-8');
+        this.reports = JSON.parse(raw);
+      } else {
+        this.reports = [...INITIAL_REPORTS];
+        this.saveReports();
+      }
+
+      // Support Tickets (1:1 고객 문의)
+      const ticketsPath = path.join(this.dataDir, 'support-tickets.json');
+      if (fs.existsSync(ticketsPath)) {
+        const raw = fs.readFileSync(ticketsPath, 'utf-8');
+        this.tickets = JSON.parse(raw);
+      } else {
+        this.tickets = [...INITIAL_SUPPORT_TICKETS];
+        this.saveTickets();
+      }
+
       this.logger.log(
-        `ContentService initialized. Announcements: ${this.announcements.length}, Posts: ${this.posts.length}, FAQs: ${this.faqs.length}`,
+        `ContentService initialized. Announcements: ${this.announcements.length}, Posts: ${this.posts.length}, FAQs: ${this.faqs.length}, Reports: ${this.reports.length}, Tickets: ${this.tickets.length}`,
       );
     } catch (err) {
       this.logger.error('Failed to load content data from file storage', err);
       this.announcements = [...INITIAL_ANNOUNCEMENTS];
       this.posts = [...INITIAL_POSTS];
       this.faqs = [...INITIAL_FAQS];
+      this.reports = [...INITIAL_REPORTS];
+      this.tickets = [...INITIAL_SUPPORT_TICKETS];
+    }
+  }
+
+  private saveTickets() {
+    try {
+      const ticketsPath = path.join(this.dataDir, 'support-tickets.json');
+      fs.writeFileSync(ticketsPath, JSON.stringify(this.tickets, null, 2), 'utf-8');
+    } catch (e) {
+      this.logger.error('Failed to save support-tickets.json', e);
+    }
+  }
+
+  private saveReports() {
+    try {
+      const reportsPath = path.join(this.dataDir, 'reports.json');
+      fs.writeFileSync(reportsPath, JSON.stringify(this.reports, null, 2), 'utf-8');
+    } catch (e) {
+      this.logger.error('Failed to save reports.json', e);
     }
   }
 
@@ -525,6 +653,53 @@ export class ContentService implements OnModuleInit {
   // ==========================================
   // Community Posts
   // ==========================================
+  private normalizeComment(c: any): PostComment {
+    if (!c) return c;
+    const authorNickname = c.authorNickname || c.author?.name || c.author?.nickname || '익명 이웃';
+    const authorAvatarUrl = c.authorAvatarUrl || c.author?.avatar || c.author?.avatarUrl || null;
+    return {
+      ...c,
+      authorNickname,
+      authorAvatarUrl,
+      author: {
+        id: c.authorId || c.author?.id || 'guest',
+        name: authorNickname,
+        nickname: authorNickname,
+        displayName: authorNickname,
+        avatar: authorAvatarUrl,
+        avatarUrl: authorAvatarUrl,
+      },
+    };
+  }
+
+  private normalizePost(p: any): CommunityPostItem {
+    if (!p) return p;
+    const authorNickname = p.authorNickname || p.authorDisplayName || p.author?.name || p.author?.nickname || '동네 이웃';
+    const authorAvatarUrl = p.authorAvatarUrl || p.author?.avatar || p.author?.avatarUrl || null;
+    const mediaUrls = Array.isArray(p.mediaUrls) ? p.mediaUrls : (Array.isArray(p.images) ? p.images : []);
+    const comments = (p.comments || []).map((c: any) => this.normalizeComment(c));
+    return {
+      ...p,
+      authorNickname,
+      authorDisplayName: authorNickname,
+      authorAvatarUrl,
+      mediaUrls,
+      images: mediaUrls,
+      comments,
+      commentsCount: typeof p.commentsCount === 'number' ? p.commentsCount : comments.length,
+      author: {
+        id: p.authorId || p.author?.id || 'usr_guest',
+        name: authorNickname,
+        displayName: authorNickname,
+        nickname: authorNickname,
+        avatar: authorAvatarUrl,
+        avatarUrl: authorAvatarUrl,
+        region: p.author?.region || '서울 강남구 역삼동',
+        headline: p.author?.headline || '동네 이웃과 소통하고 싶어요 ✨',
+      },
+    };
+  }
+
   getPosts(params?: {
     status?: string;
     category?: string;
@@ -570,7 +745,7 @@ export class ContentService implements OnModuleInit {
     const limit = Number(params?.limit) || 20;
     const total = list.length;
     const startIndex = (page - 1) * limit;
-    const items = list.slice(startIndex, startIndex + limit);
+    const items = list.slice(startIndex, startIndex + limit).map((p) => this.normalizePost(p));
 
     return {
       items,
@@ -607,25 +782,39 @@ export class ContentService implements OnModuleInit {
   }
 
   getPostById(id: string) {
-    return this.posts.find((p) => p.id === id);
+    const p = this.posts.find((item) => item.id === id);
+    return p ? this.normalizePost(p) : null;
   }
 
-  createPost(dto: Partial<CommunityPostItem>) {
+  createPost(dto: Partial<CommunityPostItem> & any) {
     const id = `post-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 6)}`;
     const now = new Date().toISOString();
+    const authorNickname = dto.authorNickname || dto.authorDisplayName || dto.author?.name || '동네 이웃';
+    const authorAvatarUrl = dto.authorAvatarUrl || dto.author?.avatar || dto.author?.avatarUrl || null;
+    const media = Array.isArray(dto.mediaUrls) ? dto.mediaUrls : (Array.isArray(dto.images) ? dto.images : []);
+
     const item: CommunityPostItem = {
       id,
-      authorId: dto.authorId || 'admin-official',
-      authorNickname: dto.authorNickname || '다가온 공식운영팀',
-      authorDisplayName: dto.authorDisplayName || 'DAGAON Official',
-      authorAvatarUrl:
-        dto.authorAvatarUrl ||
-        'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80',
-      authorRole: dto.authorRole || 'ADMIN',
-      category: dto.category || 'OFFICIAL',
-      title: dto.title,
+      authorId: dto.authorId || 'usr_guest',
+      authorNickname,
+      authorDisplayName: authorNickname,
+      authorAvatarUrl,
+      authorRole: dto.authorRole || 'USER',
+      author: {
+        id: dto.authorId || 'usr_guest',
+        name: authorNickname,
+        displayName: authorNickname,
+        nickname: authorNickname,
+        avatar: authorAvatarUrl,
+        avatarUrl: authorAvatarUrl,
+        region: dto.author?.region || '서울 강남구 역삼동',
+        headline: dto.author?.headline || '동네 이웃',
+      },
+      category: dto.category || 'DAILY',
+      title: dto.title || (dto.content ? dto.content.slice(0, 30) : '동네 이야기'),
       content: dto.content || '',
-      mediaUrls: Array.isArray(dto.mediaUrls) ? dto.mediaUrls : [],
+      mediaUrls: media,
+      images: media,
       tags: Array.isArray(dto.tags) ? dto.tags : [],
       likesCount: dto.likesCount || 0,
       commentsCount: 0,
@@ -640,7 +829,7 @@ export class ContentService implements OnModuleInit {
     };
     this.posts.unshift(item);
     this.savePosts();
-    return item;
+    return this.normalizePost(item);
   }
 
   updatePostStatus(
@@ -665,7 +854,7 @@ export class ContentService implements OnModuleInit {
     };
     this.posts[idx] = updated;
     this.savePosts();
-    return updated;
+    return this.normalizePost(updated);
   }
 
   deletePost(id: string) {
@@ -702,11 +891,21 @@ export class ContentService implements OnModuleInit {
   ) {
     const post = this.posts.find((p) => p.id === postId);
     if (!post) return null;
+    const authorNickname = dto.authorNickname || '익명 이웃';
+    const authorAvatarUrl = dto.authorAvatarUrl || null;
     const comment: PostComment = {
       id: `comm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       authorId: dto.authorId || 'guest',
-      authorNickname: dto.authorNickname || '익명 이웃',
-      authorAvatarUrl: dto.authorAvatarUrl,
+      authorNickname,
+      authorAvatarUrl,
+      author: {
+        id: dto.authorId || 'guest',
+        name: authorNickname,
+        nickname: authorNickname,
+        displayName: authorNickname,
+        avatar: authorAvatarUrl,
+        avatarUrl: authorAvatarUrl,
+      },
       content: dto.content,
       createdAt: new Date().toISOString(),
     };
@@ -714,12 +913,12 @@ export class ContentService implements OnModuleInit {
     post.comments.push(comment);
     post.commentsCount = post.comments.length;
     this.savePosts();
-    return comment;
+    return this.normalizeComment(comment);
   }
 
   getComments(postId: string) {
     const post = this.posts.find((p) => p.id === postId);
-    return post?.comments || [];
+    return (post?.comments || []).map((c) => this.normalizeComment(c));
   }
 
   getTopics() {
@@ -732,6 +931,158 @@ export class ContentService implements OnModuleInit {
       { id: 't-food', name: '동네맛집', count: 51 },
       { id: 't-qa', name: '질문·고민', count: 29 },
     ];
+  }
+
+  // ==========================================
+  // Reports (모바일 신고 & 관리자 센터 연동)
+  // ==========================================
+  createReport(user: any, dto: any) {
+    const id = Date.now();
+    const now = new Date().toISOString();
+    const reporterId = user?.id || user?.sub || 'usr_reporter';
+    const reporterNickname = user?.nickname || user?.displayName || '신고자';
+    const targetUserId = dto.targetUserId || dto.reportedId || 'unknown';
+
+    // Find associated post if any
+    let post = null;
+    if (dto.postId) {
+      post = this.getPostById(dto.postId);
+      if (post) {
+        post.reportCount = (post.reportCount || 0) + 1;
+        if (post.reportCount >= 3) {
+          post.status = 'REPORTED';
+        }
+        this.savePosts();
+      }
+    }
+
+    const report: ReportItem = {
+      id,
+      category: dto.category || (dto.postId ? 'POST' : 'PRIVATE_CALL'),
+      reason: dto.reason || '부적절한 내용 및 불법 행위 의심',
+      details: dto.detail || dto.details || dto.reason || '',
+      status: 'PENDING',
+      reporterId,
+      reporterNickname,
+      reportedId: targetUserId,
+      reportedNickname: post?.authorNickname || dto.reportedNickname || '피신고자',
+      targetType: dto.postId ? 'POST' : 'USER',
+      targetId: dto.postId || targetUserId,
+      post: post || undefined,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    this.reports.unshift(report);
+    this.saveReports();
+    return { ok: true, reportId: id, message: '신고가 정상 접수되었습니다. 관리자 안전센터에서 신속히 검토합니다.' };
+  }
+
+  getReports(params?: {
+    status?: string;
+    category?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    let list = [...this.reports];
+    if (params?.status && params.status !== 'ALL') {
+      list = list.filter((r) => r.status === params.status);
+    }
+    if (params?.category && params.category !== 'ALL') {
+      list = list.filter((r) => r.category === params.category);
+    }
+    if (params?.search && params.search.trim()) {
+      const q = params.search.trim().toLowerCase();
+      list = list.filter(
+        (r) =>
+          r.reason?.toLowerCase().includes(q) ||
+          r.details?.toLowerCase().includes(q) ||
+          r.reporterNickname?.toLowerCase().includes(q) ||
+          r.reportedNickname?.toLowerCase().includes(q),
+      );
+    }
+    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const page = Number(params?.page) || 1;
+    const limit = Number(params?.limit) || 20;
+    const total = list.length;
+    const startIndex = (page - 1) * limit;
+    const items = list.slice(startIndex, startIndex + limit);
+    return {
+      ok: true,
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
+  }
+
+  getReportStats() {
+    const total = this.reports.length;
+    const pending = this.reports.filter((r) => r.status === 'PENDING').length;
+    const reviewing = this.reports.filter((r) => r.status === 'REVIEWING').length;
+    const resolved = this.reports.filter((r) => r.status === 'RESOLVED').length;
+    const rejected = this.reports.filter((r) => r.status === 'REJECTED').length;
+    return {
+      total,
+      pending,
+      reviewing,
+      resolved,
+      rejected,
+      highRisk: this.reports.filter(
+        (r) => r.details?.includes('협박') || r.details?.includes('대출') || r.reason?.includes('녹화'),
+      ).length,
+      slaComplianceRate: '99.1%',
+      avgResolutionMinutes: 15,
+    };
+  }
+
+  updateReportStatus(id: number | string, status: any, memo?: string) {
+    const idx = this.reports.findIndex((r) => String(r.id) === String(id));
+    if (idx === -1) return null;
+    this.reports[idx] = {
+      ...this.reports[idx],
+      status,
+      adminMemo: memo || this.reports[idx].adminMemo,
+      updatedAt: new Date().toISOString(),
+    };
+    this.saveReports();
+    return this.reports[idx];
+  }
+
+  blockReportedUser(id: number | string, reason?: string) {
+    const report = this.reports.find((r) => String(r.id) === String(id));
+    if (!report) return { reportId: id, reportedId: '', blocked: false };
+    report.status = 'RESOLVED';
+    report.adminMemo = `관리자 사용자 차단 조치: ${reason || '이용규칙 위반'}`;
+    report.sanctionAction = 'PERMANENT_BAN';
+    report.updatedAt = new Date().toISOString();
+    this.saveReports();
+    return { reportId: report.id, reportedId: report.reportedId, blocked: true };
+  }
+
+  sanctionReportedUser(id: number | string, data: any) {
+    const report = this.reports.find((r) => String(r.id) === String(id));
+    if (!report) return { reportId: id, reportedId: '', action: data.action, success: false };
+    report.status = 'RESOLVED';
+    report.sanctionAction = data.action;
+    report.adminMemo = `제재 집행: ${data.action} (${data.reason || '관리자 조치'})`;
+    report.updatedAt = new Date().toISOString();
+    this.saveReports();
+    return { reportId: report.id, reportedId: report.reportedId, action: data.action, success: true };
+  }
+
+  deleteReportedPost(id: number | string) {
+    const report = this.reports.find((r) => String(r.id) === String(id));
+    if (report && report.targetId) {
+      this.deletePost(report.targetId);
+      report.status = 'RESOLVED';
+      report.adminMemo = '신고된 게시글 즉시 영구 삭제 완료';
+      this.saveReports();
+      return { ok: true, deleted: true };
+    }
+    return { ok: false, message: 'Report target not found' };
   }
 
   // ==========================================
@@ -775,5 +1126,43 @@ export class ContentService implements OnModuleInit {
     this.faqs = this.faqs.filter((f) => f.id !== id);
     this.saveFaqs();
     return { ok: true, deletedId: id };
+  }
+
+  // ==========================================
+  // Support Tickets (1:1 고객 문의 접수)
+  // ==========================================
+  getSupportTickets() {
+    return this.tickets;
+  }
+
+  createSupportTicket(dto: any) {
+    const id = `TKT-${Math.floor(100 + Math.random() * 900)}`;
+    const now = new Date();
+    const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    const newTicket: SupportTicketItem = {
+      id,
+      user: dto.contact ? `${dto.contact} (${dto.userName || '회원'})` : dto.user || (dto.userName ? `010-****-**** (${dto.userName})` : '회원'),
+      category: dto.category || '문의',
+      status: '대기',
+      createdAt: formattedDate,
+      message: dto.message || dto.content || '',
+      contact: dto.contact || dto.phone || '',
+      userId: dto.userId || '',
+    };
+
+    this.tickets.unshift(newTicket);
+    this.saveTickets();
+    return newTicket;
+  }
+
+  updateSupportTicketStatus(id: string, status: '대기' | '진행' | '완료') {
+    const ticket = this.tickets.find((t) => t.id === id);
+    if (ticket) {
+      ticket.status = status;
+      this.saveTickets();
+      return { ok: true, ticket };
+    }
+    return { ok: false, error: '티켓을 찾을 수 없습니다.' };
   }
 }

@@ -1,5 +1,7 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException, OnModuleInit, Logger, BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import * as fs from 'fs';
+import * as path from 'path';
 import { UserRole, UserStatus } from '../../common/user-types';
 import * as argon2 from 'argon2';
 import {
@@ -878,7 +880,12 @@ export class AdminSettingsService implements OnModuleInit {
       }
     }
 
-    return this.getActionPointPolicy();
+    const result = await this.getActionPointPolicy();
+    try {
+      const p = path.join(process.cwd(), 'data', 'action-point-policy.json');
+      fs.writeFileSync(p, JSON.stringify(result, null, 2), 'utf-8');
+    } catch {}
+    return result;
   }
 
   /**

@@ -1,6 +1,8 @@
 import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PrismaService } from 'nestjs-prisma';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Public } from '../auth/public.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { decryptAdminSettingValue, encryptAdminSettingValue } from '../admin/admin-settings.crypto';
@@ -22,7 +24,10 @@ const MOCK_LIVE_ROOMS = [
     host: {
       id: 'u101',
       name: '이지민',
+      displayName: '이지민',
+      nickname: '이지민',
       avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120',
+      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120',
       region: '서울 강남구',
       headline: '음악과 일상을 공유하는 지민입니다 🎵',
     },
@@ -43,7 +48,10 @@ const MOCK_LIVE_ROOMS = [
     host: {
       id: 'u102',
       name: '박서아',
+      displayName: '박서아',
+      nickname: '박서아',
       avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120',
+      avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120',
       region: '부산 해운대구',
       headline: '진솔한 1:1 고민 상담 환영해요 :)',
     },
@@ -65,7 +73,10 @@ const MOCK_LIVE_ROOMS = [
     host: {
       id: 'u103',
       name: '최유나',
+      displayName: '최유나',
+      nickname: '최유나',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120',
       region: '대구 수성구',
       headline: '전국 방방곡곡 맛집/여행 크리에이터',
     },
@@ -182,6 +193,22 @@ export class LiveController {
     return { ok: true, data: room, room };
   }
 
+  private getActionPolicy(): any {
+    try {
+      const p = path.join(process.cwd(), 'data', 'action-point-policy.json');
+      if (fs.existsSync(p)) {
+        return JSON.parse(fs.readFileSync(p, 'utf-8'));
+      }
+    } catch {}
+    return {
+      chatRoomCreate: { enabled: true, amount: 10 },
+      chatRoomJoin: { enabled: false, amount: 0 },
+      directMessageRequest: { enabled: true, amount: 5 },
+      liveRoomCreate: { enabled: true, amount: 50 },
+      liveRoomJoin: { enabled: false, amount: 0 },
+    };
+  }
+
   /**
    * 모바일 앱용 신규 라이브 방송 개설
    */
@@ -189,12 +216,45 @@ export class LiveController {
   @Post('rooms')
   async createLiveRoom(@CurrentUser() user: any, @Body() body: any) {
     const userId = user?.id || user?.sub || 'usr_host';
+    const policy = this.getActionPolicy();
+
+    // 관리자 라이브 개설 온 소모 정책 적용
+    const requiredPoints = policy?.liveRoomCreate?.enabled
+      ? Math.max(0, Number(policy.liveRoomCreate.amount) || 0)
+      : 0;
+
+    let updatedBalance: number | null = null;
+    if (userId && requiredPoints > 0) {
+      try {
+        const dbUser = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { pointBalance: true },
+        });
+        if (dbUser) {
+          if ((dbUser.pointBalance ?? 0) < requiredPoints) {
+            throw new BadRequestException(
+              `라이브 방송 개설에 필요한 온(ON)이 부족합니다. (필요: ${requiredPoints} 온, 보유: ${dbUser.pointBalance ?? 0} 온)`,
+            );
+          }
+          const saved = await this.prisma.user.update({
+            where: { id: userId },
+            data: { pointBalance: { decrement: requiredPoints } },
+            select: { pointBalance: true },
+          });
+          updatedBalance = saved.pointBalance;
+        }
+      } catch (err) {
+        if (err instanceof BadRequestException) throw err;
+      }
+    }
+
     const newRoom = {
       id: `LIVE-${Date.now()}`,
       title: body.title || '즐거운 소통 방송',
       category: body.category || '일상/토크',
       type: body.type || 'PUBLIC_1_TO_N',
       status: 'ACTIVE',
+      entryFee: Number(body.entryFee || 0),
       viewerCount: 1,
       totalLikes: 0,
       totalGiftsPoints: 0,
@@ -205,13 +265,16 @@ export class LiveController {
       host: {
         id: userId,
         name: user?.nickname || user?.displayName || '나의 라이브',
+        displayName: user?.nickname || user?.displayName || '나의 라이브',
+        nickname: user?.nickname || user?.displayName || '나의 라이브',
         avatar: user?.avatarUrl || null,
+        avatarUrl: user?.avatarUrl || null,
         region: '서울 강남구',
         headline: user?.bio || '반가워요!',
       },
     };
     MOCK_LIVE_ROOMS.unshift(newRoom);
-    return { ok: true, data: newRoom, room: newRoom };
+    return { ok: true, data: newRoom, room: newRoom, remainingBalance: updatedBalance };
   }
 
   /**
@@ -219,10 +282,35 @@ export class LiveController {
    */
   @Public()
   @Post('rooms/:id/join')
-  async joinLiveRoom(@Param('id') id: string) {
+  async joinLiveRoom(@CurrentUser() user: any, @Param('id') id: string) {
     const room = MOCK_LIVE_ROOMS.find((r) => r.id === id);
     if (room) room.viewerCount = (room.viewerCount || 0) + 1;
-    return { ok: true, data: room || { id, viewerCount: 1 } };
+
+    const userId = user?.id || user?.sub;
+    const policy = this.getActionPolicy();
+    const entryFee = Number((room as any)?.entryFee || 0);
+    const policyFee = policy?.liveRoomJoin?.enabled ? Number(policy.liveRoomJoin.amount) || 0 : 0;
+    const feeToDeduct = entryFee > 0 ? entryFee : policyFee;
+
+    let updatedBalance: number | null = null;
+    if (userId && feeToDeduct > 0) {
+      try {
+        const dbUser = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { pointBalance: true },
+        });
+        if (dbUser && (dbUser.pointBalance ?? 0) >= feeToDeduct) {
+          const saved = await this.prisma.user.update({
+            where: { id: userId },
+            data: { pointBalance: { decrement: feeToDeduct } },
+            select: { pointBalance: true },
+          });
+          updatedBalance = saved.pointBalance;
+        }
+      } catch {}
+    }
+
+    return { ok: true, data: room || { id, viewerCount: 1 }, remainingBalance: updatedBalance };
   }
 
   /**

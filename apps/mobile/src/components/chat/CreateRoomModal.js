@@ -43,20 +43,18 @@ export default function CreateRoomModal({
   onRoomCreated,
   navigation,
 }) {
-  // 1. 방 유형: 'secret'(1:1) vs 'group'(오픈 라운지)
-  const [roomType, setRoomType] = useState('group'); // 'secret' | 'group'
-
-  // 2. 방 제목
+  // 1:1 대화방 전용 개설 모드
+  // 1. 방 제목
   const [title, setTitle] = useState('');
 
-  // 3. 카테고리
+  // 2. 카테고리
   const [selectedCategory, setSelectedCategory] = useState('#친목');
 
-  // 4. 입장료 선택
+  // 3. 입장료 선택
   const [selectedFeePreset, setSelectedFeePreset] = useState(0);
   const [customFeeInput, setCustomFeeInput] = useState('');
 
-  // 5. 로딩 상태
+  // 4. 로딩 상태
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 실질적 입장료 계산
@@ -73,7 +71,6 @@ export default function CreateRoomModal({
 
   // 폼 초기화
   const resetForm = useCallback(() => {
-    setRoomType('group');
     setTitle('');
     setSelectedCategory('#친목');
     setSelectedFeePreset(0);
@@ -97,17 +94,16 @@ export default function CreateRoomModal({
 
     try {
       setIsSubmitting(true);
-      const isGroup = roomType === 'group';
       const cleanCategory = selectedCategory.replace('#', '');
 
       const newRoom = await apiClient.createChatRoom({
         title: trimmedTitle,
         category: cleanCategory,
         entryFee: effectiveEntryFee,
-        isGroup,
+        isGroup: false,
       });
 
-      Alert.alert('개설 완료', `"${trimmedTitle}" 대화방이 생성되었습니다! 🎉`);
+      Alert.alert('개설 완료', `"${trimmedTitle}" 1:1 대화방이 생성되었습니다! 🎉`);
       handleClose();
 
       if (onRoomCreated) {
@@ -127,7 +123,6 @@ export default function CreateRoomModal({
     }
   }, [
     title,
-    roomType,
     selectedCategory,
     effectiveEntryFee,
     handleClose,
@@ -180,69 +175,19 @@ export default function CreateRoomModal({
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
               >
-                {/* 1. 대화방 유형 선택 세그먼트 */}
+                {/* 1. 1:1 대화방 정책 안내 카드 */}
                 <View style={styles.section}>
-                  <Text style={styles.sectionLabel}>대화방 유형</Text>
-                  <View style={styles.segmentContainer}>
-                    <TouchableOpacity
-                      style={[
-                        styles.segmentBtn,
-                        roomType === 'secret'
-                          ? styles.segmentBtnActive
-                          : styles.segmentBtnInactive,
-                      ]}
-                      onPress={() => setRoomType('secret')}
-                      activeOpacity={0.85}
-                    >
-                      <Ionicons
-                        name="person"
-                        size={16}
-                        color={roomType === 'secret' ? '#FFFFFF' : tokens.colors.textSecondary}
-                      />
-                      <Text
-                        style={[
-                          styles.segmentText,
-                          roomType === 'secret'
-                            ? styles.segmentTextActive
-                            : styles.segmentTextInactive,
-                        ]}
-                      >
-                        1:1 시크릿 대화
+                  <View style={styles.directChatInfoBanner}>
+                    <View style={styles.directChatInfoIconWrap}>
+                      <Ionicons name="chatbubble-ellipses" size={20} color="#FF5A79" />
+                    </View>
+                    <View style={styles.directChatInfoTextWrap}>
+                      <Text style={styles.directChatInfoTitle}>1:1 프라이빗 대화방</Text>
+                      <Text style={styles.directChatInfoDesc}>
+                        상대방과 진솔한 1:1 대화를 나눕니다. 둘 중 한 명이 방을 삭제하면 대화가 완전히 종료됩니다.
                       </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[
-                        styles.segmentBtn,
-                        roomType === 'group'
-                          ? styles.segmentBtnActive
-                          : styles.segmentBtnInactive,
-                      ]}
-                      onPress={() => setRoomType('group')}
-                      activeOpacity={0.85}
-                    >
-                      <Ionicons
-                        name="people"
-                        size={17}
-                        color={roomType === 'group' ? '#FFFFFF' : tokens.colors.textSecondary}
-                      />
-                      <Text
-                        style={[
-                          styles.segmentText,
-                          roomType === 'group'
-                            ? styles.segmentTextActive
-                            : styles.segmentTextInactive,
-                        ]}
-                      >
-                        그룹 오픈 라운지
-                      </Text>
-                    </TouchableOpacity>
+                    </View>
                   </View>
-                  <Text style={styles.segmentCaption}>
-                    {roomType === 'secret'
-                      ? '🔒 초대한 회원 또는 1명과 1:1로 은밀하게 대화하는 방입니다.'
-                      : '👥 관심사가 맞는 동네 이웃 누구나 자유롭게 입장 가능한 오픈형 라운지입니다.'}
-                  </Text>
                 </View>
 
                 {/* 2. 대화방 제목 입력 */}
@@ -510,6 +455,38 @@ const styles = StyleSheet.create({
   counterText: {
     fontSize: 12,
     color: tokens.colors.textTertiary,
+  },
+  directChatInfoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF1F4',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#FFE4E9',
+    gap: 12,
+  },
+  directChatInfoIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFE4E9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  directChatInfoTextWrap: {
+    flex: 1,
+  },
+  directChatInfoTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#E11D48',
+    marginBottom: 2,
+  },
+  directChatInfoDesc: {
+    fontSize: 12,
+    color: '#6B7280',
+    lineHeight: 17,
   },
   segmentContainer: {
     flexDirection: 'row',

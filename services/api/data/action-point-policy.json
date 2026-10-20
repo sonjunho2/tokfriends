@@ -1,0 +1,7 @@
+{
+  "chatRoomCreate": { "enabled": true, "amount": 10 },
+  "chatRoomJoin": { "enabled": false, "amount": 0 },
+  "directMessageRequest": { "enabled": true, "amount": 5 },
+  "liveRoomCreate": { "enabled": true, "amount": 50 },
+  "liveRoomJoin": { "enabled": false, "amount": 0 }
+}

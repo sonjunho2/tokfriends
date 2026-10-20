@@ -66,13 +66,16 @@ import {
   getAdminFaqs,
   getAdminPosts,
   getAdminPostStats,
+  getAdminSupportTickets,
   getAnnouncements,
   updateAdminFaq,
   updateAdminPostStatus,
+  updateAdminSupportTicketStatus,
   updateAnnouncement,
   type Announcement,
   type AnnouncementWritePayload,
   type CommunityPost,
+  type EngagementTicket,
   type FaqItem,
   type PostStats,
 } from '@/lib/api'
@@ -381,14 +384,6 @@ const FALLBACK_FAQS: FaqItem[] = [
   },
 ]
 
-interface EngagementTicket {
-  id: string
-  user: string
-  category: 'FAQ' | '문의' | '버그 신고'
-  status: '대기' | '진행' | '완료'
-  createdAt: string
-  message?: string
-}
 
 const INITIAL_TICKETS: EngagementTicket[] = [
   { id: 'TKT-701', user: '010-3210-1101 (초보호스트루나)', category: '문의', status: '진행', createdAt: '2026-10-17 08:30', message: '출금 계좌 번호 오타 수정 요청드립니다.' },
@@ -565,8 +560,16 @@ export default function ContentAndAnnouncementsPage() {
 
   const loadFaqs = useCallback(async () => {
     try {
-      const list = await getAdminFaqs()
-      if (list && list.length > 0) setFaqs(list)
+      const [list, ticketList] = await Promise.allSettled([
+        getAdminFaqs(),
+        getAdminSupportTickets(),
+      ])
+      if (list.status === 'fulfilled' && list.value && list.value.length > 0) {
+        setFaqs(list.value)
+      }
+      if (ticketList.status === 'fulfilled' && ticketList.value && ticketList.value.length > 0) {
+        setTickets(ticketList.value)
+      }
     } catch {
       // keep fallback
     }
@@ -1652,11 +1655,16 @@ export default function ContentAndAnnouncementsPage() {
                       <span className="text-[11px] text-muted-foreground">분류: {tkt.category}</span>
                       <Select
                         value={tkt.status}
-                        onValueChange={(val: any) => {
+                        onValueChange={async (val: any) => {
                           setTickets((prev) =>
                             prev.map((t) => (t.id === tkt.id ? { ...t, status: val } : t))
                           )
-                          toast({ title: '티켓 상태 변경됨', description: `[${tkt.id}] 상태가 ${val}(으)로 변경되었습니다.` })
+                          try {
+                            await updateAdminSupportTicketStatus(tkt.id, val)
+                            toast({ title: '티켓 상태 변경됨', description: `[${tkt.id}] 상태가 ${val}(으)로 서버에 저장되었습니다.` })
+                          } catch {
+                            toast({ title: '티켓 상태 변경됨', description: `[${tkt.id}] 상태가 ${val}(으)로 변경되었습니다.` })
+                          }
                         }}
                       >
                         <SelectTrigger className="w-[100px] h-7 text-[11px]">

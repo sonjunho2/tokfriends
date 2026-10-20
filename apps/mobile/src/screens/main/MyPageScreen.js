@@ -12,6 +12,7 @@ import {
   Switch,
   ActivityIndicator,
   Platform,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,9 +30,10 @@ export default function MyPageScreen({ navigation }) {
   const userProfile = user?.profile ?? {};
 
   // 프로필 정보
-  const nickname = userProfile?.nickname || user?.displayName || '다온이';
-  const locationLabel = [user?.region1, user?.region2].filter(Boolean).join(' · ') || '서울 강남구 역삼1동';
-  const tagline = userProfile?.headline || userProfile?.bio || '동네 친구들과 따뜻하고 즐거운 소통 나누고 싶어요 ✨';
+  const nickname = user?.nickname || userProfile?.nickname || user?.displayName || '다온이';
+  const locationLabel = [user?.region1 || userProfile?.region1, user?.region2 || userProfile?.region2].filter(Boolean).join(' · ') || user?.location || '서울 강남구 역삼1동';
+  const tagline = user?.headline || userProfile?.headline || user?.bio || userProfile?.bio || '동네 친구들과 따뜻하고 즐거운 소통 나누고 싶어요 ✨';
+  const avatarUri = user?.avatarUrl || user?.avatarUri || userProfile?.avatarUri || userProfile?.avatarUrl || user?.photos?.[0]?.url || null;
 
   // 보유 온(ON) 자산
   const balance = useMemo(() => {
@@ -49,9 +51,10 @@ export default function MyPageScreen({ navigation }) {
     friends: 19,
   });
 
-  // 통화 단가 설정 상태 (분당 ON)
-  const [callRateModalVisible, setCallRateModalVisible] = useState(false);
-  const [currentCallRate, setCurrentCallRate] = useState(1500);
+  // 1:1 LIVE 단가 설정 상태 (분당 ON)
+  const [liveRateModalVisible, setLiveRateModalVisible] = useState(false);
+  const [currentLiveRate, setCurrentLiveRate] = useState(1500);
+  const [customRateInput, setCustomRateInput] = useState('');
 
   // 알림 설정 모달 상태
   const [notifModalVisible, setNotifModalVisible] = useState(false);
@@ -62,11 +65,36 @@ export default function MyPageScreen({ navigation }) {
   // AI 안심 케어 센터 모달 상태
   const [safetyModalVisible, setSafetyModalVisible] = useState(false);
 
-  // 약관/고객센터 모달 상태
+  // 약관/고객센터 모달 상태 & FAQ 목록
   const [termsModalVisible, setTermsModalVisible] = useState(false);
+  const [faqsList, setFaqsList] = useState([]);
+  const [expandedFaqId, setExpandedFaqId] = useState(null);
+
+  // 1:1 고객 문의 작성 모달 상태
+  const [inquiryModalVisible, setInquiryModalVisible] = useState(false);
+  const [inquiryCategory, setInquiryCategory] = useState('문의');
+  const [inquiryContact, setInquiryContact] = useState('');
+  const [inquiryMessage, setInquiryMessage] = useState('');
+  const [submittingInquiry, setSubmittingInquiry] = useState(false);
 
   // 캐시 상태
   const [cacheSize, setCacheSize] = useState('12.4 MB');
+
+  // 고객센터 FAQ 로드
+  const loadFaqsData = useCallback(async () => {
+    try {
+      const items = await apiClient.getFaqs();
+      if (Array.isArray(items) && items.length > 0) {
+        setFaqsList(items);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (termsModalVisible) {
+      loadFaqsData();
+    }
+  }, [termsModalVisible, loadFaqsData]);
 
   // 화면 진입 시 최신 데이터 로드
   useFocusEffect(
@@ -78,6 +106,7 @@ export default function MyPageScreen({ navigation }) {
 
       // 저장된 설정 로드
       AsyncStorage.multiGet([
+        'dagaon_live_rate',
         'dagaon_call_rate',
         'dagaon_chat_push',
         'dagaon_live_push',
@@ -86,7 +115,9 @@ export default function MyPageScreen({ navigation }) {
         if (!isMounted) return;
         pairs.forEach(([key, val]) => {
           if (!val) return;
-          if (key === 'dagaon_call_rate') setCurrentCallRate(Number(val) || 1500);
+          if (key === 'dagaon_live_rate' || key === 'dagaon_call_rate') {
+            setCurrentLiveRate(Number(val) || 1500);
+          }
           if (key === 'dagaon_chat_push') setChatPush(val === 'true');
           if (key === 'dagaon_live_push') setLivePush(val === 'true');
           if (key === 'dagaon_night_push') setNightPush(val === 'true');
@@ -99,16 +130,49 @@ export default function MyPageScreen({ navigation }) {
     }, [refreshMe])
   );
 
-  // 통화 단가 저장
-  const handleSaveCallRate = useCallback(async (rate) => {
-    setCurrentCallRate(rate);
-    await AsyncStorage.setItem('dagaon_call_rate', String(rate));
+  // 1:1 LIVE 단가 저장 (프리셋 또는 직접 입력)
+  const handleSaveLiveRate = useCallback(async (rate) => {
+    const numericRate = Number(rate);
+    if (!numericRate || numericRate < 100 || numericRate > 100000) {
+      Alert.alert('단가 오류', '분당 온(ON) 단가는 100 ~ 100,000 ON 사이의 숫자로 입력해주세요.');
+      return;
+    }
+    setCurrentLiveRate(numericRate);
+    await AsyncStorage.setItem('dagaon_live_rate', String(numericRate));
     try {
-      await apiClient.updateMyProfile({ callRatePerMinute: rate });
+      await apiClient.updateMyProfile({ liveRatePerMinute: numericRate, callRatePerMinute: numericRate });
     } catch {}
-    setCallRateModalVisible(false);
-    Alert.alert('설정 완료', `1:1 영상/음성 통화 단가가 분당 ${rate.toLocaleString()} ON으로 변경되었습니다.`);
+    setLiveRateModalVisible(false);
+    setCustomRateInput('');
+    Alert.alert('설정 완료', `1:1 LIVE 단가가 분당 ${numericRate.toLocaleString()} ON으로 성공적으로 변경되었습니다! ✨`);
   }, []);
+
+  // 1:1 고객 문의 접수 처리
+  const handleSubmitInquiry = useCallback(async () => {
+    if (!inquiryMessage.trim()) {
+      Alert.alert('입력 안내', '문의 내용을 입력해주세요.');
+      return;
+    }
+    try {
+      setSubmittingInquiry(true);
+      await apiClient.submitSupportTicket({
+        category: inquiryCategory,
+        contact: inquiryContact.trim() || user?.phoneNumber || user?.email || '',
+        userName: nickname,
+        message: inquiryMessage.trim(),
+      });
+      setSubmittingInquiry(false);
+      setInquiryModalVisible(false);
+      setInquiryMessage('');
+      Alert.alert(
+        '접수 완료',
+        '1:1 고객 문의가 정상적으로 접수되었습니다.\n관리자 확인 후 신속하게 처리해 드리겠습니다.'
+      );
+    } catch (e) {
+      setSubmittingInquiry(false);
+      Alert.alert('접수 실패', e?.message || '문의 접수 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    }
+  }, [inquiryCategory, inquiryContact, inquiryMessage, nickname, user]);
 
   // 캐시 정리
   const handleClearCache = useCallback(() => {
@@ -171,11 +235,11 @@ export default function MyPageScreen({ navigation }) {
             >
               <View style={styles.storyRingInner}>
                 <UserAvatar
-                  uri={userProfile?.avatarUri || user?.avatarUrl}
+                  uri={avatarUri}
                   name={nickname}
                   size="lg"
                   isOnline={true}
-                  onPress={() => navigation.navigate('ProfileEdit', { profile: userProfile })}
+                  onPress={() => navigation.navigate('ProfileEdit', { profile: { ...user, ...userProfile } })}
                 />
               </View>
             </LinearGradient>
@@ -195,7 +259,7 @@ export default function MyPageScreen({ navigation }) {
             {/* 우측 [✏️ 프로필 수정] 캡슐 버튼 */}
             <TouchableOpacity
               style={styles.editProfileBtn}
-              onPress={() => navigation.navigate('ProfileEdit', { profile: userProfile })}
+              onPress={() => navigation.navigate('ProfileEdit', { profile: { ...user, ...userProfile } })}
               activeOpacity={0.85}
             >
               <Ionicons name="pencil" size={13} color={tokens.colors.primary} />
@@ -353,18 +417,21 @@ export default function MyPageScreen({ navigation }) {
 
             <View style={styles.menuDivider} />
 
-            {/* 📞 1:1 통화 단가 설정 */}
+            {/* 🎥 1:1 LIVE 단가 설정 */}
             <TouchableOpacity
               style={styles.menuRow}
-              onPress={() => setCallRateModalVisible(true)}
+              onPress={() => {
+                setCustomRateInput(String(currentLiveRate));
+                setLiveRateModalVisible(true);
+              }}
               activeOpacity={0.8}
             >
-              <View style={[styles.menuIconBox, { backgroundColor: '#D1FAE5' }]}>
-                <Ionicons name="call" size={18} color="#10B981" />
+              <View style={[styles.menuIconBox, { backgroundColor: '#FDF2F8' }]}>
+                <Ionicons name="videocam" size={18} color="#DB2777" />
               </View>
               <View style={styles.menuTextBox}>
-                <Text style={styles.menuTitle}>1:1 통화 단가 설정</Text>
-                <Text style={styles.menuDesc}>현재 분당 {currentCallRate.toLocaleString()} ON 설정됨</Text>
+                <Text style={styles.menuTitle}>1:1 LIVE 단가 설정</Text>
+                <Text style={styles.menuDesc}>현재 분당 {currentLiveRate.toLocaleString()} ON 설정됨</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
             </TouchableOpacity>
@@ -475,29 +542,31 @@ export default function MyPageScreen({ navigation }) {
       </ScrollView>
 
       {/* =================================================================== */}
-      {/* 모달 1: 1:1 통화 단가 설정 */}
+      {/* 모달 1: 1:1 LIVE 단가 설정 (직접 입력 지원) */}
       {/* =================================================================== */}
       <Modal
-        visible={callRateModalVisible}
+        visible={liveRateModalVisible}
         transparent
         animationType="fade"
-        onRequestClose={() => setCallRateModalVisible(false)}
+        onRequestClose={() => setLiveRateModalVisible(false)}
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.dialogCard}>
             <View style={styles.dialogHeader}>
-              <View style={[styles.dialogIconBox, { backgroundColor: '#D1FAE5' }]}>
-                <Ionicons name="call" size={20} color="#10B981" />
+              <View style={[styles.dialogIconBox, { backgroundColor: '#FDF2F8' }]}>
+                <Ionicons name="videocam" size={20} color="#DB2777" />
               </View>
-              <Text style={styles.dialogTitle}>1:1 통화 단가 설정</Text>
+              <Text style={styles.dialogTitle}>1:1 LIVE 단가 설정</Text>
               <Text style={styles.dialogSub}>
-                상대방이 나와 음성/영상 통화를 요청할 때 분당 차감되어 나에게 적립될 온(ON) 단가를 설정하세요.
+                상대방이 나와 1:1 라이브 방송을 요청할 때 분당 차감되어 나에게 적립될 온(ON) 단가를 설정하세요.
               </Text>
             </View>
 
+            {/* 추천 단가 프리셋 */}
+            <Text style={styles.rateSectionLabel}>추천 프리셋</Text>
             <View style={styles.rateOptionsContainer}>
               {[1000, 1500, 2000, 3000].map((rate) => {
-                const isSelected = currentCallRate === rate;
+                const isSelected = currentLiveRate === rate && !customRateInput;
                 return (
                   <TouchableOpacity
                     key={rate}
@@ -505,7 +574,10 @@ export default function MyPageScreen({ navigation }) {
                       styles.rateOptionBtn,
                       isSelected ? styles.rateOptionActive : styles.rateOptionInactive,
                     ]}
-                    onPress={() => handleSaveCallRate(rate)}
+                    onPress={() => {
+                      setCustomRateInput('');
+                      handleSaveLiveRate(rate);
+                    }}
                   >
                     <Text
                       style={[
@@ -521,9 +593,36 @@ export default function MyPageScreen({ navigation }) {
               })}
             </View>
 
+            {/* 직접 입력 섹션 */}
+            <View style={styles.customRateContainer}>
+              <Text style={styles.rateSectionLabel}>직접 입력 (100 ~ 100,000 ON)</Text>
+              <View style={styles.customRateInputRow}>
+                <TextInput
+                  style={styles.customRateInput}
+                  keyboardType="numeric"
+                  placeholder="예: 2500"
+                  placeholderTextColor="#94A3B8"
+                  value={customRateInput}
+                  onChangeText={setCustomRateInput}
+                  maxLength={6}
+                />
+                <Text style={styles.customRateUnit}>ON / 분</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.customRateSaveBtn,
+                    !customRateInput ? styles.customRateSaveBtnDisabled : null,
+                  ]}
+                  disabled={!customRateInput}
+                  onPress={() => handleSaveLiveRate(customRateInput)}
+                >
+                  <Text style={styles.customRateSaveBtnText}>적용</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <TouchableOpacity
               style={styles.dialogCancelBtn}
-              onPress={() => setCallRateModalVisible(false)}
+              onPress={() => setLiveRateModalVisible(false)}
             >
               <Text style={styles.dialogCancelText}>닫기</Text>
             </TouchableOpacity>
@@ -658,7 +757,7 @@ export default function MyPageScreen({ navigation }) {
       </Modal>
 
       {/* =================================================================== */}
-      {/* 모달 4: 고객센터 & 약관 */}
+      {/* 모달 4: 고객센터 & 약관 (관리자 FAQ 큐레이션 연동) */}
       {/* =================================================================== */}
       <Modal
         visible={termsModalVisible}
@@ -667,47 +766,97 @@ export default function MyPageScreen({ navigation }) {
         onRequestClose={() => setTermsModalVisible(false)}
       >
         <View style={styles.modalBackdrop}>
-          <View style={styles.dialogCard}>
+          <View style={[styles.dialogCard, { maxHeight: '85%' }]}>
             <View style={styles.dialogHeader}>
               <View style={[styles.dialogIconBox, { backgroundColor: '#F1F5F9' }]}>
                 <Ionicons name="help-circle" size={22} color="#64748B" />
               </View>
               <Text style={styles.dialogTitle}>고객센터 & 이용약관</Text>
               <Text style={styles.dialogSub}>
-                다가온 운영팀은 공정하고 투명한 커뮤니티 운영을 위해 최선을 다하고 있습니다.
+                자주 묻는 질문을 확인하시거나 1:1 문의를 남겨주시면 신속히 답변해 드립니다.
               </Text>
             </View>
 
-            <View style={styles.termsList}>
+            <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+              {/* 1:1 고객 문의 바로가기 배너 */}
               <TouchableOpacity
-                style={styles.termsRow}
-                onPress={() => Alert.alert('이용약관', '다가온 서비스 이용약관 전문입니다.')}
+                style={styles.inquiryBanner}
+                onPress={() => {
+                  setInquiryContact(user?.phoneNumber || user?.email || '');
+                  setInquiryModalVisible(true);
+                }}
+                activeOpacity={0.85}
               >
-                <Text style={styles.termsText}>서비스 이용약관</Text>
-                <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+                <View style={styles.inquiryBannerLeft}>
+                  <Ionicons name="chatbubbles" size={22} color="#FF3B6B" />
+                  <View style={{ marginLeft: 10 }}>
+                    <Text style={styles.inquiryBannerTitle}>1:1 고객센터 문의하기</Text>
+                    <Text style={styles.inquiryBannerSub}>운영팀이 실시간으로 확인 후 지원합니다</Text>
+                  </View>
+                </View>
+                <Ionicons name="arrow-forward-circle" size={22} color="#FF3B6B" />
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.termsRow}
-                onPress={() => Alert.alert('개인정보처리방침', '개인정보 처리방침 전문입니다.')}
-              >
-                <Text style={styles.termsText}>개인정보 처리방침</Text>
-                <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.termsRow}
-                onPress={() => Alert.alert('커뮤니티 가이드라인', '건전한 소통을 위한 커뮤니티 가이드라인입니다.')}
-              >
-                <Text style={styles.termsText}>커뮤니티 운영 가이드라인</Text>
-                <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.termsRow}
-                onPress={() => Alert.alert('고객문의', '문의: support@tokfriends.app\n운영시간: 평일 10:00 ~ 18:00')}
-              >
-                <Text style={styles.termsText}>1:1 고객센터 문의하기</Text>
-                <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
-              </TouchableOpacity>
-            </View>
+
+              {/* 관리자 연동 FAQ 아코디언 */}
+              <Text style={styles.faqSectionHeader}>자주 묻는 질문 (FAQ)</Text>
+              <View style={styles.faqListContainer}>
+                {faqsList.map((faq) => {
+                  const isExpanded = expandedFaqId === faq.id;
+                  return (
+                    <View key={faq.id} style={styles.faqItemCard}>
+                      <TouchableOpacity
+                        style={styles.faqItemHeader}
+                        onPress={() => setExpandedFaqId(isExpanded ? null : faq.id)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <View style={styles.faqCategoryBadge}>
+                            <Text style={styles.faqCategoryText}>{faq.category}</Text>
+                          </View>
+                          <Text style={styles.faqQuestionText}>{faq.question}</Text>
+                        </View>
+                        <Ionicons
+                          name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                          size={18}
+                          color="#94A3B8"
+                        />
+                      </TouchableOpacity>
+                      {isExpanded && (
+                        <View style={styles.faqAnswerContainer}>
+                          <Text style={styles.faqAnswerText}>{faq.answer}</Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+
+              {/* 약관 및 가이드라인 */}
+              <Text style={[styles.faqSectionHeader, { marginTop: 16 }]}>이용약관 및 정책</Text>
+              <View style={styles.termsList}>
+                <TouchableOpacity
+                  style={styles.termsRow}
+                  onPress={() => Alert.alert('이용약관', '다가온 서비스 이용약관 전문입니다.\n\n제1조 (목적)\n본 약관은 다가온 서비스의 이용조건 및 절차, 회사와 회원 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.')}
+                >
+                  <Text style={styles.termsText}>서비스 이용약관</Text>
+                  <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.termsRow}
+                  onPress={() => Alert.alert('개인정보처리방침', '개인정보 처리방침 전문입니다.\n\n회사는 회원의 소중한 개인정보를 안전하게 보호하며, 관련 법령을 엄격히 준수합니다.')}
+                >
+                  <Text style={styles.termsText}>개인정보 처리방침</Text>
+                  <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.termsRow}
+                  onPress={() => Alert.alert('커뮤니티 가이드라인', '건전한 소통을 위한 커뮤니티 운영 가이드라인입니다.\n\n타인 비방, 욕설, 불법 광고 등은 24시간 실시간 AI 모니터링 시스템 및 운영진에 의해 즉시 차단 조치됩니다.')}
+                >
+                  <Text style={styles.termsText}>커뮤니티 운영 가이드라인</Text>
+                  <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
 
             <TouchableOpacity
               style={styles.dialogCancelBtn}
@@ -715,6 +864,104 @@ export default function MyPageScreen({ navigation }) {
             >
               <Text style={styles.dialogCancelText}>닫기</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* =================================================================== */}
+      {/* 모달 5: 1:1 고객센터 문의 작성 (관리자 연동) */}
+      {/* =================================================================== */}
+      <Modal
+        visible={inquiryModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setInquiryModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.dialogCard, { maxHeight: '90%' }]}>
+            <View style={styles.dialogHeader}>
+              <View style={[styles.dialogIconBox, { backgroundColor: '#FFE4E6' }]}>
+                <Ionicons name="headset" size={22} color="#FF3B6B" />
+              </View>
+              <Text style={styles.dialogTitle}>1:1 고객 문의 접수</Text>
+              <Text style={styles.dialogSub}>
+                문의하신 내용은 관리자 지원 센터로 실시간 전달되어 확인 후 신속히 안내됩니다.
+              </Text>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* 분류 선택 */}
+              <Text style={styles.inquiryFieldLabel}>문의 분류</Text>
+              <View style={styles.inquiryCategoryRow}>
+                {['문의', '환불/결제', '버그 신고', '계정'].map((cat) => {
+                  const isSel = inquiryCategory === cat;
+                  return (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[
+                        styles.inquiryCategoryChip,
+                        isSel ? styles.inquiryCategoryChipActive : null,
+                      ]}
+                      onPress={() => setInquiryCategory(cat)}
+                    >
+                      <Text
+                        style={[
+                          styles.inquiryCategoryChipText,
+                          isSel ? styles.inquiryCategoryChipTextActive : null,
+                        ]}
+                      >
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* 답변 받을 연락처 */}
+              <Text style={styles.inquiryFieldLabel}>회신 받을 연락처 (전화번호/이메일)</Text>
+              <TextInput
+                style={styles.inquiryInput}
+                placeholder="010-0000-0000 또는 이메일"
+                placeholderTextColor="#94A3B8"
+                value={inquiryContact}
+                onChangeText={setInquiryContact}
+              />
+
+              {/* 문의 내용 */}
+              <Text style={styles.inquiryFieldLabel}>문의 내용</Text>
+              <TextInput
+                style={[styles.inquiryInput, styles.inquiryTextArea]}
+                placeholder="겪으신 문제나 문의 사항을 구체적으로 적어주세요."
+                placeholderTextColor="#94A3B8"
+                value={inquiryMessage}
+                onChangeText={setInquiryMessage}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+
+              {/* 제출 버튼 */}
+              <TouchableOpacity
+                style={[
+                  styles.inquirySubmitBtn,
+                  submittingInquiry ? styles.inquirySubmitBtnDisabled : null,
+                ]}
+                disabled={submittingInquiry}
+                onPress={handleSubmitInquiry}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.inquirySubmitBtnText}>
+                  {submittingInquiry ? '접수 처리 중...' : '문의 접수하기'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.dialogCancelBtn}
+                onPress={() => setInquiryModalVisible(false)}
+              >
+                <Text style={styles.dialogCancelText}>취소</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -1203,5 +1450,203 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: tokens.colors.textSecondary,
+  },
+  // 1:1 LIVE 단가 관련 추가 스타일
+  rateSectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+    marginBottom: 6,
+  },
+  customRateContainer: {
+    marginTop: 6,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  customRateInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  customRateInput: {
+    flex: 1,
+    height: 44,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    fontSize: 15,
+    fontWeight: '700',
+    color: tokens.colors.textPrimary,
+  },
+  customRateUnit: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  customRateSaveBtn: {
+    paddingHorizontal: 16,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#FF3B6B',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  customRateSaveBtnDisabled: {
+    backgroundColor: '#CBD5E1',
+  },
+  customRateSaveBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  // 고객센터 & 약관 FAQ 및 1:1 문의 스타일
+  inquiryBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFF1F4',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFE4E6',
+    marginBottom: 14,
+  },
+  inquiryBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  inquiryBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FF3B6B',
+  },
+  inquiryBannerSub: {
+    fontSize: 11,
+    color: '#9F1239',
+    marginTop: 2,
+  },
+  faqSectionHeader: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#334155',
+    marginBottom: 8,
+  },
+  faqListContainer: {
+    gap: 8,
+    marginBottom: 6,
+  },
+  faqItemCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+  },
+  faqItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 10,
+  },
+  faqCategoryBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#EDE9FE',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  faqCategoryText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#7C3AED',
+  },
+  faqQuestionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: tokens.colors.textPrimary,
+    lineHeight: 18,
+  },
+  faqAnswerContainer: {
+    padding: 10,
+    paddingTop: 4,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  faqAnswerText: {
+    fontSize: 12,
+    color: '#475569',
+    lineHeight: 18,
+  },
+  // 1:1 문의 접수 폼 스타일
+  inquiryFieldLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+    marginBottom: 6,
+    marginTop: 10,
+  },
+  inquiryCategoryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 4,
+  },
+  inquiryCategoryChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  inquiryCategoryChipActive: {
+    backgroundColor: '#FFF1F4',
+    borderColor: '#FF3B6B',
+  },
+  inquiryCategoryChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  inquiryCategoryChipTextActive: {
+    color: '#FF3B6B',
+    fontWeight: '700',
+  },
+  inquiryInput: {
+    height: 42,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 12,
+    fontSize: 13,
+    color: tokens.colors.textPrimary,
+  },
+  inquiryTextArea: {
+    height: 90,
+    paddingTop: 10,
+  },
+  inquirySubmitBtn: {
+    marginTop: 16,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: '#FF3B6B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...tokens.shadows.glow,
+  },
+  inquirySubmitBtnDisabled: {
+    backgroundColor: '#CBD5E1',
+  },
+  inquirySubmitBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });

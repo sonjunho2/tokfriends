@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Image,
   FlatList,
+  ScrollView,
   RefreshControl,
   StatusBar,
   Alert,
@@ -273,8 +274,8 @@ export default function HomeScreen({ navigation }) {
               id: r.id,
               title: r.title || '라이브 소통 방송',
               viewerCount: r.viewerCount || 10,
-              hostName: r.host?.displayName || r.hostName || '호스트',
-              hostAvatar: r.host?.avatarUrl || r.hostAvatar,
+              hostName: r.host?.displayName || r.host?.nickname || r.host?.name || r.hostName || '호스트',
+              hostAvatar: r.host?.avatarUrl || r.host?.avatar || r.hostAvatar,
               coverUri: r.coverImage || r.coverUri || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600',
               tag: r.category || '라이브',
             }))
@@ -423,15 +424,24 @@ export default function HomeScreen({ navigation }) {
           >
             <View style={styles.storyRingInner}>
               <UserAvatar
-                uri={safeUser?.profile?.avatarUri}
-                name={safeUser?.displayName || safeUser?.profile?.nickname || '나'}
+                uri={
+                  safeUser?.avatarUrl ||
+                  safeUser?.avatarUri ||
+                  safeUser?.avatar ||
+                  safeUser?.profile?.avatarUri ||
+                  safeUser?.profile?.avatarUrl ||
+                  safeUser?.photos?.[0]?.url ||
+                  safeUser?.photos?.[0]?.imageUrl ||
+                  null
+                }
+                name={safeUser?.nickname || safeUser?.displayName || safeUser?.profile?.nickname || '나'}
                 size={34}
               />
             </View>
           </LinearGradient>
           <View style={styles.welcomeTextWrap}>
             <Text style={styles.welcomeName} numberOfLines={1}>
-              {safeUser?.displayName || safeUser?.profile?.nickname || '회원'}님
+              {safeUser?.nickname || safeUser?.displayName || safeUser?.profile?.nickname || '회원'}님
             </Text>
             <Text style={styles.welcomeSub}>새로운 인연을 만나보세요 ✨</Text>
           </View>
@@ -474,7 +484,7 @@ export default function HomeScreen({ navigation }) {
   );
 
   // =================================================================
-  // 2. 실시간 LIVE 프리뷰 섹션 (3:4 비율 오버레이 카드)
+  // 1. 실시간 LIVE 프리뷰 섹션 (3:4 비율 오버레이 카드)
   // =================================================================
   const renderLiveSection = () => (
     <View style={styles.sectionWrap}>
@@ -538,6 +548,8 @@ export default function HomeScreen({ navigation }) {
                   uri={item.hostAvatar}
                   name={item.hostName}
                   size={24}
+                  showBorder={true}
+                  borderColor="#FFFFFF"
                   style={styles.liveHostAvatar}
                 />
                 <Text style={styles.liveHostName} numberOfLines={1}>
@@ -834,6 +846,68 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: tokens.colors.borderLight,
   },
+
+  // 1.5 빠른 친구 탐색 칩 바 스타일
+  quickFilterSectionWrap: {
+    backgroundColor: tokens.colors.surface,
+    paddingTop: 12,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: tokens.colors.borderLight,
+  },
+  quickFilterHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    marginBottom: 10,
+  },
+  quickFilterTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  quickFilterTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: tokens.colors.text,
+    letterSpacing: -0.3,
+  },
+  quickFilterLiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: tokens.colors.primary,
+  },
+  quickFilterMoreText: {
+    fontSize: 12,
+    color: tokens.colors.primary,
+    fontWeight: '600',
+  },
+  quickFilterScrollContent: {
+    paddingHorizontal: 18,
+    gap: 8,
+  },
+  quickFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    ...tokens.shadows.soft,
+  },
+  quickFilterIcon: {
+    fontSize: 13,
+  },
+  quickFilterLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#334155',
+  },
   headerLeftCol: {
     gap: 6,
   },
@@ -1068,8 +1142,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   liveHostAvatar: {
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#FFFFFF',
+    overflow: 'hidden',
   },
   liveHostName: {
     color: '#FFFFFF',

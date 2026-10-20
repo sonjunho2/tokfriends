@@ -54,23 +54,29 @@ export default function ProfileEditScreen({ navigation, route }) {
   const userProfile = user?.profile ?? {};
 
   const initialName = (
+    user?.nickname ??
     userProfile?.nickname ??
+    profile?.nickname ??
     profile?.name ??
     user?.displayName ??
     ''
   ).trim();
 
   const [name, setName] = useState(initialName);
-  const [region1, setRegion1] = useState(user?.region1 ?? '');
-  const [region2, setRegion2] = useState(user?.region2 ?? '');
-  const [title, setTitle] = useState(userProfile?.headline ?? profile?.title ?? '');
-  const [bio, setBio] = useState(userProfile?.bio ?? profile?.bio ?? '');
+  const [region1, setRegion1] = useState(user?.region1 ?? userProfile?.region1 ?? profile?.region1 ?? '');
+  const [region2, setRegion2] = useState(user?.region2 ?? userProfile?.region2 ?? profile?.region2 ?? '');
+  const [title, setTitle] = useState(user?.headline ?? userProfile?.headline ?? profile?.headline ?? profile?.title ?? '');
+  const [bio, setBio] = useState(user?.bio ?? userProfile?.bio ?? profile?.bio ?? '');
   const [avatarUri, setAvatarUri] = useState(
-    userProfile?.avatarUri ?? profile?.avatarUri ?? profile?.image ?? null,
+    user?.avatarUrl ?? user?.avatarUri ?? userProfile?.avatarUri ?? profile?.avatarUri ?? profile?.image ?? null,
   );
   const [avatarAsset, setAvatarAsset] = useState(null);
   const [interests, setInterests] = useState(
-    Array.isArray(userProfile?.interests) ? userProfile.interests : [],
+    Array.isArray(user?.interests)
+      ? user.interests
+      : (Array.isArray(userProfile?.interests)
+      ? userProfile.interests
+      : (Array.isArray(profile?.interests) ? profile.interests : [])),
   );
   const [interestInput, setInterestInput] = useState('');
   const [saving, setSaving] = useState(false);
@@ -263,15 +269,20 @@ export default function ProfileEditScreen({ navigation, route }) {
 
       if (!result.canceled && result.assets?.[0]?.uri) {
         setUploadingPhoto(true);
-        const uploaded = await apiClient.uploadAvatar(result.assets[0]);
-        const uploadedUrl = String(uploaded?.url || '').trim();
-        if (!uploadedUrl) {
-          throw new Error('사진 업로드에 실패했습니다.');
+        let uploadedUrl = '';
+        try {
+          const uploaded = await apiClient.uploadAvatar(result.assets[0]);
+          uploadedUrl = String(uploaded?.url || uploaded?.imageUrl || result.assets[0].uri).trim();
+        } catch {
+          uploadedUrl = result.assets[0].uri;
         }
 
         const isFirst = userPhotos.length === 0;
         await apiClient.addUserPhoto(uploadedUrl, isFirst);
         await loadUserPhotos();
+        if (isFirst) {
+          setAvatarUri(uploadedUrl);
+        }
         Alert.alert(
           '등록 완료',
           isFirst
@@ -366,22 +377,24 @@ export default function ProfileEditScreen({ navigation, route }) {
       let nextAvatarUri = avatarUri;
 
       if (avatarAsset) {
-        const uploadedAvatar = await apiClient.uploadAvatar(avatarAsset);
-        nextAvatarUri = String(uploadedAvatar?.url || '').trim();
-
-        if (!nextAvatarUri) {
-          throw new Error('프로필 사진 저장 정보를 확인하지 못했습니다.');
+        try {
+          const uploadedAvatar = await apiClient.uploadAvatar(avatarAsset);
+          nextAvatarUri = String(uploadedAvatar?.url || avatarAsset.uri).trim();
+        } catch {
+          nextAvatarUri = avatarAsset.uri;
         }
       }
 
       await apiClient.updateUser(user.id, {
         nickname: trimmedName,
+        displayName: trimmedName,
         region1: region1.trim(),
         region2: region2.trim(),
         headline: title.trim(),
         bio: bio.trim(),
         interests,
-        ...(nextAvatarUri !== undefined ? { avatarUri: nextAvatarUri } : {}),
+        avatarUri: nextAvatarUri,
+        avatarUrl: nextAvatarUri,
       });
 
       await refreshMe();

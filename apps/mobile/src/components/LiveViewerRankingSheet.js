@@ -671,8 +671,12 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   goldAvatarFrame: {
-    borderWidth: 2,
+    borderWidth: 2.5,
     borderColor: '#F59E0B',
+    shadowColor: '#F59E0B',
+    shadowOpacity: 0.85,
+    shadowRadius: 8,
+    elevation: 5,
   },
   contributorMeta: {
     flex: 1,

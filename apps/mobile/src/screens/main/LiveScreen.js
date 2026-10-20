@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   Modal,
   RefreshControl,
   StyleSheet,
@@ -13,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
@@ -33,7 +35,7 @@ const CATEGORIES = [
 ];
 
 export default function LiveScreen({ navigation }) {
-  const { user } = useAuth();
+  const { user, refreshMe } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -90,14 +92,16 @@ export default function LiveScreen({ navigation }) {
       onConfirm: async () => {
         setStarting(true);
         try {
-          const room = await apiClient.createLiveRoom({
+          const res = await apiClient.createLiveRoom({
             title: trimmedTitle,
             category,
             entryFee: fee,
           });
+          const room = res?.room || res?.data || res;
           setModalVisible(false);
           setTitle('');
           setEntryFee(0);
+          if (refreshMe) refreshMe().catch(() => {});
           navigation.navigate('LiveRoom', { room, roomId: room.id, isHost: true });
           loadRooms();
         } catch (e) {
@@ -125,7 +129,11 @@ export default function LiveScreen({ navigation }) {
       actionName: fee > 0 ? `라이브 방송 입장(입장료 ${fee.toLocaleString()} 온)` : '라이브 방송 무료 입장',
       overrideAmount: fee,
       navigation,
-      onConfirm: () => {
+      onConfirm: async () => {
+        try {
+          await apiClient.joinLiveRoom(room.id);
+          if (refreshMe) refreshMe().catch(() => {});
+        } catch {}
         navigation.navigate('LiveRoom', { room, roomId: room.id, isHost: false });
       },
     });
@@ -133,59 +141,71 @@ export default function LiveScreen({ navigation }) {
 
   const renderRoomItem = ({ item }) => {
     const host = item.host || {};
+    const coverImage =
+      item.coverUri ||
+      host.avatar ||
+      'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500';
 
     return (
       <TouchableOpacity
         style={styles.roomCard}
         onPress={() => handleEnterRoom(item)}
-        activeOpacity={0.85}
+        activeOpacity={0.88}
       >
-        {/* Cover / Visual Area */}
-        <View style={styles.cardCover}>
-          <Avatar
-            size={56}
-            name={host.name}
-            uri={item.coverUri || host.avatar}
-            showBorder
-            style={styles.coverAvatar}
-          />
-          {/* Top badging */}
-          <View style={styles.cardHeaderBadges}>
-            <View style={styles.liveTag}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveTagText}>LIVE</Text>
-            </View>
-            <View style={styles.viewerBadge}>
-              <Ionicons name="eye" size={12} color="#FFFFFF" />
-              <Text style={styles.viewerCountText}>{item.viewerCount || 1}</Text>
-            </View>
-            <View
-              style={[
-                styles.entryFeePill,
-                Number(item.entryFee || 0) > 0 ? styles.entryFeePaid : styles.entryFeeFree,
-              ]}
-            >
-              <Text style={styles.entryFeePillText}>
-                {Number(item.entryFee || 0) > 0 ? `${Number(item.entryFee).toLocaleString()} 온` : '무료'}
-              </Text>
-            </View>
+        {/* Full Card Cover Image */}
+        <Image source={{ uri: coverImage }} style={styles.roomCardCover} />
+
+        {/* Top Badges Overlay */}
+        <View style={styles.cardHeaderBadges}>
+          <View style={styles.liveTag}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveTagText}>LIVE</Text>
+          </View>
+          <View style={styles.viewerBadge}>
+            <Ionicons name="eye" size={11} color="#FFFFFF" style={{ marginRight: 3 }} />
+            <Text style={styles.viewerCountText}>{item.viewerCount || 1}</Text>
+          </View>
+          <View
+            style={[
+              styles.entryFeePill,
+              Number(item.entryFee || 0) > 0 ? styles.entryFeePaid : styles.entryFeeFree,
+            ]}
+          >
+            <Text style={styles.entryFeePillText}>
+              {Number(item.entryFee || 0) > 0 ? `${Number(item.entryFee).toLocaleString()} 온` : '무료'}
+            </Text>
           </View>
         </View>
 
-        {/* Room Info */}
-        <View style={styles.cardInfo}>
+        {/* Bottom Dimmed Gradient Overlay */}
+        <LinearGradient
+          colors={['transparent', 'rgba(15, 23, 42, 0.4)', 'rgba(15, 23, 42, 0.95)']}
+          style={styles.cardBottomOverlay}
+        >
+          <View style={styles.cardHostRow}>
+            <Avatar
+              size={22}
+              name={host.name}
+              uri={host.avatar || coverImage}
+              showBorder
+              borderColor="#FFFFFF"
+            />
+            <Text style={styles.cardHostName} numberOfLines={1}>
+              {host.name || '호스트'}
+            </Text>
+            {!!host.region && (
+              <Text style={styles.cardHostRegion} numberOfLines={1}>
+                · {host.region}
+              </Text>
+            )}
+          </View>
           <Text style={styles.roomTitle} numberOfLines={1}>
             {item.title}
           </Text>
-          <View style={styles.hostRow}>
-            <Text style={styles.hostName} numberOfLines={1}>
-              {host.name}
-            </Text>
-            {!!host.region && (
-              <Text style={styles.hostRegion}>· {host.region}</Text>
-            )}
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryBadgeText}>#{item.category || '소통'}</Text>
           </View>
-        </View>
+        </LinearGradient>
       </TouchableOpacity>
     );
   };
@@ -518,27 +538,23 @@ const styles = StyleSheet.create({
   },
   roomCard: {
     width: '48%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    overflow: 'hidden',
-    shadowColor: colors.shadowColor,
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  cardCover: {
-    height: 130,
+    height: 220,
     backgroundColor: '#1E293B',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    marginBottom: 4,
     position: 'relative',
   },
-  coverAvatar: {
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+  roomCardCover: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+    resizeMode: 'cover',
   },
   cardHeaderBadges: {
     position: 'absolute',
@@ -546,8 +562,9 @@ const styles = StyleSheet.create({
     left: 8,
     right: 8,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 4,
+    zIndex: 2,
   },
   liveTag: {
     flexDirection: 'row',
@@ -566,7 +583,6 @@ const styles = StyleSheet.create({
   viewerBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
     backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 6,
     paddingVertical: 3,
@@ -577,28 +593,68 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  cardInfo: {
-    padding: 10,
+  entryFeePill: {
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginLeft: 'auto',
   },
-  roomTitle: {
-    fontSize: 14,
+  entryFeeFree: {
+    backgroundColor: 'rgba(16, 185, 129, 0.85)',
+  },
+  entryFeePaid: {
+    backgroundColor: 'rgba(245, 158, 11, 0.85)',
+  },
+  entryFeePillText: {
+    fontSize: 10,
     fontWeight: '700',
-    color: colors.text,
+    color: '#FFFFFF',
   },
-  hostRow: {
+  cardBottomOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 10,
+    paddingTop: 28,
+    justifyContent: 'flex-end',
+    zIndex: 2,
+  },
+  cardHostRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
+    gap: 5,
+    marginBottom: 4,
   },
-  hostName: {
+  cardHostName: {
     fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: '#FFFFFF',
+    flexShrink: 1,
   },
-  hostRegion: {
-    fontSize: 11,
-    color: colors.textTertiary,
+  cardHostRegion: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.75)',
+    flexShrink: 1,
+  },
+  roomTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  categoryBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  categoryBadgeText: {
+    fontSize: 10,
+    color: '#F8FAFC',
+    fontWeight: '600',
   },
   emptyContainer: {
     alignItems: 'center',

@@ -110,6 +110,12 @@ async function verifyAllConnectedEndpoints() {
   const comments = await contentService.getComments(targetPostId);
   assert(comments.some(c => c.content === '멋진 글이네요!'), '게시글 댓글 목록 조회 정상');
 
+  const reportRes = await contentService.createReport({ id: 'user-me' }, { postId: targetPostId, reason: '광고 스팸 의심' });
+  assert(reportRes.ok === true && typeof reportRes.reportId === 'number', '게시글 신고 및 관리자 센터 접수 정상');
+
+  const adminReports = await contentService.getReports();
+  assert(adminReports.items.some(r => r.reason === '광고 스팸 의심'), '관리자 신고 목록 조회 및 연동 정상');
+
   // 4. Live Streaming Endpoints (LiveController)
   console.log('\n--- 4. 라이브 스트리밍(방 생성/입장/채팅/하트/선물) 검증 ---');
   const liveController = new LiveController(mockPrismaUsers);

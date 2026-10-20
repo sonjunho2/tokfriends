@@ -1,0 +1,71 @@
+[
+  {
+    "id": "chat-mock-1",
+    "title": "박서연",
+    "category": "친목",
+    "entryFee": 0,
+    "isGroup": false,
+    "participantIds": [
+      "guest",
+      "u-seed-1",
+      "acc-seoyeon"
+    ],
+    "counterpart": {
+      "id": "u-seed-1",
+      "displayName": "박서연",
+      "handle": "seoyeon_art",
+      "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300",
+      "online": true
+    },
+    "lastMessage": "네! 주말에 역삼역 근처 카페에서 봬요 ✨",
+    "lastMessageAt": "2026-10-20T04:07:59.669Z",
+    "unreadCount": 2,
+    "createdAt": "2026-10-19T04:19:59.669Z"
+  },
+  {
+    "id": "chat-mock-2",
+    "title": "김도현",
+    "category": "운동",
+    "entryFee": 0,
+    "isGroup": false,
+    "participantIds": [
+      "guest",
+      "u-seed-2",
+      "acc-dohyun"
+    ],
+    "counterpart": {
+      "id": "u-seed-2",
+      "displayName": "김도현",
+      "handle": "dohyun_run",
+      "avatarUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300",
+      "online": true
+    },
+    "lastMessage": "오늘 저녁 한강 러닝 코스 어떠세요?",
+    "lastMessageAt": "2026-10-20T03:34:59.669Z",
+    "unreadCount": 0,
+    "createdAt": "2026-10-18T04:19:59.669Z"
+  },
+  {
+    "id": "chat-mock-3",
+    "title": "한유진",
+    "category": "반려견",
+    "entryFee": 0,
+    "isGroup": false,
+    "participantIds": [
+      "guest",
+      "u-seed-5",
+      "acc-yujin"
+    ],
+    "counterpart": {
+      "id": "u-seed-5",
+      "displayName": "한유진",
+      "handle": "yujin_puppy",
+      "avatarUrl": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300",
+      "online": false
+    },
+    "lastMessage": "사진 속 강아지가 너무 귀여워요 🐶",
+    "lastMessageAt": "2026-10-20T01:19:59.669Z",
+    "unreadCount": 0,
+    "createdAt": "2026-10-17T04:19:59.669Z"
+  }
+]

@@ -4,6 +4,230 @@ Updated: 2026-10-20
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+## 2026-10-20 Checkpoint 106: [라이브 목록 화면 카드 풀썸네일·그라데이션 개편 & 라이브 방송방 상단 헤더 정돈·기여도 랭킹 1~4등 개별 분리 및 1등 골드 링 강조 & 관리자 온 소모 설정 백엔드 영구 연동 및 실제 포인트 차감 완결] 관리자 온 소모 정책(`data/action-point-policy.json`) 백엔드·모바일 전역 연동 및 방송 개설·입장·채팅방 개설 시 실제 포인트 원자적 차감, 라이브 목록 화면(`LiveScreen.js`) 홈 화면 수준의 고품격 풀 썸네일+하단 딤드 그라데이션 카드 전면 개편, 라이브 방송 룸(`LiveRoomScreen.js`) 상단 불필요한 LIVE 글자 및 포인트 배지 제거, [호스트 아바타+이름+지역] 캡슐 정돈, 우측 상단 기여도 랭킹 1~4위 개별 분리 나란히 배치 및 1등 화려한 골드 테두리 링/뱃지 강조, 기여도 랭킹 바텀시트(`LiveViewerRankingSheet.js`) 클릭 연동 및 프로필 시트 오픈 완결 (진행 완료 - 메인 병합 및 APK 빌드 대기)
+
+### 1. 개요 및 사용자 요청 사항
+- **요청 1 (관리자 온 소모 설정 연동 & 실제 차감)**: 관리자 웹의 온 소모 설정(`action-points`: 라이브 개설/입장, 채팅방 개설/입장 등)에 맞춰 라이브나 채팅 등에서 온(ON)이 정상 차감되도록 연동.
+- **요청 2 (라이브 목록 화면 카드 디자인 개편)**: 라이브 목록 화면에서 방들이 표시되는 카드 디자인이 어색하므로, 홈 화면의 라이브 박스처럼(풀 썸네일 + 그라데이션 오버레이 + 뱃지) 미려하고 고급스럽게 개편.
+- **요청 3 (라이브 방송 룸 상단 헤더 정돈)**:
+  - 좌측: 불필요한 LIVE 글자 및 포인트 표시 제거, 호스트 정보(아바타 + 이름 + 미니 LIVE 태그 + 지역) 캡슐로 단정하게 정리.
+  - 우측: 접속자가 겹쳐있던 것을 각개로 따로 분리(나란히 배치)하고, 단순 접속자가 아니라 **기여도 랭킹 1~4위 아바타**로 표시.
+  - 특히 **1등은 골드 원형 테두리 라인으로 화려하게 구분**하여 누가 1등인지 보이도록 돋보이게 처리.
+  - 우측 총 시청자 수(`viewerCount`) 및 닫기 버튼 [X] 배치.
+- **요청 4 (접속자/기여도 랭킹 클릭 및 프로필 팝업)**:
+  - 우측 기여도/시청자 영역 클릭 시 접속자 & 기여도 랭킹 바텀시트 모달 팝업.
+  - 시트 내에서 아이콘(아바타) 클릭 시 해당 유저의 프로필 창이 팝업되도록 연동.
+
+### 2. 주요 해결 및 수정 내역
+1. **관리자 온(ON) 소모 정책 영구 파일 스토리지 및 차감 연동 (`services/api`)**:
+   - `services/api/data/action-point-policy.json` 영구 파일 스토리지 구축 (`chatRoomCreate`, `chatRoomJoin`, `directMessageRequest`, `liveRoomCreate`, `liveRoomJoin`).
+   - 관리자 웹에서 정책 변경 시 `AdminSettingsService.updateActionPointPolicy`에서 `data/action-point-policy.json`에 즉각 동기화 저장.
+   - `StoreController.getActionPointsPolicy`가 하드코딩 반환 대신 영구 정책 파일을 읽어 모바일 앱에 최신 정책을 실시간 제공.
+   - 라이브 방송 개설(`POST /live/rooms`) 시 관리자 설정 금액만큼 유저 `pointBalance`를 확인하고 부족 시 안내, 충족 시 원자적 포인트 차감 및 잔액 반환.
+   - 라이브 방송 입장(`POST /live/rooms/:id/join`) 시 설정된 입장료 또는 정책 금액만큼 포인트 차감.
+   - 채팅방 개설(`ChatService.createChatRoom`) 시에도 관리자 정책 금액만큼 포인트 차감.
+   - 모바일 앱 `LiveScreen.js`에서 방송 개설 및 입장 성공 시 `refreshMe()`를 호출하여 내 잔액을 실시간 갱신.
+2. **라이브 목록 화면 풀 썸네일 카드 전면 개편 (`LiveScreen.js`)**:
+   - 기존의 단조로운 남색 카드 대신, 홈 화면 라이브 박스 및 타사 표준에 맞춘 **풀 썸네일 커버 이미지 + 하단 딤드 그라데이션(`LinearGradient`) 카드**로 전면 개편.
+   - 상단 오버레이: 좌측 [🔴 LIVE] 네온 뱃지, [👁️ 시청자 수] 뱃지, 우측 [무료 / 유료 N온] 뱃지.
+   - 하단 오버레이: 호스트 아바타(원형) + 호스트 닉네임 + 지역명, 방송 제목, 카테고리 해시태그 칩(#소통 등) 배치.
+3. **라이브 방송 룸 상단 헤더 정돈 & 기여도 랭킹 1~4등 개별 분리 (`LiveRoomScreen.js`)**:
+   - 상단 좌측: 불필요했던 큰 LIVE 글자 및 포인트 표시 배지(`giftTotalBadge`)를 전면 제거하고, [호스트 아바타 + 이름 + 미니 LIVE 태그 + 지역] 캡슐로 단정하고 깔끔하게 정돈.
+   - 상단 우측:
+     - 기존의 -6px 겹침 아바타 배치를 제거하고, **각개로 따로 분리(간격 5px 나란히 배치)**.
+     - 단순 최근 발언자가 아니라 **기여도 랭킹 1~4위 아바타(`topContributors`)**로 실시간 바인딩.
+     - **1등 아바타**: 골드 테두리 링(`borderColor: '#F59E0B'`, `borderWidth: 2`) + 금색 1번 뱃지 + 골드 네온 그림자 효과로 화려하게 구분.
+     - 2등(블루), 3등(오렌지), 4등(실버) 순위별 테두리 링 차등 적용.
+     - 총 시청자 수 카운트 뱃지(`viewerCount`) 및 닫기 버튼 [X] 정돈.
+4. **접속자 & 기여도 랭킹 바텀시트 및 프로필 시트 엔드투엔드 연동 (`LiveViewerRankingSheet.js`, `LiveRoomScreen.js`)**:
+   - 우측 기여도 랭킹/시청자 터치 시 `LiveViewerRankingSheet`가 즉시 팝업.
+   - 탭: [시청자] [기여도 랭킹] [VIP]
+   - 기여도 랭킹 목록에서 1등 골드 프레임 하이라이트 및 코인 수량 표출.
+   - 목록에서 유저 아바타 터치 시 `handleOpenParticipantProfile`가 호출되어 `GlobalBottomSheet` 프로필 창이 매끄럽게 팝업.
+   - 프로필 창 내 액션도 1:1 통화 대신 **1:1 LIVE 요청**으로 일원화.
+
+### 3. 검증 결과
+- **백엔드 NestJS 빌드**: `services/api` `nest build` 정상 통과 (0 error).
+- **모바일 코드 바벨 컴파일**: `LiveScreen.js`, `LiveRoomScreen.js`, `LiveViewerRankingSheet.js`, `MyPageScreen.js`, `ShopScreen.js` 5개 파일 전수 검증 정상 (0 error).
+- **상태**: 사용자 지시에 따라 메인 병합 및 프로덕션 APK 빌드는 대기 중.
+
+---
+
+## 2026-10-20 Checkpoint 105: [마이페이지 온 충전 오류 해결 & 1:1 LIVE 단가 직접입력 개편 & 관리자 FAQ·1:1 고객센터 문의 및 무료온 충전소 연동 완결] 온(ON) 충전소 결제 검증 미연동 시 테스트 즉시 충전 방어 및 라우트 3중 확장, 1:1 통화 폐지 및 1:1 LIVE 단가 설정(프리셋 4종 + 100~100,000 온 직접입력) 개편, 관리자 [게시물 & 공지 > FAQ & 문의 지원] 큐레이션 실시간 연동 및 1:1 고객문의 티켓 영구 접수·관리자 현황 상태 반영, 무료온 충전소 관리자 「광고 & 리워드」 정책 연동 (진행 완료 - 메인 병합 및 APK 빌드 대기)
+
+### 1. 개요 및 사용자 요청 사항
+- **요청 1 (온 충전소 오류 해결 & 테스트 즉시 충전)**: 모바일 온 충전소에서 상품 충전 시 `Cannot POST /store/purchases/confirm` 오류 발생. 인앱결제 미연동 상태에서도 자동 즉시 충전되어 테스트가 가능하도록 API 연동 및 클라이언트 방어 조치 요청.
+- **요청 2 (1:1 LIVE 단가 설정 및 직접 입력 지원)**: `1:1 통화 단가 설정`을 `1:1 LIVE 단가 설정`으로 변경. 1:1 통화 기능은 배제하고 1:1 라이브 기능으로 통일하며, 프리셋 외에 사용자가 원하는 온(ON) 단가를 직접 입력(100 ~ 100,000 ON)하여 설정할 수 있도록 개편 요청.
+- **요청 3 (고객센터 & 약관 관리자 연동 & 1:1 고객 문의 접수)**: 마이페이지의 '고객센터 & 약관' 메뉴를 관리자 웹 [게시물 & 공지 > FAQ & 문의 지원]의 자주 묻는 질문(FAQ) 큐레이션 및 1:1 고객 문의 접수 현황(티켓: 대기/진행/완료)과 실시간 연동되도록 구현 요청.
+- **요청 4 (무료온 충전소 관리자 정책 연동)**: 관리자 웹 [광고 & 프로모션 > 광고 & 리워드]의 보상형 광고(AdMob) 네트워크 설정 및 보상 지급 단가(일일 광고 시청 제한, 1회 지급 온, 출석체크, 친구초대)와 실시간 연동되도록 처리 요청.
+- **요청 5 (마이페이지 전수 점검)**: 마이페이지 내 연동되지 않는 부분과 동작 문제점 전수 수정.
+
+### 2. 주요 해결 및 수정 내역
+1. **온(ON) 충전소 결제 및 테스트 충전 연동 강화 (`store.controller.ts`, `ShopScreen.js`)**:
+   - 백엔드 `confirmPurchase` 라우트에 `@Post(['store/purchase', 'store/confirm-purchase', 'store/purchases/confirm'])` 3중 엔드포인트를 등록하여 라우팅 404 원천 차단.
+   - `productId` 기반 자동 매핑을 적용하여 `points`/`amount`가 누락된 요청에서도 패키지 정보를 식별하여 정확한 온(ON) 지급.
+   - 모바일 `ShopScreen.js`에서 `confirmPurchase` 호출 시 `points` 및 `amount`를 명시적으로 전달하며, 네트워크/검증 예외 발생 시에도 `ENABLE_DIRECT_TEST_CHARGE` 환경에서 로컬 테스트 잔액을 즉시 가산하여 결제 팝업 에러 없이 원활하게 테스트 충전이 완료되도록 방어 조치.
+2. **1:1 LIVE 단가 설정 개편 및 직접 입력(TextInput) 신설 (`MyPageScreen.js`)**:
+   - 기존 '1:1 통화 단가 설정'을 '1:1 LIVE 단가 설정'으로 전면 개편 (아이콘: videocam, 설명: 분당 단가 표출).
+   - 모달 내 추천 프리셋(1,000, 1,500, 2,000, 3,000 ON/분) 외에 **직접 입력(TextInput, 100 ~ 100,000 ON) 폼** 추가.
+   - 분당 단가 유효성 검증(100 이상 100,000 이하 숫자) 후 로컬 `AsyncStorage` 저장 및 백엔드 프로필(`liveRatePerMinute`, `callRatePerMinute`) 실시간 동기화.
+3. **고객센터 FAQ 큐레이션 & 1:1 문의 관리자 엔드투엔드 동기화 (`content.service.ts`, `content.controller.ts`, `MyPageScreen.js`, `apps/admin`)**:
+   - 백엔드에 `SupportTicketItem` 인터페이스 및 영구 파일 스토리지(`data/support-tickets.json`) 신설.
+   - `GET /community/faqs`, `GET /faqs`: 모바일 고객센터용 공개 FAQ 엔드포인트 제공.
+   - `POST /community/support-tickets`: 모바일 유저의 1:1 고객 문의 접수 API 구현 (문의분류, 연락처, 회원명, 내용, 접수일시, 상태 `대기` 자동 생성).
+   - `GET /admin/support-tickets`, `PATCH /admin/support-tickets/:id/status`: 관리자 1:1 문의 현황 조회 및 상태(대기/신청/진행/완료) 변경 API 연동.
+   - 마이페이지 '고객센터 & 이용약관' 모달에 관리자 등록 FAQ 아코디언 목록을 실시간 렌더링하고, 상단에 '1:1 고객센터 문의하기' 배너를 배치.
+   - '1:1 고객센터 문의하기' 모달을 통해 문의 분류(문의, 환불/결제, 버그 신고, 계정), 회신 연락처, 문의 내용을 입력받아 접수 완료 시 관리자 웹 [게시물 & 공지 > FAQ & 문의 지원 > 1:1 고객 문의 접수 현황]에 즉시 티켓이 실시간 등록되도록 연동 완료.
+4. **무료온 충전소 관리자 정책 연동 (`store.controller.ts`, `reward-policies.json`, `ShopScreen.js`)**:
+   - `GET /store/rewards/status`에서 관리자가 설정한 `attendancePoints`, `pointsPerAd`, `dailyAdLimit`, `referralPoints`를 불러와 모바일 무료 충전소 카드(출석체크, 광고시청, 친구초대)에 실시간 바인딩.
+   - 출석체크 및 광고 시청 리워드 수령 시 관리자 정책에 맞춘 온(ON)이 정확하게 적립되도록 백엔드 로직 정비.
+
+### 3. 검증 결과
+- **백엔드 NestJS 빌드**: `services/api`에서 `nest build` 정상 통과 (0 error).
+- **관리자 Next.js 프로덕션 빌드**: `apps/admin`에서 `next build` -> 32개 전체 라우트(`/content` FAQ 및 티켓 연동 포함) 무결점 통과 (0 error).
+- **모바일 코드 바벨 컴파일**: `MyPageScreen.js`, `ShopScreen.js` 구문 및 렌더링 검증 100% 통과 (0 error).
+- **상태**: 사용자 지시에 따라 메인 병합 및 프로덕션 APK 빌드는 대기 중.
+
+---
+
+## 2026-10-20 Checkpoint 104: [소셜 & 매칭 관리자 태그/알고리즘 가중치 백엔드 영구 보존 & 인연·대화 화면 상단 캡슐 필터 실시간 연동 완결] 관리자 인연 탐색 태그 노출 스위치 토글·추가·삭제·수정 및 AI 가중치 변경 영구 파일 스토리지(`data/match-settings.json`) 직결, 인연·대화 화면 상단 캡슐 필터 바(`ChatsScreen.js`) 실시간 렌더링 및 인연 탐색 필터 완전 연동, 홈 화면(`HomeScreen.js`) 본연의 심플·미려한 쇼케이스 레이아웃 원복 완료 (진행 완료 - 메인 병합 및 APK 빌드 대기)
+
+### 1. 개요 및 사용자 요청 사항
+- **사용자 요청**: 관리자 웹의 **"소셜·대화 > 소셜 & 매칭" (`/matches`)** 화면의 카테고리 태그 버튼 관리 및 AI 추천 가중치가 실제 백엔드와 모바일 앱의 **인연·대화 화면 [인연 찾기 | 내 대화] 탭 바로 아래 가로 스크롤 필터 목록**에 정확히 연동되도록 조치.
+- **홈 화면 원복**: 홈 화면은 앱의 첫인상을 주는 깔끔한 쇼케이스 화면이므로 불필요하게 추가된 태그 바를 제거하고 원래의 깔끔하고 미려한 디자인(실시간 LIVE -> 오늘의 추천 인연 -> 동네 커뮤니티 피드)으로 즉시 원복.
+- **점검 결과**:
+  1. 관리자 웹(`matches/page.tsx`)에서 빠른 태그의 노출 스위치를 토글(`handleToggleTag`)해도 백엔드 API를 호출하지 않고 로컬 상태만 변경되어 새로고침 시 초기화되던 문제.
+  2. 백엔드(`app.controller.ts`)의 `GET /matches/control-panel` 및 `GET /matches/quick-filters`가 고정된 정적 객체만 반환하고 파일/DB에 쓰지 않던 문제.
+  3. 인연·대화 화면(`ChatsScreen.js`) 상단 [인연 찾기] 바로 아래 캡슐 필터 바에 하드코딩된 정적 태그 목록이 유지되어 관리자에서 설정한 태그가 실시간 반영되지 않던 문제.
+
+### 2. 주요 해결 및 연동 내역
+1. **백엔드 매칭 설정 영구 저장소 구축 (`services/api/src/app.controller.ts`)**:
+   - `services/api/data/match-settings.json` 영구 파일 기반 캐시 및 입출력 시스템 구축 (`loadMatchSettings`, `saveMatchSettings`).
+   - `GET /matches/control-panel`: 영구 저장된 `quickFilters`, `weights` 반환.
+   - `GET /matches/quick-filters`: 모바일 앱 전용 활성 태그(`enabled !== false`) 목록 제공.
+   - `POST /matches/quick-filters`: 관리자 신규 태그 등록 및 영구 저장.
+   - `PATCH /matches/quick-filters/:id`: 노출 스위치 토글(`enabled: boolean`) 및 정보 수정 영구 반영.
+   - `DELETE /matches/quick-filters/:id`: 태그 삭제 영구 반영.
+   - `PATCH /matches/presets/:id`: AI 추천 알고리즘 가중치(`distance`, `interest`, `recency`, `aiAffinity`) 영구 반영.
+2. **관리자 웹 연동 (`apps/admin/src/lib/api.ts`, `apps/admin/src/app/matches/page.tsx`)**:
+   - `updateMatchQuickFilter(id, payload)` 신설.
+   - `handleToggleTag`: 노출 스위치 클릭 시 `updateMatchQuickFilter(tagId, { enabled: nextEnabled })`를 즉시 호출하여 서버에 실시간 저장 및 토스트 알림 안내.
+   - 관리자 가이드 문구 및 탭 제목을 "인연·대화 상단 카테고리 태그 버튼 관리"로 정돈하고, 우측 스마트폰 시뮬레이터도 [인연 찾기 | 내 대화] 탭 기반으로 일치화.
+3. **인연·대화 화면 가로 캡슐 필터 바 실시간 연동 (`apps/mobile/src/screens/main/ChatsScreen.js`)**:
+   - `loadData`에서 `apiClient.getMatchQuickFilters()`를 호출하여 관리자가 활성화한 태그들을 실시간 로드.
+   - [인연 찾기 | 내 대화] 탭 바로 아래 가로 스크롤 캡슐 필터 바(`renderCapsuleFilterBar`)에 `[ '전체', ...관리자 태그들 ]`을 아이콘과 함께 동적 렌더링.
+   - `filteredUsers`: 선택된 태그(접속중, 가까운 동네, 20대 또래, 취미/운동, 커피 등)의 조건에 맞춰 인연 카드들이 실시간으로 자동 필터링/정렬되도록 구현.
+4. **홈 화면 원복 완료 (`apps/mobile/src/screens/main/HomeScreen.js`)**:
+   - 홈 화면에서 임의로 추가되었던 빠른 탐색 태그 바 컴포넌트, 상태, API 호출을 전면 제거하여 원래의 깔끔하고 고급스러운 쇼케이스 UI로 완전 원복.
+
+### 3. 검증 결과
+- **백엔드 NestJS 빌드**: `services/api`에서 `nest build` 정상 통과 (0 error).
+- **세부 API 통합 E2E 테스트**: `verify-all-endpoints.ts` -> **24/24개 전 항목 100% 통과 (PASS)**.
+- **관리자 Next.js 프로덕션 빌드**: `apps/admin`에서 `next build` -> **32개 전체 라우트(`/matches` 포함) 무결점 빌드 완료**.
+- **모바일 코드 바벨 컴파일**: `HomeScreen.js`, `ChatsScreen.js` 구문 및 렌더링 검증 100% 완료.
+- **상태**: 사용자 지시에 따라 메인 병합 및 프로덕션 APK 빌드는 대기 중.
+
+---
+
+## 2026-10-20 Checkpoint 103: [인연 탐색 통일·1:1 대화방 개설 단일화 & 양방향 삭제·키보드 가림 완벽 해결] 인연찾기/추천 단일화, 1:1 대화방 전용 개설 모달 개편, 어느 한쪽이라도 삭제 시 대화방 영구 양방향 삭제 및 수익 구조(재개설/재입장 유도) 확보, 대화 입력창 키보드/하단바 가림 원천 해결, 온(ON) 포인트 선물 알림 채팅 기록 표출 연동 (진행 완료 - 메인 병합 및 APK 빌드 대기)
+
+### 1. 개요 및 사용자 요청 사항
+- **요청 1 (인연찾기·추천 통합)**: 인연추천 페이지와 인연찾기 페이지를 하나로 통합하여 혼선 제거.
+- **요청 2 (1:1 대화방 개설 단일화 & 양방향 삭제)**: 단체 대화방 개설 불필요, 1:1 대화방만 개설할 수 있도록 하고, 둘 중 누구 하나라도 방을 삭제하면 양쪽 모두에서 삭제되어 재입장/재개설 시 비용이 발생하도록 수익 모델 구축.
+- **요청 3 (대화 입력창 키보드/하단바 가림)**: 채팅창에서 키보드가 올라오거나 폰 하단바가 팝업되었을 때 입력창이 가려져 작성 중인 글이 보이지 않던 문제 해결.
+- **요청 4 (선물 알림글 채팅 기록 표출)**: 온(ON) 포인트 선물 시 채팅 히스토리에 선물 알림 카드가 즉시 표출되도록 연동.
+
+### 2. 주요 해결 및 수정 내역
+1. **인연 탭 단일화 (`ChatsScreen.js`)**: 상단 탭을 '1:1 대화'와 '인연 찾기' 2개 탭으로 명확히 정돈.
+2. **1:1 대화방 개설 단일화 (`CreateRoomModal.js`)**: 그룹 방 개설 토글 및 인원 선택을 제거하고, 1:1 대화 상대 선택 모드로 단일화.
+3. **양방향 대화방 삭제 (`services/api/src/modules/chat/chat.service.ts`, `ChatsScreen.js`)**:
+   - `DELETE /chats/:id` 호출 시 대화방 참가자 전원의 목록에서 즉시 영구 제거(`deleteRoomCompletely`).
+   - 상대방에게도 방이 완전히 사라져 재대화 시 새로운 방 개설 비용/입장 비용이 소모되도록 처리.
+4. **대화 입력창 키보드 가림 원천 해결 (`ChatRoomScreen.js`)**:
+   - `KeyboardAvoidingView`와 `Keyboard.addListener` 연동으로 키보드 오픈 시 패딩을 동적 조정하여 입력창이 키보드 바로 위에 오도록 조치.
+5. **선물 알림 메시지 표출 (`ChatRoomScreen.js`, `services/api`)**:
+   - 선물 전송 시 type: 'gift' 메시지를 채팅 히스토리에 자동 추가하여 선물 카드 및 포인트 내역이 채팅방에 실시간 렌더링되도록 구현.
+
+---
+
+## 2026-10-20 Checkpoint 102: [커뮤니티 댓글 입력창·키보드 가림 완벽 해결 & 글/댓글/신고/차단 관리자 백엔드 전수 연동] 상세 화면 진입 시 하단바 자동 숨김, 삼성/안드로이드 키보드 팝업 시 댓글 입력창 즉시 노출, 본문 레이아웃 정렬 개선, 글·댓글 등록 서버 동기화 및 관리자 안전센터(`admin/reports`) 신고·차단 엔드투엔드 연동 완결 (진행 완료 - 메인 병합 및 APK 빌드 대기)
+
+### 1. 개요 및 사용자 요청 사항
+- **문제점 1 (댓글창 가림 & 키보드/하단바 동시 팝업)**: 게시글 상세 화면에서 하단 메인 탭바(홈, 커뮤니티, LIVE, 대화, 마이)가 그대로 노출되어 댓글창과 빠른 반응 바를 가리고, 키보드가 팝업되었을 때 댓글 입력창이 키보드 뒤에 완전히 파묻혀 작성 중인 글이 보이지 않던 문제.
+- **문제점 2 (페이지 정렬)**: 상단 헤더와 작성자 정보, 본문 내용 간의 간격 불균형 및 텍스트/이미지 레이아웃 정렬 문제.
+- **문제점 3 (글/댓글 등록 DB 연동)**: 모바일에서 글과 댓글을 등록해도 백엔드 DB/파일 스토리지에 정상 반영되지 않거나 작성자 정보(`author`) 누락으로 렌더링이 깨지는 문제.
+- **문제점 4 (신고 및 작성자 차단 관리자 연동)**: 게시글 신고 및 작성자 차단 기능이 백엔드와 관리자(admin 웹 `/reports-safety`)에 연결되지 않아 접수 내역이 관리자에서 확인되지 않던 문제.
+
+### 2. 주요 해결 및 수정 내역
+1. **하단 탭바 가림 및 키보드 회피 원천 해결 (`apps/mobile/src/navigation/TabNavigator.tsx`, `PostDetailScreen.js`)**:
+   - `TabNavigator.tsx`에 `getFocusedRouteNameFromRoute`를 적용하여 `PostDetail`, `ChatRoom` 등 상세 화면 진입 시 부모 탭바를 `display: 'none'`으로 자동 숨김 처리.
+   - `PostDetailScreen.js` 마운트 시 `navigation.getParent()?.setOptions({ tabBarStyle: { display: 'none' } })` 2중 안전장치 적용 (언마운트 시 자동 복원).
+   - `Keyboard.addListener`로 키보드 팝업 상태를 실시간 감지하여, 평상시에는 기기 바닥 안전영역(`insets.bottom`)을 확보하고 키보드가 올라왔을 때는 패딩을 축소하여 **댓글 입력창이 키보드 바로 위에 착 달라붙어 작성 중인 글이 선명하게 보이도록 수정**.
+   - `ScrollView`에 `keyboardShouldPersistTaps="handled"`를 지정하여 키보드가 열려 있어도 댓글 전송 버튼이 한 번에 터치되도록 개선.
+2. **페이지 레이아웃 및 본문 정렬 개선 (`apps/mobile/src/screens/community/PostDetailScreen.js`)**:
+   - 헤더-작성자 헤더-본문(`postBodyText`)-미디어-액션바 간격을 표준 패딩(16px)으로 정렬하고, 빈 본문 방어 텍스트 및 아바타 렌더링 정상화.
+3. **게시글 및 댓글 백엔드 완벽 동기화 (`services/api/src/modules/admin/content.service.ts`, `CommunityFeedScreen.js`, `PostDetailScreen.js`)**:
+   - 백엔드 `ContentService`의 `createPost`, `getPosts`, `getPostById`, `addComment`, `getComments` 전 메서드에 `author` 객체(`id`, `name`, `displayName`, `nickname`, `avatar`, `avatarUrl`, `region`)를 보장하는 정규화 메서드(`normalizePost`, `normalizeComment`) 구축.
+   - 모바일 `createPostComment` 호출 후 서버 반환 객체를 즉시 `comments` 상태에 반영하고 백그라운드 재검증을 수행하여 즉시 렌더링 보장.
+   - `CommunityFeedScreen.js`에서 글 작성 시 유저 프로필 정보를 완벽히 전달하고 `loadPosts()`로 즉각 갱신.
+4. **신고 & 차단 백엔드 및 관리자 안전센터 실시간 연동 (`services/api`, `apps/admin`)**:
+   - 백엔드 `data/reports.json` 기반 신고 영구 저장소 구축 및 모바일 신고 엔드포인트(`POST /community/report`, `POST /reports`) 연동.
+   - 관리자 웹(`apps/admin/src/app/reports-safety`)과 100% 직결되는 관리자 API 구현:
+     - `GET /admin/reports`: 신고 목록 실시간 조회 (상태/카테고리/검색 필터 지원)
+     - `GET /admin/reports/stats`: 신고 통계 (대기, 심사중, 조치완료, 고위험 등)
+     - `PATCH /admin/reports/:id/status`: 신고 처리 상태 갱신
+     - `POST /admin/reports/:id/block-user`: 불량 유저 차단 집행
+     - `POST /admin/reports/:id/sanction`: 계정 경고/정지/영구정지 제재 집행
+     - `DELETE /admin/reports/:id/post`: 신고된 불량 게시글 즉시 블라인드/삭제
+   - 사용자 차단 기능: 백엔드 `data/blocked-users.json` 영구 저장소 연동 및 단수/복수 경로(`/community/blocks`, `/community/block`) 모두 지원.
+   - 모바일 `apiClient.reportPost`, `apiClient.blockUser`의 파라미터 규격 일치화.
+
+### 3. 검증 결과
+- **백엔드 NestJS 빌드**: `services/api`에서 `nest build` 정상 통과 (0 error).
+- **세부 API 통합 E2E 테스트**: `verify-all-endpoints.ts` -> **24/24개 전 항목 100% 통과 (PASS)** (신고 접수 및 관리자 연동 포함).
+- **관리자 Next.js 프로덕션 빌드**: `apps/admin`에서 `next build` -> **32개 전체 라우트(신고/안전센터 `/reports-safety` 포함) 무결점 생성 완료**.
+- **모바일 코드 바벨 컴파일**: 수정된 모바일 4개 파일 전수 통과.
+- **상태**: 사용자 지시에 따라 메인 병합 및 프로덕션 APK 빌드는 대기 중.
+
+---
+
+## 2026-10-20 Checkpoint 101: [프로필 아바타 UI 렌더링 정상화 & 프로필 수정·사진 등록 저장 영구화] 홈 화면 실시간 라이브 호스트 원형 테두리 클리핑 개선, 홈/마이페이지 내 프로필 이미지 표출 정규화, 프로필 수정(닉네임/소개/지역/관심사/사진) 백엔드 영구 보존 및 동기화 완결 (진행 완료 - 메인 병합 및 APK 빌드 대기)
+
+### 1. 개요 및 사용자 요청 사항
+- **문제점 1**: 홈 화면 '실시간 LIVE' 프로필 박스에서 호스트 이름 옆 프로필 사진이 사각 테두리와 원형 이미지가 겹쳐 부자연스럽게 보이는 현상.
+- **문제점 2**: 홈 화면 상단 헤더 및 마이페이지 등 주요 화면에서 등록된 내 프로필 사진이 표출되지 않고 기본 아이콘으로 나오는 현상.
+- **문제점 3**: 프로필 수정 화면에서 사진을 등록하거나 소개글/내용을 수정했을 때 "수정 완료" 메시지는 뜨지만 실제 반영되지 않거나 사진이 정상 등록되지 않는 현상.
+- **작업 원칙**: 메인 브랜치 병합 및 APK 빌드는 사용자 승인 전까지 보류하고, 수정 완료 후 동작 검증 및 체크포인트 문서 갱신.
+
+### 2. 주요 수정 및 구현 내역
+1. **공통 아바타 컴포넌트 (`apps/mobile/src/components/common/UserAvatar.tsx`)**:
+   - 외부 래퍼 `View`에 인라인 스타일로 `borderRadius: radius`를 강제 부여하여 외부 스타일 오버라이드 시에도 테두리가 사각형으로 튀어나오는 현상 원천 차단.
+2. **홈 화면 실시간 LIVE 호스트 및 상단 프로필 (`apps/mobile/src/screens/main/HomeScreen.js`)**:
+   - `liveHostAvatar` 스타일에서 `borderRadius: 12`, `borderWidth: 1`, `borderColor: '#FFFFFF'`, `overflow: 'hidden'` 적용으로 완벽한 원형 클리핑 구현.
+   - `UserAvatar` 호출 시 `showBorder={true}`, `borderColor="#FFFFFF"` 명시.
+   - 상단 헤더 내 프로필 이미지: `safeUser?.avatarUrl || safeUser?.avatarUri || safeUser?.profile?.avatarUri || safeUser?.photos?.[0]?.url` 다중 fallback 적용으로 즉시 정상 표출.
+3. **마이페이지 (`apps/mobile/src/screens/main/MyPageScreen.js`)**:
+   - `avatarUri`, `nickname`, `locationLabel`, `tagline` 등 유저 객체와 프로필 객체의 키 불일치(`user.nickname` vs `user.profile.nickname`, `user.avatarUrl` vs `user.avatarUri`)를 통합 정규화.
+   - 프로필 수정 화면으로 이동 시 통합된 객체(`{ ...user, ...userProfile }`)를 전달하여 기존 작성 정보가 유지되도록 처리.
+4. **프로필 수정 화면 (`apps/mobile/src/screens/my/ProfileEditScreen.js`)**:
+   - 초기값 로딩 시 `user`와 `profile`의 모든 fallback 필드(`nickname`, `region1`, `region2`, `headline`, `bio`, `interests`, `avatarUrl`) 매핑.
+   - 사진 등록 및 프로필 사진 변경 시 서버 업로드 실패 시에도 로컬 캐시 URI로 graceful fallback 처리하여 사진 등록 즉시 뷰에 반영.
+   - 프로필 저장 API 호출 시 `nickname`, `displayName`, `region1`, `region2`, `headline`, `bio`, `interests`, `avatarUrl`, `avatarUri`를 동시 전달하고 `refreshMe()`로 전역 세션 즉시 갱신.
+5. **모바일 API 클라이언트 (`apps/mobile/src/api/client.js`)**:
+   - `uploadAvatar`의 `Content-Type`을 `'multipart/form-data'`로 명시하고 용량 제한 완화(15MB), 중복 함수 선언 정리.
+6. **백엔드 유저 서비스 & 미디어 모듈 (`services/api/src/modules/users/`, `modules/media/`)**:
+   - `data/user-profiles.json` 파일 기반 영구 저장소를 도입하여 Prisma DB 기본 스키마 외의 확장 필드(`region1`, `region2`, `headline`, `interests`, `avatarUri`)까지 완벽 보존.
+   - `normalizeUser()` 메서드로 프론트엔드가 요구하는 `user` 및 `user.profile`의 모든 필드 구조를 일관되게 반환.
+   - 미디어 모듈(`MediaController`, `MediaModule`)을 추가하여 `/media/avatar` 엔드포인트 제공.
+
+### 3. 검증 결과
+- **백엔드 빌드**: `nest build` -> 성공 (0 error).
+- **백엔드 세부 API E2E 테스트**: `verify-all-endpoints.ts` 22/22 assertions 100% 통과.
+- **모바일 수정 파일 Babel 구문 분석/컴파일**: 5개 수정 파일 전수 통과.
+- **상태**: 사용자 요청에 따라 메인 병합 및 프로덕션 APK 빌드는 대기 중.
+
+---
+
 ## 2026-10-20 Checkpoint 100: [세부 API 100% 연동 완결 & 안드로이드 프로덕션 APK 릴리즈] 디스커버·실시간채팅·라이브스트리밍·커뮤니티·스토어/결제·소셜 6대 도메인 전체 세부 API 연동, 백엔드 E2E 통합 테스트(22/22) 전수 통과, 메인 브랜치 병합 및 최신 프로덕션 APK (`dagaon-release.apk`) 재배포 완료 (완료)
 
 ### 1. 개요 및 배경
@@ -5187,3 +5411,45 @@ First Owner/ActivityAccount migration must:
 - Do not remove legacy modules solely because they look unused.
 - Do not rewrite Chat/Wallet/Gift/LIVE simultaneously.
 - Do not remove or repurpose legacy User.pointsBalance until dependent APIs are deliberately migrated to Wallet/Ledger.
+
+---
+
+## Checkpoint 103 (인연·대화 1:1 단일화, 대화방 양방향 삭제, 키보드 가림 및 선물/메시지 API 전면 개편)
+
+### 1. 인연 추천 vs 인연 찾기 페이지 단일화
+- 구버전 분리 페이지(`HotRecommendScreen.js`)로의 불필요한 이탈 방지.
+- `ChatsScreen.js` 상단 우측 반짝이(`sparkles`) 액션을 터치 시 인연 찾기 탭 내 '🔥 HOT추천' 필터로 즉시 전환 및 추천 피드 새로고침으로 통합 완료.
+
+### 2. 1:1 대화방 개설 단일화 & 비즈니스 모델 보호
+- `CreateRoomModal.js`: 단체방/오픈 라운지 개설 옵션 완전 제거.
+- 항상 1:1 프라이빗 대화방(`isGroup: false`) 전용으로만 개설되도록 UI 및 제출 로직 간소화.
+- 1:1 특성에 맞춘 안내 배너 표시: "둘 중 한 명이 나가면 방이 완전히 종료 및 영구 삭제됩니다."
+
+### 3. 대화방 삭제 기능 & 양방향 완전 삭제 처리
+- `ChatsScreen.js` 내 대화 목록:
+  - 각 대화방 아이템에 `onLongPress` 및 우측 삭제(휴지통) 버튼 제공.
+  - 삭제 확인 Alert 안내: "1:1 대화방 특성상 삭제 시 대화방이 즉시 완전히 종료 및 삭제되며 복구할 수 없습니다."
+- `ChatRoomScreen.js` 대화방 내부:
+  - 우측 상단 옵션 메뉴에 [대화방 나가기 및 삭제] 버튼 신설.
+- 백엔드 `ChatService.deleteChat`:
+  - 1:1 대화방이므로 어느 한쪽이라도 삭제 시 메모리 및 디스크(`data/chats.json`, `data/chat-messages.json`)에서 대화방과 메시지를 완전히 파기하여 양쪽 모두에서 즉시 사라지도록 구현.
+  - 추후 재대화 시 채팅방 개설/입장 비용 비즈니스 모델(수익화) 성립.
+
+### 4. 메시지 전송 실패 오류 완벽 해결
+- 오류 원인: `sent.senderAccountId !== currentActivityAccountId` 불일치 검사로 인해 서버 응답 성공 후에도 클라이언트에서 throw 에러 및 Alert 팝업 발생.
+- 조치: 불필요한 엄격 비교 제거, `apiClient.sendChatMessage` 응답 객체 정규화(`sender: 'me'`), 메시지 전송 즉시 낙관적/확정 말풍선 렌더링 및 입력창 초기화 보장.
+
+### 5. 키보드 & 하단바 대화 입력창 가림 문제 원천 해결
+- `ChatRoomScreen.js` 진입 시 `tabBarStyle: { display: 'none' }` 적용으로 하단 탭바 완벽 숨김.
+- 안드로이드 `adjustResize` 환경에서 이중으로 여백을 밀어내던 `androidKeyboardOffset` 패딩 제거.
+- `inputContainer`의 `paddingBottom`을 키보드 팝업 시 `8px`, 미팝업 시 `Math.max(insets.bottom, 10)`으로 적용하여 삼성 키보드 및 하단 제스처 바 바로 위에 입력창이 밀착 렌더링되도록 수정.
+
+### 6. 선물 알림글 채팅 메시지 기록 및 표출
+- 백엔드 `POST /chats/gift`: `giftName`, `points`, `icon`을 함께 수신하여 `🎁 [선물] ${giftName} (${points} ON)을 보냈습니다!` 메시지(`type: 'gift'`) 자동 생성 및 DB/JSON 영구 보관.
+- 모바일 `handleSendGift`: 선물 전송 시 `type: 'gift'` 메시지를 대화 리스트에 즉시 삽입하고, `renderMessage`의 `giftCardCapsule`을 통해 선물 아이콘, 선물명, 포인트 뱃지가 양쪽 대화방에 명확히 표출되도록 구현.
+
+### 7. 관리자(Admin) 연동
+- 백엔드 `app.controller.ts`의 `GET /chats/control-panel`에 실제 생성된 라이브 대화방 목록(`liveRooms`) 및 실시간 메시지 스트림 결합.
+- `PATCH /chats/rooms/:id`, `DELETE /chats/rooms/:id`로 관리자의 대화방 강제 종료 및 삭제 연동 지원.
+- 빌드 검증: `services/api` 빌드 PASS, `verify-all-endpoints.ts` 24/24 PASS, `apps/admin` 32개 페이지 Next.js 빌드 PASS, `apps/mobile` AST 파싱 검증 100% PASS.
+

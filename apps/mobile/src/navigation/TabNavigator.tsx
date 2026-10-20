@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -78,20 +79,41 @@ export default function TabNavigator() {
   );
   const tabHeight = 62 + bottomPadding;
 
+  const getTabBarStyle = (route: any) => {
+    const routeName = getFocusedRouteNameFromRoute(route);
+    const hideOnScreens = [
+      'PostDetail',
+      'ChatRoom',
+      'ProfileDetail',
+      'ProfileEdit',
+      'Settlement',
+      'Shop',
+      'Points',
+      'Notifications',
+      'Friends',
+      'Visitors',
+      'Follows',
+    ];
+    if (routeName && hideOnScreens.includes(routeName)) {
+      return { display: 'none' as const };
+    }
+    return [
+      styles.tabBar,
+      {
+        height: tabHeight,
+        paddingBottom: bottomPadding,
+      },
+    ];
+  };
+
   return (
     <Tab.Navigator
       initialRouteName="Home"
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
         tabBarShowLabel: false,
-        tabBarStyle: [
-          styles.tabBar,
-          {
-            height: tabHeight,
-            paddingBottom: bottomPadding,
-          },
-        ],
-      }}
+        tabBarStyle: getTabBarStyle(route),
+      })}
     >
       {/* 1. 홈 탭 */}
       <Tab.Screen

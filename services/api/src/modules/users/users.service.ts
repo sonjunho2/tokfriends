@@ -1,6 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, OnModuleInit, Logger } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { UserRole, UserStatus } from '../../common/user-types';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export type UserSearchFilters = {
   keyword?: string;
@@ -9,8 +11,88 @@ export type UserSearchFilters = {
 };
 
 @Injectable()
-export class UsersService {
+export class UsersService implements OnModuleInit {
+  private readonly logger = new Logger(UsersService.name);
+  private readonly dataDir = path.join(process.cwd(), 'data');
+  private readonly profilesFilePath = path.join(this.dataDir, 'user-profiles.json');
+  private extendedProfiles: Record<string, any> = {};
+
   constructor(private readonly prisma: PrismaService) {}
+
+  onModuleInit() {
+    this.loadExtendedProfiles();
+  }
+
+  private loadExtendedProfiles() {
+    try {
+      if (!fs.existsSync(this.dataDir)) {
+        fs.mkdirSync(this.dataDir, { recursive: true });
+      }
+      if (fs.existsSync(this.profilesFilePath)) {
+        const raw = fs.readFileSync(this.profilesFilePath, 'utf-8');
+        this.extendedProfiles = JSON.parse(raw);
+      }
+    } catch (e: any) {
+      this.logger.warn(`Failed to read user-profiles.json: ${e?.message}`);
+      this.extendedProfiles = {};
+    }
+  }
+
+  private saveExtendedProfiles() {
+    try {
+      if (!fs.existsSync(this.dataDir)) {
+        fs.mkdirSync(this.dataDir, { recursive: true });
+      }
+      fs.writeFileSync(this.profilesFilePath, JSON.stringify(this.extendedProfiles, null, 2), 'utf-8');
+    } catch (e: any) {
+      this.logger.error(`Failed to save user-profiles.json: ${e?.message}`);
+    }
+  }
+
+  private normalizeUser(user: any) {
+    if (!user) return null;
+    const ext = this.extendedProfiles[user.id] || {};
+    const nickname = user.nickname || ext.nickname || user.displayName || '회원';
+    const displayName = user.displayName || user.nickname || ext.nickname || '회원';
+    const avatarUrl = user.avatarUrl || ext.avatarUrl || ext.avatarUri || user.photos?.[0]?.url || null;
+    const headline = ext.headline || user.bio || '새로운 인연을 기다려요 ✨';
+    const bio = user.bio !== undefined ? user.bio : (ext.bio || '');
+    const region1 = ext.region1 || '서울특별시';
+    const region2 = ext.region2 || '강남구 역삼동';
+    const interests = Array.isArray(ext.interests) ? ext.interests : ['소통', '일상', '친구'];
+
+    return {
+      ...user,
+      nickname,
+      displayName,
+      avatarUrl,
+      avatarUri: avatarUrl,
+      headline,
+      bio,
+      region1,
+      region2,
+      location: `${region1} ${region2}`.trim(),
+      interests,
+      profile: {
+        id: user.id,
+        nickname,
+        displayName,
+        name: nickname,
+        avatarUri: avatarUrl,
+        avatarUrl,
+        headline,
+        bio,
+        region1,
+        region2,
+        interests,
+      },
+      photos: (user.photos || []).map((p: any) => ({
+        ...p,
+        imageUrl: p.url,
+        order: p.sortOrder,
+      })),
+    };
+  }
 
   async byId(id: string) {
     const user = await this.prisma.user.findUnique({
@@ -22,14 +104,7 @@ export class UsersService {
       },
     });
     if (!user) return null;
-    return {
-      ...user,
-      photos: (user.photos || []).map((p) => ({
-        ...p,
-        imageUrl: p.url,
-        order: p.sortOrder,
-      })),
-    };
+    return this.normalizeUser(user);
   }
 
   async byPublicId(id: string) {
@@ -38,6 +113,7 @@ export class UsersService {
       select: {
         id: true,
         nickname: true,
+        displayName: true,
         avatarUrl: true,
         bio: true,
         callRatePerMinute: true,
@@ -54,14 +130,7 @@ export class UsersService {
       },
     });
     if (!user) return null;
-    return {
-      ...user,
-      photos: (user.photos || []).map((p) => ({
-        ...p,
-        imageUrl: p.url,
-        order: p.sortOrder,
-      })),
-    };
+    return this.normalizeUser(user);
   }
 
   async getMe(userId: string) {
@@ -72,7 +141,7 @@ export class UsersService {
     return user;
   }
 
-  async updateProfile(userId: string, data: { nickname?: string; bio?: string; avatarUrl?: string; callRatePerMinute?: number }) {
+  async updateProfile(userId: string, data: any) {
     if (data.nickname) {
       const existing = await this.prisma.user.findUnique({
         where: { nickname: data.nickname },
@@ -82,12 +151,28 @@ export class UsersService {
       }
     }
 
+    const currentExt = this.extendedProfiles[userId] || {};
+    this.extendedProfiles[userId] = {
+      ...currentExt,
+      ...(data.nickname ? { nickname: data.nickname } : {}),
+      ...(data.region1 !== undefined ? { region1: data.region1 } : {}),
+      ...(data.region2 !== undefined ? { region2: data.region2 } : {}),
+      ...(data.headline !== undefined ? { headline: data.headline } : {}),
+      ...(data.bio !== undefined ? { bio: data.bio } : {}),
+      ...(data.interests !== undefined ? { interests: data.interests } : {}),
+      ...(data.avatarUrl !== undefined ? { avatarUrl: data.avatarUrl } : {}),
+      ...(data.avatarUri !== undefined ? { avatarUrl: data.avatarUri, avatarUri: data.avatarUri } : {}),
+    };
+    this.saveExtendedProfiles();
+
+    const avatar = data.avatarUrl || data.avatarUri;
+
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
-        ...(data.nickname ? { nickname: data.nickname } : {}),
+        ...(data.nickname ? { nickname: data.nickname, displayName: data.nickname } : {}),
         ...(data.bio !== undefined ? { bio: data.bio } : {}),
-        ...(data.avatarUrl !== undefined ? { avatarUrl: data.avatarUrl } : {}),
+        ...(avatar !== undefined ? { avatarUrl: avatar } : {}),
         ...(data.callRatePerMinute !== undefined ? { callRatePerMinute: data.callRatePerMinute } : {}),
       },
       include: {
@@ -97,14 +182,7 @@ export class UsersService {
       },
     });
 
-    return {
-      ...updated,
-      photos: (updated.photos || []).map((p) => ({
-        ...p,
-        imageUrl: p.url,
-        order: p.sortOrder,
-      })),
-    };
+    return this.normalizeUser(updated);
   }
 
   async checkNickname(nickname: string) {

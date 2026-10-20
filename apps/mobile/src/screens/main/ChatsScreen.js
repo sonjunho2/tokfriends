@@ -38,18 +38,14 @@ const GRID_GAP = 12;
 const CARD_WIDTH = (SCREEN_WIDTH - GRID_PADDING * 2 - GRID_GAP) / 2;
 const CARD_HEIGHT = CARD_WIDTH * 1.36; // 세로형 1:1.36 황금 비율
 
-// 1열 가로 스크롤 캡슐 필터 목록
-const CAPSULE_FILTERS = [
-  '전체',
-  '🔥 HOT추천',
-  '🟢 지금 접속중',
-  '📍 내 주변',
-  '#운동',
-  '#카페',
-  '#반려견',
-  '#음악',
-  '#여행',
-  '#사진',
+// 1열 가로 스크롤 캡슐 필터 목록 (관리자 '소셜 & 매칭' 설정과 실시간 연동)
+const DEFAULT_QUICK_FILTERS = [
+  { id: 'T-ALL', label: '전체', segment: '전체', icon: '✨' },
+  { id: 'T1', label: '지금 접속중', segment: '접속중', icon: '🔥' },
+  { id: 'T2', label: '가까운 동네', segment: '가까운 거리', icon: '📍' },
+  { id: 'T3', label: '20대 또래', segment: '연령대', icon: '🎂' },
+  { id: 'T4', label: '취미·운동', segment: '의도', icon: '🏃' },
+  { id: 'T5', label: '가벼운 커피', segment: '의도', icon: '☕' },
 ];
 
 // 감성적인 기본 인연 카드 데이터 (10명, 9장 갤러리 지원)
@@ -262,7 +258,9 @@ export default function ChatsScreen({ navigation, route }) {
   const initialTab = route?.params?.tab === 'chats' ? 'chats' : 'discover';
   const [activeTab, setActiveTab] = useState(initialTab);
 
-  // 2. 가로 1열 캡슐 필터 선택 상태
+  // 2. 가로 1열 캡슐 필터 선택 상태 (관리자 소셜 & 매칭 설정 실시간 연동)
+  const [quickFilters, setQuickFilters] = useState(DEFAULT_QUICK_FILTERS);
+  const [selectedFilterId, setSelectedFilterId] = useState('T-ALL');
   const [selectedFilter, setSelectedFilter] = useState('전체');
 
   // 3. 인연 데이터 상태
@@ -304,10 +302,19 @@ export default function ChatsScreen({ navigation, route }) {
   const loadData = useCallback(async ({ refresh = false } = {}) => {
     if (refresh) setRefreshing(true);
     try {
-      const [discoverRes, chatsRes] = await Promise.allSettled([
+      const [discoverRes, chatsRes, filtersRes] = await Promise.allSettled([
         apiClient.getDiscover(),
         apiClient.getChats(),
+        apiClient.getMatchQuickFilters(),
       ]);
+
+      // 0. 관리자 설정 빠른 탐색 태그 실시간 동기화
+      if (filtersRes.status === 'fulfilled' && Array.isArray(filtersRes.value) && filtersRes.value.length > 0) {
+        setQuickFilters([
+          { id: 'T-ALL', label: '전체', segment: '전체', icon: '✨' },
+          ...filtersRes.value,
+        ]);
+      }
 
       if (discoverRes.status === 'fulfilled' && Array.isArray(discoverRes.value) && discoverRes.value.length > 0) {
         const mapped = discoverRes.value.map((u, idx) => {
@@ -367,35 +374,67 @@ export default function ChatsScreen({ navigation, route }) {
     }, [loadData])
   );
 
-  // 1열 필터링 적용된 인연 목록
+  // 홈 화면 등 외부에서 넘어온 필터 파라미터 처리
+  useEffect(() => {
+    if (route?.params?.filter) {
+      const targetFilter = String(route.params.filter);
+      const matched = quickFilters.find(
+        (f) => targetFilter.includes(f.label) || f.label.includes(targetFilter) || (f.segment && targetFilter.includes(f.segment))
+      );
+      if (matched) {
+        setSelectedFilterId(matched.id);
+        setSelectedFilter(matched.label);
+      } else {
+        setSelectedFilter(targetFilter);
+      }
+    }
+  }, [route?.params?.filter, quickFilters]);
+
+  // 1열 필터링 적용된 인연 목록 (관리자 설정 및 세그먼트 완전 연동)
   const filteredUsers = useMemo(() => {
     if (!discoverUsers || discoverUsers.length === 0) return [];
 
-    switch (selectedFilter) {
-      case '🔥 HOT추천':
-        return discoverUsers.filter((u) => u.isHot || u.isLive);
-      case '🟢 지금 접속중':
-        return discoverUsers.filter((u) => u.isOnline);
-      case '📍 내 주변':
-        return [...discoverUsers].sort((a, b) => (a.distanceKm || 0) - (b.distanceKm || 0));
-      case '#운동':
-      case '#카페':
-      case '#반려견':
-      case '#음악':
-      case '#여행':
-      case '#사진': {
-        const keyword = selectedFilter.replace('#', '');
-        return discoverUsers.filter((u) =>
-          u.tags?.some((t) => t.includes(keyword)) ||
-          u.headline?.includes(keyword) ||
-          u.bio?.includes(keyword)
-        );
-      }
-      case '전체':
-      default:
-        return discoverUsers;
+    const activeFilterObj = quickFilters.find((f) => f.id === selectedFilterId) || { label: selectedFilter };
+    const label = activeFilterObj.label || selectedFilter;
+    const segment = activeFilterObj.segment || '';
+
+    // 1. 전체
+    if (label === '전체' || activeFilterObj.id === 'T-ALL') {
+      return discoverUsers;
     }
-  }, [discoverUsers, selectedFilter]);
+
+    // 2. HOT/인기
+    if (label.includes('HOT') || label.includes('인기')) {
+      return discoverUsers.filter((u) => u.isHot || u.isLive);
+    }
+
+    // 3. 지금 접속중
+    if (segment === '접속중' || label.includes('접속')) {
+      return discoverUsers.filter((u) => u.isOnline);
+    }
+
+    // 4. 가까운 동네 / 내 주변
+    if (segment === '가까운 거리' || label.includes('동네') || label.includes('주변') || label.includes('거리')) {
+      return [...discoverUsers].sort((a, b) => (a.distanceKm || 0) - (b.distanceKm || 0));
+    }
+
+    // 5. 20대 또래 / 연령대
+    if (segment === '연령대' || label.includes('20대') || label.includes('또래')) {
+      return discoverUsers.filter((u) => u.age >= 20 && u.age < 30);
+    }
+
+    // 6. 취미, 운동, 커피 등 의도 및 관리자 커스텀 태그
+    const cleanKeyword = label.replace(/[🔥📍🎂🏃☕✨#]/g, '').trim();
+    if (!cleanKeyword) return discoverUsers;
+
+    const keywords = cleanKeyword.split(/[·\s,/]+/).filter(Boolean);
+    return discoverUsers.filter((u) => {
+      const matchTag = u.tags?.some((t) => keywords.some((k) => t.includes(k)));
+      const matchHeadline = keywords.some((k) => u.headline?.includes(k));
+      const matchBio = keywords.some((k) => u.bio?.includes(k));
+      return matchTag || matchHeadline || matchBio;
+    });
+  }, [discoverUsers, selectedFilterId, selectedFilter, quickFilters]);
 
   // 카드 터치 시 GlobalBottomSheet 열기
   const handleOpenUserSheet = (user) => {
@@ -452,6 +491,33 @@ export default function ChatsScreen({ navigation, route }) {
     );
   };
 
+  // 1:1 대화방 삭제 처리 (어느 한쪽이라도 삭제하면 양쪽 모두에서 대화창 영구 종료)
+  const handleDeleteChatRoom = useCallback((room) => {
+    if (!room?.id) return;
+    const roomTitle = room.title || room.counterpart?.displayName || '대화방';
+    Alert.alert(
+      '대화방 삭제',
+      `"${roomTitle}" 1:1 대화방을 삭제하시겠습니까?\n\n※ 1:1 대화방 특성상 삭제 시 대화방이 즉시 완전히 종료 및 삭제되며 복구할 수 없습니다.`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '대화방 삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiClient.deleteChat(room.id);
+              setChats((prev) => prev.filter((c) => String(c.id) !== String(room.id)));
+              Alert.alert('삭제 완료', '대화방이 삭제되었습니다.');
+            } catch (err) {
+              console.warn('대화방 삭제 실패:', err);
+              Alert.alert('오류', '대화방을 삭제하지 못했습니다.');
+            }
+          },
+        },
+      ]
+    );
+  }, []);
+
   // =========================================================================
   // 1. 상단 세그먼트 탭 헤더
   // =========================================================================
@@ -504,11 +570,14 @@ export default function ChatsScreen({ navigation, route }) {
         </TouchableOpacity>
       </View>
 
-      {/* 우측 보조 액션 */}
+      {/* 우측 보조 액션 (구버전 인연추천 페이지 대신 HOT추천 필터 토글로 통일) */}
       {activeTab === 'discover' ? (
         <TouchableOpacity
           style={styles.topIconBtn}
-          onPress={() => navigation.navigate('HotRecommend')}
+          onPress={() => {
+            setSelectedFilter('🔥 HOT추천');
+            fetchDiscoverUsers();
+          }}
           hitSlop={8}
         >
           <Ionicons name="sparkles" size={20} color={tokens.colors.primary} />
@@ -520,14 +589,14 @@ export default function ChatsScreen({ navigation, route }) {
           activeOpacity={0.8}
         >
           <Ionicons name="add" size={16} color="#FFFFFF" />
-          <Text style={styles.topCreateChatText}>새 대화</Text>
+          <Text style={styles.topCreateChatText}>1:1 개설</Text>
         </TouchableOpacity>
       )}
     </View>
   );
 
   // =========================================================================
-  // 2. 가로 1열 캡슐 필터 바
+  // 2. 가로 1열 캡슐 필터 바 (관리자 '소셜 & 매칭' 설정과 실시간 연동)
   // =========================================================================
   const renderCapsuleFilterBar = () => (
     <View style={styles.filterBarContainer}>
@@ -536,16 +605,20 @@ export default function ChatsScreen({ navigation, route }) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.filterScrollContent}
       >
-        {CAPSULE_FILTERS.map((filter) => {
-          const isSelected = selectedFilter === filter;
+        {quickFilters.map((filter) => {
+          const isSelected = selectedFilterId === filter.id || selectedFilter === filter.label;
+          const displayIcon = filter.icon && filter.label !== '전체' ? `${filter.icon} ` : '';
           return (
             <TouchableOpacity
-              key={filter}
+              key={filter.id || filter.label}
               style={[
                 styles.capsuleBtn,
                 isSelected ? styles.capsuleBtnActive : styles.capsuleBtnInactive,
               ]}
-              onPress={() => setSelectedFilter(filter)}
+              onPress={() => {
+                setSelectedFilterId(filter.id);
+                setSelectedFilter(filter.label);
+              }}
               activeOpacity={0.85}
             >
               <Text
@@ -554,7 +627,7 @@ export default function ChatsScreen({ navigation, route }) {
                   isSelected ? styles.capsuleTextActive : styles.capsuleTextInactive,
                 ]}
               >
-                {filter}
+                {displayIcon}{filter.label}
               </Text>
             </TouchableOpacity>
           );
@@ -693,6 +766,7 @@ export default function ChatsScreen({ navigation, route }) {
     <TouchableOpacity
       style={styles.chatItem}
       activeOpacity={0.85}
+      onLongPress={() => handleDeleteChatRoom(item)}
       onPress={() =>
         navigation.navigate('ChatRoom', {
           id: item.id,
@@ -718,11 +792,20 @@ export default function ChatsScreen({ navigation, route }) {
           <Text style={styles.chatItemLastMsg} numberOfLines={1}>
             {item.lastMessage}
           </Text>
-          {item.unreadCount > 0 && (
-            <View style={styles.unreadCountBadge}>
-              <Text style={styles.unreadCountText}>{item.unreadCount}</Text>
-            </View>
-          )}
+          <View style={styles.chatItemActionsRight}>
+            {item.unreadCount > 0 && (
+              <View style={styles.unreadCountBadge}>
+                <Text style={styles.unreadCountText}>{item.unreadCount}</Text>
+              </View>
+            )}
+            <TouchableOpacity
+              style={styles.chatItemDeleteBtn}
+              onPress={() => handleDeleteChatRoom(item)}
+              hitSlop={8}
+            >
+              <Ionicons name="trash-outline" size={16} color="#9CA3AF" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -1215,5 +1298,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '800',
+  },
+  chatItemActionsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  chatItemDeleteBtn: {
+    padding: 4,
+    borderRadius: 6,
+    backgroundColor: '#F3F4F6',
   },
 });

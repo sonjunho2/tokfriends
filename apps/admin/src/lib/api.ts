@@ -531,6 +531,34 @@ export async function deleteAdminFaq(faqId: string) {
 }
 
 // ---------------------------------------------------------------------------
+// 1:1 고객 문의 티켓 (Support Tickets)
+// ---------------------------------------------------------------------------
+
+export interface EngagementTicket {
+  id: string
+  user: string
+  category: 'FAQ' | '문의' | '버그 신고' | '결제/환불' | string
+  status: '대기' | '진행' | '완료'
+  createdAt: string
+  message?: string
+  contact?: string
+  userId?: string
+}
+
+export async function getAdminSupportTickets(): Promise<EngagementTicket[]> {
+  const response = await api.get('/admin/support-tickets')
+  return unwrapArray<EngagementTicket>(response.data, ['tickets', 'data', 'items'])
+}
+
+export async function updateAdminSupportTicketStatus(
+  ticketId: string,
+  status: '대기' | '진행' | '완료'
+): Promise<any> {
+  const response = await api.patch(`/admin/support-tickets/${ticketId}/status`, { status })
+  return response.data
+}
+
+// ---------------------------------------------------------------------------
 // 공�? / 배너
 // ---------------------------------------------------------------------------
 
@@ -1135,6 +1163,11 @@ export async function createMatchQuickFilter(payload: MatchQuickFilterPayload): 
     segment: payload.segment,
     description: payload.description,
   }
+}
+
+export async function updateMatchQuickFilter(filterId: string, payload: Record<string, unknown>) {
+  const response = await api.patch(`/matches/quick-filters/${filterId}`, payload)
+  return response.data
 }
 
 export async function deleteMatchQuickFilter(filterId: string) {

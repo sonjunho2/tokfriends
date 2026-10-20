@@ -366,27 +366,37 @@ export default function CommunityFeedScreen({ navigation, route }) {
 
     setSubmitting(true);
     try {
-      await apiClient.createPost({
+      const userNickname = currentUser?.nickname || currentUser?.displayName || currentUser?.profile?.nickname || '나';
+      const userAvatar = currentUser?.avatarUrl || currentUser?.avatarUri || currentUser?.profile?.avatarUri || null;
+      const userRegion = [currentUser?.region1, currentUser?.region2].filter(Boolean).join(' ') || '역삼동';
+
+      const created = await apiClient.createPost({
         title: trimmedTitle,
         content: trimmedContent,
         category: newCategory,
         images: selectedPhotos,
+        mediaUrls: selectedPhotos,
+        authorNickname: userNickname,
+        authorAvatarUrl: userAvatar,
       });
 
       const newPostObj = {
-        id: `post-user-${Date.now()}`,
+        id: created?.id || `post-user-${Date.now()}`,
         category: newCategory,
-        author: {
+        author: created?.author || {
           id: currentUser?.id || 'me',
-          name: currentUser?.displayName || currentUser?.profile?.nickname || '나',
-          avatar: currentUser?.profile?.avatarUri,
-          region: [currentUser?.region1, currentUser?.region2].filter(Boolean).join(' ') || '역삼동',
+          name: userNickname,
+          displayName: userNickname,
+          nickname: userNickname,
+          avatar: userAvatar,
+          region: userRegion,
           headline: currentUser?.profile?.headline || '동네 이웃',
         },
         title: trimmedTitle,
         content: trimmedContent,
         images: selectedPhotos,
-        createdAt: new Date().toISOString(),
+        mediaUrls: selectedPhotos,
+        createdAt: created?.createdAt || new Date().toISOString(),
         likesCount: 0,
         commentsCount: 0,
         isLiked: false,
@@ -399,6 +409,7 @@ export default function CommunityFeedScreen({ navigation, route }) {
       setNewContent('');
       setSelectedPhotos([]);
       Alert.alert('등록 완료', '동네 이야기가 성공적으로 등록되었습니다! ✨');
+      loadPosts();
     } catch (e) {
       Alert.alert('등록 실패', e?.message || '게시글 등록에 실패했습니다.');
     } finally {

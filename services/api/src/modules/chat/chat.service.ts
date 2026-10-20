@@ -1,5 +1,7 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface ChatMessageItem {
   id: string;
@@ -11,6 +13,8 @@ export interface ChatMessageItem {
   type: string;
   createdAt: string;
   giftPoints?: number | null;
+  giftName?: string | null;
+  giftIcon?: string | null;
 }
 
 export interface ChatRoomItem {
@@ -34,8 +38,11 @@ export interface ChatRoomItem {
 }
 
 @Injectable()
-export class ChatService {
+export class ChatService implements OnModuleInit {
   private readonly logger = new Logger(ChatService.name);
+  private readonly dataDir = path.resolve(process.cwd(), 'data');
+  private readonly chatsFilePath = path.join(this.dataDir, 'chats.json');
+  private readonly messagesFilePath = path.join(this.dataDir, 'chat-messages.json');
 
   private rooms: ChatRoomItem[] = [
     {
@@ -157,6 +164,46 @@ export class ChatService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  onModuleInit() {
+    this.loadFromDisk();
+  }
+
+  private loadFromDisk() {
+    try {
+      if (!fs.existsSync(this.dataDir)) {
+        fs.mkdirSync(this.dataDir, { recursive: true });
+      }
+      if (fs.existsSync(this.chatsFilePath)) {
+        const raw = fs.readFileSync(this.chatsFilePath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.rooms = parsed;
+        }
+      }
+      if (fs.existsSync(this.messagesFilePath)) {
+        const raw = fs.readFileSync(this.messagesFilePath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          this.messagesStore = parsed;
+        }
+      }
+    } catch (e: any) {
+      this.logger.warn(`Failed to load chat data from disk: ${e?.message}`);
+    }
+  }
+
+  private saveToDisk() {
+    try {
+      if (!fs.existsSync(this.dataDir)) {
+        fs.mkdirSync(this.dataDir, { recursive: true });
+      }
+      fs.writeFileSync(this.chatsFilePath, JSON.stringify(this.rooms, null, 2), 'utf-8');
+      fs.writeFileSync(this.messagesFilePath, JSON.stringify(this.messagesStore, null, 2), 'utf-8');
+    } catch (e: any) {
+      this.logger.warn(`Failed to save chat data to disk: ${e?.message}`);
+    }
+  }
+
   async getChats(userId?: string): Promise<ChatRoomItem[]> {
     return this.rooms.sort(
       (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime(),
@@ -227,6 +274,7 @@ export class ChatService {
       },
     ];
 
+    this.saveToDisk();
     return newRoom;
   }
 
@@ -236,17 +284,41 @@ export class ChatService {
   ): Promise<ChatRoomItem> {
     const title = String(dto.title || '').trim();
     const fee = Math.max(0, Number(dto.entryFee || 0));
+
+    // 관리자 채팅방 개설 온 소모 정책 적용
+    try {
+      const policyPath = path.join(this.dataDir, 'action-point-policy.json');
+      if (fs.existsSync(policyPath)) {
+        const policy = JSON.parse(fs.readFileSync(policyPath, 'utf-8'));
+        const reqFee = policy?.chatRoomCreate?.enabled ? Number(policy.chatRoomCreate.amount) || 0 : 0;
+        if (userId && reqFee > 0) {
+          const dbUser = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { pointBalance: true },
+          });
+          if (dbUser && (dbUser.pointBalance ?? 0) >= reqFee) {
+            await this.prisma.user.update({
+              where: { id: userId },
+              data: { pointBalance: { decrement: reqFee } },
+            });
+          }
+        }
+      }
+    } catch {}
+
+    // 1:1 대화 정책: isGroup은 항상 false로 강제 (단체방 개설 미지원)
     const newRoom: ChatRoomItem = {
       id: `chat-room-${Date.now()}`,
       title,
-      category: dto.category || '친목',
+      category: dto.category || '1:1',
       entryFee: fee,
-      isGroup: Boolean(dto.isGroup),
+      isGroup: false,
       participantIds: [userId],
       counterpart: {
         id: `acc-${Date.now()}`,
         displayName: title,
         avatarUrl: null,
+        online: true,
       },
       lastMessage: '대화방이 개설되었습니다.',
       lastMessageAt: new Date().toISOString(),
@@ -260,12 +332,13 @@ export class ChatService {
         id: `msg-init-${Date.now()}`,
         chatId: newRoom.id,
         senderAccountId: 'system',
-        content: `🎉 '${title}' 대화방이 생성되었습니다! (입장료: ${fee > 0 ? `${fee} ON` : '무료'})`,
+        content: `🎉 '${title}' 1:1 대화방이 생성되었습니다! (입장료: ${fee > 0 ? `${fee} ON` : '무료'})`,
         type: 'text',
         createdAt: new Date().toISOString(),
       },
     ];
 
+    this.saveToDisk();
     return newRoom;
   }
 
@@ -288,15 +361,27 @@ export class ChatService {
 
   async sendMessage(
     userId: string,
-    dto: { chatId: string; content: string; clientMessageId?: string; type?: string },
+    dto: {
+      chatId: string;
+      content: string;
+      clientMessageId?: string;
+      type?: string;
+      giftPoints?: number;
+      giftName?: string;
+      giftIcon?: string;
+    },
   ): Promise<ChatMessageItem> {
-    const { chatId, content, type = 'text' } = dto;
+    const { chatId, content, type = 'text', giftPoints, giftName, giftIcon } = dto;
     const msg: ChatMessageItem = {
       id: dto.clientMessageId || `msg-${Date.now()}`,
       chatId,
       senderAccountId: userId,
+      senderName: userId === 'guest' ? '나' : undefined,
       content,
       type,
+      giftPoints: giftPoints !== undefined ? Number(giftPoints) : null,
+      giftName: giftName || null,
+      giftIcon: giftIcon || null,
       createdAt: new Date().toISOString(),
     };
 
@@ -311,15 +396,61 @@ export class ChatService {
       room.lastMessageAt = msg.createdAt;
     }
 
+    this.saveToDisk();
     return msg;
   }
 
   async deleteChat(userId: string, chatId: string): Promise<{ ok: boolean }> {
+    // 1:1 대화방이므로 어느 한쪽이라도 삭제하면 방을 완전히 삭제하여 양쪽 모두에서 사라짐
     const idx = this.rooms.findIndex((r) => r.id === chatId);
     if (idx !== -1) {
       this.rooms.splice(idx, 1);
     }
     delete this.messagesStore[chatId];
+    this.saveToDisk();
     return { ok: true };
+  }
+
+  getAllRoomsForAdmin(): any[] {
+    return this.rooms.map((room) => ({
+      id: room.id,
+      title: room.title,
+      category: room.category,
+      region: '서울 강남구',
+      distanceKm: 1.5,
+      unread: room.unreadCount,
+      newMessages: (this.messagesStore[room.id] || []).length,
+      participants: 2,
+      status: 'ACTIVE',
+      createdAt: room.createdAt,
+      lastMessageAt: room.lastMessageAt,
+      lastMessage: room.lastMessage,
+      userA: {
+        id: room.participantIds[0] || 'user-1',
+        nickname: '나',
+        age: 26,
+        gender: '남',
+        region: '서울 강남구',
+        avatar: null,
+      },
+      userB: {
+        id: room.counterpart?.id || 'user-2',
+        nickname: room.counterpart?.displayName || room.title,
+        age: 26,
+        gender: '여',
+        region: '서울시',
+        avatar: room.counterpart?.avatarUrl || null,
+      },
+      messages: (this.messagesStore[room.id] || []).map((m) => ({
+        id: m.id,
+        senderId: m.senderAccountId,
+        senderName: m.senderName || (m.senderAccountId === 'system' ? '시스템' : '참여자'),
+        text: m.content,
+        time: m.createdAt,
+        type: m.type === 'gift' ? 'GIFT' : 'TEXT',
+        giftName: m.giftName,
+        isFlagged: false,
+      })),
+    }));
   }
 }

@@ -11,6 +11,8 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PrismaService } from 'nestjs-prisma';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Public } from '../auth/public.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { StoreService } from './store.service';
@@ -37,6 +39,22 @@ export class StoreController {
     private readonly storeService: StoreService,
     private readonly prisma: PrismaService,
   ) {}
+
+  private loadRewardPolicies() {
+    try {
+      const p = path.join(process.cwd(), 'data', 'reward-policies.json');
+      if (fs.existsSync(p)) {
+        return JSON.parse(fs.readFileSync(p, 'utf-8'));
+      }
+    } catch {}
+    return {
+      dailyAdLimit: 5,
+      pointsPerAd: 10,
+      attendancePoints: 5,
+      referralPoints: 50,
+      enabled: true,
+    };
+  }
 
   // ==========================================
   // Point Products
@@ -77,11 +95,13 @@ export class StoreController {
   }
 
   // ==========================================
-  // Action Points Policy
-  // ==========================================
-  @Public()
-  @Get('store/action-points')
-  async getActionPointsPolicy() {
+  private loadActionPointsPolicy() {
+    try {
+      const p = path.join(process.cwd(), 'data', 'action-point-policy.json');
+      if (fs.existsSync(p)) {
+        return JSON.parse(fs.readFileSync(p, 'utf-8'));
+      }
+    } catch {}
     return {
       chatRoomCreate: { enabled: true, amount: 10 },
       chatRoomJoin: { enabled: false, amount: 0 },
@@ -89,6 +109,15 @@ export class StoreController {
       liveRoomCreate: { enabled: true, amount: 50 },
       liveRoomJoin: { enabled: false, amount: 0 },
     };
+  }
+
+  // ==========================================
+  // Action Points Policy
+  // ==========================================
+  @Public()
+  @Get('store/action-points')
+  async getActionPointsPolicy() {
+    return this.loadActionPointsPolicy();
   }
 
   // ==========================================
@@ -115,13 +144,36 @@ export class StoreController {
   // Point Purchase & Recharge
   // ==========================================
   @Public()
-  @Post(['store/purchase', 'store/confirm-purchase'])
+  @Post(['store/purchase', 'store/confirm-purchase', 'store/purchases/confirm'])
   async confirmPurchase(@CurrentUser() user: any, @Body() body: any) {
     const userId = user?.id || user?.sub;
-    const points = Number(body.points || body.pointsAmount || 1000);
-    const amount = Number(body.amount || 1100);
+    let points = Number(body.points || body.pointsAmount || 0);
+    let amount = Number(body.amount || 0);
     const productId = body.productId || 'point-custom';
-    const orderId = body.orderId || `ord-${Date.now()}`;
+    const orderId = body.orderId || body.transactionId || `ord-${Date.now()}`;
+
+    // productId 기반 상품 정보 자동 매칭 (points, amount 보정)
+    if (!points || !amount) {
+      try {
+        const allProducts = await this.storeService.listAll();
+        const matched = allProducts.find(
+          (p: any) =>
+            p.id === productId ||
+            p.productId === productId ||
+            p.sku === productId ||
+            productId.includes(p.id) ||
+            p.id.includes(productId),
+        );
+        if (matched) {
+          if (!points) points = Number(matched.points || 1000);
+          if (!amount) amount = Number(matched.price || (matched as any).amount || 1100);
+        }
+      } catch {}
+    }
+
+    // 기본값 안전장치 (1000 ON, 1100원)
+    if (!points) points = 1000;
+    if (!amount) amount = 1100;
 
     let newBalance = 1250 + points;
     if (userId) {
@@ -154,6 +206,12 @@ export class StoreController {
       pointBalance: newBalance,
       orderId,
       purchase: purchaseRecord,
+      data: {
+        purchased: true,
+        balance: newBalance,
+        pointBalance: newBalance,
+        orderId,
+      },
       message: `${points.toLocaleString()} ON 충전이 완료되었습니다!`,
     };
   }
@@ -169,19 +227,32 @@ export class StoreController {
   }
 
   // ==========================================
-  // Daily Rewards (Attendance & Ads)
+  // Daily Rewards (Attendance & Ads) - 관리자 정책 실시간 연동
   // ==========================================
   @Public()
   @Get('store/rewards/status')
-  async getRewardsStatus() {
+  async getRewardsStatus(@CurrentUser() user?: any) {
+    const policies = this.loadRewardPolicies();
+    const balanceRes = await this.getPointBalance(user);
+
     return {
       ok: true,
       data: {
-        attendanceClaimedToday: false,
-        adRewardCountToday: 2,
-        maxAdRewardsDaily: 5,
-        availableAdRewardsRemaining: 3,
-        streakDays: 4,
+        attendance: {
+          checkedInToday: false,
+          rewardPoints: policies.attendancePoints ?? 5,
+        },
+        adReward: {
+          todayWatchCount: 0,
+          dailyLimit: policies.dailyAdLimit ?? 5,
+          rewardPoints: policies.pointsPerAd ?? 10,
+          canWatch: true,
+        },
+        referral: {
+          referralCode: 'CMUWB7',
+          rewardPoints: policies.referralPoints ?? 50,
+        },
+        balance: balanceRes.balance,
       },
     };
   }
@@ -190,8 +261,10 @@ export class StoreController {
   @Post('store/rewards/attendance')
   async claimAttendanceReward(@CurrentUser() user?: any) {
     const userId = user?.id || user?.sub;
-    const points = 50;
-    let balance = 1300;
+    const policies = this.loadRewardPolicies();
+    const points = Number(policies.attendancePoints ?? 5);
+
+    let balance = 1250 + points;
     if (userId) {
       try {
         const updated = await this.prisma.user.update({
@@ -207,16 +280,18 @@ export class StoreController {
       success: true,
       rewardPoints: points,
       balance,
-      message: '출석체크 보상 +50 ON이 지급되었습니다! ✨',
+      message: `출석체크 보상 +${points} ON이 지급되었습니다! ✨`,
     };
   }
 
   @Public()
-  @Post('store/rewards/ad')
+  @Post(['store/rewards/ad', 'store/rewards/ad-watch'])
   async claimAdReward(@CurrentUser() user?: any) {
     const userId = user?.id || user?.sub;
-    const points = 30;
-    let balance = 1280;
+    const policies = this.loadRewardPolicies();
+    const points = Number(policies.pointsPerAd ?? 10);
+
+    let balance = 1250 + points;
     if (userId) {
       try {
         const updated = await this.prisma.user.update({
@@ -232,7 +307,7 @@ export class StoreController {
       success: true,
       rewardPoints: points,
       balance,
-      message: '광고 시청 리워드 +30 ON이 적립되었습니다! 🎬',
+      message: `광고 시청 리워드 +${points} ON이 적립되었습니다! 🎬`,
     };
   }
 

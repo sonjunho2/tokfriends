@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  OnModuleInit,
   Param,
   Post,
   Query,
@@ -11,10 +12,12 @@ import { ApiTags } from '@nestjs/swagger';
 import { PrismaService } from 'nestjs-prisma';
 import { Public } from '../auth/public.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @ApiTags('social')
 @Controller()
-export class SocialController {
+export class SocialController implements OnModuleInit {
   private friendsStore: any[] = [
     {
       id: 'fr-1',
@@ -123,9 +126,40 @@ export class SocialController {
     },
   ];
 
+  private readonly dataDir = path.join(process.cwd(), 'data');
+  private readonly blockedFilePath = path.join(this.dataDir, 'blocked-users.json');
   private blockedStore: any[] = [];
 
   constructor(private readonly prisma: PrismaService) {}
+
+  onModuleInit() {
+    this.loadBlockedUsers();
+  }
+
+  private loadBlockedUsers() {
+    try {
+      if (!fs.existsSync(this.dataDir)) {
+        fs.mkdirSync(this.dataDir, { recursive: true });
+      }
+      if (fs.existsSync(this.blockedFilePath)) {
+        const raw = fs.readFileSync(this.blockedFilePath, 'utf-8');
+        this.blockedStore = JSON.parse(raw);
+      }
+    } catch {
+      this.blockedStore = [];
+    }
+  }
+
+  private saveBlockedUsers() {
+    try {
+      if (!fs.existsSync(this.dataDir)) {
+        fs.mkdirSync(this.dataDir, { recursive: true });
+      }
+      fs.writeFileSync(this.blockedFilePath, JSON.stringify(this.blockedStore, null, 2), 'utf-8');
+    } catch {
+      // silent
+    }
+  }
 
   // ==========================================
   // Friendships
@@ -263,29 +297,31 @@ export class SocialController {
   // Blocks
   // ==========================================
   @Public()
-  @Get(['community/blocks', 'users/me/blocks'])
+  @Get(['community/blocks', 'community/block', 'users/me/blocks'])
   async getBlockedUsers() {
     return { ok: true, data: this.blockedStore, items: this.blockedStore };
   }
 
   @Public()
-  @Post(['community/blocks', 'users/me/blocks'])
+  @Post(['community/blocks', 'community/block', 'users/me/blocks'])
   async blockUser(@Body() body: any) {
     const blockedUserId = body.blockedUserId || body.targetAccountId;
     if (blockedUserId && !this.blockedStore.some((b) => b.id === blockedUserId)) {
       this.blockedStore.push({
         id: blockedUserId,
-        nickname: '차단된 회원',
+        nickname: body.nickname || '차단된 회원',
         blockedAt: new Date().toISOString(),
       });
+      this.saveBlockedUsers();
     }
     return { ok: true, message: '회원을 차단했습니다.' };
   }
 
   @Public()
-  @Delete(['community/blocks/:id', 'users/me/blocks/:id'])
+  @Delete(['community/blocks/:id', 'community/block/:id', 'users/me/blocks/:id'])
   async unblockUser(@Param('id') id: string) {
     this.blockedStore = this.blockedStore.filter((b) => b.id !== id);
+    this.saveBlockedUsers();
     return { ok: true, message: '차단을 해제했습니다.' };
   }
 }

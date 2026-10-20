@@ -15,8 +15,9 @@ import {
   RefreshControl,
   Share,
   Modal,
+  Keyboard,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
@@ -44,6 +45,7 @@ function formatTimeAgo(dateString) {
 
 export default function PostDetailScreen({ navigation, route }) {
   const { user: currentUser } = useAuth();
+  const insets = useSafeAreaInsets();
   const inputRef = useRef(null);
 
   const initialPost = route?.params?.post || null;
@@ -58,6 +60,35 @@ export default function PostDetailScreen({ navigation, route }) {
   const [likeProcessing, setLikeProcessing] = useState(false);
   const [previewImageUri, setPreviewImageUri] = useState(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
+  // 하단 탭바 숨기기 (상세 화면에서는 탭바 미표시)
+  useEffect(() => {
+    navigation.getParent()?.setOptions({
+      tabBarStyle: { display: 'none' },
+    });
+    return () => {
+      navigation.getParent()?.setOptions({
+        tabBarStyle: undefined,
+      });
+    };
+  }, [navigation]);
+
+  // 키보드 이벤트 감지
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setKeyboardVisible(true),
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardVisible(false),
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const EMOJI_LIST = ['❤️', '👍', '😊', '👏', '✨', '🔥', '☕'];
 
@@ -148,12 +179,40 @@ export default function PostDetailScreen({ navigation, route }) {
         content: trimmed,
       });
 
-      setComments((prev) => [...prev, created]);
+      const userNickname =
+        currentUser?.nickname ||
+        currentUser?.displayName ||
+        currentUser?.profile?.nickname ||
+        '나';
+      const userAvatar =
+        currentUser?.avatarUrl ||
+        currentUser?.avatarUri ||
+        currentUser?.profile?.avatarUri ||
+        null;
+
+      const newComment = {
+        id: created?.id || `comm-${Date.now()}`,
+        postId: post.id,
+        content: trimmed,
+        createdAt: created?.createdAt || new Date().toISOString(),
+        author: created?.author || {
+          id: currentUser?.id || 'me',
+          name: userNickname,
+          nickname: userNickname,
+          displayName: userNickname,
+          avatar: userAvatar,
+          avatarUrl: userAvatar,
+        },
+      };
+
+      setComments((prev) => [...prev, newComment]);
       setCommentText('');
       setPost((prev) => ({
         ...prev,
         commentsCount: (prev?.commentsCount || 0) + 1,
       }));
+      // 백그라운드 동기화
+      loadData();
     } catch (e) {
       Alert.alert('댓글 등록 실패', e?.message || '댓글을 등록하지 못했습니다.');
     } finally {
@@ -389,10 +448,12 @@ export default function PostDetailScreen({ navigation, route }) {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 30 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}
+          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -435,7 +496,7 @@ export default function PostDetailScreen({ navigation, route }) {
             </View>
 
             {/* Post Main Content */}
-            <Text style={styles.postBodyText}>{post?.content}</Text>
+            <Text style={styles.postBodyText}>{post?.content || '(내용 없음)'}</Text>
 
             {/* Post Media Images */}
             {Array.isArray(post?.mediaUrls) && post.mediaUrls.length > 0 && (
@@ -548,7 +609,7 @@ export default function PostDetailScreen({ navigation, route }) {
                           onPress={() => handleOpenAuthorProfile(item.author)}
                           activeOpacity={0.8}
                         >
-                          <Text style={styles.commentAuthorName}>{item.author?.name}</Text>
+                          <Text style={styles.commentAuthorName}>{item.author?.name || '익명 이웃'}</Text>
                         </TouchableOpacity>
                         <Text style={styles.commentTimeAgo}>
                           {formatTimeAgo(item.createdAt)}
@@ -594,7 +655,14 @@ export default function PostDetailScreen({ navigation, route }) {
         </View>
 
         {/* Bottom Interactive Comment Input Bar */}
-        <View style={styles.bottomInputBar}>
+        <View
+          style={[
+            styles.bottomInputBar,
+            {
+              paddingBottom: isKeyboardVisible ? 10 : Math.max(insets.bottom, 12),
+            },
+          ]}
+        >
           <TextInput
             ref={inputRef}
             style={styles.commentInput}

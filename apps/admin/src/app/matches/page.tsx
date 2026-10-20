@@ -41,6 +41,7 @@ import {
   deleteMatchQuickFilter,
   getMatchControlPanelSnapshot,
   updateMatchPreset,
+  updateMatchQuickFilter,
 } from '@/lib/api'
 
 // 홈 상단 빠른 탐색 기본 태그
@@ -106,13 +107,14 @@ export default function MatchesPage() {
         setTags(
           snap.quickFilters.map((f, idx) => {
             const lbl = f.label || `태그-${idx + 1}`
+            const isEnabled = (f as any).enabled !== false
             return {
               id: f.id || `T-${idx}`,
               label: lbl,
               segment: (f.segment as any) || '의도',
               description: f.description || '',
-              enabled: true,
-              icon: lbl.startsWith('🔥') ? '🔥' : lbl.startsWith('📍') ? '📍' : lbl.startsWith('🎂') ? '🎂' : '✨',
+              enabled: isEnabled,
+              icon: (f as any).icon || (lbl.startsWith('🔥') ? '🔥' : lbl.startsWith('📍') ? '📍' : lbl.startsWith('🎂') ? '🎂' : '✨'),
             }
           })
         )
@@ -134,13 +136,20 @@ export default function MatchesPage() {
   }
 
   // 빠른 태그 노출 토글
-  function handleToggleTag(tagId: string) {
+  async function handleToggleTag(tagId: string) {
+    const current = tags.find((t) => t.id === tagId)
+    const nextEnabled = current ? !current.enabled : true
     setTags((prev) =>
-      prev.map((t) => (t.id === tagId ? { ...t, enabled: !t.enabled } : t))
+      prev.map((t) => (t.id === tagId ? { ...t, enabled: nextEnabled } : t))
     )
+    try {
+      await updateMatchQuickFilter(tagId, { enabled: nextEnabled })
+    } catch {}
     toast({
       title: '태그 노출 상태 변경',
-      description: '모바일 앱 홈 화면 상단에 즉시 반영됩니다.',
+      description: nextEnabled
+        ? '모바일 앱 홈 화면 상단에 노출됩니다.'
+        : '모바일 앱 홈 화면 상단에서 숨김 처리되었습니다.',
     })
   }
 
@@ -296,7 +305,7 @@ export default function MatchesPage() {
                 <div className="rounded-lg bg-white/80 p-2.5 border border-indigo-100/60">
                   <span className="font-bold text-indigo-700">1. 어디에 적용되나요?</span>
                   <p className="mt-1 text-muted-foreground leading-normal">
-                    사용자가 스마트폰 다가온 앱을 켰을 때, 홈 상단에 뜨는 버튼들과 추천 친구 목록에 즉시 적용됩니다.
+                    사용자가 스마트폰 다가온 앱의 <strong>인연·대화</strong> 메뉴를 켰을 때, [인연 찾기] 상단 캡슐 버튼들과 추천 친구 목록에 즉시 적용됩니다.
                   </p>
                 </div>
                 <div className="rounded-lg bg-white/80 p-2.5 border border-indigo-100/60">
@@ -308,7 +317,7 @@ export default function MatchesPage() {
                 <div className="rounded-lg bg-white/80 p-2.5 border border-indigo-100/60">
                   <span className="font-bold text-indigo-700">3. 우측 스마트폰 화면은 뭔가요?</span>
                   <p className="mt-1 text-muted-foreground leading-normal">
-                    관리자가 왼쪽에서 바꾼 내용이 실제 사용자 스마트폰에 어떻게 표시되는지 <strong>실시간 미리보기</strong>를 제공합니다.
+                    관리자가 왼쪽에서 바꾼 내용이 실제 사용자 스마트폰 인연·대화 화면에 어떻게 표시되는지 <strong>실시간 미리보기</strong>를 제공합니다.
                   </p>
                 </div>
               </div>
@@ -325,7 +334,7 @@ export default function MatchesPage() {
             <TabsList className="grid w-full grid-cols-3 bg-muted/60 p-1">
               <TabsTrigger value="tags" className="gap-1.5 text-xs">
                 <Tag className="h-3.5 w-3.5 text-indigo-600" />
-                홈 빠른 탐색 태그
+                인연 탐색 태그
               </TabsTrigger>
               <TabsTrigger value="weights" className="gap-1.5 text-xs">
                 <Sliders className="h-3.5 w-3.5 text-emerald-600" />
@@ -337,7 +346,7 @@ export default function MatchesPage() {
               </TabsTrigger>
             </TabsList>
 
-            {/* TAB 1: 홈 상단 빠른 탐색 태그 관리 */}
+            {/* TAB 1: 인연·대화 상단 빠른 탐색 태그 관리 */}
             <TabsContent value="tags" className="space-y-4">
               <Card className="shadow-sm">
                 <CardHeader className="pb-3 border-b">
@@ -345,10 +354,10 @@ export default function MatchesPage() {
                     <div>
                       <CardTitle className="text-base font-bold flex items-center gap-2">
                         <Tag className="h-5 w-5 text-indigo-600" />
-                        모바일 홈 상단 카테고리 태그 버튼 관리
+                        인연·대화 상단 카테고리 태그 버튼 관리
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        사용자가 터치 한 번으로 원하는 친구 목록을 볼 수 있도록 앱 상단에 띄워줄 버튼 목록입니다.
+                        사용자가 터치 한 번으로 원하는 인연 목록을 볼 수 있도록 인연 찾기 화면 상단에 띄워줄 버튼 목록입니다.
                       </CardDescription>
                     </div>
                     <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-xs w-fit">
@@ -782,7 +791,7 @@ export default function MatchesPage() {
               <div className="px-4 pb-2 flex items-center justify-between border-b bg-white">
                 <div>
                   <h3 className="font-extrabold text-sm text-indigo-600 tracking-tight">다가온 (DAGAON)</h3>
-                  <p className="text-[9px] text-muted-foreground">새로운 사람, 새로운 이야기</p>
+                  <p className="text-[9px] text-muted-foreground">인연 & 대화</p>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Badge variant="secondary" className="text-[10px] bg-amber-50 text-amber-800 border-amber-200 px-1.5 py-0">
@@ -791,11 +800,17 @@ export default function MatchesPage() {
                 </div>
               </div>
 
+              {/* 인연·대화 상단 세그먼트 탭 [인연 찾기 | 내 대화] */}
+              <div className="bg-white px-4 pt-1 border-b flex items-center gap-6 text-xs font-bold">
+                <div className="pb-2 border-b-2 border-indigo-600 text-indigo-600">인연 찾기</div>
+                <div className="pb-2 text-slate-400 font-medium">내 대화</div>
+              </div>
+
               {/* 핵심: 상단 가로 스크롤 빠른 탐색 태그 바 (관리자가 설정한 태그가 여기에 표시됨!) */}
               <div className="bg-white py-2 px-3 border-b shadow-2xs">
                 <p className="text-[10px] font-bold text-slate-500 mb-1.5 flex items-center justify-between">
-                  <span>빠른 친구 탐색</span>
-                  <span className="text-[9px] text-indigo-600 font-normal">← 좌측에서 설정</span>
+                  <span>인연 탐색 카테고리 필터</span>
+                  <span className="text-[9px] text-indigo-600 font-normal">← 좌측에서 실시간 반영</span>
                 </p>
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                   {tags

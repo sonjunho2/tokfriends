@@ -97,7 +97,12 @@ const normalizeHistoryMessage = (message, currentActivityAccountId) => {
       try {
         giftData = JSON.parse(message.content);
       } catch {
-        giftData = { name: '선물', amount: 0, description: message.content };
+        giftData = {
+          name: message.giftName || (typeof message.content === 'string' && message.content.includes('[선물]') ? message.content.replace(/^.*\[선물\]\s*/, '').replace(/\s*\(.*$/, '') : '선물'),
+          amount: message.giftPoints || (typeof message.content === 'string' && message.content.match(/\d+/) ? parseInt(message.content.match(/\d+/)[0], 10) : 0),
+          description: message.content,
+          icon: message.giftIcon || null,
+        };
       }
     }
   }
@@ -256,20 +261,24 @@ export default function ChatRoomScreen({ route, navigation }) {
     setReportVisible(true);
   }, [selectedMessage]);
 
+  // 하단 탭바 숨기기 (채팅방 화면에서는 하단 탭바 완전 숨김)
+  useEffect(() => {
+    navigation.getParent()?.setOptions({
+      tabBarStyle: { display: 'none' },
+    });
+    return () => {
+      navigation.getParent()?.setOptions({
+        tabBarStyle: undefined,
+      });
+    };
+  }, [navigation]);
+
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
     const showSub = Keyboard.addListener(showEvent, (e) => {
-      const screenH = Dimensions.get('screen').height;
-      const endY = e?.endCoordinates?.screenY;
-      let h = e?.endCoordinates?.height || 0;
-
-      // 안드로이드에서 소프트키(하단 내비게이션 바)가 키보드 아래에 함께 노출되는 환경을 정밀 보정
-      if (endY && endY > 0 && screenH > endY) {
-        h = Math.max(h, screenH - endY);
-      }
-
+      const h = e?.endCoordinates?.height || 0;
       setKeyboardVisible(true);
       setKeyboardHeight(h);
       setTimeout(() => {
@@ -289,10 +298,31 @@ export default function ChatRoomScreen({ route, navigation }) {
     };
   }, []);
 
-  const androidKeyboardOffset =
-    Platform.OS === 'android' && isKeyboardVisible && keyboardHeight > 0
-      ? keyboardHeight
-      : 0;
+  // 1:1 대화방 나가기 및 삭제 (어느 한쪽이라도 삭제하면 양쪽 모두에서 대화창 완전 삭제)
+  const handleLeaveAndDeleteRoom = useCallback(() => {
+    setOptionsVisible(false);
+    Alert.alert(
+      '대화방 나가기 및 삭제',
+      '1:1 대화방을 나가시겠습니까?\n\n※ 1:1 대화방 특성상 어느 한쪽이라도 나가면 상대방과의 대화방도 함께 완전히 종료 및 삭제되며 복구할 수 없습니다.',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '나가기 및 삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiClient.deleteChat(chatId);
+              Alert.alert('삭제 완료', '대화방이 삭제되었습니다.');
+              navigation.goBack();
+            } catch (err) {
+              console.warn('대화방 삭제 실패:', err);
+              Alert.alert('오류', '대화방을 삭제하지 못했습니다.');
+            }
+          },
+        },
+      ]
+    );
+  }, [chatId, navigation]);
 
   const fetchMyPoints = useCallback(async () => {
     try {
@@ -943,41 +973,65 @@ export default function ChatRoomScreen({ route, navigation }) {
     async (gift) => {
       if (!gift?.id || !chatId || !currentActivityAccountId) return;
       const clientMessageId = uuid.v4();
+      const giftPoints = gift.amount || gift.pricePoints || 0;
+      const giftName = gift.name || '선물';
+      const giftIcon = gift.icon || gift.thumbnailUrl || null;
 
       try {
         const response = await apiClient.sendChatGift({
           chatId,
           giftId: gift.id,
+          giftName,
+          points: giftPoints,
+          icon: giftIcon,
           clientMessageId,
         });
 
-        const confirmedMessage = response?.message;
-        if (confirmedMessage) {
+        const confirmedMessage = response?.message || response?.data;
+        if (confirmedMessage && typeof confirmedMessage === 'object') {
           const normalized = normalizeHistoryMessage(
             confirmedMessage,
             currentActivityAccountId,
           );
           appendUniquePersistedMessage(normalized);
+        } else {
+          // 낙관적 선물 메시지 즉시 등록
+          appendUniquePersistedMessage({
+            id: clientMessageId,
+            chatId,
+            sender: 'me',
+            senderAccountId: currentActivityAccountId,
+            text: `🎁 [선물] ${giftName} (${giftPoints} ON)을 보냈습니다!`,
+            timestamp: formatMessageTime(new Date()),
+            type: 'gift',
+            backendType: 'gift',
+            gift: {
+              id: gift.id,
+              name: giftName,
+              amount: giftPoints,
+              icon: giftIcon,
+            },
+          });
         }
 
         if (response?.spendableBalance !== undefined) {
           setMyPoints(Number(response.spendableBalance));
         } else {
-          setMyPoints((prev) => Math.max(0, prev - (gift.amount || gift.pricePoints || 0)));
+          setMyPoints((prev) => Math.max(0, prev - giftPoints));
         }
         setGiftPickerVisible(false);
 
         // 로컬 3D 이펙트 렌더링
         giftOverlayRef.current?.enqueueGift({
           giftId: gift.id,
-          giftName: gift.name,
-          name: gift.name,
-          amount: gift.amount || gift.pricePoints || 0,
-          pricePoints: gift.amount || gift.pricePoints || 0,
+          giftName,
+          name: giftName,
+          amount: giftPoints,
+          pricePoints: giftPoints,
           animationUrl: gift.animationUrl,
-          animationType: gift.animationType || (gift.name?.includes('폭죽') ? 'fireworks' : gift.name?.includes('하트') ? '3d_heart' : 'none'),
-          thumbnailUrl: gift.thumbnailUrl || gift.icon,
-          icon: gift.icon || gift.thumbnailUrl,
+          animationType: gift.animationType || (giftName.includes('폭죽') ? 'fireworks' : giftName.includes('하트') ? '3d_heart' : 'none'),
+          thumbnailUrl: giftIcon,
+          icon: giftIcon,
           senderNickname: authUser?.displayName || authUser?.profile?.nickname || '나',
           senderName: authUser?.displayName || authUser?.profile?.nickname || '나',
         });
@@ -992,7 +1046,7 @@ export default function ChatRoomScreen({ route, navigation }) {
         );
       }
     },
-    [chatId, currentActivityAccountId, appendUniquePersistedMessage]
+    [chatId, currentActivityAccountId, appendUniquePersistedMessage, authUser]
   );
 
   const sendMessage = async () => {
@@ -1017,6 +1071,7 @@ export default function ChatRoomScreen({ route, navigation }) {
 
     setSendingMessage(true);
     try {
+      const clientMessageId = uuid.v4();
       const pendingMessage =
         pendingMessageRef.current?.chatId === chatId &&
         pendingMessageRef.current?.content === content
@@ -1024,36 +1079,27 @@ export default function ChatRoomScreen({ route, navigation }) {
           : {
               chatId,
               content,
-              clientMessageId: uuid.v4(),
+              clientMessageId,
             };
       pendingMessageRef.current = pendingMessage;
 
       const sent = await apiClient.sendChatMessage(pendingMessage);
-      if (
-        sent.chatId !== chatId ||
-        sent.senderAccountId !== currentActivityAccountId
-      ) {
-        throw new Error('메시지 전송 응답의 대화 또는 발신자 정보가 올바르지 않습니다.');
-      }
 
       const nextMessage = {
-        id: sent.id,
-        chatId: sent.chatId,
+        id: sent?.id || clientMessageId,
+        chatId: chatId,
         sender: 'me',
-        senderAccountId: sent.senderAccountId,
-        text: sent.content,
-        timestamp: formatMessageTime(sent.createdAt),
+        senderAccountId: currentActivityAccountId,
+        text: sent?.content || content,
+        timestamp: formatMessageTime(sent?.createdAt || new Date()),
         type: 'text',
-        backendType: sent.type,
+        backendType: sent?.type || 'text',
       };
 
       appendUniquePersistedMessage(nextMessage);
       pendingMessageRef.current = null;
-      setInputText((current) => {
-        const nextInput = current.trim() === content ? '' : current;
-        inputTextRef.current = nextInput;
-        return nextInput;
-      });
+      setInputText('');
+      inputTextRef.current = '';
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -1445,10 +1491,7 @@ export default function ChatRoomScreen({ route, navigation }) {
 
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={[
-            styles.chatContainer,
-            Platform.OS === 'android' && { paddingBottom: androidKeyboardOffset },
-          ]}
+          style={styles.chatContainer}
           keyboardVerticalOffset={Platform.OS === 'ios' ? (headerHeight + insets.top) : 0}
         >
           <FlatList
@@ -1769,6 +1812,16 @@ export default function ChatRoomScreen({ route, navigation }) {
                     <Ionicons name="ban-outline" size={18} color={colors.primary} />
                   )}
                   <Text style={styles.optionText}>차단하기</Text>
+                </TouchableOpacity>
+                <View style={styles.optionDivider} />
+                <TouchableOpacity
+                  style={styles.optionItem}
+                  onPress={handleLeaveAndDeleteRoom}
+                >
+                  <Ionicons name="trash-outline" size={18} color="#FF3B30" />
+                  <Text style={[styles.optionText, { color: '#FF3B30', fontWeight: '700' }]}>
+                    대화방 나가기 및 삭제
+                  </Text>
                 </TouchableOpacity>
               </View>
             </TouchableWithoutFeedback>

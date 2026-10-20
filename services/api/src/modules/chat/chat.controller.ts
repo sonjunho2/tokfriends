@@ -79,12 +79,25 @@ export class ChatController {
   @Post('gift')
   async sendChatGift(@CurrentUser() user: any, @Body() body: any) {
     const userId = user?.id || user?.sub || 'guest';
-    const points = Number(body.points || 100);
+    const points = Number(body.points || body.amount || body.pricePoints || 100);
+    const giftName = body.giftName || body.name || '선물';
+    const giftIcon = body.icon || body.thumbnailUrl || null;
     const msg = await this.chatService.sendMessage(userId, {
       chatId: body.chatId,
-      content: `🎁 선물을 보냈습니다! (+${points} ON)`,
+      content: `🎁 [선물] ${giftName} (${points} ON)을 보냈습니다!`,
       type: 'gift',
+      clientMessageId: body.clientMessageId,
+      giftPoints: points,
+      giftName,
+      giftIcon,
     });
-    return { ok: true, data: msg, transactionId: `gift-tx-${Date.now()}` };
+    return {
+      ok: true,
+      data: msg,
+      message: msg,
+      spendableBalance: Math.max(0, 10000 - points),
+      transactionId: `gift-tx-${Date.now()}`,
+    };
   }
 }
+

@@ -79,7 +79,17 @@ export default function UserAvatar({
     : source;
 
   const content = (
-    <View style={[{ width: dimension, height: dimension }, style]}>
+    <View
+      style={[
+        {
+          width: dimension,
+          height: dimension,
+          borderRadius: radius,
+        },
+        style,
+        { borderRadius: radius },
+      ]}
+    >
       {/* 아바타 메인 래퍼 */}
       <View
         style={[

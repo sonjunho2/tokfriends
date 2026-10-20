@@ -322,6 +322,55 @@ export class ContentController {
   }
 
   // ==========================================
+  // Public & Mobile FAQs
+  // ==========================================
+  @Public()
+  @Get(['community/faqs', 'faqs'])
+  async getPublicFaqs() {
+    const list = this.contentService.getFaqs();
+    return { ok: true, data: list, faqs: list, items: list };
+  }
+
+  // ==========================================
+  // 1:1 Support Tickets (고객센터 문의 접수 & 관리)
+  // ==========================================
+  @Public()
+  @Get(['admin/support-tickets', 'support/tickets'])
+  async getSupportTickets() {
+    const list = this.contentService.getSupportTickets();
+    return { ok: true, data: list, tickets: list, items: list };
+  }
+
+  @Public()
+  @Post(['community/support-tickets', 'support/inquiries', 'support/tickets'])
+  async createSupportTicket(
+    @CurrentUser() user: any,
+    @Body() dto: any,
+  ) {
+    const ticket = this.contentService.createSupportTicket({
+      ...dto,
+      userId: user?.id || user?.sub || dto.userId,
+    });
+    return {
+      ok: true,
+      success: true,
+      data: ticket,
+      ticket,
+      message: '1:1 고객 문의가 성공적으로 접수되었습니다. 담당자가 확인 후 신속히 안내드리겠습니다.',
+    };
+  }
+
+  @Public()
+  @Patch('admin/support-tickets/:id/status')
+  async updateSupportTicketStatus(
+    @Param('id') id: string,
+    @Body() body: { status: '대기' | '진행' | '완료' },
+  ) {
+    const result = this.contentService.updateSupportTicketStatus(id, body.status);
+    return result;
+  }
+
+  // ==========================================
   // Legacy / Public Endpoints Compatibility
   // ==========================================
   // ==========================================
@@ -419,14 +468,64 @@ export class ContentController {
     return { ok: true, data: res };
   }
 
+  // ==========================================
+  // Reports (모바일 신고 & 관리자 센터 엔드투엔드 연동)
+  // ==========================================
   @Public()
   @Post(['community/report', 'reports'])
   async reportContent(@CurrentUser() user: any, @Body() body: any) {
-    const userId = user?.id || user?.sub || 'guest';
-    return {
-      ok: true,
-      reportId: `rep-${Date.now()}`,
-      message: '신고가 정상 접수되었습니다. 24시간 안전 가디언이 즉시 검토합니다.',
-    };
+    const res = this.contentService.createReport(user, body);
+    return res;
+  }
+
+  @Public()
+  @Get('admin/reports')
+  async getAdminReports(@Query() query: any) {
+    const res = this.contentService.getReports(query);
+    return res;
+  }
+
+  @Public()
+  @Get('admin/reports/stats')
+  async getAdminReportStats() {
+    const stats = this.contentService.getReportStats();
+    return { ok: true, data: stats, ...stats };
+  }
+
+  @Public()
+  @Patch('admin/reports/:id/status')
+  async updateAdminReportStatus(
+    @Param('id') id: string,
+    @Body() body: { status: any; memo?: string },
+  ) {
+    const updated = this.contentService.updateReportStatus(id, body.status, body.memo);
+    return { ok: true, data: updated, ...updated };
+  }
+
+  @Public()
+  @Post('admin/reports/:id/block-user')
+  async blockReportedUser(
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+  ) {
+    const res = this.contentService.blockReportedUser(id, body?.reason);
+    return { ok: true, data: res, ...res };
+  }
+
+  @Public()
+  @Post(['admin/reports/:id/sanction', 'admin/reports/:id/sanction-user'])
+  async sanctionReportedUser(
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    const res = this.contentService.sanctionReportedUser(id, body);
+    return { ok: true, data: res, ...res };
+  }
+
+  @Public()
+  @Delete('admin/reports/:id/post')
+  async deleteReportedPost(@Param('id') id: string) {
+    const res = this.contentService.deleteReportedPost(id);
+    return res;
   }
 }

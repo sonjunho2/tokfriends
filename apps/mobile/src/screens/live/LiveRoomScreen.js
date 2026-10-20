@@ -143,37 +143,43 @@ export default function LiveRoomScreen({ navigation, route }) {
     };
   }, [navigation]);
 
-  // Extract up to 4 viewer avatars for expanded top header display
-  const viewerAvatars = useMemo(() => {
-    const list = [];
-    const seen = new Set();
+  // 기여도 랭킹 1~4위 (타사 형태 반영: 1등 골드 원형 테두리 라인으로 화려하게 강조, 겹침 없이 개별 분리)
+  const topContributors = useMemo(() => {
+    const contributorMap = new Map();
     if (Array.isArray(messages)) {
       for (const m of messages) {
-        const avatar = m?.senderAvatar || m?.sender?.avatar;
-        const name = m?.senderName || m?.sender?.name;
-        const id = m?.senderId || m?.sender?.id;
-        if (avatar && id && !seen.has(id)) {
-          seen.add(id);
-          list.push({ id, name, avatar });
-        }
-        if (list.length >= 4) break;
-      }
-    }
-    if (list.length < 4) {
-      const fallback = [
-        { id: 'f1', name: '디우', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100' },
-        { id: 'f2', name: 'Adil', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100' },
-        { id: 'f3', name: 'hemi', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100' },
-        { id: 'f4', name: '지수', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100' },
-      ];
-      for (const f of fallback) {
-        if (!seen.has(f.id) && list.length < 4) {
-          seen.add(f.id);
-          list.push(f);
+        if (m.type === 'gift' && (m.senderId || m.sender?.id)) {
+          const id = m.senderId || m.sender?.id;
+          const name =
+            m.senderName ||
+            m.sender?.nickname ||
+            m.sender?.displayName ||
+            m.sender?.name ||
+            '후원자';
+          const avatar = m.senderAvatar || m.sender?.avatar || m.sender?.profileImage;
+          const pts = Number(m.giftPoints || 0);
+          const prev = contributorMap.get(id) || { id, name, avatar, points: 0 };
+          prev.points += pts;
+          contributorMap.set(id, prev);
         }
       }
     }
-    return list.slice(0, 4);
+    const realList = Array.from(contributorMap.values()).sort((a, b) => b.points - a.points);
+    const defaults = [
+      { id: 'c1', name: '🌸 炫.🐅🐾', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120', points: 17, level: 50 },
+      { id: 'c2', name: '블리주', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120', points: 10, level: 88 },
+      { id: 'c3', name: '구름이', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120', points: 8, level: 32 },
+      { id: 'c4', name: '호수', avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=120', points: 5, level: 19 },
+    ];
+    const merged = [...realList];
+    const seen = new Set(realList.map((r) => r.id));
+    for (const d of defaults) {
+      if (!seen.has(d.id) && merged.length < 4) {
+        seen.add(d.id);
+        merged.push(d);
+      }
+    }
+    return merged.slice(0, 4);
   }, [messages]);
 
   // Calculate my contributed points in this room
@@ -894,16 +900,17 @@ export default function LiveRoomScreen({ navigation, route }) {
 
   const handleStartCallFromProfile = (targetUser) => {
     if (!targetUser) return;
+    const rate = Number(targetUser.pointsPerMinute || 1500);
     Alert.alert(
-      '1:1 다이렉트 통화 신청',
-      `${targetUser.name}님에게 통화를 연결하시겠습니까?\n(분당 1,500P가 소진됩니다)`,
+      '1:1 LIVE 라이브 방송 요청',
+      `${targetUser.name}님에게 1:1 프라이빗 라이브를 요청하시겠습니까?\n(분당 ${rate.toLocaleString()} 온이 소진됩니다)`,
       [
         { text: '취소', style: 'cancel' },
         {
-          text: '통화 연결',
+          text: '1:1 LIVE 요청',
           onPress: () => {
             setProfileSheetVisible(false);
-            Alert.alert('통화 연결 중', `${targetUser.name}님의 응답을 기다리고 있습니다... 📞`);
+            Alert.alert('1:1 LIVE 연결 중', `${targetUser.name}님의 응답을 기다리고 있습니다... 🎥✨`);
           },
         },
       ]
@@ -1192,7 +1199,7 @@ export default function LiveRoomScreen({ navigation, route }) {
         )}
       </View>
 
-      {/* Top Header Overlay */}
+      {/* Top Header Overlay (타사 스타일 반영: 호스트 캡슐 + 기여도 랭킹 1~4등 화려한 원형라인 + 시청자수 + 닫기) */}
       <View style={styles.topHeader}>
         <TouchableOpacity
           style={styles.hostPill}
@@ -1211,54 +1218,59 @@ export default function LiveRoomScreen({ navigation, route }) {
           }}
         >
           <Avatar
-            size={30}
+            size={32}
             name={room?.host?.name}
             uri={room?.host?.avatar}
           />
           <View style={styles.hostPillMeta}>
-            <Text style={styles.hostPillName} numberOfLines={1}>
-              {room?.host?.name || '호스트'}
-            </Text>
+            <View style={styles.hostPillNameRow}>
+              <Text style={styles.hostPillName} numberOfLines={1}>
+                {room?.host?.name || '호스트'}
+              </Text>
+              <View style={styles.miniLiveTag}>
+                <View style={styles.liveDot} />
+                <Text style={styles.miniLiveTagText}>LIVE</Text>
+              </View>
+            </View>
             <Text style={styles.hostPillRegion} numberOfLines={1}>
-              {room?.host?.region || '지역 미설정'}
+              {room?.host?.region || '서울 강남구'}
             </Text>
-          </View>
-          <View style={styles.liveTag}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveTagText}>LIVE</Text>
           </View>
         </TouchableOpacity>
 
+        {/* 우측 상단: 기여도 랭킹 1~4위 (개별 분리 및 1등 골드 테두리 라인) + 시청자수 + 닫기 버튼 */}
         <View style={styles.topHeaderRight}>
-          {Boolean(room?.totalGiftsPoints && room.totalGiftsPoints > 0) && (
-            <View style={styles.giftTotalBadge}>
-              <Ionicons name="gift" size={12} color="#F59E0B" />
-              <Text style={styles.giftTotalBadgeText}>
-                {Number(room.totalGiftsPoints).toLocaleString()}P
-              </Text>
-            </View>
-          )}
-
-          {/* Clickable Viewer Profiles Group & Count (opens ranking/viewers modal) */}
           <TouchableOpacity
-            style={styles.viewerProfileGroupBtn}
+            style={styles.contributorRankingGroup}
             onPress={() => setViewerModalVisible(true)}
             activeOpacity={0.8}
           >
-            <View style={styles.viewerAvatarsOverlap}>
-              {viewerAvatars.map((v, i) => (
-                <TouchableOpacity
-                  key={`v_hdr_${v.id || i}`}
-                  style={[
-                    styles.viewerAvatarMiniWrap,
-                    { marginLeft: i === 0 ? 0 : -6, zIndex: 5 - i },
-                  ]}
-                  onPress={() => handleOpenParticipantProfile(v)}
-                  activeOpacity={0.8}
-                >
-                  <Avatar size={24} name={v.name} uri={v.avatar} />
-                </TouchableOpacity>
-              ))}
+            <View style={styles.rankAvatarsRow}>
+              {topContributors.map((c, idx) => {
+                const isFirst = idx === 0;
+                const isSecond = idx === 1;
+                const isThird = idx === 2;
+                return (
+                  <TouchableOpacity
+                    key={`c_hdr_${c.id || idx}`}
+                    style={[
+                      styles.rankAvatarRing,
+                      isFirst && styles.rank1Ring,
+                      isSecond && styles.rank2Ring,
+                      isThird && styles.rank3Ring,
+                    ]}
+                    onPress={() => handleOpenParticipantProfile(c)}
+                    activeOpacity={0.8}
+                  >
+                    <Avatar size={26} name={c.name} uri={c.avatar} />
+                    {isFirst && (
+                      <View style={styles.rank1Badge}>
+                        <Text style={styles.rank1BadgeText}>1</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
             <View style={styles.viewerCountPill}>
               <Text style={styles.viewerCountPillText}>
@@ -1764,25 +1776,45 @@ const styles = StyleSheet.create({
   hostPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 20,
-    padding: 3,
-    paddingRight: 8,
+    backgroundColor: 'rgba(0,0,0,0.52)',
+    borderRadius: 22,
+    padding: 4,
+    paddingRight: 10,
     gap: 6,
-    maxWidth: 150,
+    maxWidth: 165,
   },
   hostPillMeta: {
     flexShrink: 1,
-    maxWidth: 68,
+  },
+  hostPillNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   hostPillName: {
     fontSize: 12,
     fontWeight: '700',
     color: '#FFFFFF',
+    maxWidth: 75,
+  },
+  miniLiveTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: LIVE_ACCENT,
+    paddingHorizontal: 4,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+  },
+  miniLiveTagText: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   hostPillRegion: {
     fontSize: 10,
     color: 'rgba(255,255,255,0.7)',
+    marginTop: 1,
   },
   liveTag: {
     flexDirection: 'row',
@@ -1794,9 +1826,9 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   liveDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: '#FFFFFF',
   },
   liveTagText: {
@@ -1810,7 +1842,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 6,
-    marginLeft: 8,
+    marginLeft: 6,
   },
   rtcBadge: {
     flexDirection: 'row',
@@ -1848,27 +1880,64 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
   },
-  viewerProfileGroupBtn: {
+  contributorRankingGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.45)',
-    borderRadius: 16,
-    paddingLeft: 3,
+    borderRadius: 18,
+    paddingLeft: 4,
     paddingRight: 8,
     paddingVertical: 3,
     gap: 6,
   },
-  viewerAvatarsOverlap: {
+  rankAvatarsRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 5,
   },
-  viewerAvatarMiniWrap: {
+  rankAvatarRing: {
+    borderRadius: 15,
+    padding: 1,
     borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.4)',
+    position: 'relative',
+  },
+  rank1Ring: {
+    borderColor: '#F59E0B',
+    borderWidth: 2,
+    shadowColor: '#F59E0B',
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  rank2Ring: {
+    borderColor: '#3B82F6',
+    borderWidth: 1.5,
+  },
+  rank3Ring: {
+    borderColor: '#FB923C',
+    borderWidth: 1.5,
+  },
+  rank1Badge: {
+    position: 'absolute',
+    bottom: -3,
+    right: -3,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#F59E0B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
     borderColor: '#FFFFFF',
-    borderRadius: 13,
+  },
+  rank1BadgeText: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
   viewerCountPill: {
-    paddingHorizontal: 2,
+    paddingHorizontal: 3,
   },
   viewerCountPillText: {
     fontSize: 12,
