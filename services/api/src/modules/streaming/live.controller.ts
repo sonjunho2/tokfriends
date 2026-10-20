@@ -104,10 +104,19 @@ const MOCK_LIVE_ROOMS = [
   },
 ];
 
+import { ChatGateway } from '../ws/chat.gateway';
+import { Inject, forwardRef } from '@nestjs/common';
+
 @ApiTags('live')
 @Controller('live')
 export class LiveController {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly roomActiveViewers = new Map<string, Set<string>>();
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => ChatGateway))
+    private readonly chatGateway: ChatGateway,
+  ) {}
 
   /**
    * 관리자 라이브 지표 요약
@@ -183,13 +192,17 @@ export class LiveController {
       title: '실시간 소통 라이브 방송',
       category: '일상/토크',
       status: 'ACTIVE',
-      viewerCount: 15,
+      viewerCount: 1,
       totalLikes: 120,
       totalGiftsPoints: 5000,
       coverUri: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500',
       startedAt: new Date().toISOString(),
       host: { id: 'u-host', name: '호스트', avatar: null, region: '서울' },
     };
+    const activeCount = this.roomActiveViewers.get(id)?.size;
+    if (activeCount !== undefined) {
+      room.viewerCount = activeCount;
+    }
     return { ok: true, data: room, room };
   }
 
@@ -282,11 +295,25 @@ export class LiveController {
    */
   @Public()
   @Post('rooms/:id/join')
-  async joinLiveRoom(@CurrentUser() user: any, @Param('id') id: string) {
+  async joinLiveRoom(@CurrentUser() user: any, @Param('id') id: string, @Query('viewerKey') qViewerKey?: string, @Body() body?: any) {
     const room = MOCK_LIVE_ROOMS.find((r) => r.id === id);
-    if (room) room.viewerCount = (room.viewerCount || 0) + 1;
-
     const userId = user?.id || user?.sub;
+    const viewerKey = qViewerKey || body?.viewerKey || userId || `v_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+    let vSet = this.roomActiveViewers.get(id);
+    if (!vSet) {
+      vSet = new Set<string>();
+      this.roomActiveViewers.set(id, vSet);
+    }
+    vSet.add(viewerKey);
+    const currentViewerCount = Math.max(1, vSet.size);
+    if (room) {
+      room.viewerCount = currentViewerCount;
+    }
+    try {
+      this.chatGateway.emitLiveViewerCount(id, currentViewerCount);
+    } catch {}
+
     const policy = this.getActionPolicy();
     const entryFee = Number((room as any)?.entryFee || 0);
     const policyFee = policy?.liveRoomJoin?.enabled ? Number(policy.liveRoomJoin.amount) || 0 : 0;
@@ -310,7 +337,7 @@ export class LiveController {
       } catch {}
     }
 
-    return { ok: true, data: room || { id, viewerCount: 1 }, remainingBalance: updatedBalance };
+    return { ok: true, data: room || { id, viewerCount: currentViewerCount }, viewerCount: currentViewerCount, remainingBalance: updatedBalance };
   }
 
   /**
@@ -318,10 +345,24 @@ export class LiveController {
    */
   @Public()
   @Post('rooms/:id/leave')
-  async leaveLiveRoom(@Param('id') id: string) {
+  async leaveLiveRoom(@CurrentUser() user: any, @Param('id') id: string, @Query('viewerKey') qViewerKey?: string, @Body() body?: any) {
     const room = MOCK_LIVE_ROOMS.find((r) => r.id === id);
-    if (room && room.viewerCount > 0) room.viewerCount -= 1;
-    return { ok: true };
+    const userId = user?.id || user?.sub;
+    const viewerKey = qViewerKey || body?.viewerKey || userId;
+
+    const vSet = this.roomActiveViewers.get(id);
+    if (vSet && viewerKey) {
+      vSet.delete(viewerKey);
+    }
+    const currentViewerCount = vSet ? vSet.size : 0;
+    if (room) {
+      room.viewerCount = currentViewerCount;
+    }
+    try {
+      this.chatGateway.emitLiveViewerCount(id, currentViewerCount);
+    } catch {}
+
+    return { ok: true, viewerCount: currentViewerCount };
   }
 
   /**
@@ -334,8 +375,16 @@ export class LiveController {
     if (room) {
       room.status = 'ENDED';
       room.endedAt = new Date().toISOString();
+      room.viewerCount = 0;
     }
-    return { ok: true, data: room || { id, status: 'ENDED' } };
+    this.roomActiveViewers.delete(id);
+
+    // 연결된 모든 시청자에게 실시간 방송 종료 이벤트 즉시 브로드캐스트
+    try {
+      this.chatGateway.emitLiveRoomEnded(id, '호스트가 라이브 방송을 종료했습니다.');
+    } catch {}
+
+    return { ok: true, data: room || { id, status: 'ENDED', viewerCount: 0 } };
   }
 
   /**

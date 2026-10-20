@@ -137,7 +137,14 @@ export class StoreController {
         if (dbUser) balance = dbUser.pointBalance;
       } catch {}
     }
-    return { ok: true, balance, spendableBalance: balance };
+    return {
+      ok: true,
+      balance,
+      spendableBalance: balance,
+      pointBalance: balance,
+      pointsBalance: balance,
+      points: balance,
+    };
   }
 
   // ==========================================
@@ -204,12 +211,18 @@ export class StoreController {
       success: true,
       balance: newBalance,
       pointBalance: newBalance,
+      pointsBalance: newBalance,
+      points: newBalance,
+      spendableBalance: newBalance,
       orderId,
       purchase: purchaseRecord,
       data: {
         purchased: true,
         balance: newBalance,
         pointBalance: newBalance,
+        pointsBalance: newBalance,
+        points: newBalance,
+        spendableBalance: newBalance,
         orderId,
       },
       message: `${points.toLocaleString()} ON 충전이 완료되었습니다!`,

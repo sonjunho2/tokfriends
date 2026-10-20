@@ -61,8 +61,15 @@ export class UsersService implements OnModuleInit {
     const region2 = ext.region2 || '강남구 역삼동';
     const interests = Array.isArray(ext.interests) ? ext.interests : ['소통', '일상', '친구'];
 
+    const pointBal = user.pointBalance ?? 0;
+
     return {
       ...user,
+      pointBalance: pointBal,
+      pointsBalance: pointBal,
+      points: pointBal,
+      balance: pointBal,
+      spendableBalance: pointBal,
       nickname,
       displayName,
       avatarUrl,

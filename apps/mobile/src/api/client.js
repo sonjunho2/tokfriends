@@ -2948,6 +2948,7 @@ export const apiClient = {
       const { data } = await client.post(`/live/rooms/${roomId}/end`);
       return data?.data || data;
     } catch (e) {
+      if (USE_DUMMY_AUTH) return { success: true };
       throw normalizeError(e);
     }
   },
@@ -2957,13 +2958,14 @@ export const apiClient = {
       const { data } = await client.post(`/live/rooms/${roomId}/join${viewerKey ? `?viewerKey=${viewerKey}` : ''}`);
       return data?.data || data;
     } catch (e) {
+      if (USE_DUMMY_AUTH) return { success: true, viewerCount: 1 };
       throw normalizeError(e);
     }
   },
 
-  async leaveLiveRoom(roomId) {
+  async leaveLiveRoom(roomId, viewerKey) {
     try {
-      const { data } = await client.post(`/live/rooms/${roomId}/leave`);
+      const { data } = await client.post(`/live/rooms/${roomId}/leave${viewerKey ? `?viewerKey=${viewerKey}` : ''}`);
       return data?.data || data;
     } catch (e) {
       return { success: true };

@@ -5453,3 +5453,45 @@ First Owner/ActivityAccount migration must:
 - `PATCH /chats/rooms/:id`, `DELETE /chats/rooms/:id`로 관리자의 대화방 강제 종료 및 삭제 연동 지원.
 - 빌드 검증: `services/api` 빌드 PASS, `verify-all-endpoints.ts` 24/24 PASS, `apps/admin` 32개 페이지 Next.js 빌드 PASS, `apps/mobile` AST 파싱 검증 100% PASS.
 
+---
+
+## Checkpoint 107 (라이브 방송 종료 및 Agora 실시간 시청자 카운트 동기화, 온(ON) 포인트 전 화면 일원화, 상단 기여도 랭킹 탭 연동)
+
+### 1. 라이브 방송 종료 및 Agora 실시간 시청자 카운트 정확성 회복
+- **Agora 및 실시간 소켓 시청자 추적 (`ChatGateway`)**:
+  - `ChatGateway` 내 `liveRoomViewers: Map<string, Set<string>>` 및 `socketLiveRooms` 도입.
+  - `@SubscribeMessage('live:join')`: 접속 소켓을 `live_room_${roomId}` 채널에 등록하고 실시간 접속자 집합 크기를 계산하여 `live:viewer_count` 브로드캐스트.
+  - `@SubscribeMessage('live:leave')` 및 `handleDisconnect`: 소켓 연결 종료 시 시청자 집합에서 자동 제외하고 최신 인원을 실시간 브로드캐스트하여 트래픽/운영비용 누수 방지.
+  - `@SubscribeMessage('live:end')` 및 `emitLiveRoomEnded`: 호스트가 방송을 종료하면 해당 채널의 모든 시청자에게 `live:ended` 이벤트를 즉시 송출하여 방을 자동으로 닫고 목록으로 복귀 처리.
+- **백엔드 라이브 컨트롤러 (`LiveController`)**:
+  - `joinLiveRoom`, `leaveLiveRoom`: 클라이언트 디바이스/유저별 `viewerKey` 기반 고유 집합 집계 및 `chatGateway.emitLiveViewerCount` 연동.
+  - `endLiveRoom`: `room.status = 'ENDED'`, `room.endedAt` 설정, `room.viewerCount = 0`, `chatGateway.emitLiveRoomEnded` 호출.
+  - `getLiveRoomById`: 메모리 내 실제 접속자 수를 우선 반환하여 임의의 더미 인원 수 덮어쓰기 방지.
+- **모바일 라이브 룸 (`LiveRoomScreen.js`, `client.js`)**:
+  - `handleEndBroadcast`: 호스트 방송 종료 시 카메라 센서 즉시 Off, 마이크 음소거, Agora 스트림 차단(`muteLocalVideo(true)`, `muteLocalAudio(true)`), 소켓 `live:leave` 전송 후 `apiClient.endLiveRoom` 호출 및 즉각 퇴장 처리.
+  - `socket.on(LIVE_SOCKET_EVENTS.ROOM_ENDED)`: 호스트 방송 종료 시 카메라/마이크 끄고 알림 후 즉시 `navigation.goBack()` 실행.
+  - `apiClient.leaveLiveRoom(roomId, viewerKey)`: 중복 정의 제거 및 `viewerKey` 정확한 전달.
+
+### 2. 온(ON) 포인트 전 앱 단일화 및 실시간 동기화
+- **온 포인트 필드 표준화 (`pointBalance`, `pointsBalance`, `points`, `balance`, `spendableBalance`)**:
+  - 백엔드 `users.service.ts`: `normalizeUser`에서 DB 컬럼명 `pointBalance`를 기준으로 모든 별칭에 동일한 정수 잔액을 채워 반환.
+  - 백엔드 `store.controller.ts`: `getPointBalance` 및 `confirmPurchase` 응답에 모든 포인트 별칭을 통일 전달.
+  - 모바일 `AuthContext.js`: `normalizeAuthUser`를 통해 초기 상태, `cachedUser`, `login`, `setUser`, `refreshMe` 전반에서 포인트 잔액을 단일화하고 `apiClient.getPointBalance()`와 교차 동기화.
+- **화면별 잔액 불일치 및 0온 표기 버그 해소**:
+  - `ShopScreen.js`: `user?.pointBalance`를 포함한 유효 잔액 계산, 테스트 충전 시 `setUser`를 즉각 호출하여 상점 잔액 실시간 반영.
+  - `LiveRoomScreen.js`: `fetchMyPoints`에서 `apiClient.getPointBalance()`를 우선 조회하고 `currentUser?.pointBalance` 기본값 적용. 선물하기 바텀시트 열람 시 최신 잔액 즉시 갱신.
+  - `GiftPickerSheet.js`: 보유 온 표기 및 충전 버튼 연동.
+  - `MyPageScreen.js`: `pointBalance` 우선 조회 적용.
+- **온 포인트 표기 스타일 및 아이콘 통일**:
+  - 기존 각양각색이던 포인트 뱃지를 홈 화면/마이페이지와 일치하는 입체 골드 코인(`🪙 {balance} ON`) 캡슐로 통일.
+  - 화폐 단위 "P"를 서비스 공식 명칭인 "온(ON)" 또는 "온"으로 완전 통일.
+
+### 3. 라이브방송 상단 기여도 랭킹 탭 동작 수정
+- **상단 헤더 랭킹 아바타 클릭 시 프로필 팝업 방지**:
+  - `LiveRoomScreen.js` 상단 `topContributors` 개별 아바타에 중첩되어 있던 `TouchableOpacity` 및 `handleOpenParticipantProfile` 제거.
+  - 상단 랭킹 아바타 그룹 클릭 시 지시사항대로 **`LiveViewerRankingSheet` (접속자 기여도 랭킹 / 실시간 시청자 모달 창)**가 열리도록 동작 일원화.
+  - 프로필 상세 시트는 해당 랭킹/시청자 목록 모달 내부에서 유저를 탭했을 때 오픈되도록 정상 파이프라인 정립.
+- **`GlobalBottomSheet.tsx` 1:1 LIVE 단가 개편**:
+  - 프로필 바텀시트 내 폐지된 "1:1 다이렉트 통화 (1,500P / 분)" 문구를 **"1:1 LIVE (프라이빗 방송)" (`{rate} 온 / 분`)**으로 전면 교체.
+
+

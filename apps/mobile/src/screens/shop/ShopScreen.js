@@ -41,7 +41,7 @@ const FALLBACK_PACKAGES = [
 const ENABLE_DIRECT_TEST_CHARGE = true;
 
 export default function ShopScreen({ navigation }) {
-  const { user, refreshMe } = useAuth();
+  const { user, refreshMe, setUser } = useAuth();
   const [packages, setPackages] = useState([]);
   const [iapProducts, setIapProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,7 +79,7 @@ export default function ShopScreen({ navigation }) {
   const [purchaseHistoryModalVisible, setPurchaseHistoryModalVisible] = useState(false);
 
   const balance = useMemo(() => {
-    const p = user?.pointsBalance ?? user?.points ?? user?.balance ?? 0;
+    const p = user?.pointBalance ?? user?.pointsBalance ?? user?.points ?? user?.balance ?? 0;
     return typeof p === 'number' ? p : parseInt(String(p).replace(/\D/g, ''), 10) || 0;
   }, [user]);
 
@@ -337,13 +337,16 @@ export default function ShopScreen({ navigation }) {
                     console.warn('Purchase API error, falling back to instant test balance:', apiErr);
                     // 결제 연동 미완료 또는 API 라우팅 예외 시 테스트 모드로 즉시 포인트 가산
                     const addedPoints = Number(item.points || item.pointsAmount || 100);
-                    const currentPoints = Number(user?.pointsBalance || user?.points || 0);
+                    const currentPoints = Number(user?.pointBalance || user?.pointsBalance || user?.points || 0);
                     newBal = currentPoints + addedPoints;
+                  }
+                  if (typeof newBal === 'number' && setUser) {
+                    await setUser({ ...user, pointBalance: newBal, pointsBalance: newBal, points: newBal, balance: newBal });
                   }
                   await Promise.allSettled([refreshMe(), loadPurchaseHistory()]);
                   Alert.alert(
                     '충전 완료',
-                    `${item.label} 상품이 테스트 충전되었습니다.\n(현재 잔액: ${newBal ?? '반영 완료'} 온)`,
+                    `${item.label} 상품이 테스트 충전되었습니다.\n(현재 잔액: ${(newBal ?? balance).toLocaleString()} 온)`,
                   );
                 } catch (err) {
                   Alert.alert('충전 안내', '테스트 충전 처리 중 오류가 발생했습니다. 다시 시도해 주세요.');
@@ -459,8 +462,9 @@ export default function ShopScreen({ navigation }) {
             <Text style={styles.historyBtnText}>충전 내역</Text>
           </TouchableOpacity>
           <View style={styles.pointBadge}>
-            <Text style={styles.pointIcon}>온</Text>
+            <Text style={styles.pointIcon}>🪙</Text>
             <Text style={styles.pointText}>{balance.toLocaleString()}</Text>
+            <Text style={styles.pointUnit}>ON</Text>
           </View>
         </View>
       </View>
@@ -1005,22 +1009,26 @@ const styles = StyleSheet.create({
   pointBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
   },
   pointIcon: {
-    backgroundColor: colors.primary || '#7B61FF',
-    color: '#fff',
-    width: 22,
-    height: 22,
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    borderRadius: 11,
-    fontWeight: '800',
+    fontSize: 14,
   },
   pointText: {
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#D97706',
+  },
+  pointUnit: {
+    fontSize: 12,
     fontWeight: '700',
-    color: colors.primary || '#7B61FF',
+    color: '#B45309',
   },
   historyBtn: {
     flexDirection: 'row',

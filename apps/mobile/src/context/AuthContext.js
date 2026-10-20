@@ -31,6 +31,20 @@ const AuthContext = createContext({
 
 export const useAuth = () => useContext(AuthContext);
 
+const normalizeAuthUser = (user) => {
+  if (!user) return null;
+  const bal = user.pointBalance ?? user.pointsBalance ?? user.points ?? user.balance ?? 0;
+  const numBal = Number(bal) || 0;
+  return {
+    ...user,
+    pointBalance: numBal,
+    pointsBalance: numBal,
+    points: numBal,
+    balance: numBal,
+    spendableBalance: numBal,
+  };
+};
+
 export const AuthProvider = ({ children }) => {
   const [state, setState] = useState({
     user: null,
@@ -45,7 +59,7 @@ export const AuthProvider = ({ children }) => {
     (async () => {
       try {
         let storedToken = await getStoredToken();
-        const cachedUser = await getStoredUser();
+        const cachedUser = normalizeAuthUser(await getStoredUser());
 
         if (!storedToken && USE_DUMMY_AUTH) {
           storedToken = 'dummy_token';
@@ -67,8 +81,16 @@ export const AuthProvider = ({ children }) => {
           try {
             const me = await apiClient.getMe();
             if (isMounted && me) {
-              setState((s) => ({ ...s, user: me, isOffline: false, initializing: false }));
-              await saveStoredUser(me);
+              let finalBal = me.pointBalance ?? me.pointsBalance ?? me.points ?? me.balance;
+              try {
+                const balRes = await apiClient.getPointBalance();
+                if (typeof balRes?.balance === 'number') {
+                  finalBal = balRes.balance;
+                }
+              } catch {}
+              const normalized = normalizeAuthUser({ ...me, pointBalance: finalBal });
+              setState((s) => ({ ...s, user: normalized, isOffline: false, initializing: false }));
+              await saveStoredUser(normalized);
               registerPushNotifications().catch(() => {});
             }
           } catch (netErr) {
@@ -109,11 +131,12 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const setUser = async (user, token) => {
+    const normalized = normalizeAuthUser(user);
     try {
       if (token) await saveToken(token);
-      if (user) await saveStoredUser(user);
+      if (normalized) await saveStoredUser(normalized);
     } catch {}
-    setState((s) => ({ ...s, user: user || null, token: token || s.token }));
+    setState((s) => ({ ...s, user: normalized, token: token || s.token }));
   };
 
   const authenticateWithToken = async (token, userPayload = null) => {
@@ -129,12 +152,13 @@ export const AuthProvider = ({ children }) => {
       const me = hasCanonicalActivityAccount
         ? userPayload
         : await apiClient.getMe();
-      if (me) {
-        await saveStoredUser(me);
+      const normalized = normalizeAuthUser(me);
+      if (normalized) {
+        await saveStoredUser(normalized);
       }
-      setState((s) => ({ ...s, user: me, initializing: false }));
+      setState((s) => ({ ...s, user: normalized, initializing: false }));
       registerPushNotifications().catch(() => {});
-      return { success: true, user: me };
+      return { success: true, user: normalized };
     } catch (e) {
       return { success: false, error: e?.message || '세션 설정에 실패했습니다.' };
     }
@@ -192,8 +216,17 @@ export const AuthProvider = ({ children }) => {
     try {
       const me = await apiClient.getMe();
       if (me) {
-        await saveStoredUser(me);
-        setState((s) => ({ ...s, user: me, isOffline: false }));
+        let finalBal = me.pointBalance ?? me.pointsBalance ?? me.points ?? me.balance;
+        try {
+          const balRes = await apiClient.getPointBalance();
+          if (typeof balRes?.balance === 'number') {
+            finalBal = balRes.balance;
+          }
+        } catch {}
+        const normalized = normalizeAuthUser({ ...me, pointBalance: finalBal });
+        await saveStoredUser(normalized);
+        setState((s) => ({ ...s, user: normalized, isOffline: false }));
+        return normalized;
       }
     } catch (err) {
       const status = err?.response?.status || err?.status;

@@ -116,7 +116,7 @@ export default function GiftPickerSheet({
                 <View style={styles.pointsBadgeRow}>
                   <Text style={styles.headerTitle}>마음 전하기 (선물)</Text>
                   <View style={styles.myPointsPill}>
-                    <Ionicons name="sparkles" size={13} color="#D97706" />
+                    <Text style={{ fontSize: 13 }}>🪙</Text>
                     <Text style={styles.myPointsText}>
                       보유 {myPoints?.toLocaleString() ?? 0} 온
                     </Text>

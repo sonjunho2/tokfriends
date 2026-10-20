@@ -110,7 +110,7 @@ function LiveAudioWaveform({ isMuted, barCount = 5, barColor = LIVE_ACCENT }) {
 }
 
 export default function LiveRoomScreen({ navigation, route }) {
-  const { user: currentUser, token: authToken } = useAuth();
+  const { user: currentUser, token: authToken, refreshMe } = useAuth();
   const initialRoom = route?.params?.room;
   const roomId = route?.params?.roomId || initialRoom?.id;
 
@@ -131,8 +131,11 @@ export default function LiveRoomScreen({ navigation, route }) {
   const [viewerModalVisible, setViewerModalVisible] = useState(false);
   const [profileSheetVisible, setProfileSheetVisible] = useState(false);
   const [selectedParticipant, setSelectedParticipant] = useState(null);
-  const [myPoints, setMyPoints] = useState(currentUser?.pointsBalance || 0);
+  const [myPoints, setMyPoints] = useState(
+    currentUser?.pointBalance ?? currentUser?.pointsBalance ?? currentUser?.points ?? currentUser?.balance ?? 0
+  );
   const processedGiftMessageIdsRef = useRef(new Set());
+  const socketRef = useRef(null);
 
   // Guarantee bottom tab bar is completely hidden while Live Room is open
   useLayoutEffect(() => {
@@ -562,13 +565,14 @@ export default function LiveRoomScreen({ navigation, route }) {
     let socket = null;
     try {
       socket = createChatSocket(normalizedToken);
+      socketRef.current = socket;
 
       socket.on('connect', () => {
-        socket.emit(LIVE_SOCKET_EVENTS.JOIN, { roomId });
+        socket.emit(LIVE_SOCKET_EVENTS.JOIN, { roomId, viewerKey });
       });
 
       socket.on(LIVE_SOCKET_EVENTS.AUTH_READY, () => {
-        socket.emit(LIVE_SOCKET_EVENTS.JOIN, { roomId });
+        socket.emit(LIVE_SOCKET_EVENTS.JOIN, { roomId, viewerKey });
       });
 
       socket.on(LIVE_SOCKET_EVENTS.MESSAGE, (msg) => {
@@ -640,6 +644,8 @@ export default function LiveRoomScreen({ navigation, route }) {
       });
 
       socket.on(LIVE_SOCKET_EVENTS.ROOM_ENDED, (data) => {
+        setIsCameraOff(true);
+        setIsMicMuted(true);
         Alert.alert('방송 종료', data?.reason || '라이브 방송이 종료되었습니다.', [
           { text: '확인', onPress: () => navigation.goBack() },
         ]);
@@ -653,20 +659,26 @@ export default function LiveRoomScreen({ navigation, route }) {
     return () => {
       if (socket) {
         if (socket.connected) {
-          socket.emit(LIVE_SOCKET_EVENTS.LEAVE, { roomId });
+          socket.emit(LIVE_SOCKET_EVENTS.LEAVE, { roomId, viewerKey });
         }
         socket.disconnect();
       }
+      socketRef.current = null;
     };
-  }, [roomId, authToken, navigation]);
+  }, [roomId, authToken, viewerKey, navigation]);
 
   const fetchMyPoints = useCallback(async () => {
     try {
+      const res = await apiClient.getPointBalance();
+      const bal = res?.balance ?? res?.pointBalance ?? res?.spendableBalance;
+      if (typeof bal === 'number') {
+        setMyPoints(bal);
+        return;
+      }
       const me = await apiClient.getMe();
-      if (me && typeof me.pointsBalance === 'number') {
-        setMyPoints(me.pointsBalance);
-      } else if (me && typeof me.points === 'number') {
-        setMyPoints(me.points);
+      const fallbackBal = me?.pointBalance ?? me?.pointsBalance ?? me?.points ?? me?.balance;
+      if (typeof fallbackBal === 'number') {
+        setMyPoints(fallbackBal);
       }
     } catch {
       // quiet fallback
@@ -831,12 +843,19 @@ export default function LiveRoomScreen({ navigation, route }) {
         style: 'destructive',
         onPress: async () => {
           try {
+            // 즉시 카메라 및 마이크 센서, Agora 스트림 종료
+            setIsCameraOff(true);
+            setIsMicMuted(true);
+            agoraStreamController.muteLocalVideo(true);
+            agoraStreamController.muteLocalAudio(true);
+            if (socketRef.current?.connected) {
+              socketRef.current.emit(LIVE_SOCKET_EVENTS.LEAVE, { roomId, viewerKey });
+            }
             await apiClient.endLiveRoom(roomId);
-            Alert.alert('종료 완료', '라이브 방송이 종료되었습니다.', [
-              { text: '확인', onPress: () => navigation.goBack() },
-            ]);
           } catch (e) {
-            Alert.alert('종료 실패', e?.message || '방송 종료에 실패했습니다.');
+            console.warn('방송 종료 API 처리:', e);
+          } finally {
+            navigation.goBack();
           }
         },
       },
@@ -1251,7 +1270,7 @@ export default function LiveRoomScreen({ navigation, route }) {
                 const isSecond = idx === 1;
                 const isThird = idx === 2;
                 return (
-                  <TouchableOpacity
+                  <View
                     key={`c_hdr_${c.id || idx}`}
                     style={[
                       styles.rankAvatarRing,
@@ -1259,8 +1278,6 @@ export default function LiveRoomScreen({ navigation, route }) {
                       isSecond && styles.rank2Ring,
                       isThird && styles.rank3Ring,
                     ]}
-                    onPress={() => handleOpenParticipantProfile(c)}
-                    activeOpacity={0.8}
                   >
                     <Avatar size={26} name={c.name} uri={c.avatar} />
                     {isFirst && (
@@ -1268,7 +1285,7 @@ export default function LiveRoomScreen({ navigation, route }) {
                         <Text style={styles.rank1BadgeText}>1</Text>
                       </View>
                     )}
-                  </TouchableOpacity>
+                  </View>
                 );
               })}
             </View>

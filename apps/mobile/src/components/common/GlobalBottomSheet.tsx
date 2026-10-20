@@ -162,15 +162,15 @@ export default function GlobalBottomSheet({
               )}
             </View>
 
-            {/* 1:1 통화 및 메시지 액션 버튼 바 */}
+            {/* 1:1 LIVE 및 대화 시작 액션 버튼 바 */}
             <View style={styles.actionSection}>
-              {/* 1:1 음성/영상 통화 버튼 (네온 코랄 그라데이션) */}
+              {/* 1:1 프라이빗 LIVE 요청 버튼 (네온 코랄 그라데이션) */}
               <TouchableOpacity
                 style={styles.callButtonWrapper}
                 activeOpacity={0.85}
                 onPress={() => {
-                  if (onCallVoice) onCallVoice(user);
-                  else if (onCallVideo) onCallVideo(user);
+                  if (onCallVideo) onCallVideo(user);
+                  else if (onCallVoice) onCallVoice(user);
                 }}
               >
                 <LinearGradient
@@ -180,34 +180,23 @@ export default function GlobalBottomSheet({
                   style={styles.callButton}
                 >
                   <View style={styles.callIconBox}>
-                    <Ionicons name="call" size={20} color="#FFFFFF" />
+                    <Ionicons name="videocam" size={20} color="#FFFFFF" />
                   </View>
                   <View style={styles.callTextCol}>
-                    <Text style={styles.callTitle}>1:1 다이렉트 통화</Text>
-                    <Text style={styles.callSub}>{pointRate.toLocaleString()}P / 분</Text>
+                    <Text style={styles.callTitle}>1:1 LIVE (프라이빗 방송)</Text>
+                    <Text style={styles.callSub}>{pointRate.toLocaleString()} 온 / 분</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.8)" />
                 </LinearGradient>
               </TouchableOpacity>
 
-              {/* 하단 2분할 버튼: 영상 통화 & 1:1 대화 */}
+              {/* 1:1 대화 시작 버튼 */}
               <View style={styles.secondaryActionsRow}>
-                {onCallVideo && (
-                  <TouchableOpacity
-                    style={styles.subActionButton}
-                    onPress={() => onCallVideo(user)}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name="videocam" size={18} color={tokens.colors.primary} />
-                    <Text style={styles.subActionText}>영상 통화</Text>
-                  </TouchableOpacity>
-                )}
-
                 <TouchableOpacity
                   style={[
                     styles.subActionButton,
                     styles.chatActionButton,
-                    !onCallVideo && { flex: 1 },
+                    { flex: 1 },
                   ]}
                   onPress={() => onStartChat && onStartChat(user)}
                   activeOpacity={0.8}

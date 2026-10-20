@@ -37,7 +37,7 @@ export default function MyPageScreen({ navigation }) {
 
   // 보유 온(ON) 자산
   const balance = useMemo(() => {
-    const p = user?.pointsBalance ?? 1250;
+    const p = user?.pointBalance ?? user?.pointsBalance ?? user?.points ?? user?.balance ?? 1250;
     if (typeof p === 'number') return p;
     const numeric = parseInt(String(p).replace(/\D/g, ''), 10);
     return Number.isFinite(numeric) ? numeric : 1250;
