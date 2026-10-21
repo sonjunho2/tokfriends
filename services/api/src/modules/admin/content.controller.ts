@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import { Public } from '../auth/public.decorator';
@@ -391,6 +392,34 @@ export class ContentController {
   async getTopics() {
     const topics = this.contentService.getTopics();
     return { ok: true, data: topics, topics };
+  }
+
+  @Public()
+  @Get(['content/categories', 'posts/categories', 'admin/content/categories', 'admin/posts/categories'])
+  async getCategories() {
+    const categories = this.contentService.getCategories();
+    return { ok: true, data: categories, items: categories, categories };
+  }
+
+  @Public()
+  @Post(['admin/content/categories', 'admin/posts/categories'])
+  async createCategory(@Body() body: any) {
+    const created = this.contentService.addCategory(body);
+    return { ok: true, data: created, item: created };
+  }
+
+  @Public()
+  @Put(['admin/content/categories/:id', 'admin/posts/categories/:id'])
+  async updateCategory(@Param('id') id: string, @Body() body: any) {
+    const updated = this.contentService.updateCategory(id, body);
+    return { ok: Boolean(updated), data: updated, item: updated };
+  }
+
+  @Public()
+  @Delete(['admin/content/categories/:id', 'admin/posts/categories/:id'])
+  async deleteCategory(@Param('id') id: string) {
+    const success = this.contentService.deleteCategory(id);
+    return { ok: success, success };
   }
 
   @Public()

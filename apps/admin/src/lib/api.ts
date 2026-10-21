@@ -508,6 +508,48 @@ export async function deleteAdminPostComment(postId: string, commentId: string) 
   return response.data
 }
 
+export interface CommunityCategory {
+  id: string
+  name: string
+  icon?: string
+  description?: string
+  order: number
+  isDefault?: boolean
+  isActive: boolean
+  postCount?: number
+  createdAt?: string
+  updatedAt?: string
+}
+
+export async function getAdminCommunityCategories(): Promise<CommunityCategory[]> {
+  const response = await api.get('/admin/content/categories')
+  const d = response.data as any
+  return unwrapArray<CommunityCategory>(d, ['categories', 'items', 'data'])
+}
+
+export async function createAdminCommunityCategory(payload: {
+  name: string
+  icon?: string
+  description?: string
+  order?: number
+  isActive?: boolean
+}): Promise<CommunityCategory> {
+  const response = await api.post('/admin/content/categories', payload)
+  const d = (response.data as any)?.data ?? (response.data as any)?.item ?? response.data
+  return d as CommunityCategory
+}
+
+export async function updateAdminCommunityCategory(id: string, payload: Partial<CommunityCategory>): Promise<CommunityCategory> {
+  const response = await api.put(`/admin/content/categories/${id}`, payload)
+  const d = (response.data as any)?.data ?? (response.data as any)?.item ?? response.data
+  return d as CommunityCategory
+}
+
+export async function deleteAdminCommunityCategory(id: string): Promise<boolean> {
+  const response = await api.delete(`/admin/content/categories/${id}`)
+  return Boolean((response.data as any)?.ok ?? (response.data as any)?.success ?? true)
+}
+
 export async function getAdminFaqs(): Promise<FaqItem[]> {
   const response = await api.get('/admin/faqs')
   return unwrapArray<FaqItem>(response.data, ['faqs', 'data'])

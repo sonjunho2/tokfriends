@@ -1618,6 +1618,27 @@ export const apiClient = {
     }
   },
 
+  async getCommunityCategories() {
+    try {
+      const { data } = await client.get('/content/categories');
+      return Array.isArray(data?.data)
+        ? data.data
+        : Array.isArray(data?.categories)
+          ? data.categories
+          : Array.isArray(data?.items)
+            ? data.items
+            : Array.isArray(data)
+              ? data
+              : [];
+    } catch {
+      try {
+        return await this.getTopics();
+      } catch {
+        return [];
+      }
+    }
+  },
+
   async getPosts(params = {}) {
     try {
       const { data } = await client.get('/posts', { params });

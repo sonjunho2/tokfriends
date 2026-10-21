@@ -1,5 +1,22 @@
 [
   {
+    "id": "ord-1792550637832",
+    "userId": "user-me",
+    "user": {
+      "id": "user-me",
+      "displayName": "내계정",
+      "email": "user-me@tokfriends.app"
+    },
+    "platform": "android",
+    "productId": "point-1",
+    "productName": "1,000 온 충전",
+    "transactionId": "ord-1792550637832",
+    "amountKrw": 1100,
+    "points": 1000,
+    "status": "completed",
+    "createdAt": "2026-10-21T02:43:57.836Z"
+  },
+  {
     "id": "ord-1792545782210",
     "userId": "user-me",
     "user": {

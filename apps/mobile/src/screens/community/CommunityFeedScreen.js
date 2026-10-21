@@ -37,8 +37,8 @@ import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// 1열 카테고리 캡슐 필터 목록
-const CAPSULE_CATEGORIES = [
+// 기본 카테고리 목록 (서버 미응답 시 폴백)
+const DEFAULT_CATEGORIES = [
   '전체',
   '🔥 동네인기',
   '☕ 일상·소통',
@@ -46,16 +46,6 @@ const CAPSULE_CATEGORIES = [
   '🐶 반려견',
   '🍽️ 동네맛집',
   '❓ 질문·고민',
-];
-
-// 실시간 동네 인기 토픽 키워드
-const TRENDING_KEYWORDS = [
-  '#양재천산책',
-  '#신상브런치카페',
-  '#주말러닝크루',
-  '#강아지수제간식',
-  '#역삼역맛집',
-  '#테니스초보',
 ];
 
 // 시간 포맷 헬퍼
@@ -174,9 +164,9 @@ const FALLBACK_POSTS = [
 export default function CommunityFeedScreen({ navigation, route }) {
   const { user: currentUser } = useAuth();
 
-  // 1. 카테고리 필터 및 검색 상태
+  // 1. 카테고리 필터 및 동적 카테고리 상태 (관리자 연동)
   const [selectedCategory, setSelectedCategory] = useState('전체');
-  const [selectedTrendingKeyword, setSelectedTrendingKeyword] = useState('');
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
 
   // 2. 피드 데이터 상태
   const [posts, setPosts] = useState(FALLBACK_POSTS);
@@ -187,7 +177,7 @@ export default function CommunityFeedScreen({ navigation, route }) {
   const [writeModalVisible, setWriteModalVisible] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newContent, setNewContent] = useState('');
-  const [newCategory, setNewCategory] = useState('☕ 일상·소통');
+  const [newCategory, setNewCategory] = useState('☕ 일상소통');
   const [selectedPhotos, setSelectedPhotos] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -198,6 +188,31 @@ export default function CommunityFeedScreen({ navigation, route }) {
   // 5. 신고 모달 상태
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [reportTargetPost, setReportTargetPost] = useState(null);
+
+  // 카테고리 목록 로드 (서버/관리자 연동)
+  const loadCategories = useCallback(async () => {
+    try {
+      const res = await apiClient.getCommunityCategories();
+      const items = Array.isArray(res) ? res : res?.items;
+      if (Array.isArray(items) && items.length > 0) {
+        const list = ['전체'];
+        items.forEach((c) => {
+          const label = c.icon ? `${c.icon} ${c.name}` : c.name;
+          if (c.name !== '전체' && !list.includes(label)) {
+            list.push(label);
+          }
+        });
+        setCategories(list);
+        // 글쓰기 기본 카테고리 설정
+        const firstWritable = list.find((c) => c !== '전체' && !c.includes('동네인기'));
+        if (firstWritable) {
+          setNewCategory((prev) => prev || firstWritable);
+        }
+      }
+    } catch {
+      // 실패 시 DEFAULT_CATEGORIES 유지
+    }
+  }, []);
 
   // 데이터 로드
   const loadPosts = useCallback(async ({ refresh = false } = {}) => {
@@ -247,44 +262,33 @@ export default function CommunityFeedScreen({ navigation, route }) {
   }, []);
 
   useEffect(() => {
+    loadCategories();
     loadPosts();
-  }, [loadPosts]);
+  }, [loadCategories, loadPosts]);
 
   useFocusEffect(
     useCallback(() => {
+      loadCategories();
       loadPosts();
-    }, [loadPosts])
+    }, [loadCategories, loadPosts])
   );
 
-  // 카테고리 및 트렌딩 키워드 필터링
+  // 카테고리 필터링
   const filteredPosts = useMemo(() => {
-    let result = posts;
-
-    // 트렌딩 키워드 필터링
-    if (selectedTrendingKeyword) {
-      result = result.filter(
-        (p) =>
-          p.keyword === selectedTrendingKeyword ||
-          p.title?.includes(selectedTrendingKeyword.replace('#', '')) ||
-          p.content?.includes(selectedTrendingKeyword.replace('#', ''))
-      );
+    if (!selectedCategory || selectedCategory === '전체') {
+      return posts;
     }
-
-    // 카테고리 필터링
-    if (selectedCategory === '🔥 동네인기') {
-      return result.filter((p) => p.isPopular || p.likesCount >= 30);
+    if (selectedCategory.includes('동네인기') || selectedCategory.includes('인기')) {
+      return posts.filter((p) => p.isPopular || p.likesCount >= 30);
     }
-    if (selectedCategory !== '전체') {
-      const cleanCat = selectedCategory.replace(/[^가-힣a-zA-Z]/g, '');
-      return result.filter(
-        (p) =>
-          p.category?.includes(cleanCat) ||
-          p.title?.includes(cleanCat) ||
-          p.content?.includes(cleanCat)
-      );
-    }
-    return result;
-  }, [posts, selectedCategory, selectedTrendingKeyword]);
+    const cleanCat = selectedCategory.replace(/[^가-힣a-zA-Z0-9]/g, '');
+    return posts.filter((p) => {
+      const pCat = (p.category || '').replace(/[^가-힣a-zA-Z0-9]/g, '');
+      const pTitle = (p.title || '').replace(/[^가-힣a-zA-Z0-9]/g, '');
+      const pContent = (p.content || '').replace(/[^가-힣a-zA-Z0-9]/g, '');
+      return pCat.includes(cleanCat) || pTitle.includes(cleanCat) || pContent.includes(cleanCat);
+    });
+  }, [posts, selectedCategory]);
 
   // 작성자 UserAvatar 터치 시 GlobalBottomSheet 열기
   const handleOpenAuthorSheet = async (author) => {
@@ -461,7 +465,7 @@ export default function CommunityFeedScreen({ navigation, route }) {
   };
 
   // =========================================================================
-  // 1. 상단 헤더 & 카테고리 1열 캡슐 필터 바
+  // 1. 상단 헤더 & 카테고리 1열 캡슐 필터 바 (동적 카테고리 연동)
   // =========================================================================
   const renderHeader = () => (
     <View style={styles.headerWrapper}>
@@ -495,14 +499,14 @@ export default function CommunityFeedScreen({ navigation, route }) {
         </TouchableOpacity>
       </View>
 
-      {/* 가로 스크롤 1열 캡슐 필터 바 */}
+      {/* 가로 스크롤 1열 캡슐 필터 바 (관리자/서버 동적 카테고리) */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.categoryScrollContent}
         style={styles.categoryScrollBar}
       >
-        {CAPSULE_CATEGORIES.map((cat) => {
+        {categories.map((cat) => {
           const isSelected = selectedCategory === cat;
           return (
             <TouchableOpacity
@@ -512,10 +516,7 @@ export default function CommunityFeedScreen({ navigation, route }) {
                 isSelected ? styles.categoryCapsuleActive : styles.categoryCapsuleInactive,
               ]}
               activeOpacity={0.85}
-              onPress={() => {
-                setSelectedCategory(cat);
-                setSelectedTrendingKeyword('');
-              }}
+              onPress={() => setSelectedCategory(cat)}
             >
               <Text
                 style={[
@@ -533,59 +534,20 @@ export default function CommunityFeedScreen({ navigation, route }) {
   );
 
   // =========================================================================
-  // 2. 실시간 동네 인기 토픽 랭킹 바 (Trending Topic Bar)
-  // =========================================================================
-  const renderTrendingTopicBar = () => (
-    <View style={styles.trendingContainer}>
-      <View style={styles.trendingHeaderRow}>
-        <Ionicons name="flash" size={14} color={tokens.colors.primary} />
-        <Text style={styles.trendingTitle}>실시간 인기 토픽</Text>
-      </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.trendingScrollContent}
-      >
-        {TRENDING_KEYWORDS.map((kw) => {
-          const isSelected = selectedTrendingKeyword === kw;
-          return (
-            <TouchableOpacity
-              key={kw}
-              style={[
-                styles.trendingChip,
-                isSelected && styles.trendingChipActive,
-              ]}
-              activeOpacity={0.8}
-              onPress={() => {
-                setSelectedTrendingKeyword(isSelected ? '' : kw);
-                setSelectedCategory('전체');
-              }}
-            >
-              <Text
-                style={[
-                  styles.trendingChipText,
-                  isSelected && styles.trendingChipTextActive,
-                ]}
-              >
-                {kw}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-
-  // =========================================================================
   // 3. 감성 소셜 피드 카드 (Instagram/Karrot Style Feed Card)
   // =========================================================================
   const renderFeedCard = ({ item }) => {
-    const hasMultipleImages = Array.isArray(item.images) && item.images.length > 1;
-    const hasSingleImage = Array.isArray(item.images) && item.images.length === 1;
+    const imageList = Array.isArray(item.images) && item.images.length > 0
+      ? item.images
+      : (item.mediaUrls && Array.isArray(item.mediaUrls) && item.mediaUrls.length > 0)
+        ? item.mediaUrls
+        : (item.imageUrl ? [item.imageUrl] : []);
+    const firstImageUri = imageList[0] || null;
+    const hasMultipleImages = imageList.length > 1;
 
     return (
       <View style={styles.feedCard}>
-        {/* 작성자 헤더: UserAvatar(size='sm') + 닉네임 + 동네 인증 뱃지 + 작성 시간 */}
+        {/* 작성자 헤더: UserAvatar(size=38, 원형) + 닉네임 + 동네 인증 뱃지 + 작성 시간 */}
         <View style={styles.cardHeader}>
           <TouchableOpacity
             style={styles.authorGroup}
@@ -595,12 +557,12 @@ export default function CommunityFeedScreen({ navigation, route }) {
             <UserAvatar
               uri={item.author?.avatar}
               name={item.author?.name}
-              size={40}
+              size={38}
               isOnline
             />
             <View style={styles.authorMeta}>
               <View style={styles.authorNameRow}>
-                <Text style={styles.authorName}>{item.author?.name}</Text>
+                <Text style={styles.authorName}>{item.author?.name || '익명 이웃'}</Text>
                 <View style={styles.verifiedRegionBadge}>
                   <Ionicons name="location-sharp" size={10} color={tokens.colors.primary} />
                   <Text style={styles.verifiedRegionText}>
@@ -625,50 +587,41 @@ export default function CommunityFeedScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
 
-        {/* 카테고리 태그 */}
-        <View style={styles.cardCategoryBadge}>
-          <Text style={styles.cardCategoryText}>{item.category}</Text>
-        </View>
-
-        {/* 본문 제목 & 내용 */}
+        {/* 당근(Karrot) 스타일: 좌측 글(카테고리/제목/본문 요약), 우측 정방형 썸네일(76x76) */}
         <TouchableOpacity
-          activeOpacity={0.9}
+          style={styles.cardContentRow}
+          activeOpacity={0.88}
           onPress={() => navigation.navigate('PostDetail', { post: item, postId: item.id })}
         >
-          <Text style={styles.postTitle}>{item.title}</Text>
-          <Text style={styles.postContent} numberOfLines={3}>
-            {item.content}
-          </Text>
-        </TouchableOpacity>
-
-        {/* 이미지 레이아웃: 1장이면 16:9 와이드, 2장 이상이면 2열 그리드/캐러셀 */}
-        {hasSingleImage && (
-          <TouchableOpacity
-            activeOpacity={0.92}
-            onPress={() => navigation.navigate('PostDetail', { post: item, postId: item.id })}
-          >
-            <Image source={{ uri: item.images[0] }} style={styles.singleImage} resizeMode="cover" />
-          </TouchableOpacity>
-        )}
-
-        {hasMultipleImages && (
-          <View style={styles.multiImageContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.multiImageScroll}>
-              {item.images.map((imgUri, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  activeOpacity={0.92}
-                  onPress={() => navigation.navigate('PostDetail', { post: item, postId: item.id })}
-                >
-                  <Image source={{ uri: imgUri }} style={styles.multiImageItem} resizeMode="cover" />
-                  <View style={styles.imageIndexBadge}>
-                    <Text style={styles.imageIndexText}>{idx + 1}/{item.images.length}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+          <View style={styles.cardTextCol}>
+            {item.category ? (
+              <View style={styles.cardCategoryBadge}>
+                <Text style={styles.cardCategoryText}>{item.category}</Text>
+              </View>
+            ) : null}
+            <Text style={styles.postTitle} numberOfLines={2}>
+              {item.title}
+            </Text>
+            {item.content ? (
+              <Text style={styles.postContent} numberOfLines={2}>
+                {item.content}
+              </Text>
+            ) : null}
           </View>
-        )}
+
+          {/* 우측 썸네일 이미지 (사진이 있는 경우) */}
+          {firstImageUri ? (
+            <View style={styles.thumbnailContainer}>
+              <Image source={{ uri: firstImageUri }} style={styles.cardThumbnail} resizeMode="cover" />
+              {hasMultipleImages && (
+                <View style={styles.multiImageCountBadge}>
+                  <Ionicons name="images" size={10} color="#FFFFFF" />
+                  <Text style={styles.multiImageCountText}>{imageList.length}</Text>
+                </View>
+              )}
+            </View>
+          ) : null}
+        </TouchableOpacity>
 
         {/* 하단 소셜 인터랙션 바: 좋아요, 댓글, 공유하기 */}
         <View style={styles.socialBar}>
@@ -726,10 +679,7 @@ export default function CommunityFeedScreen({ navigation, route }) {
       {/* 1. 상단 헤더 & 카테고리 1열 캡슐 필터 바 */}
       {renderHeader()}
 
-      {/* 2. 실시간 동네 인기 토픽 랭킹 바 */}
-      {renderTrendingTopicBar()}
-
-      {/* 3. 소셜 피드 리스트 */}
+      {/* 2. 소셜 피드 리스트 (실시간 인기토픽 라인 삭제 완료) */}
       <FlatList
         data={filteredPosts}
         keyExtractor={(item) => String(item.id)}
@@ -743,7 +693,10 @@ export default function CommunityFeedScreen({ navigation, route }) {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => loadPosts({ refresh: true })}
+            onRefresh={() => {
+              loadCategories();
+              loadPosts({ refresh: true });
+            }}
             colors={[tokens.colors.primary]}
             tintColor={tokens.colors.primary}
           />
@@ -770,7 +723,7 @@ export default function CommunityFeedScreen({ navigation, route }) {
         onStartChat={handleStartChat}
       />
 
-      {/* 새 글 작성 모달 */}
+      {/* 세련된 새 글 작성 모달 (카테고리 선택 연동 & UX 개선) */}
       <Modal
         visible={writeModalVisible}
         animationType="slide"
@@ -778,81 +731,143 @@ export default function CommunityFeedScreen({ navigation, route }) {
         onRequestClose={() => setWriteModalVisible(false)}
       >
         <SafeAreaView style={styles.modalSafeContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setWriteModalVisible(false)} hitSlop={8}>
-              <Text style={styles.modalCancelText}>취소</Text>
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>동네 이야기 쓰기</Text>
-            <TouchableOpacity
-              onPress={handleSubmitPost}
-              disabled={submitting}
-              style={[styles.modalSubmitBtn, submitting && { opacity: 0.6 }]}
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            {/* 상단 모달 헤더 */}
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setWriteModalVisible(false)} hitSlop={12} style={styles.modalHeaderSideBtn}>
+                <Ionicons name="close" size={24} color={tokens.colors.textSecondary} />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>동네 이야기 쓰기</Text>
+              <TouchableOpacity
+                onPress={handleSubmitPost}
+                disabled={submitting || !newTitle.trim() || !newContent.trim()}
+                style={[
+                  styles.modalSubmitBtn,
+                  (submitting || !newTitle.trim() || !newContent.trim()) && { opacity: 0.45 },
+                ]}
+              >
+                <Text style={styles.modalSubmitText}>{submitting ? '등록 중...' : '완료'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={styles.modalBody}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
             >
-              <Text style={styles.modalSubmitText}>등록</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-            {/* 카테고리 선택 */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modalCategoryRow}>
-              {CAPSULE_CATEGORIES.filter((c) => c !== '전체' && c !== '🔥 동네인기').map((c) => (
-                <TouchableOpacity
-                  key={c}
-                  style={[
-                    styles.modalCatChip,
-                    newCategory === c && styles.modalCatChipActive,
-                  ]}
-                  onPress={() => setNewCategory(c)}
+              {/* 카테고리(주제) 선택 섹션 */}
+              <View style={styles.writeSection}>
+                <View style={styles.writeSectionHeader}>
+                  <Text style={styles.writeSectionLabel}>게시판 주제 선택</Text>
+                  <Text style={styles.writeSectionSubLabel}>작성하실 글의 주제를 선택해주세요</Text>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.modalCategoryRow}
                 >
-                  <Text style={[styles.modalCatText, newCategory === c && styles.modalCatTextActive]}>
-                    {c}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+                  {categories
+                    .filter((c) => c !== '전체' && !c.includes('동네인기') && !c.includes('인기'))
+                    .map((c) => {
+                      const isSelected = newCategory === c;
+                      return (
+                        <TouchableOpacity
+                          key={c}
+                          style={[
+                            styles.modalCatChip,
+                            isSelected && styles.modalCatChipActive,
+                          ]}
+                          activeOpacity={0.8}
+                          onPress={() => setNewCategory(c)}
+                        >
+                          <Text
+                            style={[
+                              styles.modalCatText,
+                              isSelected && styles.modalCatTextActive,
+                            ]}
+                          >
+                            {c}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                </ScrollView>
+              </View>
 
-            <TextInput
-              style={styles.modalTitleInput}
-              placeholder="제목을 입력하세요"
-              placeholderTextColor={tokens.colors.textTertiary}
-              value={newTitle}
-              onChangeText={setNewTitle}
-              maxLength={60}
-            />
+              {/* 입력 본문 카드 */}
+              <View style={styles.writeInputCard}>
+                <TextInput
+                  style={styles.modalTitleInput}
+                  placeholder="제목을 입력하세요"
+                  placeholderTextColor={tokens.colors.textTertiary}
+                  value={newTitle}
+                  onChangeText={setNewTitle}
+                  maxLength={60}
+                />
+                <View style={styles.writeInputDivider} />
+                <TextInput
+                  style={styles.modalContentInput}
+                  placeholder="우리 동네 이웃들과 나눌 따뜻한 일상이나 유용한 정보를 자유롭게 나눠보세요 ✨"
+                  placeholderTextColor={tokens.colors.textTertiary}
+                  value={newContent}
+                  onChangeText={setNewContent}
+                  multiline
+                  textAlignVertical="top"
+                  maxLength={1000}
+                />
+                <View style={styles.writeCharCountRow}>
+                  <Text style={styles.writeCharCountText}>{newContent.length} / 1000</Text>
+                </View>
+              </View>
 
-            <TextInput
-              style={styles.modalContentInput}
-              placeholder="우리 동네 이웃들과 나눌 소소한 일상을 적어보세요 ✨"
-              placeholderTextColor={tokens.colors.textTertiary}
-              value={newContent}
-              onChangeText={setNewContent}
-              multiline
-              textAlignVertical="top"
-              maxLength={1000}
-            />
+              {/* 사진 첨부 섹션 */}
+              <View style={styles.writePhotoSection}>
+                <View style={styles.writeSectionHeader}>
+                  <Text style={styles.writeSectionLabel}>사진 첨부</Text>
+                  <Text style={styles.writeSectionSubLabel}>최대 5장까지 첨부할 수 있어요 ({selectedPhotos.length}/5)</Text>
+                </View>
 
-            {/* 사진 첨부 목록 */}
-            {selectedPhotos.length > 0 && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.attachPhotoRow}>
-                {selectedPhotos.map((uri, idx) => (
-                  <View key={idx} style={styles.attachThumbWrap}>
-                    <Image source={{ uri }} style={styles.attachThumb} />
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.attachPhotoRow}
+                >
+                  {selectedPhotos.length < 5 && (
                     <TouchableOpacity
-                      style={styles.attachRemoveBtn}
-                      onPress={() => setSelectedPhotos((prev) => prev.filter((_, i) => i !== idx))}
+                      style={styles.addPhotoSquareBtn}
+                      onPress={handlePickImages}
+                      activeOpacity={0.8}
                     >
-                      <Ionicons name="close" size={14} color="#FFFFFF" />
+                      <Ionicons name="camera-outline" size={26} color={tokens.colors.primary} />
+                      <Text style={styles.addPhotoSquareText}>{selectedPhotos.length}/5</Text>
                     </TouchableOpacity>
-                  </View>
-                ))}
-              </ScrollView>
-            )}
+                  )}
 
-            <TouchableOpacity style={styles.addPhotoBar} onPress={handlePickImages} activeOpacity={0.8}>
-              <Ionicons name="image-outline" size={20} color={tokens.colors.primary} />
-              <Text style={styles.addPhotoBarText}>사진 첨부하기 ({selectedPhotos.length}/5)</Text>
-            </TouchableOpacity>
-          </ScrollView>
+                  {selectedPhotos.map((uri, idx) => (
+                    <View key={idx} style={styles.attachThumbWrap}>
+                      <Image source={{ uri }} style={styles.attachThumb} />
+                      {idx === 0 && (
+                        <View style={styles.attachMainBadge}>
+                          <Text style={styles.attachMainBadgeText}>대표</Text>
+                        </View>
+                      )}
+                      <TouchableOpacity
+                        style={styles.attachRemoveBtn}
+                        hitSlop={6}
+                        onPress={() => setSelectedPhotos((prev) => prev.filter((_, i) => i !== idx))}
+                      >
+                        <Ionicons name="close" size={13} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
@@ -1094,46 +1109,55 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: tokens.colors.textSecondary,
   },
+  cardContentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  cardTextCol: {
+    flex: 1,
+    marginRight: 12,
+  },
   postTitle: {
-    fontSize: 16,
+    fontSize: 15.5,
     fontWeight: '800',
     color: tokens.colors.text,
     letterSpacing: -0.3,
-    marginBottom: 6,
+    marginBottom: 5,
+    lineHeight: 21,
   },
   postContent: {
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 13.5,
+    lineHeight: 20,
     color: tokens.colors.textSecondary,
-    marginBottom: 12,
   },
-  singleImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: tokens.radius.md,
-    marginBottom: 12,
+  thumbnailContainer: {
+    position: 'relative',
+    width: 76,
+    height: 76,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: tokens.colors.surfaceSecondary,
   },
-  multiImageContainer: {
-    marginBottom: 12,
+  cardThumbnail: {
+    width: 76,
+    height: 76,
+    borderRadius: 10,
   },
-  multiImageScroll: {
-    gap: 8,
-  },
-  multiImageItem: {
-    width: SCREEN_WIDTH * 0.65,
-    height: 180,
-    borderRadius: tokens.radius.md,
-  },
-  imageIndexBadge: {
+  multiImageCountBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    paddingHorizontal: 7,
-    paddingVertical: 2.5,
-    borderRadius: tokens.radius.full,
+    bottom: 4,
+    right: 4,
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
   },
-  imageIndexText: {
+  multiImageCountText: {
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '700',
@@ -1165,58 +1189,81 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 
-  // 4. 모달 스타일
+  // 4. 모달 및 글쓰기 스타일
   modalSafeContainer: {
     flex: 1,
-    backgroundColor: tokens.colors.surface,
+    backgroundColor: '#F8FAFC',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: tokens.colors.borderLight,
+  },
+  modalHeaderSideBtn: {
+    padding: 4,
   },
   modalCancelText: {
     fontSize: 15,
     color: tokens.colors.textSecondary,
   },
   modalTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
     color: tokens.colors.text,
   },
   modalSubmitBtn: {
     backgroundColor: tokens.colors.primary,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: tokens.radius.full,
   },
   modalSubmitText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800',
   },
   modalBody: {
     padding: 16,
   },
-  modalCategoryRow: {
-    gap: 8,
+  writeSection: {
     marginBottom: 16,
   },
+  writeSectionHeader: {
+    marginBottom: 8,
+  },
+  writeSectionLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: tokens.colors.text,
+    marginBottom: 2,
+  },
+  writeSectionSubLabel: {
+    fontSize: 12,
+    color: tokens.colors.textTertiary,
+  },
+  modalCategoryRow: {
+    gap: 8,
+    paddingVertical: 4,
+  },
   modalCatChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: tokens.radius.full,
-    backgroundColor: tokens.colors.surfaceSecondary,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: tokens.colors.borderLight,
   },
   modalCatChipActive: {
     backgroundColor: tokens.colors.primary,
+    borderColor: tokens.colors.primary,
   },
   modalCatText: {
-    fontSize: 12,
+    fontSize: 13,
     color: tokens.colors.textSecondary,
     fontWeight: '600',
   },
@@ -1224,35 +1271,104 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '800',
   },
+  writeInputCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: tokens.radius.lg,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: tokens.colors.borderLight,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
   modalTitleInput: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     color: tokens.colors.text,
-    borderBottomWidth: 1,
-    borderBottomColor: tokens.colors.borderLight,
-    paddingVertical: 10,
-    marginBottom: 14,
+    paddingVertical: 6,
+  },
+  writeInputDivider: {
+    height: 1,
+    backgroundColor: tokens.colors.borderLight,
+    marginVertical: 12,
   },
   modalContentInput: {
     fontSize: 15,
     lineHeight: 22,
     color: tokens.colors.text,
-    minHeight: 180,
-    marginBottom: 16,
+    minHeight: 160,
+  },
+  writeCharCountRow: {
+    alignItems: 'flex-end',
+    marginTop: 8,
+  },
+  writeCharCountText: {
+    fontSize: 12,
+    color: tokens.colors.textTertiary,
+  },
+  writePhotoSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: tokens.radius.lg,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: tokens.colors.borderLight,
   },
   attachPhotoRow: {
     gap: 10,
-    marginBottom: 16,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  addPhotoSquareBtn: {
+    width: 80,
+    height: 80,
+    borderRadius: tokens.radius.md,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: tokens.colors.primary,
+    backgroundColor: '#FDF2F8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addPhotoSquareText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: tokens.colors.primary,
+    marginTop: 2,
   },
   attachThumbWrap: {
     width: 80,
     height: 80,
     borderRadius: tokens.radius.md,
     overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#F1F5F9',
   },
   attachThumb: {
     width: '100%',
     height: '100%',
+  },
+  attachMainBadge: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(235, 78, 147, 0.85)',
+    paddingVertical: 2,
+    alignItems: 'center',
+  },
+  attachMainBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
   },
   attachRemoveBtn: {
     position: 'absolute',
@@ -1261,7 +1377,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.65)',
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -56,13 +56,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
 import {
+  createAdminCommunityCategory,
   createAdminFaq,
   createAdminPost,
   createAnnouncement,
+  deleteAdminCommunityCategory,
   deleteAdminFaq,
   deleteAdminPost,
   deleteAdminPostComment,
   deleteAnnouncement,
+  getAdminCommunityCategories,
   getAdminFaqs,
   getAdminPosts,
   getAdminPostStats,
@@ -74,6 +77,7 @@ import {
   updateAnnouncement,
   type Announcement,
   type AnnouncementWritePayload,
+  type CommunityCategory,
   type CommunityPost,
   type EngagementTicket,
   type FaqItem,
@@ -401,11 +405,22 @@ export default function ContentAndAnnouncementsPage() {
   const [stats, setStats] = useState<PostStats>(FALLBACK_POST_STATS)
 
   // Active tab
-  const [activeTab, setActiveTab] = useState<'posts' | 'announcements' | 'faqs'>('posts')
+  const [activeTab, setActiveTab] = useState<'posts' | 'categories' | 'announcements' | 'faqs'>('posts')
 
   // ==========================================
-  // Community Posts State
+  // Community Categories State (관리자 카테고리 추가/삭제)
   // ==========================================
+  const [categories, setCategories] = useState<CommunityCategory[]>([])
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false)
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
+  const [isSavingCategory, setIsSavingCategory] = useState(false)
+  const [categoryForm, setCategoryForm] = useState({
+    name: '',
+    icon: '☕',
+    description: '',
+    order: 0,
+    isActive: true,
+  })
   const [posts, setPosts] = useState<CommunityPost[]>(FALLBACK_POSTS)
   const [isLoadingPosts, setIsLoadingPosts] = useState(false)
   const [postStatusFilter, setPostStatusFilter] = useState<string>('ALL')
@@ -575,12 +590,70 @@ export default function ContentAndAnnouncementsPage() {
     }
   }, [])
 
+  const loadCategories = useCallback(async () => {
+    setIsLoadingCategories(true)
+    try {
+      const items = await getAdminCommunityCategories()
+      if (Array.isArray(items) && items.length > 0) {
+        setCategories(items)
+      }
+    } catch {
+      // fallback
+    } finally {
+      setIsLoadingCategories(false)
+    }
+  }, [])
+
   useEffect(() => {
     void loadPosts()
     void loadStats()
     void loadAnnouncements()
     void loadFaqs()
-  }, [loadPosts, loadStats, loadAnnouncements, loadFaqs])
+    void loadCategories()
+  }, [loadPosts, loadStats, loadAnnouncements, loadFaqs, loadCategories])
+
+  const handleSaveCategory = async () => {
+    if (!categoryForm.name.trim()) {
+      toast({ title: '카테고리명 입력 필요', description: '카테고리 이름을 입력해주세요.' })
+      return
+    }
+
+    setIsSavingCategory(true)
+    try {
+      const created = await createAdminCommunityCategory({
+        name: categoryForm.name.trim(),
+        icon: categoryForm.icon.trim() || undefined,
+        description: categoryForm.description.trim() || undefined,
+        order: categoryForm.order || categories.length + 1,
+        isActive: categoryForm.isActive,
+      })
+      toast({
+        title: '카테고리 등록 완료',
+        description: `[${created.name}] 카테고리가 등록되어 앱 커뮤니티 상단과 글쓰기에 즉시 반영됩니다.`,
+      })
+      setIsCategoryModalOpen(false)
+      setCategoryForm({ name: '', icon: '☕', description: '', order: 0, isActive: true })
+      void loadCategories()
+    } catch (e: any) {
+      toast({ title: '등록 실패', description: e?.message || '카테고리 등록 중 오류가 발생했습니다.' })
+    } finally {
+      setIsSavingCategory(false)
+    }
+  }
+
+  const handleDeleteCategory = async (id: string, name: string) => {
+    if (!confirm(`[${name}] 카테고리를 정말로 삭제하시겠습니까?\n삭제 시 모바일 앱 상단 목록 및 글쓰기 옵션에서도 제거됩니다.`)) {
+      return
+    }
+
+    try {
+      await deleteAdminCommunityCategory(id)
+      setCategories((prev) => prev.filter((c) => c.id !== id))
+      toast({ title: '카테고리 삭제 완료', description: `[${name}] 카테고리가 안전하게 삭제되었습니다.` })
+    } catch (e: any) {
+      toast({ title: '삭제 실패', description: e?.message || '카테고리 삭제 중 오류가 발생했습니다.' })
+    }
+  }
 
   // ==========================================
   // Post Actions
@@ -878,11 +951,12 @@ export default function ContentAndAnnouncementsPage() {
               void loadAnnouncements()
               void loadStats()
               void loadFaqs()
+              void loadCategories()
             }}
-            disabled={isLoadingPosts || isLoadingAnnouncements}
+            disabled={isLoadingPosts || isLoadingAnnouncements || isLoadingCategories}
             className="flex items-center gap-1.5"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoadingPosts || isLoadingAnnouncements ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${isLoadingPosts || isLoadingAnnouncements || isLoadingCategories ? 'animate-spin' : ''}`} />
             데이터 새로고침
           </Button>
           {activeTab === 'posts' && (
@@ -893,6 +967,19 @@ export default function ContentAndAnnouncementsPage() {
             >
               <Plus className="h-4 w-4" />
               공식 피드 게시글 작성
+            </Button>
+          )}
+          {activeTab === 'categories' && (
+            <Button
+              size="sm"
+              onClick={() => {
+                setCategoryForm({ name: '', icon: '☕', description: '', order: categories.length + 1, isActive: true })
+                setIsCategoryModalOpen(true)
+              }}
+              className="bg-pink-600 hover:bg-pink-700 text-white flex items-center gap-1.5 shadow-sm"
+            >
+              <Plus className="h-4 w-4" />
+              신규 카테고리 추가
             </Button>
           )}
           {activeTab === 'announcements' && (
@@ -1045,12 +1132,16 @@ export default function ContentAndAnnouncementsPage() {
         </Card>
       </div>
 
-      {/* 3대 탭 인터페이스 */}
+      {/* 4대 탭 인터페이스 (커뮤니티/카테고리/공지/FAQ) */}
       <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+        <TabsList className="grid w-full grid-cols-4 max-w-2xl">
           <TabsTrigger value="posts" className="flex items-center gap-2">
             <BookOpen className="h-4 w-4" />
             <span>커뮤니티 게시물 ({posts.length})</span>
+          </TabsTrigger>
+          <TabsTrigger value="categories" className="flex items-center gap-2">
+            <Tag className="h-4 w-4" />
+            <span>카테고리 관리 ({categories.length})</span>
           </TabsTrigger>
           <TabsTrigger value="announcements" className="flex items-center gap-2">
             <Megaphone className="h-4 w-4" />
@@ -1683,6 +1774,129 @@ export default function ContentAndAnnouncementsPage() {
             </Card>
           </div>
         </TabsContent>
+
+        {/* ==================================================== */}
+        {/* TAB 4: 커뮤니티 카테고리 관리 (모바일 상단 바 & 글쓰기 연동) */}
+        {/* ==================================================== */}
+        <TabsContent value="categories" className="space-y-4">
+          {/* 카테고리 안내 배너 */}
+          <Card className="border-pink-200 bg-gradient-to-r from-pink-50/70 via-rose-50/50 to-white shadow-xs dark:border-pink-900/60 dark:from-pink-950/20 dark:via-rose-950/10 dark:to-background">
+            <CardHeader className="py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-pink-600 text-white text-xs font-bold shadow-xs">
+                    🏷️
+                  </span>
+                  <div>
+                    <CardTitle className="text-base font-semibold text-pink-950 dark:text-pink-200">
+                      동네 커뮤니티 카테고리(주제) 관리 및 실시간 동기화
+                    </CardTitle>
+                    <p className="text-xs text-pink-700/80 dark:text-pink-400">
+                      여기서 추가하거나 삭제한 카테고리는 모바일 앱 상단 캡슐 바(전체/동네인기/...)와 글쓰기 페이지의 주제 선택 칩에 실시간으로 즉시 반영됩니다.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setCategoryForm({ name: '', icon: '☕', description: '', order: categories.length + 1, isActive: true })
+                    setIsCategoryModalOpen(true)
+                  }}
+                  className="bg-pink-600 hover:bg-pink-700 text-white flex items-center gap-1.5 shadow-xs"
+                >
+                  <Plus className="h-4 w-4" />
+                  새 카테고리 등록
+                </Button>
+              </div>
+            </CardHeader>
+          </Card>
+
+          {/* 카테고리 목록 카드 */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base">현재 등록된 커뮤니티 카테고리 목록 ({categories.length}개)</CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    앱 사용자들에게 노출되는 카테고리 순서 및 활성 상태를 확인하고 관리합니다.
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-xs font-semibold text-pink-700 border-pink-300">
+                  앱 실시간 연동 중
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoadingCategories ? (
+                <div className="py-12 text-center text-muted-foreground text-xs flex items-center justify-center gap-2">
+                  <RefreshCw className="h-4 w-4 animate-spin text-pink-600" />
+                  카테고리 목록을 불러오는 중입니다...
+                </div>
+              ) : categories.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground text-xs">
+                  등록된 카테고리가 없습니다. 상단의 [새 카테고리 등록] 버튼을 눌러 추가하세요.
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {categories.map((cat, idx) => (
+                    <div
+                      key={cat.id || idx}
+                      className="group relative rounded-xl border p-4 shadow-2xs hover:border-pink-300 hover:shadow-xs transition-all bg-card"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-100/80 text-xl dark:bg-pink-950/60">
+                            {cat.icon || '🏷️'}
+                          </span>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-bold text-sm text-foreground">{cat.name}</h3>
+                              {cat.name === '전체' || cat.name === '동네인기' ? (
+                                <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-700">시스템</Badge>
+                              ) : (
+                                <Badge variant="secondary" className="text-[10px] bg-pink-100 text-pink-700">사용자</Badge>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
+                              {cat.description || `${cat.name} 관련 동네 이웃 이야기`}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* 삭제 버튼 (기본 전체는 삭제 불가) */}
+                        {cat.name !== '전체' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                            onClick={() => void handleDeleteCategory(cat.id, cat.name)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Layers className="h-3.5 w-3.5 text-slate-400" />
+                          우선순위: <strong className="text-foreground">{cat.order ?? idx + 1}</strong>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <FileText className="h-3.5 w-3.5 text-slate-400" />
+                          게시글: <strong className="text-foreground">{cat.postCount ?? 0}건</strong>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                          {cat.isActive !== false ? '정상 노출' : '숨김'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* ==================================================== */}
@@ -2155,6 +2369,106 @@ export default function ContentAndAnnouncementsPage() {
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               저장
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ==================================================== */}
+      {/* DIALOG: 신규 카테고리 등록 모달 (모바일 실시간 연동) */}
+      {/* ==================================================== */}
+      <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Tag className="h-5 w-5 text-pink-600" />
+              신규 커뮤니티 카테고리(주제) 추가
+            </DialogTitle>
+            <DialogDescription>
+              새로 등록된 카테고리는 모바일 앱 상단 캡슐 필터 바 및 글쓰기 주제 선택 칩에 즉시 반영됩니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3.5 py-2 text-xs">
+            <div className="space-y-1.5">
+              <Label>카테고리명 (필수)</Label>
+              <Input
+                placeholder="예: 취미운동, 반려견, 동네맛집, 질문고민"
+                value={categoryForm.name}
+                onChange={(e) => setCategoryForm((prev) => ({ ...prev, name: e.target.value }))}
+                className="h-9 text-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>대표 이모지/아이콘</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="예: ☕, 🏃, 🐶, 🍽️"
+                  value={categoryForm.icon}
+                  onChange={(e) => setCategoryForm((prev) => ({ ...prev, icon: e.target.value }))}
+                  className="h-9 w-24 text-center text-base"
+                />
+                {/* 빠른 이모지 선택 버튼들 */}
+                <div className="flex flex-wrap items-center gap-1">
+                  {['☕', '🏃', '🐶', '🍽️', '🔥', '❓', '💬', '🎉', '📸'].map((emo) => (
+                    <button
+                      key={emo}
+                      type="button"
+                      onClick={() => setCategoryForm((prev) => ({ ...prev, icon: emo }))}
+                      className="h-8 w-8 rounded border text-sm hover:bg-pink-50 transition-colors flex items-center justify-center"
+                    >
+                      {emo}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>카테고리 간단 설명 (선택)</Label>
+              <Input
+                placeholder="예: 우리 동네 맛있는 음식점과 카페 정보 공유"
+                value={categoryForm.description}
+                onChange={(e) => setCategoryForm((prev) => ({ ...prev, description: e.target.value }))}
+                className="h-9 text-xs"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>정렬 순서</Label>
+                <Input
+                  type="number"
+                  value={categoryForm.order}
+                  onChange={(e) => setCategoryForm((prev) => ({ ...prev, order: parseInt(e.target.value) || 0 }))}
+                  className="h-9 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5 flex flex-col justify-end">
+                <div className="flex items-center gap-2 rounded border p-2 h-9">
+                  <Switch
+                    checked={categoryForm.isActive}
+                    onCheckedChange={(checked) => setCategoryForm((prev) => ({ ...prev, isActive: checked }))}
+                  />
+                  <span className="font-medium">앱에 즉시 노출</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setIsCategoryModalOpen(false)}>
+              취소
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSaveCategory}
+              disabled={isSavingCategory}
+              className="bg-pink-600 hover:bg-pink-700 text-white"
+            >
+              {isSavingCategory ? '등록 중...' : '카테고리 등록하기'}
             </Button>
           </DialogFooter>
         </DialogContent>

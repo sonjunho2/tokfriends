@@ -4,15 +4,15 @@ import { View, Image, Text, StyleSheet } from 'react-native';
 import colors from '../theme/colors';
 
 /**
- * shape: 'rounded' | 'circle'
- *   - 기본은 'rounded' (모던 스쿼클 라운드, radius = size * 0.28)
+ * shape: 'circle' | 'rounded'
+ *   - 기본은 'circle' (통일감 있는 깔끔한 원형 아바타, radius = size / 2)
  */
 export default function Avatar({
   source,
   uri,
   name,
   size = 56,
-  shape = 'rounded',
+  shape = 'circle',
   online = false,
   showBorder = false,
   style,

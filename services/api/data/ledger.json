@@ -1,5 +1,27 @@
 [
   {
+    "id": "led-1792550637837",
+    "walletId": "wallet-user-me",
+    "kind": "PURCHASE",
+    "source": "android",
+    "deltaSpendable": 1000,
+    "deltaRedeemable": 0,
+    "deltaPending": 0,
+    "spendableAfter": 1000,
+    "redeemableAfter": 0,
+    "pendingAfter": 0,
+    "idempotencyKey": "ord-1792550637832",
+    "createdAt": "2026-10-21T02:43:57.837Z",
+    "wallet": {
+      "id": "wallet-user-me",
+      "activityAccountId": "user-me",
+      "activityAccount": {
+        "displayName": "내계정",
+        "handle": "내계정"
+      }
+    }
+  },
+  {
     "id": "led-1792545782215",
     "walletId": "wallet-user-me",
     "kind": "PURCHASE",

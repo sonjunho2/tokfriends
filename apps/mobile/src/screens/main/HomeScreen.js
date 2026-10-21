@@ -707,67 +707,75 @@ export default function HomeScreen({ navigation }) {
       </View>
 
       <View style={styles.communityFeedList}>
-        {communityPosts.map((post) => (
-          <TouchableOpacity
-            key={post.id}
-            style={styles.communityCard}
-            activeOpacity={0.88}
-            onPress={() => navigation.navigate('PostDetail', { post, postId: post.id })}
-          >
-            {/* 작성자 정보 헤더 */}
-            <View style={styles.postAuthorRow}>
-              <UserAvatar
-                uri={post.authorAvatar}
-                name={post.authorName}
-                size={38}
-              />
-              <View style={styles.postAuthorMeta}>
-                <View style={styles.postAuthorNameRow}>
-                  <Text style={styles.postAuthorName}>{post.authorName}</Text>
-                  <View style={styles.regionBadge}>
-                    <Text style={styles.regionBadgeText}>{post.authorRegion}</Text>
+        {communityPosts.slice(0, 3).map((post) => {
+          const postImageUri = post.imageUrl || (Array.isArray(post.images) && post.images[0]) || null;
+          return (
+            <TouchableOpacity
+              key={post.id}
+              style={styles.communityCard}
+              activeOpacity={0.88}
+              onPress={() => navigation.navigate('PostDetail', { post, postId: post.id })}
+            >
+              {/* 작성자 정보 헤더: 원형 아바타 + 닉네임 + 동네 + 시간 */}
+              <View style={styles.postAuthorRow}>
+                <UserAvatar
+                  uri={post.authorAvatar}
+                  name={post.authorName}
+                  size={34}
+                />
+                <View style={styles.postAuthorMeta}>
+                  <View style={styles.postAuthorNameRow}>
+                    <Text style={styles.postAuthorName}>{post.authorName}</Text>
+                    <View style={styles.regionBadge}>
+                      <Text style={styles.regionBadgeText}>{post.authorRegion || '동네이웃'}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.postTimeText}>{formatTimeAgo(post.createdAt)}</Text>
+                </View>
+
+                {post.topicName ? (
+                  <View style={styles.topicBadge}>
+                    <Text style={styles.topicBadgeText}>#{post.topicName}</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              {/* 당근 스타일: 좌측 글(제목 + 본문 2줄 요약), 우측 썸네일(68x68) */}
+              <View style={styles.homeKarrotBodyRow}>
+                <View style={styles.homeKarrotTextCol}>
+                  <Text style={styles.postTitle} numberOfLines={1}>
+                    {post.title}
+                  </Text>
+                  {post.content ? (
+                    <Text style={styles.postBody} numberOfLines={2}>
+                      {post.content}
+                    </Text>
+                  ) : null}
+                </View>
+
+                {postImageUri ? (
+                  <Image source={{ uri: postImageUri }} style={styles.homePostThumbnail} resizeMode="cover" />
+                ) : null}
+              </View>
+
+              {/* 하단 반응 (좋아요 / 댓글 / 바로가기) */}
+              <View style={styles.postFooterRow}>
+                <View style={styles.reactionGroup}>
+                  <View style={styles.reactionItem}>
+                    <Ionicons name="heart-outline" size={15} color={tokens.colors.primary} />
+                    <Text style={styles.reactionText}>{post.likesCount}</Text>
+                  </View>
+                  <View style={styles.reactionItem}>
+                    <Ionicons name="chatbubble-outline" size={14} color={tokens.colors.textTertiary} />
+                    <Text style={styles.reactionText}>{post.commentsCount}</Text>
                   </View>
                 </View>
-                <Text style={styles.postTimeText}>{formatTimeAgo(post.createdAt)}</Text>
+
+                <Text style={styles.joinTalkText}>대화 참여하기 ›</Text>
               </View>
-
-              <View style={styles.topicBadge}>
-                <Text style={styles.topicBadgeText}>#{post.topicName}</Text>
-              </View>
-            </View>
-
-            {/* 본문 텍스트 */}
-            <Text style={styles.postTitle} numberOfLines={1}>
-              {post.title}
-            </Text>
-            {post.content ? (
-              <Text style={styles.postBody} numberOfLines={2}>
-                {post.content}
-              </Text>
-            ) : null}
-
-            {/* 사진 썸네일 (있을 경우) */}
-            {post.imageUrl && (
-              <Image source={{ uri: post.imageUrl }} style={styles.postImage} resizeMode="cover" />
-            )}
-
-            {/* 하단 반응 (좋아요 / 댓글) */}
-            <View style={styles.postFooterRow}>
-              <View style={styles.reactionGroup}>
-                <View style={styles.reactionItem}>
-                  <Ionicons name="heart-outline" size={15} color={tokens.colors.primary} />
-                  <Text style={styles.reactionText}>{post.likesCount}</Text>
-                </View>
-                <View style={styles.reactionItem}>
-                  <Ionicons name="chatbubble-outline" size={14} color={tokens.colors.textTertiary} />
-                  <Text style={styles.reactionText}>{post.commentsCount}</Text>
-                </View>
-              </View>
-
-              <Text style={styles.joinTalkText}>대화 참여하기 ›</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );
@@ -1395,11 +1403,21 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     marginBottom: 10,
   },
-  postImage: {
-    width: '100%',
-    height: 160,
-    borderRadius: tokens.radius.md,
-    marginBottom: 10,
+  homeKarrotBodyRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  homeKarrotTextCol: {
+    flex: 1,
+    marginRight: 10,
+  },
+  homePostThumbnail: {
+    width: 68,
+    height: 68,
+    borderRadius: 8,
+    backgroundColor: tokens.colors.surfaceSecondary,
   },
   postFooterRow: {
     flexDirection: 'row',

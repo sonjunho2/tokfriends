@@ -116,6 +116,27 @@ export interface SupportTicketItem {
   userId?: string;
 }
 
+export interface CommunityCategoryItem {
+  id: string;
+  name: string;
+  icon?: string;
+  order: number;
+  isDefault?: boolean;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+const INITIAL_CATEGORIES: CommunityCategoryItem[] = [
+  { id: 'cat-all', name: '전체', icon: '✨', order: 0, isDefault: true, isActive: true },
+  { id: 'cat-hot', name: '동네인기', icon: '🔥', order: 1, isDefault: false, isActive: true },
+  { id: 'cat-daily', name: '일상·소통', icon: '☕', order: 2, isDefault: false, isActive: true },
+  { id: 'cat-workout', name: '취미·운동', icon: '🏃', order: 3, isDefault: false, isActive: true },
+  { id: 'cat-pet', name: '반려견', icon: '🐶', order: 4, isDefault: false, isActive: true },
+  { id: 'cat-food', name: '동네맛집', icon: '🍽️', order: 5, isDefault: false, isActive: true },
+  { id: 'cat-qa', name: '질문·고민', icon: '❓', order: 6, isDefault: false, isActive: true },
+];
+
 const INITIAL_SUPPORT_TICKETS: SupportTicketItem[] = [
   { id: 'TKT-701', user: '010-3210-1101 (초보호스트루나)', category: '문의', status: '진행', createdAt: '2026-10-17 08:30', message: '출금 계좌 번호 오타 수정 요청드립니다.' },
   { id: 'TKT-702', user: '010-4477-4404 (라이더민수)', category: 'FAQ', status: '대기', createdAt: '2026-10-17 07:15', message: '커뮤니티 사진 업로드 최대 장수가 몇 장인가요?' },
@@ -454,6 +475,7 @@ export class ContentService implements OnModuleInit {
   private faqs: FaqItem[] = [];
   private reports: ReportItem[] = [];
   private tickets: SupportTicketItem[] = [];
+  private categories: CommunityCategoryItem[] = [];
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -465,6 +487,16 @@ export class ContentService implements OnModuleInit {
     try {
       if (!fs.existsSync(this.dataDir)) {
         fs.mkdirSync(this.dataDir, { recursive: true });
+      }
+
+      // Categories (커뮤니티 카테고리)
+      const catPath = path.join(this.dataDir, 'community-categories.json');
+      if (fs.existsSync(catPath)) {
+        const raw = fs.readFileSync(catPath, 'utf-8');
+        this.categories = JSON.parse(raw);
+      } else {
+        this.categories = [...INITIAL_CATEGORIES];
+        this.saveCategories();
       }
 
       // Announcements
@@ -518,15 +550,25 @@ export class ContentService implements OnModuleInit {
       }
 
       this.logger.log(
-        `ContentService initialized. Announcements: ${this.announcements.length}, Posts: ${this.posts.length}, FAQs: ${this.faqs.length}, Reports: ${this.reports.length}, Tickets: ${this.tickets.length}`,
+        `ContentService initialized. Categories: ${this.categories.length}, Announcements: ${this.announcements.length}, Posts: ${this.posts.length}, FAQs: ${this.faqs.length}, Reports: ${this.reports.length}, Tickets: ${this.tickets.length}`,
       );
     } catch (err) {
       this.logger.error('Failed to load content data from file storage', err);
+      this.categories = [...INITIAL_CATEGORIES];
       this.announcements = [...INITIAL_ANNOUNCEMENTS];
       this.posts = [...INITIAL_POSTS];
       this.faqs = [...INITIAL_FAQS];
       this.reports = [...INITIAL_REPORTS];
       this.tickets = [...INITIAL_SUPPORT_TICKETS];
+    }
+  }
+
+  saveCategories() {
+    try {
+      const catPath = path.join(this.dataDir, 'community-categories.json');
+      fs.writeFileSync(catPath, JSON.stringify(this.categories, null, 2), 'utf-8');
+    } catch (e) {
+      this.logger.error('Failed to save community-categories.json', e);
     }
   }
 
@@ -921,16 +963,54 @@ export class ContentService implements OnModuleInit {
     return (post?.comments || []).map((c) => this.normalizeComment(c));
   }
 
+  getCategories() {
+    return [...this.categories].sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+
+  addCategory(dto: { name: string; icon?: string; order?: number }) {
+    const id = `cat-${Date.now()}`;
+    const newCat: CommunityCategoryItem = {
+      id,
+      name: String(dto.name || '').trim(),
+      icon: dto.icon || '🏷️',
+      order: typeof dto.order === 'number' ? dto.order : this.categories.length,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.categories.push(newCat);
+    this.saveCategories();
+    return newCat;
+  }
+
+  updateCategory(id: string, dto: Partial<CommunityCategoryItem>) {
+    const idx = this.categories.findIndex((c) => c.id === id);
+    if (idx === -1) return null;
+    this.categories[idx] = {
+      ...this.categories[idx],
+      ...dto,
+      updatedAt: new Date().toISOString(),
+    };
+    this.saveCategories();
+    return this.categories[idx];
+  }
+
+  deleteCategory(id: string) {
+    const target = this.categories.find((c) => c.id === id);
+    if (!target) return false;
+    if (target.id === 'cat-all' || target.name === '전체') return false;
+    this.categories = this.categories.filter((c) => c.id !== id);
+    this.saveCategories();
+    return true;
+  }
+
   getTopics() {
-    return [
-      { id: 't-all', name: '전체', count: 120 },
-      { id: 't-hot', name: '동네인기', count: 85 },
-      { id: 't-daily', name: '일상·소통', count: 64 },
-      { id: 't-workout', name: '취미·운동', count: 42 },
-      { id: 't-pet', name: '반려견', count: 38 },
-      { id: 't-food', name: '동네맛집', count: 51 },
-      { id: 't-qa', name: '질문·고민', count: 29 },
-    ];
+    return this.getCategories().map((c) => ({
+      id: c.id,
+      name: c.name,
+      icon: c.icon,
+      count: this.posts.filter((p) => p.category === c.name).length,
+    }));
   }
 
   // ==========================================

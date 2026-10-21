@@ -17,8 +17,8 @@
       "커뮤니티오픈",
       "다가온"
     ],
-    "likesCount": 260,
-    "commentsCount": 14,
+    "likesCount": 261,
+    "commentsCount": 15,
     "viewsCount": 3820,
     "reportCount": 0,
     "status": "ACTIVE",
@@ -204,6 +204,22 @@
         },
         "content": "멋진 글이네요!",
         "createdAt": "2026-10-21T01:23:01.814Z"
+      },
+      {
+        "id": "comm-1792550637402-neof",
+        "authorId": "user-me",
+        "authorNickname": "익명 이웃",
+        "authorAvatarUrl": null,
+        "author": {
+          "id": "user-me",
+          "name": "익명 이웃",
+          "nickname": "익명 이웃",
+          "displayName": "익명 이웃",
+          "avatar": null,
+          "avatarUrl": null
+        },
+        "content": "멋진 글이네요!",
+        "createdAt": "2026-10-21T02:43:57.402Z"
       }
     ],
     "createdAt": "2026-10-15T06:17:08.796Z",

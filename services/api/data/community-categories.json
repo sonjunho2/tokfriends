@@ -1,0 +1,9 @@
+[
+  { "id": "cat-all", "name": "전체", "icon": "✨", "order": 0, "isDefault": true, "isActive": true },
+  { "id": "cat-hot", "name": "동네인기", "icon": "🔥", "order": 1, "isDefault": false, "isActive": true },
+  { "id": "cat-daily", "name": "일상·소통", "icon": "☕", "order": 2, "isDefault": false, "isActive": true },
+  { "id": "cat-workout", "name": "취미·운동", "icon": "🏃", "order": 3, "isDefault": false, "isActive": true },
+  { "id": "cat-pet", "name": "반려견", "icon": "🐶", "order": 4, "isDefault": false, "isActive": true },
+  { "id": "cat-food", "name": "동네맛집", "icon": "🍽️", "order": 5, "isDefault": false, "isActive": true },
+  { "id": "cat-qa", "name": "질문·고민", "icon": "❓", "order": 6, "isDefault": false, "isActive": true }
+]

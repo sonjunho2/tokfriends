@@ -5588,5 +5588,74 @@ First Owner/ActivityAccount migration must:
   - 프로젝트 루트 배포: `dagaon-release.apk`
   - 관리자 웹 다운로드 정적 서빙: `apps/admin/public/downloads/dagaon-release.apk`
 
+---
+
+## Checkpoint 109: 커뮤니티 당근(Karrot) 스타일 피드 레이아웃 복원 & 원형 프로필 아바타 통일 & 댓글 입력창 키보드/하단바 가림 문제 해결 (2026-10-21)
+
+### 1. 당근마켓 스타일 피드 카드 레이아웃 완벽 복원 (`CommunityFeedScreen.js`)
+- **좌측 글 + 우측 썸네일 정방형 이미지 배치 구조 개편**:
+  - 기존 세로형 16:9 거대 이미지 배치를 제거하고, 당근마켓 동네생활 스타일의 고밀도 가로 2열(`cardContentRow`) 구조 적용.
+  - **좌측 영역 (`cardTextCol`, `flex: 1`)**: 카테고리 뱃지 + 볼드 제목(2줄 말줄임) + 본문 요약(2줄 말줄임)으로 가독성 향상.
+  - **우측 영역 (`thumbnailContainer`)**: 76x76 콤팩트 정방형 썸네일(`cardThumbnail`, `borderRadius: 10`) 노출 및 다중 이미지 시 우측 하단에 `[사진아이콘] +N` 배지 표출.
+  - 하단 소셜 바: 좋아요(하트) 및 댓글(말풍선) 카운트, 공유 버튼 슬림화 배치.
+
+### 2. 글 및 댓글 프로필 아바타 원형(Circle) 전면 통일 (`Avatar.js`, `PostDetailScreen.js`)
+- **사각형/스쿼클 아바타 원형 교정**:
+  - `apps/mobile/src/components/Avatar.js`: 기본 `shape`를 `'rounded'`에서 `'circle'`(`radius = size / 2`)로 변경하여 앱 전반의 프로필 이미지를 통일된 원형으로 표준화.
+  - `PostDetailScreen.js`:
+    - 게시글 본문 상단 작성자 아바타(`Avatar size={48}`, `shape="circle"`, `showBorder`).
+    - 댓글 목록 작성자 아바타(`Avatar size={38}`, `shape="circle"`, `showBorder`).
+    - 커뮤니티 피드 및 상세 화면, 댓글 목록 전 영역에서 프로필 이미지가 깨짐 없이 원형으로 일체감 있게 렌더링.
+
+### 3. 댓글 입력창 키보드 & 하단바 겹침/가림 문제 원천 차단 (`PostDetailScreen.js`, `TabNavigator.tsx`)
+- **원인 분석**:
+  - React Navigation의 Bottom Tabs가 서브스크린 진입 시 완전히 언마운트되지 않고, 안드로이드 소프트 키보드가 활성화되었을 때 `adjustResize` 동작으로 인해 하단 탭바가 키보드 바로 위에 함께 떠올라 댓글 입력창을 가렸던 현상 확인.
+- **해결 방안 적용**:
+  - `TabNavigator.tsx`:
+    - `Tab.Navigator`의 `screenOptions`에 `tabBarHideOnKeyboard: true`를 추가하여 키보드가 팝업될 때 하단 탭바가 절대 화면에 노출되지 않도록 강제.
+  - `PostDetailScreen.js`:
+    - 기존 단순 `useEffect`를 `useFocusEffect`로 교체하여 상세 화면 포커스 유지 기간 동안 `parent.setOptions({ tabBarStyle: { display: 'none' } })`를 빈틈없이 보장.
+    - `Keyboard.addListener`로 `isKeyboardVisible` 및 `keyboardHeight`를 정확히 추적.
+    - `KeyboardAvoidingView`의 `behavior` 및 `bottomInputBar`의 `paddingBottom`을 동적 최적화하여 키보드가 올라왔을 때 댓글 입력창이 키보드 바로 위에 완벽 밀착 노출되도록 개선.
+
+---
+
+## Checkpoint 110: 실시간 인기토픽 바 삭제 & 관리자 동적 카테고리(추가/삭제) 연동 & 글쓰기 페이지 고도화 & 홈 화면 당근 스타일 최신 3건 제한 개편 (2026-10-21)
+
+### 1. 실시간 인기 토픽 바 완전 삭제 (`CommunityFeedScreen.js`)
+- 입력란도 없고 피드 상단 공간만 차지하던 "실시간 인기 토픽(#신상브런치카페, #주말러닝크루 등)" 가로 스크롤 바 및 관련 칩/키워드 상태를 완전히 제거하여 화면을 한결 시원하고 정돈되게 개편.
+
+### 2. 관리자 커뮤니티 카테고리(주제) 추가/삭제/수정 풀스택 시스템 완비
+- **영구 보존 데이터 스토리지 (`services/api/data/community-categories.json`)**:
+  - 기본 7종 카테고리(`전체`, `🔥 동네인기`, `☕ 일상소통`, `🏃 취미운동`, `🐶 반려견`, `🍽️ 동네맛집`, `❓ 질문고민`) 영구 보존.
+- **백엔드 CRUD API (`services/api/src/modules/admin/content.service.ts`, `content.controller.ts`)**:
+  - `GET /content/categories`, `GET /admin/content/categories`: 동적 카테고리 목록 및 카테고리별 실시간 게시글 수 매핑 반환.
+  - `POST /admin/content/categories`: 신규 카테고리(이름, 이모지 아이콘, 설명, 순서) 추가.
+  - `PUT /admin/content/categories/:id`: 카테고리 수정.
+  - `DELETE /admin/content/categories/:id`: 카테고리 삭제 (시스템 기본 `전체`는 삭제 방지 보호).
+- **관리자 웹 (`apps/admin/src/app/content/page.tsx`, `apps/admin/src/lib/api.ts`)**:
+  - `카테고리 관리` 전용 탭 추가: 현재 등록된 카테고리 카드 그리드(아이콘, 이름, 설명, 정렬 순서, 게시글 수, 활성 상태).
+  - 신규 카테고리 등록 모달(`Dialog`): 빠른 이모지 선택 팔레트(`☕, 🏃, 🐶, 🍽️, 🔥, ❓, 💬, 🎉, 📸`), 카테고리명, 설명, 정렬 순서, 앱 즉시 노출 스위치 연동.
+  - 원클릭 카테고리 삭제 및 실시간 새로고침 연동.
+- **모바일 클라이언트 연동 (`apps/mobile/src/api/client.js`, `CommunityFeedScreen.js`)**:
+  - `apiClient.getCommunityCategories()`를 통해 관리자에서 수정한 카테고리 목록을 실시간으로 가져와 상단 1열 캡슐 필터 바에 즉시 동기화.
+
+### 3. 글쓰기 모달/페이지 전면 개선 & 동적 카테고리 선택 연동 (`CommunityFeedScreen.js`)
+- 관리자에서 관리되는 동적 카테고리를 글쓰기 모달의 주제 선택 칩 목록(`modalCatChip`)에 즉시 반영 (`전체`/`동네인기`는 작성 불가 시스템 카테고리로 자동 제외).
+- **UI/UX 개선**:
+  - 상단 모달 헤더: 닫기 아이콘과 완료 등록 버튼의 활성/비활성 시각 피드백 적용.
+  - 게시판 주제 선택 영역 안내 라벨 추가.
+  - 카드형 제목 & 본문 입력 컨테이너(`writeInputCard`): 깔끔한 구분선 및 실시간 글자수 카운터(`0 / 1000`) 탑재.
+  - 사진 첨부 섹션 업그레이드: 점선 테두리 카메라 아이콘 버튼(`addPhotoSquareBtn`), 썸네일별 대표 사진 배지(`attachMainBadge`) 및 원클릭 삭제 버튼 완비.
+
+### 4. 홈 화면 커뮤니티 섹션 당근(Karrot) 스타일 개편 & 최신글 3개 제한 (`HomeScreen.js`)
+- **홈 화면 무한 나열 해소**:
+  - 기존에 수많은 피드가 그대로 노출되어 홈 화면이 조잡해지던 문제를 해결하기 위해 최신글 3건(`communityPosts.slice(0, 3)`)만 엄선하여 컴팩트하게 노출.
+- **당근 스타일 2열 레이아웃 적용**:
+  - 좌측: 카테고리 배지 + 게시글 제목(볼드, 말줄임) + 게시글 본문 요약(2줄) + 댓글/좋아요/작성자 정보.
+  - 우측: 68x68 콤팩트 정방형 썸네일(`homePostThumbnail`, `borderRadius: 10`) 배치로 당근마켓 홈 뷰와 동일한 일체감 있는 프리미엄 감성 확보.
+
+
+
 
 

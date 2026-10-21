@@ -18,6 +18,7 @@ import {
   Keyboard,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
@@ -61,29 +62,36 @@ export default function PostDetailScreen({ navigation, route }) {
   const [previewImageUri, setPreviewImageUri] = useState(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  // 하단 탭바 숨기기 (상세 화면에서는 탭바 미표시)
-  useEffect(() => {
-    navigation.getParent()?.setOptions({
-      tabBarStyle: { display: 'none' },
-    });
-    return () => {
-      navigation.getParent()?.setOptions({
-        tabBarStyle: undefined,
+  // 하단 탭바 숨기기 (상세 화면 포커스 시 탭바 완벽 미표시)
+  useFocusEffect(
+    useCallback(() => {
+      const parent = navigation.getParent();
+      parent?.setOptions({
+        tabBarStyle: { display: 'none' },
       });
-    };
-  }, [navigation]);
+      return () => {
+        parent?.setOptions({
+          tabBarStyle: undefined,
+        });
+      };
+    }, [navigation])
+  );
 
-  // 키보드 이벤트 감지
+  // 키보드 이벤트 감지 및 높이 추적
   useEffect(() => {
-    const showSub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => setKeyboardVisible(true),
-    );
-    const hideSub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => setKeyboardVisible(false),
-    );
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardVisible(true);
+      setKeyboardHeight(e?.endCoordinates?.height || 0);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardVisible(false);
+      setKeyboardHeight(0);
+    });
     return () => {
       showSub.remove();
       hideSub.remove();
@@ -475,7 +483,7 @@ export default function PostDetailScreen({ navigation, route }) {
                 activeOpacity={0.8}
                 onPress={() => handleOpenAuthorProfile(author)}
               >
-                <Avatar size={48} name={author.name} uri={author.avatar} showBorder />
+                <Avatar size={48} name={author.name} uri={author.avatar} shape="circle" showBorder />
                 <View style={styles.authorMeta}>
                   <View style={styles.authorNameRow}>
                     <Text style={styles.authorName} numberOfLines={1}>
@@ -602,6 +610,7 @@ export default function PostDetailScreen({ navigation, route }) {
                         size={38}
                         name={item.author?.name}
                         uri={item.author?.avatar}
+                        shape="circle"
                         showBorder
                       />
                     </TouchableOpacity>
