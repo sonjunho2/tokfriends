@@ -366,14 +366,66 @@ export default function ChatsScreen({ navigation, route }) {
         setDiscoverUsers(mapped);
       }
 
-      // 2. 추천 대화방 데이터 동기화
+      // 2. 추천 대화방 데이터 동기화 (방장 프로필 온전 매핑)
       if (openRoomsRes.status === 'fulfilled' && Array.isArray(openRoomsRes.value)) {
-        setOpenRooms(openRoomsRes.value);
+        const myId = authUser?.id || authUser?.activityAccountId;
+        const myAvatar = authUser?.avatarUrl || authUser?.profile?.avatarUri || authUser?.avatar;
+        const myName = authUser?.nickname || authUser?.displayName || '나';
+
+        setOpenRooms(
+          openRoomsRes.value.map((r) => {
+            const isMyRoom = (myId && r.hostId === myId) || r.isMyRoom;
+            const hostObj = r.host || {};
+            const hostName = isMyRoom ? myName : (hostObj.name || r.hostName || '대기 회원');
+            const hostAvatar = isMyRoom ? myAvatar : (hostObj.avatar || hostObj.avatarUrl || r.hostAvatar || null);
+            return {
+              ...r,
+              isMyRoom,
+              hostName,
+              hostAvatar,
+              host: {
+                id: r.hostId || hostObj.id || (isMyRoom ? myId : 'u-host'),
+                name: hostName,
+                displayName: hostName,
+                avatar: hostAvatar,
+                avatarUrl: hostAvatar,
+                age: hostObj.age || r.hostAge || 26,
+                location: hostObj.location || hostObj.region || r.hostRegion || '서울 강남구',
+                headline: r.title,
+                bio: hostObj.bio || (isMyRoom ? '내가 개설한 대기방입니다.' : `${hostName}님의 추천 대화방입니다.`),
+                isOnline: true,
+              },
+            };
+          })
+        );
       }
 
-      // 3. 대화 신청 목록 데이터 동기화
+      // 3. 대화 신청 목록 데이터 동기화 (신청자 프로필 온전 매핑)
       if (requestsRes.status === 'fulfilled' && Array.isArray(requestsRes.value)) {
-        setChatRequests(requestsRes.value);
+        setChatRequests(
+          requestsRes.value.map((req) => {
+            const senderObj = req.sender || {};
+            const senderName = senderObj.name || req.senderName || '새로운 인연';
+            const senderAvatar = senderObj.avatar || senderObj.avatarUrl || req.senderAvatar || null;
+            return {
+              ...req,
+              senderName,
+              senderAvatar,
+              sender: {
+                id: req.senderId || senderObj.id,
+                name: senderName,
+                displayName: senderName,
+                avatar: senderAvatar,
+                avatarUrl: senderAvatar,
+                age: senderObj.age || req.senderAge || 26,
+                location: senderObj.location || senderObj.region || req.senderRegion || '서울 강남구',
+                headline: req.message,
+                bio: senderObj.bio || `${senderName}님이 보낸 1:1 대화 신청입니다 ✨`,
+                isOnline: true,
+              },
+            };
+          })
+        );
       }
 
       // 4. 대화중(내 대화) 데이터 동기화
@@ -958,16 +1010,41 @@ export default function ChatsScreen({ navigation, route }) {
     const isMyRoom = (myId && item.hostId === myId) || item.isMyRoom;
     const fee = item.entryFee || 0;
 
+    const hostUser = {
+      id: item.host?.id || item.hostId || (isMyRoom ? myId : 'u-host'),
+      name: isMyRoom ? (authUser?.nickname || authUser?.displayName || '나') : (item.host?.name || item.hostName || '대기 회원'),
+      displayName: isMyRoom ? (authUser?.nickname || authUser?.displayName || '나') : (item.host?.name || item.hostName || '대기 회원'),
+      avatar: isMyRoom ? (authUser?.avatarUrl || authUser?.profile?.avatarUri || authUser?.avatar) : (item.host?.avatar || item.host?.avatarUrl || item.hostAvatar),
+      age: item.host?.age || item.hostAge || (isMyRoom ? authUser?.age : 26),
+      location: item.host?.location || item.hostRegion || (isMyRoom ? [authUser?.region1, authUser?.region2].filter(Boolean).join(' ') : '서울 강남구'),
+      headline: item.title,
+      bio: isMyRoom ? '내가 개설한 1:1 대화방입니다. 상대방의 입장을 기다리고 있습니다 ✨' : (item.host?.bio || `${item.host?.name || item.hostName || '회원'}님의 추천 대화방입니다.`),
+      isOnline: true,
+      photos: item.host?.avatar ? [{ id: 'p1', url: item.host.avatar, isPrimary: true }] : [],
+    };
+
     return (
       <View style={styles.openRoomCard}>
         <View style={styles.openRoomHeaderRow}>
-          <UserAvatar
-            uri={item.host?.avatar || (isMyRoom ? authUser?.avatarUrl || authUser?.profile?.avatarUri : null)}
-            name={item.host?.name || '방장'}
-            size="md"
-            isOnline={Boolean(item.host?.isOnline || isMyRoom)}
-          />
-          <View style={styles.openRoomInfoCol}>
+          {/* 프로필 아이콘 누르면 프로필 창 오픈 */}
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => handleOpenUserSheet(hostUser)}
+            style={{ marginRight: 2 }}
+          >
+            <UserAvatar
+              uri={hostUser.avatar}
+              name={hostUser.name}
+              size="md"
+              isOnline={Boolean(item.host?.isOnline || isMyRoom)}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.openRoomInfoCol}
+            activeOpacity={0.85}
+            onPress={() => handleOpenUserSheet(hostUser)}
+          >
             <View style={styles.openRoomTitleRow}>
               <Text style={styles.openRoomTitle} numberOfLines={1}>
                 {item.title}
@@ -981,12 +1058,12 @@ export default function ChatsScreen({ navigation, route }) {
 
             <View style={styles.openRoomMetaRow}>
               <Text style={styles.openRoomHostName}>
-                {isMyRoom ? '나 (대기중)' : `${item.host?.name || '익명'} (${item.host?.age ? `${item.host.age}세` : '회원'})`}
+                {isMyRoom ? '나 (대기중)' : `${hostUser.name} (${hostUser.age ? `${hostUser.age}세` : '회원'})`}
               </Text>
               <Text style={styles.openRoomDot}>·</Text>
               <Text style={styles.openRoomCategory}>#{item.category || '친목'}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
           {/* 입장료 뱃지 */}
           <View style={[styles.entryFeeBadge, fee > 0 ? styles.entryFeeBadgePaid : styles.entryFeeBadgeFree]}>
@@ -1030,18 +1107,43 @@ export default function ChatsScreen({ navigation, route }) {
     const isPending = item.status === 'PENDING';
     const fee = item.entryFee || 30;
 
+    const senderUser = {
+      id: item.sender?.id || item.senderId,
+      name: item.sender?.name || item.senderName || '새로운 인연',
+      displayName: item.sender?.name || item.senderName || '새로운 인연',
+      avatar: item.sender?.avatar || item.sender?.avatarUrl || item.senderAvatar,
+      age: item.sender?.age || item.senderAge || 26,
+      location: item.sender?.location || item.senderRegion || '서울 강남구',
+      headline: item.message || '안녕하세요! 1:1 대화 신청드려요 😊',
+      bio: item.sender?.bio || `${item.sender?.name || item.senderName || '회원'}님이 보낸 1:1 대화 신청입니다 ✨`,
+      isOnline: Boolean(item.sender?.isOnline),
+      photos: (item.sender?.avatar || item.senderAvatar) ? [{ id: 'p1', url: item.sender?.avatar || item.senderAvatar, isPrimary: true }] : [],
+    };
+
     return (
       <View style={styles.requestCard}>
         <View style={styles.requestHeaderRow}>
-          <UserAvatar
-            uri={item.sender?.avatar}
-            name={item.sender?.name || '신청자'}
-            size="md"
-            isOnline={Boolean(item.sender?.isOnline)}
-          />
-          <View style={styles.requestInfoCol}>
+          {/* 신청자 프로필 아이콘 누르면 프로필 창 오픈 */}
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => handleOpenUserSheet(senderUser)}
+            style={{ marginRight: 2 }}
+          >
+            <UserAvatar
+              uri={senderUser.avatar}
+              name={senderUser.name}
+              size="md"
+              isOnline={Boolean(senderUser.isOnline)}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.requestInfoCol}
+            activeOpacity={0.85}
+            onPress={() => handleOpenUserSheet(senderUser)}
+          >
             <View style={styles.requestNameRow}>
-              <Text style={styles.requestSenderName}>{item.sender?.name || '새로운 인연'}</Text>
+              <Text style={styles.requestSenderName}>{senderUser.name}</Text>
               <Text style={styles.requestTimeText}>
                 {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </Text>
@@ -1049,7 +1151,7 @@ export default function ChatsScreen({ navigation, route }) {
             <Text style={styles.requestMessageText} numberOfLines={2}>
               "{item.message || '안녕하세요! 대화 신청드려요 😊'}"
             </Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* 포인트 적립 안내 및 수락/거절 액션 */}
@@ -1091,25 +1193,47 @@ export default function ChatsScreen({ navigation, route }) {
   // =========================================================================
   // 7. 대화중(내 대화방) 목록 렌더링
   // =========================================================================
-  const renderChatListItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.chatItem}
-      activeOpacity={0.85}
-      onLongPress={() => handleDeleteChatRoom(item)}
-      onPress={() =>
-        navigation.navigate('ChatRoom', {
-          id: item.id,
-          room: item,
-          user: item.counterpart,
-        })
-      }
-    >
-      <UserAvatar
-        uri={item.avatar}
-        name={item.title}
-        size="md"
-        isOnline={item.isOnline}
-      />
+  const renderChatListItem = ({ item }) => {
+    const counterpartUser = {
+      id: item.counterpart?.id || item.id,
+      name: item.title,
+      displayName: item.title,
+      avatar: item.avatar,
+      isOnline: item.isOnline,
+      headline: item.lastMessage || '1:1 대화 중인 인연입니다.',
+      bio: '즐거운 대화를 나누고 있어요 ✨',
+      photos: item.avatar ? [{ id: 'p1', url: item.avatar, isPrimary: true }] : [],
+    };
+
+    return (
+      <TouchableOpacity
+        style={styles.chatItem}
+        activeOpacity={0.85}
+        onLongPress={() => handleDeleteChatRoom(item)}
+        onPress={() =>
+          navigation.navigate('ChatRoom', {
+            id: item.id,
+            room: item,
+            user: item.counterpart,
+          })
+        }
+      >
+        {/* 상대방 프로필 아이콘 누르면 프로필 창 오픈 */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleOpenUserSheet(counterpartUser);
+          }}
+          style={{ marginRight: 2 }}
+        >
+          <UserAvatar
+            uri={item.avatar}
+            name={item.title}
+            size="md"
+            isOnline={item.isOnline}
+          />
+        </TouchableOpacity>
       <View style={styles.chatItemBody}>
         <View style={styles.chatItemHeader}>
           <Text style={styles.chatItemTitle} numberOfLines={1}>{item.title}</Text>
@@ -1139,6 +1263,7 @@ export default function ChatsScreen({ navigation, route }) {
       </View>
     </TouchableOpacity>
   );
+};
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>

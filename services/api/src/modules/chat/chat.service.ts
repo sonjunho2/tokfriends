@@ -702,10 +702,28 @@ export class ChatService implements OnModuleInit {
   // =========================================================================
   // 1. 오픈 추천 대화방 (Open Waiting Rooms) API
   // =========================================================================
-  async getOpenRooms(userId?: string): Promise<OpenChatRoomItem[]> {
-    return this.openRooms.sort(
+  async getOpenRooms(userId?: string): Promise<any[]> {
+    const list = [...this.openRooms].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
+
+    return list.map((item) => ({
+      ...item,
+      host: {
+        id: item.hostId,
+        name: item.hostName,
+        displayName: item.hostName,
+        avatar: item.hostAvatar,
+        avatarUrl: item.hostAvatar,
+        age: item.hostAge || 26,
+        location: item.hostRegion || '서울 강남구',
+        region: item.hostRegion || '서울 강남구',
+        gender: item.hostGender || '여',
+        headline: `${item.title} (${item.category})`,
+        bio: `${item.hostName}님의 추천 1:1 대화방입니다. 부담 없이 입장해 대화를 나눠보세요 ✨`,
+        isOnline: true,
+      },
+    }));
   }
 
   async createOpenRoom(
@@ -866,10 +884,29 @@ export class ChatService implements OnModuleInit {
   // =========================================================================
   // 2. 1:1 대화 신청/수락/거절 시스템 (Chat Requests) API
   // =========================================================================
-  async getReceivedRequests(userId: string): Promise<ChatRequestItem[]> {
-    return this.chatRequests.filter(
-      (r) => r.receiverId === userId || userId === 'guest' || userId === 'dummy-user' || userId === 'user-me',
-    ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  async getReceivedRequests(userId: string): Promise<any[]> {
+    const list = this.chatRequests
+      .filter(
+        (r) => r.receiverId === userId || userId === 'guest' || userId === 'dummy-user' || userId === 'user-me',
+      )
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return list.map((req) => ({
+      ...req,
+      sender: {
+        id: req.senderId,
+        name: req.senderName,
+        displayName: req.senderName,
+        avatar: req.senderAvatar,
+        avatarUrl: req.senderAvatar,
+        age: req.senderAge || 26,
+        location: req.senderRegion || '서울 강남구',
+        region: req.senderRegion || '서울 강남구',
+        headline: req.message,
+        bio: `안녕하세요! ${req.senderName}입니다. 편하게 대화 나누고 싶어요 ✨`,
+        isOnline: true,
+      },
+    }));
   }
 
   async sendChatRequest(

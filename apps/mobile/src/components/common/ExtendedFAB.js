@@ -12,6 +12,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const FAB_ACCENT = '#FF3B6B';
 const FAB_HEIGHT = 52;
+const FAB_COLLAPSED_WIDTH = 52;
+const FAB_EXPANDED_WIDTH = 132;
 
 /**
  * 당근마켓 스타일 가변 플로팅 액션 버튼 (Extended Floating Action Button)
@@ -22,7 +24,7 @@ const FAB_HEIGHT = 52;
  * @param {string} iconName Ionicons 아이콘 이름 (기본값: 'add')
  * @param {function} onPress 클릭 핸들러
  * @param {boolean} isExtended 확장 여부 (true: 캡슐형, false: 원형)
- * @param {number} bottomOffset 하단 여백 (기본값: 20)
+ * @param {number} bottomOffset 하단 여백 (하단 탭 바 위 16~20px 기준: 기본값 84)
  * @param {object} style 추가 컨테이너 스타일
  */
 export default function ExtendedFAB({
@@ -30,37 +32,38 @@ export default function ExtendedFAB({
   iconName = 'add',
   onPress,
   isExtended = true,
-  bottomOffset = 20,
+  bottomOffset = 84, // 하단 탭 바(약 65px) 위 19px 상단 고정
   style,
 }) {
   // 애니메이션 값 (0: 축소 원형, 1: 가로 확장 캡슐)
   const animValue = useRef(new Animated.Value(isExtended ? 1 : 0)).current;
 
   useEffect(() => {
-    Animated.spring(animValue, {
+    Animated.timing(animValue, {
       toValue: isExtended ? 1 : 0,
-      friction: 8,
-      tension: 65,
-      useNativeDriver: false, // width/layout 보간을 위해 false 사용
+      duration: 220,
+      useNativeDriver: false,
     }).start();
   }, [isExtended, animValue]);
 
-  // 너비 가변 보간: 52px (원형) ~ 124px (라벨 포함 캡슐)
+  // 너비 가변 보간: 52px (원형) ~ 132px (라벨 포함 캡슐)
   const fabWidth = animValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [52, 128],
+    outputRange: [FAB_COLLAPSED_WIDTH, FAB_EXPANDED_WIDTH],
   });
 
-  // 텍스트 투명도 보간
+  // 텍스트 투명도 보간 (0일 때는 완전히 보이지 않음)
   const textOpacity = animValue.interpolate({
-    inputRange: [0, 0.4, 1],
+    inputRange: [0, 0.5, 1],
     outputRange: [0, 0, 1],
+    extrapolate: 'clamp',
   });
 
   // 텍스트 가로 너비 보간
   const textWidth = animValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 72],
+    outputRange: [0, 76],
+    extrapolate: 'clamp',
   });
 
   // 아이콘 표시 ('+' 기호가 라벨에 포함되어 있으면 'add' 아이콘과 분리 처리)
@@ -68,6 +71,7 @@ export default function ExtendedFAB({
 
   return (
     <Animated.View
+      pointerEvents="box-none"
       style={[
         styles.container,
         {
@@ -110,32 +114,46 @@ export default function ExtendedFAB({
 
 /**
  * FlatList의 onScroll 이벤트와 연동하여 스크롤 방향 및 최상단 여부를 감지하는 편의 훅
+ * 떨림 방지를 위한 스크롤 델타 필터링 적용
  */
-export function useExtendedFabScroll(threshold = 20) {
+export function useExtendedFabScroll(threshold = 24) {
   const [isExtended, setIsExtended] = useState(true);
   const lastOffsetY = useRef(0);
+  const isScrolling = useRef(false);
+  const scrollTimeout = useRef(null);
 
   const handleScroll = useCallback(
     (event) => {
       const currentY = event.nativeEvent.contentOffset.y;
-      // 최상단 근처일 때는 무조건 확장
+
+      // 1. 최상단 근처일 때는 즉시 확장
       if (currentY <= threshold) {
-        setIsExtended(true);
-        lastOffsetY.current = currentY;
+        setIsExtended((prev) => (prev ? prev : true));
+        lastOffsetY.current = Math.max(0, currentY);
         return;
       }
 
       const diff = currentY - lastOffsetY.current;
-      if (Math.abs(diff) > 10) {
+
+      // 2. 미세한 손떨림(18px 미만)은 무시하여 플리커링 원천 차단
+      if (Math.abs(diff) > 18) {
         if (diff > 0) {
-          // 아래로 스크롤 중 -> 원형으로 축소
-          setIsExtended(false);
+          // 아래로 스크롤 시 원형으로 축소
+          setIsExtended((prev) => (!prev ? prev : false));
         } else {
-          // 위로 스크롤 중 -> 캡슐형으로 확장
-          setIsExtended(true);
+          // 위로 스크롤 시 캡슐형으로 확장
+          setIsExtended((prev) => (prev ? prev : true));
         }
         lastOffsetY.current = currentY;
       }
+
+      // 3. 스크롤이 멈췄을 때 600ms 후 자동으로 다시 캡슐형으로 펼침 (정지 상태 복원)
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current);
+      }
+      scrollTimeout.current = setTimeout(() => {
+        setIsExtended(true);
+      }, 700);
     },
     [threshold]
   );
@@ -149,7 +167,7 @@ const styles = StyleSheet.create({
     right: 16,
     height: FAB_HEIGHT,
     borderRadius: FAB_HEIGHT / 2,
-    zIndex: 999,
+    zIndex: 9999,
     ...Platform.select({
       ios: {
         shadowColor: FAB_ACCENT,
@@ -158,7 +176,7 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
       },
       android: {
-        elevation: 6,
+        elevation: 10,
       },
     }),
   },
@@ -172,7 +190,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 15,
+    paddingHorizontal: 0,
   },
   icon: {
     marginRight: 0,
@@ -187,5 +205,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -0.2,
     marginLeft: 6,
+    includeFontPadding: false,
   },
 });

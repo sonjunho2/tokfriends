@@ -670,47 +670,6 @@ export default function ProfileEditScreen({ navigation, route }) {
             />
           </View>
 
-          {/* 4-1. 1:1 대화방 입장 가격(ON) 설정 */}
-          <View style={styles.fieldBlock}>
-            <View style={styles.labelRow}>
-              <Text style={styles.label}>1:1 대화방 입장 가격</Text>
-              <Text style={{ fontSize: 13, fontWeight: '800', color: '#FF3B6B' }}>
-                {chatEntryFee > 0 ? `${chatEntryFee} ON` : '무료'}
-              </Text>
-            </View>
-            <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 8, lineHeight: 17 }}>
-              다른 회원이 나에게 1:1 대화를 신청하거나 추천 대화방에 입장할 때 지불할 입장료입니다. 대화가 시작되면 나에게 포인트가 적립됩니다 ✨
-            </Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {[0, 10, 30, 50, 100, 200].map((fee) => {
-                const isSelected = chatEntryFee === fee;
-                return (
-                  <TouchableOpacity
-                    key={fee}
-                    onPress={() => setChatEntryFee(fee)}
-                    style={{
-                      paddingHorizontal: 14,
-                      paddingVertical: 8,
-                      borderRadius: 20,
-                      backgroundColor: isSelected ? '#FF3B6B' : '#F3F4F6',
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 13,
-                        fontWeight: '700',
-                        color: isSelected ? '#FFFFFF' : '#4B5563',
-                      }}
-                    >
-                      {fee === 0 ? '무료' : `${fee} ON`}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
           {/* 5. 관심사 (Interests) 태그 칩 시스템 */}
           <View style={styles.fieldBlock}>
             <View style={styles.labelRow}>
