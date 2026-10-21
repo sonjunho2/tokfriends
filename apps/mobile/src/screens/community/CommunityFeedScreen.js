@@ -20,7 +20,7 @@ import {
   KeyboardAvoidingView,
   Keyboard,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -167,6 +167,7 @@ const FALLBACK_POSTS = [
 
 export default function CommunityFeedScreen({ navigation, route }) {
   const { user: currentUser } = useAuth();
+  const insets = useSafeAreaInsets();
 
   // 당근마켓 스타일 가변 플로팅 액션 버튼(Extended FAB) 스크롤 리스너 (60fps 인터랙션)
   const { isExtended, handleScroll, setIsExtended } = useExtendedFabScroll(15);
@@ -664,7 +665,7 @@ export default function CommunityFeedScreen({ navigation, route }) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* 1. 상단 헤더 & 카테고리 1열 캡슐 필터 바 */}
@@ -891,7 +892,7 @@ export default function CommunityFeedScreen({ navigation, route }) {
           }
         }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

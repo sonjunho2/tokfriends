@@ -16,7 +16,7 @@ import {
   Platform,
   Animated,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -255,6 +255,7 @@ const DEFAULT_CHATS = [
 
 export default function ChatsScreen({ navigation, route }) {
   const { user: authUser } = useAuth();
+  const insets = useSafeAreaInsets();
 
   // 1. 상단 4단 세그먼트 탭 ('discover' | 'openRooms' | 'chats' | 'requests')
   // 인연찾기 / 추천대화방 / 대화중(기존내대화) / 신청목록
@@ -1261,7 +1262,7 @@ export default function ChatsScreen({ navigation, route }) {
 };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* 1. 상단 4단 세그먼트 탭 */}
@@ -1455,7 +1456,7 @@ export default function ChatsScreen({ navigation, route }) {
         }}
         navigation={navigation}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

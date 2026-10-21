@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,6 +36,7 @@ const CATEGORIES = [
 
 export default function LiveScreen({ navigation }) {
   const { user, refreshMe } = useAuth();
+  const insets = useSafeAreaInsets();
   const { isExtended, handleScroll, setIsExtended } = useExtendedFabScroll(15);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [rooms, setRooms] = useState([]);
@@ -218,7 +219,7 @@ export default function LiveScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Top Header */}
       <View style={styles.header}>
         <View style={styles.brandRow}>
@@ -432,7 +433,7 @@ export default function LiveScreen({ navigation }) {
           </View>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
