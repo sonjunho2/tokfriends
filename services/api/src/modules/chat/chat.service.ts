@@ -788,7 +788,7 @@ export class ChatService implements OnModuleInit {
   async joinOpenRoom(
     guestUserId: string,
     openRoomId: string,
-  ): Promise<{ ok: boolean; room: ChatRoomItem; hostName: string; entryFee: number }> {
+  ): Promise<{ ok: boolean; room: ChatRoomItem; chatRoom?: ChatRoomItem; data?: ChatRoomItem; hostName: string; entryFee: number }> {
     const openRoom = this.openRooms.find((r) => r.id === openRoomId);
     if (!openRoom) {
       throw new NotFoundException('해당 추천 대화방을 찾을 수 없습니다.');
@@ -876,6 +876,8 @@ export class ChatService implements OnModuleInit {
     return {
       ok: true,
       room: newRoom,
+      chatRoom: newRoom,
+      data: newRoom,
       hostName: openRoom.hostName,
       entryFee: fee,
     };
@@ -971,7 +973,7 @@ export class ChatService implements OnModuleInit {
   async acceptChatRequest(
     userId: string,
     requestId: string,
-  ): Promise<{ ok: boolean; room: ChatRoomItem; request: ChatRequestItem }> {
+  ): Promise<{ ok: boolean; room: ChatRoomItem; chatRoom?: ChatRoomItem; data?: ChatRoomItem; request: ChatRequestItem }> {
     const req = this.chatRequests.find((r) => r.id === requestId);
     if (!req) {
       throw new NotFoundException('해당 대화 신청을 찾을 수 없습니다.');
@@ -1008,6 +1010,8 @@ export class ChatService implements OnModuleInit {
     return {
       ok: true,
       room: newRoom,
+      chatRoom: newRoom,
+      data: newRoom,
       request: req,
     };
   }

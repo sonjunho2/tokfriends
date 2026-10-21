@@ -13,7 +13,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 const FAB_ACCENT = '#FF3B6B';
 const FAB_HEIGHT = 52;
 const FAB_COLLAPSED_WIDTH = 52;
-const FAB_EXPANDED_WIDTH = 132;
 
 /**
  * 당근마켓 스타일 가변 플로팅 액션 버튼 (Extended Floating Action Button)
@@ -24,7 +23,7 @@ const FAB_EXPANDED_WIDTH = 132;
  * @param {string} iconName Ionicons 아이콘 이름 (기본값: 'add')
  * @param {function} onPress 클릭 핸들러
  * @param {boolean} isExtended 확장 여부 (true: 캡슐형, false: 원형)
- * @param {number} bottomOffset 하단 여백 (하단 탭 바 위 16~20px 기준: 기본값 84)
+ * @param {number} bottomOffset 하단 여백 (하단 탭 바 위 16~20px 기준: 기본값 80)
  * @param {object} style 추가 컨테이너 스타일
  */
 export default function ExtendedFAB({
@@ -32,9 +31,16 @@ export default function ExtendedFAB({
   iconName = 'add',
   onPress,
   isExtended = true,
-  bottomOffset = 84, // 하단 탭 바(약 65px) 위 19px 상단 고정
+  bottomOffset = 80, // 하단 탭 바(약 62px) 위 18px 상단 상시 고정
   style,
 }) {
+  // 아이콘 표시 ('+' 기호가 라벨에 포함되어 있으면 'add' 아이콘과 분리 처리)
+  const displayLabel = label.startsWith('+') ? label.replace(/^\+\s*/, '') : label;
+
+  // 글자 길이에 딱 맞춘 가로 너비 (불필요한 우측 공백 원천 제거)
+  // LIVE(2~3자): 92px / 글쓰기(3~4자): 102px / 방만들기(5자 이상): 114px
+  const targetExpandedWidth = displayLabel.length <= 3 ? 92 : (displayLabel.length <= 4 ? 102 : 114);
+
   // 애니메이션 값 (0: 축소 원형, 1: 가로 확장 캡슐)
   const animValue = useRef(new Animated.Value(isExtended ? 1 : 0)).current;
 
@@ -46,15 +52,15 @@ export default function ExtendedFAB({
     }).start();
   }, [isExtended, animValue]);
 
-  // 너비 가변 보간: 52px (원형) ~ 132px (라벨 포함 캡슐)
+  // 너비 가변 보간: 52px (원형) ~ 맞춤 너비 (라벨 포함 캡슐)
   const fabWidth = animValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [FAB_COLLAPSED_WIDTH, FAB_EXPANDED_WIDTH],
+    outputRange: [FAB_COLLAPSED_WIDTH, targetExpandedWidth],
   });
 
   // 텍스트 투명도 보간 (0일 때는 완전히 보이지 않음)
   const textOpacity = animValue.interpolate({
-    inputRange: [0, 0.5, 1],
+    inputRange: [0, 0.4, 1],
     outputRange: [0, 0, 1],
     extrapolate: 'clamp',
   });
@@ -62,12 +68,9 @@ export default function ExtendedFAB({
   // 텍스트 가로 너비 보간
   const textWidth = animValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 76],
+    outputRange: [0, targetExpandedWidth - 44],
     extrapolate: 'clamp',
   });
-
-  // 아이콘 표시 ('+' 기호가 라벨에 포함되어 있으면 'add' 아이콘과 분리 처리)
-  const displayLabel = label.startsWith('+') ? label.replace(/^\+\s*/, '') : label;
 
   return (
     <Animated.View
@@ -92,7 +95,7 @@ export default function ExtendedFAB({
           end={{ x: 1, y: 1 }}
           style={styles.gradient}
         >
-          <Ionicons name={iconName} size={22} color="#FFFFFF" style={styles.icon} />
+          <Ionicons name={iconName} size={20} color="#FFFFFF" style={styles.icon} />
           <Animated.View
             style={[
               styles.labelWrap,
@@ -164,7 +167,7 @@ export function useExtendedFabScroll(threshold = 24) {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    right: 16,
+    right: 18,
     height: FAB_HEIGHT,
     borderRadius: FAB_HEIGHT / 2,
     zIndex: 9999,
@@ -190,7 +193,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 0,
+    paddingHorizontal: 10,
   },
   icon: {
     marginRight: 0,
@@ -204,7 +207,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     letterSpacing: -0.2,
-    marginLeft: 6,
+    marginLeft: 5,
     includeFontPadding: false,
   },
 });

@@ -36,7 +36,7 @@ const CATEGORIES = [
 
 export default function LiveScreen({ navigation }) {
   const { user, refreshMe } = useAuth();
-  const { isExtended, handleScroll } = useExtendedFabScroll(15);
+  const { isExtended, handleScroll, setIsExtended } = useExtendedFabScroll(15);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,8 +63,9 @@ export default function LiveScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
+      setIsExtended(true);
       loadRooms();
-    }, [loadRooms])
+    }, [loadRooms, setIsExtended])
   );
 
   const onRefresh = useCallback(() => {

@@ -264,7 +264,7 @@ export default function ChatsScreen({ navigation, route }) {
   const [activeTab, setActiveTab] = useState(initialTab);
 
   // 2. 가변 플로팅 액션 버튼(Extended FAB) 스크롤 리스너 (60fps 인터랙션)
-  const { isExtended, handleScroll } = useExtendedFabScroll(15);
+  const { isExtended, handleScroll, setIsExtended } = useExtendedFabScroll(15);
 
   // 3. 가로 1열 캡슐 필터 선택 상태 (관리자 소셜 & 매칭 설정 실시간 연동)
   const [quickFilters, setQuickFilters] = useState(DEFAULT_QUICK_FILTERS);
@@ -490,8 +490,9 @@ export default function ChatsScreen({ navigation, route }) {
 
   useFocusEffect(
     useCallback(() => {
+      setIsExtended(true);
       loadData();
-    }, [loadData])
+    }, [loadData, setIsExtended])
   );
 
   // 홈 화면 등 외부에서 넘어온 필터 파라미터 처리
@@ -618,14 +619,22 @@ export default function ChatsScreen({ navigation, route }) {
           onPress: async () => {
             try {
               const res = await apiClient.joinOpenChatRoom(room.id);
-              if (res?.chatRoom) {
-                Alert.alert('입장 성공', '1:1 대화방이 생성되었습니다! 대화를 시작해보세요 🎉');
+              const targetRoom = res?.room || res?.chatRoom || res?.data;
+              if (targetRoom && targetRoom.id) {
+                // 상대방 프로필 정보 준비
+                const counterpartUser = targetRoom.counterpart || room.host || {
+                  id: targetRoom.hostId || 'u-host',
+                  displayName: room.hostName || '방장',
+                  avatarUrl: room.hostAvatar,
+                };
                 navigation.navigate('ChatRoom', {
-                  id: res.chatRoom.id,
-                  room: res.chatRoom,
-                  user: res.chatRoom.counterpart || room.host,
+                  id: targetRoom.id,
+                  room: targetRoom,
+                  user: counterpartUser,
                 });
                 loadData();
+              } else {
+                Alert.alert('안내', '대화방 생성 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
               }
             } catch (err) {
               Alert.alert('입장 실패', err?.message || '대화방 입장에 실패했습니다.');
@@ -640,13 +649,15 @@ export default function ChatsScreen({ navigation, route }) {
   const handleAcceptRequest = async (req) => {
     try {
       const res = await apiClient.acceptChatRequest(req.id);
-      Alert.alert('대화 수락', `${req.sender?.name || '상대방'}님의 대화 신청을 수락했습니다! 대화방으로 이동합니다 🎉`);
-      if (res?.chatRoom) {
+      const targetRoom = res?.room || res?.chatRoom || res?.data;
+      if (targetRoom && targetRoom.id) {
         navigation.navigate('ChatRoom', {
-          id: res.chatRoom.id,
-          room: res.chatRoom,
-          user: res.chatRoom.counterpart || req.sender,
+          id: targetRoom.id,
+          room: targetRoom,
+          user: targetRoom.counterpart || req.sender,
         });
+      } else {
+        Alert.alert('대화 수락', `${req.sender?.name || '상대방'}님의 대화 신청을 수락했습니다!`);
       }
       loadData();
     } catch (err) {
@@ -724,114 +735,98 @@ export default function ChatsScreen({ navigation, route }) {
   }, []);
 
   // =========================================================================
-  // 1. 상단 4단 세그먼트 탭 헤더 (인연찾기 | 추천대화방 | 대화중 | 신청목록)
+  // 1. 상단 4단 세그먼트 탭 헤더 (인연 찾기 | 오픈대화 | 내 대화 | 받은 신청)
   // =========================================================================
   const renderTopSegment = () => (
     <View style={styles.topBar}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.segmentScrollContent}
-      >
-        {/* [1. ⚡ 인연 찾기] */}
+      <View style={styles.segmentRow}>
+        {/* [1. 인연 찾기] */}
         <TouchableOpacity
-          style={[styles.segmentBtn, activeTab === 'discover' && styles.segmentBtnActive]}
+          style={[styles.segmentTab, activeTab === 'discover' && styles.segmentTabActive]}
           onPress={() => setActiveTab('discover')}
-          activeOpacity={0.85}
+          activeOpacity={0.8}
         >
-          <Ionicons
-            name="flash"
-            size={15}
-            color={activeTab === 'discover' ? tokens.colors.primary : tokens.colors.textTertiary}
-          />
           <Text
             style={[
-              styles.segmentText,
-              activeTab === 'discover' && styles.segmentTextActive,
+              styles.segmentTabText,
+              activeTab === 'discover' && styles.segmentTabTextActive,
             ]}
           >
             인연 찾기
           </Text>
-          {activeTab === 'discover' && <View style={styles.activeSegmentIndicator} />}
+          {activeTab === 'discover' && <View style={styles.tabIndicator} />}
         </TouchableOpacity>
 
-        {/* [2. 🔥 추천 대화방] */}
+        {/* [2. 오픈대화 (기존 추천 대화방)] */}
         <TouchableOpacity
-          style={[styles.segmentBtn, activeTab === 'openRooms' && styles.segmentBtnActive]}
+          style={[styles.segmentTab, activeTab === 'openRooms' && styles.segmentTabActive]}
           onPress={() => setActiveTab('openRooms')}
-          activeOpacity={0.85}
+          activeOpacity={0.8}
         >
-          <Ionicons
-            name="flame"
-            size={15}
-            color={activeTab === 'openRooms' ? tokens.colors.primary : tokens.colors.textTertiary}
-          />
-          <Text
-            style={[
-              styles.segmentText,
-              activeTab === 'openRooms' && styles.segmentTextActive,
-            ]}
-          >
-            추천 대화방
-          </Text>
-          {openRooms.length > 0 && (
-            <View style={styles.tabSmallCountBadge}>
-              <Text style={styles.tabSmallCountText}>{openRooms.length}</Text>
-            </View>
-          )}
-          {activeTab === 'openRooms' && <View style={styles.activeSegmentIndicator} />}
+          <View style={styles.tabLabelWithBadge}>
+            <Text
+              style={[
+                styles.segmentTabText,
+                activeTab === 'openRooms' && styles.segmentTabTextActive,
+              ]}
+            >
+              오픈대화
+            </Text>
+            {openRooms.length > 0 && (
+              <View style={styles.tabMiniBadge}>
+                <Text style={styles.tabMiniBadgeText}>{openRooms.length}</Text>
+              </View>
+            )}
+          </View>
+          {activeTab === 'openRooms' && <View style={styles.tabIndicator} />}
         </TouchableOpacity>
 
-        {/* [3. 💬 대화중 (기존 내 대화)] */}
+        {/* [3. 내 대화 (기존 대화중)] */}
         <TouchableOpacity
-          style={[styles.segmentBtn, activeTab === 'chats' && styles.segmentBtnActive]}
+          style={[styles.segmentTab, activeTab === 'chats' && styles.segmentTabActive]}
           onPress={() => setActiveTab('chats')}
-          activeOpacity={0.85}
+          activeOpacity={0.8}
         >
-          <Ionicons
-            name="chatbubbles"
-            size={15}
-            color={activeTab === 'chats' ? tokens.colors.primary : tokens.colors.textTertiary}
-          />
-          <Text
-            style={[
-              styles.segmentText,
-              activeTab === 'chats' && styles.segmentTextActive,
-            ]}
-          >
-            대화중
-          </Text>
-          {chats.some((c) => c.unreadCount > 0) && <View style={styles.chatBadgeDot} />}
-          {activeTab === 'chats' && <View style={styles.activeSegmentIndicator} />}
+          <View style={styles.tabLabelWithBadge}>
+            <Text
+              style={[
+                styles.segmentTabText,
+                activeTab === 'chats' && styles.segmentTabTextActive,
+              ]}
+            >
+              내 대화
+            </Text>
+            {chats.some((c) => c.unreadCount > 0) && <View style={styles.tabMiniDot} />}
+          </View>
+          {activeTab === 'chats' && <View style={styles.tabIndicator} />}
         </TouchableOpacity>
 
-        {/* [4. 📬 신청 목록] */}
+        {/* [4. 받은 신청 (기존 신청 목록)] */}
         <TouchableOpacity
-          style={[styles.segmentBtn, activeTab === 'requests' && styles.segmentBtnActive]}
+          style={[styles.segmentTab, activeTab === 'requests' && styles.segmentTabActive]}
           onPress={() => setActiveTab('requests')}
-          activeOpacity={0.85}
+          activeOpacity={0.8}
         >
-          <Ionicons
-            name="mail-unread"
-            size={15}
-            color={activeTab === 'requests' ? tokens.colors.primary : tokens.colors.textTertiary}
-          />
-          <Text
-            style={[
-              styles.segmentText,
-              activeTab === 'requests' && styles.segmentTextActive,
-            ]}
-          >
-            신청 목록
-          </Text>
-          {pendingRequestsCount > 0 && (
-            <View style={styles.tabReqBadge}>
-              <Text style={styles.tabReqBadgeText}>{pendingRequestsCount}</Text>
-            </View>
-          )}
-          {activeTab === 'requests' && <View style={styles.activeSegmentIndicator} />}
+          <View style={styles.tabLabelWithBadge}>
+            <Text
+              style={[
+                styles.segmentTabText,
+                activeTab === 'requests' && styles.segmentTabTextActive,
+              ]}
+            >
+              받은 신청
+            </Text>
+            {pendingRequestsCount > 0 && (
+              <View style={[styles.tabMiniBadge, { backgroundColor: '#FF3B6B' }]}>
+                <Text style={[styles.tabMiniBadgeText, { color: '#FFFFFF' }]}>
+                  {pendingRequestsCount}
+                </Text>
+              </View>
+            )}
+          </View>
+          {activeTab === 'requests' && <View style={styles.tabIndicator} />}
         </TouchableOpacity>
-      </ScrollView>
+      </View>
     </View>
   );
 
@@ -1470,52 +1465,74 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.background,
   },
 
-  // 1. 상단 탭 스타일
+  // 1. 상단 4단 세그먼트 탭 스타일 (100% 뷰포트 폭 4등분 고정)
   topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 10,
-    backgroundColor: tokens.colors.surface,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: tokens.colors.borderLight,
+    borderBottomColor: '#F3F4F6',
+    paddingTop: 2,
   },
-  segmentContainer: {
+  segmentRow: {
     flexDirection: 'row',
+    width: '100%',
     alignItems: 'center',
-    gap: 8,
   },
-  segmentBtn: {
-    flexDirection: 'row',
+  segmentTab: {
+    flex: 1,
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: tokens.radius.full,
-    gap: 5,
+    justifyContent: 'center',
+    paddingVertical: 12,
+    position: 'relative',
   },
-  segmentBtnActive: {
-    backgroundColor: tokens.colors.primaryLight,
+  segmentTabActive: {
+    backgroundColor: 'transparent',
   },
-  segmentText: {
-    fontSize: 16,
+  segmentTabText: {
+    fontSize: 14,
     fontWeight: '700',
-    color: tokens.colors.textTertiary,
+    color: '#9CA3AF',
+    letterSpacing: -0.3,
   },
-  segmentTextActive: {
+  segmentTabTextActive: {
     color: tokens.colors.primary,
+    fontWeight: '900',
+  },
+  tabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 12,
+    right: 12,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: tokens.colors.primary,
+  },
+  tabLabelWithBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabMiniBadge: {
+    marginLeft: 4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#FFE4E6',
+    paddingHorizontal: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tabMiniBadgeText: {
+    fontSize: 10,
     fontWeight: '800',
+    color: '#E11D48',
   },
-  activeSegmentIndicator: {
-    display: 'none',
-  },
-  chatBadgeDot: {
+  tabMiniDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: tokens.colors.primary,
-    marginLeft: 2,
+    marginLeft: 4,
+    marginBottom: 4,
   },
   topIconBtn: {
     width: 36,

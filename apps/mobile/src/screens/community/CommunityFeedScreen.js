@@ -169,7 +169,7 @@ export default function CommunityFeedScreen({ navigation, route }) {
   const { user: currentUser } = useAuth();
 
   // 당근마켓 스타일 가변 플로팅 액션 버튼(Extended FAB) 스크롤 리스너 (60fps 인터랙션)
-  const { isExtended, handleScroll } = useExtendedFabScroll(15);
+  const { isExtended, handleScroll, setIsExtended } = useExtendedFabScroll(15);
 
   // 1. 카테고리 필터 및 동적 카테고리 상태 (관리자 연동)
   const [selectedCategory, setSelectedCategory] = useState('전체');
@@ -275,9 +275,10 @@ export default function CommunityFeedScreen({ navigation, route }) {
 
   useFocusEffect(
     useCallback(() => {
+      setIsExtended(true);
       loadCategories();
       loadPosts();
-    }, [loadCategories, loadPosts])
+    }, [loadCategories, loadPosts, setIsExtended])
   );
 
   // 카테고리 필터링
