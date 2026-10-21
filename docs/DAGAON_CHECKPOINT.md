@@ -5655,6 +5655,13 @@ First Owner/ActivityAccount migration must:
   - 좌측: 카테고리 배지 + 게시글 제목(볼드, 말줄임) + 게시글 본문 요약(2줄) + 댓글/좋아요/작성자 정보.
   - 우측: 68x68 콤팩트 정방형 썸네일(`homePostThumbnail`, `borderRadius: 10`) 배치로 당근마켓 홈 뷰와 동일한 일체감 있는 프리미엄 감성 확보.
 
+### 5. Git 메인 병합 및 안드로이드 프로덕션 APK 빌드 완료
+- **Git main 브랜치 커밋 및 푸시**: `fa93581` (GitHub `origin/main` 동기화 완료).
+- **네이티브 릴리즈 빌드 (`gradlew assembleRelease --no-daemon`)**: 성공 (1m 49s 소요).
+- **최신 프로덕션 APK 배포 완료 (102.5 MB, 102,477,913 bytes)**:
+  - 프로젝트 루트 배포: `dagaon-release.apk`
+  - 관리자 웹 다운로드 정적 서빙: `apps/admin/public/downloads/dagaon-release.apk`
+
 
 
 
