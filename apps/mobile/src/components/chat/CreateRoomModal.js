@@ -199,11 +199,7 @@ export default function CreateRoomModal({
                   <View style={styles.inputWrapper}>
                     <TextInput
                       style={styles.textInput}
-                      placeholder={
-                        roomType === 'secret'
-                          ? '예: 퇴근길 가볍게 통화/소통할 분 💬'
-                          : '예: 퇴근 후 한강 러닝 & 브런치 번개 🏃'
-                      }
+                      placeholder="예: 퇴근 후 가볍게 대화 나눌 분 찾아요 💬"
                       placeholderTextColor={tokens.colors.textTertiary}
                       value={title}
                       onChangeText={(t) => setTitle(t.slice(0, 30))}

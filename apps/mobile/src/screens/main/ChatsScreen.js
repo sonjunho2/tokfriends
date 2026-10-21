@@ -576,7 +576,7 @@ export default function ChatsScreen({ navigation, route }) {
           style={styles.topIconBtn}
           onPress={() => {
             setSelectedFilter('🔥 HOT추천');
-            fetchDiscoverUsers();
+            loadData();
           }}
           hitSlop={8}
         >

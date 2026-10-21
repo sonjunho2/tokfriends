@@ -78,10 +78,13 @@ export default function ShopScreen({ navigation }) {
   const [purchaseHistoryLoading, setPurchaseHistoryLoading] = useState(false);
   const [purchaseHistoryModalVisible, setPurchaseHistoryModalVisible] = useState(false);
 
+  const [overrideBalance, setOverrideBalance] = useState(null);
   const balance = useMemo(() => {
+    if (typeof overrideBalance === 'number') return overrideBalance;
     const p = user?.pointBalance ?? user?.pointsBalance ?? user?.points ?? user?.balance ?? 0;
     return typeof p === 'number' ? p : parseInt(String(p).replace(/\D/g, ''), 10) || 0;
-  }, [user]);
+  }, [user, overrideBalance]);
+  const setBalance = setOverrideBalance;
 
   const loadPointProducts = useCallback(async () => {
     try {

@@ -125,6 +125,7 @@ export default function LiveRoomScreen({ navigation, route }) {
   const [blocking, setBlocking] = useState(false);
 
   // 3D Gift & Animated Reaction States
+  const flatListRef = useRef(null);
   const giftOverlayRef = useRef(null);
   const floatingHeartsRef = useRef(null);
   const [giftPickerVisible, setGiftPickerVisible] = useState(false);

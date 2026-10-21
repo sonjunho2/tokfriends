@@ -5678,6 +5678,29 @@ First Owner/ActivityAccount migration must:
   - 프로젝트 루트 배포: `dagaon-release.apk`
   - 관리자 웹 다운로드 정적 서빙: `apps/admin/public/downloads/dagaon-release.apk`
 
+---
+
+## Checkpoint 112: 채팅방 개설 & 라이브방 개설/진입 런타임 ReferenceError 전수 교정 및 프로덕션 APK 재배포 (2026-10-21)
+
+### 1. 오류 원인 전수 분석 및 수정
+- **채팅방 개설 모달 (`CreateRoomModal.js`)**:
+  - `roomType` 미선언 상태에서 `roomType === 'secret'` 삼항 연산자 평가로 인한 `Property 'roomType' doesn't exist` 런타임 오류 해결.
+  - placeholder 문자열을 직관적이고 안전한 상수로 대체.
+- **라이브방 개설 및 시청 화면 (`LiveRoomScreen.js`)**:
+  - `flatListRef`가 JSX 태그 및 키보드 스크롤 핸들러에서 사용되고 있었으나 `useRef(null)` 선언이 누락되어 있던 문제 해결 (`const flatListRef = useRef(null);` 추가).
+- **채팅 탭 상단 추천 필터 (`ChatsScreen.js`)**:
+  - 미정의 `fetchDiscoverUsers()` 호출을 정의된 `loadData()` 호출로 교체하여 식별자 참조 오류 원천 차단.
+- **포인트 충전 화면 (`ShopScreen.js`)**:
+  - `setBalance` 호출 지원을 위한 `overrideBalance` 상태 선언 추가.
+- **Babel AST 기반 전수 검증**:
+  - `apps/mobile/src` 전체 파일에 대해 미정의 식별자(undeclared variables) AST 스캔을 실행하여 런타임 ReferenceError 0건 검증 완료.
+
+### 2. Git 메인 병합 및 안드로이드 프로덕션 APK 재빌드 완료
+- **네이티브 릴리즈 빌드 (`gradlew assembleRelease --no-daemon`)**: 성공 (1m 49s 소요).
+- **최신 핫픽스 프로덕션 APK 배포 완료 (102.5 MB, 102,477,913 bytes)**:
+  - 프로젝트 루트 배포: `dagaon-release.apk`
+  - 관리자 웹 다운로드 정적 서빙: `apps/admin/public/downloads/dagaon-release.apk`
+
 
 
 
