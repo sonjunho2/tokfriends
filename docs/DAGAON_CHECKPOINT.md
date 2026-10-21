@@ -5581,4 +5581,12 @@ First Owner/ActivityAccount migration must:
   - 총 26개 E2E 세부 연동 assertion 전체 통과 (26/26 Passed).
 - 모바일 Babel 구문 분석 및 빌드 사전 검증 완료: `ShopScreen.js`, `client.js` 무결성 확인.
 
+### 4. Git 메인 병합 및 안드로이드 프로덕션 APK 빌드 완료
+- **Git main 브랜치 커밋 및 푸시**: `668bb66` (GitHub `origin/main` 동기화 완료).
+- **네이티브 릴리즈 빌드 (`gradlew assembleRelease --no-daemon`)**: 성공 (2m 33s 소요).
+- **최신 프로덕션 APK 배포 완료 (102.5 MB, 102,474,093 bytes)**:
+  - 프로젝트 루트 배포: `dagaon-release.apk`
+  - 관리자 웹 다운로드 정적 서빙: `apps/admin/public/downloads/dagaon-release.apk`
+
+
 
