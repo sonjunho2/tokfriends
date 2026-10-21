@@ -5662,6 +5662,22 @@ First Owner/ActivityAccount migration must:
   - 프로젝트 루트 배포: `dagaon-release.apk`
   - 관리자 웹 다운로드 정적 서빙: `apps/admin/public/downloads/dagaon-release.apk`
 
+---
+
+## Checkpoint 111: 커뮤니티 화면 KeyboardAvoidingView 미참조 런타임 오류 핫픽스 & 프로덕션 APK 재빌드 배포 (2026-10-21)
+
+### 1. 오류 원인 분석 및 해결 (`CommunityFeedScreen.js`)
+- **원인**: 커뮤니티 글쓰기 모달 개선 과정에서 `<KeyboardAvoidingView>` 태그를 적용했으나, 상단 `react-native` import 구문에 `KeyboardAvoidingView`가 누락되어 화면 마운트 시 `Property 'KeyboardAvoidingView' doesn't exist` 런타임 ReferenceError 발생.
+- **해결**:
+  - `apps/mobile/src/screens/community/CommunityFeedScreen.js`: `react-native` import에 `KeyboardAvoidingView`, `Keyboard` 추가.
+  - 전체 JSX 태그 import 검증 완료.
+
+### 2. Git 메인 병합 및 안드로이드 프로덕션 APK 재빌드 완료
+- **네이티브 릴리즈 빌드 (`gradlew assembleRelease --no-daemon`)**: 성공 (1m 50s 소요).
+- **최신 핫픽스 프로덕션 APK 배포 완료 (102.5 MB, 102,477,913 bytes)**:
+  - 프로젝트 루트 배포: `dagaon-release.apk`
+  - 관리자 웹 다운로드 정적 서빙: `apps/admin/public/downloads/dagaon-release.apk`
+
 
 
 
