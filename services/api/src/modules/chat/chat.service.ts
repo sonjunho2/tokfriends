@@ -453,4 +453,26 @@ export class ChatService implements OnModuleInit {
       })),
     }));
   }
+
+  async deductPoints(userId: string, points: number): Promise<number | null> {
+    if (!userId || userId === 'guest' || points <= 0) return null;
+    try {
+      const dbUser = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { pointBalance: true },
+      });
+      if (dbUser) {
+        const newBal = Math.max(0, (dbUser.pointBalance ?? 0) - points);
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { pointBalance: newBal },
+        });
+        return newBal;
+      }
+    } catch (e: any) {
+      this.logger.warn(`Failed to deduct points for ${userId}: ${e?.message}`);
+    }
+    return null;
+  }
 }
+

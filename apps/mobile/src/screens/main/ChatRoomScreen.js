@@ -72,10 +72,18 @@ const normalizeHistoryMessage = (message, currentActivityAccountId) => {
   }
 
   const senderAccountId = message.senderAccountId;
+  const isMe =
+    senderAccountId === currentActivityAccountId ||
+    message.sender === 'me' ||
+    (typeof senderAccountId === 'string' &&
+      (senderAccountId === 'me' ||
+        senderAccountId === 'dummy-user' ||
+        (currentActivityAccountId &&
+          senderAccountId.toLowerCase() === String(currentActivityAccountId).toLowerCase())));
   const sender =
-    senderAccountId === currentActivityAccountId
+    isMe
       ? 'me'
-      : typeof senderAccountId === 'string' && senderAccountId
+      : typeof senderAccountId === 'string' && senderAccountId && senderAccountId !== 'system'
         ? 'other'
         : 'unknown';
 
@@ -849,12 +857,15 @@ export default function ChatRoomScreen({ route, navigation }) {
           content: mediaUrl,
           type: mediaType,
           clientMessageId,
+          senderAccountId: currentActivityAccountId,
         });
 
         const normalized = normalizeHistoryMessage(
           confirmedMessage,
           currentActivityAccountId,
         );
+        normalized.sender = 'me';
+        normalized.senderAccountId = currentActivityAccountId;
         appendUniquePersistedMessage(normalized);
 
         setTimeout(() => {
@@ -985,6 +996,7 @@ export default function ChatRoomScreen({ route, navigation }) {
           points: giftPoints,
           icon: giftIcon,
           clientMessageId,
+          senderAccountId: currentActivityAccountId,
         });
 
         const confirmedMessage = response?.message || response?.data;
@@ -993,6 +1005,8 @@ export default function ChatRoomScreen({ route, navigation }) {
             confirmedMessage,
             currentActivityAccountId,
           );
+          normalized.sender = 'me';
+          normalized.senderAccountId = currentActivityAccountId;
           appendUniquePersistedMessage(normalized);
         } else {
           // 낙관적 선물 메시지 즉시 등록
@@ -1080,6 +1094,7 @@ export default function ChatRoomScreen({ route, navigation }) {
               chatId,
               content,
               clientMessageId,
+              senderAccountId: currentActivityAccountId,
             };
       pendingMessageRef.current = pendingMessage;
 

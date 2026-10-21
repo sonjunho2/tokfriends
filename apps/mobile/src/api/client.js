@@ -897,15 +897,21 @@ export const apiClient = {
       transactionId: payload?.transactionId,
       receipt: payload?.receipt,
       platform: payload?.platform,
+      points: payload?.points || payload?.pointsAmount,
+      amount: payload?.amount,
+      userId: payload?.userId,
+      userNickname: payload?.userNickname,
     };
     const endpoints = [
       '/store/purchases/confirm',
+      '/store/purchase',
+      '/store/confirm-purchase',
     ];
     let lastErr;
     for (const path of endpoints) {
       try {
         const { data } = await client.post(path, body);
-        return data;
+        return data?.data ?? data;
       } catch (err) {
         const status = err?.status || err?.response?.status;
         if (status === 404 || status === 405) {
@@ -1405,7 +1411,7 @@ export const apiClient = {
     }
   },
 
-  async sendChatMessage({ chatId, content, clientMessageId, type = 'text' } = {}) {
+  async sendChatMessage({ chatId, content, clientMessageId, type = 'text', senderAccountId } = {}) {
     const target = String(chatId || '').trim();
     const text = String(content ?? '').trim();
     const requestId = String(clientMessageId || '').trim() || `client-${Date.now()}`;
@@ -1421,7 +1427,7 @@ export const apiClient = {
       const mockMsg = {
         id: `msg-${Date.now()}`,
         chatId: target,
-        senderAccountId: 'dummy-user',
+        senderAccountId: senderAccountId || 'dummy-user',
         content: text,
         createdAt: new Date().toISOString(),
         type: msgType,
@@ -1446,12 +1452,13 @@ export const apiClient = {
         content: text,
         clientMessageId: requestId,
         type: msgType,
+        ...(senderAccountId ? { senderAccountId } : {}),
       });
       const rawMsg = data?.data ?? data?.message ?? data;
       const message = {
         id: String(rawMsg?.id || requestId),
         chatId: String(rawMsg?.chatId || target),
-        senderAccountId: String(rawMsg?.senderAccountId || 'me'),
+        senderAccountId: String(rawMsg?.senderAccountId || senderAccountId || 'me'),
         content: String(rawMsg?.content || text),
         createdAt: rawMsg?.createdAt || new Date().toISOString(),
         type: String(rawMsg?.type || msgType),
@@ -1811,18 +1818,30 @@ export const apiClient = {
     let content;
     let type = 'chat';
     let giftPoints;
+    let senderId;
+    let senderName;
+    let senderAvatar;
+    let isHost;
 
     if (arg1 && typeof arg1 === 'object') {
       roomId = arg1.roomId;
       content = arg1.content;
       type = arg1.type || 'chat';
       giftPoints = arg1.giftPoints;
+      senderId = arg1.senderId;
+      senderName = arg1.senderName;
+      senderAvatar = arg1.senderAvatar;
+      isHost = arg1.isHost;
     } else {
       roomId = arg1;
       if (arg2 && typeof arg2 === 'object') {
         content = arg2.content;
         type = arg2.type || 'chat';
         giftPoints = arg2.giftPoints;
+        senderId = arg2.senderId;
+        senderName = arg2.senderName;
+        senderAvatar = arg2.senderAvatar;
+        isHost = arg2.isHost;
       } else {
         content = arg2;
       }
@@ -1835,7 +1854,7 @@ export const apiClient = {
     }
     const mockMsg = {
       id: `lmsg-${Date.now()}`,
-      senderName: '나',
+      senderName: senderName || '나',
       content: trimmedContent || (type === 'like' ? '❤️' : ''),
       type,
       ...(giftPoints ? { giftPoints } : {}),
@@ -1853,6 +1872,10 @@ export const apiClient = {
         content: trimmedContent,
         type,
         ...(giftPoints ? { giftPoints } : {}),
+        ...(senderId ? { senderId } : {}),
+        ...(senderName ? { senderName } : {}),
+        ...(senderAvatar ? { senderAvatar } : {}),
+        ...(isHost !== undefined ? { isHost: Boolean(isHost) } : {}),
       });
       return data?.data ?? data;
     } catch (e) {
@@ -2005,7 +2028,7 @@ export const apiClient = {
     return data;
   },
 
-  async sendChatGift({ chatId, giftId, clientMessageId, giftName, points, icon } = {}) {
+  async sendChatGift({ chatId, giftId, clientMessageId, giftName, points, icon, senderAccountId } = {}) {
     if (!chatId || !giftId) {
       throw normalizeError(new Error('채팅방 및 선물 정보가 필요합니다.'));
     }
@@ -2016,6 +2039,7 @@ export const apiClient = {
       ...(points !== undefined ? { points: Number(points) } : {}),
       ...(icon ? { icon: String(icon).trim() } : {}),
       ...(clientMessageId ? { clientMessageId: String(clientMessageId).trim() } : {}),
+      ...(senderAccountId ? { senderAccountId: String(senderAccountId).trim() } : {}),
     });
     const msg = data?.message ?? data?.data;
     return {
@@ -2586,7 +2610,7 @@ export const apiClient = {
     }
   },
 
-  async createPostComment(postId, { content } = {}) {
+  async createPostComment(postId, { content, authorId, authorNickname, authorAvatarUrl } = {}) {
     if (!postId) throw normalizeError(new Error('게시글 ID가 필요합니다.'));
     const trimmed = String(content || '').trim();
     if (!trimmed) throw normalizeError(new Error('댓글 내용을 입력해 주세요.'));
@@ -2594,9 +2618,11 @@ export const apiClient = {
       id: `cmt-${Date.now()}`,
       postId,
       author: {
-        id: 'dummy-user',
-        name: '나',
-        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200',
+        id: authorId || 'dummy-user',
+        name: authorNickname || '나',
+        nickname: authorNickname || '나',
+        avatar: authorAvatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200',
+        avatarUrl: authorAvatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200',
       },
       content: trimmed,
       createdAt: new Date().toISOString(),
@@ -2615,6 +2641,9 @@ export const apiClient = {
     try {
       const { data } = await client.post(`/posts/${encodeURIComponent(postId)}/comments`, {
         content: trimmed,
+        ...(authorId ? { authorId } : {}),
+        ...(authorNickname ? { authorNickname } : {}),
+        ...(authorAvatarUrl ? { authorAvatarUrl } : {}),
       });
       return data?.data ?? data;
     } catch (e) {

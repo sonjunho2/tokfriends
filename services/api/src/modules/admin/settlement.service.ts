@@ -603,4 +603,67 @@ export class SettlementService implements OnModuleInit {
     const items = this.ledger.slice(0, limit);
     return { ok: true, items };
   }
+
+  async recordPurchase(record: {
+    userId?: string;
+    userNickname?: string;
+    productId: string;
+    productName: string;
+    points: number;
+    amount: number;
+    platform?: string;
+    transactionId?: string;
+    status?: string;
+  }) {
+    const id = record.transactionId || `pur-${Date.now()}`;
+    const newPurchase: PointPurchase = {
+      id,
+      userId: record.userId || 'usr_guest',
+      user: {
+        id: record.userId || 'usr_guest',
+        displayName: record.userNickname || '회원',
+        email: `${record.userId || 'guest'}@tokfriends.app`,
+      },
+      platform: record.platform || 'inapp',
+      productId: record.productId,
+      productName: record.productName,
+      transactionId: id,
+      amountKrw: record.amount,
+      points: record.points,
+      status: record.status || 'completed',
+      createdAt: new Date().toISOString(),
+    };
+
+    this.purchases.unshift(newPurchase);
+    this.saveFile(path.join(this.dataDir, 'purchases.json'), this.purchases);
+
+    const newLedger: WalletLedger = {
+      id: `led-${Date.now()}`,
+      walletId: `wallet-${record.userId || 'usr_guest'}`,
+      kind: 'PURCHASE',
+      source: record.platform || 'IN_APP_PURCHASE',
+      deltaSpendable: record.points,
+      deltaRedeemable: 0,
+      deltaPending: 0,
+      spendableAfter: record.points,
+      redeemableAfter: 0,
+      pendingAfter: 0,
+      idempotencyKey: id,
+      createdAt: new Date().toISOString(),
+      wallet: {
+        id: `wallet-${record.userId || 'usr_guest'}`,
+        activityAccountId: record.userId || 'usr_guest',
+        activityAccount: {
+          displayName: record.userNickname || '회원',
+          handle: record.userNickname || 'user',
+        },
+      },
+    };
+
+    this.ledger.unshift(newLedger);
+    this.saveFile(path.join(this.dataDir, 'ledger.json'), this.ledger);
+
+    return newPurchase;
+  }
 }
+

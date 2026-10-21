@@ -35,7 +35,12 @@ async function verifyAllConnectedEndpoints() {
         if (where?.id === 'user-me') return { id: 'user-me', nickname: '내계정', pointBalance: 5000 };
         return null;
       },
-      update: async ({ where, data }: any) => ({ ...where, ...data }),
+      update: async ({ where, data }: any) => {
+        let currentBalance = 5000;
+        let inc = data?.pointBalance?.increment;
+        let finalBalance = typeof inc === 'number' ? currentBalance + inc : (typeof data?.pointBalance === 'number' ? data.pointBalance : currentBalance);
+        return { ...where, ...data, pointBalance: finalBalance, nickname: '내계정' };
+      },
     },
     userPhoto: {
       findMany: async () => [{ id: 'p1', userId: 'user-db-1', url: 'https://images.unsplash.com/photo-1.jpg', isPrimary: true }],
@@ -118,7 +123,8 @@ async function verifyAllConnectedEndpoints() {
 
   // 4. Live Streaming Endpoints (LiveController)
   console.log('\n--- 4. 라이브 스트리밍(방 생성/입장/채팅/하트/선물) 검증 ---');
-  const liveController = new LiveController(mockPrismaUsers);
+  const mockChatGateway: any = { emitLiveMessage: () => {}, emitLiveGift: () => {}, emitLiveLike: () => {} };
+  const liveController = new LiveController(mockPrismaUsers, mockChatGateway);
   const activeRooms = await liveController.getLiveRooms();
   assert(activeRooms.items.length > 0, '활성 라이브 스트리밍 방 목록 조회 정상');
 
@@ -126,7 +132,7 @@ async function verifyAllConnectedEndpoints() {
   const createdRoom = createdRoomRes.room;
   assert(createdRoom.title === '테스트 라이브 방송', '라이브 방송 개설 정상');
 
-  const joinResult = await liveController.joinLiveRoom(createdRoom.id);
+  const joinResult = await liveController.joinLiveRoom({ id: 'viewer-1' }, createdRoom.id);
   assert(joinResult.ok === true, '라이브 방송 시청자 참여 정상');
 
   const liveMsgRes = await liveController.sendLiveMessage(createdRoom.id, { content: '응원합니다!' }, { id: 'viewer-1', nickname: '시청자' });
@@ -141,6 +147,21 @@ async function verifyAllConnectedEndpoints() {
   await storeService.onModuleInit();
   const pointPkgs = await storeService.listAll();
   assert(pointPkgs.length > 0, '포인트 상품 패키지 목록 정상 조회');
+
+  const { SettlementService } = require('../src/modules/admin/settlement.service');
+  const { StoreController } = require('../src/modules/store/store.controller');
+  const settlementService = new SettlementService(mockPrismaUsers);
+  settlementService.onModuleInit();
+  const storeController = new StoreController(storeService, mockPrismaUsers, settlementService);
+
+  const purchaseRes = await storeController.confirmPurchase(
+    { id: 'user-me', nickname: '내계정' },
+    { productId: 'point-1', points: 1000, amount: 1100, platform: 'android' },
+  );
+  assert(purchaseRes.ok === true && purchaseRes.pointBalance > 1000, '온(ON) 충전 시 실제 DB 잔액 즉각 증액 정상');
+
+  const adminPurchases = await settlementService.getPurchases({});
+  assert(adminPurchases.items.some((p: any) => p.points === 1000), '관리자 결제 내역(data/purchases.json) 실시간 연동 정상');
 
   console.log('\n================================================================');
   console.log(`🎉 모든 세부 API 연동 검증 통과! (${passed}/${total} assertions passed)`);

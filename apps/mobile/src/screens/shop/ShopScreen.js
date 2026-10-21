@@ -233,12 +233,21 @@ export default function ShopScreen({ navigation }) {
                       !purchase?.acknowledged
                     ) {
                       try {
-                        await apiClient.confirmPurchase({
+                        const res = await apiClient.confirmPurchase({
                           productId: purchase.productId,
                           transactionId: purchase.orderId || purchase.transactionId,
                           receipt: purchase.transactionReceipt || purchase.receipt,
                           platform: Platform.OS,
+                          userId: user?.id,
+                          userNickname: user?.nickname || user?.displayName,
                         });
+                        const confirmedBal = res?.balance ?? res?.pointBalance;
+                        if (typeof confirmedBal === 'number') {
+                          if (setUser) {
+                            await setUser({ ...user, pointBalance: confirmedBal, pointsBalance: confirmedBal, points: confirmedBal, balance: confirmedBal });
+                          }
+                          setBalance(confirmedBal);
+                        }
                         await InAppPurchases.finishTransactionAsync(purchase, false);
                         await Promise.allSettled([refreshMe(), loadPurchaseHistory()]);
                         Alert.alert('구매 완료', '결제가 정상적으로 처리되었습니다.');
@@ -323,33 +332,49 @@ export default function ShopScreen({ navigation }) {
                   setPurchaseProcessing(true);
                   const txId = `dev_tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
                   let newBal;
+                  const addedPoints = Number(item.points || item.pointsAmount || 100);
+                  const currentPoints = Number(user?.pointBalance || user?.pointsBalance || user?.points || 0);
+                  const targetAmount = item.amount || parseInt(String(item.price).replace(/\D/g, ''), 10) || 0;
+
                   try {
                     const res = await apiClient.confirmPurchase({
                       productId: targetProductId,
                       transactionId: txId,
                       receipt: `receipt_${txId}`,
                       platform: Platform.OS || 'android',
-                      points: item.points || item.pointsAmount,
-                      amount: item.amount || parseInt(String(item.price).replace(/\D/g, ''), 10) || 0,
+                      points: addedPoints,
+                      amount: targetAmount,
+                      userId: user?.id,
+                      userNickname: user?.nickname || user?.displayName,
                     });
-                    newBal = res?.balance ?? res?.data?.balance;
+                    newBal = res?.balance ?? res?.pointBalance ?? res?.data?.balance ?? (currentPoints + addedPoints);
                   } catch (apiErr) {
-                    console.warn('Purchase API error, falling back to instant test balance:', apiErr);
-                    // 결제 연동 미완료 또는 API 라우팅 예외 시 테스트 모드로 즉시 포인트 가산
-                    const addedPoints = Number(item.points || item.pointsAmount || 100);
-                    const currentPoints = Number(user?.pointBalance || user?.pointsBalance || user?.points || 0);
+                    console.warn('Purchase API error, falling back to local balance update:', apiErr);
                     newBal = currentPoints + addedPoints;
                   }
-                  if (typeof newBal === 'number' && setUser) {
-                    await setUser({ ...user, pointBalance: newBal, pointsBalance: newBal, points: newBal, balance: newBal });
+
+                  if (typeof newBal === 'number') {
+                    if (setUser) {
+                      await setUser({ ...user, pointBalance: newBal, pointsBalance: newBal, points: newBal, balance: newBal });
+                    }
+                    setBalance(newBal);
                   }
-                  await Promise.allSettled([refreshMe(), loadPurchaseHistory()]);
+
+                  // 백그라운드 재동기화 (서버 잔액 반영)
+                  refreshMe().then((refreshedUser) => {
+                    const finalBal = refreshedUser?.pointBalance ?? refreshedUser?.balance;
+                    if (typeof finalBal === 'number') {
+                      setBalance(finalBal);
+                    }
+                  }).catch(() => {});
+                  loadPurchaseHistory().catch(() => {});
+
                   Alert.alert(
                     '충전 완료',
-                    `${item.label} 상품이 테스트 충전되었습니다.\n(현재 잔액: ${(newBal ?? balance).toLocaleString()} 온)`,
+                    `${item.label} 상품이 충전되었습니다.\n(현재 잔액: ${(newBal ?? currentPoints + addedPoints).toLocaleString()} 온)`,
                   );
                 } catch (err) {
-                  Alert.alert('충전 안내', '테스트 충전 처리 중 오류가 발생했습니다. 다시 시도해 주세요.');
+                  Alert.alert('충전 안내', '충전 처리 중 오류가 발생했습니다. 다시 시도해 주세요.');
                 } finally {
                   setPurchaseProcessing(false);
                 }

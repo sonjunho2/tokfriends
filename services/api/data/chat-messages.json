@@ -8,7 +8,7 @@
       "senderAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300",
       "content": "안녕하세요! 다가온에서 프로필 보고 인사드려요 👋",
       "type": "text",
-      "createdAt": "2026-10-20T02:19:59.669Z"
+      "createdAt": "2026-10-20T23:23:01.801Z"
     },
     {
       "id": "msg-102",
@@ -17,7 +17,7 @@
       "senderName": "나",
       "content": "반가워요 서연님! 저도 전시회랑 카페 투어 좋아해요 ☕",
       "type": "text",
-      "createdAt": "2026-10-20T03:19:59.669Z"
+      "createdAt": "2026-10-21T00:23:01.801Z"
     },
     {
       "id": "msg-103",
@@ -27,7 +27,7 @@
       "senderAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300",
       "content": "네! 주말에 역삼역 근처 카페에서 봬요 ✨",
       "type": "text",
-      "createdAt": "2026-10-20T04:07:59.669Z"
+      "createdAt": "2026-10-21T01:11:01.801Z"
     }
   ],
   "chat-mock-2": [
@@ -39,7 +39,7 @@
       "senderAvatar": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300",
       "content": "오늘 저녁 한강 러닝 코스 어떠세요?",
       "type": "text",
-      "createdAt": "2026-10-20T03:34:59.669Z"
+      "createdAt": "2026-10-21T00:38:01.801Z"
     }
   ],
   "chat-mock-3": [
@@ -51,7 +51,7 @@
       "senderAvatar": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300",
       "content": "사진 속 강아지가 너무 귀여워요 🐶",
       "type": "text",
-      "createdAt": "2026-10-20T01:19:59.669Z"
+      "createdAt": "2026-10-20T22:23:01.801Z"
     }
   ]
 }

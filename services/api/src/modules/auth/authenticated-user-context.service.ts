@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
-import { UserStatus } from '../../common/user-types';
+import * as fs from 'fs';
+import * as path from 'path';
 
 type DecodedJwtPayload = {
   sub?: string;
@@ -11,7 +12,21 @@ type DecodedJwtPayload = {
 
 @Injectable()
 export class AuthenticatedUserContextService {
+  private readonly dataDir = path.join(process.cwd(), 'data');
+  private readonly profilesFilePath = path.join(this.dataDir, 'user-profiles.json');
+
   constructor(private readonly prisma: PrismaService) {}
+
+  private getExtendedProfile(userId: string): any {
+    try {
+      if (fs.existsSync(this.profilesFilePath)) {
+        const raw = fs.readFileSync(this.profilesFilePath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        return parsed?.[userId] || {};
+      }
+    } catch {}
+    return {};
+  }
 
   async resolveFromPayload(payload: unknown) {
     const decodedPayload = payload as DecodedJwtPayload | null;
@@ -25,6 +40,11 @@ export class AuthenticatedUserContextService {
       select: {
         id: true,
         nickname: true,
+        displayName: true,
+        email: true,
+        avatarUrl: true,
+        bio: true,
+        pointBalance: true,
         role: true,
         status: true,
       },
@@ -34,11 +54,23 @@ export class AuthenticatedUserContextService {
       return null;
     }
 
+    const ext = this.getExtendedProfile(user.id);
+    const nickname = user.nickname || ext.nickname || user.displayName || '회원';
+    const displayName = user.displayName || nickname;
+    const avatarUrl = user.avatarUrl || ext.avatarUrl || ext.avatarUri || null;
+
     return {
       id: user.id,
-      nickname: user.nickname,
+      nickname,
+      displayName,
+      email: user.email,
+      avatarUrl,
+      avatarUri: avatarUrl,
+      pointBalance: user.pointBalance ?? 0,
+      bio: ext.bio || user.bio || '',
       role: user.role?.toLowerCase() ?? 'user',
       status: user.status?.toLowerCase() ?? 'active',
     };
   }
 }
+

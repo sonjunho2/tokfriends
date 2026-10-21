@@ -376,6 +376,7 @@ export default function CommunityFeedScreen({ navigation, route }) {
         category: newCategory,
         images: selectedPhotos,
         mediaUrls: selectedPhotos,
+        authorId: currentUser?.id,
         authorNickname: userNickname,
         authorAvatarUrl: userAvatar,
       });

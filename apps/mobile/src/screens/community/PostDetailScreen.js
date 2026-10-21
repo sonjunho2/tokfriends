@@ -175,10 +175,6 @@ export default function PostDetailScreen({ navigation, route }) {
 
     setSubmittingComment(true);
     try {
-      const created = await apiClient.createPostComment(post.id, {
-        content: trimmed,
-      });
-
       const userNickname =
         currentUser?.nickname ||
         currentUser?.displayName ||
@@ -189,6 +185,13 @@ export default function PostDetailScreen({ navigation, route }) {
         currentUser?.avatarUri ||
         currentUser?.profile?.avatarUri ||
         null;
+
+      const created = await apiClient.createPostComment(post.id, {
+        content: trimmed,
+        authorId: currentUser?.id,
+        authorNickname: userNickname,
+        authorAvatarUrl: userAvatar,
+      });
 
       const newComment = {
         id: created?.id || `comm-${Date.now()}`,

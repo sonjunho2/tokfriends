@@ -395,9 +395,10 @@ export default function LiveRoomScreen({ navigation, route }) {
     showStreamToast('라이브 비디오 영상을 다시 켰습니다', 'videocam');
   }, [agoraStreamController, showStreamToast]);
 
-  const flatListRef = useRef(null);
+  const initialHostFlag = useRef(Boolean(route?.params?.isHost)).current;
 
   const isHost = Boolean(
+    initialHostFlag ||
     route?.params?.isHost ||
     (currentUser?.id && room?.host?.id && String(currentUser.id) === String(room.host.id)) ||
     (currentUser?.id && room?.hostId && String(currentUser.id) === String(room.hostId)) ||
@@ -782,10 +783,16 @@ export default function LiveRoomScreen({ navigation, route }) {
     if (!text || sending) return;
     setSending(true);
     try {
+      const senderNickname = currentUser?.nickname || currentUser?.displayName || '나';
+      const senderAvatar = currentUser?.avatarUrl || currentUser?.avatarUri || null;
       const res = await apiClient.sendLiveMessage({
         roomId,
         content: text,
         type: 'chat',
+        senderId: currentUser?.id,
+        senderName: senderNickname,
+        senderAvatar,
+        isHost,
       });
       const newMsg = res?.data || res?.message || res;
       setInputText('');
@@ -810,10 +817,16 @@ export default function LiveRoomScreen({ navigation, route }) {
     setLikeCount((prev) => prev + 1);
     floatingHeartsRef.current?.addHeartsBurst(3);
     try {
+      const senderNickname = currentUser?.nickname || currentUser?.displayName || '나';
+      const senderAvatar = currentUser?.avatarUrl || currentUser?.avatarUri || null;
       const res = await apiClient.sendLiveMessage({
         roomId,
         content: '❤️ 하트를 보냈습니다!',
         type: 'like',
+        senderId: currentUser?.id,
+        senderName: senderNickname,
+        senderAvatar,
+        isHost,
       });
       const likeMsg = res?.data || res?.message || res;
       if (socketRef.current?.connected && likeMsg?.id) {

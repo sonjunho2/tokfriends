@@ -92,10 +92,15 @@ export default function LiveScreen({ navigation }) {
       onConfirm: async () => {
         setStarting(true);
         try {
+          const hostName = user?.nickname || user?.displayName || '나의 라이브';
+          const hostAvatar = user?.avatarUrl || user?.avatarUri || null;
           const res = await apiClient.createLiveRoom({
             title: trimmedTitle,
             category,
             entryFee: fee,
+            hostId: user?.id,
+            hostName,
+            hostAvatar,
           });
           const room = res?.room || res?.data || res;
           setModalVisible(false);

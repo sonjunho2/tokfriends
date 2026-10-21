@@ -250,7 +250,7 @@ export class LiveController {
   @Public()
   @Post('rooms')
   async createLiveRoom(@CurrentUser() user: any, @Body() body: any) {
-    const userId = user?.id || user?.sub || 'usr_host';
+    const userId = user?.id || user?.sub || body.hostId || body.userId || 'usr_host';
     const policy = this.getActionPolicy();
 
     // 관리자 라이브 개설 온 소모 정책 적용
@@ -282,6 +282,21 @@ export class LiveController {
         if (err instanceof BadRequestException) throw err;
       }
     }
+    const hostName =
+      user?.nickname ||
+      user?.displayName ||
+      body.hostName ||
+      body.host?.name ||
+      body.host?.displayName ||
+      body.host?.nickname ||
+      '나의 라이브';
+    const hostAvatar =
+      user?.avatarUrl ||
+      user?.avatarUri ||
+      body.hostAvatar ||
+      body.host?.avatar ||
+      body.host?.avatarUrl ||
+      null;
 
     const newRoom = {
       id: `LIVE-${Date.now()}`,
@@ -297,20 +312,23 @@ export class LiveController {
       startedAt: new Date().toISOString(),
       endedAt: null,
       flagged: false,
+      hostId: userId,
       host: {
         id: userId,
-        name: user?.nickname || user?.displayName || '나의 라이브',
-        displayName: user?.nickname || user?.displayName || '나의 라이브',
-        nickname: user?.nickname || user?.displayName || '나의 라이브',
-        avatar: user?.avatarUrl || null,
-        avatarUrl: user?.avatarUrl || null,
-        region: '서울 강남구',
-        headline: user?.bio || '반가워요!',
+        targetAccountId: userId,
+        name: hostName,
+        displayName: hostName,
+        nickname: hostName,
+        avatar: hostAvatar,
+        avatarUrl: hostAvatar,
+        region: user?.region1 ? `${user.region1} ${user.region2 || ''}`.trim() : (body.region || '서울 강남구'),
+        headline: user?.bio || body.headline || '반가워요!',
       },
     };
     MOCK_LIVE_ROOMS.unshift(newRoom);
     return { ok: true, data: newRoom, room: newRoom, remainingBalance: updatedBalance };
   }
+
 
   /**
    * 모바일 앱용 라이브 방 입장
@@ -431,8 +449,27 @@ export class LiveController {
     @CurrentUser() user?: any,
   ) {
     const userId = user?.id || user?.sub || body.senderId || 'guest';
-    const senderName = user?.nickname || user?.displayName || body.senderName || '참여자';
-    const senderAvatar = user?.avatarUrl || body.senderAvatar || null;
+    const activeRoom = MOCK_LIVE_ROOMS.find((r) => r.id === roomId);
+    const isHostMessage = Boolean(
+      ((activeRoom as any)?.hostId && (activeRoom as any).hostId === userId) ||
+      (activeRoom?.host?.id && activeRoom.host.id === userId) ||
+      body.isHost,
+    );
+
+    const senderName =
+      user?.nickname ||
+      user?.displayName ||
+      body.senderName ||
+      body.sender?.name ||
+      body.sender?.nickname ||
+      (isHostMessage ? (activeRoom?.host?.name || '호스트') : '참여자');
+    const senderAvatar =
+      user?.avatarUrl ||
+      user?.avatarUri ||
+      body.senderAvatar ||
+      body.sender?.avatar ||
+      body.sender?.avatarUrl ||
+      (isHostMessage ? activeRoom?.host?.avatar : null);
 
     const msg = {
       id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -443,6 +480,7 @@ export class LiveController {
       createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       senderId: userId,
       senderName,
+      isHost: isHostMessage,
       sender: {
         id: userId,
         name: senderName,
@@ -450,8 +488,10 @@ export class LiveController {
         nickname: senderName,
         avatar: senderAvatar,
         avatarUrl: senderAvatar,
+        isHost: isHostMessage,
       },
     };
+
 
     // 메모리 저장소에 보관 (폴링 시 유지)
     this.getRoomMessages(roomId).push(msg);

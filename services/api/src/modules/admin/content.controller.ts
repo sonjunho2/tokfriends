@@ -403,16 +403,30 @@ export class ContentController {
   @Public()
   @Post('posts')
   async createCommunityPost(@CurrentUser() user: any, @Body() dto: any) {
-    const userId = user?.id || user?.sub || 'usr_guest';
-    const nickname = user?.nickname || user?.displayName || dto?.authorNickname || '동네 이웃';
-    const avatar = user?.avatarUrl || dto?.authorAvatarUrl || null;
+    const userId = user?.id || user?.sub || dto?.authorId || dto?.author?.id || 'usr_guest';
+    const nickname =
+      user?.nickname ||
+      user?.displayName ||
+      dto?.authorNickname ||
+      dto?.authorDisplayName ||
+      dto?.author?.nickname ||
+      dto?.author?.displayName ||
+      dto?.author?.name ||
+      '동네 이웃';
+    const avatar =
+      user?.avatarUrl ||
+      user?.avatarUri ||
+      dto?.authorAvatarUrl ||
+      dto?.author?.avatar ||
+      dto?.author?.avatarUrl ||
+      null;
     const item = this.contentService.createPost({
       ...dto,
       authorId: userId,
       authorNickname: nickname,
       authorDisplayName: nickname,
       authorAvatarUrl: avatar,
-      authorRole: 'USER',
+      authorRole: user?.role?.toUpperCase() || 'USER',
       category: dto.category || 'DAILY',
     });
     return { ok: true, data: item, post: item };
@@ -439,9 +453,23 @@ export class ContentController {
     @CurrentUser() user: any,
     @Body() dto: any,
   ) {
-    const userId = user?.id || user?.sub || 'usr_guest';
-    const nickname = user?.nickname || user?.displayName || '이웃';
-    const avatar = user?.avatarUrl || null;
+    const userId = user?.id || user?.sub || dto?.authorId || dto?.author?.id || 'usr_guest';
+    const nickname =
+      user?.nickname ||
+      user?.displayName ||
+      dto?.authorNickname ||
+      dto?.authorDisplayName ||
+      dto?.author?.nickname ||
+      dto?.author?.displayName ||
+      dto?.author?.name ||
+      '동네 이웃';
+    const avatar =
+      user?.avatarUrl ||
+      user?.avatarUri ||
+      dto?.authorAvatarUrl ||
+      dto?.author?.avatar ||
+      dto?.author?.avatarUrl ||
+      null;
     const comment = this.contentService.addComment(id, {
       authorId: userId,
       authorNickname: nickname,
@@ -450,6 +478,7 @@ export class ContentController {
     });
     return { ok: true, data: comment, comment };
   }
+
 
   @Public()
   @Delete('posts/:id/comments/:commentId')

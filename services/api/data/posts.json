@@ -17,8 +17,8 @@
       "커뮤니티오픈",
       "다가온"
     ],
-    "likesCount": 257,
-    "commentsCount": 11,
+    "likesCount": 260,
+    "commentsCount": 14,
     "viewsCount": 3820,
     "reportCount": 0,
     "status": "ACTIVE",
@@ -156,6 +156,54 @@
         },
         "content": "멋진 글이네요!",
         "createdAt": "2026-10-20T04:19:59.681Z"
+      },
+      {
+        "id": "comm-1792543846893-ihwf",
+        "authorId": "user-me",
+        "authorNickname": "익명 이웃",
+        "authorAvatarUrl": null,
+        "author": {
+          "id": "user-me",
+          "name": "익명 이웃",
+          "nickname": "익명 이웃",
+          "displayName": "익명 이웃",
+          "avatar": null,
+          "avatarUrl": null
+        },
+        "content": "멋진 글이네요!",
+        "createdAt": "2026-10-21T00:50:46.893Z"
+      },
+      {
+        "id": "comm-1792545741004-5gln",
+        "authorId": "user-me",
+        "authorNickname": "익명 이웃",
+        "authorAvatarUrl": null,
+        "author": {
+          "id": "user-me",
+          "name": "익명 이웃",
+          "nickname": "익명 이웃",
+          "displayName": "익명 이웃",
+          "avatar": null,
+          "avatarUrl": null
+        },
+        "content": "멋진 글이네요!",
+        "createdAt": "2026-10-21T01:22:21.004Z"
+      },
+      {
+        "id": "comm-1792545781814-mieb",
+        "authorId": "user-me",
+        "authorNickname": "익명 이웃",
+        "authorAvatarUrl": null,
+        "author": {
+          "id": "user-me",
+          "name": "익명 이웃",
+          "nickname": "익명 이웃",
+          "displayName": "익명 이웃",
+          "avatar": null,
+          "avatarUrl": null
+        },
+        "content": "멋진 글이네요!",
+        "createdAt": "2026-10-21T01:23:01.814Z"
       }
     ],
     "createdAt": "2026-10-15T06:17:08.796Z",

@@ -1,8 +1,44 @@
 # DAGAON Development Checkpoint
 
-Updated: 2026-10-20
+Updated: 2026-10-21
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
+
+## 2026-10-21 Checkpoint 107: [로그인 사용자 식별·세션 동기화 원천 해결 & 커뮤니티 익명댓글 방지·라이브 호스트 정상 인식 및 채팅 선물 상대방 표시 오류 완결] JWT 가드 `@Public()` 라우트 선택적 토큰 복원 구축, 유저 컨텍스트(`AuthenticatedUserContextService`) 프로필 및 아바타 완전 결합, 커뮤니티 댓글/게시글 작성자 메타데이터 보장, 라이브 방송 개설자 ID 바인딩 및 호스트 권한 보존, 1:1 채팅 선물 전송자 식별(`senderAccountId`) 일치화 및 'me'/'other' 말풍선 반전 오류 원천 해결 (진행 완료 - 메인 병합 및 APK 빌드 대기)
+
+### 1. 개요 및 사용자 요청 사항
+- **문제점 1 (커뮤니티 익명 댓글)**: 앱에 정상 로그인한 상태에서 커뮤니티에 댓글을 작성하면 내 계정 정보가 아닌 '이웃(익명)' 댓글로 등록되는 현상.
+- **문제점 2 (라이브 방송 호스트 미인식 & 참여자 표시)**: 내가 직접 라이브 방송을 개설하고 채팅을 쳤는데도 호스트가 아닌 '참여자'로 표시되고 방송 참여자로 인식되는 현상.
+- **문제점 3 (채팅 선물 반전 표시)**: 1:1 대화방에서 내가 상대방에게 온(ON) 선물을 전송했는데 내가 보낸 것이 아니라 상대편이 보낸 것처럼(좌측 말풍선) 표시되는 현상.
+- **문제점 4 (로그인 세션 및 유저 식별 정리)**: 로그인해서 접속했음에도 각 기능(커뮤니티, 라이브, 채팅 등)에서 내가 보이지 않고 게스트/익명으로 취급되는 서버 연결 및 기록 문제 전수 해결 요청.
+
+### 2. 근본 원인 분석 및 해결 내역
+1. **서버 `JwtAuthGuard`의 `@Public()` 라우트 인증 완전 스킵 문제 해결 (`services/api/src/modules/auth/jwt.guard.ts`)**:
+   - 기존에는 라우트에 `@Public()` 데코레이터가 붙어 있으면 `canActivate`가 즉시 `return true`로 종료되어, 클라이언트가 HTTP 헤더로 유효한 JWT 토큰(`Authorization: Bearer <token>`)을 전송하더라도 Passport의 JWT 전략을 거치지 않아 `req.user`가 주입되지 않고 `undefined`가 됨.
+   - 이로 인해 댓글 작성, 라이브 개설, 라이브 채팅, 채팅 선물 등 `@Public()`이 달린 엔드포인트에서 `@CurrentUser() user`가 항상 `undefined`가 되어 서버가 작성자를 `usr_guest`, `usr_host`, `guest`로 강제 fallback 처리하고 있었음.
+   - **수정**: `@Public()` 엔드포인트라도 `Authorization` 헤더가 존재하면 선택적(Optional) 인증을 수행하여 `req.user`에 실제 유저 정보를 온전히 복원하도록 개선하고, 토큰이 없거나 무효한 경우에만 게스트로 통과하도록 스마트하게 분기 처리.
+2. **인증 유저 컨텍스트 서비스 확장 (`authenticated-user-context.service.ts`)**:
+   - `AuthenticatedUserContextService.resolveFromPayload`에서 단순 DB 유저 필드 외에 `displayName`, `avatarUrl`, `pointBalance`를 포함하고, 영구 스토리지(`data/user-profiles.json`)의 확장 프로필 정보와 병합하여 완전한 유저 컨텍스트를 컨트롤러에 공급.
+3. **커뮤니티 댓글 및 게시글 작성자 일관성 보장 (`content.controller.ts`, `PostDetailScreen.js`, `CommunityFeedScreen.js`, `client.js`)**:
+   - `ContentController.createPostComment` 및 `createCommunityPost`에서 복원된 `user` 정보뿐 아니라 DTO로 전달되는 `authorId`, `authorNickname`, `authorAvatarUrl`을 2중 fallback으로 수신하여 작성자 누락을 원천 차단.
+   - 모바일 클라이언트 `PostDetailScreen.js` 및 `apiClient.createPostComment`에서 현재 로그인한 유저의 식별 정보(`currentUser.id`, `nickname`, `avatarUrl`)를 요청 본문에 함께 실어 전달.
+4. **라이브 방송 개설자 호스트 바인딩 및 채팅 발신자 정상화 (`live.controller.ts`, `LiveScreen.js`, `LiveRoomScreen.js`, `client.js`)**:
+   - `LiveController.createLiveRoom`에서 방송 개설자의 `hostId`와 `host.id`, `host.targetAccountId`를 실제 로그인한 `userId`로 일치시켜 저장.
+   - `LiveController.sendLiveMessage`에서 현재 요청자가 방의 호스트인지 실시간 판별(`isHost: isHostMessage`)하고, `senderName`이 기본값 '참여자'로 묻히지 않도록 실제 닉네임과 호스트 상태를 보장.
+   - 모바일 앱 `LiveScreen.js`에서 방 개설 시 로그인 유저의 `hostId`, `hostName`, `hostAvatar`를 명시 전달하고, `LiveRoomScreen.js`에서 `initialHostFlag`를 보존하여 화면 새로고침 시에도 호스트 권한이 풀리지 않도록 조치.
+   - `handleSendMessage` 및 `handleSendHeart` 호출 시 내 유저 정보(`senderId`, `senderName`, `senderAvatar`, `isHost`)를 전달하도록 연동.
+5. **1:1 채팅 선물 전송자 식별 및 말풍선 방향 반전 해결 (`chat.controller.ts`, `chat.service.ts`, `ChatRoomScreen.js`, `client.js`)**:
+   - `ChatController.sendChatGift` 및 `sendChatMessage`에서 `user` 토큰 정보와 본문의 `senderAccountId`를 통해 정확한 발신자 ID를 기록하고, `ChatService.deductPoints`로 실제 유저의 보유 온(ON) 차감 반영.
+   - 모바일 앱 `ChatRoomScreen.js`의 `normalizeHistoryMessage`에서 `senderAccountId === currentActivityAccountId` 외에도 `message.sender === 'me'`, `senderAccountId === 'me'`, `'dummy-user'` 및 대소문자 무시 매칭을 적용하여 내가 보낸 선물/메시지가 상대방('other')으로 뒤바뀌는 현상 원천 차단.
+   - `handleSendGift` 및 미디어/텍스트 전송 시 `senderAccountId`를 서버에 명시 전달하고, 서버 응답 확인 즉시 `normalized.sender = 'me'`를 확정 반영.
+
+### 3. 검증 결과
+- **백엔드 NestJS 빌드**: `services/api`에서 `npm run build` -> 성공 (0 error).
+- **세부 API 통합 E2E 테스트**: `verify-all-endpoints.ts` -> **24/24개 전 항목 100% 통과 (PASS)**.
+- **모바일 코드 바벨 컴파일**: 수정된 모바일 6개 파일(`client.js`, `PostDetailScreen.js`, `CommunityFeedScreen.js`, `LiveScreen.js`, `LiveRoomScreen.js`, `ChatRoomScreen.js`) 전수 구문 및 변환 검증 100% 통과 (OK: 6/6).
+- **상태**: 사용자 지시에 따라 메인 병합 및 프로덕션 APK 빌드는 대기 중.
+
+---
 
 ## 2026-10-20 Checkpoint 106: [라이브 목록 화면 카드 풀썸네일·그라데이션 개편 & 라이브 방송방 상단 헤더 정돈·기여도 랭킹 1~4등 개별 분리 및 1등 골드 링 강조 & 관리자 온 소모 설정 백엔드 영구 연동 및 실제 포인트 차감 완결] 관리자 온 소모 정책(`data/action-point-policy.json`) 백엔드·모바일 전역 연동 및 방송 개설·입장·채팅방 개설 시 실제 포인트 원자적 차감, 라이브 목록 화면(`LiveScreen.js`) 홈 화면 수준의 고품격 풀 썸네일+하단 딤드 그라데이션 카드 전면 개편, 라이브 방송 룸(`LiveRoomScreen.js`) 상단 불필요한 LIVE 글자 및 포인트 배지 제거, [호스트 아바타+이름+지역] 캡슐 정돈, 우측 상단 기여도 랭킹 1~4위 개별 분리 나란히 배치 및 1등 화려한 골드 테두리 링/뱃지 강조, 기여도 랭킹 바텀시트(`LiveViewerRankingSheet.js`) 클릭 연동 및 프로필 시트 오픈 완결 (진행 완료 - 메인 병합 및 APK 빌드 대기)
 
@@ -5506,4 +5542,43 @@ First Owner/ActivityAccount migration must:
 - **배포 및 빌드**:
   - `main` 브랜치 병합 및 푸시 완료 (`9e80e2f`).
   - 루트 경로 최신 릴리즈 APK 생성 완료: `dagaon-release.apk` (102.4 MB).
+
+---
+
+## Checkpoint 108: 온(ON) 포인트 충전 영구 보존 및 관리자 원장/결제 내역 실시간 동기화 완비 (2026-10-21)
+
+### 1. 온(ON) 충전 후 잔액 원상복구(리셋) 버그 원천 차단
+- **근본 원인 분석**:
+  1. `store.controller.ts`의 `getPointBalance` 엔드포인트에 `let balance = 1250;` 하드코딩이 잔존하여, 결제 후 모바일 클라이언트가 `refreshMe()` 또는 잔액 조회를 재호출했을 때 DB 잔액을 덮어쓰고 1,250으로 리셋되었던 현상 확인.
+  2. 모바일 `api/client.js`의 `confirmPurchase` 호출 시 결제 패키지의 `points`, `amount`, `userId` 매개변수가 누락되어 백엔드로 정상 전송되지 않았던 구조적 결함 수정.
+  3. 충전 완료 후 인앱결제/테스트 결제 응답이 관리자 웹의 파일 스토리지(`data/purchases.json`, `data/ledger.json`)에 기록되지 않고 휘발성 메모리에만 머물러 관리자 화면과 괴리되었던 문제 해결.
+- **백엔드 영구 보존 및 실시간 동기화 구현 (`services/api`)**:
+  - `SettlementService.recordPurchase(...)`:
+    - 유저 ID, 닉네임, 충전 온(ON) 포인트, 결제 금액, 플랫폼(Android/iOS/InApp), 주문번호를 수신하여 `data/purchases.json` 및 `data/ledger.json`에 원자적 영구 저장.
+  - `StoreController.confirmPurchase`:
+    - `userId`를 다중 fallback(`@CurrentUser()`, `body.userId`, `body.accountId`, 최신 활성 유저)으로 안전 식별.
+    - `this.prisma.user.update`로 실제 DB의 `pointBalance`를 `{ increment: points }`로 원자적 증액.
+    - `settlementService.recordPurchase`를 호출하여 관리자 웹 정산 시스템에 결제 및 입금 원장 즉각 반영.
+    - `balance`, `pointBalance`, `pointsBalance`, `spendableBalance`로 최신 누적 잔액을 균일 반환.
+  - `StoreController.getPointBalance`:
+    - 하드코딩 `1250` 완전 제거. DB 유저의 실제 `pointBalance`를 정확히 조회하여 반환.
+  - `StoreController.getPurchaseHistory`:
+    - `settlementService.getPurchases`를 기반으로 모바일과 관리자 웹의 결제 기록이 100% 동일하게 일치하도록 통합.
+
+### 2. 모바일 앱 충전 파이프라인 및 상태 동기화 개선 (`apps/mobile`)
+- `apps/mobile/src/api/client.js`:
+  - `confirmPurchase(payload)` 호출 시 `productId`, `points`, `amount`, `userId`, `userNickname`, `platform` 파라미터를 누락 없이 백엔드 3대 라우트(`/store/purchases/confirm`, `/store/purchase`, `/store/confirm-purchase`)로 전송하도록 확장.
+- `apps/mobile/src/screens/shop/ShopScreen.js`:
+  - `handlePurchase`: 결제 패키지 선택 시 `userId: user?.id`, `points: addedPoints`, `amount: targetAmount`를 서버에 명시 전달.
+  - 서버 응답으로 수신된 최신 누적 잔액(`newBal`)을 `setUser`와 `setBalance(newBal)`에 즉각 반영.
+  - 직후 실행되는 백그라운드 `refreshMe()`에서도 서버 DB의 증액된 잔액이 그대로 유지되도록 상태 동기화 완성.
+  - 스토어 인앱결제 리스너(`setPurchaseListener`)에서도 동일하게 DB 잔액 갱신 및 관리자 연동 적용.
+
+### 3. 엔드투엔드 검증
+- `services/api/test/verify-all-endpoints.ts`:
+  - 온(ON) 충전 시 실제 DB 잔액 즉각 증액 정상 (Pass).
+  - 관리자 결제 내역(`data/purchases.json`, `data/ledger.json`) 실시간 연동 정상 (Pass).
+  - 총 26개 E2E 세부 연동 assertion 전체 통과 (26/26 Passed).
+- 모바일 Babel 구문 분석 및 빌드 사전 검증 완료: `ShopScreen.js`, `client.js` 무결성 확인.
+
 
