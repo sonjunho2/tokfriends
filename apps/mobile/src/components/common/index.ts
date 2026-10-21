@@ -6,3 +6,7 @@ export * from './GlobalBottomSheet';
 
 export { default as EmptyStateView } from './EmptyStateView';
 export * from './EmptyStateView';
+
+export { default as ExtendedFAB } from './ExtendedFAB';
+export * from './ExtendedFAB';
+

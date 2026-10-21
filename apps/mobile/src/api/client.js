@@ -1365,6 +1365,159 @@ export const apiClient = {
     }
   },
 
+  // 1. 추천 대화방 (Open Waiting Rooms) API
+  async getOpenChatRooms() {
+    try {
+      const { data } = await client.get('/chats/open-rooms');
+      const list = data?.items || data?.data || data || [];
+      return Array.isArray(list) ? list : [];
+    } catch {
+      return [
+        {
+          id: 'open-room-1',
+          title: '오늘 저녁 한강 러닝 코스 같이 달려요 🏃',
+          category: '운동',
+          entryFee: 30,
+          hostId: 'u-seed-2',
+          hostName: '김도현',
+          hostAvatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300',
+          hostAge: 29,
+          hostRegion: '서울 강남구',
+          hostGender: '남',
+          createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+          matchedCount: 3,
+        },
+        {
+          id: 'open-room-2',
+          title: '성수동 빈티지 카페 탐방 & 감성 수다 ☕',
+          category: '친목',
+          entryFee: 50,
+          hostId: 'u-seed-1',
+          hostName: '박서연',
+          hostAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+          hostAge: 26,
+          hostRegion: '서울 성동구',
+          hostGender: '여',
+          createdAt: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
+          matchedCount: 5,
+        },
+        {
+          id: 'open-room-3',
+          title: '귀여운 댕댕이 사진 공유하고 힐링할 분 🐶',
+          category: '반려견',
+          entryFee: 0,
+          hostId: 'u-seed-5',
+          hostName: '한유진',
+          hostAvatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300',
+          hostAge: 25,
+          hostRegion: '서울 마포구',
+          hostGender: '여',
+          createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+          matchedCount: 2,
+        },
+        {
+          id: 'open-room-4',
+          title: '주말 테니스 & 배드민턴 랠리 파트너 구해요 🏸',
+          category: '취미',
+          entryFee: 20,
+          hostId: 'u-seed-4',
+          hostName: '이지민',
+          hostAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
+          hostAge: 27,
+          hostRegion: '서울 송파구',
+          hostGender: '여',
+          createdAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
+          matchedCount: 1,
+        },
+      ];
+    }
+  },
+
+  async createOpenChatRoom({ title, category = '친목', entryFee = 0 } = {}) {
+    try {
+      const { data } = await client.post('/chats/open-rooms', {
+        title: String(title).trim(),
+        category,
+        entryFee: Number(entryFee || 0),
+      });
+      return data?.room || data?.data || data;
+    } catch {
+      return {
+        id: `open-room-${Date.now()}`,
+        title,
+        category,
+        entryFee,
+        hostId: 'me',
+        hostName: '나',
+        hostAvatar: null,
+        createdAt: new Date().toISOString(),
+        matchedCount: 0,
+      };
+    }
+  },
+
+  async joinOpenChatRoom(roomId) {
+    const { data } = await client.post(`/chats/open-rooms/${encodeURIComponent(String(roomId))}/join`);
+    return data;
+  },
+
+  // 2. 1:1 대화 신청/수락/거절 (Chat Requests) API
+  async getChatRequests() {
+    try {
+      const { data } = await client.get('/chats/requests');
+      const list = data?.items || data?.data || data || [];
+      return Array.isArray(list) ? list : [];
+    } catch {
+      return [
+        {
+          id: 'req-mock-1',
+          senderId: 'u-seed-4',
+          senderName: '이지민',
+          senderAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
+          senderAge: 27,
+          senderRegion: '서울 송파구',
+          receiverId: 'me',
+          message: '안녕하세요! 프로필 사진 보고 취향이 잘 맞을 것 같아 대화 신청드려요 ✨ 주말에 편하게 톡 나눠요!',
+          entryFee: 50,
+          status: 'PENDING',
+          createdAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+        },
+        {
+          id: 'req-mock-2',
+          senderId: 'u-seed-6',
+          senderName: '강민호',
+          senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
+          senderAge: 30,
+          senderRegion: '서울 서초구',
+          receiverId: 'me',
+          message: '동네 러닝 크루나 운동 같이 하실 분 찾고 있어요 🏃 대화 가능하신가요?',
+          entryFee: 30,
+          status: 'PENDING',
+          createdAt: new Date(Date.now() - 1000 * 60 * 80).toISOString(),
+        },
+      ];
+    }
+  },
+
+  async sendChatRequest({ targetUserId, message, entryFee = 0 } = {}) {
+    const { data } = await client.post('/chats/requests', {
+      targetUserId: String(targetUserId).trim(),
+      message: String(message || '').trim(),
+      entryFee: Number(entryFee || 0),
+    });
+    return data?.request || data?.data || data;
+  },
+
+  async acceptChatRequest(requestId) {
+    const { data } = await client.post(`/chats/requests/${encodeURIComponent(String(requestId))}/accept`);
+    return data;
+  },
+
+  async rejectChatRequest(requestId) {
+    const { data } = await client.post(`/chats/requests/${encodeURIComponent(String(requestId))}/reject`);
+    return data;
+  },
+
   async getChatMessages(chatId, cursor) {
     const target = String(chatId || '').trim();
     if (!target) {

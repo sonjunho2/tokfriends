@@ -31,6 +31,8 @@ import {
   UserAvatar,
   GlobalBottomSheet,
   EmptyStateView,
+  ExtendedFAB,
+  useExtendedFabScroll,
 } from '../../components/common';
 import ReportModal from '../../components/ReportModal';
 import { apiClient } from '../../api/client';
@@ -165,6 +167,9 @@ const FALLBACK_POSTS = [
 
 export default function CommunityFeedScreen({ navigation, route }) {
   const { user: currentUser } = useAuth();
+
+  // 당근마켓 스타일 가변 플로팅 액션 버튼(Extended FAB) 스크롤 리스너 (60fps 인터랙션)
+  const { isExtended, handleScroll } = useExtendedFabScroll(15);
 
   // 1. 카테고리 필터 및 동적 카테고리 상태 (관리자 연동)
   const [selectedCategory, setSelectedCategory] = useState('전체');
@@ -482,23 +487,6 @@ export default function CommunityFeedScreen({ navigation, route }) {
             </Text>
           </View>
         </View>
-
-        {/* [✍️ 글쓰기] 네온 핑크 캡슐 버튼 */}
-        <TouchableOpacity
-          style={styles.writeButton}
-          activeOpacity={0.85}
-          onPress={() => setWriteModalVisible(true)}
-        >
-          <LinearGradient
-            colors={tokens.colors.gradients.primaryPurple}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.writeButtonGradient}
-          >
-            <Ionicons name="create-outline" size={15} color="#FFFFFF" />
-            <Text style={styles.writeButtonText}>글쓰기</Text>
-          </LinearGradient>
-        </TouchableOpacity>
       </View>
 
       {/* 가로 스크롤 1열 캡슐 필터 바 (관리자/서버 동적 카테고리) */}
@@ -681,13 +669,15 @@ export default function CommunityFeedScreen({ navigation, route }) {
       {/* 1. 상단 헤더 & 카테고리 1열 캡슐 필터 바 */}
       {renderHeader()}
 
-      {/* 2. 소셜 피드 리스트 (실시간 인기토픽 라인 삭제 완료) */}
+      {/* 2. 소셜 피드 리스트 (스크롤 시 Extended FAB 축소 연동) */}
       <FlatList
         data={filteredPosts}
         keyExtractor={(item) => String(item.id)}
         renderItem={renderFeedCard}
         contentContainerStyle={styles.feedScrollContent}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         removeClippedSubviews={Platform.OS === 'android'}
         initialNumToRender={4}
         maxToRenderPerBatch={4}
@@ -713,6 +703,14 @@ export default function CommunityFeedScreen({ navigation, route }) {
             style={{ marginTop: 40 }}
           />
         }
+      />
+
+      {/* 당근마켓 스타일 가변 플로팅 액션 버튼 (Extended FAB) */}
+      <ExtendedFAB
+        label="+ 글쓰기"
+        iconName="add"
+        isExtended={isExtended}
+        onPress={() => setWriteModalVisible(true)}
       />
 
       {/* 작성자 터치 시 무전환 GlobalBottomSheet */}

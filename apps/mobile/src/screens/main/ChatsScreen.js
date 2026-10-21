@@ -26,6 +26,8 @@ import {
   UserAvatar,
   GlobalBottomSheet,
   EmptyStateView,
+  ExtendedFAB,
+  useExtendedFabScroll,
 } from '../../components/common';
 import CreateRoomModal from '../../components/chat/CreateRoomModal';
 import { apiClient } from '../../api/client';
@@ -254,29 +256,46 @@ const DEFAULT_CHATS = [
 export default function ChatsScreen({ navigation, route }) {
   const { user: authUser } = useAuth();
 
-  // 1. 상단 세그먼트 탭 ('discover' | 'chats')
-  const initialTab = route?.params?.tab === 'chats' ? 'chats' : 'discover';
+  // 1. 상단 4단 세그먼트 탭 ('discover' | 'openRooms' | 'chats' | 'requests')
+  // 인연찾기 / 추천대화방 / 대화중(기존내대화) / 신청목록
+  const initialTab = ['discover', 'openRooms', 'chats', 'requests'].includes(route?.params?.tab)
+    ? route.params.tab
+    : (route?.params?.tab === 'chats' ? 'chats' : 'discover');
   const [activeTab, setActiveTab] = useState(initialTab);
 
-  // 2. 가로 1열 캡슐 필터 선택 상태 (관리자 소셜 & 매칭 설정 실시간 연동)
+  // 2. 가변 플로팅 액션 버튼(Extended FAB) 스크롤 리스너 (60fps 인터랙션)
+  const { isExtended, handleScroll } = useExtendedFabScroll(15);
+
+  // 3. 가로 1열 캡슐 필터 선택 상태 (관리자 소셜 & 매칭 설정 실시간 연동)
   const [quickFilters, setQuickFilters] = useState(DEFAULT_QUICK_FILTERS);
   const [selectedFilterId, setSelectedFilterId] = useState('T-ALL');
   const [selectedFilter, setSelectedFilter] = useState('전체');
 
-  // 3. 인연 데이터 상태
+  // 4. 인연 데이터 상태
   const [discoverUsers, setDiscoverUsers] = useState(FALLBACK_DISCOVER_USERS);
   const [refreshing, setRefreshing] = useState(false);
 
-  // 4. 대화 목록 상태
+  // 5. 추천 대화방 목록 (현재 대기중인 공개 대화방)
+  const [openRooms, setOpenRooms] = useState([]);
+
+  // 6. 대화 목록 상태 (실제 1:1 대화중)
   const [chats, setChats] = useState(DEFAULT_CHATS);
   const [chatSearchText, setChatSearchText] = useState('');
 
-  // 5. 전역 바텀 시트 (GlobalBottomSheet)
+  // 7. 대화 신청 목록 (나에게 온 1:1 대화 신청)
+  const [chatRequests, setChatRequests] = useState([]);
+
+  // 8. 전역 바텀 시트 (GlobalBottomSheet)
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
-  // 6. 대화방 개설 모달 (CreateRoomModal)
+  // 9. 대화방 개설 모달 (CreateRoomModal)
   const [createRoomModalVisible, setCreateRoomModalVisible] = useState(false);
+
+  // 대기 중인 신청 건수 (뱃지 카운트)
+  const pendingRequestsCount = useMemo(() => {
+    return chatRequests.filter((r) => r.status === 'PENDING').length;
+  }, [chatRequests]);
 
   // 레이더 펄스 애니메이션
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -298,14 +317,16 @@ export default function ChatsScreen({ navigation, route }) {
     ).start();
   }, [pulseAnim]);
 
-  // 데이터 로드
+  // 전체 데이터 통합 로드
   const loadData = useCallback(async ({ refresh = false } = {}) => {
     if (refresh) setRefreshing(true);
     try {
-      const [discoverRes, chatsRes, filtersRes] = await Promise.allSettled([
+      const [discoverRes, chatsRes, filtersRes, openRoomsRes, requestsRes] = await Promise.allSettled([
         apiClient.getDiscover(),
         apiClient.getChats(),
         apiClient.getMatchQuickFilters(),
+        apiClient.getOpenChatRooms(),
+        apiClient.getChatRequests(),
       ]);
 
       // 0. 관리자 설정 빠른 탐색 태그 실시간 동기화
@@ -316,6 +337,7 @@ export default function ChatsScreen({ navigation, route }) {
         ]);
       }
 
+      // 1. 인연 찾기 데이터 동기화
       if (discoverRes.status === 'fulfilled' && Array.isArray(discoverRes.value) && discoverRes.value.length > 0) {
         const mapped = discoverRes.value.map((u, idx) => {
           const profile = u?.profile || {};
@@ -335,6 +357,7 @@ export default function ChatsScreen({ navigation, route }) {
             isOnline: Boolean(profile.lastSeenAt) || fallback.isOnline,
             isHot: idx % 3 === 0,
             pointsPerMinute: 1500,
+            chatEntryFee: u.chatEntryFee || 30,
             photos: Array.isArray(u.photos) && u.photos.length > 0
               ? u.photos
               : (profile.avatarUri ? [{ id: 'p1', url: profile.avatarUri, isPrimary: true }] : fallback.photos),
@@ -343,6 +366,17 @@ export default function ChatsScreen({ navigation, route }) {
         setDiscoverUsers(mapped);
       }
 
+      // 2. 추천 대화방 데이터 동기화
+      if (openRoomsRes.status === 'fulfilled' && Array.isArray(openRoomsRes.value)) {
+        setOpenRooms(openRoomsRes.value);
+      }
+
+      // 3. 대화 신청 목록 데이터 동기화
+      if (requestsRes.status === 'fulfilled' && Array.isArray(requestsRes.value)) {
+        setChatRequests(requestsRes.value);
+      }
+
+      // 4. 대화중(내 대화) 데이터 동기화
       if (chatsRes.status === 'fulfilled' && Array.isArray(chatsRes.value) && chatsRes.value.length > 0) {
         setChats(
           chatsRes.value.map((c) => {
@@ -364,11 +398,9 @@ export default function ChatsScreen({ navigation, route }) {
             let displayAvatar = null;
 
             if (hasCounterpart) {
-              // 상대방이 있는 1:1 대화방: 상대방 닉네임과 상대방 아바타 최우선
               displayTitle = c.counterpart.displayName || c.counterpart.name || c.title || '대화 상대';
               displayAvatar = c.counterpart.avatarUrl || c.counterpart.avatar || c.avatar || null;
             } else if (isMyCreatedRoom) {
-              // 내가 개설한 대기방: 내 프로필 사진과 내가 지은 방 제목 표시
               displayTitle = c.title ? `[내가 개설] ${c.title}` : '내가 개설한 1:1 대화방';
               displayAvatar = authUser?.avatarUrl || authUser?.profile?.avatarUri || c.host?.avatarUrl || null;
             } else {
@@ -394,7 +426,7 @@ export default function ChatsScreen({ navigation, route }) {
         );
       }
     } catch {
-      // 에러 발생 시 감성적인 기본 데이터 유지 (시스템 에러 노출 방지)
+      // 에러 발생 시 기존 데이터 유지
     } finally {
       if (refresh) setRefreshing(false);
     }
@@ -478,35 +510,120 @@ export default function ChatsScreen({ navigation, route }) {
     setBottomSheetVisible(true);
   };
 
-  // 원터치 1:1 대화 시작
+  // 원터치 1:1 대화 시작 또는 대화 신청
   const handleStartChat = (targetUser) => {
     if (!targetUser?.id) return;
-    checkAndConfirmActionPoint({
-      actionType: 'chatRoomCreate',
-      actionName: '1:1 대화방 개설',
-      navigation,
-      onConfirm: async () => {
-        try {
-          const room = await apiClient.ensureDirectRoom({ targetUserId: targetUser.id });
-          const roomId = room?.id || room?._id;
-          if (roomId) {
-            setBottomSheetVisible(false);
-            navigation.navigate('ChatRoom', {
-              id: roomId,
-              room,
-              user: {
-                id: targetUser.id,
-                name: targetUser.name,
-                avatar: targetUser.avatar,
-                headline: targetUser.headline,
-              },
-            });
-          }
-        } catch (e) {
-          Alert.alert('안내', e?.message || '대화방을 생성할 수 없습니다.');
-        }
-      },
-    });
+    const entryFee = targetUser.chatEntryFee || targetUser.entryFee || 30;
+    Alert.alert(
+      '대화 신청',
+      `${targetUser.name}님에게 1:1 대화를 신청하시겠습니까?\n\n• 상대방 입장료: ${entryFee} ON\n• 상대방이 수락하면 1:1 대화방이 즉시 개설되고 입장료가 상대방에게 지급됩니다. (거절 시 환불)`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '대화 신청',
+          onPress: async () => {
+            try {
+              setBottomSheetVisible(false);
+              await apiClient.sendChatRequest({
+                targetUserId: targetUser.id,
+                message: '안녕하세요! 프로필 보고 대화 신청드립니다 😊',
+              });
+              Alert.alert('신청 완료', `${targetUser.name}님에게 대화 신청을 전달했습니다! 상대방이 수락하면 대화방이 생성됩니다.`);
+              loadData();
+            } catch (e) {
+              Alert.alert('신청 실패', e?.message || '대화 신청을 전송할 수 없습니다.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // 추천 대화방 입장하기 (게스트 -> 방장 1:1 대화방 생성 및 입장료 포인트 적립)
+  const handleJoinOpenRoom = async (room) => {
+    const fee = room.entryFee || 0;
+    const myId = authUser?.id || authUser?.activityAccountId;
+    const isMyRoom = (myId && room.hostId === myId) || room.isMyRoom;
+
+    if (isMyRoom) {
+      Alert.alert(
+        '내가 개설한 대기방',
+        `"${room.title}" 방은 내가 개설한 1:1 추천 대화방입니다.\n현재 다른 회원의 입장을 대기하고 있습니다 ⏳\n(게스트가 입장하면 알림과 함께 1:1 대화방이 생성됩니다)`,
+        [{ text: '확인' }]
+      );
+      return;
+    }
+
+    Alert.alert(
+      '대화방 입장',
+      fee > 0
+        ? `"${room.title}" 대화방에 입장하시겠습니까?\n\n※ 입장료 ${fee} ON이 차감되며 방장(${room.host?.name || '방장'})님에게 적립됩니다.`
+        : `"${room.title}" 대화방에 입장하시겠습니까?`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '대화 시작하기',
+          onPress: async () => {
+            try {
+              const res = await apiClient.joinOpenChatRoom(room.id);
+              if (res?.chatRoom) {
+                Alert.alert('입장 성공', '1:1 대화방이 생성되었습니다! 대화를 시작해보세요 🎉');
+                navigation.navigate('ChatRoom', {
+                  id: res.chatRoom.id,
+                  room: res.chatRoom,
+                  user: res.chatRoom.counterpart || room.host,
+                });
+                loadData();
+              }
+            } catch (err) {
+              Alert.alert('입장 실패', err?.message || '대화방 입장에 실패했습니다.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // 대화 신청 수락 (나의 1:1 대화방 즉시 생성 & 입장료 포인트 수락자 적립)
+  const handleAcceptRequest = async (req) => {
+    try {
+      const res = await apiClient.acceptChatRequest(req.id);
+      Alert.alert('대화 수락', `${req.sender?.name || '상대방'}님의 대화 신청을 수락했습니다! 대화방으로 이동합니다 🎉`);
+      if (res?.chatRoom) {
+        navigation.navigate('ChatRoom', {
+          id: res.chatRoom.id,
+          room: res.chatRoom,
+          user: res.chatRoom.counterpart || req.sender,
+        });
+      }
+      loadData();
+    } catch (err) {
+      Alert.alert('수락 실패', err?.message || '신청을 수락하지 못했습니다.');
+    }
+  };
+
+  // 대화 신청 거절 (신청자에게 포인트 자동 환불)
+  const handleRejectRequest = async (req) => {
+    Alert.alert(
+      '신청 거절',
+      `${req.sender?.name || '상대방'}님의 대화 신청을 거절하시겠습니까?\n상대방에게 결제된 포인트가 환불됩니다.`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '거절',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiClient.rejectChatRequest(req.id);
+              Alert.alert('거절 완료', '대화 신청을 거절했습니다.');
+              loadData();
+            } catch (err) {
+              Alert.alert('오류', err?.message || '거절 처리 중 오류가 발생했습니다.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   // 1:1 다이렉트 통화 신청
@@ -555,12 +672,16 @@ export default function ChatsScreen({ navigation, route }) {
   }, []);
 
   // =========================================================================
-  // 1. 상단 세그먼트 탭 헤더
+  // 1. 상단 4단 세그먼트 탭 헤더 (인연찾기 | 추천대화방 | 대화중 | 신청목록)
   // =========================================================================
   const renderTopSegment = () => (
     <View style={styles.topBar}>
-      <View style={styles.segmentContainer}>
-        {/* [⚡ 인연 찾기] 세그먼트 */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.segmentScrollContent}
+      >
+        {/* [1. ⚡ 인연 찾기] */}
         <TouchableOpacity
           style={[styles.segmentBtn, activeTab === 'discover' && styles.segmentBtnActive]}
           onPress={() => setActiveTab('discover')}
@@ -568,7 +689,7 @@ export default function ChatsScreen({ navigation, route }) {
         >
           <Ionicons
             name="flash"
-            size={16}
+            size={15}
             color={activeTab === 'discover' ? tokens.colors.primary : tokens.colors.textTertiary}
           />
           <Text
@@ -582,7 +703,34 @@ export default function ChatsScreen({ navigation, route }) {
           {activeTab === 'discover' && <View style={styles.activeSegmentIndicator} />}
         </TouchableOpacity>
 
-        {/* [💬 내 대화] 세그먼트 */}
+        {/* [2. 🔥 추천 대화방] */}
+        <TouchableOpacity
+          style={[styles.segmentBtn, activeTab === 'openRooms' && styles.segmentBtnActive]}
+          onPress={() => setActiveTab('openRooms')}
+          activeOpacity={0.85}
+        >
+          <Ionicons
+            name="flame"
+            size={15}
+            color={activeTab === 'openRooms' ? tokens.colors.primary : tokens.colors.textTertiary}
+          />
+          <Text
+            style={[
+              styles.segmentText,
+              activeTab === 'openRooms' && styles.segmentTextActive,
+            ]}
+          >
+            추천 대화방
+          </Text>
+          {openRooms.length > 0 && (
+            <View style={styles.tabSmallCountBadge}>
+              <Text style={styles.tabSmallCountText}>{openRooms.length}</Text>
+            </View>
+          )}
+          {activeTab === 'openRooms' && <View style={styles.activeSegmentIndicator} />}
+        </TouchableOpacity>
+
+        {/* [3. 💬 대화중 (기존 내 대화)] */}
         <TouchableOpacity
           style={[styles.segmentBtn, activeTab === 'chats' && styles.segmentBtnActive]}
           onPress={() => setActiveTab('chats')}
@@ -590,7 +738,7 @@ export default function ChatsScreen({ navigation, route }) {
         >
           <Ionicons
             name="chatbubbles"
-            size={16}
+            size={15}
             color={activeTab === 'chats' ? tokens.colors.primary : tokens.colors.textTertiary}
           />
           <Text
@@ -599,35 +747,39 @@ export default function ChatsScreen({ navigation, route }) {
               activeTab === 'chats' && styles.segmentTextActive,
             ]}
           >
-            내 대화
+            대화중
           </Text>
           {chats.some((c) => c.unreadCount > 0) && <View style={styles.chatBadgeDot} />}
           {activeTab === 'chats' && <View style={styles.activeSegmentIndicator} />}
         </TouchableOpacity>
-      </View>
 
-      {/* 우측 보조 액션 (구버전 인연추천 페이지 대신 HOT추천 필터 토글로 통일) */}
-      {activeTab === 'discover' ? (
+        {/* [4. 📬 신청 목록] */}
         <TouchableOpacity
-          style={styles.topIconBtn}
-          onPress={() => {
-            setSelectedFilter('🔥 HOT추천');
-            loadData();
-          }}
-          hitSlop={8}
+          style={[styles.segmentBtn, activeTab === 'requests' && styles.segmentBtnActive]}
+          onPress={() => setActiveTab('requests')}
+          activeOpacity={0.85}
         >
-          <Ionicons name="sparkles" size={20} color={tokens.colors.primary} />
+          <Ionicons
+            name="mail-unread"
+            size={15}
+            color={activeTab === 'requests' ? tokens.colors.primary : tokens.colors.textTertiary}
+          />
+          <Text
+            style={[
+              styles.segmentText,
+              activeTab === 'requests' && styles.segmentTextActive,
+            ]}
+          >
+            신청 목록
+          </Text>
+          {pendingRequestsCount > 0 && (
+            <View style={styles.tabReqBadge}>
+              <Text style={styles.tabReqBadgeText}>{pendingRequestsCount}</Text>
+            </View>
+          )}
+          {activeTab === 'requests' && <View style={styles.activeSegmentIndicator} />}
         </TouchableOpacity>
-      ) : (
-        <TouchableOpacity
-          style={styles.topCreateChatBtn}
-          onPress={() => setCreateRoomModalVisible(true)}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="add" size={16} color="#FFFFFF" />
-          <Text style={styles.topCreateChatText}>1:1 개설</Text>
-        </TouchableOpacity>
-      )}
+      </ScrollView>
     </View>
   );
 
@@ -798,6 +950,147 @@ export default function ChatsScreen({ navigation, route }) {
   // =========================================================================
   // 5. 내 대화방 목록 렌더링
   // =========================================================================
+  // =========================================================================
+  // 5. 추천 대화방 목록 렌더링 (현재 대기 중인 1:1 공개 방)
+  // =========================================================================
+  const renderOpenRoomItem = ({ item }) => {
+    const myId = authUser?.id || authUser?.activityAccountId;
+    const isMyRoom = (myId && item.hostId === myId) || item.isMyRoom;
+    const fee = item.entryFee || 0;
+
+    return (
+      <View style={styles.openRoomCard}>
+        <View style={styles.openRoomHeaderRow}>
+          <UserAvatar
+            uri={item.host?.avatar || (isMyRoom ? authUser?.avatarUrl || authUser?.profile?.avatarUri : null)}
+            name={item.host?.name || '방장'}
+            size="md"
+            isOnline={Boolean(item.host?.isOnline || isMyRoom)}
+          />
+          <View style={styles.openRoomInfoCol}>
+            <View style={styles.openRoomTitleRow}>
+              <Text style={styles.openRoomTitle} numberOfLines={1}>
+                {item.title}
+              </Text>
+              {isMyRoom && (
+                <View style={styles.myRoomTag}>
+                  <Text style={styles.myRoomTagText}>내가 개설</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.openRoomMetaRow}>
+              <Text style={styles.openRoomHostName}>
+                {isMyRoom ? '나 (대기중)' : `${item.host?.name || '익명'} (${item.host?.age ? `${item.host.age}세` : '회원'})`}
+              </Text>
+              <Text style={styles.openRoomDot}>·</Text>
+              <Text style={styles.openRoomCategory}>#{item.category || '친목'}</Text>
+            </View>
+          </View>
+
+          {/* 입장료 뱃지 */}
+          <View style={[styles.entryFeeBadge, fee > 0 ? styles.entryFeeBadgePaid : styles.entryFeeBadgeFree]}>
+            <Text style={[styles.entryFeeText, fee > 0 ? styles.entryFeeTextPaid : styles.entryFeeTextFree]}>
+              {fee > 0 ? `${fee} ON` : '무료'}
+            </Text>
+          </View>
+        </View>
+
+        {/* 하단 액션 버튼 */}
+        <View style={styles.openRoomActionRow}>
+          <Text style={styles.openRoomNoticeText}>
+            {isMyRoom
+              ? '다른 회원이 입장하면 1:1 대화방이 즉시 개설됩니다 ⏳'
+              : '입장 시 1:1 대화방이 개설되며 방장과 대화가 시작됩니다 ✨'}
+          </Text>
+
+          <TouchableOpacity
+            style={[styles.openRoomJoinBtn, isMyRoom && styles.openRoomMyBtn]}
+            onPress={() => handleJoinOpenRoom(item)}
+            activeOpacity={0.85}
+          >
+            <Ionicons
+              name={isMyRoom ? 'time-outline' : 'chatbubble-ellipses'}
+              size={14}
+              color="#FFFFFF"
+            />
+            <Text style={styles.openRoomJoinText}>
+              {isMyRoom ? '대기 현황' : '대화하기'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  // =========================================================================
+  // 6. 나에게 온 대화 신청 목록 렌더링
+  // =========================================================================
+  const renderRequestItem = ({ item }) => {
+    const isPending = item.status === 'PENDING';
+    const fee = item.entryFee || 30;
+
+    return (
+      <View style={styles.requestCard}>
+        <View style={styles.requestHeaderRow}>
+          <UserAvatar
+            uri={item.sender?.avatar}
+            name={item.sender?.name || '신청자'}
+            size="md"
+            isOnline={Boolean(item.sender?.isOnline)}
+          />
+          <View style={styles.requestInfoCol}>
+            <View style={styles.requestNameRow}>
+              <Text style={styles.requestSenderName}>{item.sender?.name || '새로운 인연'}</Text>
+              <Text style={styles.requestTimeText}>
+                {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            </View>
+            <Text style={styles.requestMessageText} numberOfLines={2}>
+              "{item.message || '안녕하세요! 대화 신청드려요 😊'}"
+            </Text>
+          </View>
+        </View>
+
+        {/* 포인트 적립 안내 및 수락/거절 액션 */}
+        <View style={styles.requestBottomRow}>
+          <View style={styles.requestPointEarnBadge}>
+            <Ionicons name="sparkles" size={12} color="#FF3B6B" />
+            <Text style={styles.requestPointEarnText}>수락 시 +{fee} ON 적립</Text>
+          </View>
+
+          {isPending ? (
+            <View style={styles.requestActionBtns}>
+              <TouchableOpacity
+                style={styles.requestRejectBtn}
+                onPress={() => handleRejectRequest(item)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.requestRejectText}>거절</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.requestAcceptBtn}
+                onPress={() => handleAcceptRequest(item)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.requestAcceptText}>대화하기</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.requestStatusBadge}>
+              <Text style={styles.requestStatusText}>
+                {item.status === 'ACCEPTED' ? '수락 완료' : '거절됨'}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  // =========================================================================
+  // 7. 대화중(내 대화방) 목록 렌더링
+  // =========================================================================
   const renderChatListItem = ({ item }) => (
     <TouchableOpacity
       style={styles.chatItem}
@@ -851,18 +1144,19 @@ export default function ChatsScreen({ navigation, route }) {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* 1. 상단 세그먼트 탭 */}
+      {/* 1. 상단 4단 세그먼트 탭 */}
       {renderTopSegment()}
 
-      {activeTab === 'discover' ? (
+      {/* 2. 탭별 뷰 렌더링 */}
+      {activeTab === 'discover' && (
         <View style={{ flex: 1 }}>
-          {/* 2. 가로 1열 캡슐 필터 바 */}
+          {/* 가로 1열 캡슐 필터 바 */}
           {renderCapsuleFilterBar()}
 
-          {/* 3. 실시간 접속 레이더 배너 */}
+          {/* 실시간 접속 레이더 배너 */}
           {renderRadarBanner()}
 
-          {/* 4. 인연 매칭 2열 그리드 리스트 */}
+          {/* 인연 매칭 2열 그리드 리스트 (스크롤 시 Extended FAB 축소 연동) */}
           <FlatList
             data={filteredUsers}
             keyExtractor={(item) => item.id}
@@ -871,6 +1165,8 @@ export default function ChatsScreen({ navigation, route }) {
             contentContainerStyle={styles.gridContentContainer}
             columnWrapperStyle={styles.gridColumnWrapper}
             showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
             removeClippedSubviews={Platform.OS === 'android'}
             initialNumToRender={6}
             maxToRenderPerBatch={6}
@@ -895,15 +1191,60 @@ export default function ChatsScreen({ navigation, route }) {
             }
           />
         </View>
-      ) : (
-        /* 내 대화 탭 */
+      )}
+
+      {activeTab === 'openRooms' && (
+        /* 추천 대화방 탭 */
+        <View style={{ flex: 1 }}>
+          <FlatList
+            data={openRooms}
+            keyExtractor={(item) => String(item.id)}
+            renderItem={renderOpenRoomItem}
+            contentContainerStyle={styles.openRoomsContentContainer}
+            showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => loadData({ refresh: true })}
+                colors={[tokens.colors.primary]}
+                tintColor={tokens.colors.primary}
+              />
+            }
+            ListHeaderComponent={
+              <View style={styles.openRoomHeaderBanner}>
+                <Ionicons name="sparkles" size={16} color="#FF3B6B" />
+                <Text style={styles.openRoomHeaderBannerText}>
+                  지금 대기 중인 추천 대화방입니다. 마음에 드는 방에 입장해 보세요!
+                </Text>
+              </View>
+            }
+            ListEmptyComponent={
+              <EmptyStateView
+                preset="chats"
+                title="대기 중인 추천 대화방이 없습니다"
+                description="하단의 '+ 방만들기' 버튼을 눌러 내가 먼저 대화방을 열어보세요!"
+                ctaLabel="+ 대화방 만들기"
+                onCtaPress={() => setCreateRoomModalVisible(true)}
+                style={{ marginTop: 60 }}
+              />
+            }
+          />
+        </View>
+      )}
+
+      {activeTab === 'chats' && (
+        /* 대화중(내 대화) 탭 */
         <View style={{ flex: 1 }}>
           <FlatList
             data={chats}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => String(item.id)}
             renderItem={renderChatListItem}
             contentContainerStyle={styles.chatsContentContainer}
             showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -916,8 +1257,41 @@ export default function ChatsScreen({ navigation, route }) {
               <EmptyStateView
                 preset="chats"
                 title="진행 중인 대화가 없습니다"
-                description="마음에 드는 프로필에 먼저 인사를 건네보세요!"
-                ctaLabel="인연 찾기 바로가기"
+                description="추천 대화방이나 인연 찾기에서 대화를 시작해 보세요!"
+                ctaLabel="추천 대화방 보기"
+                onCtaPress={() => setActiveTab('openRooms')}
+                style={{ marginTop: 60 }}
+              />
+            }
+          />
+        </View>
+      )}
+
+      {activeTab === 'requests' && (
+        /* 신청 목록 탭 */
+        <View style={{ flex: 1 }}>
+          <FlatList
+            data={chatRequests}
+            keyExtractor={(item) => String(item.id)}
+            renderItem={renderRequestItem}
+            contentContainerStyle={styles.requestsContentContainer}
+            showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => loadData({ refresh: true })}
+                colors={[tokens.colors.primary]}
+                tintColor={tokens.colors.primary}
+              />
+            }
+            ListEmptyComponent={
+              <EmptyStateView
+                preset="empty"
+                title="도착한 대화 신청이 없습니다"
+                description="내 프로필을 매력적으로 꾸미고 방을 만들어 대화를 기다려보세요!"
+                ctaLabel="인연 찾기 둘러보기"
                 onCtaPress={() => setActiveTab('discover')}
                 style={{ marginTop: 60 }}
               />
@@ -925,6 +1299,14 @@ export default function ChatsScreen({ navigation, route }) {
           />
         </View>
       )}
+
+      {/* 당근마켓 스타일 가변 플로팅 액션 버튼 (Extended FAB) */}
+      <ExtendedFAB
+        label="+ 방만들기"
+        iconName="add"
+        isExtended={isExtended}
+        onPress={() => setCreateRoomModalVisible(true)}
+      />
 
       {/* 전역 바텀 시트 (카드 터치 시 무전환 노출) */}
       <GlobalBottomSheet
@@ -942,6 +1324,7 @@ export default function ChatsScreen({ navigation, route }) {
         onClose={() => setCreateRoomModalVisible(false)}
         onRoomCreated={(newRoom) => {
           loadData();
+          setActiveTab('openRooms');
           if (newRoom?.id) {
             navigation.navigate('ChatRoom', {
               id: newRoom.id,
@@ -1344,5 +1727,284 @@ const styles = StyleSheet.create({
     padding: 4,
     borderRadius: 6,
     backgroundColor: '#F3F4F6',
+  },
+
+  // 6. 4단 세그먼트 탭 보강 스타일
+  segmentScrollContent: {
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    gap: 6,
+  },
+  tabSmallCountBadge: {
+    backgroundColor: tokens.colors.primaryLight,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 3,
+  },
+  tabSmallCountText: {
+    color: tokens.colors.primary,
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  tabReqBadge: {
+    backgroundColor: '#FF3B6B',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 3,
+  },
+  tabReqBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+
+  // 7. 추천 대화방 스타일
+  openRoomsContentContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 90,
+  },
+  openRoomHeaderBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF1F4',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: tokens.radius.card,
+    marginBottom: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#FFE4E8',
+  },
+  openRoomHeaderBannerText: {
+    flex: 1,
+    color: '#E11D48',
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 16,
+  },
+  openRoomCard: {
+    backgroundColor: tokens.colors.surface,
+    borderRadius: tokens.radius.card,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: tokens.colors.borderLight,
+    ...tokens.shadows.soft,
+  },
+  openRoomHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  openRoomInfoCol: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  openRoomTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  openRoomTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: tokens.colors.textPrimary,
+    flex: 1,
+  },
+  myRoomTag: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  myRoomTagText: {
+    color: '#4F46E5',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  openRoomMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  openRoomHostName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: tokens.colors.textSecondary,
+  },
+  openRoomDot: {
+    color: tokens.colors.textTertiary,
+    fontSize: 12,
+  },
+  openRoomCategory: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: tokens.colors.primary,
+  },
+  entryFeeBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: tokens.radius.full,
+  },
+  entryFeeBadgePaid: {
+    backgroundColor: '#FFF1F4',
+    borderWidth: 1,
+    borderColor: '#FFD4DD',
+  },
+  entryFeeBadgeFree: {
+    backgroundColor: '#F3F4F6',
+  },
+  entryFeeText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  entryFeeTextPaid: {
+    color: '#FF3B6B',
+  },
+  entryFeeTextFree: {
+    color: tokens.colors.textSecondary,
+  },
+  openRoomActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  openRoomNoticeText: {
+    fontSize: 11,
+    color: tokens.colors.textTertiary,
+    flex: 1,
+    marginRight: 10,
+  },
+  openRoomJoinBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF3B6B',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: tokens.radius.full,
+    gap: 4,
+    ...tokens.shadows.soft,
+  },
+  openRoomMyBtn: {
+    backgroundColor: '#4B5563',
+  },
+  openRoomJoinText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+
+  // 8. 신청 목록 스타일
+  requestsContentContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 90,
+  },
+  requestCard: {
+    backgroundColor: tokens.colors.surface,
+    borderRadius: tokens.radius.card,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: tokens.colors.borderLight,
+    ...tokens.shadows.soft,
+  },
+  requestHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  requestInfoCol: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  requestNameRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  requestSenderName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: tokens.colors.textPrimary,
+  },
+  requestTimeText: {
+    fontSize: 11,
+    color: tokens.colors.textTertiary,
+  },
+  requestMessageText: {
+    fontSize: 13,
+    color: tokens.colors.textSecondary,
+    lineHeight: 18,
+    fontStyle: 'italic',
+  },
+  requestBottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  requestPointEarnBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF1F4',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 4,
+  },
+  requestPointEarnText: {
+    color: '#FF3B6B',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  requestActionBtns: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  requestRejectBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: tokens.radius.full,
+    backgroundColor: '#F3F4F6',
+  },
+  requestRejectText: {
+    color: '#6B7280',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  requestAcceptBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: tokens.radius.full,
+    backgroundColor: '#FF3B6B',
+    ...tokens.shadows.soft,
+  },
+  requestAcceptText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  requestStatusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    backgroundColor: '#F3F4F6',
+  },
+  requestStatusText: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '700',
   },
 });

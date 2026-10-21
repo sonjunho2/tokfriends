@@ -45,12 +45,132 @@ export interface ChatRoomItem {
   createdAt: string;
 }
 
+export interface OpenChatRoomItem {
+  id: string;
+  title: string;
+  category: string;
+  entryFee: number;
+  hostId: string;
+  hostName: string;
+  hostAvatar?: string | null;
+  hostAge?: number;
+  hostRegion?: string;
+  hostGender?: string;
+  createdAt: string;
+  matchedCount: number;
+}
+
+export interface ChatRequestItem {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar?: string | null;
+  senderAge?: number;
+  senderRegion?: string;
+  receiverId: string;
+  message?: string;
+  entryFee: number;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  createdAt: string;
+  chatRoomId?: string | null;
+}
+
 @Injectable()
 export class ChatService implements OnModuleInit {
   private readonly logger = new Logger(ChatService.name);
   private readonly dataDir = path.resolve(process.cwd(), 'data');
   private readonly chatsFilePath = path.join(this.dataDir, 'chats.json');
   private readonly messagesFilePath = path.join(this.dataDir, 'chat-messages.json');
+  private readonly openRoomsFilePath = path.join(this.dataDir, 'open-rooms.json');
+  private readonly chatRequestsFilePath = path.join(this.dataDir, 'chat-requests.json');
+
+  private openRooms: OpenChatRoomItem[] = [
+    {
+      id: 'open-room-1',
+      title: '오늘 저녁 한강 러닝 코스 같이 달려요 🏃',
+      category: '운동',
+      entryFee: 30,
+      hostId: 'u-seed-2',
+      hostName: '김도현',
+      hostAvatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300',
+      hostAge: 29,
+      hostRegion: '서울 강남구',
+      hostGender: '남',
+      createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+      matchedCount: 3,
+    },
+    {
+      id: 'open-room-2',
+      title: '성수동 빈티지 카페 탐방 & 감성 수다 ☕',
+      category: '친목',
+      entryFee: 50,
+      hostId: 'u-seed-1',
+      hostName: '박서연',
+      hostAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+      hostAge: 26,
+      hostRegion: '서울 성동구',
+      hostGender: '여',
+      createdAt: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
+      matchedCount: 5,
+    },
+    {
+      id: 'open-room-3',
+      title: '귀여운 댕댕이 사진 공유하고 힐링할 분 🐶',
+      category: '반려견',
+      entryFee: 0,
+      hostId: 'u-seed-5',
+      hostName: '한유진',
+      hostAvatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300',
+      hostAge: 25,
+      hostRegion: '서울 마포구',
+      hostGender: '여',
+      createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+      matchedCount: 2,
+    },
+    {
+      id: 'open-room-4',
+      title: '주말 테니스 & 배드민턴 랠리 파트너 구해요 🏸',
+      category: '취미',
+      entryFee: 20,
+      hostId: 'u-seed-4',
+      hostName: '이지민',
+      hostAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
+      hostAge: 27,
+      hostRegion: '서울 송파구',
+      hostGender: '여',
+      createdAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
+      matchedCount: 1,
+    },
+  ];
+
+  private chatRequests: ChatRequestItem[] = [
+    {
+      id: 'req-mock-1',
+      senderId: 'u-seed-4',
+      senderName: '이지민',
+      senderAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
+      senderAge: 27,
+      senderRegion: '서울 송파구',
+      receiverId: 'guest',
+      message: '안녕하세요! 프로필 사진 보고 취향이 잘 맞을 것 같아 대화 신청드려요 ✨ 주말에 편하게 톡 나눠요!',
+      entryFee: 50,
+      status: 'PENDING',
+      createdAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+    },
+    {
+      id: 'req-mock-2',
+      senderId: 'u-seed-6',
+      senderName: '강민호',
+      senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
+      senderAge: 30,
+      senderRegion: '서울 서초구',
+      receiverId: 'guest',
+      message: '동네 러닝 크루나 운동 같이 하실 분 찾고 있어요 🏃 대화 가능하신가요?',
+      entryFee: 30,
+      status: 'PENDING',
+      createdAt: new Date(Date.now() - 1000 * 60 * 80).toISOString(),
+    },
+  ];
 
   private rooms: ChatRoomItem[] = [
     {
@@ -195,6 +315,20 @@ export class ChatService implements OnModuleInit {
           this.messagesStore = parsed;
         }
       }
+      if (fs.existsSync(this.openRoomsFilePath)) {
+        const raw = fs.readFileSync(this.openRoomsFilePath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.openRooms = parsed;
+        }
+      }
+      if (fs.existsSync(this.chatRequestsFilePath)) {
+        const raw = fs.readFileSync(this.chatRequestsFilePath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.chatRequests = parsed;
+        }
+      }
     } catch (e: any) {
       this.logger.warn(`Failed to load chat data from disk: ${e?.message}`);
     }
@@ -207,6 +341,8 @@ export class ChatService implements OnModuleInit {
       }
       fs.writeFileSync(this.chatsFilePath, JSON.stringify(this.rooms, null, 2), 'utf-8');
       fs.writeFileSync(this.messagesFilePath, JSON.stringify(this.messagesStore, null, 2), 'utf-8');
+      fs.writeFileSync(this.openRoomsFilePath, JSON.stringify(this.openRooms, null, 2), 'utf-8');
+      fs.writeFileSync(this.chatRequestsFilePath, JSON.stringify(this.chatRequests, null, 2), 'utf-8');
     } catch (e: any) {
       this.logger.warn(`Failed to save chat data to disk: ${e?.message}`);
     }
@@ -561,6 +697,309 @@ export class ChatService implements OnModuleInit {
       this.logger.warn(`Failed to add points for ${userId}: ${e?.message}`);
     }
     return null;
+  }
+
+  // =========================================================================
+  // 1. 오픈 추천 대화방 (Open Waiting Rooms) API
+  // =========================================================================
+  async getOpenRooms(userId?: string): Promise<OpenChatRoomItem[]> {
+    return this.openRooms.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }
+
+  async createOpenRoom(
+    userId: string,
+    dto: { title: string; category?: string; entryFee?: number },
+  ): Promise<OpenChatRoomItem> {
+    const title = String(dto.title || '').trim();
+    const fee = Math.max(0, Number(dto.entryFee || 0));
+
+    let hostName = '나';
+    let hostAvatar: string | null = null;
+    let hostAge = 26;
+    let hostRegion = '서울 강남구';
+    let hostGender = '여';
+
+    try {
+      if (userId && userId !== 'guest') {
+        const u = await this.prisma.user.findUnique({
+          where: { id: userId },
+          include: { photos: { take: 1, orderBy: { sortOrder: 'asc' } } },
+        });
+        if (u) {
+          const userAny = u as any;
+          hostName = u.nickname || u.displayName || '나';
+          hostAvatar = u.avatarUrl || u.photos?.[0]?.url || null;
+          hostAge = userAny.birthYear ? new Date().getFullYear() - userAny.birthYear + 1 : 26;
+          hostRegion = userAny.region || '서울 강남구';
+          hostGender = userAny.gender === 'MALE' ? '남' : '여';
+        }
+      }
+    } catch {}
+
+    const openRoom: OpenChatRoomItem = {
+      id: `open-room-${Date.now()}`,
+      title,
+      category: dto.category || '친목',
+      entryFee: fee,
+      hostId: userId,
+      hostName,
+      hostAvatar,
+      hostAge,
+      hostRegion,
+      hostGender,
+      createdAt: new Date().toISOString(),
+      matchedCount: 0,
+    };
+
+    this.openRooms.unshift(openRoom);
+
+    // 개설자 본인의 대화 목록에도 대기방으로 등록
+    await this.createChatRoom(userId, {
+      title,
+      category: dto.category,
+      entryFee: fee,
+      isGroup: false,
+    });
+
+    this.saveToDisk();
+    return openRoom;
+  }
+
+  async joinOpenRoom(
+    guestUserId: string,
+    openRoomId: string,
+  ): Promise<{ ok: boolean; room: ChatRoomItem; hostName: string; entryFee: number }> {
+    const openRoom = this.openRooms.find((r) => r.id === openRoomId);
+    if (!openRoom) {
+      throw new NotFoundException('해당 추천 대화방을 찾을 수 없습니다.');
+    }
+
+    if (openRoom.hostId === guestUserId && guestUserId !== 'guest') {
+      throw new Error('본인이 개설한 대화방에는 입장 신청을 할 수 없습니다.');
+    }
+
+    const fee = openRoom.entryFee || 0;
+
+    // 게스트 포인트 차감
+    if (fee > 0 && guestUserId && guestUserId !== 'guest') {
+      const bal = await this.deductPoints(guestUserId, fee);
+      if (bal === null) {
+        throw new Error(`입장에 필요한 ${fee} ON 포인트가 부족합니다.`);
+      }
+    }
+
+    // 방장(호스트)에게 입장료 포인트 즉시 적립!
+    if (fee > 0 && openRoom.hostId && openRoom.hostId !== 'guest') {
+      await this.addPoints(openRoom.hostId, fee);
+    }
+
+    // 게스트 유저 정보 조회
+    let guestName = '게스트';
+    let guestAvatar: string | null = null;
+    try {
+      if (guestUserId && guestUserId !== 'guest') {
+        const u = await this.prisma.user.findUnique({
+          where: { id: guestUserId },
+          include: { photos: { take: 1, orderBy: { sortOrder: 'asc' } } },
+        });
+        if (u) {
+          guestName = u.nickname || u.displayName || '게스트';
+          guestAvatar = u.avatarUrl || u.photos?.[0]?.url || null;
+        }
+      }
+    } catch {}
+
+    // 호스트와 게스트 간의 새로운 1:1 대화방 즉시 생성
+    const newChatId = `chat-matched-${Date.now()}`;
+    const newRoom: ChatRoomItem = {
+      id: newChatId,
+      title: `${openRoom.hostName} & ${guestName}`,
+      category: openRoom.category,
+      entryFee: fee,
+      isGroup: false,
+      participantIds: [openRoom.hostId, guestUserId],
+      hostId: openRoom.hostId,
+      creatorId: openRoom.hostId,
+      host: {
+        id: openRoom.hostId,
+        displayName: openRoom.hostName,
+        avatarUrl: openRoom.hostAvatar,
+      },
+      counterpart: {
+        id: openRoom.hostId === guestUserId ? 'u-host' : openRoom.hostId,
+        displayName: openRoom.hostName,
+        avatarUrl: openRoom.hostAvatar,
+        online: true,
+      },
+      isWaiting: false,
+      lastMessage: `${guestName}님이 대화방에 입장했습니다.`,
+      lastMessageAt: new Date().toISOString(),
+      unreadCount: 0,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.rooms.unshift(newRoom);
+    this.messagesStore[newChatId] = [
+      {
+        id: `msg-welcome-${newChatId}`,
+        chatId: newChatId,
+        senderAccountId: 'system',
+        content: `🎉 '${openRoom.title}' 대화방이 매칭되었습니다! (${guestName}님이 입장료 ${fee > 0 ? `${fee} ON을 지불하고` : '무료로'} 입장)`,
+        type: 'text',
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    openRoom.matchedCount = (openRoom.matchedCount || 0) + 1;
+    this.saveToDisk();
+
+    return {
+      ok: true,
+      room: newRoom,
+      hostName: openRoom.hostName,
+      entryFee: fee,
+    };
+  }
+
+  // =========================================================================
+  // 2. 1:1 대화 신청/수락/거절 시스템 (Chat Requests) API
+  // =========================================================================
+  async getReceivedRequests(userId: string): Promise<ChatRequestItem[]> {
+    return this.chatRequests.filter(
+      (r) => r.receiverId === userId || userId === 'guest' || userId === 'dummy-user' || userId === 'user-me',
+    ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async sendChatRequest(
+    senderId: string,
+    dto: { targetUserId: string; message?: string; entryFee?: number },
+  ): Promise<ChatRequestItem> {
+    const targetUserId = String(dto.targetUserId || '').trim();
+    if (!targetUserId || targetUserId === senderId) {
+      throw new Error('대화 신청 상대방 정보가 올바르지 않습니다.');
+    }
+
+    const fee = Math.max(0, Number(dto.entryFee || 0));
+
+    // 발신자 포인트 가차감
+    if (fee > 0 && senderId && senderId !== 'guest') {
+      const bal = await this.deductPoints(senderId, fee);
+      if (bal === null) {
+        throw new Error(`대화 신청에 필요한 ${fee} ON 포인트가 부족합니다.`);
+      }
+    }
+
+    let senderName = '새로운 인연';
+    let senderAvatar: string | null = null;
+    let senderAge = 26;
+    let senderRegion = '서울 강남구';
+
+    try {
+      if (senderId && senderId !== 'guest') {
+        const u = await this.prisma.user.findUnique({
+          where: { id: senderId },
+          include: { photos: { take: 1, orderBy: { sortOrder: 'asc' } } },
+        });
+        if (u) {
+          const userAny = u as any;
+          senderName = u.nickname || u.displayName || '새로운 인연';
+          senderAvatar = u.avatarUrl || u.photos?.[0]?.url || null;
+          senderAge = userAny.birthYear ? new Date().getFullYear() - userAny.birthYear + 1 : 26;
+          senderRegion = userAny.region || '서울 강남구';
+        }
+      }
+    } catch {}
+
+    const reqItem: ChatRequestItem = {
+      id: `req-${Date.now()}`,
+      senderId,
+      senderName,
+      senderAvatar,
+      senderAge,
+      senderRegion,
+      receiverId: targetUserId,
+      message: dto.message || '안녕하세요! 프로필 보고 대화 신청드립니다 ✨',
+      entryFee: fee,
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+    };
+
+    this.chatRequests.unshift(reqItem);
+    this.saveToDisk();
+    return reqItem;
+  }
+
+  async acceptChatRequest(
+    userId: string,
+    requestId: string,
+  ): Promise<{ ok: boolean; room: ChatRoomItem; request: ChatRequestItem }> {
+    const req = this.chatRequests.find((r) => r.id === requestId);
+    if (!req) {
+      throw new NotFoundException('해당 대화 신청을 찾을 수 없습니다.');
+    }
+
+    if (req.status !== 'PENDING') {
+      throw new Error('이미 처리된 대화 신청입니다.');
+    }
+
+    req.status = 'ACCEPTED';
+
+    // 수락자(나)에게 신청자가 지불한 입장료 포인트 적립!
+    if (req.entryFee > 0 && userId && userId !== 'guest') {
+      await this.addPoints(userId, req.entryFee);
+    }
+
+    // 두 유저 간 1:1 대화방 개설
+    const newRoom = await this.ensureDirectRoom(userId, req.senderId);
+
+    // 수락 축하 시스템 메시지 등록
+    this.messagesStore[newRoom.id] = this.messagesStore[newRoom.id] || [];
+    this.messagesStore[newRoom.id].push({
+      id: `msg-acc-${Date.now()}`,
+      chatId: newRoom.id,
+      senderAccountId: 'system',
+      content: `🎉 1:1 대화 신청이 수락되었습니다! (입장료 ${req.entryFee > 0 ? `${req.entryFee} ON 적립` : '무료'}) 즐겁게 대화해 보세요!`,
+      type: 'text',
+      createdAt: new Date().toISOString(),
+    });
+
+    req.chatRoomId = newRoom.id;
+    this.saveToDisk();
+
+    return {
+      ok: true,
+      room: newRoom,
+      request: req,
+    };
+  }
+
+  async rejectChatRequest(
+    userId: string,
+    requestId: string,
+  ): Promise<{ ok: boolean; request: ChatRequestItem }> {
+    const req = this.chatRequests.find((r) => r.id === requestId);
+    if (!req) {
+      throw new NotFoundException('해당 대화 신청을 찾을 수 없습니다.');
+    }
+
+    if (req.status !== 'PENDING') {
+      throw new Error('이미 처리된 대화 신청입니다.');
+    }
+
+    req.status = 'REJECTED';
+
+    // 거절 시 발신자에게 입장료 포인트 전액 환불!
+    if (req.entryFee > 0 && req.senderId && req.senderId !== 'guest') {
+      await this.addPoints(req.senderId, req.entryFee);
+    }
+
+    this.saveToDisk();
+    return {
+      ok: true,
+      request: req,
+    };
   }
 }
 

@@ -22,7 +22,7 @@ import Avatar from '../../components/Avatar';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
-import { EmptyStateView } from '../../components/common';
+import { EmptyStateView, ExtendedFAB, useExtendedFabScroll } from '../../components/common';
 
 const LIVE_COLOR = '#FF3B6B';
 
@@ -36,6 +36,7 @@ const CATEGORIES = [
 
 export default function LiveScreen({ navigation }) {
   const { user, refreshMe } = useAuth();
+  const { isExtended, handleScroll } = useExtendedFabScroll(15);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -226,15 +227,6 @@ export default function LiveScreen({ navigation }) {
             <Text style={styles.liveHeaderBadgeText}>LIVE</Text>
           </View>
         </View>
-
-        <TouchableOpacity
-          style={styles.startLiveBtn}
-          onPress={() => setModalVisible(true)}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="videocam" size={15} color="#FFFFFF" />
-          <Text style={styles.startLiveBtnText}>방송하기</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Category selector chips */}
@@ -281,6 +273,8 @@ export default function LiveScreen({ navigation }) {
           keyExtractor={(item) => String(item.id)}
           renderItem={renderRoomItem}
           numColumns={2}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           contentContainerStyle={
             filteredRooms.length > 0 ? styles.roomList : styles.emptyList
           }
@@ -304,6 +298,14 @@ export default function LiveScreen({ navigation }) {
           }
         />
       )}
+
+      {/* 당근마켓 스타일 가변 플로팅 액션 버튼 (Extended FAB) */}
+      <ExtendedFAB
+        label="+ LIVE"
+        iconName="videocam"
+        isExtended={isExtended}
+        onPress={() => setModalVisible(true)}
+      />
 
       {/* Start Live Modal */}
       <Modal

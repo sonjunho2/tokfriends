@@ -114,6 +114,19 @@ export default function CreateRoomModal({
       setIsSubmitting(true);
       const cleanCategory = selectedCategory.replace('#', '');
 
+      // 1. 추천 대화방(공개 대기방) 등록
+      try {
+        await apiClient.createOpenChatRoom({
+          title: trimmedTitle,
+          category: cleanCategory,
+          entryFee: effectiveEntryFee,
+          maxGuests: 1,
+        });
+      } catch (errOpen) {
+        console.warn('createOpenChatRoom fallback warning:', errOpen);
+      }
+
+      // 2. 내 대화방 목록 세션 생성
       const newRoom = await apiClient.createChatRoom({
         title: trimmedTitle,
         category: cleanCategory,
@@ -144,7 +157,7 @@ export default function CreateRoomModal({
         '개설 완료',
         selectedTargetUser
           ? `"${selectedTargetUser.name}"님과의 1:1 대화방이 생성되었습니다! 🎉`
-          : `"${trimmedTitle}" 1:1 대기방이 생성되었습니다! 🎉\n(상대방이 입장하면 대화가 시작됩니다)`,
+          : `"${trimmedTitle}" 대화방이 추천 목록에 등록되었습니다! 🎉\n(상대방이 입장하면 1:1 대화방이 개설되고 입장 포인트가 적립됩니다)`,
       );
       handleClose();
 

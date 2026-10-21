@@ -124,6 +124,68 @@ export class ChatController {
       transactionId: `gift-tx-${Date.now()}`,
     };
   }
+
+  // =========================================================================
+  // 1. 추천 대화방 (Open Waiting Rooms)
+  // =========================================================================
+  @Public()
+  @Get('open-rooms')
+  async getOpenRooms(@CurrentUser() user?: any) {
+    const userId = user?.id || user?.sub || 'guest';
+    const list = await this.chatService.getOpenRooms(userId);
+    return { ok: true, data: list, items: list };
+  }
+
+  @Public()
+  @Post('open-rooms')
+  async createOpenRoom(@CurrentUser() user: any, @Body() body: any) {
+    const userId = user?.id || user?.sub || body.userId || 'guest';
+    const room = await this.chatService.createOpenRoom(userId, body);
+    return { ok: true, data: room, room };
+  }
+
+  @Public()
+  @Post('open-rooms/:id/join')
+  async joinOpenRoom(@CurrentUser() user: any, @Param('id') id: string) {
+    const userId = user?.id || user?.sub || 'guest';
+    const res = await this.chatService.joinOpenRoom(userId, id);
+    return { ok: true, ...res };
+  }
+
+  // =========================================================================
+  // 2. 1:1 대화 신청/수락/거절 시스템 (Chat Requests)
+  // =========================================================================
+  @Public()
+  @Get('requests')
+  async getChatRequests(@CurrentUser() user?: any) {
+    const userId = user?.id || user?.sub || 'guest';
+    const list = await this.chatService.getReceivedRequests(userId);
+    return { ok: true, data: list, items: list };
+  }
+
+  @Public()
+  @Post('requests')
+  async sendChatRequest(@CurrentUser() user: any, @Body() body: any) {
+    const userId = user?.id || user?.sub || body.senderId || 'guest';
+    const item = await this.chatService.sendChatRequest(userId, body);
+    return { ok: true, data: item, request: item };
+  }
+
+  @Public()
+  @Post('requests/:id/accept')
+  async acceptChatRequest(@CurrentUser() user: any, @Param('id') id: string) {
+    const userId = user?.id || user?.sub || 'guest';
+    const res = await this.chatService.acceptChatRequest(userId, id);
+    return { ok: true, ...res };
+  }
+
+  @Public()
+  @Post('requests/:id/reject')
+  async rejectChatRequest(@CurrentUser() user: any, @Param('id') id: string) {
+    const userId = user?.id || user?.sub || 'guest';
+    const res = await this.chatService.rejectChatRequest(userId, id);
+    return { ok: true, ...res };
+  }
 }
 
 
