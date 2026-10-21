@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -83,7 +84,28 @@ export class ChatController {
     const giftName = body.giftName || body.name || '선물';
     const giftIcon = body.icon || body.thumbnailUrl || null;
 
+    // 수신자(상대방/방주인) 확인 및 자가 선물 방지
+    const room = this.chatService.getRoom(body.chatId);
+    let receiverId = body.receiverId || body.targetUserId;
+    if (!receiverId && room) {
+      if (room.counterpart?.id && room.counterpart.id !== userId) {
+        receiverId = room.counterpart.id;
+      } else {
+        receiverId = room.participantIds.find((id) => id !== userId);
+      }
+    }
+
+    if (!receiverId || receiverId === userId || room?.isWaiting) {
+      throw new BadRequestException(
+        '대화 상대방이 없거나 본인에게는 선물을 보낼 수 없습니다. 상대방이 입장한 후 호감 표시로 선물을 보내주세요.',
+      );
+    }
+
     const updatedBalance = await this.chatService.deductPoints(userId, points);
+    // 상대방(수신자)에게 선물 포인트 적립
+    if (receiverId) {
+      await this.chatService.addPoints(receiverId, points).catch(() => {});
+    }
 
     const msg = await this.chatService.sendMessage(userId, {
       chatId: body.chatId,

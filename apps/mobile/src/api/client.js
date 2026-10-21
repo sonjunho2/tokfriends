@@ -1273,27 +1273,54 @@ export const apiClient = {
     return { ok: true };
   },
 
-  async createChatRoom({ title, category = '일반', entryFee = 0, isGroup = false } = {}) {
+  async createChatRoom({
+    title,
+    category = '일반',
+    entryFee = 0,
+    isGroup = false,
+    targetUserId,
+    targetUserName,
+    targetUserAvatar,
+    hostUser,
+  } = {}) {
     const trimmedTitle = String(title || '').trim();
     if (!trimmedTitle) {
       throw normalizeError(new Error('대화방 제목을 입력해 주세요.'));
     }
     const fee = Math.max(0, Number(entryFee || 0));
     const newChatId = `chat-room-${Date.now()}`;
+    const isWaiting = !targetUserId;
     const newChat = {
       id: newChatId,
       title: trimmedTitle,
       category,
       entryFee: fee,
       isGroup: Boolean(isGroup),
-      counterpart: {
-        id: `acc-room-${Date.now()}`,
-        displayName: trimmedTitle,
-        handle: `room_${Date.now()}`,
-        avatarUrl: null,
+      isWaiting,
+      creatorId: hostUser?.id || 'me',
+      hostId: hostUser?.id || 'me',
+      host: {
+        id: hostUser?.id || 'me',
+        displayName: hostUser?.displayName || hostUser?.nickname || '나',
+        avatarUrl: hostUser?.avatarUrl || hostUser?.avatarUri || null,
       },
+      counterpart: targetUserId
+        ? {
+            id: targetUserId,
+            displayName: targetUserName || '대화 상대',
+            handle: `user_${targetUserId}`,
+            avatarUrl: targetUserAvatar || null,
+            online: true,
+          }
+        : {
+            id: '',
+            displayName: '대화 상대 대기 중',
+            handle: 'waiting',
+            avatarUrl: null,
+            online: false,
+          },
       lastMessageAt: new Date().toISOString(),
-      lastMessage: '대화방이 개설되었습니다. 대화를 시작해 보세요!',
+      lastMessage: isWaiting ? '대화 상대를 기다리는 중입니다 ⏳' : '대화방이 개설되었습니다. 대화를 시작해 보세요!',
       unreadCount: 0,
     };
 
@@ -1319,6 +1346,7 @@ export const apiClient = {
         category,
         entryFee: fee,
         isGroup,
+        targetUserId,
       });
       const created = data?.data ?? data;
       if (created && created.id) {
@@ -2049,7 +2077,7 @@ export const apiClient = {
     return data;
   },
 
-  async sendChatGift({ chatId, giftId, clientMessageId, giftName, points, icon, senderAccountId } = {}) {
+  async sendChatGift({ chatId, giftId, clientMessageId, giftName, points, icon, senderAccountId, receiverId, targetUserId } = {}) {
     if (!chatId || !giftId) {
       throw normalizeError(new Error('채팅방 및 선물 정보가 필요합니다.'));
     }
@@ -2061,6 +2089,8 @@ export const apiClient = {
       ...(icon ? { icon: String(icon).trim() } : {}),
       ...(clientMessageId ? { clientMessageId: String(clientMessageId).trim() } : {}),
       ...(senderAccountId ? { senderAccountId: String(senderAccountId).trim() } : {}),
+      ...(receiverId ? { receiverId: String(receiverId).trim() } : {}),
+      ...(targetUserId ? { targetUserId: String(targetUserId).trim() } : {}),
     });
     const msg = data?.message ?? data?.data;
     return {

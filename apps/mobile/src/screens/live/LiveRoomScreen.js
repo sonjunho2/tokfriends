@@ -839,12 +839,20 @@ export default function LiveRoomScreen({ navigation, route }) {
   };
 
   const handleOpenGiftPicker = () => {
+    if (isHost) {
+      Alert.alert('알림', '호스트는 본인 방송에 선물을 보낼 수 없습니다. 시청자로부터 선물을 받으실 수 있습니다.');
+      return;
+    }
     fetchMyPoints();
     setGiftPickerVisible(true);
   };
 
   const handleSendGiftItem = async (gift) => {
     if (!gift || !roomId) return;
+    if (isHost) {
+      Alert.alert('알림', '호스트는 본인 방송에 선물을 보낼 수 없습니다.');
+      return;
+    }
     try {
       const idempotencyKey = `live_${roomId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const res = await apiClient.sendLiveGift(roomId, {
@@ -1301,27 +1309,27 @@ export default function LiveRoomScreen({ navigation, route }) {
           style={styles.hostPill}
           activeOpacity={0.85}
           onPress={() => {
-            if (room?.host?.id) {
+            if (room?.host?.id || isHost) {
               handleOpenParticipantProfile({
-                id: room.host.id,
-                userId: room.host.id,
-                name: room.host.name,
-                avatar: room.host.avatar,
-                region: room.host.region,
-                headline: room.title || '라이브 방송 진행 중',
+                id: isHost ? currentUser?.id : room?.host?.id,
+                userId: isHost ? currentUser?.id : room?.host?.id,
+                name: isHost ? (currentUser?.nickname || currentUser?.displayName || '나') : (room?.host?.name || '호스트'),
+                avatar: isHost ? (currentUser?.avatarUrl || currentUser?.avatarUri) : room?.host?.avatar,
+                region: isHost ? (currentUser?.region || '서울 강남구') : (room?.host?.region || '서울 강남구'),
+                headline: room?.title || '라이브 방송 진행 중',
               });
             }
           }}
         >
           <Avatar
             size={32}
-            name={room?.host?.name}
-            uri={room?.host?.avatar}
+            name={isHost ? (currentUser?.nickname || currentUser?.displayName || '나') : (room?.host?.name || '호스트')}
+            uri={isHost ? (currentUser?.avatarUrl || currentUser?.avatarUri) : room?.host?.avatar}
           />
           <View style={styles.hostPillMeta}>
             <View style={styles.hostPillNameRow}>
               <Text style={styles.hostPillName} numberOfLines={1}>
-                {room?.host?.name || '호스트'}
+                {isHost ? `${currentUser?.nickname || currentUser?.displayName || '나'} (방장)` : (room?.host?.name || '호스트')}
               </Text>
               <View style={styles.miniLiveTag}>
                 <View style={styles.liveDot} />
@@ -1329,7 +1337,7 @@ export default function LiveRoomScreen({ navigation, route }) {
               </View>
             </View>
             <Text style={styles.hostPillRegion} numberOfLines={1}>
-              {room?.host?.region || '서울 강남구'}
+              {isHost ? (currentUser?.region || '서울 강남구') : (room?.host?.region || '서울 강남구')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -1515,14 +1523,16 @@ export default function LiveRoomScreen({ navigation, route }) {
             </TouchableOpacity>
           ) : (
             <View style={styles.reactionRow}>
-              {/* Gift Picker Button */}
-              <TouchableOpacity
-                style={styles.giftIconBtn}
-                onPress={handleOpenGiftPicker}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="gift" size={20} color="#FBBF24" />
-              </TouchableOpacity>
+              {/* Gift Picker Button - 시청자(게스트)만 방장/호스트에게 선물 전송 가능 */}
+              {!isHost && (
+                <TouchableOpacity
+                  style={styles.giftIconBtn}
+                  onPress={handleOpenGiftPicker}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="gift" size={20} color="#FBBF24" />
+                </TouchableOpacity>
+              )}
 
               {/* Heart reaction button */}
               <TouchableOpacity

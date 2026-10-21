@@ -20,6 +20,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { tokens } from '../../theme/tokens';
 import { apiClient } from '../../api/client';
+import Avatar from '../Avatar';
+import { useAuth } from '../../context/AuthContext';
+
+// 추천 인연 후보 목록
+const CANDIDATE_USERS = [
+  { id: 'u-seed-1', name: '박서연', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200' },
+  { id: 'u-seed-2', name: '김도현', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200' },
+  { id: 'u-seed-3', name: '한유진', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200' },
+  { id: 'user-disc-1', name: '서연', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200' },
+  { id: 'user-disc-2', name: '민준', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200' },
+  { id: 'user-disc-3', name: '지민', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200' },
+];
 
 // 카테고리 칩 목록
 const CATEGORIES = ['#친목', '#취미', '#고민', '#운동', '#동네', '#자유'];
@@ -43,7 +55,12 @@ export default function CreateRoomModal({
   onRoomCreated,
   navigation,
 }) {
+  const { user: authUser } = useAuth();
+
   // 1:1 대화방 전용 개설 모드
+  // 0. 대화 상대 (null: 누구나 입장 가능한 대기방)
+  const [selectedTargetUser, setSelectedTargetUser] = useState(null);
+
   // 1. 방 제목
   const [title, setTitle] = useState('');
 
@@ -72,6 +89,7 @@ export default function CreateRoomModal({
   // 폼 초기화
   const resetForm = useCallback(() => {
     setTitle('');
+    setSelectedTargetUser(null);
     setSelectedCategory('#친목');
     setSelectedFeePreset(0);
     setCustomFeeInput('');
@@ -101,9 +119,33 @@ export default function CreateRoomModal({
         category: cleanCategory,
         entryFee: effectiveEntryFee,
         isGroup: false,
+        targetUserId: selectedTargetUser?.id || null,
+        targetUserName: selectedTargetUser?.name || null,
+        targetUserAvatar: selectedTargetUser?.avatar || null,
+        hostUser: authUser,
       });
 
-      Alert.alert('개설 완료', `"${trimmedTitle}" 1:1 대화방이 생성되었습니다! 🎉`);
+      const counterpartInfo = newRoom?.counterpart || (selectedTargetUser
+        ? {
+            id: selectedTargetUser.id,
+            displayName: selectedTargetUser.name,
+            name: selectedTargetUser.name,
+            avatarUrl: selectedTargetUser.avatar,
+            avatar: selectedTargetUser.avatar,
+          }
+        : {
+            id: '',
+            displayName: '대화 상대 대기 중',
+            name: '대화 상대 대기 중',
+            avatarUrl: null,
+          });
+
+      Alert.alert(
+        '개설 완료',
+        selectedTargetUser
+          ? `"${selectedTargetUser.name}"님과의 1:1 대화방이 생성되었습니다! 🎉`
+          : `"${trimmedTitle}" 1:1 대기방이 생성되었습니다! 🎉\n(상대방이 입장하면 대화가 시작됩니다)`,
+      );
       handleClose();
 
       if (onRoomCreated) {
@@ -112,7 +154,8 @@ export default function CreateRoomModal({
         navigation.navigate('ChatRoom', {
           id: newRoom.id,
           room: newRoom,
-          user: newRoom.counterpart,
+          user: counterpartInfo,
+          counterpart: counterpartInfo,
         });
       }
     } catch (err) {
@@ -123,8 +166,10 @@ export default function CreateRoomModal({
     }
   }, [
     title,
+    selectedTargetUser,
     selectedCategory,
     effectiveEntryFee,
+    authUser,
     handleClose,
     onRoomCreated,
     navigation,
@@ -184,13 +229,107 @@ export default function CreateRoomModal({
                     <View style={styles.directChatInfoTextWrap}>
                       <Text style={styles.directChatInfoTitle}>1:1 프라이빗 대화방</Text>
                       <Text style={styles.directChatInfoDesc}>
-                        상대방과 진솔한 1:1 대화를 나눕니다. 둘 중 한 명이 방을 삭제하면 대화가 완전히 종료됩니다.
+                        대화 상대를 지정하여 바로 대화를 나누거나, 공개 대기방을 열어 새로운 인연의 입장을 기다릴 수 있습니다.
                       </Text>
                     </View>
                   </View>
                 </View>
 
-                {/* 2. 대화방 제목 입력 */}
+                {/* 2. 대화 상대 선택 (인연 선택 또는 누구나 대기방) */}
+                <View style={styles.section}>
+                  <View style={styles.labelWithCounter}>
+                    <Text style={styles.sectionLabel}>대화 상대 선택</Text>
+                    <Text style={styles.targetStatusText}>
+                      {selectedTargetUser ? `선택: ${selectedTargetUser.name}` : '🌐 누구나 입장 (대기방)'}
+                    </Text>
+                  </View>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.usersScrollContainer}
+                  >
+                    {/* 옵션 1: 누구나 (공개 대기방) */}
+                    <TouchableOpacity
+                      style={[
+                        styles.userSelectChip,
+                        !selectedTargetUser && styles.userSelectChipActive,
+                      ]}
+                      onPress={() => setSelectedTargetUser(null)}
+                      activeOpacity={0.8}
+                    >
+                      <View
+                        style={[
+                          styles.userSelectAvatarRing,
+                          !selectedTargetUser && styles.userSelectAvatarRingActive,
+                        ]}
+                      >
+                        <Ionicons
+                          name="globe-outline"
+                          size={20}
+                          color={!selectedTargetUser ? '#FF5A79' : '#9CA3AF'}
+                        />
+                      </View>
+                      <Text
+                        style={[
+                          styles.userSelectName,
+                          !selectedTargetUser && styles.userSelectNameActive,
+                        ]}
+                      >
+                        누구나 (대기)
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* 추천 인연 목록 */}
+                    {CANDIDATE_USERS.map((u) => {
+                      const isSelected = selectedTargetUser?.id === u.id;
+                      return (
+                        <TouchableOpacity
+                          key={u.id}
+                          style={[
+                            styles.userSelectChip,
+                            isSelected && styles.userSelectChipActive,
+                          ]}
+                          onPress={() => {
+                            setSelectedTargetUser(u);
+                            if (!title) {
+                              setTitle(`${u.name}님과의 1:1 대화`);
+                            }
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <View
+                            style={[
+                              styles.userSelectAvatarRing,
+                              isSelected && styles.userSelectAvatarRingActive,
+                            ]}
+                          >
+                            <Avatar size={34} uri={u.avatar} name={u.name} />
+                          </View>
+                          <Text
+                            style={[
+                              styles.userSelectName,
+                              isSelected && styles.userSelectNameActive,
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {u.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                  {!selectedTargetUser ? (
+                    <Text style={styles.waitingNotice}>
+                      💡 상대를 지정하지 않으면 다른 회원이 입장할 때까지 '공개 대기방' 상태로 개설됩니다.
+                    </Text>
+                  ) : (
+                    <Text style={styles.waitingNoticeActive}>
+                      ✨ {selectedTargetUser.name}님과의 1:1 대화방이 바로 개설되어 대화와 선물을 나누실 수 있습니다.
+                    </Text>
+                  )}
+                </View>
+
+                {/* 3. 대화방 제목 입력 */}
                 <View style={styles.section}>
                   <View style={styles.labelWithCounter}>
                     <Text style={styles.sectionLabel}>대화방 제목 / 주제</Text>
@@ -712,5 +851,70 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  targetStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FF5A79',
+  },
+  usersScrollContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingVertical: 4,
+  },
+  userSelectChip: {
+    alignItems: 'center',
+    width: 68,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  userSelectChipActive: {
+    backgroundColor: '#FFF1F4',
+    borderColor: '#FF5A79',
+  },
+  userSelectAvatarRing: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#EDF2F7',
+    marginBottom: 6,
+  },
+  userSelectAvatarRingActive: {
+    backgroundColor: '#FFE4E9',
+  },
+  userSelectName: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  userSelectNameActive: {
+    color: '#FF3366',
+    fontWeight: '700',
+  },
+  waitingNotice: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 16,
+    marginTop: 8,
+    backgroundColor: '#F8FAFC',
+    padding: 8,
+    borderRadius: 8,
+  },
+  waitingNoticeActive: {
+    fontSize: 12,
+    color: '#E11D48',
+    lineHeight: 16,
+    marginTop: 8,
+    backgroundColor: '#FFF1F2',
+    padding: 8,
+    borderRadius: 8,
+    fontWeight: '600',
   },
 });

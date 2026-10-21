@@ -524,6 +524,13 @@ export class LiveController {
     let senderName = user?.nickname || user?.displayName || body.senderNickname || body.senderName || '시청자';
     let senderAvatar = user?.avatarUrl || body.senderAvatar || null;
 
+    const room = MOCK_LIVE_ROOMS.find((r) => r.id === roomId);
+    const hostId = (room as any)?.hostId || room?.host?.id;
+
+    if (hostId && hostId === userId) {
+      throw new BadRequestException('호스트는 본인 방송에 선물을 보낼 수 없습니다. 시청자로부터 선물을 받으실 수 있습니다.');
+    }
+
     try {
       const dbUser = await this.prisma.user.findUnique({ where: { id: userId } });
       if (dbUser) {
@@ -540,11 +547,18 @@ export class LiveController {
         });
         updatedBalance = updated.pointBalance;
       }
+
+      // 호스트(방 주인)에게 시청자가 보낸 선물 포인트 적립
+      if (hostId && hostId !== userId) {
+        await this.prisma.user.update({
+          where: { id: hostId },
+          data: { pointBalance: { increment: points } },
+        }).catch(() => {});
+      }
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
     }
 
-    const room = MOCK_LIVE_ROOMS.find((r) => r.id === roomId);
     if (room) {
       room.totalGiftsPoints = (room.totalGiftsPoints || 0) + points;
     }

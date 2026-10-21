@@ -345,16 +345,52 @@ export default function ChatsScreen({ navigation, route }) {
 
       if (chatsRes.status === 'fulfilled' && Array.isArray(chatsRes.value) && chatsRes.value.length > 0) {
         setChats(
-          chatsRes.value.map((c) => ({
-            id: c.id,
-            title: c.title || c.counterpart?.displayName || '대화 상대',
-            avatar: c.avatar || c.counterpart?.avatarUrl || null,
-            lastMessage: c.lastMessage || '대화가 시작되었습니다.',
-            lastMessageAt: c.lastMessageAt || new Date().toISOString(),
-            unreadCount: c.unreadCount || 0,
-            isOnline: Boolean(c.counterpart?.online),
-            counterpart: c.counterpart || {},
-          }))
+          chatsRes.value.map((c) => {
+            const myId = authUser?.id || authUser?.activityAccountId || 'guest';
+            const isMyCreatedRoom =
+              c.creatorId === myId ||
+              c.hostId === myId ||
+              c.host?.id === myId ||
+              c.isWaiting ||
+              (c.participantIds && c.participantIds.length === 1 && c.participantIds[0] === myId);
+
+            const hasCounterpart =
+              c.counterpart &&
+              c.counterpart.id &&
+              c.counterpart.id !== myId &&
+              !String(c.counterpart.displayName || '').includes('대기');
+
+            let displayTitle = '';
+            let displayAvatar = null;
+
+            if (hasCounterpart) {
+              // 상대방이 있는 1:1 대화방: 상대방 닉네임과 상대방 아바타 최우선
+              displayTitle = c.counterpart.displayName || c.counterpart.name || c.title || '대화 상대';
+              displayAvatar = c.counterpart.avatarUrl || c.counterpart.avatar || c.avatar || null;
+            } else if (isMyCreatedRoom) {
+              // 내가 개설한 대기방: 내 프로필 사진과 내가 지은 방 제목 표시
+              displayTitle = c.title ? `[내가 개설] ${c.title}` : '내가 개설한 1:1 대화방';
+              displayAvatar = authUser?.avatarUrl || authUser?.profile?.avatarUri || c.host?.avatarUrl || null;
+            } else {
+              displayTitle = c.title || c.counterpart?.displayName || '대화 상대';
+              displayAvatar = c.avatar || c.counterpart?.avatarUrl || null;
+            }
+
+            return {
+              id: c.id,
+              title: displayTitle,
+              rawTitle: c.title,
+              avatar: displayAvatar,
+              lastMessage: c.lastMessage || (isMyCreatedRoom && !hasCounterpart ? '대화 상대를 기다리는 중입니다 ⏳' : '대화가 시작되었습니다.'),
+              lastMessageAt: c.lastMessageAt || new Date().toISOString(),
+              unreadCount: c.unreadCount || 0,
+              isOnline: Boolean(c.counterpart?.online),
+              counterpart: hasCounterpart ? c.counterpart : { id: '', displayName: '대화 상대 대기 중', avatarUrl: null },
+              isMyCreatedRoom,
+              isWaiting: !hasCounterpart,
+              host: c.host,
+            };
+          })
         );
       }
     } catch {
@@ -362,7 +398,7 @@ export default function ChatsScreen({ navigation, route }) {
     } finally {
       if (refresh) setRefreshing(false);
     }
-  }, []);
+  }, [authUser]);
 
   useEffect(() => {
     loadData();

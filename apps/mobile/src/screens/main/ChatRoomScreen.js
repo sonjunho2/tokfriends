@@ -160,10 +160,11 @@ const resolveParticipantTarget = (user, routeParams) => {
 };
 
 export default function ChatRoomScreen({ route, navigation }) {
-  const { user: paramUser, title: paramTitle } = route.params || {};
-  const user = paramUser || { name: paramTitle || '친구' };
+  const { user: paramUser, title: paramTitle, room: routeRoom } = route.params || {};
+  const room = routeRoom || {};
+  const user = paramUser || room?.counterpart || { name: paramTitle || '친구' };
   const chatId = String(
-    route?.params?.chatId || route?.params?.id || route?.params?.room?.id || ''
+    route?.params?.chatId || route?.params?.id || room?.id || ''
   ).trim();
   const routeCounterpartAccountId =
     typeof route?.params?.counterpartAccountId === 'string'
@@ -183,6 +184,29 @@ export default function ChatRoomScreen({ route, navigation }) {
     : routeCounterpartAccountId || userCounterpartAccountId;
   const { user: authUser, token: authToken } = useAuth();
   const currentActivityAccountId = authUser?.activityAccountId || authUser?.id || 'dummy-user';
+
+  // 내가 개설한 방 여부 및 상대방 대기 여부
+  const isMyCreatedRoom = Boolean(
+    room?.isMyCreatedRoom ||
+    (authUser?.id && room?.hostId && String(authUser.id) === String(room.hostId)) ||
+    (authUser?.id && room?.creatorId && String(authUser.id) === String(room.creatorId))
+  );
+
+  const hasRealCounterpart = Boolean(
+    (user?.id && user.id !== currentActivityAccountId && !String(user?.name || user?.displayName || '').includes('대기')) ||
+    (counterpartAccountId && counterpartAccountId !== currentActivityAccountId)
+  );
+
+  const isWaiting = room?.isWaiting || !hasRealCounterpart;
+
+  // 헤더에 표시할 이름 및 부제목
+  const headerDisplayName = hasRealCounterpart
+    ? (user?.displayName || user?.name || paramTitle || '대화 상대')
+    : (room?.rawTitle || room?.title || paramTitle || '1:1 대화방');
+
+  const headerSubText = !hasRealCounterpart
+    ? (isMyCreatedRoom ? '내가 개설한 방 (상대방 대기 중 ⏳)' : '상대방 대기 중 ⏳')
+    : (isCounterpartTyping ? '입력 중...' : (user?.location || ''));
   const [messages, setMessages] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState('');
@@ -960,11 +984,20 @@ export default function ChatRoomScreen({ route, navigation }) {
     Keyboard.dismiss();
     setKeyboardVisible(false);
     setAttachSheetVisible(false);
+
+    if (isWaiting || !hasRealCounterpart) {
+      Alert.alert(
+        '선물하기 안내',
+        '현재 대화방에 상대방이 없습니다.\n상대방이 입장한 후 호감 표시로 선물을 보내실 수 있습니다.',
+      );
+      return;
+    }
+
     fetchMyPoints();
     setGiftPickerVisible(true);
-  }, [fetchMyPoints]);
+  }, [fetchMyPoints, isWaiting, hasRealCounterpart]);
 
-    const handleToggleFavorite = useCallback(() => {
+  const handleToggleFavorite = useCallback(() => {
     setOptionsVisible(false);
     setIsFavorite((prev) => {
       const next = !prev;
@@ -973,16 +1006,27 @@ export default function ChatRoomScreen({ route, navigation }) {
       Alert.alert(
         '즐겨찾기',
         next
-          ? `${user.name}님을 즐겨찾기에 추가했어요.`
-          : `${user.name}님을 즐겨찾기에서 삭제했어요.`
+          ? `${headerDisplayName}님을 즐겨찾기에 추가했어요.`
+          : `${headerDisplayName}님을 즐겨찾기에서 삭제했어요.`
       );
       return next;
     });
-  }, [navigation, route?.params, user.name]);
+  }, [navigation, route?.params, headerDisplayName]);
 
   const handleSendGift = useCallback(
     async (gift) => {
       if (!gift?.id || !chatId || !currentActivityAccountId) return;
+      if (isWaiting || !hasRealCounterpart) {
+        Alert.alert('선물 전송 불가', '대화 상대방이 없습니다. 상대방이 입장한 후 선물을 보내실 수 있습니다.');
+        return;
+      }
+
+      const targetReceiverId = (user?.id && user.id !== currentActivityAccountId) ? user.id : counterpartAccountId;
+      if (!targetReceiverId || targetReceiverId === currentActivityAccountId) {
+        Alert.alert('선물 전송 불가', '본인에게는 선물을 보낼 수 없습니다.');
+        return;
+      }
+
       const clientMessageId = uuid.v4();
       const giftPoints = gift.amount || gift.pricePoints || 0;
       const giftName = gift.name || '선물';
@@ -997,6 +1041,8 @@ export default function ChatRoomScreen({ route, navigation }) {
           icon: giftIcon,
           clientMessageId,
           senderAccountId: currentActivityAccountId,
+          receiverId: targetReceiverId,
+          targetUserId: targetReceiverId,
         });
 
         const confirmedMessage = response?.message || response?.data;
@@ -1461,14 +1507,14 @@ export default function ChatRoomScreen({ route, navigation }) {
             style={styles.headerTitleWrap}
             activeOpacity={0.8}
             onPress={() => {
-              if (user?.id || counterpartAccountId) {
+              if (hasRealCounterpart && (user?.id || counterpartAccountId)) {
                 navigation.navigate('ProfileDetail', {
                   profile: {
                     id: user.id || counterpartAccountId,
                     targetUserId: user.id || counterpartAccountId,
                     targetAccountId: counterpartAccountId,
-                    name: user.name,
-                    avatar: user.avatar,
+                    name: headerDisplayName,
+                    avatar: user.avatar || user.avatarUrl,
                     location: user.location,
                     headline: user.headline,
                   },
@@ -1476,9 +1522,9 @@ export default function ChatRoomScreen({ route, navigation }) {
               }
             }}
           >
-            <Text style={styles.headerTitle} numberOfLines={1}>{user.name}</Text>
-            {isCounterpartTyping ? (
-              <Text style={styles.typingIndicatorText}>입력 중...</Text>
+            <Text style={styles.headerTitle} numberOfLines={1}>{headerDisplayName}</Text>
+            {headerSubText ? (
+              <Text style={styles.typingIndicatorText} numberOfLines={1}>{headerSubText}</Text>
             ) : null}
           </TouchableOpacity>
 
@@ -1503,6 +1549,18 @@ export default function ChatRoomScreen({ route, navigation }) {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* 상대방 대기 안내 배너 */}
+        {isWaiting && (
+          <View style={styles.waitingNoticeBanner}>
+            <Ionicons name="time-outline" size={16} color="#B45309" />
+            <Text style={styles.waitingNoticeBannerText}>
+              {isMyCreatedRoom
+                ? '내가 개설한 1:1 대화방입니다. 상대방이 입장하면 대화와 선물을 나누실 수 있습니다.'
+                : '대화 상대방을 기다리는 중입니다.'}
+            </Text>
+          </View>
+        )}
 
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -1983,6 +2041,22 @@ const styles = StyleSheet.create({
   },
   headerActionBtn: {
     padding: 4,
+  },
+  waitingNoticeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDE68A',
+  },
+  waitingNoticeBannerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#92400E',
+    flex: 1,
   },
   chatContainer: {
     flex: 1,

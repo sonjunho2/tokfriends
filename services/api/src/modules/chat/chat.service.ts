@@ -24,13 +24,21 @@ export interface ChatRoomItem {
   entryFee: number;
   isGroup: boolean;
   participantIds: string[];
+  hostId?: string;
+  creatorId?: string;
+  host?: {
+    id: string;
+    displayName: string;
+    avatarUrl?: string | null;
+  };
   counterpart?: {
     id: string;
     displayName: string;
     handle?: string;
     avatarUrl?: string | null;
     online?: boolean;
-  };
+  } | null;
+  isWaiting?: boolean;
   lastMessage: string;
   lastMessageAt: string;
   unreadCount: number;
@@ -210,6 +218,10 @@ export class ChatService implements OnModuleInit {
     );
   }
 
+  getRoom(roomId: string): ChatRoomItem | undefined {
+    return this.rooms.find((r) => r.id === roomId);
+  }
+
   async getRoomById(roomId: string): Promise<ChatRoomItem> {
     const room = this.rooms.find((r) => r.id === roomId);
     if (!room) {
@@ -280,10 +292,26 @@ export class ChatService implements OnModuleInit {
 
   async createChatRoom(
     userId: string,
-    dto: { title: string; category?: string; entryFee?: number; isGroup?: boolean },
+    dto: { title: string; category?: string; entryFee?: number; isGroup?: boolean; targetUserId?: string },
   ): Promise<ChatRoomItem> {
     const title = String(dto.title || '').trim();
     const fee = Math.max(0, Number(dto.entryFee || 0));
+
+    // 호스트(개설자 본인) 정보 조회
+    let hostName = '나';
+    let hostAvatar: string | null = null;
+    try {
+      if (userId && userId !== 'guest') {
+        const dbHost = await this.prisma.user.findUnique({
+          where: { id: userId },
+          include: { photos: { take: 1, orderBy: { sortOrder: 'asc' } } },
+        });
+        if (dbHost) {
+          hostName = dbHost.nickname || dbHost.displayName || '나';
+          hostAvatar = dbHost.avatarUrl || dbHost.photos?.[0]?.url || null;
+        }
+      }
+    } catch {}
 
     // 관리자 채팅방 개설 온 소모 정책 적용
     try {
@@ -306,21 +334,58 @@ export class ChatService implements OnModuleInit {
       }
     } catch {}
 
-    // 1:1 대화 정책: isGroup은 항상 false로 강제 (단체방 개설 미지원)
+    // 상대방(targetUserId)이 지정된 경우 2인 대화방으로 구성
+    let counterpart: any = null;
+    const participantIds = [userId];
+    const targetUserId = dto.targetUserId ? String(dto.targetUserId).trim() : null;
+
+    if (targetUserId && targetUserId !== userId) {
+      participantIds.push(targetUserId);
+      let targetName = '대화 상대';
+      let targetAvatar: string | null = null;
+      try {
+        const u = await this.prisma.user.findUnique({
+          where: { id: targetUserId },
+          include: { photos: { take: 1, orderBy: { sortOrder: 'asc' } } },
+        });
+        if (u) {
+          targetName = u.nickname || u.displayName || '대화 상대';
+          targetAvatar = u.avatarUrl || u.photos?.[0]?.url || null;
+        }
+      } catch {}
+      counterpart = {
+        id: targetUserId,
+        displayName: targetName,
+        avatarUrl: targetAvatar,
+        online: true,
+      };
+    }
+
+    const isWaiting = !counterpart;
+
+    // 1:1 대화방 생성
     const newRoom: ChatRoomItem = {
       id: `chat-room-${Date.now()}`,
       title,
       category: dto.category || '1:1',
       entryFee: fee,
       isGroup: false,
-      participantIds: [userId],
-      counterpart: {
-        id: `acc-${Date.now()}`,
-        displayName: title,
-        avatarUrl: null,
-        online: true,
+      participantIds,
+      hostId: userId,
+      creatorId: userId,
+      host: {
+        id: userId,
+        displayName: hostName,
+        avatarUrl: hostAvatar,
       },
-      lastMessage: '대화방이 개설되었습니다.',
+      counterpart: counterpart || {
+        id: '',
+        displayName: '대화 상대 대기 중',
+        avatarUrl: null,
+        online: false,
+      },
+      isWaiting,
+      lastMessage: isWaiting ? '대화 상대를 기다리는 중입니다 ⏳' : '대화방이 개설되었습니다.',
       lastMessageAt: new Date().toISOString(),
       unreadCount: 0,
       createdAt: new Date().toISOString(),
@@ -332,7 +397,9 @@ export class ChatService implements OnModuleInit {
         id: `msg-init-${Date.now()}`,
         chatId: newRoom.id,
         senderAccountId: 'system',
-        content: `🎉 '${title}' 1:1 대화방이 생성되었습니다! (입장료: ${fee > 0 ? `${fee} ON` : '무료'})`,
+        content: isWaiting
+          ? `🎉 '${title}' 1:1 대화방이 생성되었습니다! 상대방이 입장하면 대화와 선물을 나눌 수 있습니다. (입장료: ${fee > 0 ? `${fee} ON` : '무료'})`
+          : `🎉 '${title}' 1:1 대화방이 생성되었습니다! (입장료: ${fee > 0 ? `${fee} ON` : '무료'})`,
         type: 'text',
         createdAt: new Date().toISOString(),
       },
@@ -471,6 +538,27 @@ export class ChatService implements OnModuleInit {
       }
     } catch (e: any) {
       this.logger.warn(`Failed to deduct points for ${userId}: ${e?.message}`);
+    }
+    return null;
+  }
+
+  async addPoints(userId: string, points: number): Promise<number | null> {
+    if (!userId || userId === 'guest' || points <= 0) return null;
+    try {
+      const dbUser = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { pointBalance: true },
+      });
+      if (dbUser) {
+        const newBal = (dbUser.pointBalance ?? 0) + points;
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { pointBalance: newBal },
+        });
+        return newBal;
+      }
+    } catch (e: any) {
+      this.logger.warn(`Failed to add points for ${userId}: ${e?.message}`);
     }
     return null;
   }
