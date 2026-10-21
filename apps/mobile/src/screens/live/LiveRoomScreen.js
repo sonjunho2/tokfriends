@@ -1153,22 +1153,23 @@ export default function LiveRoomScreen({ navigation, route }) {
   const chatMessages = useMemo(() => {
     return messages.filter((m) => {
       const type = String(m?.type || '').toLowerCase();
-      return type !== 'like' && type !== 'gift';
+      // 시스템 안내문, 선물, 하트는 일반 채팅창에서 제외하여 순수 유저 대화만 깔끔하게 표시
+      return type !== 'like' && type !== 'gift' && type !== 'system';
     });
   }, [messages]);
 
   const renderMessageItem = ({ item }) => {
-    const isSystem = item?.type === 'system';
     const hostId = room?.host?.id || room?.hostId;
     const isHostMessage = item?.isHost || (hostId && item?.senderId === hostId) || (isHost && item?.senderId === currentUser?.id);
     const isMe = item?.senderId === currentUser?.id;
+    const isMyReply = isHostMessage || isMe;
 
     const authorName =
       item?.senderName ||
       item?.sender?.nickname ||
       item?.sender?.displayName ||
       item?.sender?.name ||
-      (isSystem ? '시스템' : '시청자');
+      '시청자';
 
     const displayContent = item?.content || '';
 
@@ -1176,50 +1177,24 @@ export default function LiveRoomScreen({ navigation, route }) {
       <TouchableOpacity
         style={[
           styles.chatBubble,
-          isSystem
-            ? styles.systemBubble
-            : isHostMessage
-            ? styles.hostBubble
-            : isMe
-            ? styles.myBubble
-            : styles.viewerBubble,
+          isMyReply && styles.myReplyBubble,
         ]}
         onPress={() => handleMessagePress(item)}
         activeOpacity={0.8}
       >
-        <View style={styles.authorBadgeRow}>
+        <Text style={styles.chatInlineText}>
           {isHostMessage ? (
-            <View style={styles.hostRoleBadge}>
-              <Text style={styles.hostRoleBadgeText}>방장</Text>
-            </View>
+            <Text style={styles.hostPrefixText}>[방장] </Text>
           ) : isMe ? (
-            <View style={styles.myRoleBadge}>
-              <Text style={styles.myRoleBadgeText}>나</Text>
-            </View>
-          ) : isSystem ? (
-            <View style={styles.systemRoleBadge}>
-              <Text style={styles.systemRoleBadgeText}>공지</Text>
-            </View>
+            <Text style={styles.myPrefixText}>[나] </Text>
           ) : null}
-          <Text
-            style={[
-              styles.chatAuthor,
-              isHostMessage && styles.hostAuthorText,
-              isMe && styles.myAuthorText,
-              isSystem && styles.systemAuthorText,
-            ]}
-          >
+          <Text style={[styles.chatAuthor, isMyReply && styles.myReplyAuthor]}>
             {authorName}
           </Text>
-        </View>
-        <Text
-          style={[
-            styles.chatContent,
-            isHostMessage && styles.hostContentText,
-            isSystem && styles.systemContentText,
-          ]}
-        >
-          {displayContent}
+          <Text style={styles.colonText}> : </Text>
+          <Text style={[styles.chatContent, isMyReply && styles.myReplyContent]}>
+            {displayContent}
+          </Text>
         </Text>
       </TouchableOpacity>
     );
@@ -2212,154 +2187,101 @@ const styles = StyleSheet.create({
   noticeBannerBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 8,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 6,
     alignSelf: 'flex-start',
     maxWidth: '92%',
+    backgroundColor: 'rgba(0, 0, 0, 0.50)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   giftNoticeBanner: {
-    backgroundColor: 'rgba(30, 20, 10, 0.92)',
-    borderWidth: 1.5,
-    borderColor: '#F59E0B',
-    shadowColor: '#F59E0B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-    elevation: 6,
+    borderColor: 'rgba(245, 158, 11, 0.45)',
   },
   heartNoticeBanner: {
-    backgroundColor: 'rgba(35, 10, 25, 0.92)',
-    borderWidth: 1.5,
-    borderColor: '#FF3B6B',
-    shadowColor: '#FF3B6B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-    elevation: 6,
+    borderColor: 'rgba(255, 59, 107, 0.45)',
   },
   noticeIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
+    marginRight: 6,
   },
   giftNoticeIconWrap: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: 'rgba(245, 158, 11, 0.75)',
   },
   heartNoticeIconWrap: {
-    backgroundColor: '#FF3B6B',
+    backgroundColor: 'rgba(255, 59, 107, 0.75)',
   },
   noticeTextWrap: {
     flexShrink: 1,
   },
   noticeTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FDE68A',
   },
   noticeDesc: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginTop: 1,
+    fontSize: 11.5,
+    fontWeight: '500',
+    color: '#F3F4F6',
+    marginTop: 0.5,
   },
   chatBubble: {
     alignSelf: 'flex-start',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    maxWidth: '88%',
+    backgroundColor: 'rgba(0, 0, 0, 0.42)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    maxWidth: '92%',
+    marginBottom: 4,
   },
-  viewerBubble: {
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+  myReplyBubble: {
+    backgroundColor: 'rgba(255, 59, 107, 0.20)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.18)',
+    borderColor: 'rgba(255, 59, 107, 0.45)',
   },
-  hostBubble: {
-    backgroundColor: 'rgba(255, 59, 107, 0.35)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 59, 107, 0.85)',
-  },
-  myBubble: {
-    backgroundColor: 'rgba(79, 70, 229, 0.38)',
-    borderWidth: 1.2,
-    borderColor: 'rgba(129, 140, 248, 0.75)',
-  },
-  systemBubble: {
-    backgroundColor: 'rgba(30, 41, 59, 0.88)',
-    borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.4)',
-  },
-  authorBadgeRow: {
+  chatInlineText: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    marginBottom: 3,
-    gap: 5,
+    lineHeight: 20,
   },
-  hostRoleBadge: {
-    backgroundColor: '#FF3B6B',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  hostRoleBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
+  hostPrefixText: {
+    fontSize: 12,
     fontWeight: '900',
+    color: '#FF6B8B',
   },
-  myRoleBadge: {
-    backgroundColor: '#6366F1',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  myRoleBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
+  myPrefixText: {
+    fontSize: 12,
     fontWeight: '900',
-  },
-  systemRoleBadge: {
-    backgroundColor: '#0284C7',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  systemRoleBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '900',
+    color: '#A5B4FC',
   },
   chatAuthor: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#93C5FD',
   },
-  hostAuthorText: {
-    color: '#FDE047',
+  myReplyAuthor: {
+    color: '#FF85A1',
+    fontWeight: '800',
   },
-  myAuthorText: {
-    color: '#C7D2FE',
-  },
-  systemAuthorText: {
-    color: '#7DD3FC',
+  colonText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
   },
   chatContent: {
-    fontSize: 15,
+    fontSize: 13.5,
+    fontWeight: '500',
+    color: '#FFFFFF',
+  },
+  myReplyContent: {
+    color: '#FFE4E6',
     fontWeight: '600',
-    color: '#FFFFFF',
-    lineHeight: 22,
-  },
-  hostContentText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  systemContentText: {
-    color: '#E2E8F0',
-    fontSize: 14,
   },
   giftTotalBadge: {
     flexDirection: 'row',
