@@ -323,6 +323,19 @@ export default function LiveRoomScreen({ navigation, route }) {
     }, 1800);
   }, [toastFadeAnim]);
 
+  // Live Dedicated Notice Space (선물 알림글 & 하트 전용 공간)
+  const [liveNotice, setLiveNotice] = useState(null); // { id, type: 'gift' | 'like', title, desc }
+  const noticeTimeoutRef = useRef(null);
+
+  const showLiveNotice = useCallback(({ type, title, desc }) => {
+    if (noticeTimeoutRef.current) clearTimeout(noticeTimeoutRef.current);
+    const id = Date.now().toString();
+    setLiveNotice({ id, type, title, desc });
+    noticeTimeoutRef.current = setTimeout(() => {
+      setLiveNotice(null);
+    }, 4500);
+  }, []);
+
   useEffect(() => {
     if (isCameraOff && !isMicMuted) {
       const pulseLoop = Animated.loop(
@@ -603,6 +616,17 @@ export default function LiveRoomScreen({ navigation, route }) {
         if (msgType === 'like') {
           setLikeCount((c) => c + 1);
           floatingHeartsRef.current?.addHeart();
+          const likerName =
+            msg.senderName ||
+            msg.sender?.nickname ||
+            msg.sender?.displayName ||
+            msg.sender?.name ||
+            '시청자';
+          showLiveNotice({
+            type: 'like',
+            title: `❤️ ${likerName}님의 하트 응원`,
+            desc: '라이브 방송에 따뜻한 하트를 보냈습니다!',
+          });
         } else if (msgType === 'gift') {
           const giftPts = Number(msg.giftPoints || 0);
           if (giftPts > 0) {
@@ -642,10 +666,19 @@ export default function LiveRoomScreen({ navigation, route }) {
               msg.sender?.name ||
               '시청자';
 
+            const gName = giftMeta.giftName || '선물';
+            const gPoints = giftMeta.pricePoints || giftPts;
+
+            showLiveNotice({
+              type: 'gift',
+              title: `🎁 ${donorName}님의 선물 후원!`,
+              desc: `[${gName}] ${Number(gPoints).toLocaleString()}온을 보냈습니다`,
+            });
+
             giftOverlayRef.current?.enqueueGift({
               giftId: giftMeta.giftId || 'gift',
-              giftName: giftMeta.giftName || '선물',
-              pricePoints: giftMeta.pricePoints || giftPts,
+              giftName: gName,
+              pricePoints: gPoints,
               senderNickname: donorName,
               animationUrl: giftMeta.animationUrl,
               animationType: resolvedType,
@@ -783,6 +816,8 @@ export default function LiveRoomScreen({ navigation, route }) {
     const text = inputText.trim();
     if (!text || sending) return;
     setSending(true);
+    setInputText('');
+    Keyboard.dismiss();
     try {
       const senderNickname = currentUser?.nickname || currentUser?.displayName || '나';
       const senderAvatar = currentUser?.avatarUrl || currentUser?.avatarUri || null;
@@ -796,7 +831,6 @@ export default function LiveRoomScreen({ navigation, route }) {
         isHost,
       });
       const newMsg = res?.data || res?.message || res;
-      setInputText('');
       if (newMsg?.id) {
         setMessages((prev) => {
           if (prev.some((m) => m.id === newMsg.id)) return prev;
@@ -817,6 +851,11 @@ export default function LiveRoomScreen({ navigation, route }) {
   const handleSendHeart = async () => {
     setLikeCount((prev) => prev + 1);
     floatingHeartsRef.current?.addHeartsBurst(3);
+    showLiveNotice({
+      type: 'like',
+      title: '❤️ 내가 보낸 하트',
+      desc: '호스트님에게 하트를 보냈습니다!',
+    });
     try {
       const senderNickname = currentUser?.nickname || currentUser?.displayName || '나';
       const senderAvatar = currentUser?.avatarUrl || currentUser?.avatarUri || null;
@@ -884,6 +923,12 @@ export default function LiveRoomScreen({ navigation, route }) {
           : (gift.pricePoints >= 3000 ? 'fireworks' : '3d_heart'));
 
       const myNickname = currentUser?.nickname || currentUser?.displayName || currentUser?.name || '나';
+
+      showLiveNotice({
+        type: 'gift',
+        title: '🎁 내가 보낸 선물!',
+        desc: `[${gift.name}] ${Number(gift.pricePoints).toLocaleString()}온을 후원했습니다`,
+      });
 
       giftOverlayRef.current?.enqueueGift({
         giftId: gift.id,
@@ -1105,46 +1150,75 @@ export default function LiveRoomScreen({ navigation, route }) {
     }
   };
 
+  const chatMessages = useMemo(() => {
+    return messages.filter((m) => {
+      const type = String(m?.type || '').toLowerCase();
+      return type !== 'like' && type !== 'gift';
+    });
+  }, [messages]);
+
   const renderMessageItem = ({ item }) => {
-    const mType = String(item?.type || '').toLowerCase();
-    const isGift = mType === 'gift';
-    const isLike = mType === 'like';
-
-    let displayContent = item?.content || '';
-    let giftMeta = null;
-
-    if (isGift) {
-      try {
-        giftMeta = typeof item.content === 'string' ? JSON.parse(item.content) : (item.content || {});
-        const giftTitle = giftMeta?.giftName || item.giftName || '선물';
-        const points = giftMeta?.pricePoints || item.giftPoints || 0;
-        const note = giftMeta?.message ? ` "${giftMeta.message}"` : '';
-        displayContent = `🎁 [${giftTitle}] ${Number(points).toLocaleString()}온 후원!${note}`;
-      } catch {
-        displayContent = `🎁 선물 후원! (${Number(item?.giftPoints || 0).toLocaleString()}온)`;
-      }
-    }
+    const isSystem = item?.type === 'system';
+    const hostId = room?.host?.id || room?.hostId;
+    const isHostMessage = item?.isHost || (hostId && item?.senderId === hostId) || (isHost && item?.senderId === currentUser?.id);
+    const isMe = item?.senderId === currentUser?.id;
 
     const authorName =
-      giftMeta?.senderNickname ||
       item?.senderName ||
       item?.sender?.nickname ||
       item?.sender?.displayName ||
       item?.sender?.name ||
-      '시청자';
+      (isSystem ? '시스템' : '시청자');
+
+    const displayContent = item?.content || '';
 
     return (
       <TouchableOpacity
         style={[
           styles.chatBubble,
-          isGift && styles.giftBubble,
-          isLike && styles.likeBubble,
+          isSystem
+            ? styles.systemBubble
+            : isHostMessage
+            ? styles.hostBubble
+            : isMe
+            ? styles.myBubble
+            : styles.viewerBubble,
         ]}
         onPress={() => handleMessagePress(item)}
         activeOpacity={0.8}
       >
-        <Text style={[styles.chatAuthor, isGift && styles.giftAuthor]}>{authorName}</Text>
-        <Text style={[styles.chatContent, isGift && styles.giftContent]}>
+        <View style={styles.authorBadgeRow}>
+          {isHostMessage ? (
+            <View style={styles.hostRoleBadge}>
+              <Text style={styles.hostRoleBadgeText}>방장</Text>
+            </View>
+          ) : isMe ? (
+            <View style={styles.myRoleBadge}>
+              <Text style={styles.myRoleBadgeText}>나</Text>
+            </View>
+          ) : isSystem ? (
+            <View style={styles.systemRoleBadge}>
+              <Text style={styles.systemRoleBadgeText}>공지</Text>
+            </View>
+          ) : null}
+          <Text
+            style={[
+              styles.chatAuthor,
+              isHostMessage && styles.hostAuthorText,
+              isMe && styles.myAuthorText,
+              isSystem && styles.systemAuthorText,
+            ]}
+          >
+            {authorName}
+          </Text>
+        </View>
+        <Text
+          style={[
+            styles.chatContent,
+            isHostMessage && styles.hostContentText,
+            isSystem && styles.systemContentText,
+          ]}
+        >
           {displayContent}
         </Text>
       </TouchableOpacity>
@@ -1245,17 +1319,6 @@ export default function LiveRoomScreen({ navigation, route }) {
                 </Text>
               </View>
             )}
-
-            {/* Viewfinder simulation & camera layout */}
-            <View style={styles.viewfinderGrid} pointerEvents="none">
-              <View style={[styles.cornerMarker, styles.cornerTL]} />
-              <View style={[styles.cornerMarker, styles.cornerTR]} />
-              <View style={[styles.cornerMarker, styles.cornerBL]} />
-              <View style={[styles.cornerMarker, styles.cornerBR]} />
-            </View>
-
-            {/* Audio waveform meter */}
-            <LiveAudioWaveform isMuted={isMicMuted} />
           </View>
         ) : (
           // Audio Only Mode (Camera turned OFF or Background Video Unsubscribed)
@@ -1331,10 +1394,6 @@ export default function LiveRoomScreen({ navigation, route }) {
               <Text style={styles.hostPillName} numberOfLines={1}>
                 {isHost ? `${currentUser?.nickname || currentUser?.displayName || '나'} (방장)` : (room?.host?.name || '호스트')}
               </Text>
-              <View style={styles.miniLiveTag}>
-                <View style={styles.liveDot} />
-                <Text style={styles.miniLiveTagText}>LIVE</Text>
-              </View>
             </View>
             <Text style={styles.hostPillRegion} numberOfLines={1}>
               {isHost ? (currentUser?.region || '서울 강남구') : (room?.host?.region || '서울 강남구')}
@@ -1474,11 +1533,42 @@ export default function LiveRoomScreen({ navigation, route }) {
           },
         ]}
       >
+        {/* Real-time Gift & Heart Notice Bar (채팅글 표시 위에 별도로 전용 공간 표시) */}
+        {liveNotice && (
+          <View
+            style={[
+              styles.noticeBannerBox,
+              liveNotice.type === 'gift' ? styles.giftNoticeBanner : styles.heartNoticeBanner,
+            ]}
+          >
+            <View
+              style={[
+                styles.noticeIconWrap,
+                liveNotice.type === 'gift' ? styles.giftNoticeIconWrap : styles.heartNoticeIconWrap,
+              ]}
+            >
+              <Ionicons
+                name={liveNotice.type === 'gift' ? 'gift' : 'heart'}
+                size={16}
+                color="#FFFFFF"
+              />
+            </View>
+            <View style={styles.noticeTextWrap}>
+              <Text style={styles.noticeTitle} numberOfLines={1}>
+                {liveNotice.title}
+              </Text>
+              <Text style={styles.noticeDesc} numberOfLines={1}>
+                {liveNotice.desc}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Chat message list */}
         <View style={[styles.chatListWrap, keyboardHeight > 0 && styles.chatListWrapKeyboard]}>
           <FlatList
             ref={flatListRef}
-            data={messages}
+            data={chatMessages}
             keyExtractor={(item) => String(item.id)}
             renderItem={renderMessageItem}
             contentContainerStyle={styles.chatListContent}
@@ -1579,6 +1669,8 @@ export default function LiveRoomScreen({ navigation, route }) {
         viewerCount={viewerCount}
         messages={messages}
         currentUser={currentUser}
+        isHost={isHost}
+        hostId={room?.host?.id || (isHost ? currentUser?.id : null)}
         myContributionPoints={myContributionPoints}
         onOpenGiftPicker={() => {
           setViewerModalVisible(false);
@@ -1885,7 +1977,7 @@ const styles = StyleSheet.create({
     padding: 4,
     paddingRight: 10,
     gap: 6,
-    maxWidth: 165,
+    maxWidth: 185,
   },
   hostPillMeta: {
     flexShrink: 1,
@@ -1896,10 +1988,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   hostPillName: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
     color: '#FFFFFF',
-    maxWidth: 75,
+    maxWidth: 115,
   },
   miniLiveTag: {
     flexDirection: 'row',
@@ -2105,51 +2197,169 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   chatListWrap: {
-    height: 180,
+    height: 290,
     justifyContent: 'flex-end',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   chatListWrapKeyboard: {
-    height: 76,
+    height: 130,
     marginBottom: 8,
   },
   chatListContent: {
     gap: 6,
     justifyContent: 'flex-end',
   },
+  noticeBannerBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 8,
+    alignSelf: 'flex-start',
+    maxWidth: '92%',
+  },
+  giftNoticeBanner: {
+    backgroundColor: 'rgba(30, 20, 10, 0.92)',
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  heartNoticeBanner: {
+    backgroundColor: 'rgba(35, 10, 25, 0.92)',
+    borderWidth: 1.5,
+    borderColor: '#FF3B6B',
+    shadowColor: '#FF3B6B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  noticeIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  giftNoticeIconWrap: {
+    backgroundColor: '#F59E0B',
+  },
+  heartNoticeIconWrap: {
+    backgroundColor: '#FF3B6B',
+  },
+  noticeTextWrap: {
+    flexShrink: 1,
+  },
+  noticeTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  noticeDesc: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 1,
+  },
   chatBubble: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    maxWidth: '85%',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    maxWidth: '88%',
   },
-  giftBubble: {
-    backgroundColor: 'rgba(245, 158, 11, 0.4)',
+  viewerBubble: {
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
     borderWidth: 1,
-    borderColor: '#F59E0B',
+    borderColor: 'rgba(255, 255, 255, 0.18)',
   },
-  likeBubble: {
-    backgroundColor: 'rgba(255, 59, 107, 0.3)',
+  hostBubble: {
+    backgroundColor: 'rgba(255, 59, 107, 0.35)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 59, 107, 0.85)',
+  },
+  myBubble: {
+    backgroundColor: 'rgba(79, 70, 229, 0.38)',
+    borderWidth: 1.2,
+    borderColor: 'rgba(129, 140, 248, 0.75)',
+  },
+  systemBubble: {
+    backgroundColor: 'rgba(30, 41, 59, 0.88)',
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.4)',
+  },
+  authorBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 3,
+    gap: 5,
+  },
+  hostRoleBadge: {
+    backgroundColor: '#FF3B6B',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  hostRoleBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  myRoleBadge: {
+    backgroundColor: '#6366F1',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  myRoleBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  systemRoleBadge: {
+    backgroundColor: '#0284C7',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  systemRoleBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
   },
   chatAuthor: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#A5B4FC',
-    marginBottom: 2,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#93C5FD',
   },
-  giftAuthor: {
-    color: '#FDE68A',
+  hostAuthorText: {
+    color: '#FDE047',
+  },
+  myAuthorText: {
+    color: '#C7D2FE',
+  },
+  systemAuthorText: {
+    color: '#7DD3FC',
   },
   chatContent: {
-    fontSize: 13,
+    fontSize: 15,
+    fontWeight: '600',
     color: '#FFFFFF',
-    lineHeight: 18,
+    lineHeight: 22,
   },
-  giftContent: {
-    color: '#FDE68A',
+  hostContentText: {
+    color: '#FFFFFF',
     fontWeight: '700',
+  },
+  systemContentText: {
+    color: '#E2E8F0',
+    fontSize: 14,
   },
   giftTotalBadge: {
     flexDirection: 'row',

@@ -74,6 +74,8 @@ export default function LiveViewerRankingSheet({
   activeViewers = [],
   messages = [],
   currentUser = null,
+  isHost = false,
+  hostId = null,
   myContributionPoints = 0,
   onOpenGiftPicker,
   onSelectUser,
@@ -81,13 +83,14 @@ export default function LiveViewerRankingSheet({
   const [activeTab, setActiveTab] = useState('viewers'); // 'viewers' | 'ranking' | 'vip'
   const [periodTab, setPeriodTab] = useState('daily'); // 'daily' | 'weekly' | 'monthly' | 'fan' | 'total'
 
-  // Dynamic merged viewer list
+  // Dynamic merged viewer list (호스트 본인 및 시스템 계정 제외 - 순수 시청자만 표시)
   const mergedViewers = useMemo(() => {
     const list = [];
     const seen = new Set();
+    const effectiveHostId = hostId ? String(hostId) : (isHost && currentUser?.id ? String(currentUser.id) : null);
 
-    // 1. Current user
-    if (currentUser?.id) {
+    // 1. Current user (호스트인 경우 시청자가 아니므로 제외)
+    if (currentUser?.id && !isHost && String(currentUser.id) !== effectiveHostId) {
       seen.add(String(currentUser.id));
       list.push({
         id: String(currentUser.id),
@@ -99,11 +102,17 @@ export default function LiveViewerRankingSheet({
       });
     }
 
-    // 2. Chat participants
+    // 2. Chat participants (호스트 및 시스템 계정 제외)
     if (Array.isArray(messages)) {
       for (const m of messages) {
         const sid = String(m?.senderId || m?.sender?.id || '');
-        if (sid && !seen.has(sid)) {
+        if (
+          sid &&
+          !seen.has(sid) &&
+          sid !== effectiveHostId &&
+          sid !== 'system' &&
+          m?.senderName !== '시스템'
+        ) {
           seen.add(sid);
           list.push({
             id: sid,
@@ -116,26 +125,30 @@ export default function LiveViewerRankingSheet({
       }
     }
 
-    // 3. Fallback active viewers
+    // 3. Fallback active viewers (호스트 제외)
     for (const v of DEFAULT_VIEWERS) {
-      if (!seen.has(v.id)) {
+      if (!seen.has(v.id) && v.id !== effectiveHostId) {
         seen.add(v.id);
         list.push(v);
       }
     }
 
     return list;
-  }, [currentUser, messages]);
+  }, [currentUser, messages, isHost, hostId]);
 
-  // Dynamic contributors list
+  // Dynamic contributors list (호스트 및 시스템 계정 제외)
   const mergedContributors = useMemo(() => {
     const giftMap = new Map();
+    const effectiveHostId = hostId ? String(hostId) : (isHost && currentUser?.id ? String(currentUser.id) : null);
 
     // Collect from room messages
     if (Array.isArray(messages)) {
       for (const m of messages) {
         if (m.type === 'gift' && m.giftPoints) {
           const sid = String(m.senderId || m.sender?.id || m.senderName || 'anon');
+          if (sid === effectiveHostId || sid === 'system' || m.senderName === '시스템') {
+            continue;
+          }
           const prev = giftMap.get(sid) || {
             id: sid,
             name: m.senderName || m.sender?.name || '후원자',
@@ -160,7 +173,7 @@ export default function LiveViewerRankingSheet({
     }
 
     return combined.sort((a, b) => (b.points || 0) - (a.points || 0));
-  }, [messages]);
+  }, [messages, isHost, hostId, currentUser]);
 
   const renderViewerItem = ({ item }) => (
     <TouchableOpacity
