@@ -47,16 +47,21 @@ export class ChatGateway
         socket.handshake.headers.authorization?.replace('Bearer ', '');
 
       if (token) {
-        const decoded = jwt.verify(token, this.jwtSecret) as any;
-        const user = await this.authenticatedUserContext.resolveFromPayload(decoded);
-        if (user) {
-          socket.data.user = user;
-          socket.join(`user_${user.id}`);
-          this.logger.log(`User connected to WS: ${user.nickname} (${user.id})`);
+        try {
+          const decoded = jwt.verify(token, this.jwtSecret) as any;
+          const user = await this.authenticatedUserContext.resolveFromPayload(decoded);
+          if (user) {
+            socket.data.user = user;
+            socket.join(`user_${user.id}`);
+            this.logger.log(`User connected to WS: ${user.nickname} (${user.id})`);
+          }
+        } catch {
+          // Token invalid or dummy - treat as guest
         }
       }
+      socket.emit('connected', { socketId: socket.id, ok: true });
     } catch (err) {
-      // Allow anonymous connection for public live viewing
+      socket.emit('connected', { socketId: socket.id, ok: true, isAnonymous: true });
     }
   }
 
@@ -122,24 +127,43 @@ export class ChatGateway
     @ConnectedSocket() socket: Socket,
     @MessageBody()
     data: {
-      channelId: string;
+      channelId?: string;
+      roomId?: string;
       giftName: string;
       points: number;
-      effectTier: 1 | 2 | 3;
+      effectTier?: 1 | 2 | 3;
+      giftId?: string;
+      animationType?: string;
+      animationUrl?: string;
+      thumbnailUrl?: string;
     },
   ) {
     const user = socket.data?.user;
+    const targetRoomId = data.roomId || data.channelId || this.socketLiveRooms.get(socket.id);
+    const tier = data.effectTier || (data.points >= 30000 ? 3 : data.points >= 3000 ? 2 : 1);
     const payload = {
-      id: `gift_${Date.now()}`,
-      senderName: user?.nickname || '익명',
-      giftName: data.giftName,
+      id: `gift_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      roomId: targetRoomId,
+      type: 'gift',
+      senderName: user?.nickname || user?.displayName || '시청자',
+      giftName: data.giftName || '선물',
       points: data.points,
-      effectTier: data.effectTier,
+      giftPoints: data.points,
+      effectTier: tier,
+      animationType: data.animationType,
+      animationUrl: data.animationUrl,
+      thumbnailUrl: data.thumbnailUrl,
       createdAt: new Date().toISOString(),
     };
 
-    if (data.channelId) {
-      this.server.to(data.channelId).emit('GIFT_OVERLAY_TRIGGER', payload);
+    if (targetRoomId) {
+      this.server.to(`live_room_${targetRoomId}`).emit('live:message', payload);
+      this.server.to(`live_room_${targetRoomId}`).emit('live:gift', payload);
+      this.server.to(`live_room_${targetRoomId}`).emit('GIFT_OVERLAY_TRIGGER', payload);
+      if (data.channelId && data.channelId !== targetRoomId) {
+        this.server.to(data.channelId).emit('GIFT_OVERLAY_TRIGGER', payload);
+      }
+      this.logger.log(`[WS Gift Broadcast] Room ${targetRoomId}: ${data.giftName} (${data.points} ON) to ALL viewers & host`);
     }
 
     return { ok: true, data: payload };
@@ -222,20 +246,41 @@ export class ChatGateway
   @SubscribeMessage('live:message')
   handleLiveMessage(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() data: { roomId: string; message: any },
+    @MessageBody() data: any,
   ) {
-    if (data?.roomId && data?.message) {
-      this.server.to(`live_room_${data.roomId}`).emit('live:message', data.message);
+    let roomId = data?.roomId;
+    let message = data?.message;
+
+    // 클라이언트가 메시지 객체를 직접 전송한 경우 (data 자체가 message인 경우 지원)
+    if (!message && data?.id) {
+      message = data;
+      roomId = data.roomId || this.socketLiveRooms.get(socket.id);
+    } else if (!roomId) {
+      roomId = this.socketLiveRooms.get(socket.id);
+    }
+
+    if (roomId && message) {
+      this.server.to(`live_room_${roomId}`).emit('live:message', message);
+      if (message.type === 'gift') {
+        this.server.to(`live_room_${roomId}`).emit('live:gift', message);
+        this.server.to(`live_room_${roomId}`).emit('GIFT_OVERLAY_TRIGGER', message);
+        this.logger.log(`[WS Live Gift Message Relay] Room ${roomId}: ${message.giftPoints} ON`);
+      }
     }
     return { ok: true };
   }
 
   /**
-   * 외부(컨트롤러)에서 실시간 메시지/선물 브로드캐스트
+   * 외부(컨트롤러)에서 실시간 메시지/선물 브로드캐스트 (방 안의 호스트 및 모든 시청자에게 전파)
    */
   emitLiveMessage(roomId: string, message: any) {
     const channel = `live_room_${roomId}`;
     this.server.to(channel).emit('live:message', message);
+    if (message?.type === 'gift') {
+      this.server.to(channel).emit('live:gift', message);
+      this.server.to(channel).emit('GIFT_OVERLAY_TRIGGER', message);
+      this.logger.log(`[Live Controller Broadcast] Gift sent to all in ${channel}`);
+    }
   }
 
   /**

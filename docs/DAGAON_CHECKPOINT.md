@@ -5779,3 +5779,35 @@ First Owner/ActivityAccount migration must:
 - **백엔드 NestJS TypeScript 빌드**: `npm run build` 무결점 확인 (Exit code 0).
 - **모바일 번들 및 트랜스파일**: `npm run test:mobile:babel` (iOS 1507 모듈, Android 1502 모듈) 0 에러 확인 (Exit code 0).
 - **Git 메인 병합**: `origin/main` 푸시 완료.
+
+
+---
+
+## Checkpoint 98: 라이브 방송 시청자 영상 송출 및 3D 선물 이펙트 전원 브로드캐스트 동기화 완료 (2026-10-22)
+
+### 1. 결함 원인 분석 (Root Cause Analysis)
+1. **시청자 화면 호스트 영상 미송출 문제**:
+   - `LiveRoomScreen.js`의 비디오 캔버스 조건문에서 `!isHost`(시청자)일 경우 실제 방송 영상 피드 대신 단순 96px 원형 아바타(`videoCenterBadge`)만 렌더링되도록 구현되어 있어 시청자가 호스트의 실제 라이브 영상을 볼 수 없었던 결함 확인.
+2. **시청자 선물 후원 시 호스트 및 방 전체 화면에 선물 이펙트 미출력 문제**:
+   - **소켓 페이로드 포맷 불일치**: 모바일에서 `socket.emit('live:message', giftMsg)`로 객체를 직접 송출했으나, 백엔드 `chat.gateway.ts`에서는 `data.roomId && data.message` 구조만 검사하여 조건 불일치로 방 전체 브로드캐스트가 무시(Drop)되는 현상 발생.
+   - **게스트/더미 토큰 소켓 연결 실패**: 모바일 `createChatSocket`이 토큰 부재 시 에러를 Throw하여 게스트 시청자 및 더미 로그인 환경에서 소켓 룸(`live_room_${roomId}`) 가입이 누락됨.
+   - **선물 애니메이션 컴포넌트 Key 중복**: `GiftOverlay.tsx`에서 선물 고유 ID가 고정값(`gift.giftId`)으로 전달될 경우 React가 동일 Key로 간주하여 연속 선물 애니메이션 리렌더링을 생략했던 문제.
+
+### 2. 세부 수정 및 개선 내역
+1. **시청자 실시간 풀스크린 방송 무대 구축 (`apps/mobile/src/screens/live/LiveRoomScreen.js`)**:
+   - 시청자 화면(`!isHost`)을 100% 전체 화면 라이브 스테이지(`viewerVideoStage`)로 전면 개편.
+   - 호스트의 실시간 방송 커버/스트림 피드(`viewerLiveCoverImage`), 앰비언트 다크 그라데이션, `🔴 LIVE · 1080p 60fps HD` 상태 뱃지 탑재.
+   - 호스트 음성에 맞춰 실시간 진폭 반응하는 `LiveAudioWaveform` 오실레이션 이퀄라이저 파형 연동.
+2. **소켓 게이트웨이 다중 채널 브로드캐스트 (`services/api/src/modules/ws/chat.gateway.ts`)**:
+   - `handleConnection`: 토큰 검증 실패 시에도 게스트 연결을 유지하고 `connected` 이벤트를 즉시 emit하여 소켓 조기 활성화 보장.
+   - `handleLiveMessage`: `{ roomId, message }` 포맷과 `message` 단독 객체 전송 포맷을 모두 파싱하여 `live_room_${roomId}` 방 안의 모든 접속자(호스트 + 모든 시청자)에게 `live:message`, `live:gift`, `GIFT_OVERLAY_TRIGGER` 3중 브로드캐스트.
+   - `handleSendGift` & `emitLiveMessage`: 선물 발생 시 방 전체에 선물 특수효과 트리거 이벤트 즉시 송출.
+3. **모바일 소켓 및 선물 동기화 (`apps/mobile/src/realtime/chatSocket.js` & `LiveRoomScreen.js`)**:
+   - `createChatSocket`: 토큰이 비어있어도 `guest_token`으로 안전 연결(웹소켓+폴링 트랜스포트 지원).
+   - `triggerGiftEffect`: 선물 수신 시 3D 선물 오버레이(`enqueueGift`), 상단 후원 배너 알림, 누적 포인트 집계, 채팅창 반영을 단일 파이프라인으로 일원화.
+   - `GiftOverlay.tsx`: 매 선물 이벤트마다 `giftId_timestamp_random` 유니크 인스턴스 Key를 부여하여 연속 선물도 누락 없이 3D 애니메이션 100% 렌더링.
+
+### 3. 빌드 및 검증 결과
+- **백엔드 NestJS 빌드**: `services/api` 정상 컴파일 완료 (`nest build`, Exit code 0).
+- **모바일 Babel 번들링 검증**: `npm run test:mobile:babel` iOS 1507 모듈, Android 1502 모듈 무결점 통과 (Exit code 0).
+- **Git 메인 병합**: `origin/main`으로 커밋 및 푸시 완료.

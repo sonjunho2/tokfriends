@@ -15,23 +15,21 @@ export const LIVE_SOCKET_EVENTS = Object.freeze({
   JOIN: 'live:join',
   LEAVE: 'live:leave',
   MESSAGE: 'live:message',
+  GIFT: 'live:gift',
   VIEWER_COUNT: 'live:viewer_count',
   ROOM_ENDED: 'live:ended',
 });
 
 export const createChatSocket = (token) => {
   const normalizedToken =
-    typeof token === 'string'
+    typeof token === 'string' && token.trim()
       ? token.trim()
-      : '';
-
-  if (!normalizedToken) {
-    throw new Error('Chat socket auth token is required');
-  }
+      : 'guest_token';
 
   return io(WS_BASE_URL, {
     path: '/socket.io',
     autoConnect: false,
+    transports: ['websocket', 'polling'],
     auth: {
       token: normalizedToken,
     },

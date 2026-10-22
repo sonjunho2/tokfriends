@@ -865,7 +865,7 @@ export default function LiveRoomScreen({ navigation, route }) {
           return [...prev, newMsg];
         });
         if (socketRef.current?.connected) {
-          socketRef.current.emit(LIVE_SOCKET_EVENTS.MESSAGE, newMsg);
+          socketRef.current.emit(LIVE_SOCKET_EVENTS.MESSAGE, { roomId, message: newMsg }); socketRef.current.emit(LIVE_SOCKET_EVENTS.MESSAGE, newMsg);
         }
       }
       flatListRef.current?.scrollToEnd({ animated: true });
@@ -898,7 +898,7 @@ export default function LiveRoomScreen({ navigation, route }) {
       });
       const likeMsg = res?.data || res?.message || res;
       if (socketRef.current?.connected && likeMsg?.id) {
-        socketRef.current.emit(LIVE_SOCKET_EVENTS.MESSAGE, likeMsg);
+        socketRef.current.emit(LIVE_SOCKET_EVENTS.MESSAGE, { roomId, message: likeMsg }); socketRef.current.emit(LIVE_SOCKET_EVENTS.MESSAGE, likeMsg);
       }
     } catch {
       // quiet fallback
@@ -2475,5 +2475,69 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '800',
+  },
+  viewerVideoStage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#0F172A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  viewerLiveCoverImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+    opacity: 0.85,
+  },
+  viewerStreamDarkOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+  },
+  viewerStreamStatusPill: {
+    position: 'absolute',
+    top: 72,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    zIndex: 10,
+  },
+  livePulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+  },
+  viewerStreamStatusText: {
+    color: '#F8FAFC',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  hostAvatarVisualWrapper: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hostLiveBadgeFloat: {
+    position: 'absolute',
+    bottom: -6,
+    backgroundColor: '#FF3B6B',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  hostLiveBadgeFloatText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
   },
 });

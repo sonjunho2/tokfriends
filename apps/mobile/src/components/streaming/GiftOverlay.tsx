@@ -85,10 +85,11 @@ export const GiftOverlay = memo(
         },
         enqueueGift: (gift: any) => {
           const item: GiftItem = {
-            id: gift.giftId || String(Date.now()),
+            id: `${gift.id || gift.giftId || 'gift'}_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
             senderName: gift.senderNickname || gift.senderName || '팬',
             giftName: gift.giftName || '선물',
             points: Number(gift.pricePoints || gift.points || 1000),
+            effectTier: gift.effectTier || (Number(gift.pricePoints || gift.points || 0) >= 30000 ? 3 : Number(gift.pricePoints || gift.points || 0) >= 3000 ? 2 : 1),
             animationUrl: gift.animationUrl,
             thumbnailUrl: gift.thumbnailUrl,
           };
