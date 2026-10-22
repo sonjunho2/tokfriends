@@ -18,6 +18,7 @@ import { WsModule } from './modules/ws/ws.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { MediaModule } from './modules/media/media.module';
 import { MarketModule } from './modules/market/market.module';
+import { SudaModule } from './modules/suda/suda.module';
 import { JwtAuthGuard } from './modules/auth/jwt.guard';
 import { AdminPermissionsGuard } from './common/admin-permissions.guard';
 import { AppController } from './app.controller';
@@ -42,6 +43,7 @@ import { AppController } from './app.controller';
     ChatModule,
     MediaModule,
     MarketModule,
+    SudaModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

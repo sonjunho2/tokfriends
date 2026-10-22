@@ -1550,6 +1550,32 @@ export default function ChatRoomScreen({ route, navigation }) {
           </View>
         </View>
 
+        {/* 상거래 전용 거래 톡 상단 고정 바 (마켓 에스크로 연동) */}
+        {Boolean(route.params?.marketOrder) && (
+          <View style={styles.marketOrderFixedBar}>
+            <Image
+              source={{
+                uri:
+                  route.params.marketOrder.productImage ||
+                  'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=600',
+              }}
+              style={styles.marketOrderThumb}
+            />
+            <View style={styles.marketOrderTextBox}>
+              <Text style={styles.marketOrderTitle} numberOfLines={1}>
+                {route.params.marketOrder.title || route.params.marketOrder.productTitle || '거래 물품'}
+              </Text>
+              <Text style={styles.marketOrderPrice}>
+                {(route.params.marketOrder.price || 0).toLocaleString()} ON
+              </Text>
+            </View>
+            <View style={styles.marketOrderBadge}>
+              <Ionicons name="shield-checkmark" size={12} color="#FFFFFF" />
+              <Text style={styles.marketOrderBadgeText}>안전결제</Text>
+            </View>
+          </View>
+        )}
+
         {/* 상대방 대기 안내 배너 */}
         {isWaiting && (
           <View style={styles.waitingNoticeBanner}>
@@ -2706,5 +2732,55 @@ const styles = StyleSheet.create({
   fullscreenPreviewImage: {
     width: '100%',
     height: '85%',
+  },
+  marketOrderFixedBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  marketOrderThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+  },
+  marketOrderTextBox: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 8,
+  },
+  marketOrderTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  marketOrderPrice: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#4F46E5',
+  },
+  marketOrderBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#10B981',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  marketOrderBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
 });

@@ -95,6 +95,13 @@ const NAV_ITEMS: AppShellNavItem[] = [
     icon: Gift,
   },
   {
+    label: '마켓 & 에스크로 관리',
+    href: '/market-escrow',
+    description: 'C2C/공동구매 및 에스크로 안전결제·분쟁 중재',
+    group: '수익·선물',
+    icon: ShieldCheck,
+  },
+  {
     label: '정산 & 환불',
     href: '/settlement',
     description: '온(ON) 정산 및 환불 요청 처리',

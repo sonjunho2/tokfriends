@@ -170,7 +170,7 @@ export default function TabNavigator() {
         }}
       />
 
-      {/* 4. 대화 탭 */}
+      {/* 4. 수다 탭 (1줄 토크 타임라인 & 듀얼 대화함) */}
       <Tab.Screen
         name="Chat"
         component={ChatsStack}
@@ -179,7 +179,7 @@ export default function TabNavigator() {
             <RegularTabItem
               name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
               focused={focused}
-              label="인연·대화"
+              label="수다"
             />
           ),
         }}

@@ -34,6 +34,9 @@ import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
 import { createChatSocket, LIVE_SOCKET_EVENTS } from '../../realtime/chatSocket';
+import LiveCommercePinOverlay from '../../components/live/LiveCommercePinOverlay';
+import LiveEscrowBuyModal from '../../components/live/LiveEscrowBuyModal';
+import { fetchMarketProducts } from '../../services/marketService';
 
 const LIVE_ACCENT = '#FF3B6B';
 
@@ -137,6 +140,31 @@ export default function LiveRoomScreen({ navigation, route }) {
   );
   const processedGiftMessageIdsRef = useRef(new Set());
   const socketRef = useRef(null);
+  // 라이브커머스 핀 상품 연동 상태
+  const [pinnedProduct, setPinnedProduct] = useState(null);
+  const [isPinVisible, setIsPinVisible] = useState(true);
+  const [buyModalVisible, setBuyModalVisible] = useState(false);
+  const [selectedCommerceProduct, setSelectedCommerceProduct] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    fetchMarketProducts({ type: 'B2C_GROUP' })
+      .then((items) => {
+        if (mounted && items && items.length > 0) {
+          setPinnedProduct(items[0]);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleOpenCommerceBuy = (prod) => {
+    setSelectedCommerceProduct(prod);
+    setBuyModalVisible(true);
+  };
+
 
   // Guarantee bottom tab bar is completely hidden while Live Room is open
   useLayoutEffect(() => {

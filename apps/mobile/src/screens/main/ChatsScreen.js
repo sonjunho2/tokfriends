@@ -1,1460 +1,392 @@
-// apps/mobile/src/screens/main/ChatsScreen.js
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
-  Dimensions,
   TouchableOpacity,
-  Image,
   FlatList,
-  ScrollView,
+  Image,
+  StyleSheet,
+  ActivityIndicator,
   RefreshControl,
-  StatusBar,
-  Alert,
-  TextInput,
-  Platform,
-  Animated,
+  Dimensions,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-
 import { tokens } from '../../theme/tokens';
+import ScrollExpandableFAB from '../../components/common/ScrollExpandableFAB';
+import SudaCreateModal from '../../components/suda/SudaCreateModal';
 import {
-  UserAvatar,
-  GlobalBottomSheet,
-  EmptyStateView,
-  ExtendedFAB,
-  useExtendedFabScroll,
-} from '../../components/common';
-import CreateRoomModal from '../../components/chat/CreateRoomModal';
-import { apiClient } from '../../api/client';
-import { useAuth } from '../../context/AuthContext';
-import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
+  SudaPostItem,
+  ChatRoomItem,
+  fetchSudaPosts,
+  fetchChatRooms,
+} from '../../services/sudaService';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const GRID_PADDING = 16;
-const GRID_GAP = 12;
-const CARD_WIDTH = (SCREEN_WIDTH - GRID_PADDING * 2 - GRID_GAP) / 2;
-const CARD_HEIGHT = CARD_WIDTH * 1.36; // 세로형 1:1.36 황금 비율
+const { width } = Dimensions.get('window');
 
-// 1열 가로 스크롤 캡슐 필터 목록 (관리자 '소셜 & 매칭' 설정과 실시간 연동)
-const DEFAULT_QUICK_FILTERS = [
-  { id: 'T-ALL', label: '전체', segment: '전체', icon: '✨' },
-  { id: 'T1', label: '지금 접속중', segment: '접속중', icon: '🔥' },
-  { id: 'T2', label: '가까운 동네', segment: '가까운 거리', icon: '📍' },
-  { id: 'T3', label: '20대 또래', segment: '연령대', icon: '🎂' },
-  { id: 'T4', label: '취미·운동', segment: '의도', icon: '🏃' },
-  { id: 'T5', label: '가벼운 커피', segment: '의도', icon: '☕' },
-];
-
-// 감성적인 기본 인연 카드 데이터 (10명, 9장 갤러리 지원)
-const FALLBACK_DISCOVER_USERS = [
-  {
-    id: 'user-disc-1',
-    name: '수아',
-    age: 24,
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600',
-    location: '강남구 역삼동',
-    distanceKm: 0.8,
-    distanceLabel: '800m',
-    headline: '디저트 카페 탐방 좋아해요 🍰',
-    bio: '주말에 소소하게 커피 마시며 이야기 나눌 편안한 친구 찾고 있어요! 음악과 사진 촬영도 즐겨요 ✨',
-    tags: ['#카페', '#디저트', '#음악'],
-    status: 'online',
-    isOnline: true,
-    isHot: true,
-    pointsPerMinute: 1500,
-    photos: [
-      { id: 'p1', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600', isPrimary: true },
-      { id: 'p2', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600' },
-      { id: 'p3', url: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600' },
-      { id: 'p4', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600' },
-      { id: 'p5', url: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=600' },
-    ],
-  },
-  {
-    id: 'user-disc-2',
-    name: '도현',
-    age: 28,
-    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600',
-    location: '서초구 반포동',
-    distanceKm: 1.2,
-    distanceLabel: '1.2km',
-    headline: '한강 러닝이나 헬스 같이 가요 🏃',
-    bio: '퇴근 후 운동하고 맛있는 저녁 먹는 걸 좋아합니다. 밝고 에너지 넘치는 분과 소통하고 싶어요!',
-    tags: ['#운동', '#러닝', '#헬스'],
-    status: 'online',
-    isOnline: true,
-    isHot: true,
-    pointsPerMinute: 1500,
-    photos: [
-      { id: 'p1', url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600', isPrimary: true },
-      { id: 'p2', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600' },
-      { id: 'p3', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600' },
-    ],
-  },
-  {
-    id: 'user-disc-3',
-    name: '유진',
-    age: 26,
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600',
-    location: '송파구 잠실동',
-    distanceKm: 1.5,
-    distanceLabel: '1.5km',
-    headline: '강아지랑 산책 다니는 거 좋아해요 🐶',
-    bio: '골든리트리버 3살 키우고 있어요. 반려동물 사랑하시는 분 언제든 환영합니다!',
-    tags: ['#반려견', '#산책', '#동물'],
-    status: 'online',
-    isOnline: true,
-    isHot: false,
-    pointsPerMinute: 1500,
-    photos: [
-      { id: 'p1', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600', isPrimary: true },
-      { id: 'p2', url: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600' },
-      { id: 'p3', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600' },
-    ],
-  },
-  {
-    id: 'user-disc-4',
-    name: '민우',
-    age: 29,
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600',
-    location: '마포구 연남동',
-    distanceKm: 2.1,
-    distanceLabel: '2.1km',
-    headline: '어쿠스틱 기타 & 인디음악 좋아해요 🎸',
-    bio: '소소하게 버스킹도 하고 라이브 방송도 진행합니다. 음악 얘기 나누실 분 편하게 연락주세요!',
-    tags: ['#음악', '#기타', '#공연'],
-    status: 'live',
-    isLive: true,
-    isHot: true,
-    pointsPerMinute: 1500,
-    photos: [
-      { id: 'p1', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600', isPrimary: true },
-      { id: 'p2', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600' },
-    ],
-  },
-  {
-    id: 'user-disc-5',
-    name: '지우',
-    age: 25,
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600',
-    location: '강남구 논현동',
-    distanceKm: 0.6,
-    distanceLabel: '600m',
-    headline: '필름 카메라로 일상 담기 📸',
-    bio: '예쁜 골목길 걷는 것 좋아해요. 서로 예쁜 사진 찍어주며 좋은 추억 만들어봐요.',
-    tags: ['#사진', '#필름', '#전시'],
-    status: 'online',
-    isOnline: true,
-    isHot: false,
-    pointsPerMinute: 1500,
-    photos: [
-      { id: 'p1', url: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600', isPrimary: true },
-      { id: 'p2', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600' },
-    ],
-  },
-  {
-    id: 'user-disc-6',
-    name: '준혁',
-    age: 27,
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600',
-    location: '성동구 성수동',
-    distanceKm: 2.8,
-    distanceLabel: '2.8km',
-    headline: '국내외 배낭여행 마니아 ✈️',
-    bio: '새로운 도시와 새로운 사람을 만나는 걸 가장 좋아합니다. 여행 이야기 나누며 친해져요!',
-    tags: ['#여행', '#맛집', '#캠핑'],
-    status: 'offline',
-    isOnline: false,
-    isHot: true,
-    pointsPerMinute: 1500,
-    photos: [
-      { id: 'p1', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600', isPrimary: true },
-      { id: 'p2', url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600' },
-    ],
-  },
-  {
-    id: 'user-disc-7',
-    name: '채원',
-    age: 24,
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600',
-    location: '서초구 양재동',
-    distanceKm: 1.8,
-    distanceLabel: '1.8km',
-    headline: '양재천 자전거 라이딩 메이트 구해요 🚲',
-    bio: '선선한 저녁에 따릉이 타는 게 취미입니다. 긍정적이고 즐거운 소통 좋아해요!',
-    tags: ['#운동', '#라이딩', '#산책'],
-    status: 'online',
-    isOnline: true,
-    isHot: false,
-    pointsPerMinute: 1500,
-    photos: [
-      { id: 'p1', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600', isPrimary: true },
-      { id: 'p2', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600' },
-    ],
-  },
-  {
-    id: 'user-disc-8',
-    name: '태우',
-    age: 30,
-    avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600',
-    location: '강남구 대치동',
-    distanceKm: 1.1,
-    distanceLabel: '1.1km',
-    headline: '테니스 & 배드민턴 입문자 환영 🏸',
-    bio: '주말 오전에 같이 땀 흘리고 브런치 드실 분 찾고 있어요. 직장인 취미 공유해요!',
-    tags: ['#운동', '#테니스', '#브런치'],
-    status: 'online',
-    isOnline: true,
-    isHot: false,
-    pointsPerMinute: 1500,
-    photos: [
-      { id: 'p1', url: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600', isPrimary: true },
-      { id: 'p2', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600' },
-    ],
-  },
-];
-
-// 기본 대화 목록 데이터
-const DEFAULT_CHATS = [
-  {
-    id: 'chat-mock-1',
-    title: '서연',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
-    lastMessage: '네! 주말에 역삼역 근처 카페에서 봬요 ✨',
-    lastMessageAt: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
-    unreadCount: 2,
-    isOnline: true,
-    counterpart: { id: 'u-seoyeon', name: '서연' },
-  },
-  {
-    id: 'chat-mock-2',
-    title: '도현',
-    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200',
-    lastMessage: '오늘 저녁 한강 러닝 코스 어떠세요?',
-    lastMessageAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    unreadCount: 0,
-    isOnline: true,
-    counterpart: { id: 'u-dohyun', name: '도현' },
-  },
-  {
-    id: 'chat-mock-3',
-    title: '유진',
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200',
-    lastMessage: '사진 속 강아지가 너무 귀여워요 🐶',
-    lastMessageAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-    unreadCount: 0,
-    isOnline: false,
-    counterpart: { id: 'u-yujin', name: '유진' },
-  },
-];
-
-export default function ChatsScreen({ navigation, route }) {
-  const { user: authUser } = useAuth();
+export default function ChatsScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
 
-  // 1. 상단 4단 세그먼트 탭 ('discover' | 'openRooms' | 'chats' | 'requests')
-  // 인연찾기 / 추천대화방 / 대화중(기존내대화) / 신청목록
-  const initialTab = ['discover', 'openRooms', 'chats', 'requests'].includes(route?.params?.tab)
-    ? route.params.tab
-    : (route?.params?.tab === 'chats' ? 'chats' : 'discover');
-  const [activeTab, setActiveTab] = useState(initialTab);
+  // 상단 듀얼 세그먼트: 'TALK' (실시간 토크) vs 'CHATS' (내 대화함)
+  const [activeMainTab, setActiveMainTab] = useState('TALK');
 
-  // 2. 가변 플로팅 액션 버튼(Extended FAB) 스크롤 리스너 (60fps 인터랙션)
-  const { isExtended, handleScroll, setIsExtended } = useExtendedFabScroll(15);
+  // 대화함 서브 세그먼트: 'SUDA' (수다 톡) vs 'MARKET' (거래 톡)
+  const [activeChatSubTab, setActiveChatSubTab] = useState('SUDA');
 
-  // 3. 가로 1열 캡슐 필터 선택 상태 (관리자 소셜 & 매칭 설정 실시간 연동)
-  const [quickFilters, setQuickFilters] = useState(DEFAULT_QUICK_FILTERS);
-  const [selectedFilterId, setSelectedFilterId] = useState('T-ALL');
-  const [selectedFilter, setSelectedFilter] = useState('전체');
-
-  // 4. 인연 데이터 상태
-  const [discoverUsers, setDiscoverUsers] = useState(FALLBACK_DISCOVER_USERS);
+  const [sudaPosts, setSudaPosts] = useState([]);
+  const [chatRooms, setChatRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // 5. 추천 대화방 목록 (현재 대기중인 공개 대화방)
-  const [openRooms, setOpenRooms] = useState([]);
+  // FAB 가변 스크롤 상태
+  const [isFabExpanded, setIsFabExpanded] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const lastScrollY = useRef(0);
 
-  // 6. 대화 목록 상태 (실제 1:1 대화중)
-  const [chats, setChats] = useState(DEFAULT_CHATS);
-  const [chatSearchText, setChatSearchText] = useState('');
-
-  // 7. 대화 신청 목록 (나에게 온 1:1 대화 신청)
-  const [chatRequests, setChatRequests] = useState([]);
-
-  // 8. 전역 바텀 시트 (GlobalBottomSheet)
-  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-
-  // 9. 대화방 개설 모달 (CreateRoomModal)
-  const [createRoomModalVisible, setCreateRoomModalVisible] = useState(false);
-
-  // 대기 중인 신청 건수 (뱃지 카운트)
-  const pendingRequestsCount = useMemo(() => {
-    return chatRequests.filter((r) => r.status === 'PENDING').length;
-  }, [chatRequests]);
-
-  // 레이더 펄스 애니메이션
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.25,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, [pulseAnim]);
-
-  // 전체 데이터 통합 로드
-  const loadData = useCallback(async ({ refresh = false } = {}) => {
-    if (refresh) setRefreshing(true);
+  const loadData = useCallback(async () => {
     try {
-      const [discoverRes, chatsRes, filtersRes, openRoomsRes, requestsRes] = await Promise.allSettled([
-        apiClient.getDiscover(),
-        apiClient.getChats(),
-        apiClient.getMatchQuickFilters(),
-        apiClient.getOpenChatRooms(),
-        apiClient.getChatRequests(),
-      ]);
-
-      // 0. 관리자 설정 빠른 탐색 태그 실시간 동기화
-      if (filtersRes.status === 'fulfilled' && Array.isArray(filtersRes.value) && filtersRes.value.length > 0) {
-        setQuickFilters([
-          { id: 'T-ALL', label: '전체', segment: '전체', icon: '✨' },
-          ...filtersRes.value,
-        ]);
+      if (activeMainTab === 'TALK') {
+        const posts = await fetchSudaPosts();
+        setSudaPosts(posts);
+      } else {
+        const rooms = await fetchChatRooms(activeChatSubTab);
+        setChatRooms(rooms);
       }
-
-      // 1. 인연 찾기 데이터 동기화
-      if (discoverRes.status === 'fulfilled' && Array.isArray(discoverRes.value) && discoverRes.value.length > 0) {
-        const mapped = discoverRes.value.map((u, idx) => {
-          const profile = u?.profile || {};
-          const fallback = FALLBACK_DISCOVER_USERS[idx % FALLBACK_DISCOVER_USERS.length];
-          return {
-            id: u.id || fallback.id,
-            name: profile.nickname || u.displayName || fallback.name,
-            age: typeof u.age === 'number' ? u.age : fallback.age,
-            avatar: profile.avatarUri || u.avatar || fallback.avatar,
-            location: [u.region1, u.region2].filter(Boolean).join(' ') || fallback.location,
-            distanceKm: u.distanceKm || fallback.distanceKm,
-            distanceLabel: u.distanceKm ? `${u.distanceKm}km` : fallback.distanceLabel,
-            headline: profile.headline || profile.bio || fallback.headline,
-            bio: profile.bio || profile.headline || fallback.bio,
-            tags: profile.interests?.length > 0 ? profile.interests.map((t) => `#${t}`) : fallback.tags,
-            status: profile.lastSeenAt ? 'online' : fallback.status,
-            isOnline: Boolean(profile.lastSeenAt) || fallback.isOnline,
-            isHot: idx % 3 === 0,
-            pointsPerMinute: 1500,
-            chatEntryFee: u.chatEntryFee || 30,
-            photos: Array.isArray(u.photos) && u.photos.length > 0
-              ? u.photos
-              : (profile.avatarUri ? [{ id: 'p1', url: profile.avatarUri, isPrimary: true }] : fallback.photos),
-          };
-        });
-        setDiscoverUsers(mapped);
-      }
-
-      // 2. 추천 대화방 데이터 동기화 (방장 프로필 온전 매핑)
-      if (openRoomsRes.status === 'fulfilled' && Array.isArray(openRoomsRes.value)) {
-        const myId = authUser?.id || authUser?.activityAccountId;
-        const myAvatar = authUser?.avatarUrl || authUser?.profile?.avatarUri || authUser?.avatar;
-        const myName = authUser?.nickname || authUser?.displayName || '나';
-
-        setOpenRooms(
-          openRoomsRes.value.map((r) => {
-            const isMyRoom = (myId && r.hostId === myId) || r.isMyRoom;
-            const hostObj = r.host || {};
-            const hostName = isMyRoom ? myName : (hostObj.name || r.hostName || '대기 회원');
-            const hostAvatar = isMyRoom ? myAvatar : (hostObj.avatar || hostObj.avatarUrl || r.hostAvatar || null);
-            return {
-              ...r,
-              isMyRoom,
-              hostName,
-              hostAvatar,
-              host: {
-                id: r.hostId || hostObj.id || (isMyRoom ? myId : 'u-host'),
-                name: hostName,
-                displayName: hostName,
-                avatar: hostAvatar,
-                avatarUrl: hostAvatar,
-                age: hostObj.age || r.hostAge || 26,
-                location: hostObj.location || hostObj.region || r.hostRegion || '서울 강남구',
-                headline: r.title,
-                bio: hostObj.bio || (isMyRoom ? '내가 개설한 대기방입니다.' : `${hostName}님의 추천 대화방입니다.`),
-                isOnline: true,
-              },
-            };
-          })
-        );
-      }
-
-      // 3. 대화 신청 목록 데이터 동기화 (신청자 프로필 온전 매핑)
-      if (requestsRes.status === 'fulfilled' && Array.isArray(requestsRes.value)) {
-        setChatRequests(
-          requestsRes.value.map((req) => {
-            const senderObj = req.sender || {};
-            const senderName = senderObj.name || req.senderName || '새로운 인연';
-            const senderAvatar = senderObj.avatar || senderObj.avatarUrl || req.senderAvatar || null;
-            return {
-              ...req,
-              senderName,
-              senderAvatar,
-              sender: {
-                id: req.senderId || senderObj.id,
-                name: senderName,
-                displayName: senderName,
-                avatar: senderAvatar,
-                avatarUrl: senderAvatar,
-                age: senderObj.age || req.senderAge || 26,
-                location: senderObj.location || senderObj.region || req.senderRegion || '서울 강남구',
-                headline: req.message,
-                bio: senderObj.bio || `${senderName}님이 보낸 1:1 대화 신청입니다 ✨`,
-                isOnline: true,
-              },
-            };
-          })
-        );
-      }
-
-      // 4. 대화중(내 대화) 데이터 동기화
-      if (chatsRes.status === 'fulfilled' && Array.isArray(chatsRes.value) && chatsRes.value.length > 0) {
-        setChats(
-          chatsRes.value.map((c) => {
-            const myId = authUser?.id || authUser?.activityAccountId || 'guest';
-            const isMyCreatedRoom =
-              c.creatorId === myId ||
-              c.hostId === myId ||
-              c.host?.id === myId ||
-              c.isWaiting ||
-              (c.participantIds && c.participantIds.length === 1 && c.participantIds[0] === myId);
-
-            const hasCounterpart =
-              c.counterpart &&
-              c.counterpart.id &&
-              c.counterpart.id !== myId &&
-              !String(c.counterpart.displayName || '').includes('대기');
-
-            let displayTitle = '';
-            let displayAvatar = null;
-
-            if (hasCounterpart) {
-              displayTitle = c.counterpart.displayName || c.counterpart.name || c.title || '대화 상대';
-              displayAvatar = c.counterpart.avatarUrl || c.counterpart.avatar || c.avatar || null;
-            } else if (isMyCreatedRoom) {
-              displayTitle = c.title ? `[내가 개설] ${c.title}` : '내가 개설한 1:1 대화방';
-              displayAvatar = authUser?.avatarUrl || authUser?.profile?.avatarUri || c.host?.avatarUrl || null;
-            } else {
-              displayTitle = c.title || c.counterpart?.displayName || '대화 상대';
-              displayAvatar = c.avatar || c.counterpart?.avatarUrl || null;
-            }
-
-            return {
-              id: c.id,
-              title: displayTitle,
-              rawTitle: c.title,
-              avatar: displayAvatar,
-              lastMessage: c.lastMessage || (isMyCreatedRoom && !hasCounterpart ? '대화 상대를 기다리는 중입니다 ⏳' : '대화가 시작되었습니다.'),
-              lastMessageAt: c.lastMessageAt || new Date().toISOString(),
-              unreadCount: c.unreadCount || 0,
-              isOnline: Boolean(c.counterpart?.online),
-              counterpart: hasCounterpart ? c.counterpart : { id: '', displayName: '대화 상대 대기 중', avatarUrl: null },
-              isMyCreatedRoom,
-              isWaiting: !hasCounterpart,
-              host: c.host,
-            };
-          })
-        );
-      }
-    } catch {
-      // 에러 발생 시 기존 데이터 유지
+    } catch (err) {
+      console.warn('[ChatsScreen] load error:', err);
     } finally {
-      if (refresh) setRefreshing(false);
+      setLoading(false);
+      setRefreshing(false);
     }
-  }, [authUser]);
+  }, [activeMainTab, activeChatSubTab]);
 
   useEffect(() => {
+    setLoading(true);
     loadData();
   }, [loadData]);
 
-  useFocusEffect(
-    useCallback(() => {
-      setIsExtended(true);
-      loadData();
-    }, [loadData, setIsExtended])
-  );
-
-  // 홈 화면 등 외부에서 넘어온 필터 파라미터 처리
-  useEffect(() => {
-    if (route?.params?.filter) {
-      const targetFilter = String(route.params.filter);
-      const matched = quickFilters.find(
-        (f) => targetFilter.includes(f.label) || f.label.includes(targetFilter) || (f.segment && targetFilter.includes(f.segment))
-      );
-      if (matched) {
-        setSelectedFilterId(matched.id);
-        setSelectedFilter(matched.label);
-      } else {
-        setSelectedFilter(targetFilter);
-      }
-    }
-  }, [route?.params?.filter, quickFilters]);
-
-  // 1열 필터링 적용된 인연 목록 (관리자 설정 및 세그먼트 완전 연동)
-  const filteredUsers = useMemo(() => {
-    if (!discoverUsers || discoverUsers.length === 0) return [];
-
-    const activeFilterObj = quickFilters.find((f) => f.id === selectedFilterId) || { label: selectedFilter };
-    const label = activeFilterObj.label || selectedFilter;
-    const segment = activeFilterObj.segment || '';
-
-    // 1. 전체
-    if (label === '전체' || activeFilterObj.id === 'T-ALL') {
-      return discoverUsers;
-    }
-
-    // 2. HOT/인기
-    if (label.includes('HOT') || label.includes('인기')) {
-      return discoverUsers.filter((u) => u.isHot || u.isLive);
-    }
-
-    // 3. 지금 접속중
-    if (segment === '접속중' || label.includes('접속')) {
-      return discoverUsers.filter((u) => u.isOnline);
-    }
-
-    // 4. 가까운 동네 / 내 주변
-    if (segment === '가까운 거리' || label.includes('동네') || label.includes('주변') || label.includes('거리')) {
-      return [...discoverUsers].sort((a, b) => (a.distanceKm || 0) - (b.distanceKm || 0));
-    }
-
-    // 5. 20대 또래 / 연령대
-    if (segment === '연령대' || label.includes('20대') || label.includes('또래')) {
-      return discoverUsers.filter((u) => u.age >= 20 && u.age < 30);
-    }
-
-    // 6. 취미, 운동, 커피 등 의도 및 관리자 커스텀 태그
-    const cleanKeyword = label.replace(/[🔥📍🎂🏃☕✨#]/g, '').trim();
-    if (!cleanKeyword) return discoverUsers;
-
-    const keywords = cleanKeyword.split(/[·\s,/]+/).filter(Boolean);
-    return discoverUsers.filter((u) => {
-      const matchTag = u.tags?.some((t) => keywords.some((k) => t.includes(k)));
-      const matchHeadline = keywords.some((k) => u.headline?.includes(k));
-      const matchBio = keywords.some((k) => u.bio?.includes(k));
-      return matchTag || matchHeadline || matchBio;
-    });
-  }, [discoverUsers, selectedFilterId, selectedFilter, quickFilters]);
-
-  // 카드 터치 시 GlobalBottomSheet 열기
-  const handleOpenUserSheet = (user) => {
-    setSelectedUser(user);
-    setBottomSheetVisible(true);
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
   };
 
-  // 원터치 1:1 대화 시작 또는 대화 신청
-  const handleStartChat = (targetUser) => {
-    if (!targetUser?.id) return;
-    const entryFee = targetUser.chatEntryFee || targetUser.entryFee || 30;
-    Alert.alert(
-      '대화 신청',
-      `${targetUser.name}님에게 1:1 대화를 신청하시겠습니까?\n\n• 상대방 입장료: ${entryFee} ON\n• 상대방이 수락하면 1:1 대화방이 즉시 개설되고 입장료가 상대방에게 지급됩니다. (거절 시 환불)`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '대화 신청',
-          onPress: async () => {
-            try {
-              setBottomSheetVisible(false);
-              await apiClient.sendChatRequest({
-                targetUserId: targetUser.id,
-                message: '안녕하세요! 프로필 보고 대화 신청드립니다 😊',
-              });
-              Alert.alert('신청 완료', `${targetUser.name}님에게 대화 신청을 전달했습니다! 상대방이 수락하면 대화방이 생성됩니다.`);
-              loadData();
-            } catch (e) {
-              Alert.alert('신청 실패', e?.message || '대화 신청을 전송할 수 없습니다.');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  // 추천 대화방 입장하기 (게스트 -> 방장 1:1 대화방 생성 및 입장료 포인트 적립)
-  const handleJoinOpenRoom = async (room) => {
-    const fee = room.entryFee || 0;
-    const myId = authUser?.id || authUser?.activityAccountId;
-    const isMyRoom = (myId && room.hostId === myId) || room.isMyRoom;
-
-    if (isMyRoom) {
-      Alert.alert(
-        '내가 개설한 대기방',
-        `"${room.title}" 방은 내가 개설한 1:1 추천 대화방입니다.\n현재 다른 회원의 입장을 대기하고 있습니다 ⏳\n(게스트가 입장하면 알림과 함께 1:1 대화방이 생성됩니다)`,
-        [{ text: '확인' }]
-      );
-      return;
+  const handleScroll = (event: any) => {
+    const currentY = event.nativeEvent.contentOffset.y;
+    if (currentY <= 15) {
+      setIsFabExpanded(true);
+    } else if (currentY > lastScrollY.current + 8) {
+      setIsFabExpanded(false);
+    } else if (currentY < lastScrollY.current - 12) {
+      setIsFabExpanded(true);
     }
-
-    Alert.alert(
-      '대화방 입장',
-      fee > 0
-        ? `"${room.title}" 대화방에 입장하시겠습니까?\n\n※ 입장료 ${fee} ON이 차감되며 방장(${room.host?.name || '방장'})님에게 적립됩니다.`
-        : `"${room.title}" 대화방에 입장하시겠습니까?`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '대화 시작하기',
-          onPress: async () => {
-            try {
-              const res = await apiClient.joinOpenChatRoom(room.id);
-              const targetRoom = res?.room || res?.chatRoom || res?.data;
-              if (targetRoom && targetRoom.id) {
-                // 상대방 프로필 정보 준비
-                const counterpartUser = targetRoom.counterpart || room.host || {
-                  id: targetRoom.hostId || 'u-host',
-                  displayName: room.hostName || '방장',
-                  avatarUrl: room.hostAvatar,
-                };
-                navigation.navigate('ChatRoom', {
-                  id: targetRoom.id,
-                  room: targetRoom,
-                  user: counterpartUser,
-                });
-                loadData();
-              } else {
-                Alert.alert('안내', '대화방 생성 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
-              }
-            } catch (err) {
-              Alert.alert('입장 실패', err?.message || '대화방 입장에 실패했습니다.');
-            }
-          },
-        },
-      ]
-    );
+    lastScrollY.current = currentY;
   };
 
-  // 대화 신청 수락 (나의 1:1 대화방 즉시 생성 & 입장료 포인트 수락자 적립)
-  const handleAcceptRequest = async (req) => {
-    try {
-      const res = await apiClient.acceptChatRequest(req.id);
-      const targetRoom = res?.room || res?.chatRoom || res?.data;
-      if (targetRoom && targetRoom.id) {
-        navigation.navigate('ChatRoom', {
-          id: targetRoom.id,
-          room: targetRoom,
-          user: targetRoom.counterpart || req.sender,
-        });
-      } else {
-        Alert.alert('대화 수락', `${req.sender?.name || '상대방'}님의 대화 신청을 수락했습니다!`);
-      }
-      loadData();
-    } catch (err) {
-      Alert.alert('수락 실패', err?.message || '신청을 수락하지 못했습니다.');
-    }
-  };
-
-  // 대화 신청 거절 (신청자에게 포인트 자동 환불)
-  const handleRejectRequest = async (req) => {
-    Alert.alert(
-      '신청 거절',
-      `${req.sender?.name || '상대방'}님의 대화 신청을 거절하시겠습니까?\n상대방에게 결제된 포인트가 환불됩니다.`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '거절',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await apiClient.rejectChatRequest(req.id);
-              Alert.alert('거절 완료', '대화 신청을 거절했습니다.');
-              loadData();
-            } catch (err) {
-              Alert.alert('오류', err?.message || '거절 처리 중 오류가 발생했습니다.');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  // 1:1 다이렉트 통화 신청
-  const handleCallUser = (targetUser) => {
-    Alert.alert(
-      '1:1 다이렉트 통화',
-      `${targetUser.name}님에게 통화를 연결하시겠습니까?\n(분당 1,500P가 소진됩니다)`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '통화 연결',
-          onPress: () => {
-            setBottomSheetVisible(false);
-            Alert.alert('통화 연결 중', `${targetUser.name}님의 응답을 기다리고 있습니다... 📞`);
-          },
-        },
-      ]
-    );
-  };
-
-  // 1:1 대화방 삭제 처리 (어느 한쪽이라도 삭제하면 양쪽 모두에서 대화창 영구 종료)
-  const handleDeleteChatRoom = useCallback((room) => {
-    if (!room?.id) return;
-    const roomTitle = room.title || room.counterpart?.displayName || '대화방';
-    Alert.alert(
-      '대화방 삭제',
-      `"${roomTitle}" 1:1 대화방을 삭제하시겠습니까?\n\n※ 1:1 대화방 특성상 삭제 시 대화방이 즉시 완전히 종료 및 삭제되며 복구할 수 없습니다.`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '대화방 삭제',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await apiClient.deleteChat(room.id);
-              setChats((prev) => prev.filter((c) => String(c.id) !== String(room.id)));
-              Alert.alert('삭제 완료', '대화방이 삭제되었습니다.');
-            } catch (err) {
-              console.warn('대화방 삭제 실패:', err);
-              Alert.alert('오류', '대화방을 삭제하지 못했습니다.');
-            }
-          },
-        },
-      ]
-    );
-  }, []);
-
-  // =========================================================================
-  // 1. 상단 4단 세그먼트 탭 헤더 (인연 찾기 | 오픈대화 | 내 대화 | 받은 신청)
-  // =========================================================================
-  const renderTopSegment = () => (
-    <View style={styles.topBar}>
-      <View style={styles.segmentRow}>
-        {/* [1. 인연 찾기] */}
-        <TouchableOpacity
-          style={[styles.segmentTab, activeTab === 'discover' && styles.segmentTabActive]}
-          onPress={() => setActiveTab('discover')}
-          activeOpacity={0.8}
-        >
-          <Text
-            style={[
-              styles.segmentTabText,
-              activeTab === 'discover' && styles.segmentTabTextActive,
-            ]}
-          >
-            인연 찾기
-          </Text>
-          {activeTab === 'discover' && <View style={styles.tabIndicator} />}
-        </TouchableOpacity>
-
-        {/* [2. 오픈대화 (기존 추천 대화방)] */}
-        <TouchableOpacity
-          style={[styles.segmentTab, activeTab === 'openRooms' && styles.segmentTabActive]}
-          onPress={() => setActiveTab('openRooms')}
-          activeOpacity={0.8}
-        >
-          <View style={styles.tabLabelWithBadge}>
-            <Text
-              style={[
-                styles.segmentTabText,
-                activeTab === 'openRooms' && styles.segmentTabTextActive,
-              ]}
-            >
-              오픈대화
-            </Text>
-            {openRooms.length > 0 && (
-              <View style={styles.tabMiniBadge}>
-                <Text style={styles.tabMiniBadgeText}>{openRooms.length}</Text>
+  // 실시간 1줄 수다 카드 렌더링
+  const renderSudaItem = ({ item }) => (
+    <View style={styles.sudaCard}>
+      <View style={styles.sudaHeader}>
+        <View style={styles.sudaAuthorLeft}>
+          <Image source={{ uri: item.author.avatarUrl }} style={styles.authorAvatar} />
+          <View style={styles.authorInfo}>
+            <View style={styles.nameRow}>
+              <Text style={styles.authorName}>{item.author.nickname}</Text>
+              <View style={styles.neighborhoodBadge}>
+                <Text style={styles.neighborhoodText}>{item.neighborhood}</Text>
               </View>
-            )}
-          </View>
-          {activeTab === 'openRooms' && <View style={styles.tabIndicator} />}
-        </TouchableOpacity>
-
-        {/* [3. 내 대화 (기존 대화중)] */}
-        <TouchableOpacity
-          style={[styles.segmentTab, activeTab === 'chats' && styles.segmentTabActive]}
-          onPress={() => setActiveTab('chats')}
-          activeOpacity={0.8}
-        >
-          <View style={styles.tabLabelWithBadge}>
-            <Text
-              style={[
-                styles.segmentTabText,
-                activeTab === 'chats' && styles.segmentTabTextActive,
-              ]}
-            >
-              내 대화
-            </Text>
-            {chats.some((c) => c.unreadCount > 0) && <View style={styles.tabMiniDot} />}
-          </View>
-          {activeTab === 'chats' && <View style={styles.tabIndicator} />}
-        </TouchableOpacity>
-
-        {/* [4. 받은 신청 (기존 신청 목록)] */}
-        <TouchableOpacity
-          style={[styles.segmentTab, activeTab === 'requests' && styles.segmentTabActive]}
-          onPress={() => setActiveTab('requests')}
-          activeOpacity={0.8}
-        >
-          <View style={styles.tabLabelWithBadge}>
-            <Text
-              style={[
-                styles.segmentTabText,
-                activeTab === 'requests' && styles.segmentTabTextActive,
-              ]}
-            >
-              받은 신청
-            </Text>
-            {pendingRequestsCount > 0 && (
-              <View style={[styles.tabMiniBadge, { backgroundColor: '#FF3B6B' }]}>
-                <Text style={[styles.tabMiniBadgeText, { color: '#FFFFFF' }]}>
-                  {pendingRequestsCount}
-                </Text>
-              </View>
-            )}
-          </View>
-          {activeTab === 'requests' && <View style={styles.tabIndicator} />}
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  // =========================================================================
-  // 2. 가로 1열 캡슐 필터 바 (관리자 '소셜 & 매칭' 설정과 실시간 연동)
-  // =========================================================================
-  const renderCapsuleFilterBar = () => (
-    <View style={styles.filterBarContainer}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterScrollContent}
-      >
-        {quickFilters.map((filter) => {
-          const isSelected = selectedFilterId === filter.id || selectedFilter === filter.label;
-          const displayIcon = filter.icon && filter.label !== '전체' ? `${filter.icon} ` : '';
-          return (
-            <TouchableOpacity
-              key={filter.id || filter.label}
-              style={[
-                styles.capsuleBtn,
-                isSelected ? styles.capsuleBtnActive : styles.capsuleBtnInactive,
-              ]}
-              onPress={() => {
-                setSelectedFilterId(filter.id);
-                setSelectedFilter(filter.label);
-              }}
-              activeOpacity={0.85}
-            >
-              <Text
-                style={[
-                  styles.capsuleText,
-                  isSelected ? styles.capsuleTextActive : styles.capsuleTextInactive,
-                ]}
-              >
-                {displayIcon}{filter.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-
-  // =========================================================================
-  // 3. 실시간 접속 레이더 배너 (Radar Pulse Banner)
-  // =========================================================================
-  const renderRadarBanner = () => (
-    <View style={styles.radarBanner}>
-      <LinearGradient
-        colors={['#FFF1F4', '#F5F3FF']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.radarGradient}
-      >
-        <View style={styles.radarLeftGroup}>
-          {/* 은은하게 핑을 쏘는 레이더 펄스 아이콘 */}
-          <View style={styles.radarIconWrap}>
-            <Animated.View
-              style={[
-                styles.radarPulseWave,
-                {
-                  transform: [{ scale: pulseAnim }],
-                  opacity: pulseAnim.interpolate({
-                    inputRange: [1, 1.25],
-                    outputRange: [0.6, 0],
-                  }),
-                },
-              ]}
-            />
-            <View style={styles.radarCenterDot} />
-          </View>
-
-          <View style={styles.radarTextCol}>
-            <View style={styles.radarTitleRow}>
-              <Text style={styles.radarTitle}>
-                지금 내 주변 3km 이내 접속자 <Text style={styles.radarHighlight}>84명</Text>
-              </Text>
-              <View style={styles.radarOnlineDot} />
+              <Text style={styles.distanceText}>· {item.distanceKm}km</Text>
             </View>
-            <Text style={styles.radarSub}>마음에 드는 프로필에 먼저 톡을 건네보세요 ✨</Text>
+            <Text style={styles.timeText}>{item.createdAt}</Text>
           </View>
         </View>
 
+        {/* 원터치 [💌 쪽지보내기] 버튼: 친구 수락 대기 없이 1:1 즉시 연결 */}
         <TouchableOpacity
-          style={styles.radarRefreshBtn}
-          onPress={() => loadData({ refresh: true })}
-          hitSlop={8}
-        >
-          <Ionicons name="refresh" size={15} color={tokens.colors.primary} />
-        </TouchableOpacity>
-      </LinearGradient>
-    </View>
-  );
-
-  // =========================================================================
-  // 4. 인연 매칭 2열 그리드 카드 렌더링
-  // =========================================================================
-  const renderMatchCard = ({ item }) => (
-    <TouchableOpacity
-      style={styles.matchCard}
-      activeOpacity={0.92}
-      onPress={() => handleOpenUserSheet(item)}
-    >
-      {/* 풀 블리드 프로필 사진 */}
-      <Image source={{ uri: item.avatar }} style={styles.cardImage} resizeMode="cover" />
-
-      {/* 좌상단: 실시간 상태 뱃지 (🟢 접속중 또는 📍 800m) */}
-      <View style={styles.cardTopBadgeRow}>
-        {item.isOnline ? (
-          <View style={styles.statusBadgeOnline}>
-            <View style={styles.onlineDot} />
-            <Text style={styles.statusBadgeText}>접속중</Text>
-          </View>
-        ) : (
-          <View style={styles.statusBadgeDistance}>
-            <Ionicons name="location-sharp" size={10} color="#FFFFFF" />
-            <Text style={styles.statusBadgeText}>{item.distanceLabel}</Text>
-          </View>
-        )}
-      </View>
-
-      {/* 하단 딤드 그라데이션 오버레이 */}
-      <LinearGradient
-        colors={['transparent', 'rgba(15, 23, 42, 0.45)', 'rgba(15, 23, 42, 0.95)']}
-        style={styles.cardBottomOverlay}
-      >
-        <View style={styles.cardInfoCol}>
-          <View style={styles.cardNameRow}>
-            <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
-            <Text style={styles.cardAge}>{item.age}</Text>
-          </View>
-
-          <Text style={styles.cardHeadline} numberOfLines={1}>
-            {item.headline || item.bio}
-          </Text>
-
-          {item.tags?.[0] && (
-            <View style={styles.cardTagChip}>
-              <Text style={styles.cardTagText}>{item.tags[0]}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* 우측 하단 플로팅 미니 버튼: 원터치 톡 / 통화 */}
-        <TouchableOpacity
-          style={styles.miniActionBtn}
-          activeOpacity={0.85}
-          onPress={(e) => {
-            e.stopPropagation();
-            handleStartChat(item);
+          style={styles.directMessageBtn}
+          onPress={() => {
+            navigation.navigate('ChatRoom', {
+              peerId: item.author.id,
+              peerName: item.author.nickname,
+              initialType: 'SUDA',
+            });
           }}
-          hitSlop={4}
+          activeOpacity={0.8}
         >
-          <LinearGradient
-            colors={tokens.colors.gradients.primaryPurple}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.miniActionGradient}
-          >
-            <Ionicons name="chatbubble-ellipses" size={15} color="#FFFFFF" />
-          </LinearGradient>
+          <Ionicons name="mail" size={14} color="#FF3B6B" />
+          <Text style={styles.directMessageText}>쪽지보내기</Text>
         </TouchableOpacity>
-      </LinearGradient>
-    </TouchableOpacity>
+      </View>
+
+      {/* 1줄 본문 */}
+      <Text style={styles.sudaContent}>{item.content}</Text>
+
+      {/* 하단 공감 & 댓글 */}
+      <View style={styles.sudaFooter}>
+        <View style={styles.reactionsRow}>
+          <TouchableOpacity style={styles.reactionBtn} activeOpacity={0.7}>
+            <Ionicons name="heart-outline" size={16} color="#64748B" />
+            <Text style={styles.reactionCount}>{item.likesCount}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.reactionBtn} activeOpacity={0.7}>
+            <Ionicons name="chatbubble-outline" size={15} color="#64748B" />
+            <Text style={styles.reactionCount}>{item.repliesCount}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
   );
 
-  // =========================================================================
-  // 5. 내 대화방 목록 렌더링
-  // =========================================================================
-  // =========================================================================
-  // 5. 추천 대화방 목록 렌더링 (현재 대기 중인 1:1 공개 방)
-  // =========================================================================
-  const renderOpenRoomItem = ({ item }) => {
-    const myId = authUser?.id || authUser?.activityAccountId;
-    const isMyRoom = (myId && item.hostId === myId) || item.isMyRoom;
-    const fee = item.entryFee || 0;
-
-    const hostUser = {
-      id: item.host?.id || item.hostId || (isMyRoom ? myId : 'u-host'),
-      name: isMyRoom ? (authUser?.nickname || authUser?.displayName || '나') : (item.host?.name || item.hostName || '대기 회원'),
-      displayName: isMyRoom ? (authUser?.nickname || authUser?.displayName || '나') : (item.host?.name || item.hostName || '대기 회원'),
-      avatar: isMyRoom ? (authUser?.avatarUrl || authUser?.profile?.avatarUri || authUser?.avatar) : (item.host?.avatar || item.host?.avatarUrl || item.hostAvatar),
-      age: item.host?.age || item.hostAge || (isMyRoom ? authUser?.age : 26),
-      location: item.host?.location || item.hostRegion || (isMyRoom ? [authUser?.region1, authUser?.region2].filter(Boolean).join(' ') : '서울 강남구'),
-      headline: item.title,
-      bio: isMyRoom ? '내가 개설한 1:1 대화방입니다. 상대방의 입장을 기다리고 있습니다 ✨' : (item.host?.bio || `${item.host?.name || item.hostName || '회원'}님의 추천 대화방입니다.`),
-      isOnline: true,
-      photos: item.host?.avatar ? [{ id: 'p1', url: item.host.avatar, isPrimary: true }] : [],
-    };
-
-    return (
-      <View style={styles.openRoomCard}>
-        <View style={styles.openRoomHeaderRow}>
-          {/* 프로필 아이콘 누르면 프로필 창 오픈 */}
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => handleOpenUserSheet(hostUser)}
-            style={{ marginRight: 2 }}
-          >
-            <UserAvatar
-              uri={hostUser.avatar}
-              name={hostUser.name}
-              size="md"
-              isOnline={Boolean(item.host?.isOnline || isMyRoom)}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.openRoomInfoCol}
-            activeOpacity={0.85}
-            onPress={() => handleOpenUserSheet(hostUser)}
-          >
-            <View style={styles.openRoomTitleRow}>
-              <Text style={styles.openRoomTitle} numberOfLines={1}>
-                {item.title}
-              </Text>
-              {isMyRoom && (
-                <View style={styles.myRoomTag}>
-                  <Text style={styles.myRoomTagText}>내가 개설</Text>
-                </View>
-              )}
-            </View>
-
-            <View style={styles.openRoomMetaRow}>
-              <Text style={styles.openRoomHostName}>
-                {isMyRoom ? '나 (대기중)' : `${hostUser.name} (${hostUser.age ? `${hostUser.age}세` : '회원'})`}
-              </Text>
-              <Text style={styles.openRoomDot}>·</Text>
-              <Text style={styles.openRoomCategory}>#{item.category || '친목'}</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* 입장료 뱃지 */}
-          <View style={[styles.entryFeeBadge, fee > 0 ? styles.entryFeeBadgePaid : styles.entryFeeBadgeFree]}>
-            <Text style={[styles.entryFeeText, fee > 0 ? styles.entryFeeTextPaid : styles.entryFeeTextFree]}>
-              {fee > 0 ? `${fee} ON` : '무료'}
-            </Text>
-          </View>
-        </View>
-
-        {/* 하단 액션 버튼 */}
-        <View style={styles.openRoomActionRow}>
-          <Text style={styles.openRoomNoticeText}>
-            {isMyRoom
-              ? '다른 회원이 입장하면 1:1 대화방이 즉시 개설됩니다 ⏳'
-              : '입장 시 1:1 대화방이 개설되며 방장과 대화가 시작됩니다 ✨'}
-          </Text>
-
-          <TouchableOpacity
-            style={[styles.openRoomJoinBtn, isMyRoom && styles.openRoomMyBtn]}
-            onPress={() => handleJoinOpenRoom(item)}
-            activeOpacity={0.85}
-          >
-            <Ionicons
-              name={isMyRoom ? 'time-outline' : 'chatbubble-ellipses'}
-              size={14}
-              color="#FFFFFF"
-            />
-            <Text style={styles.openRoomJoinText}>
-              {isMyRoom ? '대기 현황' : '대화하기'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
-
-  // =========================================================================
-  // 6. 나에게 온 대화 신청 목록 렌더링
-  // =========================================================================
-  const renderRequestItem = ({ item }) => {
-    const isPending = item.status === 'PENDING';
-    const fee = item.entryFee || 30;
-
-    const senderUser = {
-      id: item.sender?.id || item.senderId,
-      name: item.sender?.name || item.senderName || '새로운 인연',
-      displayName: item.sender?.name || item.senderName || '새로운 인연',
-      avatar: item.sender?.avatar || item.sender?.avatarUrl || item.senderAvatar,
-      age: item.sender?.age || item.senderAge || 26,
-      location: item.sender?.location || item.senderRegion || '서울 강남구',
-      headline: item.message || '안녕하세요! 1:1 대화 신청드려요 😊',
-      bio: item.sender?.bio || `${item.sender?.name || item.senderName || '회원'}님이 보낸 1:1 대화 신청입니다 ✨`,
-      isOnline: Boolean(item.sender?.isOnline),
-      photos: (item.sender?.avatar || item.senderAvatar) ? [{ id: 'p1', url: item.sender?.avatar || item.senderAvatar, isPrimary: true }] : [],
-    };
-
-    return (
-      <View style={styles.requestCard}>
-        <View style={styles.requestHeaderRow}>
-          {/* 신청자 프로필 아이콘 누르면 프로필 창 오픈 */}
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => handleOpenUserSheet(senderUser)}
-            style={{ marginRight: 2 }}
-          >
-            <UserAvatar
-              uri={senderUser.avatar}
-              name={senderUser.name}
-              size="md"
-              isOnline={Boolean(senderUser.isOnline)}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.requestInfoCol}
-            activeOpacity={0.85}
-            onPress={() => handleOpenUserSheet(senderUser)}
-          >
-            <View style={styles.requestNameRow}>
-              <Text style={styles.requestSenderName}>{senderUser.name}</Text>
-              <Text style={styles.requestTimeText}>
-                {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-            </View>
-            <Text style={styles.requestMessageText} numberOfLines={2}>
-              "{item.message || '안녕하세요! 대화 신청드려요 😊'}"
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* 포인트 적립 안내 및 수락/거절 액션 */}
-        <View style={styles.requestBottomRow}>
-          <View style={styles.requestPointEarnBadge}>
-            <Ionicons name="sparkles" size={12} color="#FF3B6B" />
-            <Text style={styles.requestPointEarnText}>수락 시 +{fee} ON 적립</Text>
-          </View>
-
-          {isPending ? (
-            <View style={styles.requestActionBtns}>
-              <TouchableOpacity
-                style={styles.requestRejectBtn}
-                onPress={() => handleRejectRequest(item)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.requestRejectText}>거절</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.requestAcceptBtn}
-                onPress={() => handleAcceptRequest(item)}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.requestAcceptText}>대화하기</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.requestStatusBadge}>
-              <Text style={styles.requestStatusText}>
-                {item.status === 'ACCEPTED' ? '수락 완료' : '거절됨'}
-              </Text>
-            </View>
-          )}
-        </View>
-      </View>
-    );
-  };
-
-  // =========================================================================
-  // 7. 대화중(내 대화방) 목록 렌더링
-  // =========================================================================
-  const renderChatListItem = ({ item }) => {
-    const counterpartUser = {
-      id: item.counterpart?.id || item.id,
-      name: item.title,
-      displayName: item.title,
-      avatar: item.avatar,
-      isOnline: item.isOnline,
-      headline: item.lastMessage || '1:1 대화 중인 인연입니다.',
-      bio: '즐거운 대화를 나누고 있어요 ✨',
-      photos: item.avatar ? [{ id: 'p1', url: item.avatar, isPrimary: true }] : [],
-    };
+  // 대화함 항목 렌더링 (수다 톡 or 거래 톡)
+  const renderChatRoomItem = ({ item }) => {
+    const isMarket = item.type === 'MARKET';
 
     return (
       <TouchableOpacity
-        style={styles.chatItem}
-        activeOpacity={0.85}
-        onLongPress={() => handleDeleteChatRoom(item)}
-        onPress={() =>
+        style={styles.chatRoomCard}
+        activeOpacity={0.8}
+        onPress={() => {
           navigation.navigate('ChatRoom', {
-            id: item.id,
-            room: item,
-            user: item.counterpart,
-          })
-        }
+            peerId: item.peer.id,
+            peerName: item.peer.nickname,
+            marketOrder: item.marketOrder,
+          });
+        }}
       >
-        {/* 상대방 프로필 아이콘 누르면 프로필 창 오픈 */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={(e) => {
-            e.stopPropagation();
-            handleOpenUserSheet(counterpartUser);
-          }}
-          style={{ marginRight: 2 }}
-        >
-          <UserAvatar
-            uri={item.avatar}
-            name={item.title}
-            size="md"
-            isOnline={item.isOnline}
-          />
-        </TouchableOpacity>
-      <View style={styles.chatItemBody}>
-        <View style={styles.chatItemHeader}>
-          <Text style={styles.chatItemTitle} numberOfLines={1}>{item.title}</Text>
-          <Text style={styles.chatItemTime}>
-            {new Date(item.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </Text>
+        <View style={styles.avatarWrapper}>
+          <Image source={{ uri: item.peer.avatarUrl }} style={styles.peerAvatar} />
+          {item.peer.isOnline && <View style={styles.onlineBadge} />}
         </View>
-        <View style={styles.chatItemBottomRow}>
-          <Text style={styles.chatItemLastMsg} numberOfLines={1}>
-            {item.lastMessage}
-          </Text>
-          <View style={styles.chatItemActionsRight}>
+
+        <View style={styles.chatRoomContent}>
+          <View style={styles.chatRoomHeaderRow}>
+            <View style={styles.peerNameRow}>
+              <Text style={styles.peerName}>{item.peer.nickname}</Text>
+              {isMarket && (
+                <View style={styles.marketBadge}>
+                  <Text style={styles.marketBadgeText}>거래톡</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.chatTimeText}>{item.lastMessageTime}</Text>
+          </View>
+
+          {/* 거래 톡일 경우 상단에 고정된 상품 정보 요약 노출 */}
+          {isMarket && item.marketOrder && (
+            <View style={styles.orderSummaryBar}>
+              <Image source={{ uri: item.marketOrder.productImage }} style={styles.orderThumb} />
+              <View style={styles.orderTextBox}>
+                <Text style={styles.orderTitle} numberOfLines={1}>
+                  {item.marketOrder.productTitle}
+                </Text>
+                <Text style={styles.orderPrice}>
+                  {item.marketOrder.price.toLocaleString()} ON
+                </Text>
+              </View>
+              <View style={styles.escrowStateTag}>
+                <Text style={styles.escrowStateText}>
+                  {item.marketOrder.escrowStatus === 'ESCROW_HOLD' ? '보호예치중' : '발송완료'}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          <View style={styles.lastMessageRow}>
+            <Text style={styles.lastMessageText} numberOfLines={1}>
+              {item.lastMessage}
+            </Text>
             {item.unreadCount > 0 && (
-              <View style={styles.unreadCountBadge}>
+              <View style={styles.unreadBadge}>
                 <Text style={styles.unreadCountText}>{item.unreadCount}</Text>
               </View>
             )}
-            <TouchableOpacity
-              style={styles.chatItemDeleteBtn}
-              onPress={() => handleDeleteChatRoom(item)}
-              hitSlop={8}
-            >
-              <Ionicons name="trash-outline" size={16} color="#9CA3AF" />
-            </TouchableOpacity>
           </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
-};
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      {/* 1. 상단 56px 통일 헤더 */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>수다</Text>
+          <View style={styles.locationBadge}>
+            <Ionicons name="location-sharp" size={12} color="#FF3B6B" />
+            <Text style={styles.locationBadgeText}>역삼1동</Text>
+          </View>
+        </View>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.headerIconBtn} activeOpacity={0.7}>
+            <Ionicons name="search-outline" size={22} color={tokens.colors.textPrimary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerIconBtn} activeOpacity={0.7}>
+            <Ionicons name="notifications-outline" size={22} color={tokens.colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
+      </View>
 
-      {/* 1. 상단 4단 세그먼트 탭 */}
-      {renderTopSegment()}
-
-      {/* 2. 탭별 뷰 렌더링 */}
-      {activeTab === 'discover' && (
-        <View style={{ flex: 1 }}>
-          {/* 가로 1열 캡슐 필터 바 */}
-          {renderCapsuleFilterBar()}
-
-          {/* 실시간 접속 레이더 배너 */}
-          {renderRadarBanner()}
-
-          {/* 인연 매칭 2열 그리드 리스트 (스크롤 시 Extended FAB 축소 연동) */}
-          <FlatList
-            data={filteredUsers}
-            keyExtractor={(item) => item.id}
-            numColumns={2}
-            renderItem={renderMatchCard}
-            contentContainerStyle={styles.gridContentContainer}
-            columnWrapperStyle={styles.gridColumnWrapper}
-            showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            removeClippedSubviews={Platform.OS === 'android'}
-            initialNumToRender={6}
-            maxToRenderPerBatch={6}
-            windowSize={7}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={() => loadData({ refresh: true })}
-                colors={[tokens.colors.primary]}
-                tintColor={tokens.colors.primary}
-              />
-            }
-            ListEmptyComponent={
-              <EmptyStateView
-                preset="search"
-                title="주변의 새로운 인연을 찾고 있어요"
-                description="현재 선택한 필터에 맞는 인연이 없습니다. 다른 필터를 둘러보세요!"
-                ctaLabel="필터 초기화"
-                onCtaPress={() => setSelectedFilter('전체')}
-                style={{ marginTop: 40 }}
-              />
-            }
+      {/* 2. 상단 듀얼 메인 세그먼트: [⚡ 실시간 토크] vs [💬 내 대화함] */}
+      <View style={styles.mainSegmentContainer}>
+        <TouchableOpacity
+          style={[styles.mainSegmentBtn, activeMainTab === 'TALK' && styles.mainSegmentBtnActive]}
+          onPress={() => setActiveMainTab('TALK')}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="flash"
+            size={16}
+            color={activeMainTab === 'TALK' ? '#FF3B6B' : '#64748B'}
           />
+          <Text
+            style={[
+              styles.mainSegmentText,
+              activeMainTab === 'TALK' && styles.mainSegmentTextActive,
+            ]}
+          >
+            실시간 토크
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.mainSegmentBtn, activeMainTab === 'CHATS' && styles.mainSegmentBtnActive]}
+          onPress={() => setActiveMainTab('CHATS')}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="chatbubbles"
+            size={16}
+            color={activeMainTab === 'CHATS' ? '#FF3B6B' : '#64748B'}
+          />
+          <Text
+            style={[
+              styles.mainSegmentText,
+              activeMainTab === 'CHATS' && styles.mainSegmentTextActive,
+            ]}
+          >
+            내 대화함
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* 3. [내 대화함] 선택 시 서브 세그먼트: [수다 톡] vs [거래 톡] */}
+      {activeMainTab === 'CHATS' && (
+        <View style={styles.subSegmentContainer}>
+          <TouchableOpacity
+            style={[
+              styles.subSegmentPill,
+              activeChatSubTab === 'SUDA' && styles.subSegmentPillActive,
+            ]}
+            onPress={() => setActiveChatSubTab('SUDA')}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.subSegmentText,
+                activeChatSubTab === 'SUDA' && styles.subSegmentTextActive,
+              ]}
+            >
+              수다 톡
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.subSegmentPill,
+              activeChatSubTab === 'MARKET' && styles.subSegmentPillActive,
+            ]}
+            onPress={() => setActiveChatSubTab('MARKET')}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.subSegmentText,
+                activeChatSubTab === 'MARKET' && styles.subSegmentTextActive,
+              ]}
+            >
+              거래 톡
+            </Text>
+            <View style={styles.safeTag}>
+              <Text style={styles.safeTagText}>에스크로</Text>
+            </View>
+          </TouchableOpacity>
         </View>
       )}
 
-      {activeTab === 'openRooms' && (
-        /* 추천 대화방 탭 */
-        <View style={{ flex: 1 }}>
-          <FlatList
-            data={openRooms}
-            keyExtractor={(item) => String(item.id)}
-            renderItem={renderOpenRoomItem}
-            contentContainerStyle={styles.openRoomsContentContainer}
-            showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={() => loadData({ refresh: true })}
-                colors={[tokens.colors.primary]}
-                tintColor={tokens.colors.primary}
-              />
-            }
-            ListHeaderComponent={
-              <View style={styles.openRoomHeaderBanner}>
-                <Ionicons name="sparkles" size={16} color="#FF3B6B" />
-                <Text style={styles.openRoomHeaderBannerText}>
-                  지금 대기 중인 추천 대화방입니다. 마음에 드는 방에 입장해 보세요!
-                </Text>
-              </View>
-            }
-            ListEmptyComponent={
-              <EmptyStateView
-                preset="chats"
-                title="대기 중인 추천 대화방이 없습니다"
-                description="하단의 '+ 방만들기' 버튼을 눌러 내가 먼저 대화방을 열어보세요!"
-                ctaLabel="+ 대화방 만들기"
-                onCtaPress={() => setCreateRoomModalVisible(true)}
-                style={{ marginTop: 60 }}
-              />
-            }
-          />
+      {/* 4. 본문 리스트 (1줄 토크 피드 OR 대화방 목록) */}
+      {loading ? (
+        <View style={styles.centerLoading}>
+          <ActivityIndicator size="large" color={tokens.colors.primary} />
+          <Text style={styles.loadingText}>불러오는 중...</Text>
         </View>
-      )}
-
-      {activeTab === 'chats' && (
-        /* 대화중(내 대화) 탭 */
-        <View style={{ flex: 1 }}>
-          <FlatList
-            data={chats}
-            keyExtractor={(item) => String(item.id)}
-            renderItem={renderChatListItem}
-            contentContainerStyle={styles.chatsContentContainer}
-            showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={() => loadData({ refresh: true })}
-                colors={[tokens.colors.primary]}
-                tintColor={tokens.colors.primary}
-              />
-            }
-            ListEmptyComponent={
-              <EmptyStateView
-                preset="chats"
-                title="진행 중인 대화가 없습니다"
-                description="추천 대화방이나 인연 찾기에서 대화를 시작해 보세요!"
-                ctaLabel="추천 대화방 보기"
-                onCtaPress={() => setActiveTab('openRooms')}
-                style={{ marginTop: 60 }}
-              />
-            }
-          />
-        </View>
-      )}
-
-      {activeTab === 'requests' && (
-        /* 신청 목록 탭 */
-        <View style={{ flex: 1 }}>
-          <FlatList
-            data={chatRequests}
-            keyExtractor={(item) => String(item.id)}
-            renderItem={renderRequestItem}
-            contentContainerStyle={styles.requestsContentContainer}
-            showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={() => loadData({ refresh: true })}
-                colors={[tokens.colors.primary]}
-                tintColor={tokens.colors.primary}
-              />
-            }
-            ListEmptyComponent={
-              <EmptyStateView
-                preset="empty"
-                title="도착한 대화 신청이 없습니다"
-                description="내 프로필을 매력적으로 꾸미고 방을 만들어 대화를 기다려보세요!"
-                ctaLabel="인연 찾기 둘러보기"
-                onCtaPress={() => setActiveTab('discover')}
-                style={{ marginTop: 60 }}
-              />
-            }
-          />
-        </View>
-      )}
-
-      {/* 당근마켓 스타일 가변 플로팅 액션 버튼 (Extended FAB) */}
-      <ExtendedFAB
-        label="+ 방만들기"
-        iconName="add"
-        isExtended={isExtended}
-        onPress={() => setCreateRoomModalVisible(true)}
-      />
-
-      {/* 전역 바텀 시트 (카드 터치 시 무전환 노출) */}
-      <GlobalBottomSheet
-        visible={bottomSheetVisible}
-        onClose={() => setBottomSheetVisible(false)}
-        user={selectedUser}
-        onCallVoice={handleCallUser}
-        onCallVideo={handleCallUser}
-        onStartChat={handleStartChat}
-      />
-
-      {/* 대화방 개설 모달 */}
-      <CreateRoomModal
-        visible={createRoomModalVisible}
-        onClose={() => setCreateRoomModalVisible(false)}
-        onRoomCreated={(newRoom) => {
-          loadData();
-          setActiveTab('openRooms');
-          if (newRoom?.id) {
-            navigation.navigate('ChatRoom', {
-              id: newRoom.id,
-              room: newRoom,
-              user: newRoom.counterpart,
-            });
+      ) : activeMainTab === 'TALK' ? (
+        <FlatList
+          data={sudaPosts}
+          keyExtractor={(item) => item.id}
+          renderItem={renderSudaItem}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={tokens.colors.primary}
+            />
           }
+          ListEmptyComponent={
+            <View style={styles.emptyBox}>
+              <Ionicons name="chatbubbles-outline" size={44} color="#CBD5E1" />
+              <Text style={styles.emptyTitle}>첫 번째 동네 수다를 시작해보세요!</Text>
+            </View>
+          }
+        />
+      ) : (
+        <FlatList
+          data={chatRooms}
+          keyExtractor={(item) => item.id}
+          renderItem={renderChatRoomItem}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={tokens.colors.primary}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyBox}>
+              <Ionicons name="mail-open-outline" size={44} color="#CBD5E1" />
+              <Text style={styles.emptyTitle}>대화 내역이 없습니다</Text>
+              <Text style={styles.emptySub}>
+                {activeChatSubTab === 'SUDA'
+                  ? '실시간 토크에서 이웃에게 쪽지를 보내 대화를 시작해보세요!'
+                  : '마켓에서 상품을 선택하고 안전거래 톡을 시작해보세요!'}
+              </Text>
+            </View>
+          }
+        />
+      )}
+
+      {/* 5. [실시간 토크] 탭일 때 우측 하단 가변 FAB: + 글쓰기 */}
+      {activeMainTab === 'TALK' && (
+        <ScrollExpandableFAB
+          label="글쓰기"
+          iconName="pencil"
+          isExpanded={isFabExpanded}
+          onPress={() => setShowCreateModal(true)}
+        />
+      )}
+
+      {/* 6. 1줄 수다 작성 모달 */}
+      <SudaCreateModal
+        visible={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreated={() => {
+          loadData();
         }}
-        navigation={navigation}
       />
     </View>
   );
@@ -1463,691 +395,395 @@ export default function ChatsScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: tokens.colors.background,
-  },
-
-  // 1. 상단 4단 세그먼트 탭 스타일 (100% 뷰포트 폭 4등분 고정)
-  topBar: {
     backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    paddingTop: 2,
   },
-  segmentRow: {
-    flexDirection: 'row',
-    width: '100%',
-    alignItems: 'center',
-  },
-  segmentTab: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    position: 'relative',
-  },
-  segmentTabActive: {
-    backgroundColor: 'transparent',
-  },
-  segmentTabText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#9CA3AF',
-    letterSpacing: -0.3,
-  },
-  segmentTabTextActive: {
-    color: tokens.colors.primary,
-    fontWeight: '900',
-  },
-  tabIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    left: 12,
-    right: 12,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: tokens.colors.primary,
-  },
-  tabLabelWithBadge: {
+  header: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabMiniBadge: {
-    marginLeft: 4,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#FFE4E6',
-    paddingHorizontal: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tabMiniBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#E11D48',
-  },
-  tabMiniDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: tokens.colors.primary,
-    marginLeft: 4,
-    marginBottom: 4,
-  },
-  topIconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: tokens.colors.surfaceSecondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  topCreateChatBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: tokens.colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: tokens.radius.full,
-    gap: 3,
-    ...tokens.shadows.soft,
-  },
-  topCreateChatText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-
-  // 2. 가로 1열 캡슐 필터 바 스타일
-  filterBarContainer: {
-    backgroundColor: tokens.colors.surface,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: tokens.colors.borderLight,
-  },
-  filterScrollContent: {
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
-  capsuleBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 7.5,
-    borderRadius: tokens.radius.full,
-    justifyContent: 'center',
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.5,
+  },
+  locationBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#FFF0F3',
+    borderRadius: 12,
   },
-  capsuleBtnActive: {
-    backgroundColor: tokens.colors.primary,
-    ...tokens.shadows.soft,
+  locationBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FF3B6B',
   },
-  capsuleBtnInactive: {
-    backgroundColor: tokens.colors.surfaceSecondary,
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  headerIconBtn: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 19,
+  },
+  mainSegmentContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 10,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  mainSegmentBtn: {
+    flex: 1,
+    height: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: tokens.colors.border,
+    borderColor: '#E2E8F0',
   },
-  capsuleText: {
-    fontSize: 13,
+  mainSegmentBtnActive: {
+    backgroundColor: '#FFF0F3',
+    borderColor: '#FF3B6B',
   },
-  capsuleTextActive: {
+  mainSegmentText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  mainSegmentTextActive: {
+    color: '#FF3B6B',
+    fontWeight: '800',
+  },
+  subSegmentContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  subSegmentPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+  },
+  subSegmentPillActive: {
+    backgroundColor: '#0F172A',
+  },
+  subSegmentText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  subSegmentTextActive: {
     color: '#FFFFFF',
     fontWeight: '800',
   },
-  capsuleTextInactive: {
-    color: tokens.colors.textSecondary,
-    fontWeight: '600',
+  safeTag: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 6,
   },
-
-  // 3. 실시간 접속 레이더 배너
-  radarBanner: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 4,
-    borderRadius: tokens.radius.md,
-    overflow: 'hidden',
+  safeTagText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  listContent: {
+    padding: 16,
+    paddingBottom: 110,
+  },
+  sudaCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#FFE4EC',
-    ...tokens.shadows.soft,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  radarGradient: {
+  sudaHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    marginBottom: 10,
   },
-  radarLeftGroup: {
+  sudaAuthorLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     flex: 1,
   },
-  radarIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
+  authorAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
   },
-  radarPulseWave: {
-    position: 'absolute',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: tokens.colors.primary,
-  },
-  radarCenterDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: tokens.colors.primary,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  radarTextCol: {
+  authorInfo: {
     flex: 1,
   },
-  radarTitleRow: {
+  nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
   },
-  radarTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: tokens.colors.text,
+  authorName: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
   },
-  radarHighlight: {
-    color: tokens.colors.primary,
-    fontWeight: '900',
+  neighborhoodBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 6,
   },
-  radarOnlineDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: tokens.colors.status.online,
-  },
-  radarSub: {
-    fontSize: 11,
-    color: tokens.colors.textSecondary,
-    marginTop: 1,
-  },
-  radarRefreshBtn: {
-    padding: 6,
-  },
-
-  // 4. 인연 매칭 2열 그리드 스타일
-  gridContentContainer: {
-    paddingHorizontal: GRID_PADDING,
-    paddingTop: 12,
-    paddingBottom: 90,
-  },
-  gridColumnWrapper: {
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  matchCard: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
-    borderRadius: tokens.radius.card,
-    overflow: 'hidden',
-    backgroundColor: tokens.colors.surfaceSecondary,
-    ...tokens.shadows.card,
-  },
-  cardImage: {
-    width: '100%',
-    height: '100%',
-  },
-  cardTopBadgeRow: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    right: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statusBadgeOnline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: tokens.radius.full,
-    gap: 4,
-  },
-  statusBadgeDistance: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: tokens.radius.full,
-    gap: 3,
-  },
-  onlineDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: tokens.colors.status.online,
-  },
-  statusBadgeText: {
-    color: '#FFFFFF',
+  neighborhoodText: {
     fontSize: 10,
     fontWeight: '700',
+    color: '#475569',
   },
-  cardBottomOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-    paddingTop: 36,
+  distanceText: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  timeText: {
+    fontSize: 10,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  directMessageBtn: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-  },
-  cardInfoCol: {
-    flex: 1,
-    marginRight: 6,
-  },
-  cardNameRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     gap: 4,
-    marginBottom: 2,
+    backgroundColor: '#FFF0F3',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFE4E8',
   },
-  cardName: {
-    color: '#FFFFFF',
-    fontSize: 16,
+  directMessageText: {
+    fontSize: 11,
     fontWeight: '800',
-    letterSpacing: -0.3,
+    color: '#FF3B6B',
   },
-  cardAge: {
-    color: 'rgba(255, 255, 255, 0.85)',
-    fontSize: 13,
+  sudaContent: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: '#1E293B',
+    fontWeight: '500',
+    marginVertical: 4,
+  },
+  sudaFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F8FAFC',
+  },
+  reactionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  reactionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  reactionCount: {
+    fontSize: 12,
+    color: '#64748B',
     fontWeight: '600',
   },
-  cardHeadline: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 11,
-    lineHeight: 15,
+  chatRoomCard: {
+    flexDirection: 'row',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    gap: 12,
+  },
+  avatarWrapper: {
+    position: 'relative',
+  },
+  peerAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E2E8F0',
+  },
+  onlineBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#10B981',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  chatRoomContent: {
+    flex: 1,
+  },
+  chatRoomHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 4,
   },
-  cardTagChip: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+  peerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  peerName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  marketBadge: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 6,
+  },
+  marketBadgeText: {
+    color: '#059669',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  chatTimeText: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  orderSummaryBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 6,
+    marginVertical: 4,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  orderThumb: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+  },
+  orderTextBox: {
+    flex: 1,
+  },
+  orderTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  orderPrice: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FF3B6B',
+  },
+  escrowStateTag: {
+    backgroundColor: '#10B981',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 6,
   },
-  cardTagText: {
+  escrowStateText: {
     color: '#FFFFFF',
-    fontSize: 9.5,
-    fontWeight: '700',
+    fontSize: 9,
+    fontWeight: '800',
   },
-  miniActionBtn: {
-    borderRadius: 17,
-    overflow: 'hidden',
-    ...tokens.shadows.card,
-  },
-  miniActionGradient: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-
-  // 5. 내 대화방 리스트 스타일
-  chatsContentContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    paddingBottom: 90,
-  },
-  chatItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: tokens.colors.surface,
-    padding: 14,
-    borderRadius: tokens.radius.card,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: tokens.colors.borderLight,
-    ...tokens.shadows.soft,
-  },
-  chatItemBody: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  chatItemHeader: {
+  lastMessageRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginTop: 2,
   },
-  chatItemTitle: {
-    ...tokens.typography.h3,
-    fontSize: 15,
-  },
-  chatItemTime: {
-    ...tokens.typography.caption,
-    color: tokens.colors.textTertiary,
-  },
-  chatItemBottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  chatItemLastMsg: {
-    ...tokens.typography.body2,
-    color: tokens.colors.textSecondary,
+  lastMessageText: {
+    fontSize: 13,
+    color: '#64748B',
     flex: 1,
-    marginRight: 8,
   },
-  unreadCountBadge: {
-    backgroundColor: tokens.colors.primary,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 5,
+  unreadBadge: {
+    backgroundColor: '#FF3B6B',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 8,
   },
   unreadCountText: {
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '800',
   },
-  chatItemActionsRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  chatItemDeleteBtn: {
-    padding: 4,
-    borderRadius: 6,
-    backgroundColor: '#F3F4F6',
-  },
-
-  // 6. 4단 세그먼트 탭 보강 스타일
-  segmentScrollContent: {
-    paddingHorizontal: 4,
-    alignItems: 'center',
-    gap: 6,
-  },
-  tabSmallCountBadge: {
-    backgroundColor: tokens.colors.primaryLight,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginLeft: 3,
-  },
-  tabSmallCountText: {
-    color: tokens.colors.primary,
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  tabReqBadge: {
-    backgroundColor: '#FF3B6B',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginLeft: 3,
-  },
-  tabReqBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '800',
-  },
-
-  // 7. 추천 대화방 스타일
-  openRoomsContentContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 90,
-  },
-  openRoomHeaderBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF1F4',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: tokens.radius.card,
-    marginBottom: 12,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#FFE4E8',
-  },
-  openRoomHeaderBannerText: {
+  centerLoading: {
     flex: 1,
-    color: '#E11D48',
-    fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 16,
-  },
-  openRoomCard: {
-    backgroundColor: tokens.colors.surface,
-    borderRadius: tokens.radius.card,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: tokens.colors.borderLight,
-    ...tokens.shadows.soft,
-  },
-  openRoomHeaderRow: {
-    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  openRoomInfoCol: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  openRoomTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 4,
-  },
-  openRoomTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: tokens.colors.textPrimary,
-    flex: 1,
-  },
-  myRoomTag: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  myRoomTagText: {
-    color: '#4F46E5',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  openRoomMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  openRoomHostName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: tokens.colors.textSecondary,
-  },
-  openRoomDot: {
-    color: tokens.colors.textTertiary,
-    fontSize: 12,
-  },
-  openRoomCategory: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: tokens.colors.primary,
-  },
-  entryFeeBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: tokens.radius.full,
-  },
-  entryFeeBadgePaid: {
-    backgroundColor: '#FFF1F4',
-    borderWidth: 1,
-    borderColor: '#FFD4DD',
-  },
-  entryFeeBadgeFree: {
-    backgroundColor: '#F3F4F6',
-  },
-  entryFeeText: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  entryFeeTextPaid: {
-    color: '#FF3B6B',
-  },
-  entryFeeTextFree: {
-    color: tokens.colors.textSecondary,
-  },
-  openRoomActionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 14,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  openRoomNoticeText: {
-    fontSize: 11,
-    color: tokens.colors.textTertiary,
-    flex: 1,
-    marginRight: 10,
-  },
-  openRoomJoinBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FF3B6B',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: tokens.radius.full,
-    gap: 4,
-    ...tokens.shadows.soft,
-  },
-  openRoomMyBtn: {
-    backgroundColor: '#4B5563',
-  },
-  openRoomJoinText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-
-  // 8. 신청 목록 스타일
-  requestsContentContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 90,
-  },
-  requestCard: {
-    backgroundColor: tokens.colors.surface,
-    borderRadius: tokens.radius.card,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: tokens.colors.borderLight,
-    ...tokens.shadows.soft,
-  },
-  requestHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  requestInfoCol: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  requestNameRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  requestSenderName: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: tokens.colors.textPrimary,
-  },
-  requestTimeText: {
-    fontSize: 11,
-    color: tokens.colors.textTertiary,
-  },
-  requestMessageText: {
+  loadingText: {
+    marginTop: 10,
     fontSize: 13,
-    color: tokens.colors.textSecondary,
-    lineHeight: 18,
-    fontStyle: 'italic',
+    color: '#64748B',
   },
-  requestBottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  emptyBox: {
     alignItems: 'center',
-    marginTop: 14,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    justifyContent: 'center',
+    paddingVertical: 60,
   },
-  requestPointEarnBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF1F4',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    gap: 4,
-  },
-  requestPointEarnText: {
-    color: '#FF3B6B',
-    fontSize: 11,
+  emptyTitle: {
+    marginTop: 12,
+    fontSize: 15,
     fontWeight: '800',
+    color: '#334155',
   },
-  requestActionBtns: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  requestRejectBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: tokens.radius.full,
-    backgroundColor: '#F3F4F6',
-  },
-  requestRejectText: {
-    color: '#6B7280',
+  emptySub: {
+    marginTop: 4,
     fontSize: 12,
-    fontWeight: '700',
-  },
-  requestAcceptBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderRadius: tokens.radius.full,
-    backgroundColor: '#FF3B6B',
-    ...tokens.shadows.soft,
-  },
-  requestAcceptText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  requestStatusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    backgroundColor: '#F3F4F6',
-  },
-  requestStatusText: {
-    fontSize: 11,
-    color: '#9CA3AF',
-    fontWeight: '700',
+    color: '#94A3B8',
+    textAlign: 'center',
+    paddingHorizontal: 24,
   },
 });

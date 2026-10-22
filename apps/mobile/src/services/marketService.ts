@@ -4,6 +4,7 @@
  * 
  * 경제 정책: 1 ON = 1 KRW (원화 1:1 직관 연동)
  */
+import client from '../api/client';
 
 export interface MarketProduct {
   id: string;
@@ -204,35 +205,53 @@ export async function fetchMarketProducts(params?: {
   query?: string;
 }): Promise<MarketProduct[]> {
   try {
-    // 실제 API 연동 시도 (추후 백엔드 컨트롤러 완성 시 즉시 응답)
-    let filtered = [...inMemoryProducts];
-
-    if (params?.type) {
-      filtered = filtered.filter((p) => p.type === params.type);
+    const res = await client.get('/market/products', {
+      params: {
+        type: params?.type,
+        category: params?.category,
+        search: params?.query,
+      },
+      timeout: 3000,
+    });
+    if (res?.data?.items && Array.isArray(res.data.items) && res.data.items.length > 0) {
+      return res.data.items;
     }
-
-    if (params?.category && params.category !== 'ALL') {
-      filtered = filtered.filter((p) => p.category === params.category);
-    }
-
-    if (params?.query && params.query.trim()) {
-      const q = params.query.trim().toLowerCase();
-      filtered = filtered.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          p.locationName.toLowerCase().includes(q)
-      );
-    }
-
-    return filtered;
   } catch (err) {
-    console.warn('[marketService] fetch fallback used:', err);
-    return inMemoryProducts;
+    // Fallback to offline in-memory data
   }
+
+  let filtered = [...inMemoryProducts];
+
+  if (params?.type) {
+    filtered = filtered.filter((p) => p.type === params.type);
+  }
+
+  if (params?.category && params.category !== 'ALL') {
+    filtered = filtered.filter((p) => p.category === params.category);
+  }
+
+  if (params?.query && params.query.trim()) {
+    const q = params.query.trim().toLowerCase();
+    filtered = filtered.filter(
+      (p) =>
+        p.title.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q) ||
+        p.locationName.toLowerCase().includes(q)
+    );
+  }
+
+  return filtered;
 }
 
 export async function fetchMarketProductById(id: string): Promise<MarketProduct | null> {
+  try {
+    const res = await client.get(`/market/products/${id}`, { timeout: 3000 });
+    if (res?.data?.id) {
+      return res.data;
+    }
+  } catch (err) {
+    // Fallback
+  }
   const item = inMemoryProducts.find((p) => p.id === id);
   return item || null;
 }
@@ -247,6 +266,29 @@ export async function createMarketProduct(
     chatsCount: 0,
     createdAt: '방금 전',
   };
+
+  try {
+    const res = await client.post('/market/products', {
+      type: data.type,
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      price: data.price,
+      originalPrice: data.originalPrice,
+      targetQuantity: data.targetQuantity,
+      images: data.images,
+      locationName: data.locationName,
+      latitude: 37.4979,
+      longitude: 127.0276,
+    });
+    if (res?.data?.id) {
+      inMemoryProducts = [res.data, ...inMemoryProducts];
+      return res.data;
+    }
+  } catch (err) {
+    // Fallback
+  }
+
   inMemoryProducts = [newProduct, ...inMemoryProducts];
   return newProduct;
 }
