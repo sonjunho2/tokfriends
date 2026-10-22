@@ -28,6 +28,8 @@ import {
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
+import { fetchMarketProducts, INITIAL_MARKET_PRODUCTS } from '../../services/marketService';
+import { fetchSudaPosts, INITIAL_SUDA_POSTS } from '../../services/sudaService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const MATCH_CARD_WIDTH = SCREEN_WIDTH - 36;
@@ -220,6 +222,8 @@ export default function HomeScreen({ navigation }) {
   const [liveRooms, setLiveRooms] = useState(DEFAULT_LIVES);
   const [matchUsers, setMatchUsers] = useState(DEFAULT_MATCH_USERS);
   const [communityPosts, setCommunityPosts] = useState(DEFAULT_COMMUNITY_POSTS);
+  const [hotDeals, setHotDeals] = useState(INITIAL_MARKET_PRODUCTS.filter((p) => p.type === 'B2C_GROUP'));
+  const [sudaList, setSudaList] = useState(INITIAL_SUDA_POSTS.slice(0, 3));
   const [myPoints, setMyPoints] = useState(1250);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -313,6 +317,20 @@ export default function HomeScreen({ navigation }) {
       if (balanceRes.status === 'fulfilled' && balanceRes.value?.balance !== undefined) {
         setMyPoints(Number(balanceRes.value.balance));
       }
+
+      // 5. 마켓 특가 공구 & 수다 TOP 3 로드
+      try {
+        const [marketData, sudaData] = await Promise.allSettled([
+          fetchMarketProducts({ type: 'B2C_GROUP' }),
+          fetchSudaPosts(),
+        ]);
+        if (marketData.status === 'fulfilled' && Array.isArray(marketData.value) && marketData.value.length > 0) {
+          setHotDeals(marketData.value.slice(0, 5));
+        }
+        if (sudaData.status === 'fulfilled' && Array.isArray(sudaData.value) && sudaData.value.length > 0) {
+          setSudaList(sudaData.value.slice(0, 3));
+        }
+      } catch {}
     } catch {
       // 에러 시 풍부한 기본 데이터 유지
     } finally {
@@ -780,6 +798,150 @@ export default function HomeScreen({ navigation }) {
     </View>
   );
 
+  // =================================================================
+  // 3. 오늘의 핫딜 B2C 공동구매 특가 섹션 (에스크로 안전결제)
+  // =================================================================
+  const renderHotDealsSection = () => (
+    <View style={styles.sectionWrap}>
+      <View style={styles.sectionHeader}>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>오늘의 마켓 특가 공구</Text>
+          <View style={styles.dealTimeBadge}>
+            <Ionicons name="flash" size={11} color="#EF4444" />
+            <Text style={styles.dealTimeBadgeText}>마감임박</Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={styles.sectionMoreBtn}
+          onPress={() => navigation.navigate('Market', { screen: 'MarketMain' })}
+          hitSlop={8}
+        >
+          <Text style={styles.sectionMoreText}>마켓 전체보기</Text>
+          <Ionicons name="chevron-forward" size={14} color={tokens.colors.textTertiary} />
+        </TouchableOpacity>
+      </View>
+
+      <FlatList
+        data={hotDeals}
+        keyExtractor={(item) => item.id}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.hotDealListContent}
+        renderItem={({ item }) => {
+          const discountRate = item.originalPrice
+            ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
+            : 30;
+          const progressPercent = item.targetQuantity
+            ? Math.min(100, Math.round(((item.currentQuantity || 0) / item.targetQuantity) * 100))
+            : 85;
+
+          return (
+            <TouchableOpacity
+              style={styles.hotDealCard}
+              activeOpacity={0.9}
+              onPress={() =>
+                navigation.navigate('Market', {
+                  screen: 'ProductDetail',
+                  params: { productId: item.id, product: item },
+                })
+              }
+            >
+              <Image source={{ uri: item.images[0] }} style={styles.hotDealThumb} resizeMode="cover" />
+              <View style={styles.dealTimerChip}>
+                <Ionicons name="time-outline" size={12} color="#FFFFFF" />
+                <Text style={styles.dealTimerText}>05:42:19 남음</Text>
+              </View>
+
+              <View style={styles.hotDealInfo}>
+                <Text style={styles.hotDealTitle} numberOfLines={1}>
+                  {item.title}
+                </Text>
+                <View style={styles.hotDealPriceRow}>
+                  <Text style={styles.hotDealDiscount}>{discountRate}%</Text>
+                  <Text style={styles.hotDealPrice}>{item.price.toLocaleString()}원</Text>
+                </View>
+
+                {/* 달성률 프로그레스바 */}
+                <View style={styles.dealProgressWrap}>
+                  <View style={styles.dealProgressBarBg}>
+                    <View style={[styles.dealProgressBarFill, { width: `${progressPercent}%` }]} />
+                  </View>
+                  <View style={styles.dealProgressTextRow}>
+                    <Text style={styles.dealProgressQty}>
+                      {item.currentQuantity || 0}/{item.targetQuantity || 30}명
+                    </Text>
+                    <Text style={styles.dealProgressPercent}>{progressPercent}% 달성</Text>
+                  </View>
+                </View>
+              </View>
+            </TouchableOpacity>
+          );
+        }}
+      />
+    </View>
+  );
+
+  // =================================================================
+  // 4. 실시간 동네 수다 TOP 3 섹션 (1줄 토크 타임라인)
+  // =================================================================
+  const renderSudaSection = () => (
+    <View style={styles.sectionWrap}>
+      <View style={styles.sectionHeader}>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>동네 실시간 수다</Text>
+          <View style={styles.sudaLiveBadge}>
+            <View style={styles.sudaLiveDot} />
+            <Text style={styles.sudaLiveText}>LIVE</Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={styles.sectionMoreBtn}
+          onPress={() => navigation.navigate('Chat', { screen: 'ChatsMain' })}
+          hitSlop={8}
+        >
+          <Text style={styles.sectionMoreText}>수다방 가기</Text>
+          <Ionicons name="chevron-forward" size={14} color={tokens.colors.textTertiary} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.homeSudaList}>
+        {sudaList.map((post) => (
+          <TouchableOpacity
+            key={post.id}
+            style={styles.homeSudaCard}
+            activeOpacity={0.88}
+            onPress={() => navigation.navigate('Chat', { screen: 'ChatsMain' })}
+          >
+            <View style={styles.homeSudaLeft}>
+              <Image source={{ uri: post.author.avatarUrl }} style={styles.homeSudaAvatar} />
+              <View style={styles.homeSudaMeta}>
+                <View style={styles.homeSudaNameRow}>
+                  <Text style={styles.homeSudaAuthor}>{post.author.nickname}</Text>
+                  <View style={styles.homeSudaBadge}>
+                    <Text style={styles.homeSudaBadgeText}>{post.neighborhood}</Text>
+                  </View>
+                  <Text style={styles.homeSudaDistance}>{post.distanceKm}km</Text>
+                </View>
+                <Text style={styles.homeSudaContent} numberOfLines={1}>
+                  {post.content}
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.homeSudaDirectBtn}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('Chat', { screen: 'ChatsMain' })}
+            >
+              <Ionicons name="chatbubble-ellipses" size={13} color="#FF3B6B" />
+              <Text style={styles.homeSudaDirectText}>답장</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -805,13 +967,19 @@ export default function HomeScreen({ navigation }) {
         }
         renderItem={() => (
           <View>
-            {/* 1. 실시간 LIVE 프리뷰 섹션 */}
+            {/* 1. 실시간 D LIVE 프리뷰 섹션 */}
             {renderLiveSection()}
 
-            {/* 2. 오늘의 추천 인연 섹션 */}
+            {/* 2. 오늘의 마켓 특가 공구 (B2C & 에스크로 안전거래) */}
+            {renderHotDealsSection()}
+
+            {/* 3. 실시간 동네 수다 TOP 3 (1줄 토크 타임라인) */}
+            {renderSudaSection()}
+
+            {/* 4. 오늘의 추천 인연 섹션 */}
             {renderMatchSection()}
 
-            {/* 3. 동네 커뮤니티 실시간 피드 섹션 */}
+            {/* 5. 동네 커뮤니티 실시간 피드 섹션 */}
             {renderCommunitySection()}
 
             {/* 하단 여백 (하단 탭 바 높이 고려) */}

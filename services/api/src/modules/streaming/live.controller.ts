@@ -187,9 +187,37 @@ export class LiveController {
   }
 
   /**
-   * 관리자 라이브 방송 강제 종료
+   * 관리자 라이브 방송 강제 종료 (Kill-Switch)
    */
   @Public()
+  @Post('admin/rooms/:id/force-end')
+  async forceEndLiveRoom(
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+  ) {
+    const reason = body?.reason || '관리자 권한으로 강제 종료되었습니다 (커뮤니티 가이드라인 위반)';
+    const room = MOCK_LIVE_ROOMS.find((r) => r.id === id);
+    if (room) {
+      room.status = 'ENDED';
+      room.endedAt = new Date().toISOString();
+      room.viewerCount = 0;
+      room.flagged = false;
+      room.flagReason = `강제 종료: ${reason}`;
+    }
+    this.roomActiveViewers.delete(id);
+
+    // 연결된 모든 시청자 및 호스트에게 실시간 긴급 폭파(종료) 이벤트 즉시 브로드캐스트
+    try {
+      this.chatGateway.emitLiveRoomEnded(id, reason);
+    } catch {}
+
+    return {
+      ok: true,
+      data: room || { id, status: 'ENDED', viewerCount: 0, flagReason: reason },
+      message: '방송이 성공적으로 강제 종료되었습니다.',
+    };
+  }
+
   /**
    * 모바일 앱용 활성 라이브 방송 목록
    */

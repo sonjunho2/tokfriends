@@ -14,6 +14,7 @@ import {
   TrendingUp,
   RefreshCw,
   ExternalLink,
+  Download,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -128,6 +129,38 @@ export default function MarketEscrowAdminPage() {
     })
   }
 
+  // 판매자 정산용 은행 대량이체(CMS) 표준 CSV 다운로드
+  const handleExportCmsCsv = () => {
+    const confirmedOrders = orders.filter((o) => o.status === 'CONFIRMED')
+    if (confirmedOrders.length === 0) {
+      toast({
+        title: '정산 대상 없음',
+        description: '구매 확정 완료된 정산 대상 주문이 없습니다.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const headers = ['주문번호,판매자,상품명,원거래금액,수수료(3.5%),실송금지급액,은행명,가상계좌번호,정산상태']
+    const rows = confirmedOrders.map((o) =>
+      `"${o.orderNumber}","${o.sellerName}","${o.productTitle}",${o.amount},${o.platformFee},${o.sellerPayout},"카카오뱅크","3333-01-***","PAID"`
+    )
+    const csvContent = '\uFEFF' + [headers, ...rows].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `DAGAON_Settlement_CMS_${new Date().toISOString().slice(0, 10)}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    toast({
+      title: '📊 정산 CMS 엑셀(CSV) 다운로드 완료',
+      description: `${confirmedOrders.length}건의 판매자 정산 송금 내역이 다운로드되었습니다.`,
+    })
+  }
+
   const filteredOrders = orders.filter((o) => {
     const matchesSearch =
       o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -151,6 +184,9 @@ export default function MarketEscrowAdminPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportCmsCsv}>
+            <Download className="mr-2 h-4 w-4" /> 은행 이체 CMS 다운로드
+          </Button>
           <Button variant="outline" size="sm" onClick={() => toast({ title: '최신 거래 정보 갱신 완료' })}>
             <RefreshCw className="mr-2 h-4 w-4" /> 새로고침
           </Button>

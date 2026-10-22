@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from 'nestjs-prisma';
 import { EscrowStatus, SellerSettlementStatus } from '@prisma/client';
 import {
@@ -313,5 +314,61 @@ export class PaymentsService {
     }
 
     return order;
+  }
+
+  /**
+   * 5. 에스크로 자동 구매확정 스케줄러 (Cron Job)
+   * 물품 발송(SHIPPED) 후 7일(168시간) 동안 구매확정이나 분쟁제기가 없으면
+   * 전자상거래법 및 플랫폼 안전거래 정책에 따라 자동으로 구매확정(COMPLETED) 처리하고 판매자 정산 대기열을 생성합니다.
+   */
+  @Cron(CronExpression.EVERY_HOUR)
+  async autoConfirmDeliveredOrders() {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const targetOrders = await this.prisma.escrowOrder.findMany({
+      where: {
+        status: EscrowStatus.SHIPPED,
+        updatedAt: { lte: sevenDaysAgo },
+      },
+      include: {
+        seller: true,
+      },
+      take: 50,
+    });
+
+    if (targetOrders.length === 0) return;
+
+    this.logger.log(`[Auto Escrow Cron] Found ${targetOrders.length} orders eligible for auto-completion`);
+
+    for (const order of targetOrders) {
+      try {
+        await this.prisma.$transaction(async (tx) => {
+          await tx.escrowOrder.update({
+            where: { id: order.id },
+            data: {
+              status: EscrowStatus.COMPLETED,
+              confirmedAt: new Date(),
+            },
+          });
+
+          await tx.sellerSettlement.create({
+            data: {
+              sellerId: order.sellerId,
+              orderId: order.id,
+              totalAmount: order.amount,
+              netAmount: order.sellerPayout,
+              bankName: '자동정산계좌',
+              accountNumber: '3333-01-000000',
+              accountHolder: order.seller.displayName || order.seller.nickname || '판매자',
+              status: SellerSettlementStatus.PENDING,
+            },
+          });
+        });
+
+        this.logger.log(`[Auto Escrow Cron] Order ${order.orderNumber} auto-completed after 7 days`);
+      } catch (err: any) {
+        this.logger.error(`[Auto Escrow Cron] Failed to auto-complete ${order.orderNumber}: ${err.message}`);
+      }
+    }
   }
 }
