@@ -10,7 +10,6 @@ import { tokens } from '../theme/tokens';
 import {
   HomeStack,
   MarketStack,
-  CommunityStack,
   LiveStack,
   ChatsStack,
   MyPageStack,
