@@ -31,6 +31,7 @@ model User {
   buyerOrders        EscrowOrder[]        @relation("BuyerOrders")
   sellerOrders       EscrowOrder[]        @relation("SellerOrders")
   sudaPosts          SudaPost[]
+  sellerSettlements  SellerSettlement[]
   adminProfile       AdminProfile?
   auditLogs          AuditLog[]
   createdAt          DateTime             @default(now())
@@ -333,14 +334,19 @@ model EscrowOrder {
   buyer           User               @relation("BuyerOrders", fields: [buyerId], references: [id])
   sellerId        String
   seller          User               @relation("SellerOrders", fields: [sellerId], references: [id])
-  amount          Int                // 총 결제 포인트 (ON)
-  platformFeeRate Float              // 2.0% ~ 3.5% (C2C) 또는 8% ~ 12% (B2C)
-  platformFee     Int                // 플랫폼 수수료 포인트
-  sellerPayout    Int                // 판매자 정산 예정 포인트 (amount - platformFee)
-  status          EscrowStatus       @default(ESCROW_HOLD)
+  liveId          String?            // D LIVE 방송 중 구매 시 해당 방송 ID
+  amount          Int                // 총 결제 원화 금액 (KRW, 1:1)
+  feeAmount       Int?               // 안전결제 수수료 (KRW)
+  platformFeeRate Float              @default(0.035) // 안전결제 수수료율 (기본 3.5%)
+  platformFee     Int                @default(0) // 플랫폼 수수료 원화
+  sellerPayout    Int                @default(0) // 판매자 정산 예정액 (amount - platformFee)
+  status          EscrowStatus       @default(PAYMENT_PENDING)
+  pgProvider      String?            @default("TOSS_PAYMENTS") // TOSS_PAYMENTS, PORTONE 등
+  pgPaymentKey    String?            // PG 거래 고유 승인 키 (paymentKey)
   trackingNumber  String?            // 택배 송장번호 (직거래 시 NULL)
   chatRoomId      String?            // 연결된 거래 톡방 ID
   disputeReason   String?
+  settlement      SellerSettlement?
   confirmedAt     DateTime?
   cancelledAt     DateTime?
   createdAt       DateTime           @default(now())
@@ -348,14 +354,45 @@ model EscrowOrder {
 
   @@index([buyerId, status])
   @@index([sellerId, status])
+  @@index([pgPaymentKey])
 }
 
 enum EscrowStatus {
-  ESCROW_HOLD     // 포인트 안전 예치 중 (물품 배송/직거래 대기)
-  SHIPPED         // 발송 완료
-  CONFIRMED       // 구매 확정 (판매자 지갑 자동 지급 완료)
+  PAYMENT_PENDING // PG 결제 대기
+  PAID_ESCROW     // PG 결제 완료 및 에스크로 안전 예치
+  ESCROW_HOLD     // 기존 상태 호환
+  SHIPPED         // 발송 및 배송 중
+  COMPLETED       // 구매 확정 (판매자 정산 대기열 등록)
+  CONFIRMED       // 기존 상태 호환
+  CANCELLED       // 결제 취소
   DISPUTED        // 분쟁 접수 (관리자 중재 대기)
   REFUNDED        // 환불 완료
+}
+
+model SellerSettlement {
+  id            String                 @id @default(uuid())
+  sellerId      String
+  seller        User                   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  orderId       String                 @unique
+  order         EscrowOrder            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  totalAmount   Int                    // 총 결제액 (KRW)
+  netAmount     Int                    // 판매자 실수령 정산금 (KRW)
+  bankName      String?                // 정산 은행
+  accountNumber String?                // 정산 계좌번호
+  accountHolder String?                // 예금주명
+  status        SellerSettlementStatus @default(PENDING)
+  paidAt        DateTime?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  @@index([sellerId, status])
+  @@index([status])
+}
+
+enum SellerSettlementStatus {
+  PENDING
+  PAID
+  CANCELLED
 }
 
 // ==========================================

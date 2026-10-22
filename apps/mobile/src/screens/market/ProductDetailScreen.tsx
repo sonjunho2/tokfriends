@@ -275,81 +275,30 @@ export default function ProductDetailScreen({ route, navigation }: any) {
             activeOpacity={0.85}
           >
             <Ionicons name="shield-checkmark" size={16} color="#FFFFFF" />
-            <Text style={styles.buyBtnText}>안전결제</Text>
+            <Text style={styles.buyBtnText}>안전결제 주문하기</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* 7. 에스크로 바로구매 확인 모달 */}
-      <Modal
+      {/* 7. 실물 커머스 PG 에스크로 결제 모달 (Toss Payments / PortOne) */}
+      <PgPaymentModal
         visible={showEscrowModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowEscrowModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalShieldCircle}>
-                <Ionicons name="shield-checkmark" size={28} color="#10B981" />
-              </View>
-              <Text style={styles.modalTitle}>에스크로 안전결제</Text>
-              <Text style={styles.modalSubtitle}>
-                물품 대금이 플랫폼에 안전하게 예치됩니다
-              </Text>
-            </View>
-
-            <View style={styles.modalSummaryBox}>
-              <View style={styles.modalSummaryRow}>
-                <Text style={styles.modalSummaryLabel}>상품명</Text>
-                <Text style={styles.modalSummaryValue} numberOfLines={1}>
-                  {product.title}
-                </Text>
-              </View>
-              <View style={styles.modalSummaryRow}>
-                <Text style={styles.modalSummaryLabel}>판매자</Text>
-                <Text style={styles.modalSummaryValue}>{product.seller.nickname}</Text>
-              </View>
-              <View style={styles.modalDivider} />
-              <View style={styles.modalSummaryRow}>
-                <Text style={styles.modalTotalLabel}>결제 예정 포인트</Text>
-                <Text style={styles.modalTotalValue}>
-                  {product.price.toLocaleString()} ON <Text style={styles.modalWonText}>({product.price.toLocaleString()}원)</Text>
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.modalNoticeBox}>
-              <Ionicons name="information-circle-outline" size={15} color="#64748B" />
-              <Text style={styles.modalNoticeText}>
-                물품 수령 후 [구매 확정] 시에만 판매자에게 정산됩니다.
-              </Text>
-            </View>
-
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => setShowEscrowModal(false)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.modalCancelText}>취소</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalConfirmBtn}
-                onPress={handleEscrowPayment}
-                activeOpacity={0.85}
-                disabled={purchaseProcessing}
-              >
-                {purchaseProcessing ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.modalConfirmText}>안전 예치 결제하기</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        product={product}
+        onClose={() => setShowEscrowModal(false)}
+        onSuccess={(result) => {
+          navigation.navigate('ChatRoom', {
+            peerId: product.seller.id,
+            peerName: product.seller.nickname,
+            marketOrder: {
+              productId: product.id,
+              orderNumber: result.orderNumber,
+              title: product.title,
+              price: result.amount,
+              escrowStatus: 'PAID_ESCROW',
+            },
+          });
+        }}
+      />
     </View>
   );
 }

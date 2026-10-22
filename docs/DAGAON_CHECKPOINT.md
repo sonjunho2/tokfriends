@@ -5735,3 +5735,47 @@ First Owner/ActivityAccount migration must:
 
 
 
+
+
+---
+
+## Checkpoint 97: 결제 시스템 이원화 (디지털 IAP vs 실물 PG 에스크로 결제 분리 구축) (2026-10-22)
+
+### 1. 결제 트랙 이원화 정의 및 규제 준수
+- **트랙 1. 디지털 가상 재화 (IAP - Google Play Billing / Apple StoreKit)**:
+  - 대상: D LIVE 실시간 3D 가상 선물 후원, 1:1 프라이빗 통화 과금 (분당 1,500 ON).
+  - 방식: 모바일 인앱결제로 'ON 포인트' 충전 ➔ 앱 내부에서 소진 ➔ 호스트 수익 정산 환전.
+  - 온 포인트 및 포인트 트랜잭션 모델 격리로 앱스토어 인앱결제 가이드라인 100% 준수.
+- **트랙 2. 실물 커머스 안전거래 (PG - 토스페이먼츠 / 포트원 모바일 연동)**:
+  - 대상: 마켓 탭의 중고거래(C2C), B2C 공동구매 특가 딜, D LIVE 방송 중 하단 핀 고정 판매 상품.
+  - 방식: 선불 충전금 사용을 철저히 배제하고, 상품 선택 시 원화(KRW) PG 결제창(신용카드/카카오페이/토스페이/네이버페이)을 즉시 호출하는 에스크로 즉시 결제.
+  - 수수료율: 전자금융거래법 에스크로 안전결제 수수료 3.5% 적용.
+  - 자금 흐름: 구매자 원화 결제 ➔ 플랫폼 에스크로 임시 예치 ➔ 수령 후 [구매 확정] 시 판매자 정산 대기열(`SellerSettlement`) 생성.
+
+### 2. 백엔드 데이터베이스 및 API 개편 (`services/api`)
+- **Prisma 스키마 분리/신설 (`prisma/schema.prisma`)**:
+  - `model EscrowOrder`: `liveId`, `amount`(KRW), `feeAmount`(3.5%), `platformFeeRate`, `status` (`PAYMENT_PENDING`, `PAID_ESCROW`, `ESCROW_HOLD`, `SHIPPED`, `COMPLETED`, `DISPUTED`), `pgProvider` (`TOSS_PAYMENTS`), `pgPaymentKey` 인덱스 추가.
+  - `model SellerSettlement`: `orderId`, `sellerId`, `totalAmount`, `netAmount`, `bankName`, `accountNumber`, `accountHolder`, `status` (`PENDING`, `PAID`, `CANCELLED`).
+  - PostgreSQL DDL 마이그레이션 안전 집행 완료 (`ALTER TYPE "EscrowStatus"`, `CREATE TABLE "SellerSettlement"` 등).
+- **에스크로 결제 API 엔드포인트 구현 (`services/api/src/modules/payments/`)**:
+  - `POST /api/payments/escrow/prepare`: 주문 정보 생성 및 PG 결제 승인 요청 준비.
+  - `POST /api/payments/escrow/confirm`: PG 결제 승인 검증 및 에스크로 안전 예치(`PAID_ESCROW`) 전환.
+  - `POST /api/payments/escrow/complete-order`: 구매자 [구매 확정] 시 판매자 정산 대기열(`SellerSettlement`) 적재 및 `COMPLETED` 전환.
+  - `POST /api/payments/escrow/dispute`: 분쟁 발생 시 관리자 콘솔 결재 대기열 적재 및 에스크로 지급 동결.
+
+### 3. 모바일 클라이언트 결제 UI 구현 (`apps/mobile`)
+- **PG 모바일 결제 컴포넌트 (`apps/mobile/src/components/payment/PgPaymentModal.tsx`)**:
+  - 신용/체크카드, 카카오페이, 토스페이, 네이버페이 즉시 선택 UI.
+  - 상품 가격 + 3.5% 안전결제 수수료 명세 카드 및 에스크로 안전보호 안내.
+  - 토스페이먼츠 웹뷰 연동 및 `onMessage` 결과 파싱 처리.
+- **마켓 상세 화면 (`ProductDetailScreen.tsx`)**:
+  - `[안전결제 주문하기]` 버튼 터치 시 내부 포인트 충전 유도 없이 원화 PG 결제 모달 직접 노출.
+  - 결제 완료 시 거래 톡방으로 안전결제 오더 정보(`PAID_ESCROW`)와 함께 자동 라우팅.
+- **D LIVE 방송 화면 결제 인터랙션 격리 (`LiveRoomScreen.js` & `LiveEscrowBuyModal.tsx`)**:
+  - 3D 선물: 기존 디지털 ON 포인트 차감 및 IAP 충전창 연결 유지.
+  - 방송 핀 상품 [📌 방송특가]: 아고라 실시간 스트리밍 시청을 중단하지 않고 하단 슬라이드업 바텀시트에서 PG 즉시 결제창 호출 및 에스크로 결제 처리.
+
+### 4. 검증 결과
+- **백엔드 NestJS TypeScript 빌드**: `npm run build` 무결점 확인 (Exit code 0).
+- **모바일 번들 및 트랜스파일**: `npm run test:mobile:babel` (iOS 1507 모듈, Android 1502 모듈) 0 에러 확인 (Exit code 0).
+- **Git 메인 병합**: `origin/main` 푸시 완료.
