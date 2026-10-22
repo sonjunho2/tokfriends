@@ -145,6 +145,8 @@ export default function LiveRoomScreen({ navigation, route }) {
   const [isPinVisible, setIsPinVisible] = useState(true);
   const [buyModalVisible, setBuyModalVisible] = useState(false);
   const [selectedCommerceProduct, setSelectedCommerceProduct] = useState(null);
+  const [hostControlVisible, setHostControlVisible] = useState(false);
+  const [pgBottomSheetVisible, setPgBottomSheetVisible] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -159,6 +161,58 @@ export default function LiveRoomScreen({ navigation, route }) {
       mounted = false;
     };
   }, []);
+
+  // 호스트가 상품을 화면에 핀 고정 / 해제
+  const handleTogglePinProduct = async (productToPin) => {
+    const nextPinnedState = pinnedProduct?.id === productToPin.id ? !isPinVisible : true;
+    setPinnedProduct(productToPin);
+    setIsPinVisible(nextPinnedState);
+
+    // 백엔드 API & 웹소켓 브로드캐스트
+    try {
+      await apiClient.post(`/live/rooms/${roomId}/pin-product`, {
+        productId: productToPin.id,
+        product: productToPin,
+        isPinned: nextPinnedState,
+      });
+    } catch {}
+
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('live:pin_product', {
+        roomId,
+        product: productToPin,
+        isPinned: nextPinnedState,
+      });
+    }
+
+    setHostControlVisible(false);
+  };
+
+  // 구매 성공 시 채팅창에 구매 축하 메시지 시스템 전송
+  const handlePaymentSuccess = (orderId, orderNumber) => {
+    const buyerNickname = currentUser?.nickname || currentUser?.displayName || '시청자';
+    const prodTitle = selectedCommerceProduct?.title || '방송 특가 상품';
+
+    const celebMsg = {
+      id: `order-celeb-${Date.now()}`,
+      roomId,
+      type: 'chat',
+      content: `🎉 ${buyerNickname}님이 '${prodTitle}'을(를) 안전결제(에스크로)로 구매하셨습니다!`,
+      createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      sender: { id: 'system_commerce', name: '안전결제 시스템' },
+    };
+
+    setMessages((prev) => [...prev, celebMsg]);
+    showLiveNotice({
+      type: 'gift',
+      title: '🎉 안전결제 완료',
+      desc: `'${prodTitle}' 주문이 정상 체결되었습니다!`,
+    });
+
+    if (socketRef.current?.connected) {
+      socketRef.current.emit(LIVE_SOCKET_EVENTS.MESSAGE, { roomId, message: celebMsg });
+    }
+  };
 
   const handleOpenCommerceBuy = (prod) => {
     setSelectedCommerceProduct(prod);
@@ -719,6 +773,36 @@ export default function LiveRoomScreen({ navigation, route }) {
       socket.on(LIVE_SOCKET_EVENTS.VIEWER_COUNT, (data) => {
         if (typeof data?.viewerCount === 'number') {
           setViewerCount(data.viewerCount);
+        }
+      });
+
+            // 라이브커머스 핀 상품 실시간 업데이트
+      socket.on('LIVE_PINNED_PRODUCT_UPDATE', (data) => {
+        if (data?.product) {
+          setPinnedProduct(data.isPinned ? data.product : null);
+          setIsPinVisible(Boolean(data.isPinned));
+        } else if (data?.isPinned === false) {
+          setIsPinVisible(false);
+        }
+      });
+      socket.on('live:pin_product', (data) => {
+        if (data?.product) {
+          setPinnedProduct(data.isPinned ? data.product : null);
+          setIsPinVisible(Boolean(data.isPinned));
+        } else if (data?.isPinned === false) {
+          setIsPinVisible(false);
+        }
+      });
+
+      // 에스크로 결제 완료 시 채팅창에 구매 축하 이벤트 수신
+      socket.on('live:order_success', (data) => {
+        if (data?.message) {
+          setMessages((prev) => [...prev, data.message]);
+          showLiveNotice({
+            type: 'gift',
+            title: '🎉 라이브 특가 상품 구매 완료!',
+            desc: `${data.buyerName}님이 [${data.productTitle}]을(를) 구매하셨습니다!`,
+          });
         }
       });
 
@@ -1655,6 +1739,24 @@ export default function LiveRoomScreen({ navigation, route }) {
       {/* Fullscreen 3D Gift Effect Overlay (pointerEvents="none", zIndex: 9999) */}
       <GiftOverlay ref={giftOverlayRef} />
 
+      {/* 호스트용 상품 관리 바텀시트 */}
+      <HostLiveControlSheet
+        visible={hostControlVisible}
+        onClose={() => setHostControlVisible(false)}
+        roomId={roomId}
+        pinnedProduct={pinnedProduct}
+        onTogglePin={handleTogglePinProduct}
+      />
+
+      {/* 방송 무중단 PG 결제 바텀시트 (토스페이먼츠 에스크로) */}
+      <PgPaymentBottomSheet
+        visible={pgBottomSheetVisible}
+        product={selectedCommerceProduct || pinnedProduct}
+        liveId={roomId}
+        onClose={() => setPgBottomSheetVisible(false)}
+        onSuccess={handlePaymentSuccess}
+      />
+
       {/* Gift Picker Bottom Sheet */}
       <GiftPickerSheet
         visible={giftPickerVisible}
@@ -2361,6 +2463,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  commerceIconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 59, 107, 0.5)',
   },
   giftIconBtn: {
     width: 40,

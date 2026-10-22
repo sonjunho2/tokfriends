@@ -271,6 +271,76 @@ export class ChatGateway
   }
 
   /**
+   * 실시간 라이브 커머스 핀 상품 고정/해제 이벤트 수신 및 방 전체 브로드캐스트
+   */
+  @SubscribeMessage('live:pin_product')
+  handleLivePinProduct(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: any,
+  ) {
+    const roomId = data?.roomId || this.socketLiveRooms.get(socket.id);
+    const product = data?.product;
+    const isPinned = data?.isPinned !== undefined ? data.isPinned : true;
+
+    if (roomId) {
+      const channel = `live_room_${roomId}`;
+      this.server.to(channel).emit('LIVE_PINNED_PRODUCT_UPDATE', {
+        roomId,
+        product,
+        isPinned,
+        timestamp: new Date().toISOString(),
+      });
+      this.server.to(channel).emit('live:pin_product', {
+        roomId,
+        product,
+        isPinned,
+      });
+      this.logger.log(`[WS Live Commerce Pin] Room ${roomId}: product ${product?.id || 'none'}, pinned: ${isPinned}`);
+    }
+    return { ok: true };
+  }
+
+  /**
+   * 외부(컨트롤러)에서 실시간 핀 상품 브로드캐스트
+   */
+  emitLivePinProduct(roomId: string, product: any, isPinned = true) {
+    const channel = `live_room_${roomId}`;
+    this.server.to(channel).emit('LIVE_PINNED_PRODUCT_UPDATE', {
+      roomId,
+      product,
+      isPinned,
+      timestamp: new Date().toISOString(),
+    });
+    this.server.to(channel).emit('live:pin_product', {
+      roomId,
+      product,
+      isPinned,
+    });
+  }
+
+  /**
+   * 외부(컨트롤러)에서 실시간 에스크로 주문 성공(구매 축하) 브로드캐스트
+   */
+  emitLiveOrderSuccess(roomId: string, orderData: { buyerName: string; productTitle: string; amount: number }) {
+    const channel = `live_room_${roomId}`;
+    const celebrationMsg = {
+      id: `order-celeb-${Date.now()}`,
+      roomId,
+      type: 'commerce_purchase',
+      content: `🎉 ${orderData.buyerName}님이 '${orderData.productTitle}'을(를) 구매하셨습니다!`,
+      createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      sender: { id: 'system_commerce', name: '안전결제 시스템' },
+    };
+    this.server.to(channel).emit('live:order_success', {
+      roomId,
+      ...orderData,
+      message: celebrationMsg,
+    });
+    this.server.to(channel).emit('live:message', celebrationMsg);
+    this.logger.log(`[WS Live Commerce Purchase] Room ${roomId}: ${orderData.buyerName} bought ${orderData.productTitle}`);
+  }
+
+  /**
    * 외부(컨트롤러)에서 실시간 메시지/선물 브로드캐스트 (방 안의 호스트 및 모든 시청자에게 전파)
    */
   emitLiveMessage(roomId: string, message: any) {

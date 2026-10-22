@@ -4,10 +4,13 @@ import {
   BadRequestException,
   ForbiddenException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from 'nestjs-prisma';
 import { EscrowStatus, SellerSettlementStatus } from '@prisma/client';
+import { ChatGateway } from '../ws/chat.gateway';
 import {
   PrepareEscrowPaymentDto,
   ConfirmEscrowPaymentDto,
@@ -19,7 +22,11 @@ import {
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => ChatGateway))
+    private readonly chatGateway: ChatGateway,
+  ) {}
 
   /**
    * 1. 에스크로 주문 생성 및 PG 결제 승인 요청 준비
@@ -172,6 +179,24 @@ export class PaymentsService {
     });
 
     this.logger.log(`[PG Paid Escrow] Order ${updated.orderNumber} successfully held in Escrow`);
+
+    // D LIVE 방송 중 발생한 구매인 경우 라이브 룸 채팅창에 구매 축하 배너 브로드캐스트
+    if (order.liveId) {
+      try {
+        const buyer = await this.prisma.user.findUnique({
+          where: { id: buyerId },
+          select: { nickname: true, displayName: true },
+        });
+        const buyerName = buyer?.displayName || buyer?.nickname || '시청자';
+        this.chatGateway.emitLiveOrderSuccess(order.liveId, {
+          buyerName,
+          productTitle: updated.product.title,
+          amount: updated.amount,
+        });
+      } catch (wsErr: any) {
+        this.logger.warn(`[Live Order WS Broadcast failed] ${wsErr.message}`);
+      }
+    }
 
     return {
       ok: true,

@@ -226,9 +226,31 @@ export class LiveController {
   async getLiveRooms(@Query('category') category?: string) {
     let rooms = MOCK_LIVE_ROOMS.filter((r) => r.status === 'ACTIVE');
     if (category && category !== 'all' && category !== '전체') {
-      rooms = rooms.filter((r) => r.category.includes(category) || category.includes(r.category));
+      if (category === 'shopping' || category === '쇼핑' || category === '공구') {
+        rooms = rooms.filter((r: any) => Boolean(r.hasCommerce) || r.category === 'shopping' || r.category?.includes('공구') || r.category?.includes('쇼핑'));
+      } else {
+        rooms = rooms.filter((r) => r.category.includes(category) || category.includes(r.category));
+      }
     }
     return { ok: true, data: rooms, items: rooms };
+  }
+
+  /**
+   * 호스트 방송 중 라이브 커머스 핀 상품 고정/해제
+   */
+  @Public()
+  @Post('rooms/:id/pin-product')
+  async pinProduct(@Param('id') roomId: string, @Body() body: any) {
+    const isPinned = body.isPinned !== undefined ? body.isPinned : true;
+    const room: any = MOCK_LIVE_ROOMS.find((r) => r.id === roomId);
+    if (room) {
+      room.hasCommerce = true;
+      room.pinnedProductId = isPinned ? body.productId : null;
+    }
+    try {
+      this.chatGateway.emitLivePinProduct(roomId, body.product || { id: body.productId }, isPinned);
+    } catch {}
+    return { ok: true, roomId, productId: body.productId, isPinned, product: body.product };
   }
 
   /**
@@ -326,8 +348,13 @@ export class LiveController {
       body.host?.avatarUrl ||
       null;
 
-    const newRoom = {
+    const linkedProductIds = Array.isArray(body.linkedProductIds) ? body.linkedProductIds : [];
+    const hasCommerce = Boolean(body.hasCommerce || linkedProductIds.length > 0 || body.category === 'shopping' || body.category === '공구');
+    const newRoom: any = {
       id: `LIVE-${Date.now()}`,
+      hasCommerce,
+      linkedProductIds,
+      pinnedProductId: body.pinnedProductId || (linkedProductIds.length > 0 ? linkedProductIds[0] : null),
       title: body.title || '즐거운 소통 방송',
       category: body.category || '일상/토크',
       type: body.type || 'PUBLIC_1_TO_N',

@@ -23,6 +23,7 @@ import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
 import { EmptyStateView, ExtendedFAB, useExtendedFabScroll } from '../../components/common';
+import { fetchMarketProducts, MarketProduct, INITIAL_MARKET_PRODUCTS } from '../../services/marketService';
 
 const LIVE_COLOR = '#FF3B6B';
 
@@ -49,6 +50,10 @@ export default function LiveScreen({ navigation }) {
   const [category, setCategory] = useState('talk');
   const [entryFee, setEntryFee] = useState(0);
   const [starting, setStarting] = useState(false);
+  // 상품 연결 사전 세팅 상태
+  const [marketProducts, setMarketProducts] = useState(INITIAL_MARKET_PRODUCTS);
+  const [selectedProductIds, setSelectedProductIds] = useState([]);
+  const [productPickerVisible, setProductPickerVisible] = useState(false);
 
   const loadRooms = useCallback(async () => {
     try {
@@ -104,7 +109,121 @@ export default function LiveScreen({ navigation }) {
             hostId: user?.id,
             hostName,
             hostAvatar,
-          });
+            cardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardHeaderRight: {
+    marginLeft: 'auto',
+  },
+  commerceNeonBadge: {
+    backgroundColor: '#FF3B6B',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    shadowColor: '#FF3B6B',
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  commerceNeonText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  livePulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EF4444',
+    marginRight: 4,
+  },
+  connectProductBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  connectProductBtnLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  connectProductBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#E11D48',
+  },
+  productPickerBox: {
+    marginTop: 8,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 6,
+  },
+  pickerItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  pickerItemRowSelected: {
+    borderColor: '#FF3B6B',
+    backgroundColor: '#FFF1F2',
+  },
+  pickerThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: '#E2E8F0',
+  },
+  pickerMeta: {
+    flex: 1,
+    marginHorizontal: 10,
+  },
+  pickerBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  pickerTypeBadge: {
+    fontSize: 9,
+    fontWeight: '800',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+  },
+  pickerTypeB2C: {
+    backgroundColor: '#FEE2E2',
+    color: '#EF4444',
+  },
+  pickerTypeC2C: {
+    backgroundColor: '#E0E7FF',
+    color: '#4F46E5',
+  },
+  pickerPrice: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  pickerTitle: {
+    fontSize: 12,
+    color: '#334155',
+    fontWeight: '600',
+  },
+});
           const room = res?.room || res?.data || res;
           setModalVisible(false);
           setTitle('');
@@ -378,6 +497,70 @@ export default function LiveScreen({ navigation }) {
                 );
               })}
             </View>
+
+            {/* [+ 판매 상품 연결 (선택)] 섹션 */}
+            <Text style={[styles.inputLabel, { marginTop: 24 }]}>🛍️ 판매 상품 연결 (선택)</Text>
+            <Text style={styles.inputSubLabel}>
+              방송 중 소개하고 실시간 에스크로 안전결제를 진행할 상품을 연결하세요.
+            </Text>
+            <TouchableOpacity
+              style={styles.connectProductBtn}
+              activeOpacity={0.85}
+              onPress={() => setProductPickerVisible(!productPickerVisible)}
+            >
+              <View style={styles.connectProductBtnLeft}>
+                <Ionicons name="pricetags" size={18} color="#FF3B6B" />
+                <Text style={styles.connectProductBtnText}>
+                  {selectedProductIds.length > 0
+                    ? `${selectedProductIds.length}개 상품 연결됨 (터치하여 수정)`
+                    : '+ 마켓 상품 목록에서 연결하기'}
+                </Text>
+              </View>
+              <Ionicons
+                name={productPickerVisible ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color="#64748B"
+              />
+            </TouchableOpacity>
+
+            {/* 상품 선택 서브 리스트 */}
+            {productPickerVisible && (
+              <View style={styles.productPickerBox}>
+                {marketProducts.slice(0, 5).map((p) => {
+                  const isChecked = selectedProductIds.includes(p.id);
+                  return (
+                    <TouchableOpacity
+                      key={p.id}
+                      style={[styles.pickerItemRow, isChecked && styles.pickerItemRowSelected]}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        if (isChecked) {
+                          setSelectedProductIds(selectedProductIds.filter((id) => id !== p.id));
+                        } else {
+                          setSelectedProductIds([...selectedProductIds, p.id]);
+                        }
+                      }}
+                    >
+                      <Image source={{ uri: p.images[0] }} style={styles.pickerThumb} />
+                      <View style={styles.pickerMeta}>
+                        <View style={styles.pickerBadgeRow}>
+                          <Text style={[styles.pickerTypeBadge, p.type === 'B2C_GROUP' ? styles.pickerTypeB2C : styles.pickerTypeC2C]}>
+                            {p.type === 'B2C_GROUP' ? '공구' : '중고'}
+                          </Text>
+                          <Text style={styles.pickerPrice}>{p.price.toLocaleString()}원</Text>
+                        </View>
+                        <Text style={styles.pickerTitle} numberOfLines={1}>{p.title}</Text>
+                      </View>
+                      <Ionicons
+                        name={isChecked ? 'checkbox' : 'square-outline'}
+                        size={22}
+                        color={isChecked ? '#FF3B6B' : '#94A3B8'}
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
 
             <Text style={[styles.inputLabel, { marginTop: 24 }]}>시청자 입장료 (참여 온 설정)</Text>
             <Text style={styles.inputSubLabel}>
