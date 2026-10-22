@@ -27,6 +27,10 @@ model User {
   guestCalls         PrivateCallSession[] @relation("GuestSessions")
   giftTransactions   GiftTransaction[]
   aiDecisions        AiDecisionQueue[]
+  marketProducts     MarketProduct[]
+  buyerOrders        EscrowOrder[]        @relation("BuyerOrders")
+  sellerOrders       EscrowOrder[]        @relation("SellerOrders")
+  sudaPosts          SudaPost[]
   adminProfile       AdminProfile?
   auditLogs          AuditLog[]
   createdAt          DateTime             @default(now())
@@ -274,4 +278,116 @@ model LegalDocumentVersion {
   createdAt    DateTime @default(now())
 
   @@index([documentSlug, version])
+}
+
+// ==========================================
+// 1. 마켓 & 공동구매 (C2C & B2C)
+// ==========================================
+model MarketProduct {
+  id              String             @id @default(uuid())
+  sellerId        String
+  seller          User               @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  type            MarketProductType  @default(C2C_USED) // C2C_USED(중고거래) | B2C_GROUP(공동구매)
+  title           String             @db.VarChar(100)
+  description     String             @db.Text
+  category        String             // "DIGITAL", "FURNITURE", "FOOD_GROUP", "FASHION", etc.
+  price           Int                // ON 포인트 가격 (1 ON = 1 KRW)
+  originalPrice   Int?               // B2C 공구 시 정가
+  targetQuantity  Int                @default(1) // 공구 목표 인원
+  currentQuantity Int                @default(0) // 현재 참여 인원
+  images          Json               // 사진 URL 배열 (최대 10장)
+  status          ProductStatus      @default(ACTIVE) // ACTIVE, RESERVED, COMPLETED, CANCELLED
+  locationName    String?            // 희망 거래 동네/장소명 (예: 역삼역 3번출구)
+  latitude        Float?
+  longitude       Float?
+  escrowOrders    EscrowOrder[]
+  livePins        LiveCommercePin[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([type, status, createdAt])
+  @@index([sellerId])
+}
+
+enum MarketProductType {
+  C2C_USED
+  B2C_GROUP
+}
+
+enum ProductStatus {
+  ACTIVE
+  RESERVED
+  COMPLETED
+  CANCELLED
+}
+
+// ==========================================
+// 2. ON 포인트 에스크로 안전결제 주문
+// ==========================================
+model EscrowOrder {
+  id              String             @id @default(uuid())
+  orderNumber     String             @unique // 주문 고유번호 (예: ORD-202610-XXXX)
+  productId       String
+  product         MarketProduct      @relation(fields: [productId], references: [id])
+  buyerId         String
+  buyer           User               @relation("BuyerOrders", fields: [buyerId], references: [id])
+  sellerId        String
+  seller          User               @relation("SellerOrders", fields: [sellerId], references: [id])
+  amount          Int                // 총 결제 포인트 (ON)
+  platformFeeRate Float              // 2.0% ~ 3.5% (C2C) 또는 8% ~ 12% (B2C)
+  platformFee     Int                // 플랫폼 수수료 포인트
+  sellerPayout    Int                // 판매자 정산 예정 포인트 (amount - platformFee)
+  status          EscrowStatus       @default(ESCROW_HOLD)
+  trackingNumber  String?            // 택배 송장번호 (직거래 시 NULL)
+  chatRoomId      String?            // 연결된 거래 톡방 ID
+  disputeReason   String?
+  confirmedAt     DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([buyerId, status])
+  @@index([sellerId, status])
+}
+
+enum EscrowStatus {
+  ESCROW_HOLD     // 포인트 안전 예치 중 (물품 배송/직거래 대기)
+  SHIPPED         // 발송 완료
+  CONFIRMED       // 구매 확정 (판매자 지갑 자동 지급 완료)
+  DISPUTED        // 분쟁 접수 (관리자 중재 대기)
+  REFUNDED        // 환불 완료
+}
+
+// ==========================================
+// 3. 실시간 1줄 동네 수다 (SUDA)
+// ==========================================
+model SudaPost {
+  id              String             @id @default(uuid())
+  authorId        String
+  author          User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content         String             @db.VarChar(200) // 1줄 수다 본문
+  neighborhood    String             // 작성자 동네 (예: 역삼동)
+  latitude        Float?
+  longitude       Float?
+  likesCount      Int                @default(0)
+  repliesCount    Int                @default(0)
+  createdAt       DateTime           @default(now())
+
+  @@index([neighborhood, createdAt])
+  @@index([createdAt])
+}
+
+// ==========================================
+// 4. D LIVE 라이브커머스 핀 (Pin)
+// ==========================================
+model LiveCommercePin {
+  id              String             @id @default(uuid())
+  channelId       String             // Agora 라이브 채널 ID
+  productId       String
+  product         MarketProduct      @relation(fields: [productId], references: [id])
+  isPinned        Boolean            @default(true)
+  pinnedAt        DateTime           @default(now())
+  unpinnedAt      DateTime?
+
+  @@index([channelId, isPinned])
 }

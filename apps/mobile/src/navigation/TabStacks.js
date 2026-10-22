@@ -21,7 +21,13 @@ import ChatRoomScreen from '../screens/main/ChatRoomScreen';
 import ProfileDetailScreen from '../screens/main/ProfileDetailScreen';
 import NotificationsScreen from '../screens/main/NotificationsScreen';
 
+// Market (Phase 1)
+import MarketScreen from '../screens/market/MarketScreen';
+import ProductDetailScreen from '../screens/market/ProductDetailScreen';
+import MarketCreateScreen from '../screens/market/MarketCreateScreen';
+
 const HomeStackNav = createNativeStackNavigator();
+const MarketStackNav = createNativeStackNavigator();
 const CommunityStackNav = createNativeStackNavigator();
 const LiveStackNav = createNativeStackNavigator();
 const ChatsStackNav = createNativeStackNavigator();
@@ -100,7 +106,59 @@ export function HomeStack() {
   );
 }
 
-/** ===== 커뮤니티 탭 스택 ===== */
+/** ===== 마켓 탭 스택 (Phase 1 C2C / B2C 공동구매) ===== */
+export function MarketStack() {
+  return (
+    <MarketStackNav.Navigator
+      initialRouteName="MarketMain"
+      screenOptions={{ headerShown: false }}
+    >
+      <MarketStackNav.Screen name="MarketMain" component={MarketScreen} />
+      <MarketStackNav.Screen
+        name="ProductDetail"
+        component={ProductDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MarketStackNav.Screen
+        name="MarketCreate"
+        component={MarketCreateScreen}
+        options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
+      />
+      <MarketStackNav.Screen
+        name="ChatRoom"
+        component={ChatRoomScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MarketStackNav.Screen
+        name="ProfileDetail"
+        component={ProfileDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MarketStackNav.Screen
+        name="CommunityFeed"
+        component={CommunityFeedScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MarketStackNav.Screen
+        name="PostDetail"
+        component={PostDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MarketStackNav.Screen
+        name="Points"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MarketStackNav.Screen
+        name="Shop"
+        component={ShopScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+    </MarketStackNav.Navigator>
+  );
+}
+
+/** ===== 커뮤니티 탭 스택 (호환성 보존) ===== */
 export function CommunityStack() {
   return (
     <CommunityStackNav.Navigator

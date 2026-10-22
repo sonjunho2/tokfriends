@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { tokens } from '../theme/tokens';
 import {
   HomeStack,
+  MarketStack,
   CommunityStack,
   LiveStack,
   ChatsStack,
@@ -82,6 +83,8 @@ export default function TabNavigator() {
   const getTabBarStyle = (route: any) => {
     const routeName = getFocusedRouteNameFromRoute(route);
     const hideOnScreens = [
+      'ProductDetail',
+      'MarketCreate',
       'PostDetail',
       'ChatRoom',
       'ProfileDetail',
@@ -137,23 +140,23 @@ export default function TabNavigator() {
         })}
       />
 
-      {/* 2. 커뮤니티 탭 */}
+      {/* 2. 마켓 탭 (C2C 중고거래 & B2C 공동구매) */}
       <Tab.Screen
-        name="Community"
-        component={CommunityStack}
+        name="Market"
+        component={MarketStack}
         options={{
           tabBarIcon: ({ focused }) => (
             <RegularTabItem
-              name={focused ? 'people' : 'people-outline'}
+              name={focused ? 'storefront' : 'storefront-outline'}
               focused={focused}
-              label="커뮤니티"
+              label="마켓"
             />
           ),
         }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            navigation.navigate('Community', { screen: 'CommunityMain' });
+            navigation.navigate('Market', { screen: 'MarketMain' });
           },
         })}
       />
