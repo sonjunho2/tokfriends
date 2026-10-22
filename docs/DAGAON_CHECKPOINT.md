@@ -4,6 +4,24 @@ Updated: 2026-10-21
 Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
+
+## 2026-10-22 Checkpoint 103: [최신 프로덕션 APK 빌드 & 배포 완료: D LIVE 인스트림 커머스·5대 탭(홈·마켓·라이브·수다·마이)·에스크로 안전결제 전수 반영]
+- **모바일 네이티브 프로덕션 릴리즈 빌드 완료**:
+  - Expo/Metro 번들 사전 검증 통과 (Hermes Bytecode 1,501개 모듈 컴파일 무결점 0 에러).
+  - Gradle 네이티브 릴리즈 빌드 (`gradlew.bat :app:packageRelease :app:assembleRelease --no-daemon`) -> **BUILD SUCCESSFUL** (1m 31s 소요).
+  - 신규 생성 APK 파일 크기: **102.9 MB (102,944,234 bytes)**, 타임스탬프: 2026-10-22 15:27:13.
+- **배포 경로**:
+  - 프로젝트 루트: `dagaon-release.apk`
+  - 관리자 웹 정적 다운로드 서빙: `apps/admin/public/downloads/dagaon-release.apk`
+- **반영된 최신 기능 내역**:
+  - **D LIVE 인스트림 커머스**: 5대 카테고리 칩 및 특가공구/중고판매 네온 뱃지, 방송 전/중 상품 연결 및 핀 고정(`HostLiveControlSheet`), 시청자 플로팅 핀 카드(`LiveProductPinCard`) 및 방송 무중단 PG 결제(`PgPaymentBottomSheet`), 주문 실시간 축하 소켓 브로드캐스트.
+  - **홈 화면 3대 기둥 개편**: 라이브 스트리밍, 실물 마켓(B2C 특가/중고 에스크로), 1줄 동네 수다 실시간 소통 중심 레이아웃.
+  - **마이페이지 거래 활동 대시보드**: 판매·안전구매·방송·수다 내역 숏컷 및 마켓 상품 등록 연계.
+  - **에스크로 안전결제**: PG 즉시결제 + 7일 배송완료 후 자동 구매확정 Cron + 관리자 CMS 대량 이체 엑셀 다운로드.
+  - **관리자 웹 & 라우트 정돈**: '커머스·수익' 그룹화 및 불필요 레거시 라우트 정리.
+
+---
+
 ## 2026-10-22 Checkpoint 101: [D LIVE 및 마이페이지 전면 고도화 & 5대 탭(홈·마켓·라이브·수다·마이) 통합 아키텍처 완성]
 - **D LIVE 화면 (`LiveScreen.js`, `LiveRoomScreen.js`)**:
   - 단일 통합 피드 유지 및 5대 카테고리(`[전체]`, `[토크/소통]`, `[🛍️ 쇼핑/공구]`, `[음악/노래]`, `[취미/일상]`) 칩 바 연동.
