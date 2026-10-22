@@ -43,6 +43,73 @@ export default function MyPageScreen({ navigation }) {
     return Number.isFinite(numeric) ? numeric : 1250;
   }, [user]);
 
+  // 마켓 거래 및 라이브 활동 지표
+  const [commerceStats, setCommerceStats] = useState({
+    sellingCount: 2,
+    boughtCount: 4,
+    liveHostedCount: 8,
+    liveLikedCount: 154,
+    // 3.5 마켓 & 라이브 활동 내역 카드
+  activityStatsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  activityHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  activityHeaderTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  activityHeaderMore: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#4F46E5',
+  },
+  activityGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  activityGridItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  activityIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  activityItemCount: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  activityItemLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+});
+
   // 소셜 통계 카운터 상태
   const [stats, setStats] = useState({
     visitors: 48,
@@ -378,6 +445,65 @@ export default function MyPageScreen({ navigation }) {
           </LinearGradient>
         </View>
 
+        {/* 3.5. 나의 마켓 거래 & 라이브 활동 현황 (에스크로 안전결제 / 공구 / 라이브) */}
+        <View style={styles.activityStatsCard}>
+          <View style={styles.activityHeaderRow}>
+            <Text style={styles.activityHeaderTitle}>🛍️ 나의 마켓 & 라이브 활동</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Market', { screen: 'MarketMain' })}>
+              <Text style={styles.activityHeaderMore}>마켓 가기 ›</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.activityGrid}>
+            <TouchableOpacity
+              style={styles.activityGridItem}
+              activeOpacity={0.75}
+              onPress={() => navigation.navigate('Market', { screen: 'MarketMain' })}
+            >
+              <View style={[styles.activityIconCircle, { backgroundColor: '#EEF2FF' }]}>
+                <Ionicons name="pricetags" size={18} color="#4F46E5" />
+              </View>
+              <Text style={styles.activityItemCount}>{commerceStats.sellingCount}건</Text>
+              <Text style={styles.activityItemLabel}>판매 내역</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.activityGridItem}
+              activeOpacity={0.75}
+              onPress={() => navigation.navigate('Market', { screen: 'MarketMain' })}
+            >
+              <View style={[styles.activityIconCircle, { backgroundColor: '#ECFDF5' }]}>
+                <Ionicons name="shield-checkmark" size={18} color="#10B981" />
+              </View>
+              <Text style={styles.activityItemCount}>{commerceStats.boughtCount}건</Text>
+              <Text style={styles.activityItemLabel}>안전구매 내역</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.activityGridItem}
+              activeOpacity={0.75}
+              onPress={() => navigation.navigate('Live', { screen: 'LiveMain' })}
+            >
+              <View style={[styles.activityIconCircle, { backgroundColor: '#FFF1F2' }]}>
+                <Ionicons name="radio" size={18} color="#FF3B6B" />
+              </View>
+              <Text style={styles.activityItemCount}>{commerceStats.liveHostedCount}회</Text>
+              <Text style={styles.activityItemLabel}>방송 내역</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.activityGridItem}
+              activeOpacity={0.75}
+              onPress={() => navigation.navigate('Chat', { screen: 'ChatsMain' })}
+            >
+              <View style={[styles.activityIconCircle, { backgroundColor: '#FDF4FF' }]}>
+                <Ionicons name="chatbubbles" size={18} color="#C026D3" />
+              </View>
+              <Text style={styles.activityItemCount}>1줄 수다</Text>
+              <Text style={styles.activityItemLabel}>작성글/답장</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* 4. 소셜 스탯 카운터 (방문자, 팔로워, 팔로잉, 내 인연) */}
         <View style={styles.socialStatsCard}>
           <TouchableOpacity
@@ -427,6 +553,24 @@ export default function MyPageScreen({ navigation }) {
         <View style={styles.menuGroup}>
           <Text style={styles.groupHeader}>소셜 & 크리에이터 설정</Text>
           <View style={styles.menuContainer}>
+            {/* 🛍️ 내 마켓 판매 상품 등록 및 관리 */}
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => navigation.navigate('Market', { screen: 'MarketCreate' })}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.menuIconBox, { backgroundColor: '#EEF2FF' }]}>
+                <Ionicons name="add-circle" size={18} color="#4F46E5" />
+              </View>
+              <View style={styles.menuTextBox}>
+                <Text style={styles.menuTitle}>마켓 상품 등록하기</Text>
+                <Text style={styles.menuDesc}>중고 직거래 및 라이브 연결 상품 판매</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+            </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
             {/* 📸 갤러리 관리 */}
             <TouchableOpacity
               style={styles.menuRow}
