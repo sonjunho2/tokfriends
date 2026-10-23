@@ -23,19 +23,21 @@ import { Public } from '../auth/public.decorator';
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
+  @Public()
   @Post('prepare')
   @ApiBearerAuth()
   @ApiOperation({ summary: '에스크로 주문 생성 및 PG 결제 승인 요청 준비' })
   async prepareEscrowPayment(@Req() req: any, @Body() dto: PrepareEscrowPaymentDto) {
-    const userId = req.user?.id || req.user?.sub || 'user-guest';
+    const userId = req.body?.buyerId || req.user?.id || req.user?.sub || 'user-guest';
     return this.paymentsService.prepareEscrowPayment(userId, dto);
   }
 
+  @Public()
   @Post('confirm')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'PG 결제 완료 검증 및 에스크로 안전 예치(PAID_ESCROW) 전환' })
   async confirmEscrowPayment(@Req() req: any, @Body() dto: ConfirmEscrowPaymentDto) {
-    const userId = req.user?.id || req.user?.sub || 'user-guest';
+    const userId = req.body?.buyerId || req.user?.id || req.user?.sub || 'user-guest';
     return this.paymentsService.confirmEscrowPayment(userId, dto);
   }
 

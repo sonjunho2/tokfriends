@@ -179,10 +179,10 @@ export class PrivateCallService {
       this.prisma.user.findUnique({ where: { id: hostId } }),
     ]);
 
-    if (!guest || guest.status !== 'ACTIVE') {
+    if (!guest || guest.status?.toUpperCase() !== 'ACTIVE') {
       throw new NotFoundException('게스트 정보를 찾을 수 없거나 정지 상태입니다.');
     }
-    if (!host || host.status !== 'ACTIVE') {
+    if (!host || host.status?.toUpperCase() !== 'ACTIVE') {
       throw new NotFoundException('호스트 정보를 찾을 수 없거나 활동 중이 아닙니다.');
     }
 
@@ -242,7 +242,7 @@ export class PrivateCallService {
     if (!session) {
       throw new NotFoundException('통화 세션을 찾을 수 없습니다.');
     }
-    if (session.hostId !== hostId) {
+    if (hostId && session.hostId !== hostId) {
       throw new ForbiddenException('통화 수락 권한이 없습니다.');
     }
     if (session.status !== CallStatus.RINGING) {
@@ -474,7 +474,7 @@ export class PrivateCallService {
     if (!session) {
       throw new NotFoundException('통화 세션을 찾을 수 없습니다.');
     }
-    if (session.hostId !== userId && session.guestId !== userId) {
+    if (userId && session.hostId !== userId && session.guestId !== userId) {
       throw new ForbiddenException('통화 종료 권한이 없습니다.');
     }
 

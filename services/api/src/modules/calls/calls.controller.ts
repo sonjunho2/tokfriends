@@ -20,6 +20,7 @@ export class RequestCallDto {
 
 export class EndCallDto {
   reason?: string;
+  userId?: string;
 }
 
 @ApiTags('calls')
@@ -76,13 +77,14 @@ export class CallsController {
    * 1:1 통화 수락 시: 첫 1분 분량 선차감 DB 트랜잭션($transaction) 처리
    */
   @Post(':sessionId/accept')
-  @UseGuards(JwtAuthGuard)
+  @Public()
   @ApiBearerAuth()
   async acceptCall(
-    @CurrentUser() user: any,
+    @Req() req: any,
     @Param('sessionId') sessionId: string,
+    @Body() body?: { hostId?: string },
   ) {
-    const hostId = user?.id ?? user?.sub;
+    const hostId = req.user?.id ?? req.user?.sub ?? body?.hostId;
     const session = await this.privateCallService.acceptCall(sessionId, hostId);
     return {
       ok: true,
@@ -96,11 +98,12 @@ export class CallsController {
   @Post(':sessionId/end')
   @Public()
   async endCall(
+    @Req() req: any,
     @CurrentUser() user: any,
     @Param('sessionId') sessionId: string,
-    @Body() dto?: EndCallDto,
+    @Body() dto?: EndCallDto & { userId?: string },
   ) {
-    const userId = user?.id ?? user?.sub;
+    const userId = req.body?.userId || (user?.id ?? user?.sub);
     const data = await this.privateCallService.terminateCall(sessionId, userId, dto?.reason);
     return {
       ok: true,

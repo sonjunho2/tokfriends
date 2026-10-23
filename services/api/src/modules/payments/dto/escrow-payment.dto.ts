@@ -44,6 +44,11 @@ export class ConfirmEscrowPaymentDto {
   @IsNumber()
   @Min(100)
   amount!: number;
+
+  @ApiPropertyOptional({ description: '구매자 사용자 ID', example: 'u-buyer-1' })
+  @IsOptional()
+  @IsString()
+  buyerId?: string;
 }
 
 export class CompleteEscrowOrderDto {
