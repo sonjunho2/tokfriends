@@ -22,6 +22,8 @@ import {
   Tag,
   Truck,
   Layers,
+  Scale,
+  X,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -35,7 +37,7 @@ interface MockEscrowOrder {
   id: string
   orderNumber: string
   productTitle: string
-  productType: 'C2C_USED' | 'B2C_GROUP'
+  productType: 'C2C_USED' | 'B2C_GROUP' | 'B2C_NORMAL'
   buyerName: string
   sellerName: string
   amount: number
@@ -44,6 +46,8 @@ interface MockEscrowOrder {
   status: 'ESCROW_HOLD' | 'SHIPPED' | 'CONFIRMED' | 'DISPUTED' | 'REFUNDED'
   createdAt: string
   disputeReason?: string
+  makerCheckerPending?: boolean
+  makerCheckerApproved?: boolean
 }
 
 interface C2CProductItem {
@@ -131,13 +135,28 @@ const INITIAL_ORDERS: MockEscrowOrder[] = [
     productType: 'C2C_USED',
     buyerName: '준호',
     sellerName: '겜돌이',
-    amount: 450000,
-    platformFee: 22500,
-    sellerPayout: 427500,
+    amount: 1250000,
+    platformFee: 62500,
+    sellerPayout: 1187500,
     status: 'DISPUTED',
     disputeReason: '물품 설명과 달리 본체 하단에 깊은 스크래치 다수 존재',
     createdAt: '2026-10-19 14:05',
   },
+  {
+    id: 'ord-5',
+    orderNumber: 'ORD-202610-7731',
+    productTitle: '고순도 프리미엄 알티지 오메가3 120캡슐 (4개월분)',
+    productType: 'B2C_NORMAL',
+    buyerName: '서연',
+    sellerName: '메디컬 헬스케어랩',
+    amount: 42000,
+    platformFee: 2100,
+    sellerPayout: 39900,
+    status: 'DISPUTED',
+    disputeReason: '배송 중 박스 파손 및 밀봉 씰 훼손으로 교환/환불 요청',
+    createdAt: '2026-10-21 15:30',
+  },
+
 ]
 
 const INITIAL_C2C_PRODUCTS: C2CProductItem[] = [
@@ -276,6 +295,84 @@ export default function MarketEscrowAdminPage() {
   const [normalProducts, setNormalProducts] = useState<NormalProductItem[]>(INITIAL_NORMAL_PRODUCTS)
   const [groupProducts, setGroupProducts] = useState<GroupBuyProductItem[]>(INITIAL_GROUP_PRODUCTS)
   const [orders, setOrders] = useState<MockEscrowOrder[]>(INITIAL_ORDERS)
+
+  // Dispute Arbitration Modal State
+  const [arbitrationModalOrder, setArbitrationModalOrder] = useState<MockEscrowOrder | null>(null)
+  const [arbitrationDecision, setArbitrationDecision] = useState<'REFUND' | 'FORCE_SETTLE'>('REFUND')
+  const [arbitrationReason, setArbitrationReason] = useState('')
+  const [secondApproverConfirmed, setSecondApproverConfirmed] = useState(false)
+  const [submittingArbitration, setSubmittingArbitration] = useState(false)
+
+  const handleOpenArbitration = (order: MockEscrowOrder) => {
+    setArbitrationModalOrder(order)
+    setArbitrationDecision('REFUND')
+    setArbitrationReason('')
+    setSecondApproverConfirmed(order.makerCheckerPending ? true : false)
+  }
+
+  const handleExecuteArbitration = async () => {
+    if (!arbitrationModalOrder || !arbitrationReason.trim()) {
+      toast({
+        title: '중재 사유 입력 필요',
+        description: '판정 근거 및 중재 사유를 입력해주세요.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const isHighAmount = arbitrationModalOrder.amount >= 1000000
+    if (isHighAmount && !secondApproverConfirmed) {
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === arbitrationModalOrder.id
+            ? { ...o, makerCheckerPending: true }
+            : o
+        )
+      )
+      toast({
+        title: '⚖️ Maker-Checker 2인 결재 상신',
+        description: '100만 원 이상 고액 분쟁 판정으로 2차 운영책임자 승인 요청이 상신되었습니다.',
+      })
+      setArbitrationModalOrder(null)
+      return
+    }
+
+    setSubmittingArbitration(true)
+    try {
+      await api.post('/api/payments/escrow/arbitrate', {
+        orderId: arbitrationModalOrder.orderNumber,
+        decision: arbitrationDecision,
+        reason: arbitrationReason.trim(),
+        forceApproveHighAmount: secondApproverConfirmed,
+      })
+    } catch {}
+
+    const nextStatus = arbitrationDecision === 'REFUND' ? 'REFUNDED' : 'CONFIRMED'
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === arbitrationModalOrder.id
+          ? {
+              ...o,
+              status: nextStatus,
+              makerCheckerPending: false,
+              makerCheckerApproved: isHighAmount,
+              disputeReason: `[중재 판정: ${arbitrationDecision === 'REFUND' ? '구매자 전액 환불' : '판매자 강제 정산'}] ${arbitrationReason.trim()}`,
+            }
+          : o
+      )
+    )
+
+    toast({
+      title: arbitrationDecision === 'REFUND' ? '구매자 전액 환불 판정 집행' : '판매자 강제 정산 판정 집행',
+      description: arbitrationDecision === 'REFUND'
+        ? 'PG 결제가 취소되고 구매자에게 전액 환불되었습니다.'
+        : '물품 이상 없음 판정으로 즉시 구매확정 및 판매자 정산 대기열에 등록되었습니다.',
+    })
+
+    setSubmittingArbitration(false)
+    setArbitrationModalOrder(null)
+  }
+
 
   // Load backend data if available
   const loadBackendData = async () => {
@@ -851,7 +948,24 @@ export default function MarketEscrowAdminPage() {
                           )}
                         </td>
                         <td className="px-5 py-3.5 text-right">
-                          {o.status === 'DISPUTED' || o.status === 'ESCROW_HOLD' ? (
+                          {o.status === 'DISPUTED' ? (
+                            <div className="flex flex-col items-end gap-1">
+                              {o.makerCheckerPending && (
+                                <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30 text-[10px]">
+                                  Maker-Checker 2인 결재 대기
+                                </Badge>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="bg-indigo-600 hover:bg-indigo-700 h-7 text-xs gap-1 shadow-sm font-semibold"
+                                onClick={() => handleOpenArbitration(o)}
+                              >
+                                <Scale className="w-3.5 h-3.5" />
+                                ⚖️ 분쟁 중재
+                              </Button>
+                            </div>
+                          ) : o.status === 'ESCROW_HOLD' ? (
                             <div className="flex items-center justify-end gap-1.5">
                               <Button
                                 size="sm"

@@ -156,3 +156,14 @@ export class ReviewMerchantDto {
   @IsString()
   adminMemo?: string;
 }
+
+export class ShipMerchantOrderDto {
+  @ApiProperty({ description: '택배사 (CJ대한통운, 한진택배, 롯데택배, 우체국택배, 로젠택배 등)', example: 'CJ대한통운' })
+  @IsString()
+  courier: string;
+
+  @ApiProperty({ description: '운송장 번호', example: '681920391823' })
+  @IsString()
+  trackingNumber: string;
+}
+

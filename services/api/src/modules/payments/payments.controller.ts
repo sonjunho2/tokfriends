@@ -13,8 +13,10 @@ import {
   ConfirmEscrowPaymentDto,
   CompleteEscrowOrderDto,
   DisputeEscrowOrderDto,
+  ArbitrateEscrowOrderDto,
 } from './dto/escrow-payment.dto';
 import { Public } from '../auth/public.decorator';
+
 
 @ApiTags('Payments Escrow (실물 커머스 PG 에스크로 결제)')
 @Controller(['payments/escrow', 'api/payments/escrow'])
@@ -54,9 +56,18 @@ export class PaymentsController {
   }
 
   @Public()
+  @Post('arbitrate')
+  @ApiOperation({ summary: '관리자 에스크로 분쟁(Dispute) 중재 판정 (환불 또는 강제정산)' })
+  async arbitrateEscrowOrder(@Req() req: any, @Body() dto: ArbitrateEscrowOrderDto) {
+    const arbiterId = req.user?.id || req.user?.sub || 'admin';
+    return this.paymentsService.arbitrateOrder(dto, arbiterId);
+  }
+
+  @Public()
   @Get(':orderId')
   @ApiOperation({ summary: '에스크로 주문 상세 조회' })
   async getOrder(@Param('orderId') orderId: string) {
     return this.paymentsService.getOrder(orderId);
   }
 }
+

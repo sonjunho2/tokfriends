@@ -23,6 +23,7 @@ import {
   Users,
   Store,
   Tv,
+  Truck,
 } from 'lucide-react'
 import { AppShell, type AppShellNavItem } from '@/components/layout/app-shell'
 import { ThemeProvider } from '@/components/providers/theme-provider'
@@ -88,6 +89,13 @@ const NAV_ITEMS: AppShellNavItem[] = [
     description: 'C2C/공동구매 및 에스크로 안전결제·분쟁 중재',
     group: '커머스·수익',
     icon: ShieldCheck,
+  },
+  {
+    label: '입점사 셀러 웹 포털',
+    href: '/seller',
+    description: '입점사 주문 접수, 운송장 등록 발송 및 정산 내역',
+    group: '입점사 셀러 전용',
+    icon: Truck,
   },
   {
     label: '광고 & 리워드 관리',

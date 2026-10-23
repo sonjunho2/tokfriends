@@ -79,3 +79,25 @@ export class DisputeEscrowOrderDto {
   @IsNotEmpty()
   reason!: string;
 }
+
+export class ArbitrateEscrowOrderDto {
+  @ApiProperty({ description: '주문 ID 또는 주문 번호', example: 'ORD-202610-9943' })
+  @IsString()
+  @IsNotEmpty()
+  orderId!: string;
+
+  @ApiProperty({ description: '중재 판정 (REFUND: 구매자 전액 환불, FORCE_SETTLE: 판매자 강제 정산)', enum: ['REFUND', 'FORCE_SETTLE'] })
+  @IsString()
+  @IsNotEmpty()
+  decision!: 'REFUND' | 'FORCE_SETTLE';
+
+  @ApiProperty({ description: '중재 사유 및 근거', example: '구매자 제출 개봉 영상 검증 결과 하자 확인됨' })
+  @IsString()
+  @IsNotEmpty()
+  reason!: string;
+
+  @ApiPropertyOptional({ description: '100만원 이상 고액 건 Maker-Checker 2인 승인 강제 집행 여부' })
+  @IsOptional()
+  forceApproveHighAmount?: boolean;
+}
+

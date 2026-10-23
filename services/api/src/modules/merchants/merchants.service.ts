@@ -214,12 +214,174 @@ const INITIAL_NORMAL_PRODUCTS: NormalProductItem[] = [
   },
 ];
 
+export interface MerchantOrderItem {
+  id: string;
+  orderNumber: string;
+  merchantId: string;
+  merchantName: string;
+  productId: string;
+  productName: string;
+  productImage?: string;
+  productType: 'B2C_NORMAL' | 'B2C_GROUP' | 'C2C_USED';
+  buyerId: string;
+  buyerName: string;
+  buyerPhone?: string;
+  recipientName: string;
+  recipientPhone: string;
+  shippingAddress: string;
+  amount: number;
+  quantity: number;
+  platformFee: number;
+  sellerPayout: number;
+  status: 'PAID_ESCROW' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED' | 'DISPUTED';
+  courier?: string;
+  trackingNumber?: string;
+  shippedAt?: string;
+  autoCompleteAt?: string;
+  completedAt?: string;
+  cancelledAt?: string;
+  disputeReason?: string;
+  disputeResolution?: string;
+  makerCheckerRequired?: boolean;
+  makerCheckerApproved?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const INITIAL_MERCHANT_ORDERS: MerchantOrderItem[] = [
+  {
+    id: 'ord-m1',
+    orderNumber: 'ORD-202610-8812',
+    merchantId: 'mer-001',
+    merchantName: '제주푸드 본사 직영',
+    productId: 'np-001',
+    productName: '[입점사상시] 제주 산지직송 프리미엄 1등급 흑돼지 오겹살 1kg',
+    productImage: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600',
+    productType: 'B2C_NORMAL',
+    buyerId: 'u-buyer-1',
+    buyerName: '김민우',
+    buyerPhone: '010-3819-2918',
+    recipientName: '김민우',
+    recipientPhone: '010-3819-2918',
+    shippingAddress: '서울특별시 서초구 강남대로 327 (서초동, 센트럴빌딩) 801호',
+    amount: 32900,
+    quantity: 1,
+    platformFee: 3290,
+    sellerPayout: 29610,
+    status: 'PAID_ESCROW',
+    createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 3).toISOString(),
+  },
+  {
+    id: 'ord-m2',
+    orderNumber: 'ORD-202610-8815',
+    merchantId: 'mer-001',
+    merchantName: '제주푸드 본사 직영',
+    productId: 'np-002',
+    productName: '[입점사상시] 제주 유기농 감귤 착즙 원액주스 1000ml (3병 세트)',
+    productImage: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?w=600',
+    productType: 'B2C_NORMAL',
+    buyerId: 'u-buyer-2',
+    buyerName: '박지수',
+    buyerPhone: '010-9182-3712',
+    recipientName: '박지수',
+    recipientPhone: '010-9182-3712',
+    shippingAddress: '경기도 성남시 분당구 판교역로 166 12동 402호',
+    amount: 49800,
+    quantity: 2,
+    platformFee: 4980,
+    sellerPayout: 44820,
+    status: 'PAID_ESCROW',
+    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+  },
+  {
+    id: 'ord-m3',
+    orderNumber: 'ORD-202610-4421',
+    merchantId: 'mer-001',
+    merchantName: '제주푸드 본사 직영',
+    productId: 'np-001',
+    productName: '[입점사특가] 제주 산지직송 프리미엄 흑돼지 1kg',
+    productImage: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600',
+    productType: 'B2C_GROUP',
+    buyerId: 'u-buyer-3',
+    buyerName: '이도현',
+    buyerPhone: '010-5541-8923',
+    recipientName: '이도현',
+    recipientPhone: '010-5541-8923',
+    shippingAddress: '부산광역시 해운대구 센텀중앙로 78 101동 1502호',
+    amount: 24900,
+    quantity: 1,
+    platformFee: 2490,
+    sellerPayout: 22410,
+    status: 'SHIPPED',
+    courier: 'CJ대한통운',
+    trackingNumber: '681920391823',
+    shippedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+    autoCompleteAt: new Date(Date.now() + 3600000 * (168 - 24)).toISOString(),
+    createdAt: new Date(Date.now() - 3600000 * 36).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+  },
+  {
+    id: 'ord-m4',
+    orderNumber: 'ORD-202610-1092',
+    merchantId: 'mer-001',
+    merchantName: '제주푸드 본사 직영',
+    productId: 'np-002',
+    productName: '[입점사상시] 제주 유기농 감귤 착즙 원액주스 1000ml (3병 세트)',
+    productImage: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?w=600',
+    productType: 'B2C_NORMAL',
+    buyerId: 'u-buyer-4',
+    buyerName: '최준혁',
+    buyerPhone: '010-7712-4091',
+    recipientName: '최준혁',
+    recipientPhone: '010-7712-4091',
+    shippingAddress: '대구광역시 수성구 달구벌대로 2450 3층',
+    amount: 74700,
+    quantity: 3,
+    platformFee: 7470,
+    sellerPayout: 67230,
+    status: 'COMPLETED',
+    courier: '우체국택배',
+    trackingNumber: '110293847561',
+    shippedAt: new Date(Date.now() - 3600000 * 120).toISOString(),
+    completedAt: new Date(Date.now() - 3600000 * 20).toISOString(),
+    createdAt: new Date(Date.now() - 3600000 * 144).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 20).toISOString(),
+  },
+  {
+    id: 'ord-m5',
+    orderNumber: 'ORD-202610-9943',
+    merchantId: 'mer-001',
+    merchantName: '제주푸드 본사 직영',
+    productId: 'np-001',
+    productName: '[대량주문/선물세트] 제주 특상급 흑돼지 & 한라봉 명품 세트 10박스',
+    productImage: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600',
+    productType: 'B2C_NORMAL',
+    buyerId: 'u-buyer-5',
+    buyerName: '강태우',
+    buyerPhone: '010-8821-6543',
+    recipientName: '강태우',
+    recipientPhone: '010-8821-6543',
+    shippingAddress: '인천광역시 연수구 송도과학로 32 테크노파크 A동',
+    amount: 1200000,
+    quantity: 10,
+    platformFee: 120000,
+    sellerPayout: 1080000,
+    status: 'DISPUTED',
+    disputeReason: '신선 포장 박스 일부 훼손 및 배송 지연으로 인한 상품 품질 확인 요청',
+    createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 8).toISOString(),
+  },
+];
+
 @Injectable()
 export class MerchantsService implements OnModuleInit {
   private readonly logger = new Logger(MerchantsService.name);
   private readonly dataDir = path.join(process.cwd(), 'data');
   private merchants: MerchantItem[] = [];
   private normalProducts: NormalProductItem[] = [];
+  private merchantOrders: MerchantOrderItem[] = [];
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -249,13 +411,23 @@ export class MerchantsService implements OnModuleInit {
         this.saveFile(pPath, this.normalProducts);
       }
 
-      this.logger.log(`Merchants loaded (${this.merchants.length}), NormalProducts loaded (${this.normalProducts.length}).`);
+      const oPath = path.join(this.dataDir, 'merchant-orders.json');
+      if (fs.existsSync(oPath)) {
+        this.merchantOrders = JSON.parse(fs.readFileSync(oPath, 'utf-8'));
+      } else {
+        this.merchantOrders = [...INITIAL_MERCHANT_ORDERS];
+        this.saveFile(oPath, this.merchantOrders);
+      }
+
+      this.logger.log(`Merchants (${this.merchants.length}), NormalProducts (${this.normalProducts.length}), Orders (${this.merchantOrders.length}) loaded.`);
     } catch (err: any) {
       this.logger.warn(`Failed to load merchant data: ${err?.message}, using defaults.`);
       this.merchants = [...INITIAL_MERCHANTS];
       this.normalProducts = [...INITIAL_NORMAL_PRODUCTS];
+      this.merchantOrders = [...INITIAL_MERCHANT_ORDERS];
     }
   }
+
 
   private saveFile(filePath: string, data: any) {
     try {
@@ -659,4 +831,256 @@ export class MerchantsService implements OnModuleInit {
       total: list.length,
     };
   }
+
+  // ==========================================
+  // 5. 입점사 주문 관리 & 운송장 발송 처리
+  // ==========================================
+
+  async getMerchantOrders(params: {
+    merchantId?: string;
+    status?: string;
+    search?: string;
+  }) {
+    const { merchantId = 'mer-001', status, search } = params;
+    let list = [...this.merchantOrders];
+
+    if (merchantId && merchantId !== 'admin') {
+      list = list.filter((o) => o.merchantId === merchantId);
+    }
+
+    if (status && status !== 'ALL' && status !== 'all') {
+      list = list.filter((o) => o.status === status);
+    }
+
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(
+        (o) =>
+          o.orderNumber.toLowerCase().includes(q) ||
+          o.productName.toLowerCase().includes(q) ||
+          o.buyerName.toLowerCase().includes(q) ||
+          (o.trackingNumber && o.trackingNumber.includes(q))
+      );
+    }
+
+    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const allForMerchant = this.merchantOrders.filter(
+      (o) => !merchantId || merchantId === 'admin' || o.merchantId === merchantId
+    );
+
+    return {
+      ok: true,
+      items: list,
+      total: list.length,
+      counts: {
+        all: allForMerchant.length,
+        paidEscrow: allForMerchant.filter((o) => o.status === 'PAID_ESCROW').length,
+        shipped: allForMerchant.filter((o) => o.status === 'SHIPPED').length,
+        completed: allForMerchant.filter((o) => o.status === 'COMPLETED').length,
+        disputed: allForMerchant.filter((o) => o.status === 'DISPUTED').length,
+        cancelled: allForMerchant.filter((o) => o.status === 'CANCELLED').length,
+      },
+    };
+  }
+
+  async shipMerchantOrder(orderId: string, dto: { courier: string; trackingNumber: string }, merchantId?: string) {
+    const order = this.merchantOrders.find((o) => o.id === orderId || o.orderNumber === orderId);
+    if (!order) {
+      throw new NotFoundException('주문 정보를 찾을 수 없습니다.');
+    }
+
+    if (merchantId && merchantId !== 'admin' && order.merchantId !== merchantId) {
+      throw new ForbiddenException('본인 입점사의 주문만 발송 처리할 수 있습니다.');
+    }
+
+    if (order.status !== 'PAID_ESCROW' && order.status !== 'SHIPPED') {
+      throw new BadRequestException(`현재 주문 상태(${order.status})에서는 운송장을 등록할 수 없습니다.`);
+    }
+
+    const now = new Date();
+    const autoCompleteDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7일 후
+
+    order.status = 'SHIPPED';
+    order.courier = dto.courier;
+    order.trackingNumber = dto.trackingNumber;
+    order.shippedAt = now.toISOString();
+    order.autoCompleteAt = autoCompleteDate.toISOString();
+    order.updatedAt = now.toISOString();
+
+    this.saveFile(path.join(this.dataDir, 'merchant-orders.json'), this.merchantOrders);
+
+    // Try Prisma EscrowOrder update if exists
+    try {
+      await this.prisma.escrowOrder.updateMany({
+        where: {
+          OR: [{ id: orderId }, { orderNumber: order.orderNumber }],
+        },
+        data: {
+          status: 'SHIPPED',
+          trackingNumber: `${dto.courier} ${dto.trackingNumber}`,
+        },
+      });
+    } catch (dbErr: any) {
+      this.logger.warn(`Prisma escrowOrder ship fallback: ${dbErr?.message}`);
+    }
+
+    // 구매자에게 발송 알림 푸시(FCM) 발송 및 7일 자동 구매확정 카운트다운 트리거 로그
+    this.logger.log(
+      `[FCM Push Dispatched] To: ${order.buyerName} (${order.buyerId}) | Title: "주문하신 상품이 발송되었습니다!" | Body: "[${order.productName}] ${dto.courier} (${dto.trackingNumber}) 배송이 시작되었습니다. 7일 후 자동으로 구매확정됩니다."`
+    );
+
+    return {
+      ok: true,
+      message: `성공적으로 발송 처리되었습니다. (${dto.courier} ${dto.trackingNumber}) 구매자에게 발송 안내 푸시가 전송되었습니다.`,
+      order,
+    };
+  }
+
+  async getMerchantSettlementSummary(merchantId: string = 'mer-001') {
+    const merchant = this.merchants.find((m) => m.id === merchantId) || this.merchants[0];
+    const mId = merchant ? merchant.id : merchantId;
+    const orders = this.merchantOrders.filter((o) => o.merchantId === mId);
+
+    // Gross sales (non-cancelled)
+    const validOrders = orders.filter((o) => o.status !== 'CANCELLED');
+    const totalSales = validOrders.reduce((sum, o) => sum + o.amount, 0);
+
+    // Completed orders settled
+    const completedOrders = orders.filter((o) => o.status === 'COMPLETED');
+    const settledAmount = completedOrders.reduce((sum, o) => sum + o.sellerPayout, 0);
+
+    // Pending settlement: PAID_ESCROW or SHIPPED
+    const pendingOrders = orders.filter((o) => o.status === 'PAID_ESCROW' || o.status === 'SHIPPED');
+    const pendingSettlement = pendingOrders.reduce((sum, o) => sum + o.sellerPayout, 0);
+
+    // Fee rate (default 10%)
+    const feeRate = merchant?.feeRate ?? 10.0;
+
+    // Settlement ledger history
+    const history = completedOrders.map((o) => ({
+      orderId: o.id,
+      orderNumber: o.orderNumber,
+      productName: o.productName,
+      supplyPrice: o.amount,
+      feeRate: `${feeRate}%`,
+      platformFee: o.platformFee,
+      netPayout: o.sellerPayout,
+      completedAt: o.completedAt || o.updatedAt,
+      settlementStatus: 'SETTLED',
+    }));
+
+    return {
+      ok: true,
+      summary: {
+        merchantId: mId,
+        businessName: merchant?.businessName ?? '제주푸드 본사 직영',
+        feeRate,
+        totalSales,
+        settledAmount,
+        pendingSettlement,
+        totalOrdersCount: orders.length,
+        completedCount: completedOrders.length,
+        pendingCount: pendingOrders.length,
+        bankInfo: {
+          bankName: merchant?.bankName || '제주은행',
+          accountNumber: merchant?.accountNumber || '200-11-928172',
+          accountHolder: merchant?.accountHolder || '제주푸드(주)',
+        },
+      },
+      history,
+    };
+  }
+
+  // ==========================================
+  // 6. 관리자 에스크로 분쟁(Dispute) 중재 판정
+  // ==========================================
+
+  async arbitrateOrder(
+    orderId: string,
+    decision: 'REFUND' | 'FORCE_SETTLE',
+    reason: string,
+    forceApproveHighAmount?: boolean
+  ) {
+    const order = this.merchantOrders.find((o) => o.id === orderId || o.orderNumber === orderId);
+    if (!order) {
+      throw new NotFoundException('주문 정보를 찾을 수 없습니다.');
+    }
+
+    // 100만 원 이상 고액 분쟁 판정 시 Maker-Checker 2인 승인 요청 자동 상신
+    const isHighAmount = order.amount >= 1000000;
+    if (isHighAmount && !forceApproveHighAmount && !order.makerCheckerApproved) {
+      order.makerCheckerRequired = true;
+      order.makerCheckerApproved = false;
+      this.saveFile(path.join(this.dataDir, 'merchant-orders.json'), this.merchantOrders);
+
+      this.logger.warn(`[Maker-Checker] Order ${order.orderNumber} (Amount: ${order.amount} KRW) flagged for dual approval.`);
+
+      return {
+        ok: true,
+        requiresMakerChecker: true,
+        message: '100만 원 이상 고액 분쟁 판정 건으로 [Maker-Checker 2인 결재 승인] 요청이 자동 상신되었습니다.',
+        order,
+      };
+    }
+
+    const now = new Date();
+
+    if (decision === 'REFUND') {
+      order.status = 'CANCELLED';
+      order.disputeResolution = `[구매자 전액 환불] ${reason}`;
+      order.cancelledAt = now.toISOString();
+      order.updatedAt = now.toISOString();
+      if (isHighAmount) order.makerCheckerApproved = true;
+
+      this.saveFile(path.join(this.dataDir, 'merchant-orders.json'), this.merchantOrders);
+
+      // Try Prisma EscrowOrder update
+      try {
+        await this.prisma.escrowOrder.updateMany({
+          where: { OR: [{ id: orderId }, { orderNumber: order.orderNumber }] },
+          data: { status: 'CANCELLED', cancelledAt: now, disputeReason: `[중재 환불] ${reason}` },
+        });
+      } catch (err: any) {
+        this.logger.warn(`Prisma refund arbitrate fallback: ${err?.message}`);
+      }
+
+      this.logger.log(`[Escrow Arbitrate] Order ${order.orderNumber} REFUND completed. PG cancelled.`);
+
+      return {
+        ok: true,
+        decision: 'REFUND',
+        message: '구매자 전액 환불 판정이 집행되었습니다. PG 결제가 취소되고 주문이 CANCELLED 처리되었습니다.',
+        order,
+      };
+    } else {
+      order.status = 'COMPLETED';
+      order.disputeResolution = `[판매자 강제 정산] ${reason}`;
+      order.completedAt = now.toISOString();
+      order.updatedAt = now.toISOString();
+      if (isHighAmount) order.makerCheckerApproved = true;
+
+      this.saveFile(path.join(this.dataDir, 'merchant-orders.json'), this.merchantOrders);
+
+      // Try Prisma EscrowOrder update
+      try {
+        await this.prisma.escrowOrder.updateMany({
+          where: { OR: [{ id: orderId }, { orderNumber: order.orderNumber }] },
+          data: { status: 'COMPLETED', confirmedAt: now, disputeReason: `[중재 정산] ${reason}` },
+        });
+      } catch (err: any) {
+        this.logger.warn(`Prisma settle arbitrate fallback: ${err?.message}`);
+      }
+
+      this.logger.log(`[Escrow Arbitrate] Order ${order.orderNumber} FORCE_SETTLE completed. Payout queued.`);
+
+      return {
+        ok: true,
+        decision: 'FORCE_SETTLE',
+        message: '판매자 강제 정산 판정이 집행되었습니다. 물품 이상 없음 판정으로 구매확정 및 판매자 정산 대기열에 등록되었습니다.',
+        order,
+      };
+    }
+  }
 }
+

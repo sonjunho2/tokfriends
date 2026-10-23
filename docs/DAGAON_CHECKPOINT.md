@@ -5941,3 +5941,60 @@ First Owner/ActivityAccount migration must:
 - **모바일 Babel / Hermes 바이트코드 컴파일 검증 (`apps/mobile`)**: `npm run test:mobile:babel` (iOS 1517 모듈, Android 1512 모듈, 49 에셋) 0 에러 무결점 통과 (Exit code 0).
 - **TypeScript & AST 문법 검증**: 10개 핵심 파일 전수 파싱 및 타입 일치 확인.
 
+---
+
+## Checkpoint 106: 다가온 V3.0 입점사 셀러 웹 포털 & 운송장 발송 처리 & 에스크로 분쟁 중재 콘솔 & 최신 프로덕션 APK 빌드 완료 (2026-10-23)
+
+### 1. 입점사 주문 접수 및 운송장 발송 처리 백엔드 API (`services/api/src/modules/merchants/`, `payments/`)
+- **입점사 에스크로 주문 목록 조회 (`GET /api/merchants/orders`)**:
+  - `merchantId`, `status` (`PAID_ESCROW`, `SHIPPED`, `COMPLETED`, `CANCELLED`, `DISPUTED`), `search` 다차원 필터링 지원.
+  - 상태별 카운트 요약(`counts: { all, paidEscrow, shipped, completed, disputed, cancelled }`) 동시 반환.
+- **운송장 등록 및 발송 처리 API (`POST /api/merchants/orders/:id/ship`)**:
+  - `courier`(CJ대한통운, 우체국, 한진, 롯데, 로젠 등) 및 `trackingNumber`(운송장 번호) 접수.
+  - 주문 상태를 즉시 `SHIPPED`로 전이하고 `shippedAt` 및 7일 자동 구매확정 카운트다운(`autoCompleteAt`) 트리거.
+  - 구매자 대상 실시간 배송 안내 푸시(FCM) 발송 로깅 연동.
+- **입점사 실시간 정산 요약 API (`GET /api/merchants/settlement-summary`)**:
+  - 누적 총 매출액(`totalSales`), 기정산 완료액(`settledAmount`), 정산 대기 예정액(`pendingSettlement`, 계약 수수료율 9.5~10% 공제 후 실수령액) 실시간 집계.
+  - 입점사 등록 계좌 정보(`bankInfo`) 및 구매확정 완료 주문별 공급가·수수료·실수령액 원장(`settlementHistory`) 반환.
+- **관리자 에스크로 분쟁 중재 API (`POST /api/payments/escrow/arbitrate`, `POST /api/merchants/arbitrate`)**:
+  - `decision`: `REFUND`(구매자 전액 환불 및 PG 취소, 주문 `CANCELLED` 전이) vs `FORCE_SETTLE`(판매자 강제 정산 및 주문 `COMPLETED` 전이, `SellerSettlement` 대기열 적재).
+  - 100만 원 이상 고액 분쟁 판정 시 Maker-Checker 2인 결재 상신 플래그 자동 검증 로직 구현.
+
+### 2. 입점사 셀러 웹 콘솔 구축 (`apps/admin/src/app/seller/`)
+- **셀러 대시보드 (`/seller`)**:
+  - 상단 입점사 인증 정보(제주푸드 본사 직영, 수수료율 9.5% 공식 파트너) 및 에스크로 보호 안내 배너.
+  - 4대 핵심 지표 카드: 오늘 신규 주문(결제완료 에스크로 보관), 배송 준비 & 배송중, 정산 대기액(실수령액), 누적 정산 완료액.
+  - 주문 & 배송 관리, 상품 등록 & 재고 관리, 정산 내역 & 입금 계좌 바로가기 숏컷 및 최근 접수 주문 프리뷰 테이블.
+- **상품 등록 & 재고 관리 (`/seller/products`)**:
+  - B2C 상시 일반 상품 목록 및 실시간 재고 인라인 수정(`Save`/`Cancel`) 기능.
+  - 품절 On/Off 원클릭 토글(`ACTIVE` <-> `OUT_OF_STOCK`) 즉시 반영.
+  - `[➕ 신규 일반 상품 등록]` 모달: 상품명, 카테고리(FOOD, LIVING, BEAUTY 등), 정상가, 할인가, 재고 수량, 기본 배송비, 대표 이미지 URL, 상세 설명 입력 폼 완비.
+- **주문 & 배송 관리 (`/seller/orders`)**:
+  - 상태별(전체, 결제완료, 배송중, 구매확정, 분쟁접수) 탭 필터링 및 주문 검색 바.
+  - 결제완료(`PAID_ESCROW`) 주문 대상 `[📦 운송장 등록]` 모달: 택배사 드롭다운 선택 + 운송장 번호 입력 후 발송 처리 시 즉시 `SHIPPED` 상태 전이 및 7일 자동 구매확정 안내.
+- **정산 내역 조회 (`/seller/settlements`)**:
+  - 등록된 정산 대금 입금 계좌(제주은행 200-11-928172, 예금주: 제주푸드(주)) 안내 카드.
+  - 누적 총 매출액, 누적 정산 완료액, 정산 대기 예정액 카드.
+  - 정산 확정 내역서 원장 테이블: 주문번호, 완료일시, 상품명, 공급가(총 결제액), 수수료율, 플랫폼 수수료(-), 최종 실수령 정산액, 정산 상태.
+- **공통 셀러 네비게이션 (`SellerNav.tsx`) 및 관리자 사이드바 연동**:
+  - `apps/admin/src/app/layout.tsx` NAV_ITEMS에 `입점사 셀러 웹 포털`(`/seller`, Truck 아이콘) 신설.
+
+### 3. 관리자 에스크로 분쟁(Dispute) 중재 콘솔 고도화 (`/market-escrow`)
+- **[에스크로 주문 & 분쟁] 탭 기능 보강**:
+  - 분쟁 접수(`DISPUTED`) 주문 대상 `[⚖️ 분쟁 중재]` 버튼 추가.
+  - 분쟁 중재 모달:
+    - 옵션 1: `[구매자 전액 환불]` (PG 취소 승인 및 주문 `REFUNDED`/`CANCELLED` 전이).
+    - 옵션 2: `[판매자 강제 정산]` (물품 이상 없음 판정 시 즉시 구매확정 `CONFIRMED`/`COMPLETED` 및 판매자 정산 대기열 등록).
+    - 100만 원 이상 고액 분쟁 판정 시 Maker-Checker 2인 승인 요청 자동 상신 배너 및 2차 운영책임자 승인 체크박스 연동.
+    - 미승인 상신 시 `Maker-Checker 2인 결재 대기` 뱃지 표기 및 2인 승인 완료 시 즉시 집행.
+
+### 4. 전체 빌드 검증 및 최신 프로덕션 APK 배포
+- **백엔드 API 빌드 (`services/api`)**: `npm run build` 0 에러 통과 (Exit code 0).
+- **관리자 & 셀러 웹 빌드 (`apps/admin`)**: `npm run build` Next.js 14 정적 최적화 38개 라우트 무결점 빌드 완료 (Exit code 0).
+- **안드로이드 네이티브 프로덕션 릴리즈 빌드 (`apps/mobile/android`)**:
+  - `.gradlew.bat :app:packageRelease :app:assembleRelease --no-daemon` 빌드 성공 (BUILD SUCCESSFUL in 2m 21s).
+  - 103.0 MB 최신 프로덕션 APK 생성 및 배포:
+    - 프로젝트 루트 배포: `dagaon-release.apk` (103,022,154 bytes)
+    - 관리자 웹 다운로드 정적 서빙: `apps/admin/public/downloads/dagaon-release.apk`
+- **Git 메인 동기화**: `git add .` -> commit -> `git push origin main`.
+

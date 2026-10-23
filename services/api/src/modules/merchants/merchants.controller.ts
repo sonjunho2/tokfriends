@@ -72,6 +72,68 @@ export class MerchantsController {
   }
 
   // ==========================================
+  // 입점사 주문 접수 & 운송장 발송 & 정산 요약
+  // ==========================================
+
+  @Get('orders')
+  @Public()
+  @ApiOperation({ summary: '입점사 에스크로 주문 목록 조회 (상태 필터링)' })
+  @ApiQuery({ name: 'merchantId', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'search', required: false })
+  async getMerchantOrders(
+    @Req() req: any,
+    @Query('merchantId') merchantId?: string,
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+  ) {
+    const targetMerchantId = merchantId || req.user?.merchantId || req.query?.merchantId || 'mer-001';
+    return this.merchantsService.getMerchantOrders({
+      merchantId: targetMerchantId,
+      status,
+      search,
+    });
+  }
+
+  @Post('orders/:id/ship')
+  @Public()
+  @ApiOperation({ summary: '입점사 주문 운송장 번호 등록 및 발송 처리 (SHIPPED 전이 & 푸시 발송)' })
+  async shipOrder(
+    @Req() req: any,
+    @Param('id') orderId: string,
+    @Body() dto: { courier: string; trackingNumber: string },
+  ) {
+    const merchantId = req.user?.merchantId || req.body?.merchantId || 'mer-001';
+    return this.merchantsService.shipMerchantOrder(orderId, dto, merchantId);
+  }
+
+  @Get('settlement-summary')
+  @Public()
+  @ApiOperation({ summary: '입점사 누적 매출, 정산 완료액, 정산 대기액(10% 공제) 실시간 요약' })
+  @ApiQuery({ name: 'merchantId', required: false })
+  async getSettlementSummary(
+    @Req() req: any,
+    @Query('merchantId') merchantId?: string,
+  ) {
+    const targetMerchantId = merchantId || req.user?.merchantId || 'mer-001';
+    return this.merchantsService.getMerchantSettlementSummary(targetMerchantId);
+  }
+
+  @Post('arbitrate')
+  @Public()
+  @ApiOperation({ summary: '관리자 에스크로 분쟁 중재 판정 (구매자 전액 환불 vs 판매자 강제 정산)' })
+  async arbitrateOrder(
+    @Body() dto: { orderId: string; decision: 'REFUND' | 'FORCE_SETTLE'; reason: string; forceApproveHighAmount?: boolean },
+  ) {
+    return this.merchantsService.arbitrateOrder(
+      dto.orderId,
+      dto.decision,
+      dto.reason,
+      dto.forceApproveHighAmount
+    );
+  }
+
+  // ==========================================
   // 관리자 전용 엔드포인트
   // ==========================================
 
@@ -97,3 +159,4 @@ export class MerchantsController {
     return this.merchantsService.reviewMerchant(merchantId, dto);
   }
 }
+
