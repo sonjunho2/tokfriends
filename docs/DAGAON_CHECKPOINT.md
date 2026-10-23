@@ -5899,3 +5899,45 @@ First Owner/ActivityAccount migration must:
 - **백엔드 NestJS 빌드**: `services/api` 정상 컴파일 완료 (`nest build`, Exit code 0).
 - **모바일 Babel 번들링 검증**: `npm run test:mobile:babel` iOS 1507 모듈, Android 1502 모듈 무결점 통과 (Exit code 0).
 - **Git 메인 병합**: `origin/main`으로 커밋 및 푸시 완료.
+
+---
+
+## Checkpoint 105: 모바일 앱 3대 마켓 탭 개편 & 홈·마이페이지 광고 리워드 & D LIVE 2-Way 커머스 핀 연동 완료 (2026-10-23)
+
+### 1. 마켓 메인 및 B2C 상품 상세 화면 전면 개편 (`apps/mobile/src/screens/market/`)
+- **상단 광고 배너 롤링 캐러셀 연동 (`MarketScreen.tsx`)**:
+  - `fetchAdsByPlacement('MARKET_BANNER')` 호출하여 스폰서/특가 프로모션 배너 3초 간격 자동 슬라이드 연동.
+  - 슬라이드 전환 시 `recordAdImpression(ad.id)` 자동 노출 집계 및 배너 터치 시 `recordAdClick(ad.id)` 백그라운드 기록 후 `Linking.openURL(targetUrl)` 외부 링크 이동 지원.
+- **3대 서브 탭 캡슐 세그먼트 구축**:
+  - `[🏷️ 동네 중고 (C2C)]` / `[🛍️ 브랜드 쇼핑 (B2C)]` / `[🔥 특가 공구 (B2C)]`
+  - `[🛍️ 브랜드 쇼핑]` 선택 시 `fetchNormalProducts()` 호출 연동: 최신순(`recent`), 인기순(`popular`), 낮은가격순(`priceAsc`), 높은가격순(`priceDesc`) 정렬 칩 필터 탑재.
+  - 2열 카드 뷰: 입점사 상호명 sm 회색 뱃지, 상품명, 할인가/정가(할인율 % 강조), 무료배송 뱃지, 일시품절(`OUT_OF_STOCK` / `stock <= 0`) 딤드 오버레이 완비.
+- **B2C 일반 상품 상세 화면 확장 (`ProductDetailScreen.tsx`)**:
+  - 이미지 캐러셀 슬라이더, 공식인증 입점사 정보 카드(상호명, 대표자명, 사업자등록번호, 통신판매업신고번호), 배송비 및 재고 안내 카드.
+  - 하단 고정 바: `[안전구매 하기]` 터치 시 `PgPaymentBottomSheet` 즉시 호출 (토스페이먼츠 에스크로 원화 즉시 결제 파이프라인 완성).
+
+### 2. 홈 화면 및 마이페이지 광고 & 리워드 충전소 연동 (`apps/mobile/src/screens/main/`)
+- **홈 화면 상단 히어로 배너 (`HomeScreen.js`)**:
+  - `fetchAdsByPlacement('HOME_BANNER')` 연동하여 1단 히어로 스폰서 배너 렌더링 및 3.5초 자동 롤링.
+  - 노출 집계(`impression`) 및 클릭 시 외부 브라우저 오픈(`click`) 백그라운드 추적 파이프라인 연결.
+- **마이페이지 무료 ON 충전소 (`MyPageScreen.js`)**:
+  - 내 보유 온(ON) 지갑 카드 바로 하단에 `[🎬 무료 ON 충전소 (광고 보고 10 ON 받기)]` 그라데이션 숏컷 배너 배치.
+  - 터치 시 5초 카운트다운 보상형 광고 시청 모달(`AdWatchModal`) 호출.
+  - 시청 완료 후 `claimAdReward(user.id, nickname)` 호출 (`POST /api/ads/reward/claim`) ➔ "10 ON이 충전되었습니다! (오늘 잔여: X/5회)" 축하 팝업 및 `refreshMe()` 실시간 지갑 잔액 갱신.
+
+### 3. D LIVE 호스트 2-Way 상품 연결 & 시청자 인스트림 커머스 핀 (`LiveScreen.js`, `HostLiveControlSheet.tsx`, `LiveProductPinCard.tsx`, `LiveRoomScreen.js`)
+- **방송 전 상품 연결 모달 (`LiveScreen.js`)**:
+  - `[🏷️ 나의 중고 물품]` 탭과 `[🛍️ 입점사 일반 상품]` 탭 2-Way 듀얼 피커 구축.
+  - 입점사 계정인 경우 본인이 등록한 일반 상품 목록(`GET /api/merchants/my`)을 체크박스로 선택하여 방 생성 시 `linkedProductIds`로 전달.
+- **방송 중 실시간 핀 고정 바텀시트 (`HostLiveControlSheet.tsx`)**:
+  - 전체 / 입점사 / 특가공구 / 중고 4대 탭 필터링 및 핀 고정 토글 지원.
+  - `[📌 핀 고정]` 클릭 시 `live:pin_product` 웹소켓 브로드캐스트 전송.
+- **시청자 플로팅 핀 카드 & 무중단 PG 결제 (`LiveProductPinCard.tsx` & `LiveRoomScreen.js`)**:
+  - 일반 상품 핀인 경우 상품명 상단에 `[🛍️ 브랜드 특가]` 코랄 뱃지 및 입점사 상호명 표시.
+  - 시청자가 `[지금 구매]` 클릭 시 영상 끊김 없는 무중단 에스크로 PG 결제창(`PgPaymentBottomSheet`) 즉시 호출 및 결제 완료 시 전체 방 축하 메시지 시스템 브로드캐스트.
+
+### 4. 빌드 및 정적 분석 검증 결과
+- **백엔드 NestJS 빌드 (`services/api`)**: `npm run build` 무결점 성공 (Exit code 0).
+- **모바일 Babel / Hermes 바이트코드 컴파일 검증 (`apps/mobile`)**: `npm run test:mobile:babel` (iOS 1517 모듈, Android 1512 모듈, 49 에셋) 0 에러 무결점 통과 (Exit code 0).
+- **TypeScript & AST 문법 검증**: 10개 핵심 파일 전수 파싱 및 타입 일치 확인.
+

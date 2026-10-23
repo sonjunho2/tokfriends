@@ -23,7 +23,7 @@ import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
 import { EmptyStateView, ExtendedFAB, useExtendedFabScroll } from '../../components/common';
-import { fetchMarketProducts, MarketProduct, INITIAL_MARKET_PRODUCTS } from '../../services/marketService';
+import { fetchMarketProducts, fetchMyMerchantProducts, MarketProduct, INITIAL_MARKET_PRODUCTS } from '../../services/marketService';
 
 const LIVE_COLOR = '#FF3B6B';
 
@@ -54,6 +54,9 @@ export default function LiveScreen({ navigation }) {
   const [marketProducts, setMarketProducts] = useState(INITIAL_MARKET_PRODUCTS);
   const [selectedProductIds, setSelectedProductIds] = useState([]);
   const [productPickerVisible, setProductPickerVisible] = useState(false);
+  const [liveProductTab, setLiveProductTab] = useState('C2C'); // 'C2C' | 'MERCHANT'
+  const [myMerchantProducts, setMyMerchantProducts] = useState([]);
+  const [myMerchant, setMyMerchant] = useState(null);
 
   const loadRooms = useCallback(async () => {
     try {
@@ -65,6 +68,17 @@ export default function LiveScreen({ navigation }) {
       setLoading(false);
       setRefreshing(false);
     }
+  }, []);
+
+  useEffect(() => {
+    fetchMyMerchantProducts()
+      .then((res) => {
+        if (res) {
+          setMyMerchant(res.merchant || null);
+          setMyMerchantProducts(res.products || []);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useFocusEffect(
@@ -109,121 +123,8 @@ export default function LiveScreen({ navigation }) {
             hostId: user?.id,
             hostName,
             hostAvatar,
-            cardHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  cardHeaderRight: {
-    marginLeft: 'auto',
-  },
-  commerceNeonBadge: {
-    backgroundColor: '#FF3B6B',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-    shadowColor: '#FF3B6B',
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  commerceNeonText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '900',
-  },
-  livePulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#EF4444',
-    marginRight: 4,
-  },
-  connectProductBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFF1F2',
-    borderWidth: 1,
-    borderColor: '#FECDD3',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginTop: 8,
-  },
-  connectProductBtnLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  connectProductBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#E11D48',
-  },
-  productPickerBox: {
-    marginTop: 8,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 6,
-  },
-  pickerItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  pickerItemRowSelected: {
-    borderColor: '#FF3B6B',
-    backgroundColor: '#FFF1F2',
-  },
-  pickerThumb: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    backgroundColor: '#E2E8F0',
-  },
-  pickerMeta: {
-    flex: 1,
-    marginHorizontal: 10,
-  },
-  pickerBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 2,
-  },
-  pickerTypeBadge: {
-    fontSize: 9,
-    fontWeight: '800',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 3,
-  },
-  pickerTypeB2C: {
-    backgroundColor: '#FEE2E2',
-    color: '#EF4444',
-  },
-  pickerTypeC2C: {
-    backgroundColor: '#E0E7FF',
-    color: '#4F46E5',
-  },
-  pickerPrice: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  pickerTitle: {
-    fontSize: 12,
-    color: '#334155',
-    fontWeight: '600',
-  },
-});
+            linkedProductIds: selectedProductIds,
+          });
           const room = res?.room || res?.data || res;
           setModalVisible(false);
           setTitle('');
@@ -526,39 +427,108 @@ export default function LiveScreen({ navigation }) {
             {/* 상품 선택 서브 리스트 */}
             {productPickerVisible && (
               <View style={styles.productPickerBox}>
-                {marketProducts.slice(0, 5).map((p) => {
-                  const isChecked = selectedProductIds.includes(p.id);
-                  return (
-                    <TouchableOpacity
-                      key={p.id}
-                      style={[styles.pickerItemRow, isChecked && styles.pickerItemRowSelected]}
-                      activeOpacity={0.8}
-                      onPress={() => {
-                        if (isChecked) {
-                          setSelectedProductIds(selectedProductIds.filter((id) => id !== p.id));
-                        } else {
-                          setSelectedProductIds([...selectedProductIds, p.id]);
-                        }
-                      }}
-                    >
-                      <Image source={{ uri: p.images[0] }} style={styles.pickerThumb} />
-                      <View style={styles.pickerMeta}>
-                        <View style={styles.pickerBadgeRow}>
-                          <Text style={[styles.pickerTypeBadge, p.type === 'B2C_GROUP' ? styles.pickerTypeB2C : styles.pickerTypeC2C]}>
-                            {p.type === 'B2C_GROUP' ? '공구' : '중고'}
-                          </Text>
-                          <Text style={styles.pickerPrice}>{p.price.toLocaleString()}원</Text>
+                {/* 2-Way 서브 탭: [🏷️ 나의 중고 물품] vs [🛍️ 입점사 일반 상품] */}
+                <View style={styles.livePickerTabBar}>
+                  <TouchableOpacity
+                    style={[styles.livePickerTabBtn, liveProductTab === 'C2C' && styles.livePickerTabBtnActive]}
+                    onPress={() => setLiveProductTab('C2C')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.livePickerTabText, liveProductTab === 'C2C' && styles.livePickerTabTextActive]}>
+                      🏷️ 나의 중고 ({marketProducts.length})
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.livePickerTabBtn, liveProductTab === 'MERCHANT' && styles.livePickerTabBtnActive]}
+                    onPress={() => setLiveProductTab('MERCHANT')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.livePickerTabText, liveProductTab === 'MERCHANT' && styles.livePickerTabTextActive]}>
+                      🛍️ 입점사 일반 상품 ({myMerchantProducts.length})
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {liveProductTab === 'C2C' ? (
+                  marketProducts.slice(0, 6).map((p) => {
+                    const isChecked = selectedProductIds.includes(p.id);
+                    return (
+                      <TouchableOpacity
+                        key={p.id}
+                        style={[styles.pickerItemRow, isChecked && styles.pickerItemRowSelected]}
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          if (isChecked) {
+                            setSelectedProductIds(selectedProductIds.filter((id) => id !== p.id));
+                          } else {
+                            setSelectedProductIds([...selectedProductIds, p.id]);
+                          }
+                        }}
+                      >
+                        <Image source={{ uri: p.images[0] }} style={styles.pickerThumb} />
+                        <View style={styles.pickerMeta}>
+                          <View style={styles.pickerBadgeRow}>
+                            <Text style={[styles.pickerTypeBadge, p.type === 'B2C_GROUP' ? styles.pickerTypeB2C : styles.pickerTypeC2C]}>
+                              {p.type === 'B2C_GROUP' ? '공구' : '중고'}
+                            </Text>
+                            <Text style={styles.pickerPrice}>{p.price.toLocaleString()}원</Text>
+                          </View>
+                          <Text style={styles.pickerTitle} numberOfLines={1}>{p.title}</Text>
                         </View>
-                        <Text style={styles.pickerTitle} numberOfLines={1}>{p.title}</Text>
-                      </View>
-                      <Ionicons
-                        name={isChecked ? 'checkbox' : 'square-outline'}
-                        size={22}
-                        color={isChecked ? '#FF3B6B' : '#94A3B8'}
-                      />
-                    </TouchableOpacity>
-                  );
-                })}
+                        <Ionicons
+                          name={isChecked ? 'checkbox' : 'square-outline'}
+                          size={22}
+                          color={isChecked ? '#FF3B6B' : '#94A3B8'}
+                        />
+                      </TouchableOpacity>
+                    );
+                  })
+                ) : (
+                  myMerchantProducts.length > 0 ? (
+                    myMerchantProducts.map((p) => {
+                      const isChecked = selectedProductIds.includes(p.id);
+                      const finalPrice = p.salePriceKrw || p.priceKrw;
+                      return (
+                        <TouchableOpacity
+                          key={p.id}
+                          style={[styles.pickerItemRow, isChecked && styles.pickerItemRowSelected]}
+                          activeOpacity={0.8}
+                          onPress={() => {
+                            if (isChecked) {
+                              setSelectedProductIds(selectedProductIds.filter((id) => id !== p.id));
+                            } else {
+                              setSelectedProductIds([...selectedProductIds, p.id]);
+                            }
+                          }}
+                        >
+                          <Image
+                            source={{ uri: p.images?.[0] || 'https://images.unsplash.com/photo-1544025162-d76694265947?w=300' }}
+                            style={styles.pickerThumb}
+                          />
+                          <View style={styles.pickerMeta}>
+                            <View style={styles.pickerBadgeRow}>
+                              <Text style={[styles.pickerTypeBadge, styles.pickerTypeMerchant]}>
+                                브랜드정품
+                              </Text>
+                              <Text style={styles.pickerPrice}>{finalPrice.toLocaleString()}원</Text>
+                            </View>
+                            <Text style={styles.pickerTitle} numberOfLines={1}>{p.name}</Text>
+                          </View>
+                          <Ionicons
+                            name={isChecked ? 'checkbox' : 'square-outline'}
+                            size={22}
+                            color={isChecked ? '#4F46E5' : '#94A3B8'}
+                          />
+                        </TouchableOpacity>
+                      );
+                    })
+                  ) : (
+                    <View style={styles.emptyPickerBox}>
+                      <Text style={styles.emptyPickerText}>등록된 입점사 일반 상품이 없습니다.</Text>
+                      <Text style={styles.emptyPickerSub}>마이페이지 &gt; 입점사 관리에서 상품을 등록해보세요.</Text>
+                    </View>
+                  )
+                )}
               </View>
             )}
 
@@ -1065,4 +1035,166 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textSecondary,
   },
+
+  // 커머스 핀 및 상품 선택 피커 스타일
+  cardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardHeaderRight: {
+    marginLeft: 'auto',
+  },
+  commerceNeonBadge: {
+    backgroundColor: '#FF3B6B',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    shadowColor: '#FF3B6B',
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  commerceNeonText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  livePulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EF4444',
+    marginRight: 4,
+  },
+  connectProductBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  connectProductBtnLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  connectProductBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#E11D48',
+  },
+  productPickerBox: {
+    marginTop: 8,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 8,
+  },
+  livePickerTabBar: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 6,
+  },
+  livePickerTabBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  livePickerTabBtnActive: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
+  },
+  livePickerTabText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  livePickerTabTextActive: {
+    color: '#FFFFFF',
+  },
+  pickerItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  pickerItemRowSelected: {
+    borderColor: '#FF3B6B',
+    backgroundColor: '#FFF1F2',
+  },
+  pickerThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: '#E2E8F0',
+  },
+  pickerMeta: {
+    flex: 1,
+    marginHorizontal: 10,
+  },
+  pickerBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  pickerTypeBadge: {
+    fontSize: 9,
+    fontWeight: '800',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+  },
+  pickerTypeB2C: {
+    backgroundColor: '#FEE2E2',
+    color: '#EF4444',
+  },
+  pickerTypeC2C: {
+    backgroundColor: '#E0E7FF',
+    color: '#4F46E5',
+  },
+  pickerTypeMerchant: {
+    backgroundColor: '#EEF2FF',
+    color: '#4F46E5',
+  },
+  pickerPrice: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  pickerTitle: {
+    fontSize: 12,
+    color: '#334155',
+    fontWeight: '600',
+  },
+  emptyPickerBox: {
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyPickerText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  emptyPickerSub: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
 });
+

@@ -11,9 +11,16 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { MarketProduct, fetchMarketProducts, INITIAL_MARKET_PRODUCTS } from '../../services/marketService';
+import {
+  MarketProduct,
+  fetchMarketProducts,
+  fetchNormalProducts,
+  INITIAL_MARKET_PRODUCTS,
+} from '../../services/marketService';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+type HostLiveTabType = 'ALL' | 'MERCHANT' | 'B2C' | 'C2C';
 
 interface HostLiveControlSheetProps {
   visible: boolean;
@@ -32,17 +39,53 @@ export default function HostLiveControlSheet({
 }: HostLiveControlSheetProps) {
   const [products, setProducts] = useState<MarketProduct[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<'ALL' | 'B2C' | 'C2C'>('ALL');
+  const [activeTab, setActiveTab] = useState<HostLiveTabType>('ALL');
 
   useEffect(() => {
     if (!visible) return;
     let mounted = true;
     setLoading(true);
-    fetchMarketProducts()
-      .then((items) => {
-        if (mounted) {
-          setProducts(items && items.length > 0 ? items : INITIAL_MARKET_PRODUCTS);
-        }
+
+    Promise.allSettled([
+      fetchMarketProducts(),
+      fetchNormalProducts(),
+    ])
+      .then(([marketRes, normalRes]) => {
+        if (!mounted) return;
+
+        const marketItems: MarketProduct[] =
+          marketRes.status === 'fulfilled' && marketRes.value?.length > 0
+            ? marketRes.value
+            : INITIAL_MARKET_PRODUCTS;
+
+        const normalItems: MarketProduct[] =
+          normalRes.status === 'fulfilled' && normalRes.value?.length > 0
+            ? normalRes.value.map((np) => ({
+                id: np.id,
+                type: 'B2C_NORMAL' as any,
+                title: np.name,
+                description: np.description,
+                category: np.category,
+                price: np.salePriceKrw || np.priceKrw,
+                originalPrice: np.priceKrw,
+                images: np.images,
+                status: np.stock <= 0 ? 'SOLD_OUT' : 'ACTIVE',
+                locationName: '전국 무료배송',
+                distanceKm: 0,
+                seller: {
+                  id: np.merchantId || 'mer-001',
+                  nickname: np.merchantName || '인증 입점사',
+                  avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200',
+                  trustScore: 99.5,
+                },
+                likesCount: 28,
+                chatsCount: 6,
+                createdAt: np.createdAt || '방금 전',
+              }))
+            : [];
+
+        // 중복 방지 병합 (입점사 일반 상품 + 마켓 상품)
+        setProducts([...normalItems, ...marketItems]);
       })
       .catch(() => {
         if (mounted) setProducts(INITIAL_MARKET_PRODUCTS);
@@ -50,12 +93,14 @@ export default function HostLiveControlSheet({
       .finally(() => {
         if (mounted) setLoading(false);
       });
+
     return () => {
       mounted = false;
     };
   }, [visible]);
 
   const filtered = products.filter((p) => {
+    if (activeTab === 'MERCHANT') return (p.type as string) === 'B2C_NORMAL';
     if (activeTab === 'B2C') return p.type === 'B2C_GROUP';
     if (activeTab === 'C2C') return p.type === 'C2C_USED';
     return true;
@@ -86,19 +131,20 @@ export default function HostLiveControlSheet({
             </TouchableOpacity>
           </View>
 
-          {/* Segment Filter */}
+          {/* Segment Filter (4대 탭) */}
           <View style={styles.tabRow}>
             {[
-              { id: 'ALL', label: '전체 상품' },
-              { id: 'B2C', label: '🔥 특가 공구' },
-              { id: 'C2C', label: '🏷️ 중고 매물' },
+              { id: 'ALL', label: '전체' },
+              { id: 'MERCHANT', label: '🛍️ 입점사' },
+              { id: 'B2C', label: '🔥 특가공구' },
+              { id: 'C2C', label: '🏷️ 중고' },
             ].map((tab) => {
               const isSelected = activeTab === tab.id;
               return (
                 <TouchableOpacity
                   key={tab.id}
                   style={[styles.tabBtn, isSelected && styles.tabBtnActive]}
-                  onPress={() => setActiveTab(tab.id as any)}
+                  onPress={() => setActiveTab(tab.id as HostLiveTabType)}
                 >
                   <Text style={[styles.tabText, isSelected && styles.tabTextActive]}>
                     {tab.label}
@@ -120,7 +166,8 @@ export default function HostLiveControlSheet({
               contentContainerStyle={styles.listContent}
               renderItem={({ item }) => {
                 const isPinned = pinnedProduct?.id === item.id;
-                const isB2C = item.type === 'B2C_GROUP';
+                const isNormal = (item.type as string) === 'B2C_NORMAL';
+                const isGroup = item.type === 'B2C_GROUP';
                 const thumb = item.images?.[0] || 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=300';
 
                 return (
@@ -129,9 +176,27 @@ export default function HostLiveControlSheet({
 
                     <View style={styles.productInfo}>
                       <View style={styles.badgeRow}>
-                        <View style={[styles.typeBadge, isB2C ? styles.typeBadgeB2C : styles.typeBadgeC2C]}>
-                          <Text style={[styles.typeBadgeText, isB2C ? styles.typeBadgeTextB2C : styles.typeBadgeTextC2C]}>
-                            {isB2C ? '특가공구' : '중고판매'}
+                        <View
+                          style={[
+                            styles.typeBadge,
+                            isNormal
+                              ? styles.typeBadgeMerchant
+                              : isGroup
+                              ? styles.typeBadgeB2C
+                              : styles.typeBadgeC2C,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.typeBadgeText,
+                              isNormal
+                                ? styles.typeBadgeTextMerchant
+                                : isGroup
+                                ? styles.typeBadgeTextB2C
+                                : styles.typeBadgeTextC2C,
+                            ]}
+                          >
+                            {isNormal ? '브랜드특가' : isGroup ? '특가공구' : '중고판매'}
                           </Text>
                         </View>
                         {isPinned && (
@@ -148,6 +213,11 @@ export default function HostLiveControlSheet({
 
                       <Text style={styles.productPrice}>
                         {item.price.toLocaleString()}원
+                        {item.originalPrice && item.originalPrice > item.price ? (
+                          <Text style={styles.originalPriceText}>
+                            {' '}{item.originalPrice.toLocaleString()}원
+                          </Text>
+                        ) : null}
                       </Text>
                     </View>
 
@@ -163,7 +233,7 @@ export default function HostLiveControlSheet({
                         color={isPinned ? '#FFFFFF' : '#4F46E5'}
                       />
                       <Text style={[styles.pinToggleText, isPinned && styles.pinToggleTextActive]}>
-                        {isPinned ? '고정해제' : '핀 고정'}
+                        {isPinned ? '고정해제' : '📌 핀 고정'}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -198,10 +268,10 @@ const styles = StyleSheet.create({
   handleBar: {
     width: 40,
     height: 4,
+    backgroundColor: '#E2E8F0',
     borderRadius: 2,
-    backgroundColor: '#CBD5E1',
     alignSelf: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   headerRow: {
     flexDirection: 'row',
@@ -211,38 +281,40 @@ const styles = StyleSheet.create({
   },
   titleWrap: {
     flex: 1,
-    marginRight: 10,
   },
   sheetTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
     color: '#0F172A',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   sheetSub: {
     fontSize: 12,
     color: '#64748B',
-    lineHeight: 16,
   },
   closeBtn: {
     padding: 4,
   },
   tabRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 14,
+    gap: 6,
+    marginBottom: 12,
   },
   tabBtn: {
-    paddingHorizontal: 12,
+    flex: 1,
     paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
   },
   tabBtnActive: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
   },
   tabText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: '#64748B',
   },
@@ -250,48 +322,49 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   loadingBox: {
-    height: 200,
-    justifyContent: 'center',
+    paddingVertical: 50,
     alignItems: 'center',
   },
   listContent: {
     paddingBottom: 20,
-    gap: 10,
   },
   productCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
     padding: 10,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 8,
+    gap: 10,
   },
   productCardPinned: {
     borderColor: '#FF3B6B',
     backgroundColor: '#FFF1F2',
   },
   productThumb: {
-    width: 60,
-    height: 60,
-    borderRadius: 10,
-    backgroundColor: '#E2E8F0',
+    width: 52,
+    height: 52,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
   },
   productInfo: {
     flex: 1,
-    marginLeft: 12,
-    marginRight: 8,
   },
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 6,
     marginBottom: 3,
   },
   typeBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 3,
+  },
+  typeBadgeMerchant: {
+    backgroundColor: '#EEF2FF',
   },
   typeBadgeB2C: {
     backgroundColor: '#FEE2E2',
@@ -300,8 +373,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#E0E7FF',
   },
   typeBadgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
+  },
+  typeBadgeTextMerchant: {
+    color: '#4F46E5',
   },
   typeBadgeTextB2C: {
     color: '#EF4444',
@@ -312,36 +388,42 @@ const styles = StyleSheet.create({
   pinnedLiveBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: 2,
     backgroundColor: '#FF3B6B',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 3,
   },
   pinnedLiveBadgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     color: '#FFFFFF',
   },
   productTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#1E293B',
     marginBottom: 2,
   },
   productPrice: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
     color: '#0F172A',
+  },
+  originalPriceText: {
+    fontSize: 10,
+    color: '#94A3B8',
+    textDecorationLine: 'line-through',
+    fontWeight: '500',
   },
   pinToggleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#EEF2FF',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 8,
+    backgroundColor: '#EEF2FF',
     borderWidth: 1,
     borderColor: '#C7D2FE',
   },
@@ -350,7 +432,7 @@ const styles = StyleSheet.create({
     borderColor: '#FF3B6B',
   },
   pinToggleText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
     color: '#4F46E5',
   },

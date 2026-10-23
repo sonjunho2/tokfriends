@@ -35,6 +35,7 @@ import { useAuth } from '../../context/AuthContext';
 import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
 import { createChatSocket, LIVE_SOCKET_EVENTS } from '../../realtime/chatSocket';
 import LiveCommercePinOverlay from '../../components/live/LiveCommercePinOverlay';
+import LiveProductPinCard from '../../components/live/LiveProductPinCard';
 import LiveEscrowBuyModal from '../../components/live/LiveEscrowBuyModal';
 import { fetchMarketProducts } from '../../services/marketService';
 
@@ -1664,6 +1665,18 @@ export default function LiveRoomScreen({ navigation, route }) {
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           />
         </View>
+
+        {/* 실시간 인스트림 커머스 플로팅 핀 카드 */}
+        {isPinVisible && pinnedProduct && (
+          <LiveProductPinCard
+            product={pinnedProduct}
+            onPressBuy={(prod) => {
+              setSelectedCommerceProduct(prod);
+              setPgBottomSheetVisible(true);
+            }}
+            onClose={() => setIsPinVisible(false)}
+          />
+        )}
 
         {/* Action Controls Bar */}
         <View style={styles.controlsBar}>

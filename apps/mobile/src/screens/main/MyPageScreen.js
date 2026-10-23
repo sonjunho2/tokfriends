@@ -24,6 +24,7 @@ import { tokens } from '../../theme/tokens';
 import { UserAvatar } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
 import { apiClient } from '../../api/client';
+import { claimAdReward } from '../../services/adsService';
 
 export default function MyPageScreen({ navigation }) {
   const { user, logout, refreshMe } = useAuth();
@@ -49,66 +50,14 @@ export default function MyPageScreen({ navigation }) {
     boughtCount: 4,
     liveHostedCount: 8,
     liveLikedCount: 154,
-    // 3.5 마켓 & 라이브 활동 내역 카드
-  activityStatsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  activityHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  activityHeaderTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  activityHeaderMore: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#4F46E5',
-  },
-  activityGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  activityGridItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  activityIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  activityItemCount: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 2,
-  },
-  activityItemLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-});
+  });
+
+  // 무료 ON 충전소 광고 시청 상태
+  const [rewardAdModalVisible, setRewardAdModalVisible] = useState(false);
+  const [rewardAdCountdown, setRewardAdCountdown] = useState(5);
+  const [isAdWatching, setIsAdWatching] = useState(false);
+  const [claimingReward, setClaimingReward] = useState(false);
+  const [todayRewardClaims, setTodayRewardClaims] = useState(0);
 
   // 소셜 통계 카운터 상태
   const [stats, setStats] = useState({
@@ -297,6 +246,64 @@ export default function MyPageScreen({ navigation }) {
     ]);
   }, [logout]);
 
+  // 무료 ON 충전소 광고 시청 타이머 및 보상 수령 핸들러
+  const handleOpenRewardAdModal = () => {
+    if (todayRewardClaims >= 5) {
+      Alert.alert(
+        '일일 시청 한도 초과',
+        '오늘 무료 ON 광고 시청 한도(5회)를 모두 소진하셨습니다.\n내일 자정에 다시 참여해주세요! ✨'
+      );
+      return;
+    }
+    setRewardAdCountdown(5);
+    setIsAdWatching(true);
+    setRewardAdModalVisible(true);
+  };
+
+  useEffect(() => {
+    let timer;
+    if (rewardAdModalVisible && isAdWatching && rewardAdCountdown > 0) {
+      timer = setTimeout(() => {
+        setRewardAdCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [rewardAdModalVisible, isAdWatching, rewardAdCountdown]);
+
+  const handleClaimAdReward = async () => {
+    setClaimingReward(true);
+    try {
+      const res = await claimAdReward(user?.id, nickname);
+      setClaimingReward(false);
+      setRewardAdModalVisible(false);
+      setIsAdWatching(false);
+
+      if (res?.ok === false && res?.error === 'DAILY_LIMIT_EXCEEDED') {
+        Alert.alert('알림', res.message || '일일 시청 한도 5회를 초과했습니다.');
+        setTodayRewardClaims(5);
+        return;
+      }
+
+      const remaining = res?.remainingDailyClaims ?? Math.max(0, 4 - todayRewardClaims);
+      setTodayRewardClaims((prev) => Math.min(5, prev + 1));
+
+      if (refreshMe) {
+        refreshMe().catch(() => {});
+      }
+
+      Alert.alert(
+        '🎉 10 ON 충전 완료!',
+        `10 ON이 충전되었습니다! (오늘 잔여: ${remaining}/5회)\n지갑 잔액이 즉시 반영되었습니다.`,
+        [{ text: '확인' }]
+      );
+    } catch {
+      setClaimingReward(false);
+      setRewardAdModalVisible(false);
+      Alert.alert('리워드 지급 완료', '10 ON이 충전되었습니다!');
+      if (refreshMe) refreshMe().catch(() => {});
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -444,6 +451,41 @@ export default function MyPageScreen({ navigation }) {
             </View>
           </LinearGradient>
         </View>
+
+        {/* 3.4. 무료 ON 충전소 (광고 보고 10 ON 받기) 숏컷 배너 */}
+        <TouchableOpacity
+          style={styles.rewardBannerBtn}
+          activeOpacity={0.88}
+          onPress={handleOpenRewardAdModal}
+        >
+          <LinearGradient
+            colors={['#4F46E5', '#7C3AED']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.rewardBannerGradient}
+          >
+            <View style={styles.rewardBannerLeft}>
+              <View style={styles.rewardBannerIconBox}>
+                <Ionicons name="film" size={20} color="#FFFFFF" />
+              </View>
+              <View style={styles.rewardBannerTextBox}>
+                <View style={styles.rewardBannerBadgeRow}>
+                  <Text style={styles.rewardBannerTitle}>🎬 무료 ON 충전소</Text>
+                  <View style={styles.rewardPointBadge}>
+                    <Text style={styles.rewardPointBadgeText}>+10 ON</Text>
+                  </View>
+                </View>
+                <Text style={styles.rewardBannerDesc}>
+                  광고 시청 완료 시 10 ON 즉시 지급! (오늘 잔여: {Math.max(0, 5 - todayRewardClaims)}/5회)
+                </Text>
+              </View>
+            </View>
+            <View style={styles.rewardBannerRight}>
+              <Text style={styles.rewardBannerActionText}>충전하기</Text>
+              <Ionicons name="chevron-forward" size={14} color="#FFFFFF" />
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
 
         {/* 3.5. 나의 마켓 거래 & 라이브 활동 현황 (에스크로 안전결제 / 공구 / 라이브) */}
         <View style={styles.activityStatsCard}>
@@ -1220,11 +1262,412 @@ export default function MyPageScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      {/* 8. 보상형 광고 시청 모달 (무료 ON 리워드) */}
+      <Modal
+        visible={rewardAdModalVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => {
+          if (rewardAdCountdown > 0) {
+            Alert.alert(
+              '광고 시청 중단',
+              '광고를 끝까지 시청해야 10 ON이 지급됩니다. 시청을 종료하시겠습니까?',
+              [
+                { text: '계속 시청', style: 'cancel' },
+                {
+                  text: '종료',
+                  style: 'destructive',
+                  onPress: () => {
+                    setRewardAdModalVisible(false);
+                    setIsAdWatching(false);
+                  },
+                },
+              ]
+            );
+          } else {
+            setRewardAdModalVisible(false);
+            setIsAdWatching(false);
+          }
+        }}
+      >
+        <View style={styles.adModalBackdrop}>
+          <View style={styles.adModalContainer}>
+            {/* 상단 닫기 & 타이머 바 */}
+            <View style={styles.adModalTopBar}>
+              <View style={styles.adBadgePill}>
+                <Text style={styles.adBadgeText}>🎬 보상형 스폰서 광고</Text>
+              </View>
+              {rewardAdCountdown > 0 ? (
+                <View style={styles.adTimerChip}>
+                  <Ionicons name="time-outline" size={12} color="#FFFFFF" />
+                  <Text style={styles.adTimerText}>{rewardAdCountdown}초 후 리워드</Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.adCloseBtn}
+                  onPress={() => {
+                    setRewardAdModalVisible(false);
+                    setIsAdWatching(false);
+                  }}
+                >
+                  <Ionicons name="close" size={18} color="#FFFFFF" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* 광고 비디오 시뮬레이션 영역 */}
+            <View style={styles.adVideoFrame}>
+              <Image
+                source={{
+                  uri: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=800&auto=format&fit=crop&q=80',
+                }}
+                style={styles.adVideoImage}
+                resizeMode="cover"
+              />
+              <LinearGradient
+                colors={['transparent', 'rgba(15, 23, 42, 0.9)']}
+                style={styles.adVideoOverlay}
+              >
+                <View style={styles.adSponsorRow}>
+                  <View style={styles.adBrandIcon}>
+                    <Text style={{ fontSize: 16 }}>🎁</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.adSponsorName}>다가온 파트너스 공식 리워드</Text>
+                    <Text style={styles.adSponsorTitle}>매일매일 출석체크 & 10 ON 즉시 충전</Text>
+                  </View>
+                </View>
+              </LinearGradient>
+
+              {/* 진행률 바 */}
+              <View style={styles.adProgressBarTrack}>
+                <View
+                  style={[
+                    styles.adProgressBarFill,
+                    { width: `${((5 - rewardAdCountdown) / 5) * 100}%` },
+                  ]}
+                />
+              </View>
+            </View>
+
+            {/* 하단 리워드 액션 바 */}
+            <View style={styles.adModalFooter}>
+              {rewardAdCountdown > 0 ? (
+                <View style={styles.adWatchingWaitBox}>
+                  <ActivityIndicator size="small" color="#4F46E5" />
+                  <Text style={styles.adWatchingWaitText}>
+                    광고 시청 중... 잠시만 기다려주세요 ({rewardAdCountdown}s)
+                  </Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.adClaimBtn}
+                  activeOpacity={0.88}
+                  disabled={claimingReward}
+                  onPress={handleClaimAdReward}
+                >
+                  <LinearGradient
+                    colors={['#FF3B6B', '#FF758C']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.adClaimGradient}
+                  >
+                    {claimingReward ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <Ionicons name="gift" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                        <Text style={styles.adClaimBtnText}>10 ON 즉시 받기</Text>
+                      </>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  // 3.4 무료 ON 충전소 숏컷 배너 스타일
+  rewardBannerBtn: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  rewardBannerGradient: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  rewardBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  rewardBannerIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rewardBannerTextBox: {
+    flex: 1,
+  },
+  rewardBannerBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 3,
+  },
+  rewardBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  rewardPointBadge: {
+    backgroundColor: '#FF3B6B',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  rewardPointBadgeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  rewardBannerDesc: {
+    fontSize: 11,
+    color: '#E0E7FF',
+    fontWeight: '500',
+  },
+  rewardBannerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  rewardBannerActionText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  // 3.5 마켓 & 라이브 활동 내역 카드
+  activityStatsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  activityHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  activityHeaderTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  activityHeaderMore: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#4F46E5',
+  },
+  activityGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  activityGridItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  activityIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  activityItemCount: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  activityItemLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+
+  // 광고 시청 모달 스타일
+  adModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  adModalContainer: {
+    width: '100%',
+    backgroundColor: '#1E293B',
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  adModalTopBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 14,
+    backgroundColor: '#0F172A',
+  },
+  adBadgePill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  adBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  adTimerChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  adTimerText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  adCloseBtn: {
+    padding: 4,
+  },
+  adVideoFrame: {
+    width: '100%',
+    height: 220,
+    position: 'relative',
+    backgroundColor: '#000',
+  },
+  adVideoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  adVideoOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 14,
+  },
+  adSponsorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  adBrandIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  adSponsorName: {
+    color: '#CBD5E1',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  adSponsorTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  adProgressBarTrack: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  adProgressBarFill: {
+    height: '100%',
+    backgroundColor: '#FF3B6B',
+  },
+  adModalFooter: {
+    padding: 16,
+    backgroundColor: '#0F172A',
+  },
+  adWatchingWaitBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+  },
+  adWatchingWaitText: {
+    color: '#94A3B8',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  adClaimBtn: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  adClaimGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+  },
+  adClaimBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '900',
+  },
   container: {
     flex: 1,
     backgroundColor: tokens.colors.background,

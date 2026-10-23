@@ -292,3 +292,219 @@ export async function createMarketProduct(
   inMemoryProducts = [newProduct, ...inMemoryProducts];
   return newProduct;
 }
+
+// ==========================================
+// B2C 입점사 상시 일반 상품 (NormalProduct)
+// ==========================================
+
+export interface NormalProduct {
+  id: string;
+  merchantId: string;
+  merchantName?: string;
+  name: string;
+  description: string;
+  priceKrw: number;
+  salePriceKrw?: number;
+  stock: number;
+  images: string[];
+  category: string;
+  status: 'ACTIVE' | 'OUT_OF_STOCK' | 'HIDDEN' | 'DELETED';
+  shippingFee: number;
+  createdAt: string;
+  merchant?: {
+    id: string;
+    businessName: string;
+    representative: string;
+    businessNumber: string;
+    onlineOrderNumber?: string;
+    feeRate?: number;
+    bankName?: string;
+    accountNumber?: string;
+    accountHolder?: string;
+  };
+}
+
+export const INITIAL_NORMAL_PRODUCTS: NormalProduct[] = [
+  {
+    id: 'np-001',
+    merchantId: 'mer-001',
+    merchantName: '제주푸드 본사 직영',
+    name: '[입점사상시] 제주 산지직송 프리미엄 1등급 흑돼지 오겹살 1kg',
+    description: '제주 청정 농가에서 당일 도축 후 신선 포장 발송하는 1등급 명품 흑돼지 오겹살입니다.',
+    priceKrw: 38000,
+    salePriceKrw: 32900,
+    stock: 150,
+    images: [
+      'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1558030006-450675393462?w=600&auto=format&fit=crop&q=80',
+    ],
+    category: 'FOOD',
+    status: 'ACTIVE',
+    shippingFee: 3000,
+    createdAt: '2026-10-21 15:00',
+    merchant: {
+      id: 'mer-001',
+      businessName: '제주푸드 본사 직영',
+      representative: '고성훈',
+      businessNumber: '616-81-99201',
+      onlineOrderNumber: '2025-제주오라-0112',
+    },
+  },
+  {
+    id: 'np-002',
+    merchantId: 'mer-001',
+    merchantName: '제주푸드 본사 직영',
+    name: '[입점사상시] 제주 유기농 감귤 착즙 원액주스 1000ml (3병 세트)',
+    description: '물 한 방울 섞지 않은 무가당 100% 제주 감귤 순수 착즙 프리미엄 주스입니다.',
+    priceKrw: 29000,
+    salePriceKrw: 24900,
+    stock: 80,
+    images: [
+      'https://images.unsplash.com/photo-1613478223719-2ab802602423?w=600&auto=format&fit=crop&q=80',
+    ],
+    category: 'FOOD',
+    status: 'ACTIVE',
+    shippingFee: 0,
+    createdAt: '2026-10-20 12:30',
+    merchant: {
+      id: 'mer-001',
+      businessName: '제주푸드 본사 직영',
+      representative: '고성훈',
+      businessNumber: '616-81-99201',
+      onlineOrderNumber: '2025-제주오라-0112',
+    },
+  },
+  {
+    id: 'np-003',
+    merchantId: 'mer-002',
+    merchantName: '메디컬 헬스케어랩',
+    name: '[공식인증] 고순도 프리미엄 알티지 오메가3 120캡슐 (4개월분)',
+    description: 'IFOS 최고등급 원료 사용, 흡수율 높은 rTG형 오메가3로 혈행 및 눈 건강을 지켜드립니다.',
+    priceKrw: 55000,
+    salePriceKrw: 42000,
+    stock: 200,
+    images: [
+      'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&auto=format&fit=crop&q=80',
+    ],
+    category: 'LIVING',
+    status: 'ACTIVE',
+    shippingFee: 2500,
+    createdAt: '2026-10-19 16:20',
+    merchant: {
+      id: 'mer-002',
+      businessName: '메디컬 헬스케어랩',
+      representative: '김정민',
+      businessNumber: '214-88-34190',
+      onlineOrderNumber: '2026-서울강남-0482',
+    },
+  },
+  {
+    id: 'np-004',
+    merchantId: 'mer-003',
+    merchantName: '어반 라이프 스타일',
+    name: '[입점사상시] 무소음 초음파 감성 아로마 무드등 가습기 500ml',
+    description: '심플한 모던 인테리어 디자인과 7가지 은은한 LED 무드등 기능이 탑재된 초음파 가습기.',
+    priceKrw: 42000,
+    salePriceKrw: 35000,
+    stock: 60,
+    images: [
+      'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=600&auto=format&fit=crop&q=80',
+    ],
+    category: 'LIVING',
+    status: 'ACTIVE',
+    shippingFee: 3000,
+    createdAt: '2026-10-18 11:45',
+    merchant: {
+      id: 'mer-003',
+      businessName: '어반 라이프 스타일',
+      representative: '이지은',
+      businessNumber: '105-86-77312',
+      onlineOrderNumber: '2026-경기성남-1920',
+    },
+  },
+];
+
+let inMemoryNormalProducts = [...INITIAL_NORMAL_PRODUCTS];
+
+export async function fetchNormalProducts(params?: {
+  category?: string;
+  search?: string;
+  sort?: 'recent' | 'priceAsc' | 'priceDesc' | 'popular' | string;
+}): Promise<NormalProduct[]> {
+  try {
+    const res = await client.get('/market/normal-products', {
+      params: {
+        category: params?.category,
+        search: params?.search,
+        sort: params?.sort || 'recent',
+      },
+      timeout: 3500,
+    });
+    if (res?.data?.items && Array.isArray(res.data.items) && res.data.items.length > 0) {
+      return res.data.items;
+    }
+  } catch (err) {
+    // Network fallback
+  }
+
+  let list = [...inMemoryNormalProducts];
+  if (params?.category && params.category !== 'ALL') {
+    list = list.filter((p) => p.category.toUpperCase() === params.category?.toUpperCase());
+  }
+  if (params?.search && params.search.trim()) {
+    const q = params.search.trim().toLowerCase();
+    list = list.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q) ||
+        (p.merchantName && p.merchantName.toLowerCase().includes(q))
+    );
+  }
+  if (params?.sort === 'priceAsc') {
+    list.sort((a, b) => (a.salePriceKrw ?? a.priceKrw) - (b.salePriceKrw ?? b.priceKrw));
+  } else if (params?.sort === 'priceDesc') {
+    list.sort((a, b) => (b.salePriceKrw ?? b.priceKrw) - (a.salePriceKrw ?? a.priceKrw));
+  }
+
+  return list;
+}
+
+export async function fetchNormalProductById(id: string): Promise<NormalProduct | null> {
+  try {
+    const res = await client.get(`/market/normal-products/${id}`, { timeout: 3500 });
+    const product = res?.data?.product || res?.data;
+    if (product?.id) {
+      return product;
+    }
+  } catch (err) {
+    // Network fallback
+  }
+
+  const found = inMemoryNormalProducts.find((p) => p.id === id);
+  return found || null;
+}
+
+export async function fetchMyMerchantProducts(): Promise<{ merchant: any; products: NormalProduct[] }> {
+  try {
+    const res = await client.get('/merchants/my', { timeout: 3500 });
+    if (res?.data) {
+      return {
+        merchant: res.data.merchant || null,
+        products: res.data.products || [],
+      };
+    }
+  } catch (err) {
+    // Network fallback
+  }
+
+  return {
+    merchant: {
+      id: 'mer-001',
+      businessName: '제주푸드 본사 직영',
+      representative: '고성훈',
+      status: 'APPROVED',
+      feeRate: 9.5,
+    },
+    products: inMemoryNormalProducts.filter((p) => p.merchantId === 'mer-001'),
+  };
+}

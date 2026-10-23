@@ -1,5 +1,5 @@
 // apps/mobile/src/screens/main/HomeScreen.js
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   StatusBar,
   Alert,
   Platform,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -30,6 +31,11 @@ import { useAuth } from '../../context/AuthContext';
 import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
 import { fetchMarketProducts, INITIAL_MARKET_PRODUCTS } from '../../services/marketService';
 import { fetchSudaPosts, INITIAL_SUDA_POSTS } from '../../services/sudaService';
+import {
+  fetchAdsByPlacement,
+  recordAdImpression,
+  recordAdClick,
+} from '../../services/adsService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const MATCH_CARD_WIDTH = SCREEN_WIDTH - 36;
@@ -231,16 +237,31 @@ export default function HomeScreen({ navigation }) {
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
+  // 홈 상단 히어로 광고 배너 상태
+  const [homeAds, setHomeAds] = useState([]);
+  const [currentHomeAdIdx, setCurrentHomeAdIdx] = useState(0);
+  const homeAdListRef = useRef(null);
+  const seenHomeAdRef = useRef(new Set());
+
   // 데이터 로드
   const loadHomeData = useCallback(async ({ refresh = false } = {}) => {
     if (refresh) setRefreshing(true);
     try {
-      const [discoverRes, liveRes, postsRes, balanceRes] = await Promise.allSettled([
+      const [discoverRes, liveRes, postsRes, balanceRes, adsRes] = await Promise.allSettled([
         apiClient.getDiscover(),
         apiClient.getLiveRooms(),
         apiClient.getPosts({ take: 5 }),
         apiClient.getPointBalance(),
+        fetchAdsByPlacement('HOME_BANNER'),
       ]);
+
+      if (adsRes.status === 'fulfilled' && Array.isArray(adsRes.value) && adsRes.value.length > 0) {
+        setHomeAds(adsRes.value);
+        if (adsRes.value[0]?.id && !seenHomeAdRef.current.has(adsRes.value[0].id)) {
+          seenHomeAdRef.current.add(adsRes.value[0].id);
+          recordAdImpression(adsRes.value[0].id);
+        }
+      }
 
       // 1. 추천 인연
       if (discoverRes.status === 'fulfilled' && Array.isArray(discoverRes.value) && discoverRes.value.length > 0) {
@@ -347,6 +368,27 @@ export default function HomeScreen({ navigation }) {
       loadHomeData();
     }, [loadHomeData])
   );
+
+  // 배너 3.5초 자동 롤링 타이머
+  useEffect(() => {
+    if (homeAds.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentHomeAdIdx((prev) => {
+        const next = (prev + 1) % homeAds.length;
+        homeAdListRef.current?.scrollToOffset({
+          offset: next * (SCREEN_WIDTH - 32),
+          animated: true,
+        });
+        const cur = homeAds[next];
+        if (cur?.id && !seenHomeAdRef.current.has(cur.id)) {
+          seenHomeAdRef.current.add(cur.id);
+          recordAdImpression(cur.id);
+        }
+        return next;
+      });
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [homeAds]);
 
   // 카드 터치 시 바텀 시트 열기
   const handleOpenBottomSheet = (user) => {
@@ -500,6 +542,82 @@ export default function HomeScreen({ navigation }) {
       </View>
     </View>
   );
+
+  // =================================================================
+  // 0. 홈 상단 히어로 광고 배너 (HOME_BANNER)
+  // =================================================================
+  const renderHeroAdBannerSection = () => {
+    if (homeAds.length === 0) return null;
+    return (
+      <View style={styles.homeHeroWrap}>
+        <FlatList
+          ref={homeAdListRef}
+          data={homeAds}
+          keyExtractor={(item) => item.id}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={(e) => {
+            const idx = Math.round(e.nativeEvent.contentOffset.x / (SCREEN_WIDTH - 32));
+            if (idx >= 0 && idx < homeAds.length) {
+              setCurrentHomeAdIdx(idx);
+              const cur = homeAds[idx];
+              if (cur?.id && !seenHomeAdRef.current.has(cur.id)) {
+                seenHomeAdRef.current.add(cur.id);
+                recordAdImpression(cur.id);
+              }
+            }
+          }}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.homeHeroCard}
+              activeOpacity={0.92}
+              onPress={() => {
+                recordAdClick(item.id);
+                if (item.targetUrl) {
+                  Linking.openURL(item.targetUrl).catch(() => {});
+                }
+              }}
+            >
+              <Image source={{ uri: item.imageUrl }} style={styles.homeHeroImg} resizeMode="cover" />
+              <LinearGradient
+                colors={['transparent', 'rgba(15, 23, 42, 0.88)']}
+                style={styles.homeHeroGradient}
+              >
+                <View style={styles.homeHeroBadgeRow}>
+                  <View style={styles.homeHeroAdBadge}>
+                    <Text style={styles.homeHeroAdBadgeText}>SPONSORED</Text>
+                  </View>
+                  <Text style={styles.homeHeroCategory}>✨ 다가온 특별 혜택</Text>
+                </View>
+                <Text style={styles.homeHeroTitle} numberOfLines={1}>
+                  {item.title}
+                </Text>
+                {item.description ? (
+                  <Text style={styles.homeHeroDesc} numberOfLines={1}>
+                    {item.description}
+                  </Text>
+                ) : null}
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+        />
+        {homeAds.length > 1 && (
+          <View style={styles.homeHeroDots}>
+            {homeAds.map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.homeHeroDot,
+                  currentHomeAdIdx === i && styles.homeHeroDotActive,
+                ]}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   // =================================================================
   // 1. 실시간 LIVE 프리뷰 섹션 (3:4 비율 오버레이 카드)
@@ -967,6 +1085,9 @@ export default function HomeScreen({ navigation }) {
         }
         renderItem={() => (
           <View>
+            {/* 0. 홈 상단 스폰서/프로모션 히어로 배너 */}
+            {renderHeroAdBannerSection()}
+
             {/* 1. 실시간 D LIVE 프리뷰 섹션 */}
             {renderLiveSection()}
 
@@ -1008,6 +1129,89 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     paddingBottom: 20,
+  },
+
+  // 0. 홈 히어로 광고 배너 스타일
+  homeHeroWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 6,
+  },
+  homeHeroCard: {
+    width: SCREEN_WIDTH - 32,
+    height: 128,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#0F172A',
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  homeHeroImg: {
+    width: '100%',
+    height: '100%',
+  },
+  homeHeroGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: 0,
+    justifyContent: 'flex-end',
+    padding: 14,
+  },
+  homeHeroBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  homeHeroAdBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  homeHeroAdBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  homeHeroCategory: {
+    color: '#F8FAFC',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  homeHeroTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  homeHeroDesc: {
+    color: '#CBD5E1',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  homeHeroDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 8,
+  },
+  homeHeroDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#E2E8F0',
+  },
+  homeHeroDotActive: {
+    width: 14,
+    backgroundColor: tokens.colors.primary,
   },
 
   // 1. 헤더 스타일
