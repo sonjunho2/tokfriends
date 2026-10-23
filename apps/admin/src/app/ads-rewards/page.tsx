@@ -661,6 +661,7 @@ export default function AdsRewardsPage() {
                   <SelectContent>
                     <SelectItem value="ALL">전체 위치</SelectItem>
                     <SelectItem value="HOME_BANNER">홈 배너</SelectItem>
+                    <SelectItem value="MARKET_BANNER">마켓 배너</SelectItem>
                     <SelectItem value="SHOP_BANNER">충전소 배너</SelectItem>
                     <SelectItem value="LIVE_BANNER">라이브 배너</SelectItem>
                   </SelectContent>
@@ -973,6 +974,7 @@ export default function AdsRewardsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="HOME_BANNER">홈 화면 상단 배너</SelectItem>
+                    <SelectItem value="MARKET_BANNER">마켓 탭 배너 (B2C/공구)</SelectItem>
                     <SelectItem value="SHOP_BANNER">무료충전소 배너</SelectItem>
                     <SelectItem value="LIVE_BANNER">라이브 방송 배너</SelectItem>
                   </SelectContent>

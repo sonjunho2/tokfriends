@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   ShieldCheck,
   Store,
@@ -15,12 +15,21 @@ import {
   RefreshCw,
   ExternalLink,
   Download,
+  Eye,
+  EyeOff,
+  ShoppingBag,
+  Users2,
+  Tag,
+  Truck,
+  Layers,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
+import { api } from '@/lib/api'
 
 interface MockEscrowOrder {
   id: string
@@ -35,6 +44,44 @@ interface MockEscrowOrder {
   status: 'ESCROW_HOLD' | 'SHIPPED' | 'CONFIRMED' | 'DISPUTED' | 'REFUNDED'
   createdAt: string
   disputeReason?: string
+}
+
+interface C2CProductItem {
+  id: string
+  title: string
+  sellerName: string
+  price: number
+  category: string
+  locationName: string
+  status: 'ACTIVE' | 'RESERVED' | 'COMPLETED' | 'CANCELLED'
+  createdAt: string
+  imageUrl?: string
+}
+
+interface NormalProductItem {
+  id: string
+  merchantId: string
+  merchantName: string
+  name: string
+  priceKrw: number
+  salePriceKrw?: number
+  stock: number
+  shippingFee: number
+  category: string
+  status: 'ACTIVE' | 'HIDDEN' | 'OUT_OF_STOCK'
+  createdAt: string
+}
+
+interface GroupBuyProductItem {
+  id: string
+  title: string
+  merchantName: string
+  price: number
+  originalPrice: number
+  targetQuantity: number
+  currentQuantity: number
+  status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED'
+  createdAt: string
 }
 
 const INITIAL_ORDERS: MockEscrowOrder[] = [
@@ -93,22 +140,224 @@ const INITIAL_ORDERS: MockEscrowOrder[] = [
   },
 ]
 
+const INITIAL_C2C_PRODUCTS: C2CProductItem[] = [
+  {
+    id: 'c2c-1',
+    title: '아이폰 15 프로 256GB 내추럴 티타늄 풀박스',
+    sellerName: '테크러버 (usr_4821)',
+    price: 980000,
+    category: 'DIGITAL',
+    locationName: '역삼역 3번출구',
+    status: 'ACTIVE',
+    createdAt: '2026-10-22 08:30',
+  },
+  {
+    id: 'c2c-2',
+    title: '미개봉 소니 WH-1000XM5 노이즈캔슬링 헤드폰 (블랙)',
+    sellerName: '오디오매니아 (usr_1932)',
+    price: 320000,
+    category: 'DIGITAL',
+    locationName: '잠실새내역 직거래',
+    status: 'ACTIVE',
+    createdAt: '2026-10-21 14:10',
+  },
+  {
+    id: 'c2c-3',
+    title: '맥북 에어 M2 16GB / 512GB 스페이스그레이 배터리 99%',
+    sellerName: '코딩꿈나무 (usr_5501)',
+    price: 1150000,
+    category: 'DIGITAL',
+    locationName: '판교역 1번출구',
+    status: 'RESERVED',
+    createdAt: '2026-10-20 18:25',
+  },
+  {
+    id: 'c2c-4',
+    title: '캠핑용 파세코 난로 PKH-3100G (가방/상판망 포함)',
+    sellerName: '캠퍼정 (usr_8274)',
+    price: 140000,
+    category: 'LIVING',
+    locationName: '남양주 다산동',
+    status: 'ACTIVE',
+    createdAt: '2026-10-19 10:05',
+  },
+]
+
+const INITIAL_NORMAL_PRODUCTS: NormalProductItem[] = [
+  {
+    id: 'np-001',
+    merchantId: 'mer-001',
+    merchantName: '제주푸드 본사 직영',
+    name: '[입점사상시] 제주 산지직송 프리미엄 1등급 흑돼지 오겹살 1kg',
+    priceKrw: 38000,
+    salePriceKrw: 32900,
+    stock: 150,
+    shippingFee: 3000,
+    category: 'FOOD',
+    status: 'ACTIVE',
+    createdAt: '2026-10-21 15:00',
+  },
+  {
+    id: 'np-002',
+    merchantId: 'mer-001',
+    merchantName: '제주푸드 본사 직영',
+    name: '[입점사상시] 제주 유기농 감귤 착즙 원액주스 1000ml (3병 세트)',
+    priceKrw: 29000,
+    salePriceKrw: 24900,
+    stock: 80,
+    shippingFee: 0,
+    category: 'FOOD',
+    status: 'ACTIVE',
+    createdAt: '2026-10-20 12:30',
+  },
+  {
+    id: 'np-003',
+    merchantId: 'mer-002',
+    merchantName: '메디컬 헬스케어랩',
+    name: '[공식인증] 고순도 프리미엄 알티지 오메가3 120캡슐 (4개월분)',
+    priceKrw: 55000,
+    salePriceKrw: 42000,
+    stock: 200,
+    shippingFee: 2500,
+    category: 'LIVING',
+    status: 'ACTIVE',
+    createdAt: '2026-10-19 16:20',
+  },
+  {
+    id: 'np-004',
+    merchantId: 'mer-003',
+    merchantName: '어반 라이프 스타일',
+    name: '[입점사상시] 무소음 초음파 감성 아로마 무드등 가습기 500ml',
+    priceKrw: 42000,
+    salePriceKrw: 35000,
+    stock: 60,
+    shippingFee: 3000,
+    category: 'LIVING',
+    status: 'ACTIVE',
+    createdAt: '2026-10-18 11:45',
+  },
+]
+
+const INITIAL_GROUP_PRODUCTS: GroupBuyProductItem[] = [
+  {
+    id: 'gp-001',
+    title: '[공동구매 특가] 산지직송 나주 배 5kg 특등급 (목표 20박스)',
+    merchantName: '전남 파머스 마켓',
+    price: 19900,
+    originalPrice: 35000,
+    targetQuantity: 20,
+    currentQuantity: 17,
+    status: 'ACTIVE',
+    createdAt: '2026-10-22 10:00',
+  },
+  {
+    id: 'gp-002',
+    title: '[인스트림 라이브 공구] 호텔식 40수 순면 수건 10장 세트',
+    merchantName: '홈앤리빙 직영점',
+    price: 24000,
+    originalPrice: 42000,
+    targetQuantity: 50,
+    currentQuantity: 50,
+    status: 'COMPLETED',
+    createdAt: '2026-10-21 20:00',
+  },
+]
+
 export default function MarketEscrowAdminPage() {
   const { toast } = useToast()
-  const [orders, setOrders] = useState<MockEscrowOrder[]>(INITIAL_ORDERS)
+  const [activeMainTab, setActiveMainTab] = useState<'c2c' | 'b2c_normal' | 'b2c_group' | 'escrow'>('c2c')
+
+  // Search & Filter
   const [searchQuery, setSearchQuery] = useState('')
-  const [filterStatus, setFilterStatus] = useState<string>('ALL')
+  const [statusFilter, setStatusFilter] = useState('ALL')
 
-  const totalEscrowHold = orders
-    .filter((o) => o.status === 'ESCROW_HOLD' || o.status === 'SHIPPED')
-    .reduce((acc, cur) => acc + cur.amount, 0)
+  // Data states
+  const [c2cProducts, setC2cProducts] = useState<C2CProductItem[]>(INITIAL_C2C_PRODUCTS)
+  const [normalProducts, setNormalProducts] = useState<NormalProductItem[]>(INITIAL_NORMAL_PRODUCTS)
+  const [groupProducts, setGroupProducts] = useState<GroupBuyProductItem[]>(INITIAL_GROUP_PRODUCTS)
+  const [orders, setOrders] = useState<MockEscrowOrder[]>(INITIAL_ORDERS)
 
-  const totalCompletedVolume = orders
-    .filter((o) => o.status === 'CONFIRMED')
-    .reduce((acc, cur) => acc + cur.amount, 0)
+  // Load backend data if available
+  const loadBackendData = async () => {
+    try {
+      const [npRes, c2cRes] = await Promise.all([
+        api.get('/market/admin/normal-products').catch(() => null),
+        api.get('/market/admin/products').catch(() => null),
+      ])
+      if (npRes?.data?.items && Array.isArray(npRes.data.items)) {
+        setNormalProducts(npRes.data.items)
+      }
+      if (c2cRes?.data?.items && Array.isArray(c2cRes.data.items)) {
+        const c2cList = c2cRes.data.items.filter((p: any) => p.type === 'C2C_USED')
+        const groupList = c2cRes.data.items.filter((p: any) => p.type === 'B2C_GROUP')
+        if (c2cList.length > 0) {
+          setC2cProducts(
+            c2cList.map((p: any) => ({
+              id: p.id,
+              title: p.title,
+              sellerName: p.seller?.nickname || p.seller?.displayName || '판매자',
+              price: p.price,
+              category: p.category,
+              locationName: p.locationName || '동네 인증',
+              status: p.status,
+              createdAt: p.createdAt?.slice(0, 16) || '',
+            }))
+          )
+        }
+        if (groupList.length > 0) {
+          setGroupProducts(
+            groupList.map((p: any) => ({
+              id: p.id,
+              title: p.title,
+              merchantName: p.seller?.displayName || '공구 파트너',
+              price: p.price,
+              originalPrice: p.originalPrice || p.price * 1.3,
+              targetQuantity: p.targetQuantity || 20,
+              currentQuantity: p.currentQuantity || 10,
+              status: p.status,
+              createdAt: p.createdAt?.slice(0, 16) || '',
+            }))
+          )
+        }
+      }
+    } catch {}
+  }
 
-  const disputeCount = orders.filter((o) => o.status === 'DISPUTED').length
+  useEffect(() => {
+    loadBackendData()
+  }, [])
 
+  // Actions for C2C Products
+  const toggleC2cStatus = async (id: string, currentStatus: string) => {
+    const nextStatus = currentStatus === 'ACTIVE' ? 'CANCELLED' : 'ACTIVE'
+    setC2cProducts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, status: nextStatus as any } : p))
+    )
+    try {
+      await api.patch(`/market/admin/products/${id}/status`, { status: nextStatus })
+    } catch {}
+    toast({
+      title: nextStatus === 'ACTIVE' ? '물품 승인 완료' : '물품 강제 숨김 처리',
+      description: `상품 상태가 [${nextStatus === 'ACTIVE' ? '정상 노출' : '숨김(비노출)'}] 처리되었습니다.`,
+    })
+  }
+
+  // Actions for Normal Products (B2C)
+  const toggleNormalProductStatus = async (id: string, currentStatus: string) => {
+    const nextStatus = currentStatus === 'ACTIVE' ? 'HIDDEN' : 'ACTIVE'
+    setNormalProducts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, status: nextStatus as any } : p))
+    )
+    try {
+      await api.patch(`/market/admin/normal-products/${id}/status`, { status: nextStatus })
+    } catch {}
+    toast({
+      title: nextStatus === 'ACTIVE' ? '일반 상품 승인 노출' : '일반 상품 판매 숨김',
+      description: `입점사 상품 상태가 [${nextStatus === 'ACTIVE' ? '판매중(승인)' : '숨김'}] 처리되었습니다.`,
+    })
+  }
+
+  // Actions for Escrow Orders
   const handleForceConfirm = (orderId: string) => {
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, status: 'CONFIRMED' } : o))
@@ -129,7 +378,7 @@ export default function MarketEscrowAdminPage() {
     })
   }
 
-  // 판매자 정산용 은행 대량이체(CMS) 표준 CSV 다운로드
+  // Export CMS CSV
   const handleExportCmsCsv = () => {
     const confirmedOrders = orders.filter((o) => o.status === 'CONFIRMED')
     if (confirmedOrders.length === 0) {
@@ -161,262 +410,479 @@ export default function MarketEscrowAdminPage() {
     })
   }
 
-  const filteredOrders = orders.filter((o) => {
-    const matchesSearch =
-      o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.productTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.buyerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.sellerName.toLowerCase().includes(searchQuery.toLowerCase())
-    if (filterStatus === 'ALL') return matchesSearch
-    return matchesSearch && o.status === filterStatus
-  })
+  // KPI Calculations
+  const totalEscrowHold = orders
+    .filter((o) => o.status === 'ESCROW_HOLD' || o.status === 'SHIPPED')
+    .reduce((acc, cur) => acc + cur.amount, 0)
+  const totalCompletedVolume = orders
+    .filter((o) => o.status === 'CONFIRMED')
+    .reduce((acc, cur) => acc + cur.amount, 0)
+  const disputeCount = orders.filter((o) => o.status === 'DISPUTED').length
 
   return (
-    <div className="space-y-6 p-6">
-      {/* 헤더 */}
+    <div className="space-y-6">
+      {/* Page Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            마켓 & 에스크로 안전결제 관리
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <ShieldCheck className="w-6 h-6 text-primary" />
+            마켓 상품 통합 검수 & 에스크로 안전결제
           </h1>
-          <p className="text-sm text-slate-500">
-            DAGAON C2C 중고거래 및 B2C 공동구매 에스크로 펀드(1 ON = 1원) 보관 및 분쟁 중재
+          <p className="text-sm text-muted-foreground">
+            C2C 개인 중고 물품, B2C 입점사 상시 일반 상품, 공동구매 상품 3대 영역을 통합 검수하고 에스크로 펀드를 관리합니다.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportCmsCsv}>
-            <Download className="mr-2 h-4 w-4" /> 은행 이체 CMS 다운로드
+          <Button variant="outline" size="sm" onClick={handleExportCmsCsv} className="gap-1.5">
+            <Download className="w-4 h-4" /> 은행 이체 CMS 다운로드
           </Button>
-          <Button variant="outline" size="sm" onClick={() => toast({ title: '최신 거래 정보 갱신 완료' })}>
-            <RefreshCw className="mr-2 h-4 w-4" /> 새로고침
+          <Button variant="outline" size="sm" onClick={loadBackendData} className="gap-1.5">
+            <RefreshCw className="w-4 h-4" /> 새로고침
           </Button>
         </div>
       </div>
 
-      {/* 상단 핵심 KPI 요약 카드 */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-indigo-100 bg-gradient-to-br from-indigo-50/50 to-white shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">에스크로 보관 잔액</CardTitle>
-            <ShieldCheck className="h-5 w-5 text-indigo-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-indigo-700">
-              {totalEscrowHold.toLocaleString()} <span className="text-sm font-semibold">ON</span>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="border-border">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">C2C 중고 등록물품</p>
+                <h3 className="text-2xl font-bold mt-1">{c2cProducts.length}건</h3>
+              </div>
+              <ShoppingBag className="w-8 h-8 text-primary/40" />
             </div>
-            <p className="mt-1 text-xs text-slate-500">1:1 원화 가치 안전 보관 중</p>
           </CardContent>
         </Card>
 
-        <Card className="border-emerald-100 bg-gradient-to-br from-emerald-50/50 to-white shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">누적 거래 완료액</CardTitle>
-            <TrendingUp className="h-5 w-5 text-emerald-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-700">
-              {totalCompletedVolume.toLocaleString()} <span className="text-sm font-semibold">ON</span>
+        <Card className="border-border">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-emerald-500">B2C 입점사 일반상품</p>
+                <h3 className="text-2xl font-bold mt-1 text-emerald-500">{normalProducts.length}건</h3>
+              </div>
+              <Store className="w-8 h-8 text-emerald-500/40" />
             </div>
-            <p className="mt-1 text-xs text-slate-500">수수료(5%) 수익 정산 완료</p>
           </CardContent>
         </Card>
 
-        <Card className="border-amber-100 bg-gradient-to-br from-amber-50/50 to-white shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">분쟁(Dispute) 대기</CardTitle>
-            <AlertTriangle className="h-5 w-5 text-amber-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-700">
-              {disputeCount} <span className="text-sm font-semibold">건</span>
+        <Card className="border-border">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-indigo-500">B2C 공동구매 상품</p>
+                <h3 className="text-2xl font-bold mt-1 text-indigo-500">{groupProducts.length}건</h3>
+              </div>
+              <Users2 className="w-8 h-8 text-indigo-500/40" />
             </div>
-            <p className="mt-1 text-xs text-slate-500">관리자 신속 중재 필요</p>
           </CardContent>
         </Card>
 
-        <Card className="border-blue-100 bg-gradient-to-br from-blue-50/50 to-white shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">총 주문 건수</CardTitle>
-            <Store className="h-5 w-5 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-700">
-              {orders.length} <span className="text-sm font-semibold">건</span>
+        <Card className="bg-amber-500/5 border-amber-500/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-amber-500">에스크로 보관잔액</p>
+                <h3 className="text-2xl font-bold mt-1 text-amber-500 font-mono">
+                  {totalEscrowHold.toLocaleString()} <span className="text-sm">ON</span>
+                </h3>
+              </div>
+              <ShieldCheck className="w-8 h-8 text-amber-500/40" />
             </div>
-            <p className="mt-1 text-xs text-slate-500">C2C & B2C 통합 집계</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* 에스크로 주문 목록 카드 */}
-      <Card className="shadow-sm">
-        <CardHeader>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle className="text-lg font-bold">에스크로 주문 & 분쟁 중재 내역</CardTitle>
-              <CardDescription>
-                주문 상태별 실시간 모니터링 및 구매확정/환불 집행
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="relative w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="주문번호, 상품명, 회원명 검색..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 text-sm"
-                />
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* 상태 필터 탭 */}
-          <div className="mb-4 flex flex-wrap gap-2 border-b pb-3">
-            {[
-              { id: 'ALL', label: '전체' },
-              { id: 'ESCROW_HOLD', label: '에스크로 보관중' },
-              { id: 'SHIPPED', label: '발송/배송중' },
-              { id: 'CONFIRMED', label: '구매확정 완료' },
-              { id: 'DISPUTED', label: '분쟁 접수' },
-              { id: 'REFUNDED', label: '환불 완료' },
-            ].map((tab) => (
-              <Button
-                key={tab.id}
-                variant={filterStatus === tab.id ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setFilterStatus(tab.id)}
-                className="h-8 rounded-full text-xs"
-              >
-                {tab.label}
-              </Button>
-            ))}
-          </div>
+      {/* Main 4-Tab Navigation */}
+      <Tabs value={activeMainTab} onValueChange={(v) => setActiveMainTab(v as any)} className="space-y-4">
+        <TabsList className="grid grid-cols-4 w-full max-w-2xl bg-muted/60">
+          <TabsTrigger value="c2c" className="gap-2">
+            <ShoppingBag className="w-4 h-4" />
+            1. C2C 중고 물품 ({c2cProducts.length})
+          </TabsTrigger>
+          <TabsTrigger value="b2c_normal" className="gap-2">
+            <Store className="w-4 h-4" />
+            2. B2C 일반 상품 ({normalProducts.length})
+          </TabsTrigger>
+          <TabsTrigger value="b2c_group" className="gap-2">
+            <Users2 className="w-4 h-4" />
+            3. B2C 공동구매 ({groupProducts.length})
+          </TabsTrigger>
+          <TabsTrigger value="escrow" className="gap-2">
+            <ShieldCheck className="w-4 h-4" />
+            4. 에스크로 주문 & 분쟁 ({orders.length})
+          </TabsTrigger>
+        </TabsList>
 
-          {/* 테이블 */}
-          <div className="overflow-x-auto rounded-lg border border-slate-200">
-            <table className="w-full text-left text-sm text-slate-700">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">주문번호 / 일시</th>
-                  <th className="px-4 py-3">구분</th>
-                  <th className="px-4 py-3">물품 정보</th>
-                  <th className="px-4 py-3">구매자 / 판매자</th>
-                  <th className="px-4 py-3">결제금액 (1:1 ON)</th>
-                  <th className="px-4 py-3">에스크로 상태</th>
-                  <th className="px-4 py-3 text-right">중재 조치</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredOrders.map((order) => {
-                  const isDisputed = order.status === 'DISPUTED'
-                  return (
-                    <tr
-                      key={order.id}
-                      className={isDisputed ? 'bg-amber-50/40 hover:bg-amber-50/70' : 'hover:bg-slate-50/60'}
-                    >
-                      <td className="px-4 py-3 font-mono text-xs">
-                        <div className="font-semibold text-slate-900">{order.orderNumber}</div>
-                        <div className="text-slate-400">{order.createdAt}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-block rounded px-2 py-0.5 text-[11px] font-bold ${
-                            order.productType === 'C2C_USED'
-                              ? 'bg-blue-100 text-blue-700'
-                              : 'bg-purple-100 text-purple-700'
-                          }`}
-                        >
-                          {order.productType === 'C2C_USED' ? '중고거래' : '공동구매'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 font-medium text-slate-900">
-                        <div>{order.productTitle}</div>
-                        {order.disputeReason && (
-                          <div className="mt-1 text-xs text-rose-600">
-                            🚨 사유: {order.disputeReason}
+        {/* ======================================================== */}
+        {/* TAB 1: C2C 중고 물품 검수 */}
+        {/* ======================================================== */}
+        <TabsContent value="c2c" className="space-y-4">
+          <Card className="border-border">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">C2C 개인 중고 거래 물품 검수</CardTitle>
+              <CardDescription>
+                회원이 등록한 중고 거래 물품의 불법/유해물 여부를 검수하고 노출 승인 및 숨김 처리를 통제합니다.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs uppercase bg-muted/40 border-b border-border">
+                    <tr>
+                      <th className="px-5 py-3 font-semibold">물품명</th>
+                      <th className="px-5 py-3 font-semibold">판매자</th>
+                      <th className="px-5 py-3 font-semibold text-right">가격 (ON)</th>
+                      <th className="px-5 py-3 font-semibold">희망 거래 지역</th>
+                      <th className="px-5 py-3 font-semibold text-center">상태</th>
+                      <th className="px-5 py-3 font-semibold text-right">검수 통제</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {c2cProducts.map((p) => (
+                      <tr key={p.id} className="hover:bg-muted/20">
+                        <td className="px-5 py-3.5 font-medium">
+                          {p.title}
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            카테고리: {p.category} | 등록: {p.createdAt}
                           </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-xs">
-                        <div>구매: <span className="font-semibold">{order.buyerName}</span></div>
-                        <div>판매: <span className="font-semibold">{order.sellerName}</span></div>
-                      </td>
-                      <td className="px-4 py-3 font-bold text-indigo-700">
-                        {order.amount.toLocaleString()} ON
-                        <div className="text-[11px] font-normal text-slate-400">
-                          수수료: {order.platformFee.toLocaleString()} ON
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {order.status === 'ESCROW_HOLD' && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 border border-blue-200">
-                            <Clock className="h-3 w-3" /> 보관중
-                          </span>
-                        )}
-                        {order.status === 'SHIPPED' && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 border border-indigo-200">
-                            <Package className="h-3 w-3" /> 배송중
-                          </span>
-                        )}
-                        {order.status === 'CONFIRMED' && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
-                            <CheckCircle2 className="h-3 w-3" /> 확정완료
-                          </span>
-                        )}
-                        {order.status === 'DISPUTED' && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800 border border-amber-300">
-                            <AlertTriangle className="h-3 w-3" /> 분쟁접수
-                          </span>
-                        )}
-                        {order.status === 'REFUNDED' && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 border border-slate-300">
-                            환불완료
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {isDisputed ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="default"
-                              className="h-7 bg-emerald-600 hover:bg-emerald-700 text-xs px-2.5"
-                              onClick={() => handleForceConfirm(order.id)}
-                            >
-                              정상확정
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              className="h-7 text-xs px-2.5"
-                              onClick={() => handleRefundBuyer(order.id)}
-                            >
-                              구매자환불
-                            </Button>
-                          </div>
-                        ) : order.status === 'ESCROW_HOLD' || order.status === 'SHIPPED' ? (
+                        </td>
+                        <td className="px-5 py-3.5 text-muted-foreground">{p.sellerName}</td>
+                        <td className="px-5 py-3.5 text-right font-mono font-bold text-primary">
+                          {p.price.toLocaleString()} ON
+                        </td>
+                        <td className="px-5 py-3.5 text-muted-foreground">{p.locationName}</td>
+                        <td className="px-5 py-3.5 text-center">
+                          {p.status === 'ACTIVE' && (
+                            <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/30">
+                              판매중 (승인)
+                            </Badge>
+                          )}
+                          {p.status === 'RESERVED' && (
+                            <Badge className="bg-amber-500/15 text-amber-500 border-amber-500/30">
+                              예약중
+                            </Badge>
+                          )}
+                          {p.status === 'CANCELLED' && (
+                            <Badge className="bg-rose-500/15 text-rose-500 border-rose-500/30">
+                              숨김 (비노출)
+                            </Badge>
+                          )}
+                          {p.status === 'COMPLETED' && (
+                            <Badge variant="outline">거래 완료</Badge>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
                           <Button
                             size="sm"
-                            variant="outline"
-                            className="h-7 text-xs"
-                            onClick={() => handleForceConfirm(order.id)}
+                            variant={p.status === 'ACTIVE' ? 'destructive' : 'outline'}
+                            onClick={() => toggleC2cStatus(p.id, p.status)}
+                            className="gap-1"
                           >
-                            강제확정
+                            {p.status === 'ACTIVE' ? (
+                              <>
+                                <EyeOff className="w-3.5 h-3.5" />
+                                숨김 처리
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="w-3.5 h-3.5" />
+                                승인 노출
+                              </>
+                            )}
                           </Button>
-                        ) : (
-                          <span className="text-xs text-slate-400">조치 완료</span>
-                        )}
-                      </td>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ======================================================== */}
+        {/* TAB 2: B2C 입점사 상시 일반 상품 검수 */}
+        {/* ======================================================== */}
+        <TabsContent value="b2c_normal" className="space-y-4">
+          <Card className="border-border">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">B2C 입점사 상시 일반 상품(NormalProduct) 검수</CardTitle>
+              <CardDescription>
+                인증된 사업자(Merchant)가 상시 판매 등록한 공산품·식품·생활용품의 가격, 재고, 배송비 및 노출 상태를 관리합니다.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs uppercase bg-muted/40 border-b border-border">
+                    <tr>
+                      <th className="px-5 py-3 font-semibold">입점사 / 상품명</th>
+                      <th className="px-5 py-3 font-semibold text-right">정상가 (KRW)</th>
+                      <th className="px-5 py-3 font-semibold text-right">판매가 (할인가)</th>
+                      <th className="px-5 py-3 font-semibold text-center">재고 수량</th>
+                      <th className="px-5 py-3 font-semibold text-center">기본 배송비</th>
+                      <th className="px-5 py-3 font-semibold text-center">노출 상태</th>
+                      <th className="px-5 py-3 font-semibold text-right">상태 통제</th>
                     </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {normalProducts.map((p) => (
+                      <tr key={p.id} className="hover:bg-muted/20">
+                        <td className="px-5 py-3.5">
+                          <div className="font-semibold text-foreground">{p.name}</div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                            <Store className="w-3.5 h-3.5 text-primary" />
+                            {p.merchantName} | 카테고리: {p.category}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5 text-right font-mono text-muted-foreground line-through text-xs">
+                          {p.priceKrw.toLocaleString()}원
+                        </td>
+                        <td className="px-5 py-3.5 text-right font-mono font-bold text-primary">
+                          {(p.salePriceKrw ?? p.priceKrw).toLocaleString()}원
+                        </td>
+                        <td className="px-5 py-3.5 text-center font-mono font-semibold">
+                          {p.stock > 0 ? (
+                            <span>{p.stock}개</span>
+                          ) : (
+                            <Badge variant="destructive">품절</Badge>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 text-center text-xs font-mono">
+                          {p.shippingFee === 0 ? (
+                            <Badge variant="outline" className="text-emerald-500 border-emerald-500/30">
+                              무료배송
+                            </Badge>
+                          ) : (
+                            `${p.shippingFee.toLocaleString()}원`
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 text-center">
+                          {p.status === 'ACTIVE' && (
+                            <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/30">
+                              판매중 (승인)
+                            </Badge>
+                          )}
+                          {p.status === 'HIDDEN' && (
+                            <Badge className="bg-rose-500/15 text-rose-500 border-rose-500/30">
+                              숨김 (미노출)
+                            </Badge>
+                          )}
+                          {p.status === 'OUT_OF_STOCK' && (
+                            <Badge variant="outline">일시 품절</Badge>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          <Button
+                            size="sm"
+                            variant={p.status === 'ACTIVE' ? 'destructive' : 'default'}
+                            onClick={() => toggleNormalProductStatus(p.id, p.status)}
+                            className="gap-1"
+                          >
+                            {p.status === 'ACTIVE' ? (
+                              <>
+                                <EyeOff className="w-3.5 h-3.5" />
+                                숨김
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="w-3.5 h-3.5" />
+                                승인 노출
+                              </>
+                            )}
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ======================================================== */}
+        {/* TAB 3: B2C 공동구매 상품 검수 */}
+        {/* ======================================================== */}
+        <TabsContent value="b2c_group" className="space-y-4">
+          <Card className="border-border">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">B2C 공동구매(GroupBuy) 특가 검수</CardTitle>
+              <CardDescription>
+                인원 달성형 공구 상품의 목표 인원 모집 현황 및 특가 할인율 검수 통제
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs uppercase bg-muted/40 border-b border-border">
+                    <tr>
+                      <th className="px-5 py-3 font-semibold">공구 상품명</th>
+                      <th className="px-5 py-3 font-semibold">제공사</th>
+                      <th className="px-5 py-3 font-semibold text-right">공구가격 (KRW)</th>
+                      <th className="px-5 py-3 font-semibold text-center">공구 달성률</th>
+                      <th className="px-5 py-3 font-semibold text-center">상태</th>
+                      <th className="px-5 py-3 font-semibold text-right">관리</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {groupProducts.map((p) => {
+                      const rate = Math.round((p.currentQuantity / p.targetQuantity) * 100)
+                      return (
+                        <tr key={p.id} className="hover:bg-muted/20">
+                          <td className="px-5 py-3.5 font-medium">{p.title}</td>
+                          <td className="px-5 py-3.5 text-muted-foreground">{p.merchantName}</td>
+                          <td className="px-5 py-3.5 text-right font-mono font-bold text-primary">
+                            {p.price.toLocaleString()}원
+                            <span className="text-xs text-muted-foreground line-through block font-normal">
+                              {p.originalPrice.toLocaleString()}원
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5 text-center">
+                            <div className="font-mono text-xs font-bold text-indigo-500">
+                              {p.currentQuantity} / {p.targetQuantity}명 ({rate}%)
+                            </div>
+                            <div className="w-24 h-1.5 bg-muted rounded-full mx-auto mt-1 overflow-hidden">
+                              <div
+                                className="h-full bg-indigo-500 rounded-full"
+                                style={{ width: `${Math.min(100, rate)}%` }}
+                              />
+                            </div>
+                          </td>
+                          <td className="px-5 py-3.5 text-center">
+                            {p.status === 'ACTIVE' && (
+                              <Badge className="bg-indigo-500/15 text-indigo-500 border-indigo-500/30">
+                                모집 진행중
+                              </Badge>
+                            )}
+                            {p.status === 'COMPLETED' && (
+                              <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/30">
+                                공구 마감 (성공)
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="px-5 py-3.5 text-right">
+                            <Button size="sm" variant="outline" className="gap-1">
+                              상세 모니터링
+                            </Button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ======================================================== */}
+        {/* TAB 4: 에스크로 주문 & 분쟁 관리 (기존 고도화 유지) */}
+        {/* ======================================================== */}
+        <TabsContent value="escrow" className="space-y-4">
+          <Card className="border-border">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">에스크로 안전결제 주문 & 분쟁 중재</CardTitle>
+              <CardDescription>
+                PG 안전결제 주문의 예치 상태 모니터링 및 분쟁(Dispute) 구매확정 / 환불 집행
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs uppercase bg-muted/40 border-b border-border">
+                    <tr>
+                      <th className="px-5 py-3 font-semibold">주문번호 / 일시</th>
+                      <th className="px-5 py-3 font-semibold">상품명</th>
+                      <th className="px-5 py-3 font-semibold">구매자 / 판매자</th>
+                      <th className="px-5 py-3 font-semibold text-right">결제금액 (ON)</th>
+                      <th className="px-5 py-3 font-semibold text-center">에스크로 상태</th>
+                      <th className="px-5 py-3 font-semibold text-right">중재 조치</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {orders.map((o) => (
+                      <tr key={o.id} className="hover:bg-muted/20">
+                        <td className="px-5 py-3.5">
+                          <div className="font-mono font-medium">{o.orderNumber}</div>
+                          <div className="text-xs text-muted-foreground">{o.createdAt}</div>
+                        </td>
+                        <td className="px-5 py-3.5 font-medium">
+                          {o.productTitle}
+                          {o.disputeReason && (
+                            <div className="text-xs text-rose-500 font-normal mt-0.5">
+                              🚨 분쟁 사유: {o.disputeReason}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 text-xs text-muted-foreground">
+                          구매: {o.buyerName} <br />
+                          판매: {o.sellerName}
+                        </td>
+                        <td className="px-5 py-3.5 text-right font-mono font-bold text-primary">
+                          {o.amount.toLocaleString()} ON
+                        </td>
+                        <td className="px-5 py-3.5 text-center">
+                          {o.status === 'ESCROW_HOLD' && (
+                            <Badge className="bg-amber-500/15 text-amber-500 border-amber-500/30">
+                              에스크로 예치중
+                            </Badge>
+                          )}
+                          {o.status === 'SHIPPED' && (
+                            <Badge className="bg-blue-500/15 text-blue-500 border-blue-500/30">
+                              배송중
+                            </Badge>
+                          )}
+                          {o.status === 'CONFIRMED' && (
+                            <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/30">
+                              구매확정 완료
+                            </Badge>
+                          )}
+                          {o.status === 'DISPUTED' && (
+                            <Badge className="bg-rose-500/15 text-rose-500 border-rose-500/30">
+                              분쟁 접수
+                            </Badge>
+                          )}
+                          {o.status === 'REFUNDED' && (
+                            <Badge variant="outline">환불 완료</Badge>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          {o.status === 'DISPUTED' || o.status === 'ESCROW_HOLD' ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="bg-emerald-600 hover:bg-emerald-700 h-7 text-xs"
+                                onClick={() => handleForceConfirm(o.id)}
+                              >
+                                정산 승인
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="h-7 text-xs"
+                                onClick={() => handleRefundBuyer(o.id)}
+                              >
+                                환불 집행
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">처리 완료</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

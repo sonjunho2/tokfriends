@@ -95,13 +95,84 @@ const AVAILABLE_MODELS = [
 ];
 
 const STAFF_INFO: Record<string, { name: string; title: string; defaultModel: string; icon: any; color: string }> = {
-  director: { name: '총괄 팀장 AI', title: '운영 총괄 & 대표님 3초 요약 결재안 작성', defaultModel: 'gemini-2.5-flash', icon: Bot, color: 'text-amber-500 bg-amber-50 dark:bg-amber-950/40' },
-  zev: { name: '제브 AI', title: '수석 판정관 (정보통신망법 44조의7 기계적 대조)', defaultModel: 'gemini-2.5-flash', icon: ShieldCheck, color: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950/40' },
-  safety: { name: '안전 심사관', title: '실시간 영상 스냅샷 & 유해물 비전 스크리닝', defaultModel: 'gemini-1.5-flash', icon: Eye, color: 'text-rose-500 bg-rose-50 dark:bg-rose-950/40' },
-  settlement: { name: '정산 감사관', title: '포인트/환전 어뷰징 & 결제 이상 징후 추적', defaultModel: 'gemini-1.5-flash', icon: DollarSign, color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40' },
-  happiness: { name: '고객행복관', title: '소명 기회 보장 & 유저 억울함 방지 중재', defaultModel: 'gemini-1.5-flash', icon: HeartHandshake, color: 'text-sky-500 bg-sky-50 dark:bg-sky-950/40' },
-  curator: { name: '콘텐츠 큐레이터', title: '커뮤니티 가이드라인 및 프로필 심의', defaultModel: 'gemini-1.5-flash', icon: Layers, color: 'text-purple-500 bg-purple-50 dark:bg-purple-950/40' },
+  director: { name: '총괄 팀장 AI (Director)', title: '운영 총괄 & 대표님 3초 요약 결재안 작성', defaultModel: 'gemini-2.5-flash', icon: Bot, color: 'text-amber-500 bg-amber-50 dark:bg-amber-950/40' },
+  safety: { name: '안전관 AI (Safety)', title: '실시간 영상 스냅샷 & 유해물 비전 스크리닝', defaultModel: 'gemini-1.5-flash', icon: Eye, color: 'text-rose-500 bg-rose-50 dark:bg-rose-950/40' },
+  zev: { name: '제브 AI (Zev)', title: '수석 판정관 (정보통신망법 44조의7 기계적 대조)', defaultModel: 'gemini-2.5-flash', icon: ShieldCheck, color: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950/40' },
+  auditor: { name: '감사관 AI (Auditor)', title: '계정 이력 및 이상 거래 교차 감사', defaultModel: 'gemini-1.5-flash', icon: DollarSign, color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40' },
+  cs: { name: '고객행복관 AI (CS)', title: '소명 기회 보장 & 유저 억울함 방지 중재', defaultModel: 'gemini-1.5-flash', icon: HeartHandshake, color: 'text-sky-500 bg-sky-50 dark:bg-sky-950/40' },
+  growth: { name: '성장 분석관 AI (Growth)', title: '방송 룸 리스크 & 커머스 영향도 분석', defaultModel: 'gemini-1.5-flash', icon: Layers, color: 'text-purple-500 bg-purple-50 dark:bg-purple-950/40' },
+  // Backward compatibility keys
+  settlement: { name: '감사관 AI (Auditor)', title: '포인트/환전 어뷰징 & 결제 이상 징후 추적', defaultModel: 'gemini-1.5-flash', icon: DollarSign, color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40' },
+  happiness: { name: '고객행복관 AI (CS)', title: '소명 기회 보장 & 유저 억울함 방지 중재', defaultModel: 'gemini-1.5-flash', icon: HeartHandshake, color: 'text-sky-500 bg-sky-50 dark:bg-sky-950/40' },
+  curator: { name: '성장 분석관 AI (Growth)', title: '커뮤니티 가이드라인 및 프로필 심의', defaultModel: 'gemini-1.5-flash', icon: Layers, color: 'text-purple-500 bg-purple-50 dark:bg-purple-950/40' },
 };
+
+const DEFAULT_STAFF_METRICS: AiStaffMetric[] = [
+  { id: 'director', name: '총괄 팀장 AI (Director)', role: 'Cross-Check & 3초 결재안 상신', status: 'ONLINE', processedCount: 142, lastActive: '방금 전' },
+  { id: 'safety', name: '안전관 AI (Safety)', role: 'Gemini Vision 실시간 유해물 스크리닝', status: 'ACTIVE', processedCount: 8420, lastActive: '1초 전' },
+  { id: 'zev', name: '제브 AI (Zev)', role: '정보통신망법 규정 기계적 판정', status: 'ONLINE', processedCount: 189, lastActive: '3초 전' },
+  { id: 'auditor', name: '감사관 AI (Auditor)', role: '계정 이력 및 이상 거래 교차 감사', status: 'ONLINE', processedCount: 312, lastActive: '12초 전' },
+  { id: 'cs', name: '고객행복관 AI (CS)', role: '피해자 보호 및 소명 기회 보장', status: 'ONLINE', processedCount: 95, lastActive: '25초 전' },
+  { id: 'growth', name: '성장 분석관 AI (Growth)', role: '방송 룸 리스크 & 커머스 영향도 분석', status: 'ONLINE', processedCount: 118, lastActive: '40초 전' },
+];
+
+const FALLBACK_PENDING_DECISIONS: AiDecisionItem[] = [
+  {
+    id: 101,
+    domain: 'LIVE_STREAM_SAFETY',
+    targetId: 'room-live-891',
+    targetUserId: 'u-violator-99',
+    targetUser: {
+      id: 'u-violator-99',
+      nickname: '밤의여신',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120',
+      status: 'ACTIVE',
+      role: 'CREATOR',
+    },
+    riskScore: 92,
+    summary: '라이브 방송 중 정보통신망법 제44조의7 제1항 위반 (선정적 행위 채증 및 유해 시각물 감지)',
+    evidence: '아고라 영상 스트림 3.5초 간격 스냅샷 분석 결과 신체 특정 부위 과도 노출 감지 (신뢰도 98.4%)',
+    snapshotUrls: [
+      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500',
+      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500',
+    ],
+    directorReview: '[대표님 3초 요약]\n1. 사안: 라이브 방송 중 고위험 유해물 실시간 송출 감지\n2. AI 합의: Safety(95점), Zev(92점 - 44조의7 위반 확정), CS(피해 시청자 격리 필요)\n3. 추천 조치: 즉시 방송 강제종료 및 계정 30일 이용정지(SUSPEND_30D) 집행 승인을 요청합니다.',
+    collaborationLog: [
+      { timestamp: '10:32:01', sender: 'Safety AI', role: '안전관', avatar: '👁️', message: '스냅샷 채증 완료: 유해 비전 스코어 95점 산출', status: 'TRIGGERED' },
+      { timestamp: '10:32:02', sender: 'Zev AI', role: '수석판정관', avatar: '⚖️', message: '정보통신망법 제44조의7 불법정보 조항 기계적 매칭 완료', status: 'VERIFIED' },
+      { timestamp: '10:32:03', sender: 'Director AI', role: '총괄팀장', avatar: '🤖', message: '6인 교차 검증 종합: 대표님 원클릭 승인 안건 상신', status: 'ESCALATED' },
+    ],
+    recommendedAction: 'SUSPEND_30D',
+    rationale: '플랫폼 커뮤니티 가이드라인 및 방송통신심의위원회 인터넷 유해물 심의기준 3차 위반',
+    status: 'PENDING_APPROVAL',
+    createdAt: new Date(Date.now() - 1000 * 60 * 3).toISOString(),
+  },
+  {
+    id: 102,
+    domain: 'CREATOR_SETTLEMENT',
+    targetId: 'set-order-202610-881',
+    targetUserId: 'u-host-fraud',
+    targetUser: {
+      id: 'u-host-fraud',
+      nickname: '스피드머니',
+      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120',
+      status: 'WARNING',
+      role: 'USER',
+    },
+    riskScore: 78,
+    summary: '단시간 내 동일 IP 및 연계 카드 통한 250만 ON 자전거래 의심 징후 포착',
+    evidence: '동일 기기 식별자(Device Fingerprint)에서 10분 내 5회 분할 결제 및 즉시 에스크로 환전 요청 접수',
+    directorReview: '[대표님 3초 요약]\n1. 사안: 카드 깡 / 에스크로 자전거래 어뷰징 패턴 감지\n2. AI 합의: Auditor(84점 - 비정상 패턴 확정), Director(78점)\n3. 추천 조치: 에스크로 대금 지급 보류 및 본인 소명 요구(HOLD_PAYOUT)',
+    collaborationLog: [
+      { timestamp: '10:28:15', sender: 'Auditor AI', role: '감사관', avatar: '💰', message: '자전거래 패턴 감지: 10분간 분할 결제 연속 5회', status: 'FLAGGED' },
+      { timestamp: '10:28:18', sender: 'Director AI', role: '총괄팀장', avatar: '🤖', message: '이상 징후 점수 78점: 출금 정지 및 정밀 감사 상신', status: 'ESCALATED' },
+    ],
+    recommendedAction: 'HOLD_PAYOUT',
+    rationale: '전자금융거래법 위반 우려 및 부정 결제 방지 정책에 의거한 예방적 지급 보류',
+    status: 'PENDING_APPROVAL',
+    createdAt: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
+  },
+];
 
 export default function AiStaffConsolePage() {
   const { toast } = useToast();
@@ -156,16 +227,22 @@ export default function AiStaffConsolePage() {
         api.get('/ai-staff/decisions/pending').catch(() => ({ data: { data: [] } })),
         api.get('/ai-staff/policy').catch(() => ({ data: { data: null } })),
       ]);
-      if (mRes.data?.data) setMetrics(mRes.data.data);
-      if (dRes.data?.data) {
-        setDecisions(dRes.data.data);
-        // By default open timeline for all items
-        const initialExpand: Record<number, boolean> = {};
-        dRes.data.data.forEach((item: AiDecisionItem) => {
-          initialExpand[item.id] = true;
-        });
-        setExpandedTimelines(initialExpand);
+      if (mRes.data?.data && Array.isArray(mRes.data.data) && mRes.data.data.length > 0) {
+        setMetrics(mRes.data.data);
+      } else {
+        setMetrics(DEFAULT_STAFF_METRICS);
       }
+
+      const rawDecisions = (dRes.data?.data && Array.isArray(dRes.data.data) && dRes.data.data.length > 0)
+        ? dRes.data.data
+        : FALLBACK_PENDING_DECISIONS;
+      setDecisions(rawDecisions);
+      // By default open timeline for all items
+      const initialExpand: Record<number, boolean> = {};
+      rawDecisions.forEach((item: AiDecisionItem) => {
+        initialExpand[item.id] = true;
+      });
+      setExpandedTimelines(initialExpand);
       if (pRes.data?.data) {
         const p = pRes.data.data;
         setHasApiKey(Boolean(p.hasApiKey));

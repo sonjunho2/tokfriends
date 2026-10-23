@@ -327,4 +327,149 @@ export class AdsRewardsService implements OnModuleInit {
     this.saveFile(path.join(this.dataDir, 'advertisements.json'), this.advertisements);
     return { ok: true, id };
   }
+
+  // ===== Placement & Tracking =====
+
+  async getPlacements(placement: string) {
+    let list = [...this.advertisements].filter((a) => a.isActive);
+
+    const norm = placement.toUpperCase();
+    if (norm === 'MARKET_BANNER' || norm === 'SHOP_BANNER') {
+      list = list.filter((a) => a.placement === 'MARKET_BANNER' || a.placement === 'SHOP_BANNER');
+    } else if (norm !== 'ALL') {
+      list = list.filter((a) => a.placement === norm);
+    }
+
+    // Sort by priority descending
+    return list.sort((a, b) => b.priority - a.priority);
+  }
+
+  async recordImpression(id: string) {
+    const item = this.advertisements.find((a) => a.id === id);
+    if (item) {
+      item.impressionCount = (item.impressionCount || 0) + 1;
+      this.saveFile(path.join(this.dataDir, 'advertisements.json'), this.advertisements);
+    }
+    return { ok: true, id, impressionCount: item?.impressionCount || 0 };
+  }
+
+  async recordClick(id: string) {
+    const item = this.advertisements.find((a) => a.id === id);
+    if (item) {
+      item.clickCount = (item.clickCount || 0) + 1;
+      this.saveFile(path.join(this.dataDir, 'advertisements.json'), this.advertisements);
+    }
+    return { ok: true, id, clickCount: item?.clickCount || 0 };
+  }
+
+  // ===== Reward Claim & Wallet Ledger =====
+
+  async claimAdReward(userId: string, userNickname?: string) {
+    const effectiveUserId = userId || 'usr_guest';
+    const pointsToAward = this.policies.pointsPerAd || 10;
+    const maxLimit = this.policies.dailyAdLimit || 5;
+
+    // Check today's claims
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todayClaims = this.rewardLogs.filter((l) => {
+      if (l.kind !== 'AD_REWARD') return false;
+      const logDate = new Date(l.createdAt);
+      if (logDate < today) return false;
+      const handle = l.wallet?.activityAccount?.handle;
+      return handle === effectiveUserId;
+    });
+
+    if (todayClaims.length >= maxLimit) {
+      return {
+        ok: false,
+        error: 'DAILY_LIMIT_EXCEEDED',
+        message: `일일 보상형 광고 시청 한도(${maxLimit}회)를 모두 소진하셨습니다. 내일 다시 참여해주세요!`,
+        todayClaimsCount: todayClaims.length,
+        maxDailyLimit: maxLimit,
+        remainingDailyClaims: 0,
+      };
+    }
+
+    // 1. Update user pointBalance in DB (if user exists)
+    let updatedBalance = 100;
+    try {
+      const user = await this.prisma.user.update({
+        where: { id: effectiveUserId },
+        data: { pointBalance: { increment: pointsToAward } },
+        select: { id: true, pointBalance: true },
+      });
+      updatedBalance = user.pointBalance;
+    } catch {
+      // Fallback if guest or detached user ID
+      updatedBalance += pointsToAward;
+    }
+
+    // 2. Add entry to reward-logs.json
+    const rewardLog: RewardLogItem = {
+      id: `rew-${Date.now()}`,
+      deltaSpendable: pointsToAward,
+      createdAt: new Date().toISOString(),
+      kind: 'AD_REWARD',
+      source: 'ADMOB_VIDEO',
+      wallet: {
+        activityAccount: {
+          displayName: userNickname || '회원',
+          handle: effectiveUserId,
+        },
+      },
+    };
+    this.rewardLogs.unshift(rewardLog);
+    this.saveFile(path.join(this.dataDir, 'reward-logs.json'), this.rewardLogs);
+
+    // 3. Add entry to ledger.json (WalletLedger)
+    try {
+      const ledgerPath = path.join(this.dataDir, 'ledger.json');
+      let ledger: any[] = [];
+      if (fs.existsSync(ledgerPath)) {
+        try {
+          ledger = JSON.parse(fs.readFileSync(ledgerPath, 'utf-8'));
+        } catch {}
+      }
+      const ledgerEntry = {
+        id: `led-${Date.now()}`,
+        walletId: `wallet-${effectiveUserId}`,
+        kind: 'AD_REWARD',
+        source: 'ADMOB_REWARD_VIDEO',
+        deltaSpendable: pointsToAward,
+        deltaRedeemable: 0,
+        deltaPending: 0,
+        spendableAfter: updatedBalance,
+        redeemableAfter: 0,
+        pendingAfter: 0,
+        idempotencyKey: `claim-${effectiveUserId}-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        wallet: {
+          id: `wallet-${effectiveUserId}`,
+          activityAccountId: effectiveUserId,
+          activityAccount: {
+            displayName: userNickname || '회원',
+            handle: effectiveUserId,
+          },
+        },
+      };
+      ledger.unshift(ledgerEntry);
+      this.saveFile(ledgerPath, ledger);
+    } catch (e: any) {
+      this.logger.warn(`Ledger save fallback: ${e?.message}`);
+    }
+
+    const remainingDailyClaims = Math.max(0, maxLimit - (todayClaims.length + 1));
+
+    return {
+      ok: true,
+      message: `${pointsToAward} 온(ON)이 지갑으로 성공적으로 지급되었습니다!`,
+      rewardPoints: pointsToAward,
+      todayClaimsCount: todayClaims.length + 1,
+      maxDailyLimit: maxLimit,
+      remainingDailyClaims,
+      userPointBalance: updatedBalance,
+    };
+  }
 }

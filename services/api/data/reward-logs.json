@@ -1,5 +1,70 @@
 [
   {
+    "id": "rew-1792720614988",
+    "deltaSpendable": 10,
+    "createdAt": "2026-10-23T01:56:54.988Z",
+    "kind": "AD_REWARD",
+    "source": "ADMOB_VIDEO",
+    "wallet": {
+      "activityAccount": {
+        "displayName": "리워드테스터",
+        "handle": "usr_reward_test_1792720614945"
+      }
+    }
+  },
+  {
+    "id": "rew-1792720614984",
+    "deltaSpendable": 10,
+    "createdAt": "2026-10-23T01:56:54.984Z",
+    "kind": "AD_REWARD",
+    "source": "ADMOB_VIDEO",
+    "wallet": {
+      "activityAccount": {
+        "displayName": "리워드테스터",
+        "handle": "usr_reward_test_1792720614945"
+      }
+    }
+  },
+  {
+    "id": "rew-1792720614979",
+    "deltaSpendable": 10,
+    "createdAt": "2026-10-23T01:56:54.979Z",
+    "kind": "AD_REWARD",
+    "source": "ADMOB_VIDEO",
+    "wallet": {
+      "activityAccount": {
+        "displayName": "리워드테스터",
+        "handle": "usr_reward_test_1792720614945"
+      }
+    }
+  },
+  {
+    "id": "rew-1792720614974",
+    "deltaSpendable": 10,
+    "createdAt": "2026-10-23T01:56:54.974Z",
+    "kind": "AD_REWARD",
+    "source": "ADMOB_VIDEO",
+    "wallet": {
+      "activityAccount": {
+        "displayName": "리워드테스터",
+        "handle": "usr_reward_test_1792720614945"
+      }
+    }
+  },
+  {
+    "id": "rew-1792720614970",
+    "deltaSpendable": 10,
+    "createdAt": "2026-10-23T01:56:54.970Z",
+    "kind": "AD_REWARD",
+    "source": "ADMOB_VIDEO",
+    "wallet": {
+      "activityAccount": {
+        "displayName": "리워드테스터",
+        "handle": "usr_reward_test_1792720614945"
+      }
+    }
+  },
+  {
     "id": "rew-001",
     "deltaSpendable": 10,
     "createdAt": "2026-10-17T05:17:08.750Z",

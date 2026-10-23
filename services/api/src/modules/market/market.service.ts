@@ -332,4 +332,50 @@ export class MarketService {
       },
     });
   }
+
+  /**
+   * 관리자용 상품 상태 변경 (승인 / 숨김 / 판매종료)
+   */
+  async updateProductStatus(productId: string, status: ProductStatus) {
+    const product = await this.prisma.marketProduct.findUnique({
+      where: { id: productId },
+    });
+    if (!product) {
+      throw new NotFoundException('상품을 찾을 수 없습니다.');
+    }
+    return this.prisma.marketProduct.update({
+      where: { id: productId },
+      data: { status },
+    });
+  }
+
+  /**
+   * 관리자용 상품 전체 검수 목록 (C2C, B2C_GROUP)
+   */
+  async getAllProductsForAdmin(type?: MarketProductType, status?: ProductStatus, search?: string) {
+    const where: any = {};
+    if (type) where.type = type;
+    if (status) where.status = status;
+    if (search && search.trim()) {
+      where.OR = [
+        { title: { contains: search.trim(), mode: 'insensitive' } },
+        { description: { contains: search.trim(), mode: 'insensitive' } },
+      ];
+    }
+    const items = await this.prisma.marketProduct.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        seller: {
+          select: {
+            id: true,
+            nickname: true,
+            displayName: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+    return { ok: true, items, total: items.length };
+  }
 }

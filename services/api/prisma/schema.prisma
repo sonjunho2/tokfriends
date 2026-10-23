@@ -33,6 +33,7 @@ model User {
   sudaPosts          SudaPost[]
   sellerSettlements  SellerSettlement[]
   liveRooms          LiveRoom[]
+  merchant           Merchant?
   adminProfile       AdminProfile?
   auditLogs          AuditLog[]
   createdAt          DateTime             @default(now())
@@ -428,30 +429,33 @@ model LiveRoom {
   hostId           String
   host             User              @relation(fields: [hostId], references: [id], onDelete: Cascade)
   status           String            @default("ACTIVE") // ACTIVE, ENDED
-  hasCommerce      Boolean           @default(false)    // 라이브 커머스 상품 연결 여부
-  pinnedProductId  String?           // 현재 화면에 고정된 핀 상품 ID
-  pinnedProduct    MarketProduct?    @relation("PinnedProduct", fields: [pinnedProductId], references: [id])
-  coverUri         String?
-  startedAt        DateTime          @default(now())
-  endedAt          DateTime?
-  productLinks     LiveProductLink[]
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  hasCommerce            Boolean           @default(false)    // 라이브 커머스 상품 연결 여부
+  pinnedProductId        String?           // 현재 화면에 고정된 핀 상품 ID
+  pinnedProduct          MarketProduct?    @relation("PinnedProduct", fields: [pinnedProductId], references: [id])
+  pinnedNormalProductId  String?           // 현재 화면에 고정된 입점사 일반 상품 ID
+  pinnedNormalProduct    NormalProduct?    @relation("PinnedNormalProduct", fields: [pinnedNormalProductId], references: [id])
+  coverUri               String?
+  startedAt              DateTime          @default(now())
+  endedAt                DateTime?
+  productLinks           LiveProductLink[]
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
 
   @@index([status, hasCommerce])
   @@index([hostId])
 }
 
 model LiveProductLink {
-  id         String        @id @default(uuid())
-  roomId     String
-  room       LiveRoom      @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  productId  String
-  product    MarketProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
-  isPinned   Boolean       @default(false)
-  createdAt  DateTime      @default(now())
+  id              String         @id @default(uuid())
+  roomId          String
+  room            LiveRoom       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  productId       String?
+  product         MarketProduct? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  normalProductId String?
+  normalProduct   NormalProduct? @relation(fields: [normalProductId], references: [id], onDelete: Cascade)
+  isPinned        Boolean        @default(false)
+  createdAt       DateTime       @default(now())
 
-  @@unique([roomId, productId])
   @@index([roomId])
 }
 
@@ -465,4 +469,65 @@ model LiveCommercePin {
   unpinnedAt      DateTime?
 
   @@index([channelId, isPinned])
+}
+
+// ==========================================
+// 5. 입점사(Merchant) 및 B2C 상시 일반 상품(NormalProduct)
+// ==========================================
+model Merchant {
+  id                String          @id @default(uuid())
+  userId            String          @unique
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName      String
+  businessNumber    String          @unique
+  representative    String
+  onlineOrderNumber String?
+  businessCertUrl   String?
+  onlineOrderUrl    String?
+  status            MerchantStatus  @default(PENDING_REVIEW)
+  feeRate           Float           @default(10.0) // 기본 10.0%
+  bankName          String?
+  accountNumber     String?
+  accountHolder     String?
+  products          NormalProduct[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([status, createdAt])
+}
+
+enum MerchantStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+model NormalProduct {
+  id           String              @id @default(uuid())
+  merchantId   String
+  merchant     Merchant            @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  name         String
+  description  String              @db.Text
+  priceKrw     Int
+  salePriceKrw Int?
+  stock        Int                 @default(0)
+  images       String[]
+  category     String
+  status       NormalProductStatus @default(ACTIVE)
+  shippingFee  Int                 @default(0)
+  liveLinks    LiveProductLink[]
+  pinnedInLive LiveRoom[]          @relation("PinnedNormalProduct")
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([merchantId, status])
+  @@index([category, status])
+}
+
+enum NormalProductStatus {
+  ACTIVE
+  OUT_OF_STOCK
+  HIDDEN
+  DELETED
 }

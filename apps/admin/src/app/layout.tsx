@@ -21,6 +21,8 @@ import {
   ShoppingBag,
   Shuffle,
   Users,
+  Store,
+  Tv,
 } from 'lucide-react'
 import { AppShell, type AppShellNavItem } from '@/components/layout/app-shell'
 import { ThemeProvider } from '@/components/providers/theme-provider'
@@ -74,11 +76,25 @@ const NAV_ITEMS: AppShellNavItem[] = [
     accent: 'live',
   },
   {
+    label: '입점사 심사·관리',
+    href: '/merchants',
+    description: 'B2C 입점 신청 심사, 사업자 서류 검수 및 수수료율 확정',
+    group: '커머스·수익',
+    icon: Store,
+  },
+  {
     label: '마켓 & 에스크로 관리',
     href: '/market-escrow',
     description: 'C2C/공동구매 및 에스크로 안전결제·분쟁 중재',
     group: '커머스·수익',
     icon: ShieldCheck,
+  },
+  {
+    label: '광고 & 리워드 관리',
+    href: '/ads-rewards',
+    description: '구좌별 배너 광고 캠페인 및 보상형 리워드 정책 관리',
+    group: '커머스·수익',
+    icon: Tv,
   },
   {
     label: '온(ON) 상점',

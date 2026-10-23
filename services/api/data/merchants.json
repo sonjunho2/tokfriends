@@ -1,0 +1,93 @@
+[
+  {
+    "id": "mer-1792720614859",
+    "userId": "test-user-1792720614859",
+    "businessName": "테스트 프레시 마켓",
+    "businessNumber": "999-29-17053",
+    "representative": "홍길동",
+    "onlineOrderNumber": "2026-서울강남-9999",
+    "status": "APPROVED",
+    "feeRate": 9.5,
+    "bankName": "토스뱅크",
+    "accountNumber": "1000-1111-2222",
+    "accountHolder": "홍길동(테스트)",
+    "createdAt": "2026-10-23T01:56:54.859Z",
+    "updatedAt": "2026-10-23T01:56:54.990Z",
+    "productCount": 0
+  },
+  {
+    "id": "mer-001",
+    "userId": "u-merchant-1",
+    "businessName": "제주푸드 본사 직영",
+    "businessNumber": "616-81-99201",
+    "representative": "고성훈",
+    "onlineOrderNumber": "2025-제주오라-0112",
+    "businessCertUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600",
+    "onlineOrderUrl": "https://images.unsplash.com/photo-1450133064473-71024230f91b?w=600",
+    "status": "APPROVED",
+    "feeRate": 9.5,
+    "bankName": "제주은행",
+    "accountNumber": "200-11-928172",
+    "accountHolder": "제주푸드(주)",
+    "createdAt": "2026-10-13T01:56:54.345Z",
+    "updatedAt": "2026-10-21T01:56:54.345Z",
+    "user": {
+      "id": "u-merchant-1",
+      "nickname": "제주흑돈직영",
+      "displayName": "제주푸드 본사 직영",
+      "email": "jeju_food@example.com",
+      "avatarUrl": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120"
+    },
+    "productCount": 4
+  },
+  {
+    "id": "mer-002",
+    "userId": "u-merchant-2",
+    "businessName": "메디컬 헬스케어랩",
+    "businessNumber": "214-88-34190",
+    "representative": "김정민",
+    "onlineOrderNumber": "2026-서울강남-0482",
+    "businessCertUrl": "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=600",
+    "onlineOrderUrl": "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600",
+    "status": "APPROVED",
+    "feeRate": 10,
+    "bankName": "국민은행",
+    "accountNumber": "481202-01-382910",
+    "accountHolder": "(주)메디컬랩",
+    "createdAt": "2026-10-18T01:56:54.345Z",
+    "updatedAt": "2026-10-22T01:56:54.345Z",
+    "user": {
+      "id": "u-merchant-2",
+      "nickname": "메디케어몰",
+      "displayName": "메디컬 헬스케어랩",
+      "email": "medical_care@example.com",
+      "avatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120"
+    },
+    "productCount": 3
+  },
+  {
+    "id": "mer-003",
+    "userId": "u-merchant-3",
+    "businessName": "어반 라이프 스타일",
+    "businessNumber": "105-86-77312",
+    "representative": "이지은",
+    "onlineOrderNumber": "2026-경기성남-1920",
+    "businessCertUrl": "https://images.unsplash.com/photo-1450133064473-71024230f91b?w=600",
+    "onlineOrderUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600",
+    "status": "PENDING_REVIEW",
+    "feeRate": 10,
+    "bankName": "신한은행",
+    "accountNumber": "110-492-817293",
+    "accountHolder": "이지은(어반라이프)",
+    "createdAt": "2026-10-22T13:56:54.345Z",
+    "updatedAt": "2026-10-22T13:56:54.345Z",
+    "user": {
+      "id": "u-merchant-3",
+      "nickname": "어반스타일",
+      "displayName": "어반 라이프 스타일",
+      "email": "urban_life@example.com",
+      "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120"
+    },
+    "productCount": 2
+  }
+]

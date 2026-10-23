@@ -58,5 +58,20 @@
     "isActive": true,
     "createdAt": "2026-10-11T00:17:08.750Z",
     "updatedAt": "2026-10-16T20:17:08.750Z"
+  },
+  {
+    "id": "ad-005",
+    "title": "[마켓 단독] 입점사 직영 산지직송 프리미엄 신선식품 최대 40% 특가",
+    "description": "다가온 공식 입점사 검증 완료! 오늘 주문 시 내일 아침 문 앞 도착 보장.",
+    "imageUrl": "https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&auto=format&fit=crop&q=80",
+    "targetUrl": "https://dagaon.app/market/verified-merchants",
+    "placement": "MARKET_BANNER",
+    "priority": 9,
+    "rewardPoints": 0,
+    "clickCount": 1640,
+    "impressionCount": 19200,
+    "isActive": true,
+    "createdAt": "2026-10-20T10:00:00.000Z",
+    "updatedAt": "2026-10-22T10:00:00.000Z"
   }
 ]

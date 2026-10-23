@@ -1,5 +1,115 @@
 [
   {
+    "id": "led-1792720614989",
+    "walletId": "wallet-usr_reward_test_1792720614945",
+    "kind": "AD_REWARD",
+    "source": "ADMOB_REWARD_VIDEO",
+    "deltaSpendable": 10,
+    "deltaRedeemable": 0,
+    "deltaPending": 0,
+    "spendableAfter": 110,
+    "redeemableAfter": 0,
+    "pendingAfter": 0,
+    "idempotencyKey": "claim-usr_reward_test_1792720614945-1792720614990",
+    "createdAt": "2026-10-23T01:56:54.990Z",
+    "wallet": {
+      "id": "wallet-usr_reward_test_1792720614945",
+      "activityAccountId": "usr_reward_test_1792720614945",
+      "activityAccount": {
+        "displayName": "리워드테스터",
+        "handle": "usr_reward_test_1792720614945"
+      }
+    }
+  },
+  {
+    "id": "led-1792720614986",
+    "walletId": "wallet-usr_reward_test_1792720614945",
+    "kind": "AD_REWARD",
+    "source": "ADMOB_REWARD_VIDEO",
+    "deltaSpendable": 10,
+    "deltaRedeemable": 0,
+    "deltaPending": 0,
+    "spendableAfter": 110,
+    "redeemableAfter": 0,
+    "pendingAfter": 0,
+    "idempotencyKey": "claim-usr_reward_test_1792720614945-1792720614986",
+    "createdAt": "2026-10-23T01:56:54.986Z",
+    "wallet": {
+      "id": "wallet-usr_reward_test_1792720614945",
+      "activityAccountId": "usr_reward_test_1792720614945",
+      "activityAccount": {
+        "displayName": "리워드테스터",
+        "handle": "usr_reward_test_1792720614945"
+      }
+    }
+  },
+  {
+    "id": "led-1792720614982",
+    "walletId": "wallet-usr_reward_test_1792720614945",
+    "kind": "AD_REWARD",
+    "source": "ADMOB_REWARD_VIDEO",
+    "deltaSpendable": 10,
+    "deltaRedeemable": 0,
+    "deltaPending": 0,
+    "spendableAfter": 110,
+    "redeemableAfter": 0,
+    "pendingAfter": 0,
+    "idempotencyKey": "claim-usr_reward_test_1792720614945-1792720614982",
+    "createdAt": "2026-10-23T01:56:54.982Z",
+    "wallet": {
+      "id": "wallet-usr_reward_test_1792720614945",
+      "activityAccountId": "usr_reward_test_1792720614945",
+      "activityAccount": {
+        "displayName": "리워드테스터",
+        "handle": "usr_reward_test_1792720614945"
+      }
+    }
+  },
+  {
+    "id": "led-1792720614975",
+    "walletId": "wallet-usr_reward_test_1792720614945",
+    "kind": "AD_REWARD",
+    "source": "ADMOB_REWARD_VIDEO",
+    "deltaSpendable": 10,
+    "deltaRedeemable": 0,
+    "deltaPending": 0,
+    "spendableAfter": 110,
+    "redeemableAfter": 0,
+    "pendingAfter": 0,
+    "idempotencyKey": "claim-usr_reward_test_1792720614945-1792720614975",
+    "createdAt": "2026-10-23T01:56:54.975Z",
+    "wallet": {
+      "id": "wallet-usr_reward_test_1792720614945",
+      "activityAccountId": "usr_reward_test_1792720614945",
+      "activityAccount": {
+        "displayName": "리워드테스터",
+        "handle": "usr_reward_test_1792720614945"
+      }
+    }
+  },
+  {
+    "id": "led-1792720614971",
+    "walletId": "wallet-usr_reward_test_1792720614945",
+    "kind": "AD_REWARD",
+    "source": "ADMOB_REWARD_VIDEO",
+    "deltaSpendable": 10,
+    "deltaRedeemable": 0,
+    "deltaPending": 0,
+    "spendableAfter": 110,
+    "redeemableAfter": 0,
+    "pendingAfter": 0,
+    "idempotencyKey": "claim-usr_reward_test_1792720614945-1792720614971",
+    "createdAt": "2026-10-23T01:56:54.971Z",
+    "wallet": {
+      "id": "wallet-usr_reward_test_1792720614945",
+      "activityAccountId": "usr_reward_test_1792720614945",
+      "activityAccount": {
+        "displayName": "리워드테스터",
+        "handle": "usr_reward_test_1792720614945"
+      }
+    }
+  },
+  {
     "id": "led-1792550637837",
     "walletId": "wallet-user-me",
     "kind": "PURCHASE",

@@ -18,6 +18,7 @@ import { WsModule } from './modules/ws/ws.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { MediaModule } from './modules/media/media.module';
 import { MarketModule } from './modules/market/market.module';
+import { MerchantsModule } from './modules/merchants/merchants.module';
 import { SudaModule } from './modules/suda/suda.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { JwtAuthGuard } from './modules/auth/jwt.guard';
@@ -44,6 +45,7 @@ import { AppController } from './app.controller';
     ChatModule,
     MediaModule,
     MarketModule,
+    MerchantsModule,
     SudaModule,
     PaymentsModule,
   ],

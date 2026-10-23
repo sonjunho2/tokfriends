@@ -5,6 +5,43 @@ Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
 
+## 2026-10-23 Checkpoint 104: [다가온(DAGAON) V3.0 1단계: 입점사 B2C 상시 일반 상품·플랫폼 광고 및 리워드 수익화·AI 직원 & 마켓 통합 관리자 콘솔 완성]
+- **입점사(Merchant) 및 B2C 상시 일반 상품(NormalProduct) 백엔드 & DB 구축**:
+  - **Prisma 스키마 확장**:
+    - `Merchant` 모델 신설: 사업자등록번호(Unique), 상호명, 대표자, 통신판매업신고번호, 사업자등록증 사본 URL, 통신판매신고증 URL, 심사 상태(`PENDING_REVIEW`, `APPROVED`, `REJECTED`, `SUSPENDED`), 확정 수수료율(`feeRate`, 기본 10.0%), 정산 계좌 연동.
+    - `NormalProduct` 모델 신설: 입점사 상시 상품명, 상세설명, 정상가(`priceKrw`), 할인가(`salePriceKrw`), 재고(`stock`), 이미지 목록, 카테고리, 배송비(`shippingFee`), 상태(`ACTIVE`, `HIDDEN`, `OUT_OF_STOCK`, `DELETED`).
+    - `LiveProductLink` & `LiveRoom` 확장: `normalProductId` 연결을 통해 D LIVE 방송 중 C2C 중고뿐 아니라 B2C 입점사 일반 상품도 실시간 핀(Pin) 고정 지원.
+  - **백엔드 API 모듈 (`services/api/src/modules/merchants`, `market`)**:
+    - `POST /api/merchants/register`: 입점사 신청 및 사업자 정보 등록.
+    - `GET /api/merchants/my`: 로그인한 입점사 프로필 및 등록 상품 목록 조회.
+    - `POST /api/merchants/products`: 입점사 일반 상품 등록 (가격, 재고, 배송비).
+    - `PUT /api/merchants/products/:id`: 일반 상품 정보 및 재고 수정.
+    - `DELETE /api/merchants/products/:id`: 일반 상품 삭제.
+    - `GET /api/market/normal-products`: 마켓 탭에서 입점사 상시 일반 상품 목록 조회 (카테고리, 정렬 필터, 페이징).
+    - `GET /api/market/normal-products/:id`: 일반 상품 상세 조회.
+- **플랫폼 광고(Ads) & 리워드(Rewards) 시스템 전면 연동**:
+  - `GET /api/ads/placements/:placement`: 활성화된 배너 광고 조회 (`HOME_BANNER`, `MARKET_BANNER`, `LIVE_BANNER`, `SHOP_BANNER`).
+  - `POST /api/ads/reward/claim`: 보상형 동영상 광고 시청 완료 콜백 시 유저 지갑에 10 ON 즉시 지급, `WalletLedger` 원장 기록 및 일일 5회 제한 엄격 적용.
+  - `POST /api/ads/:id/impression`, `POST /api/ads/:id/click`: 광고 노출수 및 클릭수 실시간 집계.
+  - 관리자 광고 관리 화면 복원 (`apps/admin/src/app/ads-rewards`): 캠페인 생성/수정, 구좌 배정(`HOME_BANNER`, `MARKET_BANNER`, `LIVE_BANNER`), 노출/클릭/CTR 지표 모니터링.
+- **관리자 웹 콘솔(apps/admin) 기능 대폭 보강**:
+  - **입점사 심사 및 승인 관리 메뉴 신설 (`/merchants`)**:
+    - 네비게이션 `커머스·수익` 그룹에 `[입점사 심사·관리]` 숏컷 등록.
+    - 신청 목록 테이블, 사업자등록증/통신판매업신고증 이미지 실시간 열람 팝업.
+    - 1-Click 승인/반려 모달 및 계약 수수료율(8.0% ~ 12.0%, 기본 10.0%) 확정 슬라이더.
+  - **마켓 상품 통합 검수 화면 (`/market-escrow`)**:
+    - `[C2C 중고 물품]` / `[B2C 입점사 일반 상품]` / `[B2C 공동구매]` / `[에스크로 주문 & 분쟁]` 4대 탭 분리 검수 체계 완성.
+    - 상품별 실시간 숨김(비노출)/승인 통제 토글 연동.
+  - **6인 AI 직원 & 실시간 HITL 결재함 UI 완성 (`/ai-staff`)**:
+    - 6인 AI 직원(Director, Safety, Zev, Auditor, CS, Growth) 실시간 가동 메트릭스 및 모델 할당 표시.
+    - Director AI 상신 고위험(위험도 60점 이상) 결재안에 대한 3초 브리핑 요약, 협업 타임라인, 채증 스냅샷, 관리자 1-Click 승인/반려/수정 집행 UI 연동.
+- **빌드 및 엔드투엔드 검증**:
+  - `services/api`: `npm run build` -> 무결점 0 에러 컴파일 성공.
+  - `apps/admin`: `npm run build` -> 34개 정적/동적 라우트 컴파일 100% 통과 (0 에러).
+  - 자동화 통합 테스트(`verify-v3-step1.ts`): 17/17개 전 항목 PASS.
+
+---
+
 ## 2026-10-22 Checkpoint 103: [최신 프로덕션 APK 빌드 & 배포 완료: D LIVE 인스트림 커머스·5대 탭(홈·마켓·라이브·수다·마이)·에스크로 안전결제 전수 반영]
 - **모바일 네이티브 프로덕션 릴리즈 빌드 완료**:
   - Expo/Metro 번들 사전 검증 통과 (Hermes Bytecode 1,501개 모듈 컴파일 무결점 0 에러).

@@ -1,0 +1,50 @@
+{
+  "quickFilters": [
+    {
+      "id": "T1",
+      "label": "지금 접속중",
+      "segment": "접속중",
+      "description": "최근 5분 내 접속한 실시간 활성 회원",
+      "enabled": true,
+      "icon": "🔥"
+    },
+    {
+      "id": "T2",
+      "label": "가까운 동네",
+      "segment": "가까운 거리",
+      "description": "내 반경 5km 이내 가까운 이웃 친구",
+      "enabled": true,
+      "icon": "📍"
+    },
+    {
+      "id": "T3",
+      "label": "20대 또래",
+      "segment": "연령대",
+      "description": "20~29세 공감대 높은 또래 친구",
+      "enabled": true,
+      "icon": "🎂"
+    },
+    {
+      "id": "T4",
+      "label": "취미·운동",
+      "segment": "의도",
+      "description": "헬스, 러닝, 등산 관심사 회원",
+      "enabled": true,
+      "icon": "🏃"
+    },
+    {
+      "id": "T5",
+      "label": "가벼운 커피",
+      "segment": "의도",
+      "description": "카페 투어 및 편안한 동네 수다",
+      "enabled": true,
+      "icon": "☕"
+    }
+  ],
+  "weights": {
+    "distance": 30,
+    "interest": 30,
+    "recency": 20,
+    "aiAffinity": 20
+  }
+}
