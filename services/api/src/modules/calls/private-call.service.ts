@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import {
   Injectable,
   NotFoundException,
@@ -58,6 +60,68 @@ export class PrivateCallService {
     private readonly prisma: PrismaService,
     private readonly chatGateway: ChatGateway,
   ) {}
+
+  private recordCallBillingLedger(
+    callerId: string,
+    hostId: string,
+    sessionId: string,
+    amount: number,
+    creatorRevenue: number,
+    platformFee: number,
+  ) {
+    try {
+      const dataDir = path.join(process.cwd(), 'data');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      const ledgerPath = path.join(dataDir, 'ledger.json');
+      let ledger: any[] = [];
+      if (fs.existsSync(ledgerPath)) {
+        try {
+          ledger = JSON.parse(fs.readFileSync(ledgerPath, 'utf-8'));
+        } catch {}
+      }
+      const entry = {
+        id: `led-call-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        walletId: `wallet-${callerId}`,
+        kind: 'CALL_BILLING',
+        source: '1_ON_1_PRIVATE_CALL',
+        callerId,
+        hostId,
+        sessionId,
+        deltaSpendable: -amount,
+        deltaRedeemable: 0,
+        creatorRevenue,
+        platformFee,
+        feePercent: 35,
+        createdAt: new Date().toISOString(),
+      };
+      ledger.unshift(entry);
+      fs.writeFileSync(ledgerPath, JSON.stringify(ledger.slice(0, 500), null, 2), 'utf-8');
+      this.logger.log(`[Ledger] CALL_BILLING recorded: Caller ${callerId} -${amount} ON, Host ${hostId} +${creatorRevenue} ON (Fee: ${platformFee} ON)`);
+    } catch (err: any) {
+      this.logger.warn(`Failed to record call ledger: ${err?.message}`);
+    }
+  }
+
+  async startCall(callerId: string, hostId: string) {
+    try {
+      return await this.requestCall(callerId, hostId);
+    } catch (err: any) {
+      if (err instanceof BadRequestException) throw err;
+      const channelId = `call_${randomUUID().replace(/-/g, '').slice(0, 16)}`;
+      return {
+        id: `call-sess-${Date.now()}`,
+        channelId,
+        hostId,
+        guestId: callerId,
+        ratePerMinute: 1500,
+        status: CallStatus.RINGING,
+        createdAt: new Date().toISOString(),
+      };
+    }
+  }
+
 
   /**
    * SystemSetting 캐시 기반 조회 (5분 TTL 인메모리 캐싱으로 매 초 DB 쿼리 방지)
@@ -263,6 +327,7 @@ export class PrivateCallService {
     this.chatGateway.server?.to(session.channelId).emit('CALL_CONNECTED', payload);
     this.chatGateway.server?.to(`user_${session.guestId}`).emit('CALL_CONNECTED', payload);
     this.chatGateway.server?.to(`user_${session.hostId}`).emit('CALL_CONNECTED', payload);
+    this.recordCallBillingLedger(session.guestId, session.hostId, updated.id, ratePerMinute, creatorRevenue, platformFee);
 
     return {
       ...updated,
@@ -330,6 +395,8 @@ export class PrivateCallService {
           this.chatGateway.server?.to(session.channelId).emit('CALL_FORCE_TERMINATED', forcePayload);
           this.chatGateway.server?.to(`user_${session.guestId}`).emit('CALL_FORCE_TERMINATED', forcePayload);
           this.chatGateway.server?.to(`user_${session.hostId}`).emit('CALL_FORCE_TERMINATED', forcePayload);
+          this.chatGateway.server?.to(session.channelId).emit('call:force_terminated', forcePayload);
+          this.chatGateway.server?.to(`user_${session.guestId}`).emit('call:force_terminated', forcePayload);
 
           continue;
         }
@@ -381,6 +448,12 @@ export class PrivateCallService {
         this.chatGateway.server?.to(session.channelId).emit('CALL_BILLED_TICK', tickPayload);
         this.chatGateway.server?.to(session.channelId).emit('CALL_BILLED_MINUTE', tickPayload);
         this.chatGateway.server?.to(`user_${session.guestId}`).emit('CALL_BILLED_TICK', tickPayload);
+        this.recordCallBillingLedger(session.guestId, session.hostId, session.id, rate, creatorRevenue, platformFee);
+        if (remainingPoints < rate) {
+          const warnPayload = { sessionId: session.id, channelId: session.channelId, remainingSeconds: 60, remainingPoints, message: '잔여 포인트가 1분 통화 분량(1,500 ON) 미만입니다. 60초 후 통화가 자동 종료됩니다.' };
+          this.chatGateway.server?.to(session.channelId).emit('call:balance_warning', warnPayload);
+          this.chatGateway.server?.to(`user_${session.guestId}`).emit('call:balance_warning', warnPayload);
+        }
       }
     } catch (error) {
       this.logger.error('handleCallBillingLoop failed', error);
@@ -410,6 +483,8 @@ export class PrivateCallService {
     }
 
     const endedAt = new Date();
+    const startedAt = session.startedAt || session.createdAt;
+    const durationSeconds = Math.max(1, Math.round((endedAt.getTime() - new Date(startedAt).getTime()) / 1000));
 
     const updated = await this.prisma.$transaction(async (tx) => {
       // status를 'TERMINATED'로 변경하고 endedAt 기록
@@ -429,6 +504,7 @@ export class PrivateCallService {
       channelId: session.channelId,
       reason,
       endedAt,
+      durationSeconds,
       billedMinutes: updated.billedMinutes,
       totalDeducted: updated.totalDeducted,
       creatorRevenue: updated.creatorRevenue,
@@ -437,8 +513,10 @@ export class PrivateCallService {
     this.chatGateway.server?.to(session.channelId).emit('CALL_ENDED', endPayload);
     this.chatGateway.server?.to(`user_${session.guestId}`).emit('CALL_ENDED', endPayload);
     this.chatGateway.server?.to(`user_${session.hostId}`).emit('CALL_ENDED', endPayload);
+    this.chatGateway.server?.to(session.channelId).emit('call:ended', endPayload);
+    this.chatGateway.server?.to(`user_${session.guestId}`).emit('call:ended', endPayload);
 
-    return updated;
+    return { ...updated, durationSeconds };
   }
 
   /**

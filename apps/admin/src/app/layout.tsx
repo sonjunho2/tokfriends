@@ -183,7 +183,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [adminName, setAdminName] = useState('관리자')
   const pathname = usePathname()
   const router = useRouter()
-  const isPublicPage = PUBLIC_PATHS.includes(pathname ?? '/')
+  const isPublicPage = PUBLIC_PATHS.includes(pathname ?? '/') || (pathname != null && (pathname.startsWith('/web') || pathname.startsWith('/portal') || pathname.startsWith('/share')))
 
   useEffect(() => {
     if (isPublicPage) {

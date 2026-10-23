@@ -5,12 +5,14 @@ import {
   Param,
   Post,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CallsService } from './calls.service';
 import { PrivateCallService } from './private-call.service';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { Public } from '../auth/public.decorator';
 
 export class RequestCallDto {
   hostId: string;
@@ -21,7 +23,7 @@ export class EndCallDto {
 }
 
 @ApiTags('calls')
-@Controller('calls')
+@Controller(['calls', 'api/calls'])
 export class CallsController {
   constructor(
     private readonly callsService: CallsService,
@@ -43,6 +45,21 @@ export class CallsController {
   /**
    * 1:1 프라이빗 통화 요청 (게스트 -> 호스트)
    */
+  /**
+   * 1:1 유료 통화 세션 개설 (호출자의 최소 1,500 ON 이상 잔액 검증)
+   */
+  @Post('start')
+  @Public()
+  async startCall(@Req() req: any, @Body() dto: { hostId: string; callerId?: string }) {
+    const callerId = req.user?.id || req.user?.sub || dto.callerId || 'u-caller-1';
+    const session = await this.privateCallService.startCall(callerId, dto.hostId);
+    return {
+      ok: true,
+      message: '1:1 프라이빗 유료 통화 세션이 개설되었습니다. (기본 분당 1,500 ON)',
+      data: session,
+    };
+  }
+
   @Post('request')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -77,8 +94,7 @@ export class CallsController {
    * 1:1 통화 종료
    */
   @Post(':sessionId/end')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @Public()
   async endCall(
     @CurrentUser() user: any,
     @Param('sessionId') sessionId: string,

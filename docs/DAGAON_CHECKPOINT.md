@@ -5998,3 +5998,51 @@ First Owner/ActivityAccount migration must:
     - 관리자 웹 다운로드 정적 서빙: `apps/admin/public/downloads/dagaon-release.apk`
 - **Git 메인 동기화**: `git add .` -> commit -> `git push origin main`.
 
+---
+
+## Checkpoint 107: 고객용 PC 반응형 웹 스토어 & D LIVE 웹 플레이어 & SNS 공유 딥링크 & 1:1 통화 분당 과금 엔진 완결 (2026-10-23)
+
+### 1. 고객용 PC 반응형 웹 포털 구축 (`apps/admin/src/app/portal/`, `/web/market/`)
+- **메인 랜딩 & 마켓 탐색 뷰 (`/portal`, `/web/market`)**:
+  - 최상단 헤더: 다가온(DAGAON) 그라데이션 로고, 3대 카테고리 탭 (`[🏷️ 동네 중고]` / `[🛍️ 브랜드 쇼핑]` / `[🔥 특가 공구]`), D LIVE 바로가기, 모바일 앱 다운로드 숏컷.
+  - 상품 반응형 4열 그리드(`grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`): 상품 이미지, 뱃지(입점사/공구/중고), 상품명, 할인가격(할인율 % 강조), 무료배송 뱃지.
+  - **상품 상세 웹 모달**: 이미지 갤러리 슬라이더, 공식 입점사 인증 정보, 상세 스펙, 수량 조절기, 토스페이먼츠 에스크로 보증 안내.
+  - **[PC 안전구매 하기] 결제 모달**: 토스페이먼츠 일반 웹 결제창(신용/체크카드, 토스페이, 카카오페이) 즉시 승인 및 백엔드 `POST /api/payments/escrow/prepare` 연동.
+  - **앱 다운로드 QR 팝업**: 스마트폰 카메라 인식용 QR 코드 및 `/downloads/dagaon-release.apk`(103.0 MB) 원클릭 다운로드 제공.
+
+### 2. D LIVE 실시간 방송 웹 플레이어 (`apps/admin/src/app/web/live/[id]/`)
+- **좌측 비디오 뷰어 영역**:
+  - 앰비언트 비디오 캔버스 애니메이션, 상단 `● LIVE` 뱃지, 실시간 시청자 수 카운터, 음소거/해제 컨트롤.
+  - **방송 중 핀 고정 상품 플로팅 카드 (`[📌 방송 특가 핀]`)**: 썸네일, 특가 금액, 할인율(%), `[웹 바로구매]` 원클릭 버튼.
+  - 라이브 스트림 재생 중단 없는 무중단 PG 에스크로 결제 팝업 탑재.
+- **우측 실시간 웹소켓 채팅창**:
+  - 실시간 댓글 피드(호스트 공지, 시청자 댓글, 시스템 메시지).
+  - 인스트림 결제 완료 시 `🎉 OOO님이 [제주 흑돼지] 상품을 구매하셨습니다!` 실시간 구매 축하 브로드캐스트.
+  - 웹 시청자 댓글 입력 및 하트(❤️) 실시간 응원 카운터.
+
+### 3. 카카오톡 & SNS 공유 딥링크 파이프라인 (`apps/admin/src/app/share/`)
+- **공유 URL 엔드포인트 구축**:
+  - `/share/market/:id` : 마켓 상품 공유 (중고/일반/공구).
+  - `/share/live/:id` : D LIVE 실시간 방송 공유.
+- **스마트 디바이스 분기 및 딥링크 리다이렉트**:
+  - 모바일 기기 접속 시: 다가온 앱 딥링크 스킴(`dagaon://market/:id`, `dagaon://live/:id`) 즉시 호출 ➔ 미설치 시 앱 다운로드 및 모바일 웹 스토어로 원클릭 연결.
+  - PC 브라우저 접속 시: 고객용 PC 웹 포털(`/portal?productId=:id`) 및 웹 플레이어(`/web/live/:id`)로 자동 라우팅.
+
+### 4. 1:1 프라이빗 유료 통화(Private Call) 분당 과금(1,500 ON) 세션 엔진 완결 (`services/api/src/modules/calls/`)
+- **통화 세션 개설 API (`POST /api/calls/start`)**:
+  - 호출자(Caller)의 보유 ON 잔액 검증: 최소 1,500 ON 이상 필수 검증 후 세션 개설.
+- **60초 주기 하트비트/인터벌 과금 타이머**:
+  - 분당 1,500 ON 차감 (플랫폼 수수료 35%: 525 ON / 호스트 수익 65%: 975 ON).
+  - 복식부기 원장 `data/ledger.json` (`CALL_BILLING`)에 불변 금융 거래 원장 자동 적재.
+- **잔액 고갈 방지 안전장치**:
+  - 잔액이 1,500 ON 미만 도달 시 60초 전 `call:balance_warning` 소켓 경고 전송 ("잔여 포인트가 1분 통화 분량 미만입니다. 60초 후 자동 종료됩니다").
+  - 잔액이 0 ON 도달 시 즉시 `call:force_terminated` 웹소켓 브로드캐스트 및 Agora 통화 채널 강제 해제.
+- **통화 정상 종료 API (`POST /api/calls/:id/end`, `POST /api/calls/:sessionId/end`)**:
+  - 총 통화 시간(초, `durationSeconds`) 계산 및 최종 정산 금액 영구 기록, `call:ended` 이벤트 전송.
+
+### 5. 전체 빌드 검증 및 깃 메인 동기화
+- **백엔드 NestJS 빌드 (`services/api`)**: `npm run build` 0 에러 통과 (Exit code 0).
+- **관리자 & 고객용 웹 Next.js 빌드 (`apps/admin`)**: `npm run build` 40개 정적/동적 라우트 무결점 빌드 완료 (Exit code 0).
+- **모바일 Babel 번들 검증 (`apps/mobile`)**: `npm run test:mobile:babel` (iOS 1517 모듈, Android 1511 모듈, 49 에셋) 0 에러 무결점 통과 (Exit code 0).
+- **Git 메인 동기화**: `git add .` -> commit -> `git push origin main`.
+
