@@ -15,6 +15,7 @@ import {
   View,
   Dimensions,
   Linking,
+  Share,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIsFocused } from '@react-navigation/native';
@@ -148,6 +149,26 @@ export default function LiveRoomScreen({ navigation, route }) {
   const [selectedCommerceProduct, setSelectedCommerceProduct] = useState(null);
   const [hostControlVisible, setHostControlVisible] = useState(false);
   const [pgBottomSheetVisible, setPgBottomSheetVisible] = useState(false);
+
+  // D LIVE 방송 화면 SNS 공유하기
+  const handleShareLive = async () => {
+    try {
+      const hostNickname =
+        room?.host?.nickname ||
+        room?.host?.displayName ||
+        room?.hostNickname ||
+        room?.title ||
+        '호스트';
+      const shareUrl = `https://dagaon.app/share/live/${roomId}`;
+      await Share.share({
+        title: `[다가온 D LIVE] ${hostNickname}님의 실시간 라이브 방송`,
+        message: `[다가온 D LIVE] ${hostNickname}님의 실시간 라이브 방송에 참여해보세요!\n${shareUrl}`,
+        url: shareUrl,
+      });
+    } catch (error) {
+      console.warn('[LiveRoomScreen] Share error:', error);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -1713,6 +1734,14 @@ export default function LiveRoomScreen({ navigation, route }) {
             </TouchableOpacity>
           ) : (
             <View style={styles.reactionRow}>
+              {/* SNS Share Button */}
+              <TouchableOpacity
+                style={styles.shareIconBtn}
+                onPress={handleShareLive}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="share-social-outline" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
               {/* Gift Picker Button - 시청자(게스트)만 방장/호스트에게 선물 전송 가능 */}
               {!isHost && (
                 <TouchableOpacity
@@ -2487,6 +2516,17 @@ const styles = StyleSheet.create({
     marginRight: 6,
     borderWidth: 1,
     borderColor: 'rgba(255, 59, 107, 0.5)',
+  },
+  shareIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    marginRight: 6,
   },
   giftIconBtn: {
     width: 40,

@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,6 +38,36 @@ export default function ProductDetailScreen({ route, navigation }: any) {
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
   const [showPgBottomSheet, setShowPgBottomSheet] = useState<boolean>(false);
+
+  // SNS 공유하기 (React Native Share.share)
+  const handleShareProduct = async () => {
+    try {
+      const pId = productId || (isNormal ? normalProduct?.id : product?.id);
+      const name = isNormal ? normalProduct?.name : product?.name;
+      const shareUrl = `https://dagaon.app/share/market/${pId}`;
+      let discountRate = 0;
+      if (isNormal && normalProduct) {
+        const orig = normalProduct.priceKrw || 0;
+        const sale = normalProduct.salePriceKrw || normalProduct.priceKrw || 0;
+        if (orig > sale) {
+          discountRate = Math.round(((orig - sale) / orig) * 100);
+        }
+      } else if (product && product.originalPrice && product.originalPrice > product.price) {
+        discountRate = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+      }
+
+      const discountMsg = discountRate > 0 ? ` - ${discountRate}% 특가 할인!` : '';
+      const message = `[다가온] ${name || '특가 상품'}${discountMsg} 지금 확인해보세요.\n${shareUrl}`;
+
+      await Share.share({
+        title: `[다가온] ${name || '상품 안내'}`,
+        message,
+        url: shareUrl,
+      });
+    } catch (err: any) {
+      console.warn('Share error:', err?.message);
+    }
+  };
 
   useEffect(() => {
     async function load() {
@@ -135,7 +166,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
             <Ionicons name="arrow-back" size={20} color="#0F172A" />
           </TouchableOpacity>
           <View style={styles.headerRightActions}>
-            <TouchableOpacity style={styles.headerCircleBtn} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.headerCircleBtn} activeOpacity={0.8} onPress={handleShareProduct}>
               <Ionicons name="share-social-outline" size={20} color="#0F172A" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerCircleBtn} activeOpacity={0.8}>
@@ -360,7 +391,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
           <Ionicons name="arrow-back" size={20} color="#0F172A" />
         </TouchableOpacity>
         <View style={styles.headerRightActions}>
-          <TouchableOpacity style={styles.headerCircleBtn} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.headerCircleBtn} activeOpacity={0.8} onPress={handleShareProduct}>
             <Ionicons name="share-social-outline" size={20} color="#0F172A" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerCircleBtn} activeOpacity={0.8}>

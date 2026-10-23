@@ -6046,3 +6046,53 @@ First Owner/ActivityAccount migration must:
 - **모바일 Babel 번들 검증 (`apps/mobile`)**: `npm run test:mobile:babel` (iOS 1517 모듈, Android 1511 모듈, 49 에셋) 0 에러 무결점 통과 (Exit code 0).
 - **Git 메인 동기화**: `git add .` -> commit -> `git push origin main`.
 
+---
+
+## Checkpoint 108: 다가온(DAGAON) V3.0 마스터 아키텍처 최종 완성 & 서비스 론칭 패키징 (2026-10-23)
+
+### 1. 모바일 앱 SNS 원클릭 공유하기(Share) 연동 (`apps/mobile`)
+- **상품 상세 화면 (`ProductDetailScreen.tsx`, `MarketScreen.tsx`)**:
+  - React Native `Share.share()` 연동:
+    - URL: `https://dagaon.app/share/market/${productId}`
+    - 메시지: `[다가온] ${product.name} - ${discountRate}% 특가 할인! 지금 확인해보세요.`
+    - 시스템 네이티브 공유 시트(카카오톡, 메시지, 인스타그램, 링크 복사) 원클릭 호출.
+    - 일반 B2C 상품 및 C2C 중고/공구 상단 헤더 액션에 실시간 바인딩.
+  - 마켓 메인 화면 상단 헤더에 공유 아이콘 추가 (`https://dagaon.app/share/market/main`).
+- **D LIVE 실시간 방송 화면 (`LiveRoomScreen.js`)**:
+  - 컨트롤 바 [공유] 버튼 터치 시 React Native `Share.share()` 즉시 호출:
+    - URL: `https://dagaon.app/share/live/${roomId}`
+    - 메시지: `[다가온 D LIVE] ${host.nickname}님의 실시간 라이브 방송에 참여해보세요!`
+
+### 2. 모바일 1:1 프라이빗 유료 통화(1,500 ON/분) 세션 UI 연동 (`apps/mobile`)
+- **프로필 바텀시트 (`UserProfileBottomSheet.tsx`, `LiveParticipantProfileSheet.js`)**:
+  - `[📞 1:1 유료 통화 신청 (분당 1,500 ON)]` 버튼 탑재:
+    - 내 지갑 잔액 실시간 조회 (`apiClient.getPointBalance()`) ➔ 1,500 ON 미만일 경우 온 충전 유도 안내 모달 즉시 노출.
+    - 잔액 충족 시 `POST /api/calls/start` 호출하여 보안 암호화 1:1 통화 세션 개설.
+- **통화 활성화 모달 / 플로팅 뷰 (`ActiveCallModal.tsx`)**:
+  - 호스트 프로필 사진, 통화 상태(📞 연결 중... / 🟢 1:1 프라이빗 라이브 통화 중).
+  - 실시간 통화 경과 시간(`00:00`) 타이머 및 "최대 통화 가능: X분 (보유 잔액 대비)" 표시.
+  - 마이크 음소거, 스피커폰, [🔴 통화 종료] 컨트롤 바.
+- **실시간 웹소켓 리스너 통합**:
+  - `call:balance_warning` / `CALL_BALANCE_WARNING` 수신: "⚠️ 포인트가 1분 분량 남았습니다. 60초 후 자동 종료됩니다!" 실시간 경고 배너 표시.
+  - `call:force_terminated` / `call:ended`: 통화창 자동 닫힘 및 "총 X분 통화 완료 (소진: Y ON)" 정산 완료 팝업 안내.
+
+### 3. 관리자 실시간 복식부기(Double-entry) 원장 대사 콘솔 (`apps/admin/src/app/settlement/page.tsx`)
+- **실시간 원장 대사 상태 요약 카드**:
+  - 총 충전 자산 (차변: IAP 125,400,000원 + PG 에스크로 84,600,000원 = ₩210,000,000)
+  - 총 부채 (대변: 유저 보유 ON 98,450,000원 + 입점사 정산 대기금 41,239,000원 + 에스크로 예치금 15,000,000원 = ₩154,689,000)
+  - 플랫폼 누적 수익 (대변: 마켓 수수료 3.5% + 입점사 수수료 10% + 선물/통화 수수료 35% = ₩55,311,000)
+  - 복식부기 대차평형 공식 실시간 검증: `차변(2.1억원) - 대변(2.1억원) = 0원`
+  - 정합성 판정: **[✅ 차변/대변 100% 일치 (차액: 0원 / 무결점)]** 녹색 뱃지.
+- **5대 거래 유형별 복식부기 타임라인 테이블**:
+  - `IAP_TOPUP`, `GIFT_SEND`, `ESCROW_PAY`, `CALL_BILLING`, `AD_REWARD` 실시간 분개 내역 (차변 계정, 대변 계정, 금액, 플랫폼 마진, 대사 완료 여부).
+
+### 4. 전체 빌드 검증 및 최종 프로덕션 릴리즈 APK 패키징
+- **백엔드 NestJS 빌드 (`services/api`)**: `npm run build` (0 error).
+- **관리자 Next.js 빌드 (`apps/admin`)**: `npm run build` 40개 라우트 무결점 번들 완료 (0 error).
+- **모바일 Babel 번들 검증 (`apps/mobile`)**: `npm run test:mobile:babel` (iOS/Android 1,513 모듈, 49 에셋) 무결점 통과 (0 error).
+- **안드로이드 네이티브 프로덕션 릴리즈 APK 패키징**:
+  - `gradlew.bat :app:packageRelease :app:assembleRelease --no-daemon` 빌드 성공.
+  - 최신 네이티브 바이너리 배포:
+    - 루트 배포: `dagaon-release.apk`
+    - 관리자 웹 다운로드: `apps/admin/public/downloads/dagaon-release.apk`
+- **Git 메인 동기화**: `git add .` -> commit -> `git push origin main`.

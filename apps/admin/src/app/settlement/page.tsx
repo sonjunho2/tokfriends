@@ -587,7 +587,7 @@ export default function SettlementPage() {
 
       {/* Main Tabs */}
       <Tabs defaultValue="requests" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 max-w-xl">
+        <TabsList className="grid w-full grid-cols-5 max-w-3xl">
           <TabsTrigger value="requests" className="flex items-center gap-1.5">
             <CreditCard className="h-4 w-4" />
             출금 신청

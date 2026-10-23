@@ -14,6 +14,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import ActiveCallModal, { CallSessionData } from '../calls/ActiveCallModal';
+import { apiClient } from '../../api/client';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -47,12 +49,14 @@ interface UserProfileBottomSheetProps {
 export const UserProfileBottomSheet = memo(({
   visible,
   user,
-  defaultCallRate = 1200,
+  defaultCallRate = 1500,
   onClose,
   onRequestPrivateCall,
 }: UserProfileBottomSheetProps) => {
   const insets = useSafeAreaInsets();
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+  const [activeCallSession, setActiveCallSession] = useState<CallSessionData | null>(null);
+  const [showActiveCallModal, setShowActiveCallModal] = useState<boolean>(false);
 
   // Effective call rate (User-defined or system default)
   const effectiveRate = useMemo(() => {
@@ -100,11 +104,66 @@ export const UserProfileBottomSheet = memo(({
     })
   ).current;
 
-  const handleRequestCall = useCallback(() => {
-    if (user && onRequestPrivateCall) {
-      onRequestPrivateCall(user.id, effectiveRate);
+  const handleRequestCall = useCallback(async () => {
+    if (!user) return;
+    try {
+      // 1. 잔액 확인 (최소 1,500 ON)
+      const balanceRes = await apiClient.getPointBalance();
+      const currentBalance = Number(balanceRes?.balance ?? 0);
+      const minRequired = effectiveRate || 1500;
+
+      if (currentBalance < minRequired) {
+        Alert.alert(
+          '포인트 부족',
+          `1:1 유료 통화를 신청하려면 최소 ${minRequired.toLocaleString()} ON이 필요합니다.\n현재 보유 잔액: ${currentBalance.toLocaleString()} ON\n\n온(ON)을 충전하시겠습니까?`,
+          [
+            { text: '취소', style: 'cancel' },
+            {
+              text: '온 충전하기',
+              onPress: () => {
+                onClose();
+              },
+            },
+          ]
+        );
+        return;
+      }
+
+      // 2. POST /api/calls/start 세션 개설
+      const res = await apiClient.startCall({
+        hostUserId: user.id,
+      });
+
+      const sessionData: CallSessionData = {
+        id: res?.id || res?.sessionId || `call-sess-${Date.now()}`,
+        channelId: res?.channelId || res?.channelName,
+        hostId: user.id,
+        hostNickname: user.nickname,
+        hostAvatar: user.avatarUrl || undefined,
+        callerBalance: currentBalance,
+        ratePerMinute: minRequired,
+        status: 'RINGING',
+      };
+
+      setActiveCallSession(sessionData);
+      setShowActiveCallModal(true);
+
+      if (onRequestPrivateCall) {
+        onRequestPrivateCall(user.id, effectiveRate);
+      }
+    } catch (err: any) {
+      const msg = err?.message || '';
+      if (msg.includes('포인트') || msg.includes('balance') || msg.includes('잔액')) {
+        Alert.alert(
+          '포인트 부족',
+          '통화를 시작하기 위한 온(ON)이 부족합니다.\n충전소에서 포인트를 충전해 주세요.',
+          [{ text: '확인', onPress: onClose }]
+        );
+      } else {
+        Alert.alert('통화 신청 실패', msg || '통화 세션을 개설하지 못했습니다.');
+      }
     }
-  }, [user, effectiveRate, onRequestPrivateCall]);
+  }, [user, effectiveRate, onClose, onRequestPrivateCall]);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems && viewableItems.length > 0) {
@@ -129,12 +188,14 @@ export const UserProfileBottomSheet = memo(({
 
   const keyExtractor = useCallback((item: ProfileUserPhoto) => item.id, []);
 
-  if (!visible || !user) {
+  if (!visible && !showActiveCallModal) {
     return null;
   }
 
   return (
-    <Modal
+    <>
+      {visible && user && (
+        <Modal
       visible={visible}
       transparent
       animationType="fade"
@@ -246,7 +307,7 @@ export const UserProfileBottomSheet = memo(({
           >
             <Ionicons name="videocam" size={22} color="#FFF" style={styles.callBtnIcon} />
             <Text style={styles.callActionText}>
-              1:1 영상 통화 신청
+              📞 1:1 유료 통화 신청 (분당 1,500 ON)
             </Text>
             <View style={styles.rateBadge}>
               <Text style={styles.rateBadgeText}>
@@ -256,7 +317,20 @@ export const UserProfileBottomSheet = memo(({
           </TouchableOpacity>
         </Animated.View>
       </View>
-    </Modal>
+      {/* 1:1 유료 통화 활성화 모달 */}
+        </Modal>
+      )}
+      {/* 1:1 유료 통화 활성화 모달 */}
+      <ActiveCallModal
+        visible={showActiveCallModal}
+        session={activeCallSession}
+        onClose={() => {
+          setShowActiveCallModal(false);
+          setActiveCallSession(null);
+          onClose();
+        }}
+      />
+    </>
   );
 });
 

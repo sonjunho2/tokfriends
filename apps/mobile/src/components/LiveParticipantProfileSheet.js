@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '../theme/colors';
 import { apiClient } from '../api/client';
 import Avatar from './Avatar';
+import ActiveCallModal from './calls/ActiveCallModal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const PHOTO_WIDTH = SCREEN_WIDTH - 32;
@@ -42,6 +43,8 @@ export default function LiveParticipantProfileSheet({
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [calling, setCalling] = useState(false);
+  const [activeCallSession, setActiveCallSession] = useState(null);
+  const [showActiveCallModal, setShowActiveCallModal] = useState(false);
 
   const flatListRef = useRef(null);
 
@@ -181,62 +184,81 @@ export default function LiveParticipantProfileSheet({
   };
 
   // 1:1 통화 신청 Action
-  const handleRequestCall = () => {
+  const handleRequestCall = async () => {
     if (isSelf) {
       Alert.alert('알림', '본인에게는 1:1 통화를 신청할 수 없습니다.');
       return;
     }
 
-    Alert.alert(
-      '1:1 프라이빗 통화 신청',
-      `'${displayName}'님에게 1:1 영상 통화를 신청하시겠습니까?\n\n· 통화 요금: 분당 ${Number(callRatePerMinute).toLocaleString()}P 차감`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '통화 신청하기',
-          style: 'default',
-          onPress: async () => {
-            setCalling(true);
-            try {
-              const res = await apiClient.startCall({
-                hostUserId: targetUserId,
-              });
+    setCalling(true);
+    try {
+      // 1. 잔액 확인 (최소 1,500 ON)
+      const balanceRes = await apiClient.getPointBalance();
+      const currentBalance = Number(balanceRes?.balance ?? 0);
+      const minRequired = Number(callRatePerMinute) || 1500;
 
-              Alert.alert(
-                '통화 신청 완료',
-                `'${displayName}'님에게 통화 요청이 전송되었습니다.\n상대방이 수락하면 연결됩니다.`,
-                [{ text: '확인', onPress: onClose }]
-              );
-            } catch (err) {
-              const msg = err?.message || '';
-              if (msg.includes('포인트') || msg.includes('balance') || msg.includes('잔액')) {
-                Alert.alert(
-                  '포인트 부족',
-                  `통화를 시작하기 위한 포인트가 부족합니다.\n상점에서 포인트를 충전해 주세요.`,
-                  [
-                    { text: '닫기', style: 'cancel' },
-                    {
-                      text: '충전하기',
-                      onPress: () => {
-                        onClose?.();
-                        onNavigateToShop?.();
-                      },
-                    },
-                  ]
-                );
-              } else {
-                Alert.alert('통화 신청 실패', msg || '통화 신청 중 오류가 발생했습니다.');
-              }
-            } finally {
-              setCalling(false);
-            }
-          },
-        },
-      ]
-    );
+      if (currentBalance < minRequired) {
+        Alert.alert(
+          '포인트 부족',
+          `1:1 유료 통화를 신청하려면 최소 ${minRequired.toLocaleString()} ON이 필요합니다.\n현재 잔액: ${currentBalance.toLocaleString()} ON\n\n상점에서 온(ON)을 충전하시겠습니까?`,
+          [
+            { text: '닫기', style: 'cancel' },
+            {
+              text: '충전하기',
+              onPress: () => {
+                onClose?.();
+                onNavigateToShop?.();
+              },
+            },
+          ]
+        );
+        return;
+      }
+
+      // 2. 세션 개설
+      const res = await apiClient.startCall({
+        hostUserId: targetUserId,
+      });
+
+      const sessionData = {
+        id: res?.id || res?.sessionId || `call-sess-${Date.now()}`,
+        channelId: res?.channelId || res?.channelName,
+        hostId: targetUserId,
+        hostNickname: displayName,
+        hostAvatar: photos?.[0]?.url || fullUser?.avatarUrl || null,
+        callerBalance: currentBalance,
+        ratePerMinute: minRequired,
+        status: 'RINGING',
+      };
+
+      setActiveCallSession(sessionData);
+      setShowActiveCallModal(true);
+    } catch (err) {
+      const msg = err?.message || '';
+      if (msg.includes('포인트') || msg.includes('balance') || msg.includes('잔액')) {
+        Alert.alert(
+          '포인트 부족',
+          '통화를 시작하기 위한 온(ON)이 부족합니다.\n상점에서 포인트를 충전해 주세요.',
+          [
+            { text: '닫기', style: 'cancel' },
+            {
+              text: '충전하기',
+              onPress: () => {
+                onClose?.();
+                onNavigateToShop?.();
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('통화 신청 실패', msg || '통화 신청 중 오류가 발생했습니다.');
+      }
+    } finally {
+      setCalling(false);
+    }
   };
 
-  // 관리 메뉴 (신고 / 차단)
+    // 관리 메뉴 (신고 / 차단)
   const handleOpenMenu = () => {
     if (isSelf) return;
 
@@ -279,9 +301,12 @@ export default function LiveParticipantProfileSheet({
 
   if (!visible) return null;
 
+  if (!visible && !showActiveCallModal) return null;
+
   return (
-    <Modal
-      visible={visible}
+    <>
+      <Modal
+        visible={visible}
       transparent
       animationType="slide"
       onRequestClose={onClose}
@@ -518,7 +543,7 @@ export default function LiveParticipantProfileSheet({
                   ) : (
                     <>
                       <Ionicons name="call" size={18} color="#FFFFFF" />
-                      <Text style={styles.callBtnText}>1:1 통화 신청</Text>
+                      <Text style={styles.callBtnText}>📞 1:1 유료 통화 신청 (분당 1,500 ON)</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -528,6 +553,18 @@ export default function LiveParticipantProfileSheet({
         </View>
       </View>
     </Modal>
+
+      {/* 1:1 유료 통화 활성화 모달 */}
+      <ActiveCallModal
+        visible={showActiveCallModal}
+        session={activeCallSession}
+        onClose={() => {
+          setShowActiveCallModal(false);
+          setActiveCallSession(null);
+          onClose?.();
+        }}
+      />
+    </>
   );
 }
 

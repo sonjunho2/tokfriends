@@ -13,6 +13,7 @@ import {
   Dimensions,
   Platform,
   Linking,
+  Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -141,6 +142,20 @@ export default function MarketScreen({ navigation }: any) {
       Linking.openURL(ad.targetUrl).catch((err) => {
         console.warn('Cannot open ad url:', err);
       });
+    }
+  };
+
+  // SNS 마켓 공유하기
+  const handleShareMarket = async () => {
+    try {
+      const shareUrl = 'https://dagaon.app/share/market/main';
+      await Share.share({
+        title: '[다가온 마켓] 우리 동네 특가 쇼핑 & 공구',
+        message: `[다가온] 우리 동네 직거래 & 브랜드 특가 할인 상품을 지금 확인해보세요!\n${shareUrl}`,
+        url: shareUrl,
+      });
+    } catch (err: any) {
+      console.warn('Share market error:', err?.message);
     }
   };
 
@@ -441,6 +456,9 @@ export default function MarketScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
         <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.headerIconBtn} activeOpacity={0.7} onPress={handleShareMarket}>
+            <Ionicons name="share-social-outline" size={22} color={tokens.colors.textPrimary} />
+          </TouchableOpacity>
           <TouchableOpacity style={styles.headerIconBtn} activeOpacity={0.7}>
             <Ionicons name="search-outline" size={22} color={tokens.colors.textPrimary} />
           </TouchableOpacity>

@@ -582,6 +582,11 @@ export class AdminController {
     return this.settlementService.getLedger(take);
   }
 
+  @Get('settlement/reconciliation')
+  async getSettlementReconciliation() {
+    return this.settlementService.getReconciliation();
+  }
+
   @Get('refunds')
   async getRefunds() {
     return this.settlementService.getRefundRequests();

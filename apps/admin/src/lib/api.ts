@@ -2469,6 +2469,45 @@ export async function getSettlementLedger(take = 20): Promise<WalletLedgerItem[]
   return Array.isArray(d?.items) ? d.items : Array.isArray(d) ? d : []
 }
 
+export interface ReconciliationTimelineItem {
+  id: string
+  type: 'IAP_TOPUP' | 'GIFT_SEND' | 'ESCROW_PAY' | 'CALL_BILLING' | 'AD_REWARD'
+  typeLabel: string
+  debitAccount: string
+  creditAccount: string
+  amount: number
+  fee: number
+  status: string
+  createdAt: string
+  description: string
+}
+
+export interface ReconciliationData {
+  totalAssets: number
+  totalLiabilities: number
+  platformRevenue: number
+  discrepancy: number
+  integrityVerified: boolean
+  auditBadge: string
+  breakdown: {
+    iapTotal: number
+    pgEscrowTotal: number
+    userSpendableBalance: number
+    merchantPendingSettlement: number
+    activeEscrowHold: number
+    marketFeeRevenue: number
+    merchantFeeRevenue: number
+    giftCallFeeRevenue: number
+  }
+  timeline: ReconciliationTimelineItem[]
+}
+
+export async function getSettlementReconciliation(): Promise<ReconciliationData> {
+  const response = await api.get('/admin/settlement/reconciliation')
+  const d = (response.data as any)?.data ?? response.data
+  return d as ReconciliationData
+}
+
 export async function getSettlementRequests(params: {
   page?: number
   limit?: number
