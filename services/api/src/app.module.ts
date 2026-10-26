@@ -21,6 +21,7 @@ import { MarketModule } from './modules/market/market.module';
 import { MerchantsModule } from './modules/merchants/merchants.module';
 import { SudaModule } from './modules/suda/suda.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { AffiliateModule } from './modules/affiliate/affiliate.module';
 import { JwtAuthGuard } from './modules/auth/jwt.guard';
 import { AdminPermissionsGuard } from './common/admin-permissions.guard';
 import { AppController } from './app.controller';
@@ -48,6 +49,7 @@ import { AppController } from './app.controller';
     MerchantsModule,
     SudaModule,
     PaymentsModule,
+    AffiliateModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

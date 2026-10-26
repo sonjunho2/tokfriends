@@ -3,62 +3,16 @@ import { Response } from 'express';
 import { PrismaService } from 'nestjs-prisma';
 import { Public } from './modules/auth/public.decorator';
 import { ChatService } from './modules/chat/chat.service';
-import * as fs from 'fs';
-import * as path from 'path';
 
 @Controller()
 export class AppController {
-  private readonly matchSettingsFile = path.resolve(process.cwd(), 'data', 'match-settings.json');
-  private matchSettingsCache: any = null;
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly chatService: ChatService,
-  ) {
-    this.loadMatchSettings();
-  }
-
-  private loadMatchSettings() {
-    try {
-      const dir = path.dirname(this.matchSettingsFile);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      if (fs.existsSync(this.matchSettingsFile)) {
-        const raw = fs.readFileSync(this.matchSettingsFile, 'utf-8');
-        this.matchSettingsCache = JSON.parse(raw);
-      }
-    } catch {}
-
-    if (!this.matchSettingsCache || !Array.isArray(this.matchSettingsCache.quickFilters)) {
-      this.matchSettingsCache = {
-        quickFilters: [
-          { id: 'T1', label: '지금 접속중', segment: '접속중', description: '최근 5분 내 접속한 실시간 활성 회원', enabled: true, icon: '🔥' },
-          { id: 'T2', label: '가까운 동네', segment: '가까운 거리', description: '내 반경 5km 이내 가까운 이웃 친구', enabled: true, icon: '📍' },
-          { id: 'T3', label: '20대 또래', segment: '연령대', description: '20~29세 공감대 높은 또래 친구', enabled: true, icon: '🎂' },
-          { id: 'T4', label: '취미·운동', segment: '의도', description: '헬스, 러닝, 등산 관심사 회원', enabled: true, icon: '🏃' },
-          { id: 'T5', label: '가벼운 커피', segment: '의도', description: '카페 투어 및 편안한 동네 수다', enabled: true, icon: '☕' },
-        ],
-        weights: { distance: 30, interest: 30, recency: 20, aiAffinity: 20 },
-      };
-      this.saveMatchSettings();
-    }
-  }
-
-  private saveMatchSettings() {
-    try {
-      const dir = path.dirname(this.matchSettingsFile);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      fs.writeFileSync(this.matchSettingsFile, JSON.stringify(this.matchSettingsCache, null, 2), 'utf-8');
-    } catch {}
-  }
-
+  ) {}
 
   @Public()
   @Get()
-
   redirectToDocs(@Res() res: Response) {
     return res.redirect('/docs');
   }
@@ -81,111 +35,6 @@ export class AppController {
       userGrowth: '+12.4%',
       matchGrowth: '+8.7%',
       reportSla: '98.5%',
-    };
-  }
-
-  @Public()
-  @Get('matches/control-panel')
-  async getMatchControlPanel() {
-    this.loadMatchSettings();
-    return {
-      queueStats: [
-        { id: 'SEG-1', segment: '서울/수도권 활성 회원', waiting: 84, medianWait: '00:32', dropOffRate: '3.1%' },
-        { id: 'SEG-2', segment: '부산/영남 취향 모임', waiting: 42, medianWait: '00:54', dropOffRate: '4.8%' },
-        { id: 'SEG-3', segment: '심야 실시간 대화', waiting: 28, medianWait: '01:10', dropOffRate: '5.2%' },
-        { id: 'SEG-4', segment: '신규 가입 환영 세그먼트', waiting: 112, medianWait: '00:45', dropOffRate: '2.9%' },
-      ],
-      presets: [
-        {
-          id: 'preset-balanced',
-          name: '황금 밸런스 추천',
-          isActive: true,
-          weights: this.matchSettingsCache.weights,
-          createdAt: new Date().toISOString(),
-          author: '관리자 설정',
-        },
-      ],
-      quickFilters: this.matchSettingsCache.quickFilters,
-      recommendationPools: [
-        { id: 'POOL1', title: 'HOT 인기 추천', sortRule: '관심도 + 대화수 + 호감도', metrics: '매칭 성공률 92%', owner: 'AI 추천 엔진' },
-        { id: 'POOL2', title: '실시간 접속 중', sortRule: '최근 로그인 순 정렬', metrics: '응답률 96%', owner: '플랫폼 팀' },
-        { id: 'POOL3', title: '동네 근처 친구', sortRule: 'GPS 거리 오름차순', metrics: '첫 대화 전환 84%', owner: '매칭 팀' },
-      ],
-    };
-  }
-
-  @Public()
-  @Get('matches/quick-filters')
-  async getActiveQuickFilters() {
-    this.loadMatchSettings();
-    const active = (this.matchSettingsCache.quickFilters || []).filter((f: any) => f.enabled !== false);
-    return { ok: true, data: active, items: active };
-  }
-
-  @Public()
-  @Post('matches/quick-filters')
-  async createMatchQuickFilter(@Body() body: any) {
-    this.loadMatchSettings();
-    const newFilter = {
-      id: `T-${Date.now()}`,
-      label: body.label || '새 태그',
-      segment: body.segment || '의도',
-      description: body.description || '',
-      enabled: true,
-      icon: body.icon || (body.label?.startsWith('🔥') ? '🔥' : body.label?.startsWith('📍') ? '📍' : body.label?.startsWith('🎂') ? '🎂' : '✨'),
-    };
-    this.matchSettingsCache.quickFilters.unshift(newFilter);
-    this.saveMatchSettings();
-    return newFilter;
-  }
-
-  @Public()
-  @Patch('matches/quick-filters/:id')
-  async updateMatchQuickFilter(@Param('id') id: string, @Body() body: any) {
-    this.loadMatchSettings();
-    const item = this.matchSettingsCache.quickFilters.find((f: any) => f.id === id);
-    if (item) {
-      if (body.enabled !== undefined) item.enabled = Boolean(body.enabled);
-      if (body.label !== undefined) item.label = body.label;
-      if (body.description !== undefined) item.description = body.description;
-      if (body.segment !== undefined) item.segment = body.segment;
-      this.saveMatchSettings();
-      return { ok: true, data: item };
-    }
-    return { ok: false, error: '태그를 찾을 수 없습니다.' };
-  }
-
-  @Public()
-  @Delete('matches/quick-filters/:id')
-  async deleteMatchQuickFilter(@Param('id') id: string) {
-    this.loadMatchSettings();
-    this.matchSettingsCache.quickFilters = this.matchSettingsCache.quickFilters.filter(
-      (f: any) => f.id !== id,
-    );
-    this.saveMatchSettings();
-    return { ok: true, id };
-  }
-
-  @Public()
-  @Patch('matches/presets/:id')
-  async updateMatchPreset(@Param('id') id: string, @Body() body: any) {
-    this.loadMatchSettings();
-    if (body.weights) {
-      this.matchSettingsCache.weights = {
-        distance: Number(body.weights.distance ?? 30),
-        interest: Number(body.weights.interest ?? 30),
-        recency: Number(body.weights.recency ?? 20),
-        aiAffinity: Number(body.weights.aiAffinity ?? 20),
-      };
-      this.saveMatchSettings();
-    }
-    return {
-      id,
-      name: body.name || '맞춤 프리셋',
-      isActive: true,
-      weights: this.matchSettingsCache.weights,
-      createdAt: new Date().toISOString(),
-      author: '관리자',
     };
   }
 

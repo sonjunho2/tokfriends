@@ -350,6 +350,8 @@ model EscrowOrder {
   trackingNumber  String?            // 택배 송장번호 (직거래 시 NULL)
   chatRoomId      String?            // 연결된 거래 톡방 ID
   disputeReason   String?
+  streamerId      String?            // 선택: 스트리머 방송 핀을 통해 구매가 일어난 경우
+  streamerCommissionAmount Int       @default(0) // 구매확정 시 스트리머에게 정산될 커미션 원화 금액
   settlement      SellerSettlement?
   confirmedAt     DateTime?
   cancelledAt     DateTime?
@@ -503,26 +505,51 @@ enum MerchantStatus {
   SUSPENDED
 }
 
+enum ProductOwnerType {
+  HEADQUARTERS // 본사 공식 직영 상품 / 본사 단독 공구
+  MERCHANT     // 인증 입점사 상품
+  USER_C2C     // 일반 고객 개인 중고 물품
+}
+
 model NormalProduct {
-  id           String              @id @default(uuid())
-  merchantId   String
-  merchant     Merchant            @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  name         String
-  description  String              @db.Text
-  priceKrw     Int
-  salePriceKrw Int?
-  stock        Int                 @default(0)
-  images       String[]
-  category     String
-  status       NormalProductStatus @default(ACTIVE)
-  shippingFee  Int                 @default(0)
-  liveLinks    LiveProductLink[]
-  pinnedInLive LiveRoom[]          @relation("PinnedNormalProduct")
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  id                      String                     @id @default(uuid())
+  merchantId              String
+  merchant                Merchant                   @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  ownerType               ProductOwnerType           @default(MERCHANT)
+  isHqDirect              Boolean                    @default(false)
+  allowAffiliate          Boolean                    @default(true)
+  affiliateCommissionRate Decimal                    @default(10.0) @db.Decimal(5, 2)
+  name                    String
+  description             String                     @db.Text
+  priceKrw                Int
+  salePriceKrw            Int?
+  stock                   Int                        @default(0)
+  images                  String[]
+  category                String
+  status                  NormalProductStatus        @default(ACTIVE)
+  shippingFee             Int                        @default(0)
+  liveLinks               LiveProductLink[]
+  pinnedInLive            LiveRoom[]                 @relation("PinnedNormalProduct")
+  affiliatePicks          StreamerAffiliateProduct[]
+  createdAt               DateTime                   @default(now())
+  updatedAt               DateTime                   @updatedAt
 
   @@index([merchantId, status])
   @@index([category, status])
+  @@index([ownerType, status])
+}
+
+model StreamerAffiliateProduct {
+  id             String        @id @default(uuid())
+  streamerId     String
+  productId      String
+  commissionRate Decimal       @default(10.0) @db.Decimal(5, 2)
+  product        NormalProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+
+  @@unique([streamerId, productId])
+  @@index([streamerId])
+  @@index([productId])
 }
 
 enum NormalProductStatus {
@@ -531,3 +558,4 @@ enum NormalProductStatus {
   HIDDEN
   DELETED
 }
+

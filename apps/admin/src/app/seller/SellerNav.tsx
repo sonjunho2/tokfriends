@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Package, Truck, CircleDollarSign, Store, ArrowLeft } from 'lucide-react'
+import { LayoutDashboard, Package, Truck, CircleDollarSign, Store, ArrowLeft, ShoppingBag } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 
@@ -37,6 +37,13 @@ export function SellerNav() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Link
+            href="/"
+            className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/10 hover:bg-primary/20 transition-colors shadow-sm"
+          >
+            <ShoppingBag className="w-3.5 h-3.5" />
+            🛒 고객 웹 둘러보기
+          </Link>
           <Link
             href="/market-escrow"
             className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"

@@ -5,6 +5,45 @@ Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
 
+## 2026-10-26 Checkpoint 110: [모꼬(Mocco) 리브랜딩 및 아키텍처 혁신 - 1단계: 소비자 웹 우선 엔트리포인트 & 롤기반 관리자 스위처 & 소스 대청소 & 4대 참여자 모델 정립]
+- **대표님 운영 철학 반영 및 소비자 웹 우선 엔트리포인트 (`apps/admin/src/app/page.tsx`)**:
+  - 도메인 루트(`/`) 접속 시 관리자 로그인 창이 아닌 **고객용 PC 반응형 웹 포털(`Customer Web Storefront`)**을 메인 첫 화면으로 전면 개편.
+  - 상단 D LIVE 실시간 방송 뷰어 & 배너 (`🔴 LIVE 1.4k`), 3대 마켓 탭([🏷️ 동네 중고] / [🛍️ 브랜드 쇼핑] / [🔥 특가 공구] + 전체 탐색), 4열 반응형 상품 그리드, 에스크로 안전결제 주문 팝업, 앱 다운로드 QR 모달 완비.
+- **글로벌 네비게이션(GNB) 헤더 & 스마트 권한 스위처**:
+  - 로그인 상태 및 유저 권한(Role)에 따른 우측 상단 자동 분기 구현:
+    - [비로그인 유저 (GUEST)]: [로그인] [회원가입] [📱 앱 다운로드]
+    - [일반 고객 (CUSTOMER)]: [🛒 장바구니] [📦 주문조회] [👤 마이모꼬]
+    - [입점사 파트너 (MERCHANT)]: [내 쇼핑] | **[🏪 입점사 셀러 센터 바로가기]** (`/seller`)
+    - [계약 스트리머 (STREAMER)]: [내 쇼핑] | **[🎙️ 스트리머 스튜디오 바로가기]** (`/streamer`)
+    - [본사 관리자 (SUPER_ADMIN / ADMIN)]: **[👑 본사 통합 관리자(HQ Admin) 바로가기]** (`/dashboard`)
+  - 모든 권한을 1-클릭으로 시뮬레이션할 수 있는 GNB 상단 권한 테스터 툴바 제공.
+  - 관리자 콘솔(`AppShell`) 및 셀러 콘솔(`SellerNav`) 상단에 **[🛒 고객 웹 둘러보기]** 양방향 스위처 버튼 완비.
+- **스트리머 스튜디오 신설 (`/streamer`)**:
+  - 계약 스트리머 전용 제휴 위탁 판매 센터 구축: 정산 예정액, 주문 수, 수수료율 모니터링.
+  - [📦 내 방송 판매 바구니 (My Picks)] & [🔍 제휴 위탁 상품 탐색 (Explore)] 탭 연동 및 D LIVE 핀 고정 바로가기 제공.
+- **사이드바 메뉴 3대 그룹화 (`layout.tsx`) & 레거시 라우트 완전 삭제**:
+  - 사이드바 네비게이션을 '본사 총괄 운영' / '파트너 콘솔 링크(입점사·스트리머)' / '고객용 웹 바로가기'로 명확히 구조화.
+  - 초기 데이팅 매칭 레거시 디렉토리 `apps/admin/src/app/matches/` 완전 삭제 영구 제거.
+  - `/`, `/seller`, `/streamer`, `/portal`, `/web/*`을 퍼블릭 라우트로 지정하여 역할별 매끄러운 진입 보장.
+- **Prisma DB 스키마 4대 참여자 커머스 모델 확장 (`schema.prisma`)**:
+  - `enum ProductOwnerType` 신설: `HEADQUARTERS`(본사 공식 직영/단독 공구), `MERCHANT`(인증 입점사), `USER_C2C`(일반 고객 개인 중고).
+  - `model NormalProduct` 확장: `ownerType`, `isHqDirect`, `allowAffiliate`, `affiliateCommissionRate` 추가.
+  - `model StreamerAffiliateProduct` 신설: 스트리머별 제휴 판매 바구니 및 커미션 요율 적재.
+  - `model EscrowOrder` 확장: `streamerId`, `streamerCommissionAmount` 필드 추가.
+  - `npx prisma db push` 및 `npx prisma generate` 무결점 완료.
+- **백엔드 레거시 소스 대청소 & 스트리머 제휴 API 신설 (`services/api`)**:
+  - `services/api/data/match-settings.json` 및 `AppController` 내 매칭 레거시 라우트 완전 제거.
+  - `AffiliateModule` 신설 및 `AppModule` 등록:
+    - `GET /api/affiliate/products`: 스트리머 방송 판매용 제휴 허용 상품 목록 조회 (본사 직영 + 입점사 상품).
+    - `POST /api/affiliate/products/pick`: 스트리머의 [내 방송 판매 상품] 바구니 담기.
+    - `GET /api/affiliate/my-products`: 스트리머 본인이 담아둔 제휴 판매 상품 목록 조회 (D LIVE 방송 시 핀 우선 노출).
+    - `DELETE /api/affiliate/my-products/:productId`: 제휴 바구니 상품 제거.
+- **빌드 검증**:
+  - `services/api`: `npm run build` -> 무결점 0 에러 컴파일 성공.
+  - `apps/admin`: `npm run build` -> 40개 정적/동적 라우트 무결점 0 에러 컴파일 성공.
+
+---
+
 ## 2026-10-23 Checkpoint 104: [다가온(DAGAON) V3.0 1단계: 입점사 B2C 상시 일반 상품·플랫폼 광고 및 리워드 수익화·AI 직원 & 마켓 통합 관리자 콘솔 완성]
 - **입점사(Merchant) 및 B2C 상시 일반 상품(NormalProduct) 백엔드 & DB 구축**:
   - **Prisma 스키마 확장**:
@@ -6147,3 +6186,43 @@ First Owner/ActivityAccount migration must:
   - PostgreSQL DB: Port 5432 동기화 완료.
   - 최신 릴리즈 APK: `dagaon-release.apk` 및 `apps/admin/public/downloads/dagaon-release.apk` 배포 완료.
 - **Git 메인 동기화**: `git add .` -> commit -> `git push origin main`.
+
+---
+
+## Checkpoint 110: 모꼬(Mocco) 리브랜딩 및 아키텍처 혁신 - 1단계: 소비자 웹 우선 엔트리포인트 & 롤기반 관리자 스위처 & 소스 대청소 & 4대 참여자 모델 정립 (2026-10-26)
+- **대표님 운영 철학 반영 및 소비자 웹 우선 엔트리포인트 (`apps/admin/src/app/page.tsx`)**:
+  - 도메인 루트(`/`) 접속 시 관리자 로그인 창이 아닌 **고객용 PC 반응형 웹 포털(`Customer Web Storefront`)**을 메인 첫 화면으로 전면 개편.
+  - 상단 D LIVE 실시간 방송 뷰어 & 배너 (`🔴 LIVE 1.4k`), 3대 마켓 탭([🏷️ 동네 중고] / [🛍️ 브랜드 쇼핑] / [🔥 특가 공구] + 전체 탐색), 4열 반응형 상품 그리드, 에스크로 안전결제 주문 팝업, 앱 다운로드 QR 모달 완비.
+- **글로벌 네비게이션(GNB) 헤더 & 스마트 권한 스위처**:
+  - 로그인 상태 및 유저 권한(Role)에 따른 우측 상단 자동 분기 구현:
+    - [비로그인 유저 (GUEST)]: [로그인] [회원가입] [📱 앱 다운로드]
+    - [일반 고객 (CUSTOMER)]: [🛒 장바구니] [📦 주문조회] [👤 마이모꼬]
+    - [입점사 파트너 (MERCHANT)]: [내 쇼핑] | **[🏪 입점사 셀러 센터 바로가기]** (`/seller`)
+    - [계약 스트리머 (STREAMER)]: [내 쇼핑] | **[🎙️ 스트리머 스튜디오 바로가기]** (`/streamer`)
+    - [본사 관리자 (SUPER_ADMIN / ADMIN)]: **[👑 본사 통합 관리자(HQ Admin) 바로가기]** (`/dashboard`)
+  - 모든 권한을 1-클릭으로 시뮬레이션할 수 있는 GNB 상단 권한 테스터 툴바 제공.
+  - 관리자 콘솔(`AppShell`) 및 셀러 콘솔(`SellerNav`) 상단에 **[🛒 고객 웹 둘러보기]** 양방향 스위처 버튼 완비.
+- **스트리머 스튜디오 신설 (`/streamer`)**:
+  - 계약 스트리머 전용 제휴 위탁 판매 센터 구축: 정산 예정액, 주문 수, 수수료율 모니터링.
+  - [📦 내 방송 판매 바구니 (My Picks)] & [🔍 제휴 위탁 상품 탐색 (Explore)] 탭 연동 및 D LIVE 핀 고정 바로가기 제공.
+- **사이드바 메뉴 3대 그룹화 (`layout.tsx`) & 레거시 라우트 완전 삭제**:
+  - 사이드바 네비게이션을 '본사 총괄 운영' / '파트너 콘솔 링크(입점사·스트리머)' / '고객용 웹 바로가기'로 명확히 구조화.
+  - 초기 데이팅 매칭 레거시 디렉토리 `apps/admin/src/app/matches/` 완전 삭제 영구 제거.
+  - `/`, `/seller`, `/streamer`, `/portal`, `/web/*`을 퍼블릭 라우트로 지정하여 역할별 매끄러운 진입 보장.
+- **Prisma DB 스키마 4대 참여자 커머스 모델 확장 (`schema.prisma`)**:
+  - `enum ProductOwnerType` 신설: `HEADQUARTERS`(본사 공식 직영/단독 공구), `MERCHANT`(인증 입점사), `USER_C2C`(일반 고객 개인 중고).
+  - `model NormalProduct` 확장: `ownerType`, `isHqDirect`, `allowAffiliate`, `affiliateCommissionRate` 추가.
+  - `model StreamerAffiliateProduct` 신설: 스트리머별 제휴 판매 바구니 및 커미션 요율 적재.
+  - `model EscrowOrder` 확장: `streamerId`, `streamerCommissionAmount` 필드 추가.
+  - `npx prisma db push` 및 `npx prisma generate` 무결점 완료.
+- **백엔드 레거시 소스 대청소 & 스트리머 제휴 API 신설 (`services/api`)**:
+  - `services/api/data/match-settings.json` 및 `AppController` 내 매칭 레거시 라우트 완전 제거.
+  - `AffiliateModule` 신설 및 `AppModule` 등록:
+    - `GET /api/affiliate/products`: 스트리머 방송 판매용 제휴 허용 상품 목록 조회 (본사 직영 + 입점사 상품).
+    - `POST /api/affiliate/products/pick`: 스트리머의 [내 방송 판매 상품] 바구니 담기.
+    - `GET /api/affiliate/my-products`: 스트리머 본인이 담아둔 제휴 판매 상품 목록 조회 (D LIVE 방송 시 핀 우선 노출).
+    - `DELETE /api/affiliate/my-products/:productId`: 제휴 바구니 상품 제거.
+- **빌드 검증**:
+  - `services/api`: `npm run build` -> 무결점 0 에러 컴파일 성공.
+  - `apps/admin`: `npm run build` -> 40개 정적/동적 라우트 무결점 0 에러 컴파일 성공.
+

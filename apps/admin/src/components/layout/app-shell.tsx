@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ChevronRight, LogOut, Search, Smartphone } from 'lucide-react'
+import { ChevronRight, LogOut, Search, Smartphone, ShoppingBag } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -153,6 +153,18 @@ export function AppShell({ items, adminName = '관리자', children }: AppShellP
                   <span className="h-2 w-2 rounded-full bg-emerald-500" />
                   <span className="font-medium">{adminName}</span>
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-primary/40 text-primary hover:bg-primary/10 flex items-center gap-1.5 font-medium"
+                  asChild
+                >
+                  <Link href="/">
+                    <ShoppingBag className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">🛒 고객 웹 둘러보기</span>
+                    <span className="sm:hidden">고객 웹</span>
+                  </Link>
+                </Button>
                 <Button
                   variant="default"
                   size="sm"

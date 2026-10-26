@@ -73,7 +73,7 @@ const DEFAULT_TEMPLATES: PushTemplateItem[] = [
     label: '주말 매칭 & 통화 부스트',
     title: '🔥 지금 접속자가 가장 많은 시간! 새로운 인연을 만나보세요',
     body: '서울/경기 및 전국 활성 회원이 지금 대화 상대를 찾고 있어요. 3초 만에 연결되는 1:1 라이브 통화를 시작해보세요!',
-    deepLink: 'dagaon://matches/boost',
+    deepLink: 'dagaon://market/boost',
     category: 'BOOST',
   },
   {
@@ -548,7 +548,7 @@ export default function NotificationsPage() {
                   <span className="text-[11px] text-muted-foreground">클릭 시 자동 이동</span>
                 </div>
                 <Input
-                  placeholder="예: dagaon://live, dagaon://store, dagaon://matches"
+                  placeholder="예: dagaon://live, dagaon://store, dagaon://market"
                   value={deepLink}
                   onChange={(e) => setDeepLink(e.target.value)}
                   className="h-9 text-xs"
@@ -570,10 +570,10 @@ export default function NotificationsPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setDeepLink('dagaon://matches')}
+                    onClick={() => setDeepLink('dagaon://market')}
                     className="text-[10px] text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 px-2 py-0.5 rounded"
                   >
-                    + 매칭 센터 (dagaon://matches)
+                    + 마켓 & 스토어 (dagaon://market)
                   </button>
                   <button
                     type="button"
