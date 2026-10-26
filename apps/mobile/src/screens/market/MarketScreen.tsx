@@ -35,8 +35,10 @@ import {
 } from '../../services/adsService';
 
 const { width } = Dimensions.get('window');
-const BANNER_WIDTH = width - 32;
-const CARD_WIDTH = (width - 36) / 2;
+const SCREEN_PADDING = 14;
+const CARD_GAP = 10;
+const BANNER_WIDTH = width - SCREEN_PADDING * 2;
+const CARD_WIDTH = (width - SCREEN_PADDING * 2 - CARD_GAP) / 2;
 
 type MarketTabType = 'C2C_USED' | 'B2C_NORMAL' | 'B2C_GROUP';
 type NormalSortType = 'recent' | 'priceAsc' | 'priceDesc' | 'popular';
@@ -86,7 +88,7 @@ export default function MarketScreen({ navigation }: any) {
       setCurrentAdIndex((prevIndex) => {
         const nextIndex = (prevIndex + 1) % ads.length;
         bannerFlatListRef.current?.scrollToOffset({
-          offset: nextIndex * (BANNER_WIDTH + 12),
+          offset: nextIndex * (BANNER_WIDTH + 10),
           animated: true,
         });
         const currentAd = ads[nextIndex];
@@ -239,14 +241,14 @@ export default function MarketScreen({ navigation }: any) {
             </View>
           ) : (
             <Text style={styles.locationText}>
-              {item.locationName} · {item.distanceKm > 0 ? `${item.distanceKm}km` : '우리동네'}
+              {item.locationName || '전국'}
             </Text>
           )}
 
-          {/* 가격 (1 ON = 1원) */}
+          {/* 가격 (원) */}
           <View style={styles.priceRow}>
             <Text style={styles.priceText}>
-              {item.price.toLocaleString()} <Text style={styles.currencyUnit}>ON</Text>
+              {item.price.toLocaleString()}원
             </Text>
             {isB2C && item.originalPrice ? (
               <Text style={styles.originalPriceText}>
@@ -371,13 +373,13 @@ export default function MarketScreen({ navigation }: any) {
             <Text style={styles.stockRemainingText}>재고 {item.stock}개</Text>
           </View>
 
-          {/* 가격 (1 ON = 1 KRW) */}
+          {/* 가격 (원) */}
           <View style={styles.priceRow}>
             {discountRate > 0 && (
               <Text style={styles.normalDiscountRateText}>{discountRate}%</Text>
             )}
             <Text style={styles.priceText}>
-              {finalPrice.toLocaleString()} <Text style={styles.currencyUnit}>ON</Text>
+              {finalPrice.toLocaleString()}원
             </Text>
             {discountRate > 0 && (
               <Text style={styles.originalPriceText}>
@@ -388,7 +390,7 @@ export default function MarketScreen({ navigation }: any) {
 
           {/* 하단 브랜드 인증 마크 */}
           <View style={styles.cardFooter}>
-            <Text style={styles.brandVerifiedLabel}>✓ 다가온 검증 브랜드</Text>
+            <Text style={styles.brandVerifiedLabel}>✓ 모꼬 검증 브랜드</Text>
             <Ionicons name="chevron-forward" size={12} color="#CBD5E1" />
           </View>
         </View>
@@ -407,11 +409,14 @@ export default function MarketScreen({ navigation }: any) {
           data={ads}
           keyExtractor={(item) => item.id}
           horizontal
-          pagingEnabled
+          pagingEnabled={false}
+          snapToInterval={BANNER_WIDTH + 10}
+          snapToAlignment="start"
+          decelerationRate="fast"
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.bannerScrollContent}
           onMomentumScrollEnd={(e) => {
-            const index = Math.round(e.nativeEvent.contentOffset.x / (BANNER_WIDTH + 12));
+            const index = Math.round(e.nativeEvent.contentOffset.x / (BANNER_WIDTH + 10));
             if (index >= 0 && index < ads.length) {
               setCurrentAdIndex(index);
               const cur = ads[index];
@@ -436,7 +441,7 @@ export default function MarketScreen({ navigation }: any) {
                   <View style={styles.bannerAdTag}>
                     <Text style={styles.bannerAdTagText}>AD</Text>
                   </View>
-                  <Text style={styles.bannerSubTag}>다가온 제휴 파트너스</Text>
+                  <Text style={styles.bannerSubTag}>모꼬 제휴 파트너스</Text>
                 </View>
                 <Text style={styles.bannerTitle} numberOfLines={1}>
                   {item.title}
@@ -473,11 +478,16 @@ export default function MarketScreen({ navigation }: any) {
       {/* 1. 상단 통일 56px 헤더 */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>마켓</Text>
-          <TouchableOpacity style={styles.locationSelector} activeOpacity={0.7}>
-            <Text style={styles.locationSelectorText}>역삼1동</Text>
-            <Ionicons name="chevron-down" size={14} color={tokens.colors.textPrimary} />
-          </TouchableOpacity>
+          <Image
+            source={require('../../../assets/mocco-mascot.png')}
+            style={styles.headerMascotLogo}
+            resizeMode="contain"
+          />
+          <Text style={styles.headerTitle}>모꼬마켓</Text>
+          <View style={styles.locationBadge}>
+            <Ionicons name="globe-outline" size={12} color="#FF3B6B" />
+            <Text style={styles.locationBadgeText}>전국 특가장터</Text>
+          </View>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.headerIconBtn} activeOpacity={0.7} onPress={handleShareMarket}>
@@ -492,9 +502,9 @@ export default function MarketScreen({ navigation }: any) {
         </View>
       </View>
 
-      {/* 2. 상단 3대 서브 탭 캡슐 바: [동네 중고] / [브랜드 쇼핑] / [특가 공구] */}
+      {/* 2. 상단 3대 서브 탭 캡슐 바: [중고마켓] / [브랜드 쇼핑] / [특가 공구] */}
       <View style={styles.segmentContainer}>
-        {/* 1) 동네 중고 (C2C) */}
+        {/* 1) 중고마켓 (C2C) */}
         <TouchableOpacity
           style={[styles.segmentBtn, selectedType === 'C2C_USED' && styles.segmentBtnActive]}
           onPress={() => setSelectedType('C2C_USED')}
@@ -506,7 +516,7 @@ export default function MarketScreen({ navigation }: any) {
               selectedType === 'C2C_USED' && styles.segmentTextActive,
             ]}
           >
-            🏷️ 동네 중고
+            🏷️ 중고마켓
           </Text>
         </TouchableOpacity>
 
@@ -524,9 +534,6 @@ export default function MarketScreen({ navigation }: any) {
           >
             🛍️ 브랜드 쇼핑
           </Text>
-          <View style={styles.brandNewBadge}>
-            <Text style={styles.brandNewBadgeText}>입점</Text>
-          </View>
         </TouchableOpacity>
 
         {/* 3) 특가 공구 (B2C) */}
@@ -657,19 +664,15 @@ export default function MarketScreen({ navigation }: any) {
         />
       )}
 
-      {/* 6. 우측 하단 가변 FAB: + 물품등록 */}
-      <ScrollExpandableFAB
-        label={selectedType === 'B2C_NORMAL' ? '입점문의' : '물품등록'}
-        iconName={selectedType === 'B2C_NORMAL' ? 'business' : 'add'}
-        isExpanded={isFabExpanded}
-        onPress={() => {
-          if (selectedType === 'B2C_NORMAL') {
-            navigation.navigate('MyPage', { screen: 'MerchantRegister' });
-          } else {
-            navigation.navigate('MarketCreate');
-          }
-        }}
-      />
+      {/* 6. 우측 하단 가변 FAB: + 물품등록 (중고마켓/공구 전용, 입점문의 제거) */}
+      {selectedType !== 'B2C_NORMAL' && (
+        <ScrollExpandableFAB
+          label="물품등록"
+          iconName="add"
+          isExpanded={isFabExpanded}
+          onPress={() => navigation.navigate('MarketCreate')}
+        />
+      )}
     </View>
   );
 }
@@ -699,19 +702,25 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     letterSpacing: -0.5,
   },
-  locationSelector: {
+  headerMascotLogo: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    marginRight: 2,
+  },
+  locationBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFF0F3',
+    borderRadius: 12,
   },
-  locationSelectorText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#334155',
+  locationBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FF3B6B',
   },
   headerRight: {
     flexDirection: 'row',
@@ -722,26 +731,26 @@ const styles = StyleSheet.create({
     padding: 6,
   },
 
-  // 광고 배너 캐러셀
+  // 광고 배너 캐러셀 (그리드 라인과 1px 오차 없는 완벽 정렬)
   bannerContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 14,
+    paddingHorizontal: 0,
+    paddingTop: 8,
+    paddingBottom: 12,
   },
   bannerScrollContent: {
-    gap: 12,
+    gap: 10,
   },
   bannerCard: {
     width: BANNER_WIDTH,
-    height: 120,
+    height: 124,
     borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: '#1E293B',
     position: 'relative',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
     elevation: 3,
   },
   bannerImage: {
@@ -953,14 +962,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  // 2열 그리드
+  // 2열 그리드 (배너와 100% 동일한 여백 일치)
   gridContent: {
-    paddingHorizontal: 12,
+    paddingHorizontal: SCREEN_PADDING,
     paddingBottom: 100,
   },
   gridRow: {
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: CARD_GAP,
   },
   card: {
     width: CARD_WIDTH,

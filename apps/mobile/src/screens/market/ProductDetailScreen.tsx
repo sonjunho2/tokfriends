@@ -258,9 +258,9 @@ export default function ProductDetailScreen({ route, navigation }: any) {
               )}
               <View style={styles.finalPriceRow}>
                 <Text style={styles.finalPriceText}>
-                  {finalPrice.toLocaleString()} <Text style={styles.finalPriceUnit}>ON</Text>
+                  {finalPrice.toLocaleString()}원
                 </Text>
-                <Text style={styles.finalPriceSubText}>(토스페이먼츠 에스크로 안전결제)</Text>
+                <Text style={styles.finalPriceSubText}>(에스크로 안전결제)</Text>
               </View>
             </View>
 
@@ -323,9 +323,9 @@ export default function ProductDetailScreen({ route, navigation }: any) {
 
           <View style={styles.bottomPriceBox}>
             <Text style={styles.bottomPriceText}>
-              {finalPrice.toLocaleString()} <Text style={styles.bottomCurrencyUnit}>ON</Text>
+              {finalPrice.toLocaleString()}원
             </Text>
-            <Text style={styles.bottomPriceSub}>1 ON = 1원 (원화 결제)</Text>
+            <Text style={styles.bottomPriceSub}>(에스크로 안전결제)</Text>
           </View>
 
           <TouchableOpacity
@@ -504,7 +504,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
               <Ionicons name="shield-checkmark" size={24} color="#10B981" />
             </View>
             <View style={styles.escrowGuaranteeTextBox}>
-              <Text style={styles.escrowGuaranteeTitle}>ON 포인트 에스크로 100% 안전거래</Text>
+              <Text style={styles.escrowGuaranteeTitle}>모꼬 에스크로 100% 안전거래</Text>
               <Text style={styles.escrowGuaranteeDesc}>
                 구매자가 물품을 정상 수령하고 [구매 확정]을 누르기 전까지 결제 대금이 플랫폼 금고에 안전하게 보관됩니다.
               </Text>
@@ -531,9 +531,9 @@ export default function ProductDetailScreen({ route, navigation }: any) {
 
         <View style={styles.bottomPriceBox}>
           <Text style={styles.bottomPriceText}>
-            {product.price.toLocaleString()} <Text style={styles.bottomCurrencyUnit}>ON</Text>
+            {product.price.toLocaleString()}원
           </Text>
-          <Text style={styles.bottomPriceSub}>1 ON = 1원</Text>
+          <Text style={styles.bottomPriceSub}>(에스크로 안전거래)</Text>
         </View>
 
         <View style={styles.bottomBtnGroup}>

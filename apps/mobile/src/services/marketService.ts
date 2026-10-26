@@ -38,7 +38,6 @@ export interface MarketProduct {
 
 export const MARKET_CATEGORIES = [
   { id: 'ALL', label: '전체' },
-  { id: 'HQ_DIRECT', label: '👑 본사 직영관' },
   { id: 'DIGITAL', label: '디지털/가전' },
   { id: 'FURNITURE', label: '가구/인테리어' },
   { id: 'FOOD_GROUP', label: '식품/공구' },
