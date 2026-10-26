@@ -54,9 +54,10 @@ export default function LiveScreen({ navigation }) {
   const [marketProducts, setMarketProducts] = useState(INITIAL_MARKET_PRODUCTS);
   const [selectedProductIds, setSelectedProductIds] = useState([]);
   const [productPickerVisible, setProductPickerVisible] = useState(false);
-  const [liveProductTab, setLiveProductTab] = useState('C2C'); // 'C2C' | 'MERCHANT'
+  const [liveProductTab, setLiveProductTab] = useState('C2C'); // 'C2C' | 'MERCHANT' | 'AFFILIATE'
   const [myMerchantProducts, setMyMerchantProducts] = useState([]);
   const [myMerchant, setMyMerchant] = useState(null);
+  const [myAffiliateProducts, setMyAffiliateProducts] = useState([]);
 
   const loadRooms = useCallback(async () => {
     try {
@@ -79,6 +80,51 @@ export default function LiveScreen({ navigation }) {
         }
       })
       .catch(() => {});
+
+    apiClient.get('/affiliate/my-products')
+      .then((res) => {
+        const list = res?.data || res || [];
+        if (Array.isArray(list) && list.length > 0) {
+          setMyAffiliateProducts(list);
+        } else {
+          setMyAffiliateProducts([
+            {
+              id: 'aff-prod-001',
+              title: '[모꼬단독] 프리미엄 저소음 무선 기계식 키보드',
+              name: '[모꼬단독] 프리미엄 저소음 무선 기계식 키보드',
+              price: 89000,
+              salePriceKrw: 89000,
+              commissionRate: 10,
+              images: ['https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=300'],
+              merchantName: '테크기어 공식스토어',
+            },
+            {
+              id: 'aff-prod-002',
+              title: '[본사직영] 올데이 프로틴 쉐이크 30포 패키지',
+              name: '[본사직영] 올데이 프로틴 쉐이크 30포 패키지',
+              price: 49000,
+              salePriceKrw: 49000,
+              commissionRate: 15,
+              images: ['https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=300'],
+              merchantName: '모꼬 공식 직영관',
+            },
+          ]);
+        }
+      })
+      .catch(() => {
+        setMyAffiliateProducts([
+          {
+            id: 'aff-prod-001',
+            title: '[모꼬단독] 프리미엄 저소음 무선 기계식 키보드',
+            name: '[모꼬단독] 프리미엄 저소음 무선 기계식 키보드',
+            price: 89000,
+            salePriceKrw: 89000,
+            commissionRate: 10,
+            images: ['https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=300'],
+            merchantName: '테크기어 공식스토어',
+          },
+        ]);
+      });
   }, []);
 
   useFocusEffect(
@@ -427,7 +473,7 @@ export default function LiveScreen({ navigation }) {
             {/* 상품 선택 서브 리스트 */}
             {productPickerVisible && (
               <View style={styles.productPickerBox}>
-                {/* 2-Way 서브 탭: [🏷️ 나의 중고 물품] vs [🛍️ 입점사 일반 상품] */}
+                {/* 3-Way 서브 탭: [🏷️ 나의 중고] vs [🛍️ 입점사 일반] vs [🎙️ 제휴 위탁 (내 바구니)] */}
                 <View style={styles.livePickerTabBar}>
                   <TouchableOpacity
                     style={[styles.livePickerTabBtn, liveProductTab === 'C2C' && styles.livePickerTabBtnActive]}
@@ -435,7 +481,7 @@ export default function LiveScreen({ navigation }) {
                     activeOpacity={0.8}
                   >
                     <Text style={[styles.livePickerTabText, liveProductTab === 'C2C' && styles.livePickerTabTextActive]}>
-                      🏷️ 나의 중고 ({marketProducts.length})
+                      🏷️ 중고 ({marketProducts.length})
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -444,7 +490,16 @@ export default function LiveScreen({ navigation }) {
                     activeOpacity={0.8}
                   >
                     <Text style={[styles.livePickerTabText, liveProductTab === 'MERCHANT' && styles.livePickerTabTextActive]}>
-                      🛍️ 입점사 일반 상품 ({myMerchantProducts.length})
+                      🛍️ 입점사 ({myMerchantProducts.length})
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.livePickerTabBtn, liveProductTab === 'AFFILIATE' && styles.livePickerTabBtnActive]}
+                    onPress={() => setLiveProductTab('AFFILIATE')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.livePickerTabText, liveProductTab === 'AFFILIATE' && styles.livePickerTabTextActive]}>
+                      🎙️ 제휴 위탁 ({myAffiliateProducts.length})
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -483,7 +538,7 @@ export default function LiveScreen({ navigation }) {
                       </TouchableOpacity>
                     );
                   })
-                ) : (
+                ) : liveProductTab === 'MERCHANT' ? (
                   myMerchantProducts.length > 0 ? (
                     myMerchantProducts.map((p) => {
                       const isChecked = selectedProductIds.includes(p.id);
@@ -526,6 +581,53 @@ export default function LiveScreen({ navigation }) {
                     <View style={styles.emptyPickerBox}>
                       <Text style={styles.emptyPickerText}>등록된 입점사 일반 상품이 없습니다.</Text>
                       <Text style={styles.emptyPickerSub}>마이페이지 &gt; 입점사 관리에서 상품을 등록해보세요.</Text>
+                    </View>
+                  )
+                ) : (
+                  /* liveProductTab === 'AFFILIATE' (스트리머 제휴 위탁 장바구니) */
+                  myAffiliateProducts.length > 0 ? (
+                    myAffiliateProducts.map((p) => {
+                      const isChecked = selectedProductIds.includes(p.id);
+                      const finalPrice = p.salePriceKrw || p.priceKrw || p.price || 0;
+                      const commRate = p.commissionRate || p.affiliateCommissionRate || 10;
+                      return (
+                        <TouchableOpacity
+                          key={p.id}
+                          style={[styles.pickerItemRow, isChecked && styles.pickerItemRowSelected]}
+                          activeOpacity={0.8}
+                          onPress={() => {
+                            if (isChecked) {
+                              setSelectedProductIds(selectedProductIds.filter((id) => id !== p.id));
+                            } else {
+                              setSelectedProductIds([...selectedProductIds, p.id]);
+                            }
+                          }}
+                        >
+                          <Image
+                            source={{ uri: p.images?.[0] || 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=300' }}
+                            style={styles.pickerThumb}
+                          />
+                          <View style={styles.pickerMeta}>
+                            <View style={styles.pickerBadgeRow}>
+                              <Text style={[styles.pickerTypeBadge, { backgroundColor: '#FFF1F2', color: '#E11D48' }]}>
+                                🎙️ 수익쉐어 {commRate}%
+                              </Text>
+                              <Text style={styles.pickerPrice}>{finalPrice.toLocaleString()}원</Text>
+                            </View>
+                            <Text style={styles.pickerTitle} numberOfLines={1}>{p.title || p.name}</Text>
+                          </View>
+                          <Ionicons
+                            name={isChecked ? 'checkbox' : 'square-outline'}
+                            size={22}
+                            color={isChecked ? '#E11D48' : '#94A3B8'}
+                          />
+                        </TouchableOpacity>
+                      );
+                    })
+                  ) : (
+                    <View style={styles.emptyPickerBox}>
+                      <Text style={styles.emptyPickerText}>담아둔 제휴 위탁 상품이 없습니다.</Text>
+                      <Text style={styles.emptyPickerSub}>웹/앱 제휴 마켓에서 스트리머 제휴 상품을 담아보세요.</Text>
                     </View>
                   )
                 )}

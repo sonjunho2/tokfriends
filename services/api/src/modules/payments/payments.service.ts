@@ -10,6 +10,8 @@ import {
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from 'nestjs-prisma';
 import { EscrowStatus, SellerSettlementStatus } from '@prisma/client';
+import * as fs from 'fs';
+import * as path from 'path';
 import { ChatGateway } from '../ws/chat.gateway';
 import {
   PrepareEscrowPaymentDto,
@@ -19,16 +21,86 @@ import {
   ArbitrateEscrowOrderDto,
 } from './dto/escrow-payment.dto';
 
-
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
+  private readonly dataDir = path.resolve(process.cwd(), 'data');
 
   constructor(
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => ChatGateway))
     private readonly chatGateway: ChatGateway,
   ) {}
+
+  /**
+   * 스트리머 제휴 판매 수익금 WalletLedger(ledger.json) 및 지갑 불변 원장 적립
+   */
+  private async recordStreamerAffiliateCommission(order: {
+    id: string;
+    orderNumber: string;
+    streamerId?: string | null;
+    streamerCommissionAmount?: number | null;
+    product?: { title?: string } | null;
+  }) {
+    if (!order.streamerId || !order.streamerCommissionAmount || order.streamerCommissionAmount <= 0) {
+      return;
+    }
+
+    try {
+      if (!fs.existsSync(this.dataDir)) {
+        fs.mkdirSync(this.dataDir, { recursive: true });
+      }
+
+      const ledgerPath = path.join(this.dataDir, 'ledger.json');
+      let ledger: any[] = [];
+      if (fs.existsSync(ledgerPath)) {
+        try {
+          ledger = JSON.parse(fs.readFileSync(ledgerPath, 'utf-8'));
+        } catch {}
+      }
+
+      // 스트리머 프로필 조회
+      const streamer = await this.prisma.user.findUnique({
+        where: { id: order.streamerId },
+        select: { id: true, nickname: true, displayName: true },
+      });
+
+      const streamerName = streamer?.displayName || streamer?.nickname || '스트리머';
+      const prodTitle = order.product?.title || '라이브 제휴 상품';
+
+      const ledgerEntry = {
+        id: `led-aff-${Date.now()}-${Math.floor(Math.random() * 900 + 100)}`,
+        walletId: `wallet-${order.streamerId}`,
+        kind: 'AFFILIATE_COMMISSION',
+        source: 'LIVE_COMMERCE_PIN',
+        deltaSpendable: order.streamerCommissionAmount,
+        deltaRedeemable: order.streamerCommissionAmount,
+        deltaPending: 0,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        streamerId: order.streamerId,
+        streamerName,
+        createdAt: new Date().toISOString(),
+        description: `[D LIVE 제휴 커미션] '${prodTitle}' 라이브 핀 판매 수익 쉐어`,
+        wallet: {
+          id: `wallet-${order.streamerId}`,
+          activityAccountId: order.streamerId,
+          activityAccount: {
+            displayName: streamerName,
+            handle: order.streamerId,
+          },
+        },
+      };
+
+      ledger.unshift(ledgerEntry);
+      fs.writeFileSync(ledgerPath, JSON.stringify(ledger, null, 2), 'utf-8');
+      this.logger.log(
+        `[Streamer Affiliate Commission] Credited ${order.streamerCommissionAmount} KRW to streamer ${order.streamerId} for order ${order.orderNumber}`
+      );
+    } catch (err: any) {
+      this.logger.error(`[Streamer Commission Error] Failed to write ledger: ${err.message}`);
+    }
+  }
 
   /**
    * 1. 에스크로 주문 생성 및 PG 결제 승인 요청 준비
@@ -66,7 +138,24 @@ export class PaymentsService {
     const feeRate = 0.035; // 3.5% 안전결제 수수료
     const feeAmount = Math.round(itemTotal * feeRate);
     const totalAmount = itemTotal + feeAmount;
-    const sellerPayout = itemTotal;
+
+    // 스트리머 제휴 커미션 계산 (streamerId가 존재할 경우)
+    let streamerCommissionAmount = 0;
+    if (dto.streamerId) {
+      if (dto.streamerCommissionAmount && dto.streamerCommissionAmount > 0) {
+        streamerCommissionAmount = dto.streamerCommissionAmount;
+      } else {
+        const normalProduct = await this.prisma.normalProduct.findFirst({
+          where: { OR: [{ id: dto.productId }, { name: product.title }] },
+          select: { affiliateCommissionRate: true, allowAffiliate: true },
+        });
+        const rate = Number(normalProduct?.affiliateCommissionRate || 10.0);
+        streamerCommissionAmount = Math.floor((itemTotal * rate) / 100);
+      }
+    }
+
+    // 입점사 순정산금: 상품금액 - 스트리머 커미션
+    const sellerPayout = Math.max(0, itemTotal - streamerCommissionAmount);
 
     const orderNumber = `ORD-KRW-${Date.now().toString().slice(-8)}-${Math.floor(Math.random() * 900 + 100)}`;
 
@@ -77,6 +166,8 @@ export class PaymentsService {
         buyerId,
         sellerId: product.sellerId,
         liveId: dto.liveId,
+        streamerId: dto.streamerId || null,
+        streamerCommissionAmount,
         amount: totalAmount,
         feeAmount,
         platformFeeRate: feeRate,
@@ -91,7 +182,9 @@ export class PaymentsService {
       },
     });
 
-    this.logger.log(`[PG Prepare] Order created: ${order.orderNumber}, Amount: ${totalAmount} KRW`);
+    this.logger.log(
+      `[PG Prepare] Order created: ${order.orderNumber}, Amount: ${totalAmount} KRW, Streamer: ${dto.streamerId || 'none'}, Commission: ${streamerCommissionAmount} KRW`
+    );
 
     return {
       orderId: order.id,
@@ -102,6 +195,8 @@ export class PaymentsService {
       feeAmount,
       totalAmount,
       sellerPayout,
+      streamerId: dto.streamerId,
+      streamerCommissionAmount,
       buyerName: buyer.displayName || buyer.nickname || '구매자',
       sellerName: product.seller.displayName || product.seller.nickname || '판매자',
       pgProvider: order.pgProvider,
@@ -254,13 +349,17 @@ export class PaymentsService {
         },
       });
 
-      // 2) 판매자 정산 대기열(SellerSettlement) 등록
+      // 2) 판매자 정산 대기열(SellerSettlement) 등록: orderAmount - feeAmount - streamerCommissionAmount
+      const sellerNetAmount = Math.max(
+        0,
+        order.amount - order.feeAmount - (order.streamerCommissionAmount || 0)
+      );
       const settlement = await tx.sellerSettlement.create({
         data: {
           sellerId: order.sellerId,
           orderId: order.id,
           totalAmount: order.amount,
-          netAmount: order.sellerPayout,
+          netAmount: sellerNetAmount,
           bankName: dto.sellerBankName || '카카오뱅크',
           accountNumber: dto.sellerAccountNumber || '3333-01-000000',
           accountHolder: dto.sellerAccountHolder || order.seller.displayName || order.seller.nickname || '판매자',
@@ -270,6 +369,11 @@ export class PaymentsService {
 
       return { order: updatedOrder, settlement };
     });
+
+    // 3) 스트리머 수익금 불변 원장 적립 (AFFILIATE_COMMISSION)
+    if (order.streamerId && (order.streamerCommissionAmount || 0) > 0) {
+      await this.recordStreamerAffiliateCommission(order);
+    }
 
     this.logger.log(`[Order Completed] ${order.orderNumber} -> Settlement queued: ${result.settlement.id}`);
 
@@ -473,6 +577,11 @@ export class PaymentsService {
 
     for (const order of targetOrders) {
       try {
+        const sellerNetAmount = Math.max(
+          0,
+          order.amount - order.feeAmount - (order.streamerCommissionAmount || 0)
+        );
+
         await this.prisma.$transaction(async (tx) => {
           await tx.escrowOrder.update({
             where: { id: order.id },
@@ -487,7 +596,7 @@ export class PaymentsService {
               sellerId: order.sellerId,
               orderId: order.id,
               totalAmount: order.amount,
-              netAmount: order.sellerPayout,
+              netAmount: sellerNetAmount,
               bankName: '자동정산계좌',
               accountNumber: '3333-01-000000',
               accountHolder: order.seller.displayName || order.seller.nickname || '판매자',
@@ -495,6 +604,11 @@ export class PaymentsService {
             },
           });
         });
+
+        // 스트리머 제휴 정산금 원장 적립
+        if (order.streamerId && (order.streamerCommissionAmount || 0) > 0) {
+          await this.recordStreamerAffiliateCommission(order);
+        }
 
         this.logger.log(`[Auto Escrow Cron] Order ${order.orderNumber} auto-completed after 7 days`);
       } catch (err: any) {

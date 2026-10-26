@@ -1795,6 +1795,7 @@ export default function LiveRoomScreen({ navigation, route }) {
         visible={pgBottomSheetVisible}
         product={selectedCommerceProduct || pinnedProduct}
         liveId={roomId}
+        streamerId={room?.host?.id || room?.hostId}
         onClose={() => setPgBottomSheetVisible(false)}
         onSuccess={handlePaymentSuccess}
       />

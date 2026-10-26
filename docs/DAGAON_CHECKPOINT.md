@@ -5,6 +5,47 @@ Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
 
+## 2026-10-26 Checkpoint 111: [모꼬(Mocco) 리브랜딩 및 아키텍처 혁신 - 2단계: 스트리머 제휴 핀 판매 & 수익 쉐어 정산 & 모바일/API 전방위 소스 대청소]
+- **모바일 앱(apps/mobile) 레거시 소스 전방위 대청소 (Clean-up)**:
+  - 과거 불필요한 잔여 화면 영구 삭제:
+    - `apps/mobile/src/screens/recommend/HotRecommendScreen.js` 디렉토리 및 파일 완전 삭제.
+    - `apps/mobile/src/screens/shop/ShopScreen.js` 디렉토리 및 파일 완전 삭제.
+  - 네비게이션 정리 (`RootNavigator.js`, `TabStacks.js`, `index.js`):
+    - 삭제된 `HotRecommendScreen` 및 `ShopScreen` 관련 import문 및 스택 라우트 태그 일체 완전 제거.
+    - `apps/mobile/src/navigation/index.js`의 딥링크 prefix 구버전 명칭(`ddakchin://`)을 공식 명칭인 `mocco://`로 전면 교체.
+- **D LIVE 스트리머 제휴 핀(Pin) 판매 모바일 & 소켓 연동 (apps/mobile)**:
+  - 방송 전 상품 연결 모달 (`apps/mobile/src/screens/main/LiveScreen.js`):
+    - 기존 [🏷️ 내 중고], [🛍️ 입점사] 외에 **[🎙️ 제휴 위탁 (내 바구니)]** 탭 추가.
+    - 스트리머가 담아둔 제휴 상품 목록(`GET /api/affiliate/my-products`)을 불러와 방송 룸 생성 시 체크박스로 다중 연결.
+  - 방송 중 호스트 실시간 핀 고정 바텀시트 (`HostLiveControlSheet.tsx`):
+    - [🎙️ 제휴 위탁] 탭 지원 및 제휴 상품 목록 조회, [📌 핀 고정] 클릭 시 소켓 `live:pin_product` 실시간 시청자 전파.
+  - 시청자 플로팅 핀 카드 (`LiveProductPinCard.tsx`):
+    - 스트리머 제휴 위탁 상품인 경우 상단에 `[🎙️ 스트리머 추천 특가]` 코랄 뱃지 렌더링.
+    - 시청자가 [지금 구매] 클릭 시 결제 준비 요청(`POST /api/payments/escrow/prepare`)에 현재 방송 호스트의 `streamerId`와 `streamerCommissionAmount`를 함께 전달하여 에스크로 주문 생성.
+- **에스크로 결제 & 스트리머 커미션 수익 쉐어 자동 정산 (services/api)**:
+  - 결제 준비 (`payments.service.ts` - `prepareEscrowPayment`):
+    - `streamerId` 존재 시 상품의 `affiliateCommissionRate`에 기반하여 `streamerCommissionAmount` 계산 및 `EscrowOrder`에 영구 기록.
+  - 구매확정 시 자동 수익 쉐어 정산 (`completeOrder` 및 7일 자동 구매확정 Cron):
+    - 1) 입점사 정산금: `sellerNetAmount = orderAmount - feeAmount - streamerCommissionAmount`로 커미션 차감 정산.
+    - 2) 스트리머 수익금: `streamerCommissionAmount > 0`일 때 스트리머 지갑(`WalletLedger` / `ledger.json`)에 `AFFILIATE_COMMISSION` 타입으로 원화 잔액 적립 및 불변 원장 영구 보관.
+    - 3) 스트리머 스튜디오(`/streamer`) 대시보드: `GET /api/affiliate/stats` 엔드포인트를 통해 실시간 정산 완료액 및 정산 예정액 즉각 반영.
+- **본사 공식 직영(HQ Direct) 상품 등록 및 프리미엄 뱃지 관리 (apps/admin & apps/mobile)**:
+  - 본사 관리자 상품 관리 (`apps/admin/src/app/market-escrow/page.tsx`):
+    - [👑 본사 공식 직영 상품 등록] 모달 신설 (`isHqDirect: true`, `ownerType: 'HEADQUARTERS'`).
+    - 스트리머 위탁 판매 허용 여부(`allowAffiliate`) 및 커미션율(기본 10.0%) 설정 기능 제공, 직영 골드 뱃지 및 제휴 요율 뱃지 표시.
+  - 고객용 PC 웹 포털 (`apps/admin/src/app/page.tsx`):
+    - 본사 직영 상품 카드 좌측 상단에 고유의 `[👑 본사직영]` 골드 메탈릭 뱃지 오버레이.
+    - 상단 카테고리 칩에 `[👑 본사 직영관]` 필터 칩 추가.
+  - 모바일 마켓 화면 (`apps/mobile/src/screens/market/MarketScreen.tsx` & `marketService.ts`):
+    - `MARKET_CATEGORIES`에 `[👑 본사 직영관]` 칩 추가 및 필터링 지원.
+    - 상품 카드 좌측 상단 `[👑 본사직영]` 골드 메탈릭 뱃지 오버레이 및 직영관 상호 라벨 바인딩.
+- **3대 빌드 검증 및 무결점 확인**:
+  - `services/api`: `npm run build` -> 무결점 0 에러 컴파일 성공.
+  - `apps/admin`: `npm run build` -> 40개 정적/동적 라우트 무결점 0 에러 컴파일 성공.
+  - `apps/mobile`: `npm run test:mobile:babel` (iOS & Android 1500+ 모듈) -> 무결점 0 에러 번들 성공.
+
+---
+
 ## 2026-10-26 Checkpoint 110: [모꼬(Mocco) 리브랜딩 및 아키텍처 혁신 - 1단계: 소비자 웹 우선 엔트리포인트 & 롤기반 관리자 스위처 & 소스 대청소 & 4대 참여자 모델 정립]
 - **대표님 운영 철학 반영 및 소비자 웹 우선 엔트리포인트 (`apps/admin/src/app/page.tsx`)**:
   - 도메인 루트(`/`) 접속 시 관리자 로그인 창이 아닌 **고객용 PC 반응형 웹 포털(`Customer Web Storefront`)**을 메인 첫 화면으로 전면 개편.

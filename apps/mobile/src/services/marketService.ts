@@ -30,10 +30,15 @@ export interface MarketProduct {
   chatsCount: number;
   isLiked?: boolean;
   createdAt: string;
+  isHqDirect?: boolean;
+  ownerType?: string;
+  allowAffiliate?: boolean;
+  affiliateCommissionRate?: number;
 }
 
 export const MARKET_CATEGORIES = [
   { id: 'ALL', label: '전체' },
+  { id: 'HQ_DIRECT', label: '👑 본사 직영관' },
   { id: 'DIGITAL', label: '디지털/가전' },
   { id: 'FURNITURE', label: '가구/인테리어' },
   { id: 'FOOD_GROUP', label: '식품/공구' },
@@ -227,7 +232,11 @@ export async function fetchMarketProducts(params?: {
   }
 
   if (params?.category && params.category !== 'ALL') {
-    filtered = filtered.filter((p) => p.category === params.category);
+    if (params.category === 'HQ_DIRECT') {
+      filtered = filtered.filter((p) => p.isHqDirect === true);
+    } else {
+      filtered = filtered.filter((p) => p.category === params.category);
+    }
   }
 
   if (params?.query && params.query.trim()) {
@@ -311,6 +320,10 @@ export interface NormalProduct {
   status: 'ACTIVE' | 'OUT_OF_STOCK' | 'HIDDEN' | 'DELETED';
   shippingFee: number;
   createdAt: string;
+  isHqDirect?: boolean;
+  ownerType?: string;
+  allowAffiliate?: boolean;
+  affiliateCommissionRate?: number;
   merchant?: {
     id: string;
     businessName: string;
@@ -325,6 +338,33 @@ export interface NormalProduct {
 }
 
 export const INITIAL_NORMAL_PRODUCTS: NormalProduct[] = [
+  {
+    id: 'np-hq-001',
+    merchantId: 'mer-hq',
+    merchantName: '모꼬(MOCCO) 본사 공식 직영관',
+    name: '[본사직영] 프리미엄 나주 특등급 햇배 5kg 세트 (산지직송)',
+    description: '당도 13브릭스 이상 엄선 나주 특등급 햇배 산지직송 명품 선물세트.',
+    priceKrw: 39000,
+    salePriceKrw: 32900,
+    stock: 200,
+    images: [
+      'https://images.unsplash.com/photo-1514756331096-242fdeb7004a?w=600&auto=format&fit=crop&q=80',
+    ],
+    category: 'FOOD_GROUP',
+    status: 'ACTIVE',
+    shippingFee: 0,
+    createdAt: '2026-10-22 10:00',
+    isHqDirect: true,
+    ownerType: 'HEADQUARTERS',
+    allowAffiliate: true,
+    affiliateCommissionRate: 10.0,
+    merchant: {
+      id: 'mer-hq',
+      businessName: '모꼬(MOCCO) 본사 공식 직영관',
+      representative: '모꼬 본사',
+      businessNumber: '101-86-00000',
+    },
+  },
   {
     id: 'np-001',
     merchantId: 'mer-001',
@@ -449,7 +489,11 @@ export async function fetchNormalProducts(params?: {
 
   let list = [...inMemoryNormalProducts];
   if (params?.category && params.category !== 'ALL') {
-    list = list.filter((p) => p.category.toUpperCase() === params.category?.toUpperCase());
+    if (params.category === 'HQ_DIRECT') {
+      list = list.filter((p) => p.isHqDirect === true);
+    } else {
+      list = list.filter((p) => p.category.toUpperCase() === params.category?.toUpperCase());
+    }
   }
   if (params?.search && params.search.trim()) {
     const q = params.search.trim().toLowerCase();

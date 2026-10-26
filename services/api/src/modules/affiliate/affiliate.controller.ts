@@ -68,4 +68,17 @@ export class AffiliateController {
       'streamer-default';
     return this.affiliateService.unpickProduct(streamerId, productId);
   }
+
+  @Get('stats')
+  @Public()
+  @ApiOperation({ summary: '스트리머 제휴 판매 실적 및 정산 통계 조회' })
+  async getStreamerStats(@Req() req: any, @Query('streamerId') queryStreamerId?: string) {
+    const streamerId =
+      queryStreamerId ||
+      req.user?.id ||
+      req.user?.sub ||
+      req.query?.streamerId ||
+      'streamer-default';
+    return this.affiliateService.getStreamerStats(streamerId);
+  }
 }

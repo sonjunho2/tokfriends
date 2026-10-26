@@ -221,7 +221,7 @@ export default function CustomerWebStorefrontPage() {
 
   // Products & Tabs
   const [products] = useState<WebProductItem[]>(INITIAL_WEB_PRODUCTS)
-  const [selectedTab, setSelectedTab] = useState<'ALL' | 'C2C_USED' | 'B2C_NORMAL' | 'B2C_GROUP'>('ALL')
+  const [selectedTab, setSelectedTab] = useState<'ALL' | 'HQ_DIRECT' | 'C2C_USED' | 'B2C_NORMAL' | 'B2C_GROUP'>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
 
   // Modals State
@@ -246,7 +246,9 @@ export default function CustomerWebStorefrontPage() {
 
   // Filtered Products
   const filteredProducts = products.filter((p) => {
-    const matchTab = selectedTab === 'ALL' || p.type === selectedTab
+    const matchTab =
+      selectedTab === 'ALL' ||
+      (selectedTab === 'HQ_DIRECT' ? p.isHqDirect === true : p.type === selectedTab)
     const matchSearch =
       !searchQuery.trim() ||
       p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -509,9 +511,10 @@ export default function CustomerWebStorefrontPage() {
             <div className="flex items-center gap-2">
               {[
                 { key: 'ALL', label: '✨ 전체 상품', icon: Sparkles },
-                { key: 'C2C_USED', label: '🏷️ 동네 중고', icon: Tag },
-                { key: 'B2C_NORMAL', label: '🛍️ 브랜드 쇼핑 (상시/직영)', icon: Store },
+                { key: 'HQ_DIRECT', label: '👑 본사 직영관', icon: Crown },
+                { key: 'B2C_NORMAL', label: '🛍️ 브랜드 쇼핑', icon: Store },
                 { key: 'B2C_GROUP', label: '🔥 특가 공구', icon: Users2 },
+                { key: 'C2C_USED', label: '🏷️ 동네 중고', icon: Tag },
               ].map((tab) => {
                 const Icon = tab.icon
                 const isActive = selectedTab === tab.key
@@ -521,7 +524,9 @@ export default function CustomerWebStorefrontPage() {
                     onClick={() => setSelectedTab(tab.key as any)}
                     className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
                       isActive
-                        ? 'bg-rose-600 text-white shadow-sm'
+                        ? tab.key === 'HQ_DIRECT'
+                          ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-black shadow-md font-extrabold'
+                          : 'bg-rose-600 text-white shadow-sm'
                         : 'bg-card text-muted-foreground hover:bg-muted hover:text-foreground border border-border/70'
                     }`}
                   >
@@ -682,9 +687,9 @@ export default function CustomerWebStorefrontPage() {
                     {/* Owner Type Badge */}
                     <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1">
                       {p.isHqDirect ? (
-                        <Badge className="bg-indigo-600 text-white font-extrabold text-[10px]">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-slate-950 shadow-md border border-amber-200/60 ring-1 ring-amber-400/40 tracking-tight">
                           👑 본사직영
-                        </Badge>
+                        </span>
                       ) : p.ownerType === 'MERCHANT' ? (
                         <Badge className="bg-emerald-600 text-white font-extrabold text-[10px]">
                           🏪 공식입점

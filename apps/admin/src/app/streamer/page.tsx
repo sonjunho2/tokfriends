@@ -143,6 +143,8 @@ export default function StreamerStudioPage() {
   const [availableProducts, setAvailableProducts] = useState<AffiliateProductItem[]>(INITIAL_AFFILIATE_PRODUCTS)
   const [myPicks, setMyPicks] = useState<AffiliateProductItem[]>([INITIAL_AFFILIATE_PRODUCTS[0], INITIAL_AFFILIATE_PRODUCTS[1]])
   const [isLoading, setIsLoading] = useState(false)
+  const [settledCommission, setSettledCommission] = useState(458000)
+  const [completedOrdersCount, setCompletedOrdersCount] = useState(14)
 
   // Fetch real affiliate products from backend API if available
   const fetchAffiliateData = async () => {
@@ -165,6 +167,16 @@ export default function StreamerStudioPage() {
             estimatedCommissionKrw: item.estimatedCommissionKrw,
           }))
           if (mapped.length > 0) setMyPicks(mapped)
+        }
+      }
+      const statsRes = await fetch('/api/affiliate/stats', { cache: 'no-store' })
+      if (statsRes.ok) {
+        const json = await statsRes.json()
+        if (json.totalSettledCommission !== undefined) {
+          setSettledCommission(json.totalSettledCommission)
+        }
+        if (json.completedOrdersCount !== undefined) {
+          setCompletedOrdersCount(json.completedOrdersCount)
         }
       }
     } catch {}
@@ -286,16 +298,16 @@ export default function StreamerStudioPage() {
           <Card className="border border-border/80 shadow-sm bg-card/60">
             <CardHeader className="pb-2">
               <CardDescription className="text-xs flex items-center justify-between">
-                <span>이번 달 제휴 커미션 정산 예정</span>
+                <span>이번 달 제휴 커미션 정산 완료액</span>
                 <Coins className="w-4 h-4 text-amber-500" />
               </CardDescription>
               <CardTitle className="text-2xl font-black text-rose-500">
-                ₩458,000
+                ₩{settledCommission.toLocaleString()}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-[11px] text-muted-foreground">
-                구매 확정 완료된 제휴 판매 주문 14건 기준
+                구매 확정 완료된 제휴 판매 주문 {completedOrdersCount}건 기준 실시간 정산
               </p>
             </CardContent>
           </Card>

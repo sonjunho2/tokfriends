@@ -27,6 +27,16 @@ export class PrepareEscrowPaymentDto {
   @IsOptional()
   @IsString()
   pgProvider?: string;
+
+  @ApiPropertyOptional({ description: '추천 스트리머 ID (제휴 판매 시)', example: 'str-001' })
+  @IsOptional()
+  @IsString()
+  streamerId?: string;
+
+  @ApiPropertyOptional({ description: '스트리머 커미션 정산액', example: 8900 })
+  @IsOptional()
+  @IsNumber()
+  streamerCommissionAmount?: number;
 }
 
 export class ConfirmEscrowPaymentDto {

@@ -26,6 +26,11 @@ export default function LiveProductPinCard({
 }: LiveProductPinCardProps) {
   if (!product) return null;
 
+  const isAffiliate = Boolean(
+    (product as any).isAffiliate ||
+    (product.type as string) === 'AFFILIATE' ||
+    (product as any).affiliateCommissionRate
+  );
   const isNormal = (product.type as string) === 'B2C_NORMAL';
   const isGroup = product.type === 'B2C_GROUP';
   const discountRate =
@@ -40,7 +45,7 @@ export default function LiveProductPinCard({
     product.images?.[0] ||
     'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=300';
   const merchantLabel =
-    product.seller?.nickname || (product as any).merchantName || '인증 입점사';
+    product.seller?.nickname || (product as any).merchantName || (isAffiliate ? '제휴 공식사' : '인증 입점사');
 
   return (
     <View style={styles.container}>
@@ -60,7 +65,9 @@ export default function LiveProductPinCard({
             <View
               style={[
                 styles.badge,
-                isNormal
+                isAffiliate
+                  ? styles.badgeAffiliate
+                  : isNormal
                   ? styles.badgeMerchant
                   : isGroup
                   ? styles.badgeB2C
@@ -70,14 +77,22 @@ export default function LiveProductPinCard({
               <Text
                 style={[
                   styles.badgeText,
-                  isNormal
+                  isAffiliate
+                    ? styles.badgeTextAffiliate
+                    : isNormal
                     ? styles.badgeTextMerchant
                     : isGroup
                     ? styles.badgeTextB2C
                     : styles.badgeTextC2C,
                 ]}
               >
-                {isNormal ? '🛍️ 브랜드 특가' : isGroup ? '특가공구' : '중고매물'}
+                {isAffiliate
+                  ? '🎙️ 스트리머 추천 특가'
+                  : isNormal
+                  ? '🛍️ 브랜드 특가'
+                  : isGroup
+                  ? '특가공구'
+                  : '중고매물'}
               </Text>
             </View>
             <Text style={styles.sellerName} numberOfLines={1}>
@@ -213,6 +228,11 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
     borderRadius: 4,
   },
+  badgeAffiliate: {
+    backgroundColor: '#FF6B6B',
+    borderWidth: 1,
+    borderColor: '#FA5252',
+  },
   badgeMerchant: {
     backgroundColor: '#FFF1F2',
     borderWidth: 1,
@@ -227,6 +247,9 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 9,
     fontWeight: '900',
+  },
+  badgeTextAffiliate: {
+    color: '#FFFFFF',
   },
   badgeTextMerchant: {
     color: '#FF3B6B',

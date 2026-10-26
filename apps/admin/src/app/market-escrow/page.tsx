@@ -24,6 +24,7 @@ import {
   Layers,
   Scale,
   X,
+  Crown,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -74,6 +75,10 @@ interface NormalProductItem {
   category: string
   status: 'ACTIVE' | 'HIDDEN' | 'OUT_OF_STOCK'
   createdAt: string
+  isHqDirect?: boolean
+  ownerType?: 'HEADQUARTERS' | 'MERCHANT' | 'USER_C2C'
+  allowAffiliate?: boolean
+  affiliateCommissionRate?: number
 }
 
 interface GroupBuyProductItem {
@@ -204,6 +209,23 @@ const INITIAL_C2C_PRODUCTS: C2CProductItem[] = [
 
 const INITIAL_NORMAL_PRODUCTS: NormalProductItem[] = [
   {
+    id: 'np-hq-001',
+    merchantId: 'mer-hq',
+    merchantName: '모꼬(MOCCO) 본사 공식 직영관',
+    name: '[본사직영] 프리미엄 나주 특등급 햇배 5kg 선물세트 (산지직송)',
+    priceKrw: 39000,
+    salePriceKrw: 32900,
+    stock: 200,
+    shippingFee: 0,
+    category: 'FOOD',
+    status: 'ACTIVE',
+    createdAt: '2026-10-22 10:00',
+    isHqDirect: true,
+    ownerType: 'HEADQUARTERS',
+    allowAffiliate: true,
+    affiliateCommissionRate: 10.0,
+  },
+  {
     id: 'np-001',
     merchantId: 'mer-001',
     merchantName: '제주푸드 본사 직영',
@@ -215,6 +237,10 @@ const INITIAL_NORMAL_PRODUCTS: NormalProductItem[] = [
     category: 'FOOD',
     status: 'ACTIVE',
     createdAt: '2026-10-21 15:00',
+    isHqDirect: false,
+    ownerType: 'MERCHANT',
+    allowAffiliate: true,
+    affiliateCommissionRate: 12.0,
   },
   {
     id: 'np-002',
@@ -371,6 +397,94 @@ export default function MarketEscrowAdminPage() {
 
     setSubmittingArbitration(false)
     setArbitrationModalOrder(null)
+  }
+
+  // HQ Direct Product Modal State
+  const [isHqModalOpen, setIsHqModalOpen] = useState(false)
+  const [hqForm, setHqForm] = useState({
+    name: '',
+    priceKrw: 39000,
+    salePriceKrw: 32900,
+    stock: 100,
+    shippingFee: 0,
+    category: 'FOOD',
+    isHqDirect: true,
+    ownerType: 'HEADQUARTERS' as const,
+    allowAffiliate: true,
+    affiliateCommissionRate: 10.0,
+  })
+
+  const handleRegisterHqProduct = async () => {
+    if (!hqForm.name.trim()) {
+      toast({
+        title: '상품명 입력 필요',
+        description: '본사 공식 직영 상품명을 입력해주세요.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      const payload = {
+        name: hqForm.name.trim(),
+        priceKrw: Number(hqForm.priceKrw),
+        salePriceKrw: Number(hqForm.salePriceKrw || hqForm.priceKrw),
+        stock: Number(hqForm.stock),
+        shippingFee: Number(hqForm.shippingFee),
+        category: hqForm.category,
+        isHqDirect: hqForm.isHqDirect,
+        ownerType: hqForm.ownerType,
+        allowAffiliate: hqForm.allowAffiliate,
+        affiliateCommissionRate: Number(hqForm.affiliateCommissionRate),
+        status: 'ACTIVE',
+      }
+
+      await api.post('/market/admin/normal-products', payload).catch(() => null)
+
+      const newProduct: NormalProductItem = {
+        id: `np-hq-${Date.now().toString().slice(-6)}`,
+        merchantId: 'mer-hq',
+        merchantName: '모꼬(MOCCO) 본사 공식 직영관',
+        name: payload.name,
+        priceKrw: payload.priceKrw,
+        salePriceKrw: payload.salePriceKrw,
+        stock: payload.stock,
+        shippingFee: payload.shippingFee,
+        category: payload.category,
+        status: 'ACTIVE',
+        createdAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
+        isHqDirect: payload.isHqDirect,
+        ownerType: payload.ownerType,
+        allowAffiliate: payload.allowAffiliate,
+        affiliateCommissionRate: payload.affiliateCommissionRate,
+      }
+
+      setNormalProducts([newProduct, ...normalProducts])
+      setIsHqModalOpen(false)
+      setHqForm({
+        name: '',
+        priceKrw: 39000,
+        salePriceKrw: 32900,
+        stock: 100,
+        shippingFee: 0,
+        category: 'FOOD',
+        isHqDirect: true,
+        ownerType: 'HEADQUARTERS',
+        allowAffiliate: true,
+        affiliateCommissionRate: 10.0,
+      })
+
+      toast({
+        title: '👑 본사 공식 직영 상품 등록 완료',
+        description: `'${payload.name}' 상품이 골드 메탈릭 뱃지와 함께 마켓 및 스트리머 제휴 센터에 즉시 노출됩니다.`,
+      })
+    } catch {
+      toast({
+        title: '등록 실패',
+        description: '상품 등록 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      })
+    }
   }
 
 
@@ -705,11 +819,20 @@ export default function MarketEscrowAdminPage() {
         {/* ======================================================== */}
         <TabsContent value="b2c_normal" className="space-y-4">
           <Card className="border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">B2C 입점사 상시 일반 상품(NormalProduct) 검수</CardTitle>
-              <CardDescription>
-                인증된 사업자(Merchant)가 상시 판매 등록한 공산품·식품·생활용품의 가격, 재고, 배송비 및 노출 상태를 관리합니다.
-              </CardDescription>
+            <CardHeader className="pb-3 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-lg">B2C 입점사 & 본사 직영 일반 상품(NormalProduct) 검수</CardTitle>
+                <CardDescription>
+                  본사 공식 직영 상품 등록 및 입점사 상시 상품의 가격, 재고, 배송비, 제휴 위탁 설정과 노출 상태를 관리합니다.
+                </CardDescription>
+              </div>
+              <Button
+                onClick={() => setIsHqModalOpen(true)}
+                className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5 font-bold shadow-sm"
+              >
+                <Crown className="w-4 h-4 text-amber-200" />
+                👑 본사 공식 직영 상품 등록
+              </Button>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto rounded-lg border border-border">
@@ -729,7 +852,19 @@ export default function MarketEscrowAdminPage() {
                     {normalProducts.map((p) => (
                       <tr key={p.id} className="hover:bg-muted/20">
                         <td className="px-5 py-3.5">
-                          <div className="font-semibold text-foreground">{p.name}</div>
+                          <div className="flex items-center gap-2">
+                            {p.isHqDirect && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-black shadow-sm">
+                                👑 본사직영
+                              </span>
+                            )}
+                            {p.allowAffiliate && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-500 border border-rose-500/30">
+                                🎙️ 제휴위탁 ({p.affiliateCommissionRate || 10}%)
+                              </span>
+                            )}
+                            <div className="font-semibold text-foreground">{p.name}</div>
+                          </div>
                           <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
                             <Store className="w-3.5 h-3.5 text-primary" />
                             {p.merchantName} | 카테고리: {p.category}
@@ -997,6 +1132,143 @@ export default function MarketEscrowAdminPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* 👑 본사 공식 직영 상품 등록 모달 */}
+      {isHqModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in-50 zoom-in-95">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-black shadow">
+                  <Crown className="w-4 h-4 font-black" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">본사 공식 직영(HQ Direct) 상품 등록</h3>
+                  <p className="text-xs text-muted-foreground">
+                    골드 메탈릭 뱃지와 함께 마켓 직영관 및 스트리머 제휴 센터에 등록됩니다.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsHqModalOpen(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-sm">
+              <div>
+                <label className="text-xs font-semibold block mb-1">상품명 *</label>
+                <Input
+                  placeholder="예: [본사직영] 프리미엄 나주 특등급 햇배 5kg 세트"
+                  value={hqForm.name}
+                  onChange={(e) => setHqForm({ ...hqForm, name: e.target.value })}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold block mb-1">정상가 (KRW) *</label>
+                  <Input
+                    type="number"
+                    value={hqForm.priceKrw}
+                    onChange={(e) => setHqForm({ ...hqForm, priceKrw: Number(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold block mb-1">판매가 (할인가) *</label>
+                  <Input
+                    type="number"
+                    value={hqForm.salePriceKrw}
+                    onChange={(e) => setHqForm({ ...hqForm, salePriceKrw: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold block mb-1">초기 재고 수량 *</label>
+                  <Input
+                    type="number"
+                    value={hqForm.stock}
+                    onChange={(e) => setHqForm({ ...hqForm, stock: Number(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold block mb-1">기본 배송비 (0원=무료)</label>
+                  <Input
+                    type="number"
+                    value={hqForm.shippingFee}
+                    onChange={(e) => setHqForm({ ...hqForm, shippingFee: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+
+              <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer font-bold text-amber-500 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={hqForm.isHqDirect}
+                    onChange={(e) => setHqForm({ ...hqForm, isHqDirect: e.target.checked })}
+                    className="rounded border-amber-500 text-amber-600 focus:ring-amber-500 w-4 h-4"
+                  />
+                  <span>👑 본사 공식 직영 상품으로 지정 (골드 메탈릭 뱃지 부착)</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer font-bold text-rose-500 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={hqForm.allowAffiliate}
+                    onChange={(e) => setHqForm({ ...hqForm, allowAffiliate: e.target.checked })}
+                    className="rounded border-rose-500 text-rose-600 focus:ring-rose-500 w-4 h-4"
+                  />
+                  <span>🎙️ 스트리머 D LIVE 제휴 위탁 판매 허용 (수익 쉐어)</span>
+                </label>
+
+                {hqForm.allowAffiliate && (
+                  <div className="pl-6 pt-1">
+                    <label className="text-xs font-semibold block mb-1 text-muted-foreground">
+                      스트리머 지급 커미션율 (%)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        step="0.5"
+                        value={hqForm.affiliateCommissionRate}
+                        onChange={(e) =>
+                          setHqForm({ ...hqForm, affiliateCommissionRate: Number(e.target.value) })
+                        }
+                        className="w-28 text-right font-bold"
+                      />
+                      <span className="text-xs font-semibold">%</span>
+                      <span className="text-xs text-muted-foreground ml-auto">
+                        건당 예상 수수료: ₩
+                        {Math.floor(
+                          (hqForm.salePriceKrw * hqForm.affiliateCommissionRate) / 100
+                        ).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+              <Button variant="outline" onClick={() => setIsHqModalOpen(false)}>
+                취소
+              </Button>
+              <Button
+                onClick={handleRegisterHqProduct}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold gap-1.5 shadow-sm"
+              >
+                <Crown className="w-4 h-4 text-amber-200" />
+                직영 상품 등록 승인
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

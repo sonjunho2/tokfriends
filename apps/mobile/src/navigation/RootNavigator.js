@@ -11,7 +11,6 @@ import { useAuthStoreSync } from '../store/auth';
 import HomeScreen from '../screens/main/HomeScreen';
 import LiveScreen from '../screens/main/LiveScreen';
 import ChatsScreen from '../screens/main/ChatsScreen';
-import ShopScreen from '../screens/shop/ShopScreen';           
 import MyPageScreen from '../screens/main/MyPageScreen';
 import SettingsScreen from '../screens/my/SettingsScreen';
 import ProfileEditScreen from '../screens/my/ProfileEditScreen';
@@ -24,7 +23,6 @@ import PostDetailScreen from '../screens/community/PostDetailScreen';
 import SettlementScreen from '../screens/my/SettlementScreen';
 
 // ===== 서브 =====
-import HotRecommendScreen from '../screens/recommend/HotRecommendScreen';
 import ChatRoomScreen from '../screens/main/ChatRoomScreen';
 import ProfileDetailScreen from '../screens/main/ProfileDetailScreen';
 import LiveRoomScreen from '../screens/live/LiveRoomScreen';
@@ -78,7 +76,6 @@ function HomeStack() {
       screenOptions={{ headerShown: false }}
     >
       <HomeStackNav.Screen name="HomeMain" component={HomeScreen} />
-      <HomeStackNav.Screen name="HotRecommend" component={HotRecommendScreen} />
       <HomeStackNav.Screen
         name="ProfileDetail"
         component={ProfileDetailScreen}
@@ -102,16 +99,6 @@ function HomeStack() {
       <HomeStackNav.Screen
         name="PostDetail"
         component={PostDetailScreen}
-        options={{ animation: 'slide_from_right' }}
-      />
-      <HomeStackNav.Screen
-        name="Points"
-        component={ShopScreen}
-        options={{ animation: 'slide_from_right' }}
-      />
-      <HomeStackNav.Screen
-        name="Shop"
-        component={ShopScreen}
         options={{ animation: 'slide_from_right' }}
       />
       <HomeStackNav.Screen
@@ -166,16 +153,6 @@ function CommunityStack() {
         component={ChatRoomScreen}
         options={{ animation: 'slide_from_right' }}
       />
-      <CommunityStackNav.Screen
-        name="Points"
-        component={ShopScreen}
-        options={{ animation: 'slide_from_right' }}
-      />
-      <CommunityStackNav.Screen
-        name="Shop"
-        component={ShopScreen}
-        options={{ animation: 'slide_from_right' }}
-      />
     </CommunityStackNav.Navigator>
   );
 }
@@ -188,16 +165,6 @@ function LiveStack() {
       screenOptions={{ headerShown: false }}
     >
       <LiveStackNav.Screen name="LiveMain" component={LiveScreen} />
-      <LiveStackNav.Screen
-        name="Points"
-        component={ShopScreen}
-        options={{ animation: 'slide_from_right' }}
-      />
-      <LiveStackNav.Screen
-        name="Shop"
-        component={ShopScreen}
-        options={{ animation: 'slide_from_right' }}
-      />
     </LiveStackNav.Navigator>
   );
 }
@@ -210,11 +177,6 @@ function ChatsStack() {
       screenOptions={{ headerShown: false }}
     >
       <ChatsStackNav.Screen name="ChatsMain" component={ChatsScreen} />
-      <ChatsStackNav.Screen
-        name="HotRecommend"
-        component={HotRecommendScreen}
-        options={{ animation: 'slide_from_right' }}
-      />
       <ChatsStackNav.Screen
         name="ProfileDetail"
         component={ProfileDetailScreen}
@@ -233,16 +195,6 @@ function ChatsStack() {
       <ChatsStackNav.Screen
         name="Notifications"
         component={NotificationsScreen}
-        options={{ animation: 'slide_from_right' }}
-      />
-      <ChatsStackNav.Screen
-        name="Points"
-        component={ShopScreen}
-        options={{ animation: 'slide_from_right' }}
-      />
-      <ChatsStackNav.Screen
-        name="Shop"
-        component={ShopScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </ChatsStackNav.Navigator>
@@ -282,16 +234,6 @@ function MyPageStack() {
       <MyPageStackNav.Screen
         name="PostDetail"
         component={PostDetailScreen}
-        options={{ animation: 'slide_from_right' }}
-      />
-      <MyPageStackNav.Screen
-        name="Points"
-        component={ShopScreen}
-        options={{ animation: 'slide_from_right' }}
-      />
-      <MyPageStackNav.Screen
-        name="Shop"
-        component={ShopScreen}
         options={{ animation: 'slide_from_right' }}
       />
       <MyPageStackNav.Screen

@@ -19,23 +19,22 @@ const navTheme = {
 };
 
 const linking = {
-  prefixes: ['ddakchin://'],
+  prefixes: ['mocco://'],
   config: {
     screens: {
       Home: {
         screens: {
           HomeMain: 'home',
-          HotRecommend: 'home/hot',
         },
       },
       Live: 'live',
+      Market: 'market',
       Chat: {
         screens: {
           ChatsMain: 'chats',
           ChatRoom: 'chat/:id',
         },
       },
-      Points: 'points',
       My: {
         screens: {
           MyPageMain: 'mypage',

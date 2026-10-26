@@ -194,10 +194,22 @@ export default function MarketScreen({ navigation }: any) {
         {/* 상품 이미지 */}
         <View style={styles.imageWrapper}>
           <Image source={{ uri: item.images[0] }} style={styles.cardImage} resizeMode="cover" />
-          {/* 에스크로 안전결제 뱃지 */}
-          <View style={styles.escrowBadge}>
-            <Ionicons name="shield-checkmark" size={11} color="#FFFFFF" />
-            <Text style={styles.escrowBadgeText}>안전결제</Text>
+          <View style={styles.topLeftBadges}>
+            {(item as any).isHqDirect && (
+              <LinearGradient
+                colors={['#F59E0B', '#FBBF24', '#D97706']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.hqDirectBadge}
+              >
+                <Text style={styles.hqDirectBadgeText}>👑 본사직영</Text>
+              </LinearGradient>
+            )}
+            {/* 에스크로 안전결제 뱃지 */}
+            <View style={styles.escrowBadge}>
+              <Ionicons name="shield-checkmark" size={11} color="#FFFFFF" />
+              <Text style={styles.escrowBadgeText}>안전결제</Text>
+            </View>
           </View>
           {isB2C && discountRate > 0 && (
             <View style={styles.discountBadge}>
@@ -276,7 +288,7 @@ export default function MarketScreen({ navigation }: any) {
         ? Math.round(((originalPrice - finalPrice) / originalPrice) * 100)
         : 0;
 
-    const merchantLabel = item.merchantName || item.merchant?.businessName || '공식인증 입점사';
+    const merchantLabel = (item as any).isHqDirect ? '👑 모꼬 본사 직영관' : (item.merchantName || item.merchant?.businessName || '공식인증 입점사');
 
     return (
       <TouchableOpacity
@@ -305,10 +317,22 @@ export default function MarketScreen({ navigation }: any) {
             </View>
           )}
 
-          {/* 에스크로 안전결제 뱃지 */}
-          <View style={styles.escrowBadge}>
-            <Ionicons name="shield-checkmark" size={11} color="#FFFFFF" />
-            <Text style={styles.escrowBadgeText}>안전결제</Text>
+          <View style={styles.topLeftBadges}>
+            {(item as any).isHqDirect && (
+              <LinearGradient
+                colors={['#F59E0B', '#FBBF24', '#D97706']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.hqDirectBadge}
+              >
+                <Text style={styles.hqDirectBadgeText}>👑 본사직영</Text>
+              </LinearGradient>
+            )}
+            {/* 에스크로 안전결제 뱃지 */}
+            <View style={styles.escrowBadge}>
+              <Ionicons name="shield-checkmark" size={11} color="#FFFFFF" />
+              <Text style={styles.escrowBadgeText}>안전결제</Text>
+            </View>
           </View>
 
           {/* 할인율 뱃지 */}
@@ -982,10 +1006,34 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
   },
-  escrowBadge: {
+  topLeftBadges: {
     position: 'absolute',
     top: 8,
     left: 8,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 4,
+    zIndex: 2,
+  },
+  hqDirectBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  hqDirectBadgeText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#78350F',
+    letterSpacing: -0.3,
+  },
+  escrowBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,

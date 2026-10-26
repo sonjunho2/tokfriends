@@ -24,6 +24,7 @@ interface PgPaymentBottomSheetProps {
   visible: boolean;
   product: MarketProduct | null;
   liveId?: string;
+  streamerId?: string;
   onClose: () => void;
   onSuccess: (orderId: string, orderNumber: string) => void;
 }
@@ -32,6 +33,7 @@ export default function PgPaymentBottomSheet({
   visible,
   product,
   liveId,
+  streamerId,
   onClose,
   onSuccess,
 }: PgPaymentBottomSheetProps) {
@@ -63,10 +65,21 @@ export default function PgPaymentBottomSheet({
 
     setPreparing(true);
     try {
+      const isAffiliate = Boolean(
+        (product as any).isAffiliate ||
+        (product.type as string) === 'AFFILIATE' ||
+        (product as any).affiliateCommissionRate
+      );
+      const commRate = (product as any).affiliateCommissionRate || 10;
+      const streamerCommissionAmount =
+        isAffiliate && streamerId ? Math.floor((product.price * commRate) / 100) : 0;
+
       const res = await client.post('/payments/escrow/prepare', {
         productId: product.id,
         quantity: 1,
         liveId: liveId || undefined,
+        streamerId: streamerId || undefined,
+        streamerCommissionAmount: streamerCommissionAmount > 0 ? streamerCommissionAmount : undefined,
         pgProvider: selectedMethod === 'TOSSPAY' ? 'TOSS_PAYMENTS' : 'PORTONE',
       });
 

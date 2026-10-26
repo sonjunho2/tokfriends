@@ -17,10 +17,11 @@ import {
   fetchNormalProducts,
   INITIAL_MARKET_PRODUCTS,
 } from '../../services/marketService';
+import client from '../../api/client';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-type HostLiveTabType = 'ALL' | 'MERCHANT' | 'B2C' | 'C2C';
+type HostLiveTabType = 'ALL' | 'MERCHANT' | 'B2C' | 'C2C' | 'AFFILIATE';
 
 interface HostLiveControlSheetProps {
   visible: boolean;
@@ -49,8 +50,9 @@ export default function HostLiveControlSheet({
     Promise.allSettled([
       fetchMarketProducts(),
       fetchNormalProducts(),
+      client.get('/affiliate/my-products'),
     ])
-      .then(([marketRes, normalRes]) => {
+      .then(([marketRes, normalRes, affRes]) => {
         if (!mounted) return;
 
         const marketItems: MarketProduct[] =
@@ -84,8 +86,40 @@ export default function HostLiveControlSheet({
               }))
             : [];
 
-        // 중복 방지 병합 (입점사 일반 상품 + 마켓 상품)
-        setProducts([...normalItems, ...marketItems]);
+        const affList =
+          affRes.status === 'fulfilled' && (affRes.value?.data || affRes.value)
+            ? (affRes.value?.data || affRes.value)
+            : [];
+
+        const affItems: MarketProduct[] = Array.isArray(affList)
+          ? affList.map((ap: any) => ({
+              id: ap.id,
+              type: 'AFFILIATE' as any,
+              title: ap.title || ap.name,
+              description: ap.description || '스트리머 제휴 위탁 추천 상품',
+              category: ap.category || '기타',
+              price: ap.salePriceKrw || ap.priceKrw || ap.price || 0,
+              originalPrice: ap.originalPrice || ap.priceKrw,
+              images: ap.images || ['https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=300'],
+              status: 'ACTIVE',
+              locationName: '제휴 위탁 배송',
+              distanceKm: 0,
+              seller: {
+                id: ap.merchantId || 'aff-seller',
+                nickname: ap.merchantName || '모꼬 제휴사',
+                avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+                trustScore: 99.9,
+              },
+              likesCount: 50,
+              chatsCount: 12,
+              createdAt: '실시간 제휴',
+              isAffiliate: true,
+              affiliateCommissionRate: ap.commissionRate || ap.affiliateCommissionRate || 10,
+            }))
+          : [];
+
+        // 중복 방지 병합 (제휴 위탁 상품 + 입점사 일반 상품 + 마켓 상품)
+        setProducts([...affItems, ...normalItems, ...marketItems]);
       })
       .catch(() => {
         if (mounted) setProducts(INITIAL_MARKET_PRODUCTS);
@@ -100,6 +134,7 @@ export default function HostLiveControlSheet({
   }, [visible]);
 
   const filtered = products.filter((p) => {
+    if (activeTab === 'AFFILIATE') return (p.type as string) === 'AFFILIATE';
     if (activeTab === 'MERCHANT') return (p.type as string) === 'B2C_NORMAL';
     if (activeTab === 'B2C') return p.type === 'B2C_GROUP';
     if (activeTab === 'C2C') return p.type === 'C2C_USED';
@@ -131,10 +166,11 @@ export default function HostLiveControlSheet({
             </TouchableOpacity>
           </View>
 
-          {/* Segment Filter (4대 탭) */}
+          {/* Segment Filter (5대 탭) */}
           <View style={styles.tabRow}>
             {[
               { id: 'ALL', label: '전체' },
+              { id: 'AFFILIATE', label: '🎙️ 제휴위탁' },
               { id: 'MERCHANT', label: '🛍️ 입점사' },
               { id: 'B2C', label: '🔥 특가공구' },
               { id: 'C2C', label: '🏷️ 중고' },
@@ -166,6 +202,7 @@ export default function HostLiveControlSheet({
               contentContainerStyle={styles.listContent}
               renderItem={({ item }) => {
                 const isPinned = pinnedProduct?.id === item.id;
+                const isAffiliate = (item.type as string) === 'AFFILIATE';
                 const isNormal = (item.type as string) === 'B2C_NORMAL';
                 const isGroup = item.type === 'B2C_GROUP';
                 const thumb = item.images?.[0] || 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=300';
@@ -179,7 +216,9 @@ export default function HostLiveControlSheet({
                         <View
                           style={[
                             styles.typeBadge,
-                            isNormal
+                            isAffiliate
+                              ? styles.typeBadgeAffiliate
+                              : isNormal
                               ? styles.typeBadgeMerchant
                               : isGroup
                               ? styles.typeBadgeB2C
@@ -189,14 +228,22 @@ export default function HostLiveControlSheet({
                           <Text
                             style={[
                               styles.typeBadgeText,
-                              isNormal
+                              isAffiliate
+                                ? styles.typeBadgeTextAffiliate
+                                : isNormal
                                 ? styles.typeBadgeTextMerchant
                                 : isGroup
                                 ? styles.typeBadgeTextB2C
                                 : styles.typeBadgeTextC2C,
                             ]}
                           >
-                            {isNormal ? '브랜드특가' : isGroup ? '특가공구' : '중고판매'}
+                            {isAffiliate
+                              ? `🎙️ 제휴위탁 (${(item as any).affiliateCommissionRate || 10}%)`
+                              : isNormal
+                              ? '브랜드특가'
+                              : isGroup
+                              ? '특가공구'
+                              : '중고판매'}
                           </Text>
                         </View>
                         {isPinned && (
@@ -363,6 +410,9 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
     borderRadius: 3,
   },
+  typeBadgeAffiliate: {
+    backgroundColor: '#FFF1F2',
+  },
   typeBadgeMerchant: {
     backgroundColor: '#EEF2FF',
   },
@@ -375,6 +425,9 @@ const styles = StyleSheet.create({
   typeBadgeText: {
     fontSize: 9,
     fontWeight: '800',
+  },
+  typeBadgeTextAffiliate: {
+    color: '#E11D48',
   },
   typeBadgeTextMerchant: {
     color: '#4F46E5',
