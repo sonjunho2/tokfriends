@@ -10,12 +10,11 @@ import {
   RefreshControl,
   Dimensions,
   Modal,
-  Alert,
+  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '../../theme/tokens';
-import { LinearGradient } from 'expo-linear-gradient';
 import { apiClient } from '../../api/client';
 import ScrollExpandableFAB from '../../components/common/ScrollExpandableFAB';
 import SudaCreateModal from '../../components/suda/SudaCreateModal';
@@ -26,7 +25,7 @@ import {
 
 const { width } = Dimensions.get('window');
 
-// 전국 단위 초기 친구들 목록 (지역/성별/연령 다양화)
+// 전국 단위 초기 친구들 목록 (전남, 전북 등 전국 17개 시도 고루 배치)
 const INITIAL_FRIENDS = [
   {
     id: 'friend-1',
@@ -44,10 +43,10 @@ const INITIAL_FRIENDS = [
     nickname: '준호',
     gender: '남성',
     age: 29,
-    region: '서울',
-    subRegion: '서초구',
+    region: '전남',
+    subRegion: '여수시',
     avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
-    statusMessage: '퇴근하고 일상 수다 나눌 친구 찾아요 🏃',
+    statusMessage: '여수 밤바다 보며 일상 수다 나눌 친구 찾아요 🌊',
     isOnline: true,
   },
   {
@@ -55,10 +54,10 @@ const INITIAL_FRIENDS = [
     nickname: '지은',
     gender: '여성',
     age: 24,
-    region: '경기',
-    subRegion: '분당구',
+    region: '전북',
+    subRegion: '전주시',
     avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
-    statusMessage: '주말 카페 투어 & 음악 감상 좋아합니다 ☕',
+    statusMessage: '한옥마을 카페 투어 & 음악 감상 좋아합니다 ☕',
     isOnline: true,
   },
   {
@@ -66,8 +65,8 @@ const INITIAL_FRIENDS = [
     nickname: '도윤',
     gender: '남성',
     age: 34,
-    region: '인천',
-    subRegion: '연수구 송도',
+    region: '부산',
+    subRegion: '해운대구',
     avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300',
     statusMessage: '비즈니스 & 맛집 정보 공유해요 ✨',
     isOnline: true,
@@ -77,10 +76,10 @@ const INITIAL_FRIENDS = [
     nickname: '하은',
     gender: '여성',
     age: 31,
-    region: '부산',
-    subRegion: '해운대구',
+    region: '경기',
+    subRegion: '성남시 분당',
     avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300',
-    statusMessage: '바다 보며 힐링 중 🌊 대화 신청 환영!',
+    statusMessage: '퇴근 후 소소한 대화 신청 환영해요!',
     isOnline: true,
   },
   {
@@ -88,8 +87,8 @@ const INITIAL_FRIENDS = [
     nickname: '태우',
     gender: '남성',
     age: 42,
-    region: '대구',
-    subRegion: '수성구',
+    region: '인천',
+    subRegion: '송도',
     avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300',
     statusMessage: '골프 & 등산 취미 나누실 분 계신가요 ⛳',
     isOnline: false,
@@ -111,7 +110,7 @@ const INITIAL_FRIENDS = [
     gender: '남성',
     age: 23,
     region: '광주',
-    subRegion: '서구 상무',
+    subRegion: '상무지구',
     avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300',
     statusMessage: '대학생 일상 소통! 편하게 대화해요 🎧',
     isOnline: false,
@@ -138,12 +137,57 @@ const INITIAL_FRIENDS = [
     statusMessage: '제주 라이프 5년차, 여행 꿀팁 알려드려요 🍊',
     isOnline: true,
   },
+  {
+    id: 'friend-11',
+    nickname: '영호',
+    gender: '남성',
+    age: 36,
+    region: '대구',
+    subRegion: '수성구',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
+    statusMessage: '주말 러닝 크루 메이트 구합니다 🏃‍♂️',
+    isOnline: true,
+  },
+  {
+    id: 'friend-12',
+    nickname: '유리',
+    gender: '여성',
+    age: 28,
+    region: '충남',
+    subRegion: '천안시',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+    statusMessage: '반려견 산책 같이 할 친구 환영해요 🐶',
+    isOnline: true,
+  },
 ];
 
-// 필터 옵션 상수
-const REGION_OPTIONS = ['전체', '서울', '경기', '인천', '부산', '대구', '대전', '광주', '강원', '제주'];
+// 전국 17대 시/도 옵션 (전남, 전북, 서울, 부산, 경기 등 순서 배치)
+const REGION_OPTIONS = [
+  '전체',
+  '전남',
+  '전북',
+  '서울',
+  '부산',
+  '경기',
+  '인천',
+  '대구',
+  '대전',
+  '광주',
+  '울산',
+  '세종',
+  '강원',
+  '충북',
+  '충남',
+  '경북',
+  '경남',
+  '제주',
+];
+
 const GENDER_OPTIONS = ['전체', '여성', '남성'];
-const AGE_OPTIONS = ['전체', '20대', '30대', '40대', '50대 이상'];
+
+// 슬라이더 기본 상수
+const MIN_POSSIBLE_AGE = 20;
+const MAX_POSSIBLE_AGE = 65;
 
 export default function ChatsScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -154,11 +198,15 @@ export default function ChatsScreen({ navigation }: any) {
   // 대화함 서브 세그먼트: 'SUDA' (수다 톡) vs 'MARKET' (거래 톡)
   const [activeChatSubTab, setActiveChatSubTab] = useState('SUDA');
 
-  // 필터 상태
+  // 필터 상태 (지역, 성별, 연령 범위)
   const [filterRegion, setFilterRegion] = useState('전체');
   const [filterGender, setFilterGender] = useState('전체');
-  const [filterAgeGroup, setFilterAgeGroup] = useState('전체');
-  const [activeFilterModal, setActiveFilterModal] = useState(null); // 'REGION' | 'GENDER' | 'AGE' | null
+  const [minAge, setMinAge] = useState(MIN_POSSIBLE_AGE);
+  const [maxAge, setMaxAge] = useState(MAX_POSSIBLE_AGE);
+  const [isAgeAll, setIsAgeAll] = useState(true); // true면 전체 연령
+
+  // 인라인 드롭다운 아코디언 상태 ('REGION' | 'GENDER' | 'AGE' | null)
+  const [openDropdown, setOpenDropdown] = useState(null);
 
   // 데이터 상태
   const [friendsList, setFriendsList] = useState(INITIAL_FRIENDS);
@@ -176,6 +224,14 @@ export default function ChatsScreen({ navigation }: any) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const lastScrollY = useRef(0);
 
+  // 슬라이더 트랙 너비 측정
+  const [trackWidth, setTrackWidth] = useState(width - 64);
+
+  // 드롭다운 토글
+  const toggleDropdown = (type) => {
+    setOpenDropdown((prev) => (prev === type ? null : type));
+  };
+
   // 데이터 로드
   const loadData = useCallback(async () => {
     try {
@@ -189,16 +245,16 @@ export default function ChatsScreen({ navigation }: any) {
               nickname: u.displayName || u.profile?.nickname || `모꼬이웃${idx + 1}`,
               gender: u.gender === 'female' ? '여성' : u.gender === 'male' ? '남성' : (idx % 2 === 0 ? '여성' : '남성'),
               age: typeof u.age === 'number' ? u.age : (22 + (idx * 3) % 35),
-              region: u.region1 || (['서울', '경기', '인천', '부산', '대구', '대전'][idx % 6]),
+              region: u.region1 || REGION_OPTIONS[(idx % 16) + 1] || '서울',
               subRegion: u.region2 || '',
               avatarUrl: u.avatar || u.profile?.avatarUri || INITIAL_FRIENDS[idx % INITIAL_FRIENDS.length].avatarUrl,
-              statusMessage: u.headline || u.profile?.headline || '새로운 모꼬지 인연을 기다려요 ✨',
+              statusMessage: u.headline || u.profile?.headline || '새로운 모꼬 인연을 기다려요 ✨',
               isOnline: Boolean(u.profile?.lastSeenAt) || idx % 2 === 0,
             }));
             setFriendsList(mapped);
           }
         } catch {
-          // fallback to rich INITIAL_FRIENDS
+          // fallback to INITIAL_FRIENDS
         }
       } else if (activeMainTab === 'SUDA') {
         const posts = await fetchSudaPosts();
@@ -237,7 +293,7 @@ export default function ChatsScreen({ navigation }: any) {
     lastScrollY.current = currentY;
   };
 
-  // 1:1 대화방 즉시 개설 및 이동
+  // 1:1 대화방 이동
   const handleStartDirectChat = (targetUser: any) => {
     setProfileModalVisible(false);
     navigation.navigate('ChatRoom', {
@@ -258,7 +314,7 @@ export default function ChatsScreen({ navigation }: any) {
     });
   };
 
-  // 필터링된 친구들 목록
+  // 필터링된 친구들 목록 (지역 / 성별 / 연령 범위)
   const filteredFriends = useMemo(() => {
     return friendsList.filter((item) => {
       // 지역 필터
@@ -269,17 +325,16 @@ export default function ChatsScreen({ navigation }: any) {
       if (filterGender !== '전체' && item.gender !== filterGender) {
         return false;
       }
-      // 연령 필터
-      if (filterAgeGroup !== '전체') {
+      // 연령 범위 필터 (isAgeAll이 아닐 때)
+      if (!isAgeAll) {
         const age = Number(item.age) || 25;
-        if (filterAgeGroup === '20대' && (age < 20 || age >= 30)) return false;
-        if (filterAgeGroup === '30대' && (age < 30 || age >= 40)) return false;
-        if (filterAgeGroup === '40대' && (age < 40 || age >= 50)) return false;
-        if (filterAgeGroup === '50대 이상' && age < 50) return false;
+        if (age < minAge || age > maxAge) {
+          return false;
+        }
       }
       return true;
     });
-  }, [friendsList, filterRegion, filterGender, filterAgeGroup]);
+  }, [friendsList, filterRegion, filterGender, isAgeAll, minAge, maxAge]);
 
   // 필터링된 전체수다 목록
   const filteredSudaPosts = useMemo(() => {
@@ -292,7 +347,32 @@ export default function ChatsScreen({ navigation }: any) {
     });
   }, [sudaPosts, filterRegion]);
 
-  // 1. [친구들] 한 줄(Row) 항목 렌더링
+  // 슬라이더 트랙 터치 처리
+  const handleSliderTrackTouch = (evt) => {
+    if (trackWidth <= 0) return;
+    const touchX = evt.nativeEvent.locationX;
+    const ratio = Math.max(0, Math.min(1, touchX / trackWidth));
+    const targetAge = Math.round(MIN_POSSIBLE_AGE + ratio * (MAX_POSSIBLE_AGE - MIN_POSSIBLE_AGE));
+
+    setIsAgeAll(false);
+    const distMin = Math.abs(targetAge - minAge);
+    const distMax = Math.abs(targetAge - maxAge);
+    if (distMin <= distMax) {
+      if (targetAge <= maxAge) {
+        setMinAge(targetAge);
+      } else {
+        setMinAge(maxAge);
+      }
+    } else {
+      if (targetAge >= minAge) {
+        setMaxAge(targetAge);
+      } else {
+        setMaxAge(minAge);
+      }
+    }
+  };
+
+  // 1. [친구들] 한 줄(Row) 항목 렌더링 (아담하고 조화로운 대화신청 버튼)
   const renderFriendItem = ({ item }) => (
     <View style={styles.friendRowCard}>
       {/* 좌측 아바타: 터치 시 프로필 창 팝업 */}
@@ -333,26 +413,19 @@ export default function ChatsScreen({ navigation }: any) {
         </Text>
       </TouchableOpacity>
 
-      {/* 우측 [대화신청] 버튼 */}
+      {/* 우측 조화로운 소프트 틴트 [대화신청] 버튼 */}
       <TouchableOpacity
         style={styles.applyChatBtn}
-        activeOpacity={0.85}
+        activeOpacity={0.8}
         onPress={() => handleStartDirectChat(item)}
       >
-        <LinearGradient
-          colors={tokens.colors.gradients.primaryPurple}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.applyChatBtnGradient}
-        >
-          <Ionicons name="chatbubble" size={13} color="#FFFFFF" />
-          <Text style={styles.applyChatBtnText}>대화신청</Text>
-        </LinearGradient>
+        <Ionicons name="chatbubble-outline" size={12} color="#E11D48" />
+        <Text style={styles.applyChatBtnText}>대화신청</Text>
       </TouchableOpacity>
     </View>
   );
 
-  // 2. [전체수다] 항목 렌더링 (하트/말풍선 완전 삭제, 우측 대화신청 버튼)
+  // 2. [전체수다] 항목 렌더링
   const renderSudaItem = ({ item }) => (
     <View style={styles.sudaCard}>
       <View style={styles.sudaHeader}>
@@ -387,10 +460,10 @@ export default function ChatsScreen({ navigation }: any) {
           </View>
         </TouchableOpacity>
 
-        {/* 원터치 [대화신청] 버튼 */}
+        {/* 우측 슬림 [대화신청] 버튼 */}
         <TouchableOpacity
           style={styles.applyChatBtn}
-          activeOpacity={0.85}
+          activeOpacity={0.8}
           onPress={() =>
             handleStartDirectChat({
               id: item.author.id,
@@ -400,15 +473,8 @@ export default function ChatsScreen({ navigation }: any) {
             })
           }
         >
-          <LinearGradient
-            colors={tokens.colors.gradients.primaryPurple}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.applyChatBtnGradient}
-          >
-            <Ionicons name="chatbubble" size={13} color="#FFFFFF" />
-            <Text style={styles.applyChatBtnText}>대화신청</Text>
-          </LinearGradient>
+          <Ionicons name="chatbubble-outline" size={12} color="#E11D48" />
+          <Text style={styles.applyChatBtnText}>대화신청</Text>
         </TouchableOpacity>
       </View>
 
@@ -490,7 +556,7 @@ export default function ChatsScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* 1. 상단 모꼬지대화 공식 헤더 */}
+      {/* 1. 상단 모꼬쳇 공식 헤더 */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Image
@@ -498,7 +564,7 @@ export default function ChatsScreen({ navigation }: any) {
             style={styles.headerMascotLogo}
             resizeMode="contain"
           />
-          <Text style={styles.headerTitle}>모꼬지대화</Text>
+          <Text style={styles.headerTitle}>모꼬쳇</Text>
           <View style={styles.locationBadge}>
             <Ionicons name="globe-outline" size={12} color="#FF3B6B" />
             <Text style={styles.locationBadgeText}>전국 실시간 소통</Text>
@@ -522,7 +588,10 @@ export default function ChatsScreen({ navigation }: any) {
       <View style={styles.mainSegmentContainer}>
         <TouchableOpacity
           style={[styles.mainSegmentBtn, activeMainTab === 'FRIENDS' && styles.mainSegmentBtnActive]}
-          onPress={() => setActiveMainTab('FRIENDS')}
+          onPress={() => {
+            setActiveMainTab('FRIENDS');
+            setOpenDropdown(null);
+          }}
           activeOpacity={0.8}
         >
           <Ionicons
@@ -542,7 +611,10 @@ export default function ChatsScreen({ navigation }: any) {
 
         <TouchableOpacity
           style={[styles.mainSegmentBtn, activeMainTab === 'SUDA' && styles.mainSegmentBtnActive]}
-          onPress={() => setActiveMainTab('SUDA')}
+          onPress={() => {
+            setActiveMainTab('SUDA');
+            setOpenDropdown(null);
+          }}
           activeOpacity={0.8}
         >
           <Ionicons
@@ -562,7 +634,10 @@ export default function ChatsScreen({ navigation }: any) {
 
         <TouchableOpacity
           style={[styles.mainSegmentBtn, activeMainTab === 'CHATS' && styles.mainSegmentBtnActive]}
-          onPress={() => setActiveMainTab('CHATS')}
+          onPress={() => {
+            setActiveMainTab('CHATS');
+            setOpenDropdown(null);
+          }}
           activeOpacity={0.8}
         >
           <Ionicons
@@ -581,44 +656,379 @@ export default function ChatsScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      {/* 3. [친구들] 및 [전체수다] 하부 필터 바: [지역] / [성별] / [연령] */}
+      {/* 3. [친구들] 및 [전체수다] 하부 필터 바: 균등 분할 정렬된 [지역] / [성별] / [연령] */}
       {(activeMainTab === 'FRIENDS' || activeMainTab === 'SUDA') && (
-        <View style={styles.filterBarContainer}>
-          <TouchableOpacity
-            style={[styles.filterBtn, filterRegion !== '전체' && styles.filterBtnActive]}
-            activeOpacity={0.8}
-            onPress={() => setActiveFilterModal('REGION')}
-          >
-            <Ionicons name="location-sharp" size={12} color={filterRegion !== '전체' ? '#FF3B6B' : '#64748B'} />
-            <Text style={[styles.filterBtnText, filterRegion !== '전체' && styles.filterBtnTextActive]}>
-              지역: {filterRegion}
-            </Text>
-            <Ionicons name="chevron-down" size={12} color={filterRegion !== '전체' ? '#FF3B6B' : '#94A3B8'} />
-          </TouchableOpacity>
+        <View style={styles.filterSection}>
+          <View style={styles.filterBarContainer}>
+            {/* 지역 버튼 */}
+            <TouchableOpacity
+              style={[styles.filterBtn, (filterRegion !== '전체' || openDropdown === 'REGION') && styles.filterBtnActive]}
+              activeOpacity={0.8}
+              onPress={() => toggleDropdown('REGION')}
+            >
+              <Ionicons
+                name="location-sharp"
+                size={12}
+                color={filterRegion !== '전체' || openDropdown === 'REGION' ? '#FF3B6B' : '#64748B'}
+              />
+              <Text
+                style={[
+                  styles.filterBtnText,
+                  (filterRegion !== '전체' || openDropdown === 'REGION') && styles.filterBtnTextActive,
+                ]}
+                numberOfLines={1}
+              >
+                {filterRegion === '전체' ? '지역: 전체' : filterRegion}
+              </Text>
+              <Ionicons
+                name={openDropdown === 'REGION' ? 'chevron-up' : 'chevron-down'}
+                size={12}
+                color={filterRegion !== '전체' || openDropdown === 'REGION' ? '#FF3B6B' : '#94A3B8'}
+              />
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.filterBtn, filterGender !== '전체' && styles.filterBtnActive]}
-            activeOpacity={0.8}
-            onPress={() => setActiveFilterModal('GENDER')}
-          >
-            <Ionicons name="people-sharp" size={12} color={filterGender !== '전체' ? '#FF3B6B' : '#64748B'} />
-            <Text style={[styles.filterBtnText, filterGender !== '전체' && styles.filterBtnTextActive]}>
-              성별: {filterGender}
-            </Text>
-            <Ionicons name="chevron-down" size={12} color={filterGender !== '전체' ? '#FF3B6B' : '#94A3B8'} />
-          </TouchableOpacity>
+            {/* 성별 버튼 */}
+            <TouchableOpacity
+              style={[styles.filterBtn, (filterGender !== '전체' || openDropdown === 'GENDER') && styles.filterBtnActive]}
+              activeOpacity={0.8}
+              onPress={() => toggleDropdown('GENDER')}
+            >
+              <Ionicons
+                name="people-sharp"
+                size={12}
+                color={filterGender !== '전체' || openDropdown === 'GENDER' ? '#FF3B6B' : '#64748B'}
+              />
+              <Text
+                style={[
+                  styles.filterBtnText,
+                  (filterGender !== '전체' || openDropdown === 'GENDER') && styles.filterBtnTextActive,
+                ]}
+                numberOfLines={1}
+              >
+                {filterGender === '전체' ? '성별: 전체' : filterGender}
+              </Text>
+              <Ionicons
+                name={openDropdown === 'GENDER' ? 'chevron-up' : 'chevron-down'}
+                size={12}
+                color={filterGender !== '전체' || openDropdown === 'GENDER' ? '#FF3B6B' : '#94A3B8'}
+              />
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.filterBtn, filterAgeGroup !== '전체' && styles.filterBtnActive]}
-            activeOpacity={0.8}
-            onPress={() => setActiveFilterModal('AGE')}
-          >
-            <Ionicons name="calendar-sharp" size={12} color={filterAgeGroup !== '전체' ? '#FF3B6B' : '#64748B'} />
-            <Text style={[styles.filterBtnText, filterAgeGroup !== '전체' && styles.filterBtnTextActive]}>
-              연령: {filterAgeGroup}
-            </Text>
-            <Ionicons name="chevron-down" size={12} color={filterAgeGroup !== '전체' ? '#FF3B6B' : '#94A3B8'} />
-          </TouchableOpacity>
+            {/* 연령 버튼 (몇세~몇세) */}
+            <TouchableOpacity
+              style={[styles.filterBtn, (!isAgeAll || openDropdown === 'AGE') && styles.filterBtnActive]}
+              activeOpacity={0.8}
+              onPress={() => toggleDropdown('AGE')}
+            >
+              <Ionicons
+                name="calendar-sharp"
+                size={12}
+                color={!isAgeAll || openDropdown === 'AGE' ? '#FF3B6B' : '#64748B'}
+              />
+              <Text
+                style={[
+                  styles.filterBtnText,
+                  (!isAgeAll || openDropdown === 'AGE') && styles.filterBtnTextActive,
+                ]}
+                numberOfLines={1}
+              >
+                {isAgeAll ? '연령: 전체' : `${minAge}~${maxAge}세`}
+              </Text>
+              <Ionicons
+                name={openDropdown === 'AGE' ? 'chevron-up' : 'chevron-down'}
+                size={12}
+                color={!isAgeAll || openDropdown === 'AGE' ? '#FF3B6B' : '#94A3B8'}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* 인라인 드롭다운: 1. [지역 목록] 아래로 촤르륵 펼쳐짐 */}
+          {openDropdown === 'REGION' && (
+            <View style={styles.dropdownPanel}>
+              <View style={styles.dropdownPanelHeader}>
+                <Text style={styles.dropdownPanelTitle}>📍 지역을 선택하세요</Text>
+                <TouchableOpacity onPress={() => setOpenDropdown(null)}>
+                  <Ionicons name="close-circle" size={20} color="#94A3B8" />
+                </TouchableOpacity>
+              </View>
+              <ScrollView
+                style={styles.regionListScroll}
+                nestedScrollEnabled
+                showsVerticalScrollIndicator={true}
+              >
+                {REGION_OPTIONS.map((reg) => (
+                  <TouchableOpacity
+                    key={reg}
+                    style={[
+                      styles.regionItemRow,
+                      filterRegion === reg && styles.regionItemRowSelected,
+                    ]}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setFilterRegion(reg);
+                      setOpenDropdown(null);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.regionItemText,
+                        filterRegion === reg && styles.regionItemTextSelected,
+                      ]}
+                    >
+                      {reg === '전체' ? '🌐 전체 지역' : reg}
+                    </Text>
+                    {filterRegion === reg && (
+                      <Ionicons name="checkmark-sharp" size={18} color="#FF3B6B" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* 인라인 드롭다운: 2. [성별 목록] */}
+          {openDropdown === 'GENDER' && (
+            <View style={styles.dropdownPanel}>
+              <View style={styles.dropdownPanelHeader}>
+                <Text style={styles.dropdownPanelTitle}>👥 성별을 선택하세요</Text>
+                <TouchableOpacity onPress={() => setOpenDropdown(null)}>
+                  <Ionicons name="close-circle" size={20} color="#94A3B8" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.genderOptionsContainer}>
+                {GENDER_OPTIONS.map((gen) => (
+                  <TouchableOpacity
+                    key={gen}
+                    style={[
+                      styles.genderOptionBtn,
+                      filterGender === gen && styles.genderOptionBtnSelected,
+                    ]}
+                    activeOpacity={0.75}
+                    onPress={() => {
+                      setFilterGender(gen);
+                      setOpenDropdown(null);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.genderOptionText,
+                        filterGender === gen && styles.genderOptionTextSelected,
+                      ]}
+                    >
+                      {gen === '전체' ? '전체 (모두)' : gen}
+                    </Text>
+                    {filterGender === gen && (
+                      <Ionicons name="checkmark" size={16} color="#FF3B6B" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* 인라인 드롭다운: 3. [연령 레인지 슬라이더] 몇세~몇세 설정 */}
+          {openDropdown === 'AGE' && (
+            <View style={styles.dropdownPanel}>
+              <View style={styles.dropdownPanelHeader}>
+                <Text style={styles.dropdownPanelTitle}>🎂 연령 범위 설정</Text>
+                <TouchableOpacity onPress={() => setOpenDropdown(null)}>
+                  <Ionicons name="close-circle" size={20} color="#94A3B8" />
+                </TouchableOpacity>
+              </View>
+
+              {/* 현재 선택 연령 디스플레이 */}
+              <View style={styles.ageDisplayBox}>
+                <Text style={styles.ageDisplayText}>
+                  {isAgeAll ? '전체 연령대 (모든 회원)' : `${minAge}세  ~  ${maxAge}세`}
+                </Text>
+              </View>
+
+              {/* 슬라이더 트랙 인터랙티브 바 */}
+              <View
+                style={styles.sliderTrackWrapper}
+                onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
+                onTouchEnd={handleSliderTrackTouch}
+              >
+                <View style={styles.sliderTrackBg}>
+                  {/* 선택된 하이라이트 구간 */}
+                  {!isAgeAll && (
+                    <View
+                      style={[
+                        styles.sliderHighlightBar,
+                        {
+                          left: `${((minAge - MIN_POSSIBLE_AGE) / (MAX_POSSIBLE_AGE - MIN_POSSIBLE_AGE)) * 100}%`,
+                          right: `${(1 - (maxAge - MIN_POSSIBLE_AGE) / (MAX_POSSIBLE_AGE - MIN_POSSIBLE_AGE)) * 100}%`,
+                        },
+                      ]}
+                    />
+                  )}
+                  {/* Min Thumb */}
+                  {!isAgeAll && (
+                    <View
+                      style={[
+                        styles.sliderThumb,
+                        {
+                          left: `${((minAge - MIN_POSSIBLE_AGE) / (MAX_POSSIBLE_AGE - MIN_POSSIBLE_AGE)) * 100}%`,
+                          marginLeft: -10,
+                        },
+                      ]}
+                    />
+                  )}
+                  {/* Max Thumb */}
+                  {!isAgeAll && (
+                    <View
+                      style={[
+                        styles.sliderThumb,
+                        {
+                          left: `${((maxAge - MIN_POSSIBLE_AGE) / (MAX_POSSIBLE_AGE - MIN_POSSIBLE_AGE)) * 100}%`,
+                          marginLeft: -10,
+                        },
+                      ]}
+                    />
+                  )}
+                </View>
+                <View style={styles.sliderScaleLabels}>
+                  <Text style={styles.scaleText}>20세</Text>
+                  <Text style={styles.scaleText}>30세</Text>
+                  <Text style={styles.scaleText}>40세</Text>
+                  <Text style={styles.scaleText}>50세</Text>
+                  <Text style={styles.scaleText}>65세</Text>
+                </View>
+              </View>
+
+              {/* 직관적인 세밀 조절 스텝 버튼 */}
+              <View style={styles.ageStepRow}>
+                <View style={styles.stepControlCol}>
+                  <Text style={styles.stepLabel}>최소 연령</Text>
+                  <View style={styles.stepBtnGroup}>
+                    <TouchableOpacity
+                      style={styles.stepBtn}
+                      onPress={() => {
+                        setIsAgeAll(false);
+                        setMinAge((v) => Math.max(MIN_POSSIBLE_AGE, v - 1));
+                      }}
+                    >
+                      <Ionicons name="remove" size={16} color="#0F172A" />
+                    </TouchableOpacity>
+                    <Text style={styles.stepValueText}>{minAge}세</Text>
+                    <TouchableOpacity
+                      style={styles.stepBtn}
+                      onPress={() => {
+                        setIsAgeAll(false);
+                        setMinAge((v) => Math.min(maxAge, v + 1));
+                      }}
+                    >
+                      <Ionicons name="add" size={16} color="#0F172A" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.stepDivider} />
+
+                <View style={styles.stepControlCol}>
+                  <Text style={styles.stepLabel}>최대 연령</Text>
+                  <View style={styles.stepBtnGroup}>
+                    <TouchableOpacity
+                      style={styles.stepBtn}
+                      onPress={() => {
+                        setIsAgeAll(false);
+                        setMaxAge((v) => Math.max(minAge, v - 1));
+                      }}
+                    >
+                      <Ionicons name="remove" size={16} color="#0F172A" />
+                    </TouchableOpacity>
+                    <Text style={styles.stepValueText}>{maxAge}세</Text>
+                    <TouchableOpacity
+                      style={styles.stepBtn}
+                      onPress={() => {
+                        setIsAgeAll(false);
+                        setMaxAge((v) => Math.min(MAX_POSSIBLE_AGE, v + 1));
+                      }}
+                    >
+                      <Ionicons name="add" size={16} color="#0F172A" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+
+              {/* 빠른 프리셋 칩 */}
+              <View style={styles.presetChipsRow}>
+                <TouchableOpacity
+                  style={[styles.presetChip, isAgeAll && styles.presetChipActive]}
+                  onPress={() => {
+                    setIsAgeAll(true);
+                    setMinAge(MIN_POSSIBLE_AGE);
+                    setMaxAge(MAX_POSSIBLE_AGE);
+                  }}
+                >
+                  <Text style={[styles.presetChipText, isAgeAll && styles.presetChipTextActive]}>
+                    전체
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.presetChip, !isAgeAll && minAge === 20 && maxAge === 29 && styles.presetChipActive]}
+                  onPress={() => {
+                    setIsAgeAll(false);
+                    setMinAge(20);
+                    setMaxAge(29);
+                  }}
+                >
+                  <Text style={[styles.presetChipText, !isAgeAll && minAge === 20 && maxAge === 29 && styles.presetChipTextActive]}>
+                    20대
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.presetChip, !isAgeAll && minAge === 30 && maxAge === 39 && styles.presetChipActive]}
+                  onPress={() => {
+                    setIsAgeAll(false);
+                    setMinAge(30);
+                    setMaxAge(39);
+                  }}
+                >
+                  <Text style={[styles.presetChipText, !isAgeAll && minAge === 30 && maxAge === 39 && styles.presetChipTextActive]}>
+                    30대
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.presetChip, !isAgeAll && minAge === 40 && maxAge === 49 && styles.presetChipActive]}
+                  onPress={() => {
+                    setIsAgeAll(false);
+                    setMinAge(40);
+                    setMaxAge(49);
+                  }}
+                >
+                  <Text style={[styles.presetChipText, !isAgeAll && minAge === 40 && maxAge === 49 && styles.presetChipTextActive]}>
+                    40대
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.presetChip, !isAgeAll && minAge === 50 && maxAge === 65 && styles.presetChipActive]}
+                  onPress={() => {
+                    setIsAgeAll(false);
+                    setMinAge(50);
+                    setMaxAge(65);
+                  }}
+                >
+                  <Text style={[styles.presetChipText, !isAgeAll && minAge === 50 && maxAge === 65 && styles.presetChipTextActive]}>
+                    50대+
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* 완료 버튼 */}
+              <TouchableOpacity
+                style={styles.confirmAgeBtn}
+                activeOpacity={0.85}
+                onPress={() => setOpenDropdown(null)}
+              >
+                <Text style={styles.confirmAgeBtnText}>설정 완료</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       )}
 
@@ -692,7 +1102,7 @@ export default function ChatsScreen({ navigation }: any) {
             <View style={styles.emptyBox}>
               <Ionicons name="people-outline" size={44} color="#CBD5E1" />
               <Text style={styles.emptyTitle}>조건에 맞는 친구가 없습니다</Text>
-              <Text style={styles.emptySub}>필터 설정을 변경해보세요!</Text>
+              <Text style={styles.emptySub}>지역/성별/연령 필터 설정을 변경해보세요!</Text>
             </View>
           }
         />
@@ -767,104 +1177,7 @@ export default function ChatsScreen({ navigation }: any) {
         }}
       />
 
-      {/* 8. 필터 선택 드롭다운 모달 (지역 / 성별 / 연령) */}
-      <Modal
-        visible={activeFilterModal !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setActiveFilterModal(null)}
-      >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={() => setActiveFilterModal(null)}
-        >
-          <View style={styles.filterSheetCard}>
-            <View style={styles.sheetHandle} />
-            <Text style={styles.filterSheetTitle}>
-              {activeFilterModal === 'REGION' && '📍 지역 선택'}
-              {activeFilterModal === 'GENDER' && '👥 성별 선택'}
-              {activeFilterModal === 'AGE' && '🎂 연령대 선택'}
-            </Text>
-
-            <View style={styles.filterOptionsGrid}>
-              {activeFilterModal === 'REGION' &&
-                REGION_OPTIONS.map((opt) => (
-                  <TouchableOpacity
-                    key={opt}
-                    style={[
-                      styles.filterOptionChip,
-                      filterRegion === opt && styles.filterOptionChipActive,
-                    ]}
-                    onPress={() => {
-                      setFilterRegion(opt);
-                      setActiveFilterModal(null);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.filterOptionText,
-                        filterRegion === opt && styles.filterOptionTextActive,
-                      ]}
-                    >
-                      {opt}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-
-              {activeFilterModal === 'GENDER' &&
-                GENDER_OPTIONS.map((opt) => (
-                  <TouchableOpacity
-                    key={opt}
-                    style={[
-                      styles.filterOptionChip,
-                      filterGender === opt && styles.filterOptionChipActive,
-                    ]}
-                    onPress={() => {
-                      setFilterGender(opt);
-                      setActiveFilterModal(null);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.filterOptionText,
-                        filterGender === opt && styles.filterOptionTextActive,
-                      ]}
-                    >
-                      {opt}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-
-              {activeFilterModal === 'AGE' &&
-                AGE_OPTIONS.map((opt) => (
-                  <TouchableOpacity
-                    key={opt}
-                    style={[
-                      styles.filterOptionChip,
-                      filterAgeGroup === opt && styles.filterOptionChipActive,
-                    ]}
-                    onPress={() => {
-                      setFilterAgeGroup(opt);
-                      setActiveFilterModal(null);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.filterOptionText,
-                        filterAgeGroup === opt && styles.filterOptionTextActive,
-                      ]}
-                    >
-                      {opt}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* 9. 회원 아바타 터치 시 [프로필 확인 모달] (1:1 통화 삭제, 1:1 대화 신청 단독) */}
+      {/* 8. 회원 아바타 터치 시 [프로필 확인 모달] (1:1 대화 신청 단독, 1:1 통화 완전 삭제) */}
       <Modal
         visible={profileModalVisible}
         transparent
@@ -912,24 +1225,17 @@ export default function ChatsScreen({ navigation }: any) {
                   )}
                 </View>
                 <Text style={styles.sheetStatusMessage}>
-                  {selectedProfileUser.statusMessage || '모꼬지에서 즐겁게 대화 나누고 싶어요 ✨'}
+                  {selectedProfileUser.statusMessage || '모꼬에서 즐겁게 대화 나누고 싶어요 ✨'}
                 </Text>
 
-                {/* 1:1 대화 신청 버튼 단독 배치 (1:1 통화 완전 제거) */}
+                {/* 1:1 대화 신청 버튼 단독 배치 (1:1 통화 삭제) */}
                 <TouchableOpacity
                   style={styles.chatActionBtnFull}
                   activeOpacity={0.88}
                   onPress={() => handleStartDirectChat(selectedProfileUser)}
                 >
-                  <LinearGradient
-                    colors={tokens.colors.gradients.primaryPurple}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.chatActionBtnGradient}
-                  >
-                    <Ionicons name="chatbubble-ellipses" size={18} color="#FFFFFF" />
-                    <Text style={styles.chatActionBtnText}>💬 1:1 대화 신청하기</Text>
-                  </LinearGradient>
+                  <Ionicons name="chatbubble-ellipses" size={18} color="#FFFFFF" />
+                  <Text style={styles.chatActionBtnText}>💬 1:1 대화 신청하기</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -1033,26 +1339,34 @@ const styles = StyleSheet.create({
     color: '#FF3B6B',
     fontWeight: '900',
   },
-  // 드롭다운 필터 바
+
+  // 필터 섹션 (필터 바 + 인라인 드롭다운 패널)
+  filterSection: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  // 3개 버튼 균등 3분할 정렬 필터 바
   filterBarContainer: {
     flexDirection: 'row',
     paddingHorizontal: 14,
     paddingVertical: 8,
     gap: 8,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   filterBtn: {
+    flex: 1, // 균등 분할로 중앙 정렬 및 좌측 쏠림 완전 해결
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-    backgroundColor: '#F1F5F9',
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    paddingHorizontal: 6,
   },
   filterBtnActive: {
     backgroundColor: '#FFF0F3',
@@ -1067,6 +1381,230 @@ const styles = StyleSheet.create({
     color: '#FF3B6B',
     fontWeight: '800',
   },
+
+  // 인라인 드롭다운 아코디언 패널
+  dropdownPanel: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  dropdownPanelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  dropdownPanelTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+
+  // 지역 스크롤 리스트 (아래로 계속 내려오며 선택)
+  regionListScroll: {
+    maxHeight: 220,
+  },
+  regionItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginBottom: 2,
+  },
+  regionItemRowSelected: {
+    backgroundColor: '#FFF0F3',
+  },
+  regionItemText: {
+    fontSize: 14,
+    color: '#334155',
+    fontWeight: '600',
+  },
+  regionItemTextSelected: {
+    color: '#FF3B6B',
+    fontWeight: '800',
+  },
+
+  // 성별 옵션 컨테이너
+  genderOptionsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  genderOptionBtn: {
+    flex: 1,
+    height: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  genderOptionBtnSelected: {
+    backgroundColor: '#FFF0F3',
+    borderColor: '#FF3B6B',
+  },
+  genderOptionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  genderOptionTextSelected: {
+    color: '#FF3B6B',
+    fontWeight: '800',
+  },
+
+  // 연령 레인지 슬라이더 스타일
+  ageDisplayBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    marginBottom: 14,
+  },
+  ageDisplayText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#FF3B6B',
+    letterSpacing: 0.5,
+  },
+  sliderTrackWrapper: {
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  sliderTrackBg: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#E2E8F0',
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  sliderHighlightBar: {
+    position: 'absolute',
+    height: 8,
+    backgroundColor: '#FF3B6B',
+    borderRadius: 4,
+  },
+  sliderThumb: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: '#FF3B6B',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+    top: -6,
+  },
+  sliderScaleLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingHorizontal: 2,
+  },
+  scaleText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  ageStepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    backgroundColor: '#F8FAFC',
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  stepControlCol: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  stepLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  stepBtnGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  stepBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepValueText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    minWidth: 36,
+    textAlign: 'center',
+  },
+  stepDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: '#E2E8F0',
+  },
+  presetChipsRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 12,
+  },
+  presetChip: {
+    flex: 1,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  presetChipActive: {
+    backgroundColor: '#FF3B6B',
+  },
+  presetChipText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  presetChipTextActive: {
+    color: '#FFFFFF',
+  },
+  confirmAgeBtn: {
+    height: 40,
+    backgroundColor: '#0F172A',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmAgeBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+
   // 서브 세그먼트 (대화함)
   subSegmentContainer: {
     flexDirection: 'row',
@@ -1114,11 +1652,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingBottom: 110,
   },
+
   // [친구들] 한줄(Row) 카드 스타일
   friendRowCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 11,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
     gap: 12,
@@ -1127,9 +1666,9 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   friendAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: '#E2E8F0',
   },
   friendOnlineBadge: {
@@ -1150,33 +1689,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   friendName: {
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: '800',
     color: '#0F172A',
-    maxWidth: 120,
+    maxWidth: 110,
   },
   friendGenderBadge: {
     backgroundColor: '#EEF2FF',
-    paddingHorizontal: 6,
-    paddingVertical: 1.5,
-    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 5,
   },
   friendGenderText: {
-    fontSize: 10.5,
+    fontSize: 10,
     fontWeight: '700',
     color: '#4F46E5',
   },
   friendRegionBadge: {
     backgroundColor: '#F1F5F9',
-    paddingHorizontal: 6,
-    paddingVertical: 1.5,
-    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 5,
   },
   friendRegionText: {
-    fontSize: 10.5,
+    fontSize: 10,
     fontWeight: '600',
     color: '#64748B',
   },
@@ -1185,23 +1724,25 @@ const styles = StyleSheet.create({
     color: '#64748B',
     lineHeight: 16,
   },
+
+  // 우측 슬림 & 조화로운 [대화신청] 버튼
   applyChatBtn: {
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  applyChatBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 14,
+    gap: 3.5,
+    paddingHorizontal: 10,
+    paddingVertical: 5.5,
+    borderRadius: 12,
+    backgroundColor: '#FFF1F5',
+    borderWidth: 1,
+    borderColor: '#FFE4E8',
   },
   applyChatBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#E11D48',
   },
+
   // [전체수다] 카드 스타일
   sudaCard: {
     backgroundColor: '#FFFFFF',
@@ -1224,9 +1765,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   authorAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#F1F5F9',
   },
   authorInfo: {
@@ -1238,36 +1779,37 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   authorName: {
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: '800',
     color: '#0F172A',
   },
   neighborhoodBadge: {
     backgroundColor: '#F1F5F9',
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
     paddingVertical: 1,
-    borderRadius: 6,
+    borderRadius: 5,
   },
   neighborhoodText: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '700',
     color: '#475569',
   },
   distanceText: {
-    fontSize: 11,
+    fontSize: 10.5,
     color: '#64748B',
   },
   timeText: {
     fontSize: 10,
     color: '#94A3B8',
-    marginTop: 2,
+    marginTop: 1,
   },
   sudaContent: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13.5,
+    lineHeight: 19,
     color: '#1E293B',
     fontWeight: '500',
   },
+
   // [대화함] 카드 스타일
   chatRoomCard: {
     flexDirection: 'row',
@@ -1316,15 +1858,15 @@ const styles = StyleSheet.create({
     color: '#0F172A',
   },
   marketBadge: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#E0F2FE',
     paddingHorizontal: 6,
-    paddingVertical: 1,
+    paddingVertical: 1.5,
     borderRadius: 6,
   },
   marketBadgeText: {
-    color: '#059669',
     fontSize: 10,
     fontWeight: '800',
+    color: '#0284C7',
   },
   chatTimeText: {
     fontSize: 11,
@@ -1334,17 +1876,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
-    borderRadius: 10,
     padding: 6,
-    marginVertical: 4,
+    borderRadius: 8,
+    marginBottom: 6,
     gap: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   orderThumb: {
     width: 32,
     height: 32,
-    borderRadius: 6,
+    borderRadius: 4,
+    backgroundColor: '#E2E8F0',
   },
   orderTextBox: {
     flex: 1,
@@ -1352,29 +1893,28 @@ const styles = StyleSheet.create({
   orderTitle: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#1E293B',
   },
   orderPrice: {
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: 10.5,
     color: '#FF3B6B',
+    fontWeight: '800',
   },
   escrowStateTag: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#ECFDF5',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
   },
   escrowStateText: {
-    color: '#FFFFFF',
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: '800',
+    color: '#059669',
   },
   lastMessageRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 2,
   },
   lastMessageText: {
     fontSize: 13,
@@ -1383,25 +1923,30 @@ const styles = StyleSheet.create({
   },
   unreadBadge: {
     backgroundColor: '#FF3B6B',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginLeft: 8,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+    marginLeft: 6,
   },
   unreadCountText: {
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '800',
   },
+
   centerLoading: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingTop: 80,
   },
   loadingText: {
     marginTop: 10,
     fontSize: 13,
-    color: '#64748B',
+    color: '#94A3B8',
   },
   emptyBox: {
     alignItems: 'center',
@@ -1409,95 +1954,54 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyTitle: {
-    marginTop: 12,
     fontSize: 15,
     fontWeight: '800',
-    color: '#334155',
+    color: '#475569',
+    marginTop: 12,
   },
   emptySub: {
-    marginTop: 4,
     fontSize: 12,
     color: '#94A3B8',
-    textAlign: 'center',
-    paddingHorizontal: 24,
+    marginTop: 4,
   },
-  // 모달 스타일
+
+  // 프로필 모달 스타일
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'flex-end',
-  },
-  filterSheetCard: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: 36,
-  },
-  filterSheetTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  filterOptionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    justifyContent: 'center',
-  },
-  filterOptionChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  filterOptionChipActive: {
-    backgroundColor: '#FFF0F3',
-    borderColor: '#FF3B6B',
-  },
-  filterOptionText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#475569',
-  },
-  filterOptionTextActive: {
-    color: '#FF3B6B',
-    fontWeight: '900',
   },
   bottomSheetCard: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 20,
+    paddingHorizontal: 20,
     paddingBottom: 36,
+    paddingTop: 12,
     alignItems: 'center',
   },
   sheetHandle: {
     width: 40,
     height: 4,
-    backgroundColor: '#E2E8F0',
     borderRadius: 2,
+    backgroundColor: '#CBD5E1',
     marginBottom: 16,
-    alignSelf: 'center',
   },
   sheetContent: {
-    width: '100%',
     alignItems: 'center',
+    width: '100%',
   },
   sheetAvatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
+    backgroundColor: '#E2E8F0',
+    marginBottom: 12,
     borderWidth: 3,
     borderColor: '#FF3B6B',
-    marginBottom: 10,
   },
   sheetNickname: {
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: '900',
     color: '#0F172A',
     marginBottom: 6,
@@ -1505,17 +2009,17 @@ const styles = StyleSheet.create({
   sheetMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     marginBottom: 12,
   },
   sheetLocationChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#FFF1F2',
+    backgroundColor: '#FFF0F3',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   sheetLocationText: {
     fontSize: 11,
@@ -1526,7 +2030,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEF2FF',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   sheetGenderText: {
     fontSize: 11,
@@ -1540,7 +2044,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ECFDF5',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   onlineStatusDotSmall: {
     width: 6,
@@ -1557,25 +2061,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#475569',
     textAlign: 'center',
-    lineHeight: 19,
+    lineHeight: 18,
     marginBottom: 20,
     paddingHorizontal: 16,
   },
   chatActionBtnFull: {
-    width: '100%',
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  chatActionBtnGradient: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
-    paddingVertical: 14,
+    width: '100%',
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#FF3B6B',
+    shadowColor: '#FF3B6B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
   },
   chatActionBtnText: {
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '900',
-    color: '#FFFFFF',
   },
 });

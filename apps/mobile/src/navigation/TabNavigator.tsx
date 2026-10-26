@@ -178,7 +178,7 @@ export default function TabNavigator() {
             <RegularTabItem
               name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
               focused={focused}
-              label="모꼬지대화"
+              label="모꼬쳇"
             />
           ),
         }}
