@@ -96,8 +96,8 @@ const AVAILABLE_MODELS = [
 
 const STAFF_INFO: Record<string, { name: string; title: string; defaultModel: string; icon: any; color: string }> = {
   director: { name: '총괄 팀장 AI (Director)', title: '운영 총괄 & 대표님 3초 요약 결재안 작성', defaultModel: 'gemini-2.5-flash', icon: Bot, color: 'text-amber-500 bg-amber-50 dark:bg-amber-950/40' },
-  safety: { name: '안전관 AI (Safety)', title: '실시간 영상 스냅샷 & 유해물 비전 스크리닝', defaultModel: 'gemini-1.5-flash', icon: Eye, color: 'text-rose-500 bg-rose-50 dark:bg-rose-950/40' },
-  zev: { name: '제브 AI (Zev)', title: '수석 판정관 (정보통신망법 44조의7 기계적 대조)', defaultModel: 'gemini-2.5-flash', icon: ShieldCheck, color: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950/40' },
+  safety: { name: '안전관 AI (Safety)', title: '청소년보호법·성폭력처벌법 실시간 유해물 차단 & 채증 스냅샷 법적 보존', defaultModel: 'gemini-1.5-flash', icon: Eye, color: 'text-rose-500 bg-rose-50 dark:bg-rose-950/40' },
+  zev: { name: '제브 AI (Zev)', title: '정보통신망법 제50조(영리목적 광고성 정보) & 직거래 사기 예방 연락처 마스킹 실시간 감시', defaultModel: 'gemini-2.5-flash', icon: ShieldCheck, color: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950/40' },
   auditor: { name: '감사관 AI (Auditor)', title: '계정 이력 및 이상 거래 교차 감사', defaultModel: 'gemini-1.5-flash', icon: DollarSign, color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40' },
   cs: { name: '고객행복관 AI (CS)', title: '소명 기회 보장 & 유저 억울함 방지 중재', defaultModel: 'gemini-1.5-flash', icon: HeartHandshake, color: 'text-sky-500 bg-sky-50 dark:bg-sky-950/40' },
   growth: { name: '성장 분석관 AI (Growth)', title: '방송 룸 리스크 & 커머스 영향도 분석', defaultModel: 'gemini-1.5-flash', icon: Layers, color: 'text-purple-500 bg-purple-50 dark:bg-purple-950/40' },
@@ -109,8 +109,8 @@ const STAFF_INFO: Record<string, { name: string; title: string; defaultModel: st
 
 const DEFAULT_STAFF_METRICS: AiStaffMetric[] = [
   { id: 'director', name: '총괄 팀장 AI (Director)', role: 'Cross-Check & 3초 결재안 상신', status: 'ONLINE', processedCount: 142, lastActive: '방금 전' },
-  { id: 'safety', name: '안전관 AI (Safety)', role: 'Gemini Vision 실시간 유해물 스크리닝', status: 'ACTIVE', processedCount: 8420, lastActive: '1초 전' },
-  { id: 'zev', name: '제브 AI (Zev)', role: '정보통신망법 규정 기계적 판정', status: 'ONLINE', processedCount: 189, lastActive: '3초 전' },
+  { id: 'safety', name: '안전관 AI (Safety)', role: '청소년보호법·성폭력처벌법 유해물 즉각 차단 & 채증 스냅샷', status: 'ACTIVE', processedCount: 8420, lastActive: '1초 전' },
+  { id: 'zev', name: '제브 AI (Zev)', role: '정보통신망법 제50조 & 직거래 사기 예방 마스킹 감시', status: 'ONLINE', processedCount: 189, lastActive: '3초 전' },
   { id: 'auditor', name: '감사관 AI (Auditor)', role: '계정 이력 및 이상 거래 교차 감사', status: 'ONLINE', processedCount: 312, lastActive: '12초 전' },
   { id: 'cs', name: '고객행복관 AI (CS)', role: '피해자 보호 및 소명 기회 보장', status: 'ONLINE', processedCount: 95, lastActive: '25초 전' },
   { id: 'growth', name: '성장 분석관 AI (Growth)', role: '방송 룸 리스크 & 커머스 영향도 분석', status: 'ONLINE', processedCount: 118, lastActive: '40초 전' },

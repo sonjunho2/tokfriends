@@ -5,6 +5,43 @@ Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
 
+## 2026-10-26 Checkpoint 113: [모꼬(Mocco) 리브랜딩 및 아키텍처 혁신 - 4단계: 모꼬 3D 선물 라인업 & 한국 법률 규제 준수 관리자 구축 & 소스 대청소]
+- **모꼬 LIVE 전용 3D 가상 선물 3단계 라인업 구축 (services/api & apps/mobile)**:
+  - 모꼬 3D 가상 선물 공식 카탈로그 마이그레이션 (`services/api/data/gifts.json` & `gifts.service.ts`):
+    - **[1단계: 소형] `볼빨간 모꼬`** (1,000 MC, effectType: 'BLUSHING_MOCCO')
+      - 모꼬가 부끄러워하며 화면에 핑크빛 하트 구름 방울을 퐁퐁 뿜어내는 애니메이션 연출.
+    - **[2단계: 중형] `구름카 탄 모꼬`** (5,000 MC, effectType: 'CLOUD_CAR_MOCCO')
+      - 모꼬가 핑크빛 오픈카를 타고 화면을 미끄러지듯 가로지르며 꽃가루 폭죽을 쏘아 올리는 다이내믹 연출.
+    - **[3단계: VIP 대형] `골든 킹 모꼬의 축제`** (30,000 MC, effectType: 'GOLDEN_KING_MOCCO')
+      - 화면 전체가 웅장한 황금빛으로 물들며, 황금 왕관을 쓴 거대 황금 모꼬가 나타나 화면 전체에 골드 코인과 축제 폭죽을 쏟아붓는 풀스크린 시네마틱 연출.
+  - 선물 후원 정산 및 실시간 동기화 브로드캐스트 (`live.controller.ts` & `LiveRoomScreen.js`):
+    - 선물 전송 시 후원자 닉네임, 선물 수량, 호스트 닉네임, 축하 배너 및 3D 이펙트를 방 내 전체 접속자에게 실시간 소켓 동기화 전파.
+    - 스트리머 호스트에게 65% 순수익 자동 적립 (`hostNetAmount = Math.floor(points * 0.65)`), 플랫폼 35% 수수료 분리.
+    - `data/ledger.json` 불변 원장에 `GIFT_SEND` 트랜잭션 실시간 영구 기록.
+  - 모바일 앱 선물 이펙트 오버레이 & 피커 시트 (`GiftEffectOverlay.js` & `GiftPickerSheet.js`):
+    - 3단계 티어 판정 함수 `getGiftTier`에 신규 모꼬 3D 선물 라인업 공식 매핑.
+    - `GiftPickerSheet.js`에 모꼬 3D 선물 카탈로그 및 뱃지(`👑 VIP`, `🚗 3D`, `☁️ 3D`) 기본 연동.
+- **대한민국 4대 법률 규제 100% 준수 관리자 거버넌스 완비 (apps/admin)**:
+  - 전자상거래법 & 통신판매중개업자 법적 고지 관리 (`apps/admin/src/app/page.tsx`):
+    - 웹/앱 메인 푸터에 사업자 필수 정보 실시간 바인딩:
+      - 상호: 주식회사 모꼬 (Mocco Inc.), 대표이사, 사업자등록번호: 120-88-00192, 통신판매업신고번호: 제 2026-서울강남-01982호, 사업장 주소, 유선 고객센터(1588-0921), 개인정보보호책임자(CPO), 청소년보호책임자 명시.
+      - 전자상거래법 제20조 통신판매중개 면책 고지문 명시: "모꼬(Mocco)는 통신판매중개자로서 통신판매의 당사자가 아니며, 입점사 및 개별 판매자가 등록한 상품 정보 및 거래에 대해 책임을 지지 않습니다. 단, 에스크로 안전결제 시스템을 통해 구매자의 결제 대금을 안전하게 보호합니다."
+  - 4대 법정 필수 약관/정책 버전 관리 콘솔 신설 (`/legal` & `/settings/legal`):
+    - ① `terms-of-service`: 서비스 이용약관 (전자상거래법 & 약관규제법, 4대 커머스 및 미디어 플랫폼 규정)
+    - ② `privacy-policy`: 개인정보처리방침 (개인정보보호법 제30조)
+    - ③ `electronic-financial-transaction`: 전자금융거래 이용약관 (신한·KG이니시스 에스크로 안전결제 보증 및 MC 코인 환불 규정)
+    - ④ `youth-protection-policy`: 청소년보호정책 (청소년보호법 및 성폭력처벌법)
+    - 관리자가 약관 개정 시 버전(Version), 시행일자(Effective Date), 개정 사유를 등록하고 공지할 수 있는 법적 약관 관리 모달 완비.
+  - 6인 AI 직원 기반 법적 리스크 방어망 연동 (`/ai-staff`):
+    - 제브 AI (Zev): 정보통신망법 제50조(영리목적 광고성 정보) 및 직거래 유도 사기 예방을 위한 연락처 마스킹 실시간 감시.
+    - 안전관 AI (Safety): 청소년보호법 및 성폭력처벌법에 따른 방송 실시간 유해물(음란/도박/마약/흉기) 즉각 차단 및 채증 스냅샷 법적 보존.
+- **3대 프로젝트 빌드 검증 (0 error 무결점 확인)**:
+  - `services/api`: `npm run build` ➔ 0 error 무결점 성공.
+  - `apps/admin`: `npm run build` ➔ 41개 정적/동적 라우트(/legal 포함) 0 error 무결점 성공.
+  - `apps/mobile`: `npm run test:mobile:babel` (iOS & Android 1500+ 모듈) ➔ 0 error 무결점 번들 성공.
+
+---
+
 ## 2026-10-26 Checkpoint 112: [모꼬(Mocco) 리브랜딩 및 아키텍처 혁신 - 3단계: 모꼬 브랜드 전면 적용 & HOT LIVE BEST 3 & 동네 모꼬지 접속자 1-Click 대화 연동]
 - **모꼬(Mocco) 솜구름 캐릭터 에셋 & 5대 탭 브랜드 전면 적용 (apps/mobile & apps/admin)**:
   - 솜구름 '모꼬' 캐릭터 에셋 공식 등록:

@@ -605,10 +605,13 @@ export class LiveController {
     @CurrentUser() user?: any,
   ) {
     const userId = user?.id || user?.sub || 'usr_guest';
-    const points = Number(body.points || body.pricePoints || 100);
-    const giftId = body.giftId || 'gift-1';
-    const giftName = body.giftName || body.name || '선물';
-    const animationType = body.animationType || (points >= 3000 ? 'fireworks' : '3d_heart');
+    const points = Number(body.points || body.pricePoints || 1000);
+    const giftId = body.giftId || 'gift-mocco-1';
+    const giftName = body.giftName || body.name || '볼빨간 모꼬';
+    const quantity = Number(body.quantity || 1);
+    const animationType =
+      body.animationType ||
+      (points >= 30000 ? 'GOLDEN_KING_MOCCO' : points >= 5000 ? 'CLOUD_CAR_MOCCO' : 'BLUSHING_MOCCO');
 
     let updatedBalance: number | null = null;
     let senderName = user?.nickname || user?.displayName || body.senderNickname || body.senderName || '시청자';
@@ -616,10 +619,15 @@ export class LiveController {
 
     const room = MOCK_LIVE_ROOMS.find((r) => r.id === roomId);
     const hostId = (room as any)?.hostId || room?.host?.id;
+    const hostName = (room as any)?.host?.name || (room as any)?.host?.displayName || '호스트';
 
     if (hostId && hostId === userId) {
       throw new BadRequestException('호스트는 본인 방송에 선물을 보낼 수 없습니다. 시청자로부터 선물을 받으실 수 있습니다.');
     }
+
+    // 1. 호스트 65% 순수익 및 플랫폼 35% 수수료 자동 정산 계산
+    const hostNetAmount = Math.floor(points * 0.65);
+    const platformFee = points - hostNetAmount;
 
     try {
       const dbUser = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -638,12 +646,54 @@ export class LiveController {
         updatedBalance = updated.pointBalance;
       }
 
-      // 호스트(방 주인)에게 시청자가 보낸 선물 포인트 적립
+      // 호스트(방 주인)에게 시청자가 보낸 선물 포인트의 65% 순수익 자동 적립
       if (hostId && hostId !== userId) {
         await this.prisma.user.update({
           where: { id: hostId },
-          data: { pointBalance: { increment: points } },
+          data: { pointBalance: { increment: hostNetAmount } },
         }).catch(() => {});
+      }
+
+      // 2. 불변 원장(data/ledger.json)에 GIFT_SEND 실시간 기록
+      try {
+        const dataDir = path.join(process.cwd(), 'data');
+        if (!fs.existsSync(dataDir)) {
+          fs.mkdirSync(dataDir, { recursive: true });
+        }
+        const ledgerPath = path.join(dataDir, 'ledger.json');
+        let ledger: any[] = [];
+        if (fs.existsSync(ledgerPath)) {
+          try {
+            ledger = JSON.parse(fs.readFileSync(ledgerPath, 'utf-8'));
+          } catch {}
+        }
+        const ledgerEntry = {
+          id: `led-gift-${Date.now()}-${Math.floor(Math.random() * 900 + 100)}`,
+          walletId: `wallet-${hostId || 'platform'}`,
+          kind: 'GIFT_SEND',
+          source: 'LIVE_GIFT',
+          roomId,
+          senderId: userId,
+          senderName,
+          hostId: hostId || null,
+          hostName,
+          giftId,
+          giftName,
+          quantity,
+          points,
+          hostNetAmount,
+          platformFee,
+          feePercent: 35,
+          effectType: animationType,
+          deltaSpendable: -points,
+          deltaRedeemable: hostNetAmount,
+          createdAt: new Date().toISOString(),
+          description: `[모꼬 3D 가상 선물] '${senderName}'님이 '${giftName}' 선물 후원 (호스트 65% 순수익 적립: ${hostNetAmount.toLocaleString()} MC, 플랫폼 35% 수수료: ${platformFee.toLocaleString()} MC)`,
+        };
+        ledger.unshift(ledgerEntry);
+        fs.writeFileSync(ledgerPath, JSON.stringify(ledger.slice(0, 1000), null, 2), 'utf-8');
+      } catch (ledgerErr) {
+        console.error('Failed to append GIFT_SEND ledger entry:', ledgerErr);
       }
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
@@ -653,13 +703,22 @@ export class LiveController {
       room.totalGiftsPoints = (room.totalGiftsPoints || 0) + points;
     }
 
+    const tier = points >= 30000 ? 3 : (points >= 5000 ? 2 : 1);
     const giftMeta = {
       giftId,
       giftName,
       pricePoints: points,
+      points,
+      quantity,
       senderNickname: senderName,
       senderAvatar,
+      hostName,
+      hostNetAmount,
+      platformFee,
       animationType,
+      effectType: animationType,
+      tier,
+      bannerMessage: `🎉 ${senderName}님이 ${hostName}님에게 [${giftName}]을(를) 선물하셨습니다!`,
       message: body.message || '',
     };
 
@@ -669,6 +728,9 @@ export class LiveController {
       type: 'gift',
       content: JSON.stringify(giftMeta),
       giftPoints: points,
+      effectType: animationType,
+      tier,
+      bannerMessage: `🎉 ${senderName}님이 ${hostName}님에게 [${giftName}]을(를) 선물하셨습니다!`,
       createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       senderId: userId,
       senderName,
@@ -685,7 +747,7 @@ export class LiveController {
     // 메모리 저장소에 보관 (폴링 시 유지)
     this.getRoomMessages(roomId).push(giftMsg);
 
-    // 실시간 WebSocket 브로드캐스트
+    // 3. 실시간 WebSocket 브로드캐스트 (전체 접속자 화면에 3D 선물 이펙트 및 채팅 축하 배너 전원 동기화 전파)
     try {
       this.chatGateway.emitLiveMessage(roomId, giftMsg);
     } catch {}
@@ -695,8 +757,12 @@ export class LiveController {
       success: true,
       transactionId: `tx-${Date.now()}`,
       giftId,
+      giftName,
       points,
-      tier: points >= 30000 ? 3 : (points >= 3000 ? 2 : 1),
+      hostNetAmount,
+      platformFee,
+      tier,
+      effectType: animationType,
       newBalance: updatedBalance,
       remainingBalance: updatedBalance,
       totalGiftsPoints: room?.totalGiftsPoints || points,

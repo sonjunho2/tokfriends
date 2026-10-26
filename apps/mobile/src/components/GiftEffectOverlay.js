@@ -46,11 +46,13 @@ export const getGiftTier = (gift) => {
   const name = String(gift.giftName || gift.name || '').toLowerCase();
   const type = String(gift.animationType || '').toLowerCase();
 
-  // [3단계 - 대형]: 30,000P 이상 또는 골드 드래곤 등 초대형 특수 연출
+  // [3단계 VIP 대형]: 30,000P 이상 또는 골든 킹 모꼬의 축제 / GOLDEN_KING_MOCCO
   if (
     points >= 30000 ||
-    name.includes('드래곤') ||
-    name.includes('dragon') ||
+    name.includes('골든 킹') ||
+    name.includes('golden_king') ||
+    name.includes('축제') ||
+    type.includes('golden_king') ||
     type === 'dragon' ||
     type === 'large_vip' ||
     type === 'tier3'
@@ -58,14 +60,14 @@ export const getGiftTier = (gift) => {
     return 3;
   }
 
-  // [2단계 - 중형]: 3,000P ~ 10,000P (폭죽, 슈퍼카, 샴페인, 다이아몬드 등)
+  // [2단계 중형]: 5,000P ~ 10,000P 또는 구름카 탄 모꼬 / CLOUD_CAR_MOCCO
   if (
-    points >= 3000 ||
+    points >= 5000 ||
+    name.includes('구름카') ||
+    name.includes('cloud_car') ||
+    type.includes('cloud_car') ||
     name.includes('슈퍼카') ||
     name.includes('폭죽') ||
-    name.includes('샴페인') ||
-    name.includes('다이아몬드') ||
-    name.includes('supercar') ||
     type === 'fireworks' ||
     type === 'supercar' ||
     type === 'tier2'
@@ -73,7 +75,7 @@ export const getGiftTier = (gift) => {
     return 2;
   }
 
-  // [1단계 - 소형]: 100P ~ 1,000P (따뜻한 커피, 꽃다발 등 기본)
+  // [1단계 소형]: 1,000P 또는 볼빨간 모꼬 / BLUSHING_MOCCO
   return 1;
 };
 
@@ -976,7 +978,7 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
               />
             ) : (
               <Text style={{ fontSize: tier === 3 ? 90 : tier === 2 ? 65 : 44 }}>
-                {tier === 3 ? '🐉' : tier === 2 ? '🎆' : '🎁'}
+                {tier === 3 ? '👑' : tier === 2 ? '🚗' : '💖'}
               </Text>
             )}
 
@@ -1006,10 +1008,10 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
             >
               <Text style={styles.topBadgeText}>
                 {tier === 3
-                  ? '👑 3단계 LEGENDARY VIP'
+                  ? '👑 [VIP 3단계] 골든 킹 모꼬의 축제'
                   : tier === 2
-                  ? '🎆 2단계 SPECIAL'
-                  : '🌸 1단계 BASIC'}
+                  ? '🚗 [중형 2단계] 구름카 탄 모꼬'
+                  : '☁️ [소형 1단계] 볼빨간 모꼬'}
               </Text>
             </View>
           </Animated.View>
@@ -1040,14 +1042,14 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
             <Image source={{ uri: thumbUrl }} style={styles.bannerBadgeThumb} resizeMode="cover" />
           ) : (
             <Text style={{ fontSize: 22, marginRight: 8 }}>
-              {tier === 3 ? '🐉' : tier === 2 ? '🎆' : '🎁'}
+              {tier === 3 ? '👑' : tier === 2 ? '🚗' : '💖'}
             </Text>
           )}
 
           <View style={styles.bannerBadgeTextCol}>
             <Text style={styles.bannerBadgeSenderText} numberOfLines={1}>
               <Text style={styles.senderHighlight}>{senderNickname}</Text>님의{' '}
-              {tier === 3 ? '위대한 후원 👑' : tier === 2 ? '화려한 후원 🔥' : '따뜻한 선물 🎁'}
+              {tier === 3 ? '골든 킹 축제 후원 👑' : tier === 2 ? '구름카 질주 후원 🚗' : '볼빨간 하트 선물 💖'}
             </Text>
             <Text style={styles.bannerBadgeGiftText} numberOfLines={1}>
               <Text

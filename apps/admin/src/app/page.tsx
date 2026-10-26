@@ -1161,34 +1161,80 @@ export default function CustomerWebStorefrontPage() {
         </div>
       )}
 
-      {/* Footer */}
-      <footer className="border-t border-border/60 bg-muted/30 py-8 text-xs text-muted-foreground mt-12">
-        <div className="container max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="space-y-1 text-center md:text-left">
-            <div className="font-bold text-foreground flex items-center justify-center md:justify-start gap-2">
-              <span>(주)모꼬 (MOCCO Inc.)</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted border">에스크로 안전거래 시스템 보증</span>
+      {/* 대한민국 4대 법률 규제 100% 준수 고지 푸터 (전자상거래법, 통신판매중개, 개인정보보호, 청소년보호) */}
+      <footer className="border-t border-border/60 bg-muted/40 py-10 text-xs text-muted-foreground mt-16">
+        <div className="container max-w-7xl mx-auto px-4 space-y-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-border/40">
+            {/* 4대 법정 필수 약관 빠른 링크 */}
+            <div className="flex flex-wrap items-center gap-4 text-xs font-medium">
+              <Link href="/settings/legal?tab=terms-of-service" className="hover:text-foreground transition-colors">
+                서비스 이용약관
+              </Link>
+              <span>·</span>
+              <Link href="/settings/legal?tab=privacy-policy" className="hover:text-foreground font-bold text-foreground/90 transition-colors">
+                개인정보처리방침
+              </Link>
+              <span>·</span>
+              <Link href="/settings/legal?tab=electronic-financial-transaction" className="hover:text-foreground transition-colors">
+                전자금융거래 이용약관 (에스크로)
+              </Link>
+              <span>·</span>
+              <Link href="/settings/legal?tab=youth-protection-policy" className="hover:text-foreground transition-colors">
+                청소년보호정책
+              </Link>
             </div>
-            <p className="text-[11px]">
-              서울특별시 강남구 테헤란로 152 강남파이낸스센터 12층 | 대표이사: 대표자 | 사업자등록번호: 120-88-00192
-            </p>
-            <p className="text-[11px]">
-              통신판매업신고: 2026-서울강남-01982호 | 고객센터: 1588-0921 (평일 09:00 ~ 18:00)
-            </p>
+
+            {/* 권한별 스위처 콘솔 바로가기 */}
+            <div className="flex items-center gap-3 text-xs">
+              <Link href="/dashboard" className="hover:text-foreground font-semibold px-2.5 py-1 rounded bg-background border shadow-xs">
+                본사 관리자 콘솔
+              </Link>
+              <Link href="/seller" className="hover:text-foreground font-semibold px-2.5 py-1 rounded bg-background border shadow-xs">
+                입점사 셀러 센터
+              </Link>
+              <Link href="/streamer" className="hover:text-foreground font-semibold px-2.5 py-1 rounded bg-background border shadow-xs">
+                스트리머 스튜디오
+              </Link>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="hover:text-foreground font-semibold">
-              본사 관리자 콘솔
-            </Link>
-            <span>·</span>
-            <Link href="/seller" className="hover:text-foreground font-semibold">
-              입점사 셀러 센터
-            </Link>
-            <span>·</span>
-            <Link href="/streamer" className="hover:text-foreground font-semibold">
-              스트리머 스튜디오
-            </Link>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-[11px] leading-relaxed">
+            {/* 사업자 필수 고지 정보 (전자상거래법 준수) */}
+            <div className="md:col-span-2 space-y-2">
+              <div className="font-bold text-sm text-foreground flex items-center gap-2">
+                <span>주식회사 모꼬 (Mocco Inc.)</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold border border-primary/20">
+                  신한·KG이니시스 100% 에스크로 안전결제 보증
+                </span>
+              </div>
+              <p>
+                대표이사: 대표자 | 사업자등록번호: 120-88-00192 | 통신판매업신고: 제 2026-서울강남-01982호
+              </p>
+              <p>
+                사업장 주소: 서울특별시 강남구 테헤란로 152 강남파이낸스센터 12층 (역삼동) | 호스팅 서비스: (주)모꼬
+              </p>
+              <p>
+                유선 고객센터: 1588-0921 (평일 09:00 ~ 18:00, 점심시간 12:00 ~ 13:00) | 이메일: support@mocco.kr
+              </p>
+            </div>
+
+            {/* 통신판매중개업자 법적 면책 고지문 (전자상거래 등에서의 소비자보호에 관한 법률 제20조) */}
+            <div className="bg-background/60 p-3.5 rounded-lg border border-border/60 space-y-1.5 text-[11px]">
+              <div className="font-semibold text-foreground flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                통신판매중개 면책 고지
+              </div>
+              <p className="text-muted-foreground/90">
+                모꼬(Mocco)는 통신판매중개자로서 통신판매의 당사자가 아니며, 입점사 및 개별 판매자가 등록한 상품 정보 및 거래에 대해 책임을 지지 않습니다. 단, 에스크로 안전결제 시스템을 통해 구매자의 결제 대금을 안전하게 보호합니다.
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-border/40 text-center md:text-left text-[10px] text-muted-foreground/60 flex flex-col md:flex-row justify-between items-center gap-2">
+            <div>© 2026 Mocco Inc. All rights reserved. 대한민국 법률 규제 및 공정거래위원회 표준약관 준수.</div>
+            <div className="flex items-center gap-2">
+              <span>개인정보보호책임자: CPO | 청소년보호책임자: 총괄 책임자</span>
+            </div>
           </div>
         </div>
       </footer>

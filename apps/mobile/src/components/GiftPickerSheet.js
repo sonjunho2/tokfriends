@@ -23,9 +23,41 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const CATEGORIES = [
   { key: 'all', label: '전체' },
-  { key: 'special', label: '3D 스페셜' },
-  { key: 'vip', label: '3D VIP' },
-  { key: 'general', label: '일반' },
+  { key: 'mocco_special', label: '3D 모꼬' },
+  { key: 'mocco_vip', label: 'VIP 모꼬' },
+];
+
+const DEFAULT_MOCCO_GIFTS = [
+  {
+    id: 'gift-mocco-1',
+    code: 'gift-blushing-mocco',
+    name: '볼빨간 모꼬',
+    description: '모꼬가 부끄러워하며 화면에 핑크빛 하트 구름 방울을 퐁퐁 뿜어냅니다 ☁️💖',
+    pricePoints: 1000,
+    amount: 1000,
+    animationType: 'BLUSHING_MOCCO',
+    category: 'mocco_special',
+  },
+  {
+    id: 'gift-mocco-2',
+    code: 'gift-cloud-car-mocco',
+    name: '구름카 탄 모꼬',
+    description: '모꼬가 핑크빛 오픈카를 타고 화면을 가로지르며 꽃가루 폭죽을 쏘아 올립니다 🚗🎉',
+    pricePoints: 5000,
+    amount: 5000,
+    animationType: 'CLOUD_CAR_MOCCO',
+    category: 'mocco_special',
+  },
+  {
+    id: 'gift-mocco-3',
+    code: 'gift-golden-king-mocco',
+    name: '골든 킹 모꼬의 축제',
+    description: '황금 왕관을 쓴 거대 황금 모꼬가 나타나 화면 전체에 골드 코인과 축제 폭죽을 쏟아붓습니다 👑🪙🎆',
+    pricePoints: 30000,
+    amount: 30000,
+    animationType: 'GOLDEN_KING_MOCCO',
+    category: 'mocco_vip',
+  },
 ];
 
 export default function GiftPickerSheet({
@@ -50,19 +82,30 @@ export default function GiftPickerSheet({
         category: activeCategory !== 'all' ? activeCategory : undefined,
         context,
       });
-      const list = Array.isArray(res?.data)
+      let list = Array.isArray(res?.data)
         ? res.data
         : Array.isArray(res?.items)
         ? res.items
         : Array.isArray(res)
         ? res
         : [];
+      if (!list || list.length === 0) {
+        list = DEFAULT_MOCCO_GIFTS.filter(
+          (g) => activeCategory === 'all' || g.category === activeCategory
+        );
+      }
       setGifts(list);
       if (list.length > 0 && !selectedGift) {
         setSelectedGift(list[0]);
       }
     } catch {
-      setGifts([]);
+      const fallbackList = DEFAULT_MOCCO_GIFTS.filter(
+        (g) => activeCategory === 'all' || g.category === activeCategory
+      );
+      setGifts(fallbackList);
+      if (fallbackList.length > 0 && !selectedGift) {
+        setSelectedGift(fallbackList[0]);
+      }
     } finally {
       setLoading(false);
     }
@@ -179,13 +222,13 @@ export default function GiftPickerSheet({
                   contentContainerStyle={styles.gridContent}
                   renderItem={({ item }) => {
                     const isSelected = selectedGift?.id === item.id;
-                    const isVip =
-                      item.animationType === 'alpha_video' ||
-                      item.animationType === 'fireworks' ||
-                      item.animationType === '3d_heart' ||
-                      item.animationType === 'lottie' ||
-                      item.category === 'vip' ||
-                      (item.pricePoints && item.pricePoints >= 1500);
+                    const isVipTier = item.animationType === 'GOLDEN_KING_MOCCO' || item.pricePoints >= 30000;
+                    const isCloudCar = item.animationType === 'CLOUD_CAR_MOCCO' || item.pricePoints >= 5000;
+                    const isBlushing = item.animationType === 'BLUSHING_MOCCO' || item.pricePoints <= 1000;
+
+                    const emojiTag = isVipTier ? '👑 VIP' : isCloudCar ? '🚗 3D' : '☁️ 3D';
+                    const fallbackIcon = isVipTier ? '👑' : isCloudCar ? '🚗' : '☁️';
+
                     return (
                       <TouchableOpacity
                         style={[
@@ -195,23 +238,16 @@ export default function GiftPickerSheet({
                         activeOpacity={0.8}
                         onPress={() => setSelectedGift(item)}
                       >
-                        {isVip && (
-                          <View
-                            style={[
-                              styles.vipTag,
-                              item.animationType === 'fireworks' && { backgroundColor: '#F59E0B' },
-                              item.animationType === '3d_heart' && { backgroundColor: '#EC4899' },
-                            ]}
-                          >
-                            <Text style={styles.vipTagText}>
-                              {item.animationType === 'fireworks'
-                                ? '폭죽'
-                                : item.animationType === '3d_heart'
-                                ? '하트'
-                                : '3D'}
-                            </Text>
-                          </View>
-                        )}
+                        <View
+                          style={[
+                            styles.vipTag,
+                            isVipTier && { backgroundColor: '#EAB308' },
+                            isCloudCar && { backgroundColor: '#EC4899' },
+                            isBlushing && { backgroundColor: '#F472B6' },
+                          ]}
+                        >
+                          <Text style={styles.vipTagText}>{emojiTag}</Text>
+                        </View>
                         <View style={styles.giftIconWrap}>
                           {item.thumbnailUrl ? (
                             <Image
@@ -219,7 +255,7 @@ export default function GiftPickerSheet({
                               style={styles.giftImage}
                             />
                           ) : (
-                            <Text style={{ fontSize: 26 }}>🎁</Text>
+                            <Text style={{ fontSize: 28 }}>{fallbackIcon}</Text>
                           )}
                         </View>
                         <Text style={styles.giftName} numberOfLines={1}>
