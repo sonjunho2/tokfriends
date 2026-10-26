@@ -164,9 +164,20 @@ export default function ChatsScreen({ navigation }: any) {
           style={styles.directMessageBtn}
           onPress={() => {
             navigation.navigate('ChatRoom', {
+              id: `direct_${item.author.id}`,
+              chatId: `direct_${item.author.id}`,
               peerId: item.author.id,
               peerName: item.author.nickname,
+              title: item.author.nickname,
               initialType: 'SUDA',
+              user: {
+                id: item.author.id,
+                name: item.author.nickname,
+                displayName: item.author.nickname,
+                avatar: item.author.avatarUrl,
+                avatarUrl: item.author.avatarUrl,
+                location: item.neighborhood,
+              },
             });
           }}
           activeOpacity={0.8}
@@ -550,8 +561,19 @@ export default function ChatsScreen({ navigation }: any) {
                     onPress={() => {
                       setProfileModalVisible(false);
                       navigation.navigate('ChatRoom', {
+                        id: `direct_${selectedNeighbor.id}`,
+                        chatId: `direct_${selectedNeighbor.id}`,
                         peerId: selectedNeighbor.id,
                         peerName: selectedNeighbor.nickname,
+                        title: selectedNeighbor.nickname,
+                        user: {
+                          id: selectedNeighbor.id,
+                          name: selectedNeighbor.nickname,
+                          displayName: selectedNeighbor.nickname,
+                          avatar: selectedNeighbor.avatarUrl,
+                          avatarUrl: selectedNeighbor.avatarUrl,
+                          location: selectedNeighbor.neighborhood,
+                        },
                       });
                     }}
                   >

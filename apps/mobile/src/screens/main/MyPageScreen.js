@@ -53,7 +53,7 @@ export default function MyPageScreen({ navigation }) {
     liveLikedCount: 154,
   });
 
-  // 무료 ON 충전소 광고 시청 상태
+  // 무료 MC 충전소 광고 시청 상태
   const [rewardAdModalVisible, setRewardAdModalVisible] = useState(false);
   const [rewardAdCountdown, setRewardAdCountdown] = useState(5);
   const [isAdWatching, setIsAdWatching] = useState(false);
@@ -247,7 +247,7 @@ export default function MyPageScreen({ navigation }) {
     ]);
   }, [logout]);
 
-  // 무료 ON 충전소 광고 시청 타이머 및 보상 수령 핸들러
+  // 무료 MC 충전소 광고 시청 타이머 및 보상 수령 핸들러
   const handleOpenRewardAdModal = () => {
     if (todayRewardClaims >= 5) {
       Alert.alert(
@@ -293,14 +293,14 @@ export default function MyPageScreen({ navigation }) {
       }
 
       Alert.alert(
-        '🎉 10 ON 충전 완료!',
-        `10 ON이 충전되었습니다! (오늘 잔여: ${remaining}/5회)\n지갑 잔액이 즉시 반영되었습니다.`,
+        '🎉 10 MC 충전 완료!',
+        `10 MC이 충전되었습니다! (오늘 잔여: ${remaining}/5회)\n지갑 잔액이 즉시 반영되었습니다.`,
         [{ text: '확인' }]
       );
     } catch {
       setClaimingReward(false);
       setRewardAdModalVisible(false);
-      Alert.alert('리워드 지급 완료', '10 ON이 충전되었습니다!');
+      Alert.alert('리워드 지급 완료', '10 MC이 충전되었습니다!');
       if (refreshMe) refreshMe().catch(() => {});
     }
   };
@@ -466,7 +466,7 @@ export default function MyPageScreen({ navigation }) {
           </LinearGradient>
         </View>
 
-        {/* 3.4. 무료 ON 충전소 (광고 보고 10 ON 받기) 숏컷 배너 */}
+        {/* 3.4. 무료 MC 충전소 (광고 보고 10 MC 받기) 숏컷 배너 */}
         <TouchableOpacity
           style={styles.rewardBannerBtn}
           activeOpacity={0.88}
@@ -484,13 +484,13 @@ export default function MyPageScreen({ navigation }) {
               </View>
               <View style={styles.rewardBannerTextBox}>
                 <View style={styles.rewardBannerBadgeRow}>
-                  <Text style={styles.rewardBannerTitle}>🎬 무료 ON 충전소</Text>
+                  <Text style={styles.rewardBannerTitle}>🎬 무료 MC 충전소</Text>
                   <View style={styles.rewardPointBadge}>
-                    <Text style={styles.rewardPointBadgeText}>+10 ON</Text>
+                    <Text style={styles.rewardPointBadgeText}>+10 MC</Text>
                   </View>
                 </View>
                 <Text style={styles.rewardBannerDesc}>
-                  광고 시청 완료 시 10 ON 즉시 지급! (오늘 잔여: {Math.max(0, 5 - todayRewardClaims)}/5회)
+                  광고 시청 완료 시 10 MC 즉시 지급! (오늘 잔여: {Math.max(0, 5 - todayRewardClaims)}/5회)
                 </Text>
               </View>
             </View>
@@ -1286,7 +1286,7 @@ export default function MyPageScreen({ navigation }) {
           if (rewardAdCountdown > 0) {
             Alert.alert(
               '광고 시청 중단',
-              '광고를 끝까지 시청해야 10 ON이 지급됩니다. 시청을 종료하시겠습니까?',
+              '광고를 끝까지 시청해야 10 MC이 지급됩니다. 시청을 종료하시겠습니까?',
               [
                 { text: '계속 시청', style: 'cancel' },
                 {
@@ -1349,7 +1349,7 @@ export default function MyPageScreen({ navigation }) {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.adSponsorName}>다가온 파트너스 공식 리워드</Text>
-                    <Text style={styles.adSponsorTitle}>매일매일 출석체크 & 10 ON 즉시 충전</Text>
+                    <Text style={styles.adSponsorTitle}>매일매일 출석체크 & 10 MC 즉시 충전</Text>
                   </View>
                 </View>
               </LinearGradient>
@@ -1392,7 +1392,7 @@ export default function MyPageScreen({ navigation }) {
                     ) : (
                       <>
                         <Ionicons name="gift" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                        <Text style={styles.adClaimBtnText}>10 ON 즉시 받기</Text>
+                        <Text style={styles.adClaimBtnText}>10 MC 즉시 받기</Text>
                       </>
                     )}
                   </LinearGradient>
@@ -1407,7 +1407,7 @@ export default function MyPageScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  // 3.4 무료 ON 충전소 숏컷 배너 스타일
+  // 3.4 무료 MC 충전소 숏컷 배너 스타일
   rewardBannerBtn: {
     marginHorizontal: 16,
     marginBottom: 14,

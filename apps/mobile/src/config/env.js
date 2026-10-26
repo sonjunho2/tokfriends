@@ -5,7 +5,7 @@ const rawApiBaseUrl =
   process.env.EXPO_PUBLIC_API_BASE_URL ||
   Constants?.expoConfig?.extra?.TOK_API_BASE_URL ||
   Constants?.manifest?.extra?.TOK_API_BASE_URL ||
-  'https://tok-friends-api.onrender.com';
+  'http://127.0.0.1:4000';
 
 export const API_BASE_URL = rawApiBaseUrl.replace(/\/$/, '');
 

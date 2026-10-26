@@ -38,6 +38,8 @@ import { createChatSocket, LIVE_SOCKET_EVENTS } from '../../realtime/chatSocket'
 import LiveCommercePinOverlay from '../../components/live/LiveCommercePinOverlay';
 import LiveProductPinCard from '../../components/live/LiveProductPinCard';
 import LiveEscrowBuyModal from '../../components/live/LiveEscrowBuyModal';
+import HostLiveControlSheet from '../../components/live/HostLiveControlSheet';
+import PgPaymentBottomSheet from '../../components/live/PgPaymentBottomSheet';
 import { fetchMarketProducts } from '../../services/marketService';
 
 const LIVE_ACCENT = '#FF3B6B';

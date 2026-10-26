@@ -1,5 +1,35 @@
 [
   {
+    "id": "led-call-1792982880018-96",
+    "walletId": "wallet-a62a9aa0-0e38-4a41-b641-03cf0cfd73e2",
+    "kind": "CALL_BILLING",
+    "source": "1_ON_1_PRIVATE_CALL",
+    "callerId": "a62a9aa0-0e38-4a41-b641-03cf0cfd73e2",
+    "hostId": "984e8ade-3171-4aa7-bd0c-188b9419717f",
+    "sessionId": "02da6f77-143e-4ff3-9eea-982effa2d604",
+    "deltaSpendable": -1500,
+    "deltaRedeemable": 0,
+    "creatorRevenue": 975,
+    "platformFee": 525,
+    "feePercent": 35,
+    "createdAt": "2026-10-26T02:48:00.018Z"
+  },
+  {
+    "id": "led-call-1792982820042-37",
+    "walletId": "wallet-a62a9aa0-0e38-4a41-b641-03cf0cfd73e2",
+    "kind": "CALL_BILLING",
+    "source": "1_ON_1_PRIVATE_CALL",
+    "callerId": "a62a9aa0-0e38-4a41-b641-03cf0cfd73e2",
+    "hostId": "984e8ade-3171-4aa7-bd0c-188b9419717f",
+    "sessionId": "02da6f77-143e-4ff3-9eea-982effa2d604",
+    "deltaSpendable": -1500,
+    "deltaRedeemable": 0,
+    "creatorRevenue": 975,
+    "platformFee": 525,
+    "feePercent": 35,
+    "createdAt": "2026-10-26T02:47:00.042Z"
+  },
+  {
     "id": "led-call-1792982760045-575",
     "walletId": "wallet-a62a9aa0-0e38-4a41-b641-03cf0cfd73e2",
     "kind": "CALL_BILLING",

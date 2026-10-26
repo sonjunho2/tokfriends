@@ -466,6 +466,21 @@ export default function ChatRoomScreen({ route, navigation }) {
       setHistoryError('대화방 정보를 확인할 수 없습니다.');
       return;
     }
+
+    if (chatId.startsWith('direct_')) {
+      try {
+        const response = await apiClient.getChatMessages(chatId);
+        const nextMessages = (response?.items || []).map((message) =>
+          normalizeHistoryMessage(message, currentActivityAccountId),
+        );
+        setMessages(nextMessages);
+      } catch {
+        setMessages([]);
+      }
+      setHistoryLoading(false);
+      setHistoryError('');
+      return;
+    }
     if (!currentActivityAccountId) {
       setHistoryLoading(false);
       setHistoryError('활성 프로필 정보를 확인할 수 없습니다.');
