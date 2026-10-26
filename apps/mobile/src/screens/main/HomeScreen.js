@@ -21,14 +21,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { tokens } from '../../theme/tokens';
-import {
-  UserAvatar,
-  GlobalBottomSheet,
-  EmptyStateView,
-} from '../../components/common';
+import { UserAvatar } from '../../components/common';
 import { apiClient } from '../../api/client';
-import { useAuth } from '../../context/AuthContext';
-import { checkAndConfirmActionPoint } from '../../utils/pointPolicyHelper';
 import { fetchMarketProducts, INITIAL_MARKET_PRODUCTS } from '../../services/marketService';
 import { fetchSudaPosts, INITIAL_SUDA_POSTS } from '../../services/sudaService';
 import {
@@ -38,7 +32,6 @@ import {
 } from '../../services/adsService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const MATCH_CARD_WIDTH = SCREEN_WIDTH - 36;
 const LIVE_CARD_WIDTH = 148;
 const LIVE_CARD_HEIGHT = 196; // 3:4 세로 비율 근사
 
@@ -100,142 +93,12 @@ const DEFAULT_LIVES = [
   },
 ];
 
-// 2. 오늘의 추천 인연 기본 데이터 (갤러리 9장 완비)
-const DEFAULT_MATCH_USERS = [
-  {
-    id: 'user-match-1',
-    name: '서연',
-    age: 26,
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600',
-    location: '강남구 역삼동',
-    distance: '1.2km',
-    headline: '전시회랑 분위기 좋은 카페 투어 좋아하는 직장인입니다 ☕',
-    bio: '주말에 가볍게 커피 한잔하면서 편안하게 이야기 나눌 동네 친구 찾아요! 성격은 밝고 이야기 잘 들어주는 편이에요 ✨',
-    tags: ['☕ 카페 투어', '🎨 전시회', '🎵 인디음악'],
-    status: 'online',
-    isOnline: true,
-    pointsPerMinute: 1500,
-    photos: [
-      { id: 'p1', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600', isPrimary: true },
-      { id: 'p2', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600' },
-      { id: 'p3', url: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600' },
-      { id: 'p4', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600' },
-      { id: 'p5', url: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600' },
-      { id: 'p6', url: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=600' },
-      { id: 'p7', url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600' },
-      { id: 'p8', url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600' },
-      { id: 'p9', url: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=600' },
-    ],
-  },
-  {
-    id: 'user-match-2',
-    name: '도현',
-    age: 28,
-    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600',
-    location: '송파구 잠실동',
-    distance: '2.5km',
-    headline: '퇴근하고 러닝이나 헬스 함께할 메이트 구해요 🏃',
-    bio: '운동과 맛있는 음식 좋아하는 긍정적인 사람입니다! 서로에게 좋은 에너지를 줄 수 있는 인연을 찾고 있어요.',
-    tags: ['🏃 러닝', '💪 헬스', '🍣 오마카세'],
-    status: 'live',
-    isLive: true,
-    pointsPerMinute: 1500,
-    photos: [
-      { id: 'p1', url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600', isPrimary: true },
-      { id: 'p2', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600' },
-      { id: 'p3', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600' },
-      { id: 'p4', url: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600' },
-    ],
-  },
-  {
-    id: 'user-match-3',
-    name: '유진',
-    age: 25,
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600',
-    location: '서초구 반포동',
-    distance: '3.1km',
-    headline: '강아지 산책이나 한강 피크닉 같이 가요 🐶',
-    bio: '골든리트리버 키우고 있어요. 동물 좋아하시는 분 환영합니다! 주말 힐링 소통 좋아해요.',
-    tags: ['🐶 반려견', '🌿 피크닉', '📸 사진촬영'],
-    status: 'online',
-    isOnline: true,
-    pointsPerMinute: 1500,
-    photos: [
-      { id: 'p1', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600', isPrimary: true },
-      { id: 'p2', url: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600' },
-      { id: 'p3', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600' },
-    ],
-  },
-];
-
-// 3. 동네 커뮤니티 기본 피드 데이터
-const DEFAULT_COMMUNITY_POSTS = [
-  {
-    id: 'post-def-1',
-    title: '역삼역 근처에 조용하고 분위기 좋은 북카페 있을까요?',
-    content: '주말에 책 읽으면서 작업할 만한 콘센트 많은 카페 추천 부탁드려요! 디저트도 맛있으면 더 좋아요 🍰',
-    authorName: '소희',
-    authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
-    authorRegion: '역삼1동',
-    createdAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
-    likesCount: 24,
-    commentsCount: 9,
-    topicName: '동네질문',
-    imageUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600',
-  },
-  {
-    id: 'post-def-2',
-    title: '오늘 저녁 양재천 산책길 노을 정말 예쁘네요 🌅',
-    content: '바람도 선선하고 걷기 딱 좋은 날씨예요. 오늘 하루 다들 고생 많으셨습니다!',
-    authorName: '준혁',
-    authorAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200',
-    authorRegion: '양재동',
-    createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    likesCount: 38,
-    commentsCount: 14,
-    topicName: '일상소통',
-    imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600',
-  },
-  {
-    id: 'post-def-3',
-    title: '주말 오전 배드민턴이나 테니스 가볍게 치실 분 구해요!',
-    content: '초보자도 대환영입니다. 땀 흘리고 시원한 이온음료 한잔해요 🏸',
-    authorName: '태우',
-    authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
-    authorRegion: '서초동',
-    createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    likesCount: 19,
-    commentsCount: 7,
-    topicName: '취미모임',
-    imageUrl: null,
-  },
-];
-
 export default function HomeScreen({ navigation }) {
-  const authContext = useAuth() || {};
-  const authUser = authContext.user || null;
-  const safeUser = authUser || {
-    id: 'guest',
-    displayName: '회원',
-    profile: {
-      nickname: '회원',
-      avatarUri: null,
-      headline: '새로운 인연을 만나보세요 ✨',
-    },
-  };
-
   // 상태 관리
   const [liveRooms, setLiveRooms] = useState(DEFAULT_LIVES);
-  const [matchUsers, setMatchUsers] = useState(DEFAULT_MATCH_USERS);
-  const [communityPosts, setCommunityPosts] = useState(DEFAULT_COMMUNITY_POSTS);
   const [hotDeals, setHotDeals] = useState(INITIAL_MARKET_PRODUCTS.filter((p) => p.type === 'B2C_GROUP'));
   const [sudaList, setSudaList] = useState(INITIAL_SUDA_POSTS.slice(0, 3));
-  const [myPoints, setMyPoints] = useState(1250);
   const [refreshing, setRefreshing] = useState(false);
-
-  // 전역 바텀 시트 상태 (1단계 GlobalBottomSheet)
-  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
 
   // 홈 상단 히어로 광고 배너 상태
   const [homeAds, setHomeAds] = useState([]);
@@ -247,11 +110,8 @@ export default function HomeScreen({ navigation }) {
   const loadHomeData = useCallback(async ({ refresh = false } = {}) => {
     if (refresh) setRefreshing(true);
     try {
-      const [discoverRes, liveRes, postsRes, balanceRes, adsRes] = await Promise.allSettled([
-        apiClient.getDiscover(),
+      const [liveRes, adsRes] = await Promise.allSettled([
         apiClient.getLiveRooms(),
-        apiClient.getPosts({ take: 5 }),
-        apiClient.getPointBalance(),
         fetchAdsByPlacement('HOME_BANNER'),
       ]);
 
@@ -263,30 +123,7 @@ export default function HomeScreen({ navigation }) {
         }
       }
 
-      // 1. 추천 인연
-      if (discoverRes.status === 'fulfilled' && Array.isArray(discoverRes.value) && discoverRes.value.length > 0) {
-        const mapped = discoverRes.value.map((u) => {
-          const profile = u?.profile || {};
-          return {
-            id: u.id,
-            name: profile.nickname || u.displayName || '회원',
-            age: typeof u.age === 'number' ? u.age : 26,
-            avatar: profile.avatarUri || u.avatar || null,
-            location: [u.region1, u.region2].filter(Boolean).join(' ') || '동네 이웃',
-            distance: u.distance ? `${u.distance}km` : '1.5km',
-            headline: profile.headline || '새로운 인연을 기다려요 ✨',
-            bio: profile.bio || profile.headline || '반가워요!',
-            tags: profile.interests || ['☕ 커피', '🎵 음악', '💬 수다'],
-            status: profile.lastSeenAt ? 'online' : 'offline',
-            isOnline: Boolean(profile.lastSeenAt),
-            photos: Array.isArray(u.photos) && u.photos.length > 0 ? u.photos : (profile.avatarUri ? [{ id: 'p1', url: profile.avatarUri, isPrimary: true }] : []),
-            pointsPerMinute: 1500,
-          };
-        });
-        setMatchUsers(mapped);
-      }
-
-      // 2. 실시간 라이브
+      // 1. 실시간 라이브 목록
       if (liveRes.status === 'fulfilled') {
         const rooms = Array.isArray(liveRes.value)
           ? liveRes.value
@@ -306,37 +143,6 @@ export default function HomeScreen({ navigation }) {
             }))
           );
         }
-      }
-
-      // 3. 커뮤니티 피드
-      if (postsRes.status === 'fulfilled') {
-        const posts = Array.isArray(postsRes.value?.items)
-          ? postsRes.value.items
-          : Array.isArray(postsRes.value)
-          ? postsRes.value
-          : [];
-        if (posts.length > 0) {
-          setCommunityPosts(
-            posts.map((p) => ({
-              id: p.id,
-              title: p.title || p.content?.slice(0, 30) || '동네 이야기',
-              content: p.content || '',
-              authorName: p.author?.displayName || '이웃',
-              authorAvatar: p.author?.avatarUrl || p.author?.profile?.avatarUri,
-              authorRegion: p.author?.region || '우리동네',
-              createdAt: p.createdAt || new Date().toISOString(),
-              likesCount: p.likesCount || p.likeCount || 0,
-              commentsCount: p.commentsCount || p.commentCount || 0,
-              topicName: p.topic?.name || '동네소통',
-              imageUrl: p.images?.[0] || p.imageUrl || null,
-            }))
-          );
-        }
-      }
-
-      // 4. 포인트 잔액
-      if (balanceRes.status === 'fulfilled' && balanceRes.value?.balance !== undefined) {
-        setMyPoints(Number(balanceRes.value.balance));
       }
 
       // 5. 마켓 특가 공구 & 수다 TOP 3 로드
@@ -390,64 +196,6 @@ export default function HomeScreen({ navigation }) {
     return () => clearInterval(interval);
   }, [homeAds]);
 
-  // 카드 터치 시 바텀 시트 열기
-  const handleOpenBottomSheet = (user) => {
-    setSelectedUser(user);
-    setBottomSheetVisible(true);
-  };
-
-  // 원터치 1:1 대화 시작
-  const handleStartChat = (targetUser) => {
-    if (!targetUser?.id) return;
-    checkAndConfirmActionPoint({
-      actionType: 'chatRoomCreate',
-      actionName: '1:1 대화방 개설',
-      navigation,
-      onConfirm: async () => {
-        try {
-          const room = await apiClient.ensureDirectRoom({ targetUserId: targetUser.id });
-          const roomId = room?.id || room?._id;
-          if (roomId) {
-            setBottomSheetVisible(false);
-            navigation.navigate('Chat', {
-              screen: 'ChatRoom',
-              params: {
-                id: roomId,
-                room,
-                user: {
-                  id: targetUser.id,
-                  name: targetUser.name,
-                  avatar: targetUser.avatar,
-                  headline: targetUser.headline,
-                },
-              },
-            });
-          }
-        } catch (e) {
-          Alert.alert('안내', e?.message || '대화방을 생성할 수 없습니다.');
-        }
-      },
-    });
-  };
-
-  // 1:1 다이렉트 통화 신청
-  const handleCallUser = (targetUser) => {
-    Alert.alert(
-      '1:1 다이렉트 통화',
-      `${targetUser.name}님에게 통화를 연결하시겠습니까?\n(분당 1,500P가 소진됩니다)`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '통화 연결',
-          onPress: () => {
-            setBottomSheetVisible(false);
-            Alert.alert('통화 연결 중', `${targetUser.name}님의 응답을 기다리고 있습니다... 📞`);
-          },
-        },
-      ]
-    );
-  };
-
   // 라이브 룸 진입
   const handleOpenLiveRoom = (room) => {
     navigation.navigate('LiveRoom', {
@@ -459,92 +207,31 @@ export default function HomeScreen({ navigation }) {
   };
 
   // =================================================================
-  // 1. 상단 유저 헤더 & 포인트 카드 렌더링
+  // 1. 상단 MOCCO 브랜드 로고 & 알림 버튼 렌더링 (슬림 클린 헤더)
   // =================================================================
   const renderHeader = () => (
     <View style={styles.headerContainer}>
-      {/* 좌측: 로고 & 내 프로필 무지개 링 아바타 */}
-      <View style={styles.headerLeftCol}>
-        <View style={styles.logoRow}>
-          <Image
-            source={require('../../../assets/mocco-mascot.png')}
-            style={styles.headerMascotLogo}
-            resizeMode="contain"
-          />
-          <Text style={styles.logoText}>모꼬</Text>
-          <View style={styles.logoSparkleDot} />
-        </View>
-
-        <TouchableOpacity
-          style={styles.profileRow}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate('My')}
-        >
-          {/* 스토리 무지개 링 아바타 */}
-          <LinearGradient
-            colors={tokens.colors.gradients.primaryPurple}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.storyRing}
-          >
-            <View style={styles.storyRingInner}>
-              <UserAvatar
-                uri={
-                  safeUser?.avatarUrl ||
-                  safeUser?.avatarUri ||
-                  safeUser?.avatar ||
-                  safeUser?.profile?.avatarUri ||
-                  safeUser?.profile?.avatarUrl ||
-                  safeUser?.photos?.[0]?.url ||
-                  safeUser?.photos?.[0]?.imageUrl ||
-                  null
-                }
-                name={safeUser?.nickname || safeUser?.displayName || safeUser?.profile?.nickname || '나'}
-                size={34}
-              />
-            </View>
-          </LinearGradient>
-          <View style={styles.welcomeTextWrap}>
-            <Text style={styles.welcomeName} numberOfLines={1}>
-              {safeUser?.nickname || safeUser?.displayName || safeUser?.profile?.nickname || '회원'}님
-            </Text>
-            <Text style={styles.welcomeSub}>새로운 모꼬지 인연을 만나보세요 ✨</Text>
-          </View>
-        </TouchableOpacity>
+      {/* 좌측: 솜구름 마스코트 + MOCCO 브랜드 로고 */}
+      <View style={styles.logoRow}>
+        <Image
+          source={require('../../../assets/mocco-mascot.png')}
+          style={styles.headerMascotLogo}
+          resizeMode="contain"
+        />
+        <Text style={styles.logoText}>MOCCO</Text>
+        <View style={styles.logoSparkleDot} />
       </View>
 
-      {/* 우측: 입체적인 골드 코인 뱃지 & 알림 */}
-      <View style={styles.headerRightCol}>
-        {/* 입체 골드 코인 뱃지 (🪙 1,250 MC >) */}
-        <TouchableOpacity
-          style={styles.goldCoinBadge}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate('Points')}
-        >
-          <LinearGradient
-            colors={['#FFFBEB', '#FEF3C7']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.goldCoinGradient}
-          >
-            <Text style={styles.coinIcon}>🪙</Text>
-            <Text style={styles.coinAmount}>{myPoints.toLocaleString()}</Text>
-            <Text style={styles.coinUnit}>MC</Text>
-            <Ionicons name="chevron-forward" size={13} color="#D97706" />
-          </LinearGradient>
-        </TouchableOpacity>
-
-        {/* 알림 버튼 */}
-        <TouchableOpacity
-          style={styles.headerIconBtn}
-          onPress={() => navigation.navigate('Notifications')}
-          hitSlop={8}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="notifications-outline" size={22} color={tokens.colors.text} />
-          <View style={styles.unreadDot} />
-        </TouchableOpacity>
-      </View>
+      {/* 우측: 알림 버튼 */}
+      <TouchableOpacity
+        style={styles.headerIconBtn}
+        onPress={() => navigation.navigate('Notifications')}
+        hitSlop={8}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="notifications-outline" size={24} color="#0F172A" />
+        <View style={styles.unreadDot} />
+      </TouchableOpacity>
     </View>
   );
 
@@ -593,7 +280,7 @@ export default function HomeScreen({ navigation }) {
                   <View style={styles.homeHeroAdBadge}>
                     <Text style={styles.homeHeroAdBadgeText}>SPONSORED</Text>
                   </View>
-                  <Text style={styles.homeHeroCategory}>✨ 다가온 특별 혜택</Text>
+                  <Text style={styles.homeHeroCategory}>✨ 모꼬 특별 혜택</Text>
                 </View>
                 <Text style={styles.homeHeroTitle} numberOfLines={1}>
                   {item.title}
@@ -791,217 +478,6 @@ export default function HomeScreen({ navigation }) {
   );
 
   // =================================================================
-  // 3. 오늘의 추천 인연 섹션 (풀 블리드 매칭 카드)
-  // =================================================================
-  const renderMatchSection = () => (
-    <View style={styles.sectionWrap}>
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitleRow}>
-          <Text style={styles.sectionTitle}>오늘의 추천 인연</Text>
-          <Text style={styles.sectionEmoji}>💘</Text>
-        </View>
-        <Text style={styles.sectionSub}>내 주변 설레는 매칭</Text>
-      </View>
-
-      <FlatList
-        data={matchUsers}
-        keyExtractor={(item) => item.id}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        pagingEnabled={false}
-        snapToInterval={MATCH_CARD_WIDTH + 14}
-        decelerationRate="fast"
-        contentContainerStyle={styles.matchListContent}
-        initialNumToRender={3}
-        maxToRenderPerBatch={3}
-        windowSize={5}
-        removeClippedSubviews={Platform.OS === 'android'}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.matchCard}
-            activeOpacity={0.92}
-            onPress={() => handleOpenBottomSheet(item)}
-          >
-            {/* 메인 프로필 인물 사진 */}
-            <Image
-              source={{ uri: item.photos?.[0]?.url || item.avatar }}
-              style={styles.matchCardImage}
-              resizeMode="cover"
-            />
-
-            {/* 좌상단 거리 뱃지 */}
-            <View style={styles.matchTopBadgeRow}>
-              <View style={styles.distanceBadge}>
-                <Ionicons name="location-sharp" size={12} color="#FFFFFF" />
-                <Text style={styles.distanceText}>{item.distance} · {item.location}</Text>
-              </View>
-              {item.isOnline && (
-                <View style={styles.matchOnlineBadge}>
-                  <View style={styles.onlineDot} />
-                  <Text style={styles.matchOnlineText}>지금 활동 중</Text>
-                </View>
-              )}
-            </View>
-
-            {/* 하단 딤드 그라데이션 정보 오버레이 */}
-            <LinearGradient
-              colors={tokens.colors.gradients.cardOverlay}
-              style={styles.matchCardBottomOverlay}
-            >
-              <View style={styles.matchInfoCol}>
-                <View style={styles.matchNameRow}>
-                  <Text style={styles.matchName}>{item.name}</Text>
-                  <Text style={styles.matchAge}>{item.age}</Text>
-                </View>
-
-                <Text style={styles.matchHeadline} numberOfLines={2}>
-                  {item.headline || item.bio}
-                </Text>
-
-                {/* 취미/관심사 태그 칩 */}
-                <View style={styles.matchTagsRow}>
-                  {(item.tags || []).slice(0, 3).map((tag, tIdx) => (
-                    <View key={tIdx} style={styles.matchTagChip}>
-                      <Text style={styles.matchTagText}>{tag}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-
-              {/* 우측 하단: 원터치 플로팅 코랄 핑크 액션 버튼 (💌 톡 / 📞 통화) */}
-              <View style={styles.matchFloatingActions}>
-                <TouchableOpacity
-                  style={[styles.floatingActionBtn, styles.callBtn]}
-                  activeOpacity={0.85}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleCallUser(item);
-                  }}
-                  hitSlop={4}
-                >
-                  <Ionicons name="call" size={17} color="#FFFFFF" />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.floatingActionBtn, styles.chatBtn]}
-                  activeOpacity={0.85}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleStartChat(item);
-                  }}
-                  hitSlop={4}
-                >
-                  <LinearGradient
-                    colors={tokens.colors.gradients.primaryPurple}
-                    style={styles.chatBtnGradient}
-                  >
-                    <Ionicons name="chatbubble-ellipses" size={18} color="#FFFFFF" />
-                    <Text style={styles.chatBtnLabel}>톡</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
-      />
-    </View>
-  );
-
-  // =================================================================
-  // 4. 동네 커뮤니티 실시간 피드 섹션 (Local Community Feed)
-  // =================================================================
-  const renderCommunitySection = () => (
-    <View style={styles.sectionWrap}>
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitleRow}>
-          <Text style={styles.sectionTitle}>우리 동네 이야기 (실시간 HOT)</Text>
-          <Text style={styles.sectionEmoji}>🌿</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.sectionMoreBtn}
-          onPress={() => navigation.navigate('Community')}
-          hitSlop={8}
-        >
-          <Text style={styles.sectionMoreText}>피드 더보기</Text>
-          <Ionicons name="chevron-forward" size={14} color={tokens.colors.textTertiary} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.communityFeedList}>
-        {communityPosts.slice(0, 3).map((post) => {
-          const postImageUri = post.imageUrl || (Array.isArray(post.images) && post.images[0]) || null;
-          return (
-            <TouchableOpacity
-              key={post.id}
-              style={styles.communityCard}
-              activeOpacity={0.88}
-              onPress={() => navigation.navigate('PostDetail', { post, postId: post.id })}
-            >
-              {/* 작성자 정보 헤더: 원형 아바타 + 닉네임 + 동네 + 시간 */}
-              <View style={styles.postAuthorRow}>
-                <UserAvatar
-                  uri={post.authorAvatar}
-                  name={post.authorName}
-                  size={34}
-                />
-                <View style={styles.postAuthorMeta}>
-                  <View style={styles.postAuthorNameRow}>
-                    <Text style={styles.postAuthorName}>{post.authorName}</Text>
-                    <View style={styles.regionBadge}>
-                      <Text style={styles.regionBadgeText}>{post.authorRegion || '동네이웃'}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.postTimeText}>{formatTimeAgo(post.createdAt)}</Text>
-                </View>
-
-                {post.topicName ? (
-                  <View style={styles.topicBadge}>
-                    <Text style={styles.topicBadgeText}>#{post.topicName}</Text>
-                  </View>
-                ) : null}
-              </View>
-
-              {/* 당근 스타일: 좌측 글(제목 + 본문 2줄 요약), 우측 썸네일(68x68) */}
-              <View style={styles.homeKarrotBodyRow}>
-                <View style={styles.homeKarrotTextCol}>
-                  <Text style={styles.postTitle} numberOfLines={1}>
-                    {post.title}
-                  </Text>
-                  {post.content ? (
-                    <Text style={styles.postBody} numberOfLines={2}>
-                      {post.content}
-                    </Text>
-                  ) : null}
-                </View>
-
-                {postImageUri ? (
-                  <Image source={{ uri: postImageUri }} style={styles.homePostThumbnail} resizeMode="cover" />
-                ) : null}
-              </View>
-
-              {/* 하단 반응 (좋아요 / 댓글 / 바로가기) */}
-              <View style={styles.postFooterRow}>
-                <View style={styles.reactionGroup}>
-                  <View style={styles.reactionItem}>
-                    <Ionicons name="heart-outline" size={15} color={tokens.colors.primary} />
-                    <Text style={styles.reactionText}>{post.likesCount}</Text>
-                  </View>
-                  <View style={styles.reactionItem}>
-                    <Ionicons name="chatbubble-outline" size={14} color={tokens.colors.textTertiary} />
-                    <Text style={styles.reactionText}>{post.commentsCount}</Text>
-                  </View>
-                </View>
-
-                <Text style={styles.joinTalkText}>대화 참여하기 ›</Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    </View>
-  );
-
-  // =================================================================
   // 3. 오늘의 핫딜 B2C 공동구매 특가 섹션 (에스크로 안전결제)
   // =================================================================
   const renderHotDealsSection = () => (
@@ -1176,7 +652,7 @@ export default function HomeScreen({ navigation }) {
             {/* 0.5. 지금 가장 핫한 모꼬 LIVE 1위 미니 플레이어 */}
             {renderHotLiveTop1Player()}
 
-            {/* 1. 실시간 D LIVE 프리뷰 섹션 */}
+            {/* 1. 실시간 LIVE 프리뷰 섹션 */}
             {renderLiveSection()}
 
             {/* 2. 오늘의 마켓 특가 공구 (B2C & 에스크로 안전거래) */}
@@ -1185,26 +661,10 @@ export default function HomeScreen({ navigation }) {
             {/* 3. 실시간 동네 수다 TOP 3 (1줄 토크 타임라인) */}
             {renderSudaSection()}
 
-            {/* 4. 오늘의 추천 인연 섹션 */}
-            {renderMatchSection()}
-
-            {/* 5. 동네 커뮤니티 실시간 피드 섹션 */}
-            {renderCommunitySection()}
-
             {/* 하단 여백 (하단 탭 바 높이 고려) */}
             <View style={{ height: 90 }} />
           </View>
         )}
-      />
-
-      {/* 전역 바텀 시트 (카드 터치 시 열림) */}
-      <GlobalBottomSheet
-        visible={bottomSheetVisible}
-        onClose={() => setBottomSheetVisible(false)}
-        user={selectedUser}
-        onCallVoice={handleCallUser}
-        onCallVideo={handleCallUser}
-        onStartChat={handleStartChat}
       />
     </SafeAreaView>
   );
@@ -1302,17 +762,17 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.primary,
   },
 
-  // 1. 헤더 스타일
+  // 1. MOCCO 슬림 클린 헤더 스타일
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingTop: 8,
-    paddingBottom: 14,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 12,
     backgroundColor: tokens.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: tokens.colors.borderLight,
+    borderBottomColor: '#F1F5F9',
   },
 
   // 1.5 빠른 친구 탐색 칩 바 스타일
@@ -1385,23 +845,23 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   headerMascotLogo: {
-    width: 26,
-    height: 26,
-    marginRight: 4,
-    borderRadius: 6,
+    width: 34,
+    height: 34,
+    marginRight: 6,
+    borderRadius: 8,
   },
   logoText: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '900',
-    letterSpacing: -0.8,
-    color: tokens.colors.text,
+    letterSpacing: -0.6,
+    color: '#0F172A',
   },
   logoSparkleDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: tokens.colors.primary,
-    marginBottom: 8,
+    backgroundColor: '#FF3B6B',
+    marginBottom: 10,
   },
 
   // 0.5 지금 가장 핫한 모꼬 LIVE 1위 스타일
@@ -1635,21 +1095,23 @@ const styles = StyleSheet.create({
     color: '#D97706',
   },
   headerIconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: tokens.colors.surfaceSecondary,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   unreadDot: {
     position: 'absolute',
     top: 7,
     right: 7,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: tokens.colors.primary,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#FF3B6B',
   },
 
   // 섹션 공통 스타일
@@ -1810,274 +1272,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // 3. 오늘의 추천 인연 섹션 스타일
-  matchListContent: {
-    paddingHorizontal: 18,
-    gap: 14,
-  },
-  matchCard: {
-    width: MATCH_CARD_WIDTH,
-    height: 380,
-    borderRadius: 20,
-    overflow: 'hidden',
-    backgroundColor: tokens.colors.surfaceSecondary,
-    ...tokens.shadows.card,
-  },
-  matchCardImage: {
-    width: '100%',
-    height: '100%',
-  },
-  matchTopBadgeRow: {
-    position: 'absolute',
-    top: 14,
-    left: 14,
-    right: 14,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  distanceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    paddingHorizontal: 9,
-    paddingVertical: 4.5,
-    borderRadius: tokens.radius.full,
-    gap: 4,
-  },
-  distanceText: {
-    color: '#FFFFFF',
-    fontSize: 11.5,
-    fontWeight: '700',
-  },
-  matchOnlineBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.85)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: tokens.radius.full,
-    gap: 4,
-  },
-  onlineDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#FFFFFF',
-  },
-  matchOnlineText: {
-    color: '#FFFFFF',
-    fontSize: 10.5,
-    fontWeight: '800',
-  },
-  matchCardBottomOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    paddingTop: 48,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-  },
-  matchInfoCol: {
-    flex: 1,
-    marginRight: 12,
-  },
-  matchNameRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 6,
-    marginBottom: 4,
-  },
-  matchName: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: -0.4,
-  },
-  matchAge: {
-    color: 'rgba(255, 255, 255, 0.85)',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  matchHeadline: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 13,
-    lineHeight: 18,
-    marginBottom: 8,
-  },
-  matchTagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  matchTagChip: {
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
-    paddingHorizontal: 8,
-    paddingVertical: 3.5,
-    borderRadius: tokens.radius.full,
-  },
-  matchTagText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  matchFloatingActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  floatingActionBtn: {
-    borderRadius: tokens.radius.full,
-    overflow: 'hidden',
-    ...tokens.shadows.card,
-  },
-  callBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(15, 23, 42, 0.75)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  chatBtn: {
-    borderRadius: tokens.radius.full,
-  },
-  chatBtnGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 11,
-    borderRadius: tokens.radius.full,
-    gap: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  chatBtnLabel: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-
-  // 4. 동네 커뮤니티 피드 스타일
-  communityFeedList: {
-    paddingHorizontal: 18,
-    gap: 12,
-  },
-  communityCard: {
-    backgroundColor: tokens.colors.surface,
-    borderRadius: tokens.radius.card,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: tokens.colors.borderLight,
-    ...tokens.shadows.soft,
-  },
-  postAuthorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  postAuthorMeta: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  postAuthorNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  postAuthorName: {
-    ...tokens.typography.h3,
-    fontSize: 14,
-  },
-  regionBadge: {
-    backgroundColor: tokens.colors.surfaceSecondary,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  regionBadgeText: {
-    fontSize: 10.5,
-    fontWeight: '600',
-    color: tokens.colors.textSecondary,
-  },
-  postTimeText: {
-    ...tokens.typography.caption,
-    color: tokens.colors.textTertiary,
-    marginTop: 2,
-  },
-  topicBadge: {
-    backgroundColor: tokens.colors.primaryLight,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: tokens.radius.full,
-  },
-  topicBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: tokens.colors.primary,
-  },
-  postTitle: {
-    ...tokens.typography.h3,
-    fontSize: 15,
-    marginBottom: 4,
-  },
-  postBody: {
-    ...tokens.typography.body2,
-    color: tokens.colors.textSecondary,
-    lineHeight: 19,
-    marginBottom: 10,
-  },
-  homeKarrotBodyRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  homeKarrotTextCol: {
-    flex: 1,
-    marginRight: 10,
-  },
-  homePostThumbnail: {
-    width: 68,
-    height: 68,
-    borderRadius: 8,
-    backgroundColor: tokens.colors.surfaceSecondary,
-  },
-  postFooterRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: tokens.colors.borderLight,
-    paddingTop: 10,
-    marginTop: 4,
-  },
-  reactionGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  reactionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  reactionText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: tokens.colors.textSecondary,
-  },
-  joinTalkText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: tokens.colors.primary,
-  },
   // 핫딜 공동구매 스타일
   dealTimeBadge: {
     flexDirection: 'row',
