@@ -1,0 +1,28 @@
+[
+  {
+    "id": "req-mock-1",
+    "senderId": "u-seed-4",
+    "senderName": "이지민",
+    "senderAvatar": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300",
+    "senderAge": 27,
+    "senderRegion": "서울 송파구",
+    "receiverId": "guest",
+    "message": "안녕하세요! 프로필 사진 보고 취향이 잘 맞을 것 같아 대화 신청드려요 ✨ 주말에 편하게 톡 나눠요!",
+    "entryFee": 50,
+    "status": "PENDING",
+    "createdAt": "2026-10-26T02:12:09.170Z"
+  },
+  {
+    "id": "req-mock-2",
+    "senderId": "u-seed-6",
+    "senderName": "강민호",
+    "senderAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300",
+    "senderAge": 30,
+    "senderRegion": "서울 서초구",
+    "receiverId": "guest",
+    "message": "동네 러닝 크루나 운동 같이 하실 분 찾고 있어요 🏃 대화 가능하신가요?",
+    "entryFee": 30,
+    "status": "PENDING",
+    "createdAt": "2026-10-26T01:17:09.170Z"
+  }
+]

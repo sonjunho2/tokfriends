@@ -1074,9 +1074,9 @@ export default function CustomerWebStorefrontPage() {
               className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl h-10 shadow-md"
               asChild
             >
-              <a href="/downloads/dagaon-release.apk" download="mocco-release.apk">
+              <a href="/downloads/mocco-release.apk" download="mocco-release.apk">
                 <Download className="w-4 h-4 mr-1.5" />
-                모꼬 안드로이드 APK 직접 다운로드
+                공식 모꼬(Mocco) 안드로이드 APK 다운로드
               </a>
             </Button>
           </div>

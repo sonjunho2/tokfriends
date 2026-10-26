@@ -44,3 +44,4 @@ apps/mobile/android/app/build/
 *.tsbuildinfo
 
 /dagaon-release.apk
+/mocco-release.apk

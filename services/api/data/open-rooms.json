@@ -1,0 +1,58 @@
+[
+  {
+    "id": "open-room-1",
+    "title": "오늘 저녁 한강 러닝 코스 같이 달려요 🏃",
+    "category": "운동",
+    "entryFee": 30,
+    "hostId": "u-seed-2",
+    "hostName": "김도현",
+    "hostAvatar": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300",
+    "hostAge": 29,
+    "hostRegion": "서울 강남구",
+    "hostGender": "남",
+    "createdAt": "2026-10-26T02:22:09.170Z",
+    "matchedCount": 3
+  },
+  {
+    "id": "open-room-2",
+    "title": "성수동 빈티지 카페 탐방 & 감성 수다 ☕",
+    "category": "친목",
+    "entryFee": 50,
+    "hostId": "u-seed-1",
+    "hostName": "박서연",
+    "hostAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300",
+    "hostAge": 26,
+    "hostRegion": "서울 성동구",
+    "hostGender": "여",
+    "createdAt": "2026-10-26T02:02:09.170Z",
+    "matchedCount": 5
+  },
+  {
+    "id": "open-room-3",
+    "title": "귀여운 댕댕이 사진 공유하고 힐링할 분 🐶",
+    "category": "반려견",
+    "entryFee": 0,
+    "hostId": "u-seed-5",
+    "hostName": "한유진",
+    "hostAvatar": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300",
+    "hostAge": 25,
+    "hostRegion": "서울 마포구",
+    "hostGender": "여",
+    "createdAt": "2026-10-26T01:37:09.170Z",
+    "matchedCount": 2
+  },
+  {
+    "id": "open-room-4",
+    "title": "주말 테니스 & 배드민턴 랠리 파트너 구해요 🏸",
+    "category": "취미",
+    "entryFee": 20,
+    "hostId": "u-seed-4",
+    "hostName": "이지민",
+    "hostAvatar": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300",
+    "hostAge": 27,
+    "hostRegion": "서울 송파구",
+    "hostGender": "여",
+    "createdAt": "2026-10-26T01:07:09.170Z",
+    "matchedCount": 1
+  }
+]

@@ -53,5 +53,15 @@
       "type": "text",
       "createdAt": "2026-10-20T23:43:57.390Z"
     }
+  ],
+  "chat-direct-1792982374071": [
+    {
+      "id": "msg-welcome-1792982374071",
+      "chatId": "chat-direct-1792982374071",
+      "senderAccountId": "system",
+      "content": "🎉 대화 상대님과의 1:1 대화방이 열렸습니다.",
+      "type": "text",
+      "createdAt": "2026-10-26T02:39:34.071Z"
+    }
   ]
 }

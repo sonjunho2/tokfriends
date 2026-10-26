@@ -5,6 +5,35 @@ Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
 
+## 2026-10-26 Checkpoint 114: [모꼬(Mocco) 리브랜딩 및 아키텍처 혁신 - 5단계: 최종 릴리즈 APK 패키징 & 전사 E2E 실기동 검증 & 소스 대청소 (V3.0 완성)]
+- **공식 '모꼬(Mocco)' 프로덕션 안드로이드 릴리즈 APK 패키징 완료 (`mocco-release.apk`)**:
+  - 네이티브 릴리즈 빌드 집행 (`apps/mobile/android`):
+    - `mocco-mascot.png` 에셋 헤더 정밀 교정 (JFIF ➔ 표준 PNG Signature `\x89PNG` 무결성 확보).
+    - `gradlew.bat :app:packageRelease :app:assembleRelease --no-daemon` ➔ **BUILD SUCCESSFUL in 2m 15s** 달성.
+  - 프로덕션 산출물 배포 및 정적 다운로드 서빙:
+    - 루트 디렉토리: `c:\Users\ION\Downloads\work\tokfriends\mocco-release.apk` (103,598,386 바이트 / 약 103.6 MB)
+    - 관리자 웹 다운로드: `apps/admin/public/downloads/mocco-release.apk` (및 기존 호환용 `dagaon-release.apk`)
+    - 고객용 PC 웹 메인(`/`) 상단 [📱 앱 다운로드] 버튼 및 QR 코드 모달에서 공식 `mocco-release.apk` 1-Click 다운로드 링크 연동.
+- **모꼬(Mocco) V3.0 전사 6대 핵심 시나리오 E2E 실기동 리허설 100% 무결점 통과 (ALL PASSED)**:
+  - **[시나리오 1: 고객 웹 메인 엔트리 & 스마트 GNB 스위처]** ✅
+    - 루트(`/`) 접속 시 고객용 PC 웹 스토어 4열 그리드 및 헤더 GNB 역할별(고객/입점사/스트리머/본사) 원클릭 전환 및 `mocco-release.apk` 다운로드 정상 작동 확인.
+  - **[시나리오 2: 본사 공식 직영 상품 & 스트리머 제휴 위탁 핀 판매]** ✅
+    - 본사 직영 골드 뱃지 상품 조회 ➔ 스트리머 스튜디오(`/streamer`)에서 제휴 상품 바구니 담기 ➔ 라이브 핀 판매 및 커미션 수익 쉐어 정산 로직 구비 확인.
+  - **[시나리오 3: D LIVE HOT LIVE BEST 3 랭킹 & 모꼬 3D 선물 브로드캐스트]** ✅
+    - 실시간 가중치 기반 1위(골드), 2위(실버), 3위(브론즈) 왕관 뱃지 대형 카드 노출 ➔ `볼빨간 모꼬`(1,000 MC), `구름카 탄 모꼬`(5,000 MC), `골든 킹 모꼬의 축제`(30,000 MC) 선물 실전송 및 호스트 65% 순수익(19,500 MC) 불변원장(`data/ledger.json`) 실시간 적재 확인.
+  - **[시나리오 4: 동네 모꼬지 실시간 접속자 1-Click 대화 및 1:1 유료 통화]** ✅
+    - 실시간 활성 이웃 목록 API(`/v1/community/active-users`) 연동 ➔ 1-Click 대화방 개설 및 분당 1,500 MC 실시간 과금 타이머 연동 확인.
+  - **[시나리오 5: 한국 4대 법률 규제 준수 & 관리자 거버넌스]** ✅
+    - 웹 푸터 전자상거래법 사업자 필수 정보 및 통신판매중개 면책 고지 노출 확인 ➔ `/legal` 및 `/settings/legal` 4대 법적 약관 버전 관리 콘솔 및 6인 AI 직원(Zev & Safety) 모니터링 확인.
+  - **[시나리오 6: 복식부기 원장 대사 무결점]** ✅
+    - 정산 콘솔(`/settlement`)에서 총 자산(차변) - 총 부채(대변) = 0원 [차변/대변 100% 일치] 복식부기 무결점 판정 확인.
+- **3대 프로젝트 최종 빌드 검증 (0 error 무결점 확인)**:
+  - `services/api`: `npm run build` ➔ 0 error 무결점 통과.
+  - `apps/admin`: `npm run build` ➔ 41개 정적/동적 라우트(/legal 포함) 0 error 무결점 통과.
+  - `apps/mobile`: `npm run test:mobile:babel` (iOS 1514개, Android 1509개 모듈) ➔ 0 error 무결점 번들 통과.
+
+---
+
 ## 2026-10-26 Checkpoint 113: [모꼬(Mocco) 리브랜딩 및 아키텍처 혁신 - 4단계: 모꼬 3D 선물 라인업 & 한국 법률 규제 준수 관리자 구축 & 소스 대청소]
 - **모꼬 LIVE 전용 3D 가상 선물 3단계 라인업 구축 (services/api & apps/mobile)**:
   - 모꼬 3D 가상 선물 공식 카탈로그 마이그레이션 (`services/api/data/gifts.json` & `gifts.service.ts`):

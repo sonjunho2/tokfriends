@@ -1,5 +1,26 @@
 [
   {
+    "id": "chat-direct-1792982374071",
+    "title": "대화 상대",
+    "category": "1:1",
+    "entryFee": 0,
+    "isGroup": false,
+    "participantIds": [
+      "guest",
+      "u101"
+    ],
+    "counterpart": {
+      "id": "u101",
+      "displayName": "대화 상대",
+      "avatarUrl": null,
+      "online": true
+    },
+    "lastMessage": "대화가 시작되었습니다. 인사를 건네보세요!",
+    "lastMessageAt": "2026-10-26T02:39:34.071Z",
+    "unreadCount": 0,
+    "createdAt": "2026-10-26T02:39:34.071Z"
+  },
+  {
     "id": "chat-mock-1",
     "title": "박서연",
     "category": "친목",
