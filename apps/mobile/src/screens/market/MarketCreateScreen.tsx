@@ -29,14 +29,11 @@ const SAMPLE_IMAGES = [
 export default function MarketCreateScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
 
-  const [type, setType] = useState<'C2C_USED' | 'B2C_GROUP'>('C2C_USED');
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('DIGITAL');
   const [price, setPrice] = useState('');
-  const [originalPrice, setOriginalPrice] = useState('');
-  const [targetQuantity, setTargetQuantity] = useState('20');
   const [description, setDescription] = useState('');
-  const [locationName, setLocationName] = useState('역삼1동');
+  const [locationName, setLocationName] = useState('전국 (택배/직거래)');
   const [images, setImages] = useState<string[]>([SAMPLE_IMAGES[0]]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -75,17 +72,14 @@ export default function MarketCreateScreen({ navigation }: any) {
     setSubmitting(true);
     try {
       await createMarketProduct({
-        type,
+        type: 'C2C_USED',
         title: title.trim(),
         description: description.trim(),
         category,
         price: numPrice,
-        originalPrice: type === 'B2C_GROUP' ? parseInt(originalPrice.replace(/[^0-9]/g, ''), 10) || numPrice * 1.3 : undefined,
-        targetQuantity: type === 'B2C_GROUP' ? parseInt(targetQuantity, 10) || 10 : undefined,
-        currentQuantity: type === 'B2C_GROUP' ? 1 : undefined,
         images,
         status: 'ACTIVE',
-        locationName: locationName.trim() || '역삼1동',
+        locationName: locationName.trim() || '전국 (택배/직거래)',
         distanceKm: 0.5,
         seller: {
           id: 'my-user-id',
@@ -110,21 +104,19 @@ export default function MarketCreateScreen({ navigation }: any) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* 1. 상단 56px 헤더 */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      {/* 1. 상단 56px 헤더 (뒤로가기 버튼 탑재) */}
+      <View style={styles.header}>
         <TouchableOpacity
           style={styles.closeBtn}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Ionicons name="close" size={24} color="#0F172A" />
+          <Ionicons name="arrow-back" size={24} color="#0F172A" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {type === 'C2C_USED' ? '중고거래 물품 등록' : '핫딜 공동구매 등록'}
-        </Text>
+        <Text style={styles.headerTitle}>중고 물품 등록</Text>
         <TouchableOpacity
           style={styles.submitTopBtn}
           onPress={handleSubmit}
@@ -143,41 +135,8 @@ export default function MarketCreateScreen({ navigation }: any) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* 2. 등록 유형 선택 */}
-        <View style={styles.typeSelectorRow}>
-          <TouchableOpacity
-            style={[styles.typeBtn, type === 'C2C_USED' && styles.typeBtnActive]}
-            onPress={() => setType('C2C_USED')}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="cart-outline"
-              size={18}
-              color={type === 'C2C_USED' ? '#FF3B6B' : '#64748B'}
-            />
-            <Text style={[styles.typeBtnText, type === 'C2C_USED' && styles.typeBtnTextActive]}>
-              동네 중고거래 (C2C)
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.typeBtn, type === 'B2C_GROUP' && styles.typeBtnActive]}
-            onPress={() => setType('B2C_GROUP')}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="flame"
-              size={18}
-              color={type === 'B2C_GROUP' ? '#FF5722' : '#64748B'}
-            />
-            <Text style={[styles.typeBtnText, type === 'B2C_GROUP' && styles.typeBtnTextActive]}>
-              핫딜 공동구매 (B2C)
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* 3. 사진 등록 슬롯 */}
-        <Text style={styles.sectionLabel}>사진 등록 ({images.length}/10)</Text>
+        {/* 2. 사진 등록 슬롯 */}
+        <Text style={[styles.sectionLabel, { marginTop: 0 }]}>사진 등록 ({images.length}/10)</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesRow}>
           <TouchableOpacity
             style={styles.addPhotoBox}
@@ -207,7 +166,7 @@ export default function MarketCreateScreen({ navigation }: any) {
           ))}
         </ScrollView>
 
-        {/* 4. 상품 제목 */}
+        {/* 3. 상품 제목 */}
         <Text style={styles.sectionLabel}>상품명</Text>
         <TextInput
           style={styles.textInput}
@@ -217,7 +176,7 @@ export default function MarketCreateScreen({ navigation }: any) {
           onChangeText={setTitle}
         />
 
-        {/* 5. 카테고리 선택 */}
+        {/* 4. 카테고리 선택 */}
         <Text style={styles.sectionLabel}>카테고리</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
           {MARKET_CATEGORIES.filter((c) => c.id !== 'ALL').map((c) => {
@@ -242,8 +201,8 @@ export default function MarketCreateScreen({ navigation }: any) {
           })}
         </ScrollView>
 
-        {/* 6. 판매 가격 (1 ON = 1원 안내) */}
-        <Text style={styles.sectionLabel}>판매 가격 (ON 포인트)</Text>
+        {/* 5. 판매 가격 (원 표기) */}
+        <Text style={styles.sectionLabel}>판매 가격 (원)</Text>
         <View style={styles.priceInputBox}>
           <TextInput
             style={styles.priceInput}
@@ -253,52 +212,27 @@ export default function MarketCreateScreen({ navigation }: any) {
             value={price}
             onChangeText={(txt) => setPrice(txt.replace(/[^0-9]/g, ''))}
           />
-          <Text style={styles.priceUnitLabel}>ON</Text>
+          <Text style={styles.priceUnitLabel}>원</Text>
         </View>
         <Text style={styles.policyNotice}>
-          💡 다가온 정책: <Text style={{ fontWeight: '800' }}>1 ON = 1원(한화)</Text>으로 안전하게 결제 및 정산됩니다.
+          💡 모꼬 정책: <Text style={{ fontWeight: '800' }}>에스크로 100% 안전결제</Text>로 구매 확정 시까지 대금이 안전하게 보호됩니다.
         </Text>
 
-        {/* B2C 공구 시 추가 필드 */}
-        {type === 'B2C_GROUP' && (
-          <View style={styles.b2cFieldsBox}>
-            <Text style={styles.sectionLabel}>정상가 (원)</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="예: 40000"
-              placeholderTextColor="#94A3B8"
-              keyboardType="numeric"
-              value={originalPrice}
-              onChangeText={setOriginalPrice}
-            />
-
-            <Text style={[styles.sectionLabel, { marginTop: 12 }]}>목표 인원 (명)</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="예: 30"
-              placeholderTextColor="#94A3B8"
-              keyboardType="numeric"
-              value={targetQuantity}
-              onChangeText={setTargetQuantity}
-            />
-          </View>
-        )}
-
-        {/* 7. 거래 희망 장소 */}
-        <Text style={styles.sectionLabel}>희망 거래 동네</Text>
+        {/* 6. 거래 희망 지역 */}
+        <Text style={styles.sectionLabel}>거래 희망 지역</Text>
         <TextInput
           style={styles.textInput}
-          placeholder="예: 역삼1동, 역삼역 3번출구"
+          placeholder="예: 서울 강남구 역삼동 또는 전국 (택배 가능)"
           placeholderTextColor="#94A3B8"
           value={locationName}
           onChangeText={setLocationName}
         />
 
-        {/* 8. 상세 설명 */}
+        {/* 7. 상세 설명 */}
         <Text style={styles.sectionLabel}>상품 설명</Text>
         <TextInput
           style={[styles.textInput, styles.multilineInput]}
-          placeholder="상품 상태, 사용감, 직거래 희망 시간 등 자세한 정보를 작성해주세요. 사기 예방을 위해 안전결제를 권장합니다."
+          placeholder="상품 상태, 실사용 기간, 하자 유무, 직거래/택배 희망 여부 등 자세한 정보를 작성해주세요. 사기 예방을 위해 에스크로 안심결제를 권장합니다."
           placeholderTextColor="#94A3B8"
           multiline
           numberOfLines={6}
@@ -307,7 +241,7 @@ export default function MarketCreateScreen({ navigation }: any) {
           onChangeText={setDescription}
         />
 
-        {/* 9. 하단 등록 버튼 */}
+        {/* 8. 하단 등록 버튼 */}
         <TouchableOpacity
           style={styles.submitBottomBtn}
           onPress={handleSubmit}
@@ -318,7 +252,7 @@ export default function MarketCreateScreen({ navigation }: any) {
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <Text style={styles.submitBottomText}>
-              {type === 'C2C_USED' ? '안전결제 중고물품 등록하기' : '핫딜 공동구매 개설하기'}
+              중고물품 안전결제 등록하기
             </Text>
           )}
         </TouchableOpacity>
@@ -361,36 +295,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 60,
-  },
-  typeSelectorRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 20,
-  },
-  typeBtn: {
-    flex: 1,
-    height: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    borderRadius: 12,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  typeBtnActive: {
-    backgroundColor: '#FFF0F3',
-    borderColor: '#FF3B6B',
-  },
-  typeBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  typeBtnTextActive: {
-    color: '#FF3B6B',
-    fontWeight: '800',
   },
   sectionLabel: {
     fontSize: 13,

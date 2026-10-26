@@ -131,6 +131,11 @@ export function MarketStack() {
         component={PostDetailScreen}
         options={{ animation: 'slide_from_right' }}
       />
+      <MarketStackNav.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
     </MarketStackNav.Navigator>
   );
 }

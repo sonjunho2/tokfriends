@@ -20,6 +20,7 @@ import {
   NormalProduct,
   fetchMarketProductById,
   fetchNormalProductById,
+  toggleProductLike,
 } from '../../services/marketService';
 import PgPaymentBottomSheet from '../../components/live/PgPaymentBottomSheet';
 
@@ -38,6 +39,29 @@ export default function ProductDetailScreen({ route, navigation }: any) {
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
   const [showPgBottomSheet, setShowPgBottomSheet] = useState<boolean>(false);
+
+  // 추천/좋아요(하트) 토글 핸들러
+  const handleToggleLike = () => {
+    const nextLiked = !isLiked;
+    setIsLiked(nextLiked);
+    if (product) {
+      setProduct({
+        ...product,
+        likesCount: Math.max(0, (product.likesCount || 0) + (nextLiked ? 1 : -1)),
+        isLiked: nextLiked,
+      });
+    }
+    const pId = productId || (isNormal ? normalProduct?.id : product?.id);
+    if (pId) {
+      toggleProductLike(pId).catch(() => {});
+    }
+    Alert.alert(
+      nextLiked ? '❤️ 관심 상품 등록' : '관심 상품 해제',
+      nextLiked
+        ? '관심 상품(추천)에 등록되었습니다.'
+        : '관심 상품(추천)에서 해제되었습니다.'
+    );
+  };
 
   // SNS 공유하기 (React Native Share.share)
   const handleShareProduct = async () => {
@@ -84,6 +108,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
           const item = await fetchMarketProductById(productId);
           if (item) {
             setProduct(item);
+            setIsLiked(Boolean(item.isLiked));
           } else {
             // C2C에서 못 찾으면 B2C 일반 상품에서 탐색
             const np = await fetchNormalProductById(productId);
@@ -309,7 +334,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
         <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 14) }]}>
           <TouchableOpacity
             style={styles.likeBtn}
-            onPress={() => setIsLiked(!isLiked)}
+            onPress={handleToggleLike}
             activeOpacity={0.8}
           >
             <Ionicons
@@ -517,7 +542,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 14) }]}>
         <TouchableOpacity
           style={styles.likeBtn}
-          onPress={() => setIsLiked(!isLiked)}
+          onPress={handleToggleLike}
           activeOpacity={0.8}
         >
           <Ionicons

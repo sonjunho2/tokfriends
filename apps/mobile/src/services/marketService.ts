@@ -551,3 +551,25 @@ export async function fetchMyMerchantProducts(): Promise<{ merchant: any; produc
     products: inMemoryNormalProducts.filter((p) => p.merchantId === 'mer-001'),
   };
 }
+
+/** 상품 찜하기 / 추천 토글 */
+export async function toggleProductLike(productId: string): Promise<{ isLiked: boolean; likesCount: number }> {
+  try {
+    const res = await client.post(`/market/products/${productId}/like`, {}, { timeout: 3000 });
+    if (res?.data) {
+      return res.data;
+    }
+  } catch (err) {
+    // Network fallback
+  }
+
+  // 인메모리 fallback
+  const prod = inMemoryProducts.find((p) => p.id === productId);
+  if (prod) {
+    prod.isLiked = !prod.isLiked;
+    prod.likesCount = Math.max(0, (prod.likesCount || 0) + (prod.isLiked ? 1 : -1));
+    return { isLiked: prod.isLiked, likesCount: prod.likesCount };
+  }
+
+  return { isLiked: true, likesCount: 1 };
+}

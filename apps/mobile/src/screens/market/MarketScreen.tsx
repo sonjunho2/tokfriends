@@ -14,6 +14,7 @@ import {
   Platform,
   Linking,
   Share,
+  TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +27,7 @@ import {
   MARKET_CATEGORIES,
   fetchMarketProducts,
   fetchNormalProducts,
+  toggleProductLike,
 } from '../../services/marketService';
 import {
   AdvertisementItem,
@@ -54,6 +56,13 @@ export default function MarketScreen({ navigation }: any) {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [isFabExpanded, setIsFabExpanded] = useState<boolean>(true);
+
+  // 검색 상태
+  const [isSearchVisible, setIsSearchVisible] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // 찜하기/추천 상태
+  const [likedProductIds, setLikedProductIds] = useState<Set<string>>(new Set());
 
   // 상단 광고 배너 캐러셀 상태
   const [ads, setAds] = useState<AdvertisementItem[]>([]);
@@ -147,18 +156,38 @@ export default function MarketScreen({ navigation }: any) {
     }
   };
 
-  // SNS 마켓 공유하기
-  const handleShareMarket = async () => {
-    try {
-      const shareUrl = 'https://dagaon.app/share/market/main';
-      await Share.share({
-        title: '[다가온 마켓] 우리 동네 특가 쇼핑 & 공구',
-        message: `[다가온] 우리 동네 직거래 & 브랜드 특가 할인 상품을 지금 확인해보세요!\n${shareUrl}`,
-        url: shareUrl,
-      });
-    } catch (err: any) {
-      console.warn('Share market error:', err?.message);
+  // 각 상품 추천/좋아요(하트) 토글 핸들러
+  const handleToggleLike = (productId: string, e?: any) => {
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
     }
+    const isNowLiked = !likedProductIds.has(productId);
+    setLikedProductIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) {
+        next.delete(productId);
+      } else {
+        next.add(productId);
+      }
+      return next;
+    });
+
+    // 목록 내 likesCount 실시간 업데이트
+    setProducts((prev) =>
+      prev.map((item) => {
+        if (item.id === productId) {
+          return {
+            ...item,
+            isLiked: isNowLiked,
+            likesCount: Math.max(0, (item.likesCount || 0) + (isNowLiked ? 1 : -1)),
+          };
+        }
+        return item;
+      })
+    );
+
+    // 서비스 API 백그라운드 호출
+    toggleProductLike(productId).catch(() => {});
   };
 
   // 스크롤 감지에 따른 가변 FAB 상태 전환
@@ -187,6 +216,8 @@ export default function MarketScreen({ navigation }: any) {
         ? Math.min(100, Math.round(((item.currentQuantity || 0) / item.targetQuantity) * 100))
         : 0;
 
+    const isLiked = likedProductIds.has(item.id) || !!item.isLiked;
+
     return (
       <TouchableOpacity
         style={styles.card}
@@ -213,6 +244,20 @@ export default function MarketScreen({ navigation }: any) {
               <Text style={styles.escrowBadgeText}>모꼬 안심결제</Text>
             </View>
           </View>
+
+          {/* 우상단 추천/찜하기 터치 버튼 */}
+          <TouchableOpacity
+            style={styles.favBadgeBtn}
+            activeOpacity={0.8}
+            onPress={(e) => handleToggleLike(item.id, e)}
+          >
+            <Ionicons
+              name={isLiked ? 'heart' : 'heart-outline'}
+              size={18}
+              color={isLiked ? '#FF3B6B' : '#FFFFFF'}
+            />
+          </TouchableOpacity>
+
           {isB2C && discountRate > 0 && (
             <View style={styles.discountBadge}>
               <Text style={styles.discountText}>{discountRate}% OFF</Text>
@@ -267,12 +312,20 @@ export default function MarketScreen({ navigation }: any) {
                   <Text style={styles.reactionCount}>{item.chatsCount}</Text>
                 </View>
               )}
-              {item.likesCount > 0 && (
-                <View style={styles.reactionItem}>
-                  <Ionicons name="heart-outline" size={12} color={tokens.colors.textTertiary} />
-                  <Text style={styles.reactionCount}>{item.likesCount}</Text>
-                </View>
-              )}
+              <TouchableOpacity
+                style={styles.reactionItem}
+                activeOpacity={0.7}
+                onPress={(e) => handleToggleLike(item.id, e)}
+              >
+                <Ionicons
+                  name={isLiked ? 'heart' : 'heart-outline'}
+                  size={12}
+                  color={isLiked ? '#FF3B6B' : tokens.colors.textTertiary}
+                />
+                <Text style={[styles.reactionCount, isLiked && { color: '#FF3B6B', fontWeight: '700' }]}>
+                  {item.likesCount || 0}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -291,6 +344,7 @@ export default function MarketScreen({ navigation }: any) {
         : 0;
 
     const merchantLabel = (item as any).isHqDirect ? '👑 모꼬 본사 직영관' : (item.merchantName || item.merchant?.businessName || '공식인증 입점사');
+    const isLiked = likedProductIds.has(item.id);
 
     return (
       <TouchableOpacity
@@ -311,6 +365,19 @@ export default function MarketScreen({ navigation }: any) {
             style={[styles.cardImage, isOutOfStock && styles.dimmedImage]}
             resizeMode="cover"
           />
+
+          {/* 우상단 추천/찜하기 터치 버튼 */}
+          <TouchableOpacity
+            style={styles.favBadgeBtn}
+            activeOpacity={0.8}
+            onPress={(e) => handleToggleLike(item.id, e)}
+          >
+            <Ionicons
+              name={isLiked ? 'heart' : 'heart-outline'}
+              size={18}
+              color={isLiked ? '#FF3B6B' : '#FFFFFF'}
+            />
+          </TouchableOpacity>
 
           {/* 품절 안내 오버레이 */}
           {isOutOfStock && (
@@ -473,9 +540,31 @@ export default function MarketScreen({ navigation }: any) {
     );
   };
 
+  // 검색어에 따른 실시간 필터링
+  const trimmedQuery = searchQuery.trim().toLowerCase();
+
+  const filteredProducts = products.filter((p) => {
+    if (!trimmedQuery) return true;
+    const matchTitle = (p.title || '').toLowerCase().includes(trimmedQuery);
+    const matchDesc = (p.description || '').toLowerCase().includes(trimmedQuery);
+    const matchLoc = (p.locationName || '').toLowerCase().includes(trimmedQuery);
+    return matchTitle || matchDesc || matchLoc;
+  });
+
+  const filteredNormalProducts = normalProducts.filter((p) => {
+    if (!trimmedQuery) return true;
+    const matchName = (p.name || '').toLowerCase().includes(trimmedQuery);
+    const matchDesc = (p.description || '').toLowerCase().includes(trimmedQuery);
+    const merchantName = p.merchantName || p.merchant?.businessName || '';
+    const matchMerchant = merchantName.toLowerCase().includes(trimmedQuery);
+    return matchName || matchDesc || matchMerchant;
+  });
+
+  const currentListCount = selectedType === 'B2C_NORMAL' ? filteredNormalProducts.length : filteredProducts.length;
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* 1. 상단 통일 56px 헤더 */}
+      {/* 1. 상단 통일 56px 헤더 (공유 아이콘 제거, 검색/알림 동작) */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Image
@@ -490,17 +579,62 @@ export default function MarketScreen({ navigation }: any) {
           </View>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIconBtn} activeOpacity={0.7} onPress={handleShareMarket}>
-            <Ionicons name="share-social-outline" size={22} color={tokens.colors.textPrimary} />
+          <TouchableOpacity
+            style={[styles.headerIconBtn, isSearchVisible && styles.headerIconBtnActive]}
+            activeOpacity={0.7}
+            onPress={() => {
+              setIsSearchVisible((prev) => !prev);
+              if (isSearchVisible) {
+                setSearchQuery('');
+              }
+            }}
+          >
+            <Ionicons
+              name={isSearchVisible ? 'close' : 'search-outline'}
+              size={22}
+              color={isSearchVisible ? '#FF3B6B' : tokens.colors.textPrimary}
+            />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIconBtn} activeOpacity={0.7}>
-            <Ionicons name="search-outline" size={22} color={tokens.colors.textPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIconBtn} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('Notifications')}
+          >
             <Ionicons name="notifications-outline" size={22} color={tokens.colors.textPrimary} />
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* 검색 입력창 (검색버튼 클릭 시 슬라이드다운) */}
+      {isSearchVisible && (
+        <View style={styles.searchBarContainer}>
+          <Ionicons name="search" size={18} color="#94A3B8" style={{ marginRight: 8 }} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={
+              selectedType === 'C2C_USED'
+                ? '중고마켓 상품명, 설명, 지역 검색...'
+                : selectedType === 'B2C_NORMAL'
+                ? '브랜드 상품명, 입점사 검색...'
+                : '특가 공구 상품 검색...'
+            }
+            placeholderTextColor="#94A3B8"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+            autoFocus
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={{ marginRight: 6 }}
+            >
+              <Ionicons name="close-circle" size={18} color="#94A3B8" />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* 2. 상단 3대 서브 탭 캡슐 바: [중고마켓] / [브랜드 쇼핑] / [특가 공구] */}
       <View style={styles.segmentContainer}>
@@ -586,11 +720,23 @@ export default function MarketScreen({ navigation }: any) {
         />
       </View>
 
+      {/* 검색어 활성화 시 결과 안내 바 */}
+      {trimmedQuery.length > 0 && (
+        <View style={styles.searchResultBar}>
+          <Text style={styles.searchResultText}>
+            <Text style={styles.searchResultKeyword}>'{trimmedQuery}'</Text> 검색 결과 총 {currentListCount}개
+          </Text>
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <Text style={styles.searchResultResetText}>전체보기</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* 4. 브랜드 쇼핑(B2C) 탭 정렬 셀렉터 */}
-      {selectedType === 'B2C_NORMAL' && (
+      {selectedType === 'B2C_NORMAL' && !trimmedQuery && (
         <View style={styles.sortBar}>
           <Text style={styles.sortTotalCount}>
-            총 <Text style={styles.sortHighlight}>{normalProducts.length}</Text>개 정품 상품
+            총 <Text style={styles.sortHighlight}>{filteredNormalProducts.length}</Text>개 정품 상품
           </Text>
           <View style={styles.sortChipsRow}>
             {[
@@ -625,12 +771,12 @@ export default function MarketScreen({ navigation }: any) {
         </View>
       ) : (
         <FlatList
-          data={selectedType === 'B2C_NORMAL' ? (normalProducts as any[]) : (products as any[])}
+          data={selectedType === 'B2C_NORMAL' ? (filteredNormalProducts as any[]) : (filteredProducts as any[])}
           keyExtractor={(item) => item.id}
           numColumns={2}
           contentContainerStyle={styles.gridContent}
           columnWrapperStyle={styles.gridRow}
-          ListHeaderComponent={renderAdBannerSection}
+          ListHeaderComponent={!trimmedQuery ? renderAdBannerSection : null}
           renderItem={
             selectedType === 'B2C_NORMAL'
               ? (renderNormalProductItem as any)
@@ -650,12 +796,16 @@ export default function MarketScreen({ navigation }: any) {
             <View style={styles.emptyContainer}>
               <Ionicons name="basket-outline" size={48} color={tokens.colors.textTertiary} />
               <Text style={styles.emptyTitle}>
-                {selectedType === 'B2C_NORMAL'
+                {trimmedQuery
+                  ? `'${trimmedQuery}'에 대한 검색 결과가 없습니다`
+                  : selectedType === 'B2C_NORMAL'
                   ? '입점 브랜드 상품이 준비 중입니다'
                   : '등록된 상품이 없습니다'}
               </Text>
               <Text style={styles.emptySubtitle}>
-                {selectedType === 'B2C_NORMAL'
+                {trimmedQuery
+                  ? '다른 검색어를 입력하시거나 카테고리를 변경해보세요.'
+                  : selectedType === 'B2C_NORMAL'
                   ? '인증 입점사의 프리미엄 신상품이 곧 업데이트됩니다.'
                   : '가장 먼저 물품을 등록하고 이웃과 거래를 시작해보세요!'}
               </Text>
@@ -664,8 +814,8 @@ export default function MarketScreen({ navigation }: any) {
         />
       )}
 
-      {/* 6. 우측 하단 가변 FAB: + 물품등록 (중고마켓/공구 전용, 입점문의 제거) */}
-      {selectedType !== 'B2C_NORMAL' && (
+      {/* 6. 우측 하단 가변 FAB: + 물품등록 (오직 중고마켓에서만 노출, 특가공구/브랜드쇼핑은 미노출) */}
+      {selectedType === 'C2C_USED' && (
         <ScrollExpandableFAB
           label="물품등록"
           iconName="add"
@@ -1247,5 +1397,61 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     textAlign: 'center',
     paddingHorizontal: 32,
+  },
+  headerIconBtnActive: {
+    backgroundColor: '#FFF0F3',
+    borderRadius: 8,
+  },
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 6,
+    paddingHorizontal: 12,
+    height: 42,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#0F172A',
+    paddingVertical: 0,
+  },
+  searchResultBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#F8FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  searchResultText: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  searchResultKeyword: {
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  searchResultResetText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FF3B6B',
+  },
+  favBadgeBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
 });
