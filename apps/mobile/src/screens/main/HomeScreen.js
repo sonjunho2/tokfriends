@@ -466,7 +466,12 @@ export default function HomeScreen({ navigation }) {
       {/* 좌측: 로고 & 내 프로필 무지개 링 아바타 */}
       <View style={styles.headerLeftCol}>
         <View style={styles.logoRow}>
-          <Text style={styles.logoText}>다가온</Text>
+          <Image
+            source={require('../../../assets/mocco-mascot.png')}
+            style={styles.headerMascotLogo}
+            resizeMode="contain"
+          />
+          <Text style={styles.logoText}>모꼬</Text>
           <View style={styles.logoSparkleDot} />
         </View>
 
@@ -503,14 +508,14 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.welcomeName} numberOfLines={1}>
               {safeUser?.nickname || safeUser?.displayName || safeUser?.profile?.nickname || '회원'}님
             </Text>
-            <Text style={styles.welcomeSub}>새로운 인연을 만나보세요 ✨</Text>
+            <Text style={styles.welcomeSub}>새로운 모꼬지 인연을 만나보세요 ✨</Text>
           </View>
         </TouchableOpacity>
       </View>
 
       {/* 우측: 입체적인 골드 코인 뱃지 & 알림 */}
       <View style={styles.headerRightCol}>
-        {/* 입체 골드 코인 뱃지 (🪙 1,250 ON >) */}
+        {/* 입체 골드 코인 뱃지 (🪙 1,250 MC >) */}
         <TouchableOpacity
           style={styles.goldCoinBadge}
           activeOpacity={0.85}
@@ -524,7 +529,7 @@ export default function HomeScreen({ navigation }) {
           >
             <Text style={styles.coinIcon}>🪙</Text>
             <Text style={styles.coinAmount}>{myPoints.toLocaleString()}</Text>
-            <Text style={styles.coinUnit}>ON</Text>
+            <Text style={styles.coinUnit}>MC</Text>
             <Ionicons name="chevron-forward" size={13} color="#D97706" />
           </LinearGradient>
         </TouchableOpacity>
@@ -615,6 +620,86 @@ export default function HomeScreen({ navigation }) {
             ))}
           </View>
         )}
+      </View>
+    );
+  };
+
+  // =================================================================
+  // 0.5. [🔥 지금 가장 핫한 모꼬 LIVE 1위] 미니 라이브 플레이어 카드
+  // =================================================================
+  const renderHotLiveTop1Player = () => {
+    const topLive = liveRooms?.[0] || DEFAULT_LIVES[0];
+    if (!topLive) return null;
+
+    return (
+      <View style={styles.topLiveWrap}>
+        <View style={styles.topLiveHeaderRow}>
+          <View style={styles.topLiveTitleGroup}>
+            <Text style={styles.topLiveFlame}>🔥</Text>
+            <Text style={styles.topLiveSectionTitle}>지금 가장 핫한 모꼬 LIVE 1위</Text>
+            <View style={styles.topLiveCrownBadge}>
+              <Text style={styles.topLiveCrownText}>👑 실시간 1위</Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.topLiveMoreBtn}
+            onPress={() => navigation.navigate('Live')}
+            hitSlop={8}
+          >
+            <Text style={styles.topLiveMoreText}>랭킹 전체보기</Text>
+            <Ionicons name="chevron-forward" size={13} color="#4F46E5" />
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={styles.topLivePlayerCard}
+          activeOpacity={0.92}
+          onPress={() => handleOpenLiveRoom(topLive)}
+        >
+          <Image
+            source={{ uri: topLive.coverUri || topLive.hostAvatar }}
+            style={styles.topLivePlayerImg}
+            resizeMode="cover"
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(15, 23, 42, 0.92)']}
+            style={styles.topLivePlayerGradient}
+          >
+            <View style={styles.topLivePlayerBadgeRow}>
+              <View style={styles.topLiveLiveTag}>
+                <View style={styles.topLiveDotPulse} />
+                <Text style={styles.topLiveLiveText}>LIVE</Text>
+              </View>
+              <View style={styles.topLiveViewerBadge}>
+                <Ionicons name="eye" size={11} color="#FFFFFF" />
+                <Text style={styles.topLiveViewerCount}>
+                  {(topLive.viewerCount || 1240).toLocaleString()}명 시청 중
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.topLiveInfoRow}>
+              <View style={styles.topLiveHostInfo}>
+                <Image
+                  source={{ uri: topLive.hostAvatar }}
+                  style={styles.topLiveHostAvatar}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.topLiveRoomTitle} numberOfLines={1}>
+                    {topLive.title}
+                  </Text>
+                  <Text style={styles.topLiveHostName}>
+                    {topLive.hostName || '모꼬 호스트'} · {topLive.tag || '실시간 라이브'}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.topLiveEnterBtn}>
+                <Text style={styles.topLiveEnterText}>입장하기</Text>
+                <Ionicons name="play" size={10} color="#FFFFFF" />
+              </View>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
       </View>
     );
   };
@@ -1088,6 +1173,9 @@ export default function HomeScreen({ navigation }) {
             {/* 0. 홈 상단 스폰서/프로모션 히어로 배너 */}
             {renderHeroAdBannerSection()}
 
+            {/* 0.5. 지금 가장 핫한 모꼬 LIVE 1위 미니 플레이어 */}
+            {renderHotLiveTop1Player()}
+
             {/* 1. 실시간 D LIVE 프리뷰 섹션 */}
             {renderLiveSection()}
 
@@ -1296,6 +1384,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
+  headerMascotLogo: {
+    width: 26,
+    height: 26,
+    marginRight: 4,
+    borderRadius: 6,
+  },
   logoText: {
     fontSize: 22,
     fontWeight: '900',
@@ -1308,6 +1402,170 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: tokens.colors.primary,
     marginBottom: 8,
+  },
+
+  // 0.5 지금 가장 핫한 모꼬 LIVE 1위 스타일
+  topLiveWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 10,
+  },
+  topLiveHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  topLiveTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  topLiveFlame: {
+    fontSize: 14,
+  },
+  topLiveSectionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.3,
+  },
+  topLiveCrownBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  topLiveCrownText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#B45309',
+  },
+  topLiveMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  topLiveMoreText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#4F46E5',
+  },
+  topLivePlayerCard: {
+    width: '100%',
+    height: 140,
+    borderRadius: 14,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#0F172A',
+    borderWidth: 2,
+    borderColor: '#F59E0B',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  topLivePlayerImg: {
+    width: '100%',
+    height: '100%',
+  },
+  topLivePlayerGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: 0,
+    justifyContent: 'space-between',
+    padding: 10,
+  },
+  topLivePlayerBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  topLiveLiveTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  topLiveDotPulse: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#FFFFFF',
+  },
+  topLiveLiveText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  topLiveViewerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  topLiveViewerCount: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  topLiveInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  topLiveHostInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginRight: 10,
+  },
+  topLiveHostAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  topLiveRoomTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowRadius: 3,
+  },
+  topLiveHostName: {
+    fontSize: 11,
+    color: '#E2E8F0',
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  topLiveEnterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  topLiveEnterText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
   },
   profileRow: {
     flexDirection: 'row',

@@ -65,7 +65,7 @@ function LiveFabButton({ children, onPress }: any) {
         style={styles.fabCircle}
       >
         <Ionicons name="radio" size={24} color="#FFFFFF" />
-        <Text style={styles.fabLabel}>LIVE</Text>
+        <Text style={styles.fabLabel}>모꼬 LIVE</Text>
       </LinearGradient>
     </TouchableOpacity>
   );
@@ -127,7 +127,7 @@ export default function TabNavigator() {
             <RegularTabItem
               name={focused ? 'home' : 'home-outline'}
               focused={focused}
-              label="홈"
+              label="모꼬홈"
             />
           ),
         }}
@@ -148,7 +148,7 @@ export default function TabNavigator() {
             <RegularTabItem
               name={focused ? 'storefront' : 'storefront-outline'}
               focused={focused}
-              label="마켓"
+              label="모꼬마켓"
             />
           ),
         }}
@@ -169,7 +169,7 @@ export default function TabNavigator() {
         }}
       />
 
-      {/* 4. 수다 탭 (1줄 토크 타임라인 & 듀얼 대화함) */}
+      {/* 4. 동네 모꼬지 탭 (1줄 토크 타임라인 & 듀얼 대화함) */}
       <Tab.Screen
         name="Chat"
         component={ChatsStack}
@@ -178,7 +178,7 @@ export default function TabNavigator() {
             <RegularTabItem
               name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
               focused={focused}
-              label="수다"
+              label="동네 모꼬지"
             />
           ),
         }}
@@ -190,7 +190,7 @@ export default function TabNavigator() {
         })}
       />
 
-      {/* 5. 마이 탭 */}
+      {/* 5. 마이모꼬 탭 */}
       <Tab.Screen
         name="My"
         component={MyPageStack}
@@ -199,7 +199,7 @@ export default function TabNavigator() {
             <RegularTabItem
               name={focused ? 'person' : 'person-outline'}
               focused={focused}
-              label="마이"
+              label="마이모꼬"
             />
           ),
         }}

@@ -27,23 +27,23 @@ module.exports = ({ config }) => {
 
   return {
     ...resolvedConfig,
-    name: '다가온',
-    slug: 'dagaon',
+    name: '모꼬 (Mocco)',
+    slug: 'mocco',
     version: '1.2.0',
     orientation: 'portrait',
-    icon: './assets/icon.png',
-    scheme: 'dagaon',
+    icon: './assets/mocco-mascot.png',
+    scheme: 'mocco',
     splash: {
-      image: './assets/splash.png',
+      image: './assets/mocco-mascot.png',
       resizeMode: 'contain',
       backgroundColor: '#FFFFFF',
     },
     android: {
       ...(resolvedConfig.android ?? {}),
-      package: 'com.sonjunho.ddakchin',
+      package: 'com.mocco.app',
       adaptiveIcon: {
-        foregroundImage: './assets/adaptive-icon.png',
-        backgroundColor: '#0F1635',
+        foregroundImage: './assets/mocco-mascot.png',
+        backgroundColor: '#FFFFFF',
       },
       permissions: [
         'android.permission.CAMERA',
@@ -59,12 +59,12 @@ module.exports = ({ config }) => {
     },
     ios: {
       ...(resolvedConfig.ios ?? {}),
-      bundleIdentifier: 'com.sonjunho.ddakchin',
+      bundleIdentifier: 'com.mocco.app',
       supportsTablet: false,
       infoPlist: {
-        NSCameraUsageDescription: '프로필 사진 등록 및 라이브 영상 방송 진행을 위해 카메라 권한이 필요합니다.',
-        NSMicrophoneUsageDescription: '라이브 방송 시 음성을 전달하기 위해 마이크 권한이 필요합니다.',
-        NSPhotoLibraryUsageDescription: '프로필 사진 등록 및 채팅 사진 전송을 위해 사진 보관함 접근 권한이 필요합니다.',
+        NSCameraUsageDescription: '모꼬 프로필 사진 등록 및 라이브 영상 방송 진행을 위해 카메라 권한이 필요합니다.',
+        NSMicrophoneUsageDescription: '모꼬 라이브 방송 시 음성을 전달하기 위해 마이크 권한이 필요합니다.',
+        NSPhotoLibraryUsageDescription: '모꼬 프로필 사진 등록 및 채팅 사진 전송을 위해 사진 보관함 접근 권한이 필요합니다.',
       },
     },
     updates: {

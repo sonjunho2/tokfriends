@@ -59,6 +59,68 @@ export default function LiveScreen({ navigation }) {
   const [myMerchant, setMyMerchant] = useState(null);
   const [myAffiliateProducts, setMyAffiliateProducts] = useState([]);
 
+  // [👑 실시간 HOT 모꼬 LIVE TOP 3] 상태
+  const [top3Rooms, setTop3Rooms] = useState([
+    {
+      id: 'LIVE-101',
+      title: '불금 소통 방송 놀러오세요 ✨ 하트 환영!',
+      viewerCount: 1240,
+      totalLikes: 2150,
+      rank: 1,
+      coverUri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+      host: {
+        name: '이지민',
+        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120',
+      },
+      pinProduct: {
+        title: '[모꼬단독] 무선 기계식 키보드',
+        image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=200',
+      },
+    },
+    {
+      id: 'LIVE-102',
+      title: '서아와의 1:1 비밀 프라이빗 라이브 💬',
+      viewerCount: 890,
+      totalLikes: 1420,
+      rank: 2,
+      coverUri: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500',
+      host: {
+        name: '박서아',
+        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120',
+      },
+      pinProduct: {
+        title: '[본사직영] 올데이 프로틴 쉐이크',
+        image: 'https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=200',
+      },
+    },
+    {
+      id: 'LIVE-103',
+      title: '가을 단풍 여행 준비 같이해요 🍁',
+      viewerCount: 650,
+      totalLikes: 980,
+      rank: 3,
+      coverUri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
+      host: {
+        name: '최유나',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120',
+      },
+      pinProduct: {
+        title: '포근 램스울 오버핏 니트',
+        image: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=200',
+      },
+    },
+  ]);
+
+  const loadTop3Rooms = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/live/top3');
+      const items = res?.data || res?.items || res;
+      if (Array.isArray(items) && items.length > 0) {
+        setTop3Rooms(items);
+      }
+    } catch {}
+  }, []);
+
   const loadRooms = useCallback(async () => {
     try {
       const data = await apiClient.getActiveLiveRooms();
@@ -284,18 +346,147 @@ export default function LiveScreen({ navigation }) {
     );
   };
 
+
+  // [👑 실시간 HOT 모꼬 LIVE TOP 3] 전용 섹션 렌더링
+  const renderTop3Section = () => {
+    if (!top3Rooms || top3Rooms.length === 0) return null;
+
+    return (
+      <View style={styles.top3SectionWrap}>
+        <View style={styles.top3HeaderRow}>
+          <View style={styles.top3TitleGroup}>
+            <Text style={styles.top3CrownEmoji}>👑</Text>
+            <Text style={styles.top3SectionTitle}>실시간 HOT 모꼬 LIVE TOP 3</Text>
+            <View style={styles.top3LiveDotBadge}>
+              <View style={styles.top3LiveDot} />
+              <Text style={styles.top3LiveDotText}>LIVE RANK</Text>
+            </View>
+          </View>
+          <Text style={styles.top3Subtitle}>시청자수 + 후원 가중 합산</Text>
+        </View>
+
+        <FlatList
+          data={top3Rooms}
+          keyExtractor={(item, index) => item.id || String(index)}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.top3ScrollContent}
+          renderItem={({ item, index }) => {
+            const rank = item.rank || index + 1;
+            const rankBadgeColors =
+              rank === 1
+                ? ['#F59E0B', '#D97706']
+                : rank === 2
+                ? ['#94A3B8', '#64748B']
+                : ['#B45309', '#78350F'];
+            const rankBadgeText =
+              rank === 1 ? '👑 1위 골드' : rank === 2 ? '🥈 2위 실버' : '🥉 3위 브론즈';
+
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.top3Card,
+                  rank === 1 && styles.top3CardGold,
+                ]}
+                activeOpacity={0.9}
+                onPress={() =>
+                  navigation.navigate('LiveRoom', {
+                    roomId: item.id,
+                    roomTitle: item.title,
+                    hostName: item.host?.name || item.hostName,
+                    hostAvatar: item.host?.avatar || item.hostAvatar,
+                  })
+                }
+              >
+                <Image
+                  source={{ uri: item.coverUri || item.host?.avatar }}
+                  style={styles.top3Cover}
+                  resizeMode="cover"
+                />
+                <LinearGradient
+                  colors={['transparent', 'rgba(15, 23, 42, 0.95)']}
+                  style={styles.top3Gradient}
+                >
+                  {/* 상단 랭킹 뱃지 & 시청자 수 */}
+                  <View style={styles.top3TopMetaRow}>
+                    <LinearGradient
+                      colors={rankBadgeColors}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.rankPillBadge}
+                    >
+                      <Text style={styles.rankPillText}>{rankBadgeText}</Text>
+                    </LinearGradient>
+
+                    <View style={styles.top3ViewerBadge}>
+                      <View style={styles.redDot} />
+                      <Text style={styles.top3ViewerText}>
+                        🔴 {(item.viewerCount || 0).toLocaleString()}명
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* 하단 호스트 정보 & 핀 상품 썸네일 오버레이 */}
+                  <View style={styles.top3BottomRow}>
+                    <View style={styles.top3HostMeta}>
+                      <Image
+                        source={{ uri: item.host?.avatar || item.coverUri }}
+                        style={styles.top3HostAvatar}
+                      />
+                      <View style={{ flex: 1, marginLeft: 8 }}>
+                        <Text style={styles.top3HostName} numberOfLines={1}>
+                          {item.host?.name || item.hostName || '모꼬 호스트'}
+                        </Text>
+                        <Text style={styles.top3RoomTitle} numberOfLines={1}>
+                          {item.title}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* 판매 중인 제휴/직영 상품 핀 썸네일 */}
+                    <View style={styles.top3PinProductBadge}>
+                      <Image
+                        source={{
+                          uri:
+                            item.pinProduct?.image ||
+                            'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=150',
+                        }}
+                        style={styles.top3PinImg}
+                      />
+                      <View style={styles.top3PinTag}>
+                        <Text style={styles.top3PinTagText}>📌 특가 핀</Text>
+                      </View>
+                    </View>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            );
+          }}
+        />
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Top Header */}
       <View style={styles.header}>
         <View style={styles.brandRow}>
-          <Text style={styles.brand}>다가온</Text>
+          <Image
+            source={require('../../../assets/mocco-mascot.png')}
+            style={styles.headerMascotLogo}
+            resizeMode="contain"
+          />
+          <Text style={styles.brand}>모꼬 LIVE</Text>
           <View style={styles.liveHeaderBadge}>
             <View style={styles.liveDot} />
-            <Text style={styles.liveHeaderBadgeText}>LIVE</Text>
+            <Text style={styles.liveHeaderBadgeText}>실시간 방송</Text>
           </View>
         </View>
       </View>
+
+      {/* [👑 실시간 HOT 모꼬 LIVE TOP 3] 상단 배치 */}
+      {renderTop3Section()}
 
       {/* Category selector chips */}
       <View style={styles.categoryBar}>
@@ -693,6 +884,193 @@ export default function LiveScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  headerMascotLogo: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    marginRight: 6,
+  },
+  top3SectionWrap: {
+    paddingTop: 10,
+    paddingBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  top3HeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 10,
+  },
+  top3TitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  top3CrownEmoji: {
+    fontSize: 14,
+  },
+  top3SectionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.3,
+  },
+  top3LiveDotBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+  },
+  top3LiveDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#EF4444',
+  },
+  top3LiveDotText: {
+    fontSize: 8.5,
+    fontWeight: '900',
+    color: '#DC2626',
+  },
+  top3Subtitle: {
+    fontSize: 10,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  top3ScrollContent: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  top3Card: {
+    width: 260,
+    height: 160,
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#0F172A',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  top3CardGold: {
+    borderColor: '#F59E0B',
+    borderWidth: 2,
+    shadowColor: '#F59E0B',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  top3Cover: {
+    width: '100%',
+    height: '100%',
+  },
+  top3Gradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: 0,
+    justifyContent: 'space-between',
+    padding: 10,
+  },
+  top3TopMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  rankPillBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+  },
+  rankPillText: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  top3ViewerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    paddingHorizontal: 6,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+  },
+  redDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#EF4444',
+  },
+  top3ViewerText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  top3BottomRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  top3HostMeta: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  top3HostAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  top3HostName: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  top3RoomTitle: {
+    fontSize: 11,
+    color: '#CBD5E1',
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  top3PinProductBadge: {
+    alignItems: 'center',
+    position: 'relative',
+  },
+  top3PinImg: {
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+  },
+  top3PinTag: {
+    position: 'absolute',
+    bottom: -4,
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+  },
+  top3PinTagText: {
+    fontSize: 7.5,
+    fontWeight: '900',
+    color: '#78350F',
+  },
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',

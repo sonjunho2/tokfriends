@@ -481,7 +481,12 @@ export default function CommunityFeedScreen({ navigation, route }) {
       {/* 헤더 바 */}
       <View style={styles.topBar}>
         <View style={styles.titleRow}>
-          <Text style={styles.headerTitle}>동네 커뮤니티</Text>
+          <Image
+            source={require('../../../assets/mocco-mascot.png')}
+            style={styles.headerMascotLogo}
+            resizeMode="contain"
+          />
+          <Text style={styles.headerTitle}>동네 모꼬지</Text>
           <View style={styles.locationPill}>
             <Ionicons name="location-sharp" size={12} color={tokens.colors.primary} />
             <Text style={styles.locationText}>
@@ -919,7 +924,12 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+  },
+  headerMascotLogo: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
   },
   headerTitle: {
     fontSize: 20,

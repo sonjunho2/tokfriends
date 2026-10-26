@@ -9,10 +9,14 @@ import {
   ActivityIndicator,
   RefreshControl,
   Dimensions,
+  Modal,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '../../theme/tokens';
+import { LinearGradient } from 'expo-linear-gradient';
+import { apiClient } from '../../api/client';
 import ScrollExpandableFAB from '../../components/common/ScrollExpandableFAB';
 import SudaCreateModal from '../../components/suda/SudaCreateModal';
 import {
@@ -34,6 +38,60 @@ export default function ChatsScreen({ navigation }: any) {
   const [activeChatSubTab, setActiveChatSubTab] = useState('SUDA');
 
   const [sudaPosts, setSudaPosts] = useState([]);
+  const [activeUsers, setActiveUsers] = useState([
+    {
+      id: 'neighbor-1',
+      nickname: '민지 (모꼬지)',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+      neighborhood: '역삼1동',
+      statusMessage: '오늘 날씨 너무 좋아요 ☀️',
+      isOnline: true,
+    },
+    {
+      id: 'neighbor-2',
+      nickname: '준호',
+      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+      neighborhood: '서초2동',
+      statusMessage: '저녁에 한강 러닝하실 분 🏃',
+      isOnline: true,
+    },
+    {
+      id: 'neighbor-3',
+      nickname: '수아맘',
+      avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200',
+      neighborhood: '대치동',
+      statusMessage: '공구 특가 구경 중 🛍️',
+      isOnline: true,
+    },
+    {
+      id: 'neighbor-4',
+      nickname: '도윤',
+      avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200',
+      neighborhood: '역삼2동',
+      statusMessage: '커피 한잔의 여유 ☕',
+      isOnline: true,
+    },
+    {
+      id: 'neighbor-5',
+      nickname: '하은',
+      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+      neighborhood: '삼성동',
+      statusMessage: '동네 수다방 환영해요 ✨',
+      isOnline: true,
+    },
+  ]);
+  const [selectedNeighbor, setSelectedNeighbor] = useState(null);
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+
+  const loadActiveUsers = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/community/active-users');
+      const items = res?.items || res?.data || res;
+      if (Array.isArray(items) && items.length > 0) {
+        setActiveUsers(items);
+      }
+    } catch {}
+  }, []);
   const [chatRooms, setChatRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -46,6 +104,7 @@ export default function ChatsScreen({ navigation }: any) {
   const loadData = useCallback(async () => {
     try {
       if (activeMainTab === 'TALK') {
+        loadActiveUsers();
         const posts = await fetchSudaPosts();
         setSudaPosts(posts);
       } else {
@@ -207,10 +266,15 @@ export default function ChatsScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* 1. 상단 56px 통일 헤더 */}
+      {/* 1. 상단 모꼬지 공식 헤더 */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>수다</Text>
+          <Image
+            source={require('../../../assets/mocco-mascot.png')}
+            style={styles.headerMascotLogo}
+            resizeMode="contain"
+          />
+          <Text style={styles.headerTitle}>동네 모꼬지</Text>
           <View style={styles.locationBadge}>
             <Ionicons name="location-sharp" size={12} color="#FF3B6B" />
             <Text style={styles.locationBadgeText}>역삼1동</Text>
@@ -226,7 +290,54 @@ export default function ChatsScreen({ navigation }: any) {
         </View>
       </View>
 
-      {/* 2. 상단 듀얼 메인 세그먼트: [⚡ 실시간 토크] vs [💬 내 대화함] */}
+      {/* [🟢 지금 접속 중인 이웃들 (실시간 동네 모꼬지)] 가로 원형 아바타 캐러셀 */}
+      <View style={styles.activeUsersSection}>
+        <View style={styles.activeUsersHeader}>
+          <View style={styles.activeUsersTitleRow}>
+            <View style={styles.liveGreenDot} />
+            <Text style={styles.activeUsersTitle}>지금 접속 중인 이웃들</Text>
+          </View>
+          <Text style={styles.activeUsersHint}>터치하여 1:1 대화 신청</Text>
+        </View>
+
+        <FlatList
+          data={activeUsers}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.activeUsersList}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.activeUserItem}
+              activeOpacity={0.85}
+              onPress={() => {
+                setSelectedNeighbor(item);
+                setProfileModalVisible(true);
+              }}
+            >
+              <LinearGradient
+                colors={['#FF3B6B', '#FF758C', '#FDA4AF']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.activeRing}
+              >
+                <View style={styles.activeAvatarInner}>
+                  <Image source={{ uri: item.avatarUrl }} style={styles.activeAvatar} />
+                  <View style={styles.onlineStatusDot} />
+                </View>
+              </LinearGradient>
+              <Text style={styles.activeUserName} numberOfLines={1}>
+                {item.nickname}
+              </Text>
+              <Text style={styles.activeUserNeighborhood} numberOfLines={1}>
+                {item.neighborhood || '역삼동'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        />
+      </View>
+
+      {/* 2. 상단 2단 세그먼트: [동네 전체 수다] vs [나의 1:1 대화함] */}
       <View style={styles.mainSegmentContainer}>
         <TouchableOpacity
           style={[styles.mainSegmentBtn, activeMainTab === 'TALK' && styles.mainSegmentBtnActive]}
@@ -234,7 +345,7 @@ export default function ChatsScreen({ navigation }: any) {
           activeOpacity={0.8}
         >
           <Ionicons
-            name="flash"
+            name="chatbubbles"
             size={16}
             color={activeMainTab === 'TALK' ? '#FF3B6B' : '#64748B'}
           />
@@ -244,7 +355,7 @@ export default function ChatsScreen({ navigation }: any) {
               activeMainTab === 'TALK' && styles.mainSegmentTextActive,
             ]}
           >
-            실시간 토크
+            동네 전체 수다
           </Text>
         </TouchableOpacity>
 
@@ -254,7 +365,7 @@ export default function ChatsScreen({ navigation }: any) {
           activeOpacity={0.8}
         >
           <Ionicons
-            name="chatbubbles"
+            name="mail-unread"
             size={16}
             color={activeMainTab === 'CHATS' ? '#FF3B6B' : '#64748B'}
           />
@@ -264,7 +375,7 @@ export default function ChatsScreen({ navigation }: any) {
               activeMainTab === 'CHATS' && styles.mainSegmentTextActive,
             ]}
           >
-            내 대화함
+            나의 1:1 대화함
           </Text>
         </TouchableOpacity>
       </View>
@@ -388,11 +499,315 @@ export default function ChatsScreen({ navigation }: any) {
           loadData();
         }}
       />
+
+      {/* 이웃 아바타 터치 시 UserProfileBottomSheet 팝업 */}
+      <Modal
+        visible={profileModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setProfileModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setProfileModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.bottomSheetCard}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.sheetHandle} />
+
+            {selectedNeighbor && (
+              <View style={styles.sheetContent}>
+                <Image
+                  source={{ uri: selectedNeighbor.avatarUrl }}
+                  style={styles.sheetAvatar}
+                />
+                <Text style={styles.sheetNickname}>{selectedNeighbor.nickname}</Text>
+                <View style={styles.sheetMetaRow}>
+                  <View style={styles.sheetLocationChip}>
+                    <Ionicons name="location-sharp" size={12} color="#FF3B6B" />
+                    <Text style={styles.sheetLocationText}>
+                      {selectedNeighbor.neighborhood || '역삼동'}
+                    </Text>
+                  </View>
+                  <View style={styles.sheetOnlineChip}>
+                    <View style={styles.onlineStatusDotSmall} />
+                    <Text style={styles.sheetOnlineText}>실시간 접속 중</Text>
+                  </View>
+                </View>
+                <Text style={styles.sheetStatusMessage}>
+                  {selectedNeighbor.statusMessage || '모꼬지에서 새로운 이웃과 소통하고 싶어요 ✨'}
+                </Text>
+
+                {/* 1:1 대화 신청 & 1:1 통화 신청 버튼 행 */}
+                <View style={styles.sheetBtnRow}>
+                  <TouchableOpacity
+                    style={styles.chatActionBtn}
+                    activeOpacity={0.88}
+                    onPress={() => {
+                      setProfileModalVisible(false);
+                      navigation.navigate('ChatRoom', {
+                        peerId: selectedNeighbor.id,
+                        peerName: selectedNeighbor.nickname,
+                      });
+                    }}
+                  >
+                    <Ionicons name="chatbubble-ellipses" size={18} color="#FFFFFF" />
+                    <Text style={styles.chatActionBtnText}>💬 1:1 대화 신청</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.callActionBtn}
+                    activeOpacity={0.88}
+                    onPress={() => {
+                      setProfileModalVisible(false);
+                      Alert.alert(
+                        '1:1 통화 신청',
+                        `${selectedNeighbor.nickname}님에게 유료 음성 통화를 연결하시겠습니까?\n(분당 1,500 MC)`,
+                        [
+                          { text: '취소', style: 'cancel' },
+                          {
+                            text: '통화 연결',
+                            onPress: () =>
+                              Alert.alert('통화 연결 중', `${selectedNeighbor.nickname}님의 응답을 기다리고 있습니다... 📞`),
+                          },
+                        ]
+                      );
+                    }}
+                  >
+                    <Ionicons name="call" size={17} color="#059669" />
+                    <Text style={styles.callActionBtnText}>📞 1:1 통화 신청</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  headerMascotLogo: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    marginRight: 6,
+  },
+  activeUsersSection: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  activeUsersHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  activeUsersTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  liveGreenDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#10B981',
+  },
+  activeUsersTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  activeUsersHint: {
+    fontSize: 10,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  activeUsersList: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  activeUserItem: {
+    alignItems: 'center',
+    width: 62,
+  },
+  activeRing: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    padding: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activeAvatarInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    padding: 2,
+    position: 'relative',
+  },
+  activeAvatar: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 22,
+  },
+  onlineStatusDot: {
+    position: 'absolute',
+    bottom: 1,
+    right: 1,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#10B981',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  activeUserName: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  activeUserNeighborhood: {
+    fontSize: 9.5,
+    color: '#64748B',
+    marginTop: 1,
+    textAlign: 'center',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  bottomSheetCard: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 36,
+    alignItems: 'center',
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 2,
+    marginBottom: 16,
+  },
+  sheetContent: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  sheetAvatar: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 3,
+    borderColor: '#FF3B6B',
+    marginBottom: 10,
+  },
+  sheetNickname: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 6,
+  },
+  sheetMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  sheetLocationChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#FFF1F2',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  sheetLocationText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FF3B6B',
+  },
+  sheetOnlineChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  onlineStatusDotSmall: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  sheetOnlineText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  sheetStatusMessage: {
+    fontSize: 13,
+    color: '#475569',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 20,
+    paddingHorizontal: 16,
+  },
+  sheetBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  chatActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FF3B6B',
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  chatActionBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  callActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  callActionBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#059669',
+  },
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',

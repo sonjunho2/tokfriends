@@ -208,7 +208,7 @@ export default function MarketScreen({ navigation }: any) {
             {/* 에스크로 안전결제 뱃지 */}
             <View style={styles.escrowBadge}>
               <Ionicons name="shield-checkmark" size={11} color="#FFFFFF" />
-              <Text style={styles.escrowBadgeText}>안전결제</Text>
+              <Text style={styles.escrowBadgeText}>모꼬 안심결제</Text>
             </View>
           </View>
           {isB2C && discountRate > 0 && (
@@ -331,7 +331,7 @@ export default function MarketScreen({ navigation }: any) {
             {/* 에스크로 안전결제 뱃지 */}
             <View style={styles.escrowBadge}>
               <Ionicons name="shield-checkmark" size={11} color="#FFFFFF" />
-              <Text style={styles.escrowBadgeText}>안전결제</Text>
+              <Text style={styles.escrowBadgeText}>모꼬 안심결제</Text>
             </View>
           </View>
 

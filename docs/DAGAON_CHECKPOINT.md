@@ -5,6 +5,47 @@ Official Brand Name: **다가온 (DAGAON)**
 Brand Slogan: **새로운 사람이 다가오고, 새로운 이야기가 시작된다.**
 
 
+## 2026-10-26 Checkpoint 112: [모꼬(Mocco) 리브랜딩 및 아키텍처 혁신 - 3단계: 모꼬 브랜드 전면 적용 & HOT LIVE BEST 3 & 동네 모꼬지 접속자 1-Click 대화 연동]
+- **모꼬(Mocco) 솜구름 캐릭터 에셋 & 5대 탭 브랜드 전면 적용 (apps/mobile & apps/admin)**:
+  - 솜구름 '모꼬' 캐릭터 에셋 공식 등록:
+    - 에셋 파일 복사: `apps/mobile/assets/mocco-mascot.png` 및 `apps/admin/public/images/mocco-mascot.png` 배치 완료.
+    - 홈 화면(`HomeScreen.js`) 상단 헤더 로고, 로딩 스플래시 화면(`App.js`), 마이페이지(`MyPageScreen.js`) 프로필 카드 및 내비바에 귀여운 모꼬 캐릭터 전면 배치.
+  - 5대 하단 탭 명칭 공식 리브랜딩 (`apps/mobile/src/navigation/TabNavigator.tsx`):
+    - 1탭: `모꼬홈` (Home)
+    - 2탭: `모꼬마켓` (Market)
+    - 3탭: `모꼬 LIVE` (Live)
+    - 4탭: `동네 모꼬지` (Chat)
+    - 5탭: `마이모꼬` (My)
+  - 재화 및 안전결제 명칭 통일:
+    - 디지털 소통 재화: `ON (온)` ➔ **`모꼬 코인 (MC)`**
+    - 실물 커머스 안전결제: `안전결제` ➔ **`모꼬 안심결제 (Mocco Pay)`** (`MarketScreen.tsx`, `PgPaymentBottomSheet.tsx`)
+    - 앱 설정 파일(`apps/mobile/package.json`, `app.config.js`) 명칭 및 패키지 식별자 리브랜딩 (`com.mocco.app`).
+- **D LIVE 실시간 랭킹 [👑 HOT 모꼬 LIVE BEST 3] 상단 배치 (services/api & apps/mobile)**:
+  - 백엔드 실시간 BEST 3 랭킹 API (`services/api/src/modules/streaming/live.controller.ts`):
+    - `GET /api/live/top3`: 실시간 동시 접속자 수(CCU) + 방송 중 발생한 모꼬 코인 후원액을 가중 합산하여 1위(👑 골드), 2위(🥈 실버), 3위(🥉 브론즈) 라이브 방 랭킹 목록 반환.
+  - 모꼬 LIVE 메인 화면 (`apps/mobile/src/screens/main/LiveScreen.js`):
+    - 상단 카테고리 칩 바로 위에 **[👑 실시간 HOT 모꼬 LIVE TOP 3]** 전용 섹션 신설:
+      - 1위 (👑 골드), 2위 (🥈 실버), 3위 (🥉 브론즈) 왕관 뱃지.
+      - 가로 대형 카드: 실시간 썸네일, 호스트 닉네임, 실시간 시청자 수(`🔴 1.2k`), 판매 중인 상품 핀 썸네일 오버레이.
+      - 카드 터치 시 즉시 해당 방송 방으로 다이렉트 입장.
+  - 모꼬홈 (`HomeScreen.js`):
+    - 홈 화면 최상단 배너 하단에 **[🔥 지금 가장 핫한 모꼬 LIVE 1위]** 미니 라이브 플레이어 카드 배치 (원클릭 방송 입장).
+- **동네 모꼬지: 실시간 접속자 리스트 & 1-Click 대화 신청 연동 (services/api & apps/mobile)**:
+  - 백엔드 실시간 접속자 목록 API (`services/api/src/modules/suda/community.controller.ts`):
+    - `GET /api/community/active-users`: 최근 10분 이내 접속 및 활동 중인 동네 이웃 목록 반환 (id, nickname, avatarUrl, neighborhood, isOnline).
+  - 동네 모꼬지 화면 (`apps/mobile/src/screens/main/ChatsScreen.js` & `CommunityFeedScreen.js`):
+    - 최상단에 **[🟢 지금 접속 중인 이웃들 (실시간 동네 모꼬지)]** 가로 원형 아바타 캐러셀 신설 (핑크빛 링, 초록색 온라인 인디케이터, 닉네임, 동네명).
+    - 이웃 아바타 터치 시 `UserProfileBottomSheet` 팝업 연동:
+      - **[💬 1:1 대화 신청]** 터치 시 해당 유저와의 1:1 대화방 즉시 개설 및 `ChatRoomScreen.js`로 다이렉트 이동.
+      - **[📞 1:1 통화 신청]** 터치 시 유료 통화 모달 오픈.
+    - 상단 2단 세그먼트 탭 구성: `[동네 전체 수다]` (24시간 실시간 1줄 톡) vs `[나의 1:1 대화함]`.
+- **3대 빌드 검증 및 무결점 확인**:
+  - `services/api`: `npm run build` -> 무결점 0 에러 컴파일 성공.
+  - `apps/admin`: `npm run build` -> 40개 정적/동적 라우트 무결점 0 에러 컴파일 성공.
+  - `apps/mobile`: `npm run test:mobile:babel` (iOS & Android 1500+ 모듈) -> 무결점 0 에러 번들 성공.
+
+---
+
 ## 2026-10-26 Checkpoint 111: [모꼬(Mocco) 리브랜딩 및 아키텍처 혁신 - 2단계: 스트리머 제휴 핀 판매 & 수익 쉐어 정산 & 모바일/API 전방위 소스 대청소]
 - **모바일 앱(apps/mobile) 레거시 소스 전방위 대청소 (Clean-up)**:
   - 과거 불필요한 잔여 화면 영구 삭제:

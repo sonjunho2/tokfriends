@@ -1,7 +1,7 @@
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import React, { Component, useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, StatusBar, TouchableOpacity } from 'react-native';
+import { View, Text, Image, ActivityIndicator, StyleSheet, StatusBar, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import {
@@ -90,8 +90,15 @@ export default function App() {
   if (!shouldRenderApp) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
-        <ActivityIndicator size="large" color="#FF3B6B" />
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <Image
+          source={require('./assets/mocco-mascot.png')}
+          style={styles.splashMascot}
+          resizeMode="contain"
+        />
+        <Text style={styles.splashTitle}>모꼬 (Mocco)</Text>
+        <Text style={styles.splashSubtitle}>새로운 인연과 즐거운 라이브 커머스 ☁️</Text>
+        <ActivityIndicator size="small" color="#FF3B6B" style={{ marginTop: 20 }} />
       </View>
     );
   }
@@ -123,7 +130,26 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
+    padding: 24,
+  },
+  splashMascot: {
+    width: 120,
+    height: 120,
+    borderRadius: 24,
+    marginBottom: 16,
+  },
+  splashTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
+  splashSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '600',
   },
   errorContainer: {
     flex: 1,

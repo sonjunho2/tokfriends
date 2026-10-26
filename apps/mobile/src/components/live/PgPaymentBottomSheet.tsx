@@ -234,7 +234,7 @@ export default function PgPaymentBottomSheet({
                 <Text style={styles.breakVal}>{itemPrice.toLocaleString()}원</Text>
               </View>
               <View style={styles.breakRow}>
-                <Text style={styles.breakLabel}>에스크로 안전거래 수수료 (3.5%)</Text>
+                <Text style={styles.breakLabel}>모꼬 안심결제(Mocco Pay) 수수료 (3.5%)</Text>
                 <Text style={styles.breakVal}>+{feeAmount.toLocaleString()}원</Text>
               </View>
               <View style={[styles.breakRow, styles.totalRow]}>
@@ -247,7 +247,7 @@ export default function PgPaymentBottomSheet({
             <View style={styles.safeShieldBanner}>
               <Ionicons name="shield-checkmark" size={16} color="#10B981" />
               <Text style={styles.safeShieldText}>
-                수령 후 [구매확정] 전까지 대금이 안전하게 에스크로에 보관됩니다.
+                수령 후 [구매확정] 전까지 대금이 안전하게 모꼬 안심결제로 보호됩니다.
               </Text>
             </View>
 
@@ -270,7 +270,7 @@ export default function PgPaymentBottomSheet({
                   <>
                     <Ionicons name="lock-closed" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
                     <Text style={styles.payBtnText}>
-                      {totalAmount.toLocaleString()}원 즉시 안전결제
+                      {totalAmount.toLocaleString()}원 모꼬 안심결제
                     </Text>
                   </>
                 )}

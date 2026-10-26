@@ -141,6 +141,41 @@ export class LiveController {
   }
 
   /**
+   * 실시간 HOT 모꼬 LIVE TOP 3 랭킹
+   * 동시 접속자 수(CCU) + 방송 중 모꼬 코인(MC) 후원액 가중 합산
+   */
+  @Public()
+  @Get('top3')
+  async getTop3LiveRooms() {
+    const activeRooms = MOCK_LIVE_ROOMS.filter((r) => r.status === 'ACTIVE');
+    const pool = activeRooms.length >= 3 ? activeRooms : MOCK_LIVE_ROOMS;
+
+    const ranked = [...pool]
+      .map((room) => {
+        const viewers = Number(room.viewerCount || 0);
+        const giftPoints = Number(room.totalGiftsPoints || 0);
+        const score = viewers * 10 + Math.floor(giftPoints / 100);
+        return {
+          ...room,
+          score,
+        };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map((room, idx) => ({
+        ...room,
+        rank: idx + 1,
+        rankBadge: idx === 0 ? '👑 골드' : idx === 1 ? '🥈 실버' : '🥉 브론즈',
+      }));
+
+    return {
+      ok: true,
+      data: ranked,
+      items: ranked,
+    };
+  }
+
+  /**
    * 관리자 라이브 지표 요약
    */
   @Public()

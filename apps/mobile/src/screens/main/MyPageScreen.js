@@ -3,6 +3,7 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
@@ -310,7 +311,14 @@ export default function MyPageScreen({ navigation }) {
 
       {/* 1. 상단 내비 바 */}
       <View style={styles.navBar}>
-        <Text style={styles.navTitle}>마이페이지</Text>
+        <View style={styles.navTitleRow}>
+          <Image
+            source={require('../../../assets/mocco-mascot.png')}
+            style={styles.navMascotIcon}
+            resizeMode="contain"
+          />
+          <Text style={styles.navTitle}>마이모꼬</Text>
+        </View>
         <TouchableOpacity
           style={styles.navIconBtn}
           onPress={() => navigation.navigate('ProfileEdit', { profile: userProfile })}
@@ -328,30 +336,36 @@ export default function MyPageScreen({ navigation }) {
         {/* 2. 상단 프로필 헤더 카드 */}
         <View style={styles.profileCard}>
           <View style={styles.profileTopRow}>
-            {/* 코랄-퍼플 그라데이션 스토리 링 */}
-            <LinearGradient
-              colors={tokens.colors.gradients.primaryPurple}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.storyRing}
-            >
-              <View style={styles.storyRingInner}>
-                <UserAvatar
-                  uri={avatarUri}
-                  name={nickname}
-                  size="lg"
-                  isOnline={true}
-                  onPress={() => navigation.navigate('ProfileEdit', { profile: { ...user, ...userProfile } })}
-                />
-              </View>
-            </LinearGradient>
+            {/* 코랄-퍼플 그라데이션 스토리 링 + 모꼬 캐릭터 뱃지 */}
+            <View style={{ position: 'relative' }}>
+              <LinearGradient
+                colors={tokens.colors.gradients.primaryPurple}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.storyRing}
+              >
+                <View style={styles.storyRingInner}>
+                  <UserAvatar
+                    uri={avatarUri}
+                    name={nickname}
+                    size="lg"
+                    isOnline={true}
+                    onPress={() => navigation.navigate('ProfileEdit', { profile: { ...user, ...userProfile } })}
+                  />
+                </View>
+              </LinearGradient>
+              <Image
+                source={require('../../../assets/mocco-mascot.png')}
+                style={styles.profileMascotBadge}
+              />
+            </View>
 
             <View style={styles.profileInfoCol}>
               <View style={styles.nameRow}>
                 <Text style={styles.profileName} numberOfLines={1}>{nickname}</Text>
                 <View style={styles.verifiedBadge}>
                   <Ionicons name="checkmark-circle" size={13} color={tokens.colors.primary} />
-                  <Text style={styles.verifiedText}>인증회원</Text>
+                  <Text style={styles.verifiedText}>모꼬 공식 이웃</Text>
                 </View>
               </View>
               <Text style={styles.locationText}>📍 {locationLabel}</Text>
@@ -401,7 +415,7 @@ export default function MyPageScreen({ navigation }) {
             {/* 상단 레이블 & VIP 태그 */}
             <View style={styles.walletTopRow}>
               <View style={styles.walletLabelGroup}>
-                <Text style={styles.walletLabel}>내 보유 온 (ON)</Text>
+                <Text style={styles.walletLabel}>내 보유 모꼬 코인 (MC)</Text>
                 <View style={styles.vipAssetTag}>
                   <Text style={styles.vipAssetTagText}>👑 VIP 크리에이터</Text>
                 </View>
@@ -418,7 +432,7 @@ export default function MyPageScreen({ navigation }) {
             <View style={styles.balanceRow}>
               <Text style={styles.balanceCoin}>🪙</Text>
               <Text style={styles.balanceValue}>{balance.toLocaleString()}</Text>
-              <Text style={styles.balanceUnit}>ON</Text>
+              <Text style={styles.balanceUnit}>MC</Text>
             </View>
             <Text style={styles.balanceSubText}>이번 달 리워드 및 선물 적립 +3,450 ON</Text>
 
@@ -1682,10 +1696,31 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: tokens.colors.borderLight,
   },
+  navTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  navMascotIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+  },
   navTitle: {
     fontSize: 18,
     fontWeight: '800',
     color: tokens.colors.textPrimary,
+  },
+  profileMascotBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF',
   },
   navIconBtn: {
     width: 36,
