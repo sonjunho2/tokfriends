@@ -153,6 +153,23 @@ export const DUMMY_LIVE_ROOMS = [
       region: '경기 성남시',
     },
   },
+  {
+    id: 'live-room-4',
+    title: '🔥 [모꼬마켓 특가] 무선 키보드 실물 리뷰 & 소통',
+    category: 'shopping',
+    hasCommerce: true,
+    entryFee: 0,
+    viewerCount: 65,
+    totalLikes: 210,
+    status: 'active',
+    host: {
+      id: 'acc-jimin',
+      name: '이지민',
+      handle: 'jimin_market',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+      region: '서울 강남구',
+    },
+  },
 ];
 
 export const DUMMY_LIVE_MESSAGES_STORE = {
@@ -3157,9 +3174,10 @@ export const apiClient = {
   async getLiveRooms() {
     try {
       const { data } = await client.get('/live/rooms');
-      return Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+      const list = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+      return list.length > 0 ? list : DUMMY_LIVE_ROOMS;
     } catch (e) {
-      return [];
+      return DUMMY_LIVE_ROOMS;
     }
   },
 

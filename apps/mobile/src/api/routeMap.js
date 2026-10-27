@@ -9,6 +9,7 @@
 export const PATH_MAP = [
   { from: /^\/auth\/otp\/request\/?$/, to: '/auth/phone/request-otp' },
   { from: /^\/auth\/otp\/verify\/?$/,  to: '/auth/phone/verify' },
+  { from: /^\/live(\/.*)?$/,           to: '/v1/live$1' },
 ];
 
 export function mapPath(original) {

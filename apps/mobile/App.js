@@ -1,7 +1,7 @@
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import React, { Component, useEffect, useState } from 'react';
-import { View, Text, Image, ActivityIndicator, StyleSheet, StatusBar, TouchableOpacity } from 'react-native';
+import { View, Text, Image, ActivityIndicator, StyleSheet, StatusBar, TouchableOpacity, LogBox } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import {
@@ -13,6 +13,11 @@ import {
 import Navigation from './src/navigation';
 import colors from './src/theme/colors';
 import { AuthProvider } from './src/context/AuthContext';
+
+LogBox.ignoreLogs([
+  'setLayoutAnimationEnabledExperimental',
+  'Passing an object as the argument to',
+]);
 
 /** 전역 크래시 방어용 ErrorBoundary */
 class GlobalErrorBoundary extends Component {

@@ -46,7 +46,8 @@
     "react-native-screens": "~4.26.0",
     "react-native-webview": "13.16.1",
     "react-native-worklets": "0.10.1",
-    "socket.io-client": "^4.7.5"
+    "socket.io-client": "^4.7.5",
+    "typescript": "~6.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",

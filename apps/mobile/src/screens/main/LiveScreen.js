@@ -12,11 +12,12 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import colors from '../../theme/colors';
 import Avatar from '../../components/Avatar';
 import { apiClient } from '../../api/client';
@@ -26,9 +27,12 @@ import { EmptyStateView, ExtendedFAB, useExtendedFabScroll } from '../../compone
 import { fetchMarketProducts, fetchMyMerchantProducts, MarketProduct, INITIAL_MARKET_PRODUCTS } from '../../services/marketService';
 
 const LIVE_COLOR = '#FF3B6B';
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const TOP3_CARD_WIDTH = Math.floor((SCREEN_WIDTH - 24 - 16) / 3);
 
 const CATEGORIES = [
   { key: 'all', label: '전체' },
+  { key: 'shopping', label: '쇼핑/중고' },
   { key: 'talk', label: '토크/소통' },
   { key: 'music', label: '음악/노래' },
   { key: 'daily', label: '일상' },
@@ -124,6 +128,7 @@ export default function LiveScreen({ navigation }) {
   const loadRooms = useCallback(async () => {
     try {
       const data = await apiClient.getActiveLiveRooms();
+      console.log('[LiveScreen] getActiveLiveRooms data count:', Array.isArray(data) ? data.length : 0, data?.[0]);
       setRooms(Array.isArray(data) ? data : []);
     } catch (e) {
       console.warn('Failed to load active live rooms', e);
@@ -203,7 +208,19 @@ export default function LiveScreen({ navigation }) {
 
   const filteredRooms = useMemo(() => {
     if (selectedCategory === 'all') return rooms;
-    return rooms.filter((r) => r.category === selectedCategory);
+    if (selectedCategory === 'shopping') {
+      return rooms.filter(
+        (r) =>
+          r.category === 'shopping' ||
+          r.category === 'market' ||
+          r.category?.includes('쇼핑') ||
+          r.category?.includes('중고') ||
+          Boolean(r.hasCommerce) ||
+          Boolean(r.pinProduct) ||
+          (Array.isArray(r.linkedProductIds) && r.linkedProductIds.length > 0)
+      );
+    }
+    return rooms.filter((r) => r.category === selectedCategory || (r.category && r.category.includes(selectedCategory)));
   }, [rooms, selectedCategory]);
 
   const handleStartLive = async () => {
@@ -347,122 +364,182 @@ export default function LiveScreen({ navigation }) {
   };
 
 
-  // [👑 실시간 HOT 모꼬 LIVE TOP 3] 전용 섹션 렌더링
+  // [👑 실시간 Top3] 전용 섹션 렌더링 (한 화면 3열 고정 & 화려한 엠블럼 오버레이)
   const renderTop3Section = () => {
     if (!top3Rooms || top3Rooms.length === 0) return null;
 
+    // 첨부 이미지 스타일의 화려한 원형 엠블럼 (상단 중앙 오버랩)
+    const renderRankEmblem = (rank) => {
+      const isRank1 = rank === 1;
+      const isRank2 = rank === 2;
+
+      const emblemColors = isRank1
+        ? {
+            ringBorder: '#F59E0B',
+            ringInner: '#FBBF24',
+            crown: '#FBBF24',
+            noText: '#FDE68A',
+            numText: '#FBBF24',
+            star: '#F59E0B',
+            bg: '#181204',
+            shadow: '#F59E0B',
+          }
+        : isRank2
+        ? {
+            ringBorder: '#CBD5E1',
+            ringInner: '#94A3B8',
+            crown: '#E2E8F0',
+            noText: '#E2E8F0',
+            numText: '#FFFFFF',
+            star: '#94A3B8',
+            bg: '#0F172A',
+            shadow: '#94A3B8',
+          }
+        : {
+            ringBorder: '#D97706',
+            ringInner: '#B45309',
+            crown: '#FDBA74',
+            noText: '#FED7AA',
+            numText: '#FDBA74',
+            star: '#D97706',
+            bg: '#1C120A',
+            shadow: '#D97706',
+          };
+
+      return (
+        <View style={[styles.emblemContainer, isRank1 && styles.emblemContainerGold, { shadowColor: emblemColors.shadow }]}>
+          <View
+            style={[
+              styles.emblemOuterRing,
+              isRank1 && styles.emblemOuterRingGold,
+              { borderColor: emblemColors.ringBorder, backgroundColor: emblemColors.bg },
+            ]}
+          >
+            <View
+              style={[
+                styles.emblemInnerRing,
+                isRank1 && styles.emblemInnerRingGold,
+                { borderColor: emblemColors.ringInner },
+              ]}
+            >
+              {/* 상단 미니 왕관 */}
+              <FontAwesome5
+                name="crown"
+                size={isRank1 ? 8.5 : 7}
+                color={emblemColors.crown}
+                style={styles.emblemCrownIcon}
+              />
+              {/* No. 레이블 & 순위 숫자 */}
+              <View style={styles.emblemCenterRow}>
+                <Text style={[styles.emblemNoText, isRank1 && styles.emblemNoTextGold, { color: emblemColors.noText }]}>No.</Text>
+                <Text style={[styles.emblemNumText, isRank1 && styles.emblemNumTextGold, { color: emblemColors.numText }]}>{rank}</Text>
+              </View>
+              {/* 하단 미니 별 3개 */}
+              <Text style={[styles.emblemStarsText, isRank1 && styles.emblemStarsTextGold, { color: emblemColors.star }]}>★ ★ ★</Text>
+            </View>
+          </View>
+        </View>
+      );
+    };
+
     return (
       <View style={styles.top3SectionWrap}>
+        {/* 상단 타이틀 행 (실시간 Top3) */}
         <View style={styles.top3HeaderRow}>
           <View style={styles.top3TitleGroup}>
             <Text style={styles.top3CrownEmoji}>👑</Text>
-            <Text style={styles.top3SectionTitle}>실시간 HOT 모꼬 LIVE TOP 3</Text>
+            <Text style={styles.top3SectionTitle}>실시간 Top3</Text>
             <View style={styles.top3LiveDotBadge}>
               <View style={styles.top3LiveDot} />
               <Text style={styles.top3LiveDotText}>LIVE RANK</Text>
             </View>
           </View>
-          <Text style={styles.top3Subtitle}>시청자수 + 후원 가중 합산</Text>
+          <Text style={styles.top3Subtitle}>시청자 + 후원 집계</Text>
         </View>
 
-        <FlatList
-          data={top3Rooms}
-          keyExtractor={(item, index) => item.id || String(index)}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.top3ScrollContent}
-          renderItem={({ item, index }) => {
+        {/* 3열 한눈에 보이는 고정 그리드 (스크롤 없이 1~3위 동시 노출) */}
+        <View style={styles.top3RowContainer}>
+          {top3Rooms.slice(0, 3).map((item, index) => {
             const rank = item.rank || index + 1;
-            const rankBadgeColors =
-              rank === 1
-                ? ['#F59E0B', '#D97706']
-                : rank === 2
-                ? ['#94A3B8', '#64748B']
-                : ['#B45309', '#78350F'];
-            const rankBadgeText =
-              rank === 1 ? '👑 1위 골드' : rank === 2 ? '🥈 2위 실버' : '🥉 3위 브론즈';
+            const isRank1 = rank === 1;
+            const isRank2 = rank === 2;
+
+            const cardBorderColor = isRank1 ? '#F59E0B' : isRank2 ? '#94A3B8' : '#D97706';
+            const viewerFormatted =
+              item.viewerCount >= 1000
+                ? `${(item.viewerCount / 1000).toFixed(1)}k`
+                : (item.viewerCount || 0).toLocaleString();
 
             return (
-              <TouchableOpacity
+              <View
+                key={item.id || String(index)}
                 style={[
-                  styles.top3Card,
-                  rank === 1 && styles.top3CardGold,
+                  styles.top3CardOuter,
+                  isRank1 && styles.top3CardOuterGold,
+                  isRank2 && styles.top3CardOuterSilver,
+                  !isRank1 && !isRank2 && styles.top3CardOuterBronze,
                 ]}
-                activeOpacity={0.9}
-                onPress={() =>
-                  navigation.navigate('LiveRoom', {
-                    roomId: item.id,
-                    roomTitle: item.title,
-                    hostName: item.host?.name || item.hostName,
-                    hostAvatar: item.host?.avatar || item.hostAvatar,
-                  })
-                }
               >
-                <Image
-                  source={{ uri: item.coverUri || item.host?.avatar }}
-                  style={styles.top3Cover}
-                  resizeMode="cover"
-                />
-                <LinearGradient
-                  colors={['transparent', 'rgba(15, 23, 42, 0.95)']}
-                  style={styles.top3Gradient}
+                {/* 상단 중앙에 오버랩되는 첨부 스타일 화려한 엠블럼 */}
+                {renderRankEmblem(rank)}
+
+                <TouchableOpacity
+                  style={[styles.top3CardInner, { borderColor: cardBorderColor }]}
+                  activeOpacity={0.9}
+                  onPress={() =>
+                    navigation.navigate('LiveRoom', {
+                      roomId: item.id,
+                      roomTitle: item.title,
+                      hostName: item.host?.name || item.hostName,
+                      hostAvatar: item.host?.avatar || item.hostAvatar,
+                    })
+                  }
                 >
-                  {/* 상단 랭킹 뱃지 & 시청자 수 */}
-                  <View style={styles.top3TopMetaRow}>
-                    <LinearGradient
-                      colors={rankBadgeColors}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.rankPillBadge}
-                    >
-                      <Text style={styles.rankPillText}>{rankBadgeText}</Text>
-                    </LinearGradient>
+                  <Image
+                    source={{ uri: item.coverUri || item.host?.avatar }}
+                    style={styles.top3Cover}
+                    resizeMode="cover"
+                  />
+                  <LinearGradient
+                    colors={['transparent', 'rgba(15, 23, 42, 0.4)', 'rgba(15, 23, 42, 0.95)']}
+                    style={styles.top3Gradient}
+                  >
+                    {/* 상단 시청자수 미니 배지 */}
+                    <View style={styles.top3TopRow}>
+                      <View style={styles.top3ViewerBadgeMini}>
+                        <View style={styles.redDot} />
+                        <Text style={styles.top3ViewerTextMini}>{viewerFormatted}</Text>
+                      </View>
+                    </View>
 
-                    <View style={styles.top3ViewerBadge}>
-                      <View style={styles.redDot} />
-                      <Text style={styles.top3ViewerText}>
-                        🔴 {(item.viewerCount || 0).toLocaleString()}명
+                    {/* 하단 호스트 정보 */}
+                    <View style={styles.top3BottomInfo}>
+                      <View style={styles.top3HostRow}>
+                        <Image
+                          source={{ uri: item.host?.avatar || item.coverUri }}
+                          style={[styles.top3HostAvatarMini, { borderColor: cardBorderColor }]}
+                        />
+                        <Text style={styles.top3HostNameMini} numberOfLines={1}>
+                          {item.host?.name || item.hostName || '호스트'}
+                        </Text>
+                      </View>
+                      <Text style={styles.top3RoomTitleMini} numberOfLines={1}>
+                        {item.title}
                       </Text>
+                      {item.pinProduct ? (
+                        <View style={styles.top3PinProductMini}>
+                          <Text style={styles.top3PinTextMini} numberOfLines={1}>
+                            📌 특가 핀
+                          </Text>
+                        </View>
+                      ) : null}
                     </View>
-                  </View>
-
-                  {/* 하단 호스트 정보 & 핀 상품 썸네일 오버레이 */}
-                  <View style={styles.top3BottomRow}>
-                    <View style={styles.top3HostMeta}>
-                      <Image
-                        source={{ uri: item.host?.avatar || item.coverUri }}
-                        style={styles.top3HostAvatar}
-                      />
-                      <View style={{ flex: 1, marginLeft: 8 }}>
-                        <Text style={styles.top3HostName} numberOfLines={1}>
-                          {item.host?.name || item.hostName || '모꼬 호스트'}
-                        </Text>
-                        <Text style={styles.top3RoomTitle} numberOfLines={1}>
-                          {item.title}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* 판매 중인 제휴/직영 상품 핀 썸네일 */}
-                    <View style={styles.top3PinProductBadge}>
-                      <Image
-                        source={{
-                          uri:
-                            item.pinProduct?.image ||
-                            'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=150',
-                        }}
-                        style={styles.top3PinImg}
-                      />
-                      <View style={styles.top3PinTag}>
-                        <Text style={styles.top3PinTagText}>📌 특가 핀</Text>
-                      </View>
-                    </View>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
             );
-          }}
-        />
+          })}
+        </View>
       </View>
     );
   };
@@ -891,8 +968,8 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   top3SectionWrap: {
-    paddingTop: 10,
-    paddingBottom: 12,
+    paddingTop: 8,
+    paddingBottom: 14,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
@@ -901,19 +978,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 10,
+    paddingHorizontal: 14,
+    marginBottom: 14,
   },
   top3TitleGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
   },
   top3CrownEmoji: {
-    fontSize: 14,
+    fontSize: 15,
   },
   top3SectionTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
     color: '#0F172A',
     letterSpacing: -0.3,
@@ -943,31 +1020,127 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontWeight: '600',
   },
-  top3ScrollContent: {
-    paddingHorizontal: 16,
-    gap: 12,
+  // 3열 고정 컨테이너 (한 화면에 1, 2, 3위 동시 노출)
+  top3RowContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    alignItems: 'flex-end',
+    paddingTop: 18,
   },
-  top3Card: {
-    width: 260,
-    height: 160,
-    borderRadius: 16,
-    overflow: 'hidden',
+  top3CardOuter: {
+    width: TOP3_CARD_WIDTH,
+    height: 154,
     position: 'relative',
+    overflow: 'visible',
+  },
+  top3CardOuterGold: {
+    width: TOP3_CARD_WIDTH,
+    height: 162,
+    zIndex: 3,
+  },
+  top3CardOuterSilver: {
+    width: TOP3_CARD_WIDTH,
+    height: 154,
+    zIndex: 2,
+  },
+  top3CardOuterBronze: {
+    width: TOP3_CARD_WIDTH,
+    height: 154,
+    zIndex: 1,
+  },
+  // 첨부 이미지 스타일의 화려한 원형 엠블럼 (상단 중앙 오버랩)
+  emblemContainer: {
+    position: 'absolute',
+    top: -16,
+    left: 0,
+    right: 0,
+    width: '100%',
+    alignItems: 'center',
+    zIndex: 20,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.7,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  emblemContainerGold: {
+    top: -19,
+    shadowOpacity: 0.9,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  emblemOuterRing: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1.8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emblemOuterRingGold: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 2.2,
+  },
+  emblemInnerRing: {
+    width: 31,
+    height: 31,
+    borderRadius: 15.5,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 1,
+  },
+  emblemInnerRingGold: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1.2,
+  },
+  emblemCrownIcon: {
+    marginTop: -1,
+    marginBottom: 0,
+  },
+  emblemCenterRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginTop: -1,
+  },
+  emblemNoText: {
+    fontSize: 7,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+    marginRight: 0.5,
+  },
+  emblemNoTextGold: {
+    fontSize: 7.5,
+  },
+  emblemNumText: {
+    fontSize: 13,
+    fontWeight: '900',
+    lineHeight: 14,
+  },
+  emblemNumTextGold: {
+    fontSize: 15,
+    lineHeight: 16,
+  },
+  emblemStarsText: {
+    fontSize: 4.5,
+    letterSpacing: 0.5,
+    marginTop: -1,
+  },
+  emblemStarsTextGold: {
+    fontSize: 5,
+  },
+  // 카드 본체
+  top3CardInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 14,
+    overflow: 'hidden',
     backgroundColor: '#0F172A',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  top3CardGold: {
-    borderColor: '#F59E0B',
-    borderWidth: 2,
-    shadowColor: '#F59E0B',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
   },
   top3Cover: {
     width: '100%',
@@ -980,93 +1153,68 @@ const styles = StyleSheet.create({
     bottom: 0,
     top: 0,
     justifyContent: 'space-between',
-    padding: 10,
+    padding: 6,
+    paddingTop: 16,
   },
-  top3TopMetaRow: {
+  top3TopRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
   },
-  rankPillBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2.5,
-    borderRadius: 6,
-  },
-  rankPillText: {
-    fontSize: 9.5,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: -0.2,
-  },
-  top3ViewerBadge: {
+  top3ViewerBadgeMini: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
     backgroundColor: 'rgba(15, 23, 42, 0.75)',
-    paddingHorizontal: 6,
-    paddingVertical: 2.5,
-    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 5,
   },
   redDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: '#EF4444',
   },
-  top3ViewerText: {
-    fontSize: 9.5,
+  top3ViewerTextMini: {
+    fontSize: 8.5,
     fontWeight: '800',
     color: '#FFFFFF',
   },
-  top3BottomRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
+  top3BottomInfo: {
+    gap: 2,
   },
-  top3HostMeta: {
+  top3HostRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  top3HostAvatarMini: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1,
+  },
+  top3HostNameMini: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  top3HostAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-  },
-  top3HostName: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '800',
     color: '#FFFFFF',
   },
-  top3RoomTitle: {
-    fontSize: 11,
-    color: '#CBD5E1',
+  top3RoomTitleMini: {
+    fontSize: 8.5,
+    color: '#E2E8F0',
     fontWeight: '500',
-    marginTop: 1,
   },
-  top3PinProductBadge: {
-    alignItems: 'center',
-    position: 'relative',
-  },
-  top3PinImg: {
-    width: 38,
-    height: 38,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: '#F59E0B',
-  },
-  top3PinTag: {
-    position: 'absolute',
-    bottom: -4,
+  top3PinProductMini: {
+    alignSelf: 'flex-start',
     backgroundColor: '#F59E0B',
     paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 3,
+    marginTop: 1,
   },
-  top3PinTagText: {
+  top3PinTextMini: {
     fontSize: 7.5,
     fontWeight: '900',
     color: '#78350F',

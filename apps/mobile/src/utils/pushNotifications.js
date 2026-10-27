@@ -32,7 +32,7 @@ export async function registerPushNotifications() {
     });
     return token;
   } catch (err) {
-    console.warn('Push notification registration skipped/failed:', err?.message || err);
+    console.debug('Push notification registration skipped/failed:', err?.message || err);
     return null;
   }
 }

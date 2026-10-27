@@ -10,8 +10,9 @@ import { decryptAdminSettingValue, encryptAdminSettingValue } from '../admin/adm
 const MOCK_LIVE_ROOMS = [
   {
     id: 'LIVE-101',
-    title: '불금 소통 방송 놀러오세요 ✨ 하트 환영!',
-    category: '일상/토크',
+    title: '🔥 [모꼬마켓 특가] 무선 키보드 실물 리뷰 & 소통',
+    category: '쇼핑/중고',
+    hasCommerce: true,
     type: 'PUBLIC_1_TO_N',
     status: 'ACTIVE',
     viewerCount: 84,
@@ -261,8 +262,8 @@ export class LiveController {
   async getLiveRooms(@Query('category') category?: string) {
     let rooms = MOCK_LIVE_ROOMS.filter((r) => r.status === 'ACTIVE');
     if (category && category !== 'all' && category !== '전체') {
-      if (category === 'shopping' || category === '쇼핑' || category === '공구') {
-        rooms = rooms.filter((r: any) => Boolean(r.hasCommerce) || r.category === 'shopping' || r.category?.includes('공구') || r.category?.includes('쇼핑'));
+      if (category === 'shopping' || category === '쇼핑' || category === '공구' || category === 'market' || category.includes('중고')) {
+        rooms = rooms.filter((r: any) => Boolean(r.hasCommerce) || r.category === 'shopping' || r.category === 'market' || r.category?.includes('공구') || r.category?.includes('쇼핑') || r.category?.includes('중고'));
       } else {
         rooms = rooms.filter((r) => r.category.includes(category) || category.includes(r.category));
       }
