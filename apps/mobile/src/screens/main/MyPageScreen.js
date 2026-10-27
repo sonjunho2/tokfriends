@@ -466,10 +466,12 @@ export default function MyPageScreen({ navigation }) {
         </View>
         <TouchableOpacity
           style={styles.navIconBtn}
-          onPress={() => navigation.navigate('ProfileEdit', { profile: { ...user, ...userProfile } })}
+          onPress={() => navigation.navigate('Notifications')}
           activeOpacity={0.8}
+          hitSlop={8}
         >
-          <Ionicons name="settings-outline" size={22} color={tokens.colors.textPrimary} />
+          <Ionicons name="notifications-outline" size={22} color="#0F172A" />
+          <View style={styles.navUnreadDot} />
         </TouchableOpacity>
       </View>
 
@@ -1739,6 +1741,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F8FAFC',
+    position: 'relative',
+  },
+  navUnreadDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#EF4444',
   },
   scrollArea: {
     flex: 1,

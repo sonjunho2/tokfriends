@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -68,43 +69,129 @@ const POINT_PACKAGES = [
 ];
 
 const PAYMENT_METHODS = [
-  { id: 'kakaopay', name: '카카오페이', icon: 'chatbubble-ellipses', color: '#FEE500' },
-  { id: 'naverpay', name: '네이버페이', icon: 'logo-tableau', color: '#03C75A' },
-  { id: 'card', name: '신용/체크카드', icon: 'card-outline', color: '#3B82F6' },
-  { id: 'toss', name: '토스페이', icon: 'flash', color: '#0064FF' },
-  { id: 'phone', name: '휴대폰 결제', icon: 'phone-portrait-outline', color: '#6B7280' },
+  {
+    id: 'googleplay',
+    name: 'Google Play 결제',
+    icon: 'logo-google',
+    color: '#01875F',
+    badge: 'Google 인앱',
+    badgeBg: '#E8F5E9',
+    badgeColor: '#1B5E20',
+  },
+  {
+    id: 'appstore',
+    name: 'App Store 결제',
+    icon: 'logo-apple',
+    color: '#000000',
+    badge: 'Apple Pay',
+    badgeBg: '#F3F4F6',
+    badgeColor: '#111827',
+  },
+  {
+    id: 'kakaopay',
+    name: '카카오페이',
+    icon: 'chatbubble-ellipses',
+    color: '#3C1E1E',
+    badge: '간편결제',
+    badgeBg: '#FEF9C3',
+    badgeColor: '#854D0E',
+  },
+  {
+    id: 'naverpay',
+    name: '네이버페이',
+    icon: 'logo-tableau',
+    color: '#03C75A',
+    badge: '간편결제',
+    badgeBg: '#DCFCE7',
+    badgeColor: '#15803D',
+  },
+  {
+    id: 'card',
+    name: '신용/체크카드',
+    icon: 'card-outline',
+    color: '#3B82F6',
+    badge: null,
+  },
+  {
+    id: 'toss',
+    name: '토스페이',
+    icon: 'flash',
+    color: '#0064FF',
+    badge: '간편결제',
+    badgeBg: '#EFF6FF',
+    badgeColor: '#0064FF',
+  },
+  {
+    id: 'phone',
+    name: '휴대폰 결제',
+    icon: 'phone-portrait-outline',
+    color: '#6B7280',
+    badge: null,
+  },
 ];
 
 export default function PointChargeScreen({ navigation }) {
   const { user, refreshMe, updateUserProfile } = useAuth();
   const [selectedPackage, setSelectedPackage] = useState(POINT_PACKAGES[3]); // 10,000 P 기본 선택
-  const [paymentMethod, setPaymentMethod] = useState('kakaopay');
+  // Android 에뮬레이터/디바이스에서는 Google Play, iOS에서는 App Store를 기본 선택
+  const [paymentMethod, setPaymentMethod] = useState(
+    Platform.OS === 'ios' ? 'appstore' : 'googleplay'
+  );
   const [loading, setLoading] = useState(false);
 
   const currentPoints = user?.profile?.points ?? user?.points ?? 4020;
-
   const totalPoints = selectedPackage.points + selectedPackage.bonus;
 
   const handleCharge = async () => {
-    Alert.alert(
-      '모꼬 포인트 충전',
-      `선택 상품: ${selectedPackage.points.toLocaleString()} P ${
+    const isGoogle = paymentMethod === 'googleplay';
+    const isApple = paymentMethod === 'appstore';
+
+    let title = '모꼬 포인트 충전';
+    let message = '';
+    let confirmBtnText = '결제하기';
+
+    if (isGoogle) {
+      title = 'Google Play 인앱결제';
+      message = `선택 상품: 모꼬 ${selectedPackage.points.toLocaleString()} P ${
         selectedPackage.bonus > 0 ? `(+보너스 ${selectedPackage.bonus.toLocaleString()} P)` : ''
-      }\n결제 금액: ${selectedPackage.price.toLocaleString()}원 (VAT 포함)\n결제 수단: ${
-        PAYMENT_METHODS.find((m) => m.id === paymentMethod)?.name
-      }\n\n정말로 결제를 진행하시겠습니까?`,
+      }\n결제 금액: ₩${selectedPackage.price.toLocaleString()} (VAT 포함)\n\nGoogle Play 계정으로 1-Tap 안전 인앱 결제를 진행합니다.`;
+      confirmBtnText = 'Google Play로 결제';
+    } else if (isApple) {
+      title = 'App Store 인앱결제';
+      message = `선택 상품: 모꼬 ${selectedPackage.points.toLocaleString()} P ${
+        selectedPackage.bonus > 0 ? `(+보너스 ${selectedPackage.bonus.toLocaleString()} P)` : ''
+      }\n결제 금액: ₩${selectedPackage.price.toLocaleString()} (VAT 포함)\n\nFace ID / Touch ID 또는 Apple ID로 결제를 승인합니다.`;
+      confirmBtnText = 'Apple Pay로 승인';
+    } else {
+      title = '모꼬 포인트 충전';
+      const pmName = PAYMENT_METHODS.find((m) => m.id === paymentMethod)?.name || '간편결제';
+      message = `선택 상품: ${selectedPackage.points.toLocaleString()} P ${
+        selectedPackage.bonus > 0 ? `(+보너스 ${selectedPackage.bonus.toLocaleString()} P)` : ''
+      }\n결제 금액: ${selectedPackage.price.toLocaleString()}원 (VAT 포함)\n결제 수단: ${pmName}\n\n정말로 결제를 진행하시겠습니까?`;
+      confirmBtnText = '결제하기';
+    }
+
+    Alert.alert(
+      title,
+      message,
       [
         { text: '취소', style: 'cancel' },
         {
-          text: '결제하기',
+          text: confirmBtnText,
           onPress: async () => {
             setLoading(true);
             try {
-              const res = await apiClient.confirmPurchase({
+              const paymentMethodName = isGoogle
+                ? 'Google Play 인앱결제'
+                : isApple
+                ? 'Apple App Store 인앱결제'
+                : PAYMENT_METHODS.find((m) => m.id === paymentMethod)?.name || '간편결제';
+
+              await apiClient.confirmPurchase({
                 productId: selectedPackage.id,
                 points: totalPoints,
                 amount: selectedPackage.price,
-                paymentMethod: PAYMENT_METHODS.find((m) => m.id === paymentMethod)?.name || '간편결제',
+                paymentMethod: paymentMethodName,
               });
 
               // 유저 프로필 로컬/서버 동기화
@@ -116,9 +203,19 @@ export default function PointChargeScreen({ navigation }) {
                 await refreshMe();
               }
 
+              let successTitle = '🎉 충전 완료';
+              let successSub = '라이브 방송 후원 및 1:1 대화에서 자유롭게 사용해보세요.';
+              if (isGoogle) {
+                successTitle = '🎉 Google Play 결제 완료';
+                successSub = 'Google Play 인앱 영수증이 정상 검증되었습니다.';
+              } else if (isApple) {
+                successTitle = '🎉 App Store 결제 완료';
+                successSub = 'Apple App Store 인앱 영수증이 정상 검증되었습니다.';
+              }
+
               Alert.alert(
-                '🎉 충전 완료',
-                `${totalPoints.toLocaleString()} P가 정상적으로 충전되었습니다!\n현재 보유 포인트: ${nextPoints.toLocaleString()} P\n라이브 방송 후원 및 1:1 대화에서 자유롭게 사용해보세요.`,
+                successTitle,
+                `${totalPoints.toLocaleString()} P가 정상적으로 충전되었습니다!\n(${paymentMethodName})\n현재 보유 포인트: ${nextPoints.toLocaleString()} P\n\n${successSub}`,
                 [
                   {
                     text: '확인',
@@ -273,7 +370,7 @@ export default function PointChargeScreen({ navigation }) {
                 <Ionicons
                   name={pm.icon}
                   size={18}
-                  color={isSelected ? '#191919' : '#6B7280'}
+                  color={isSelected ? pm.color : '#6B7280'}
                 />
                 <Text
                   style={[
@@ -283,6 +380,24 @@ export default function PointChargeScreen({ navigation }) {
                 >
                   {pm.name}
                 </Text>
+                {pm.badge && (
+                  <View
+                    style={[
+                      styles.pmBadge,
+                      { backgroundColor: pm.badgeBg || '#F3F4F6' },
+                      isSelected && styles.pmBadgeSelected,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.pmBadgeText,
+                        { color: pm.badgeColor || '#4B5563' },
+                      ]}
+                    >
+                      {pm.badge}
+                    </Text>
+                  </View>
+                )}
               </TouchableOpacity>
             );
           })}
@@ -292,7 +407,7 @@ export default function PointChargeScreen({ navigation }) {
         <View style={styles.noticeBox}>
           <Ionicons name="shield-checkmark-outline" size={16} color="#6B7280" />
           <Text style={styles.noticeText}>
-            충전된 모꼬 포인트는 서비스 내 크리에이터 후원, 1:1 대화, 미디어 통화 시 사용됩니다. 결제 후 미사용 포인트는 7일 이내 고객센터를 통해 환불이 가능합니다.
+            충전된 모꼬 포인트는 서비스 내 크리에이터 후원, 1:1 대화, 미디어 통화 시 사용됩니다. Google Play 및 App Store 인앱결제 영수증은 스토어 정책에 따라 안전하게 보관됩니다.
           </Text>
         </View>
       </ScrollView>
@@ -317,7 +432,11 @@ export default function PointChargeScreen({ navigation }) {
             <ActivityIndicator size="small" color="#191919" />
           ) : (
             <Text style={styles.checkoutBtnText}>
-              {totalPoints.toLocaleString()} P 충전하기
+              {paymentMethod === 'googleplay'
+                ? `Google Play로 ${totalPoints.toLocaleString()} P 충전`
+                : paymentMethod === 'appstore'
+                ? `App Store로 ${totalPoints.toLocaleString()} P 충전`
+                : `${totalPoints.toLocaleString()} P 충전하기`}
             </Text>
           )}
         </TouchableOpacity>
@@ -571,6 +690,19 @@ const styles = StyleSheet.create({
   paymentMethodNameSelected: {
     fontWeight: '800',
     color: '#191919',
+  },
+  pmBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 2,
+  },
+  pmBadgeSelected: {
+    opacity: 0.95,
+  },
+  pmBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
   },
   noticeBox: {
     marginTop: 20,
