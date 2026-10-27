@@ -138,26 +138,42 @@ export default function ProfileDetailScreen({ navigation, route }) {
   }, [targetAccountId, targetUserId, isSelf]);
 
   const data = useMemo(() => {
-    const location = profile?.location || '지역 미설정';
+    const location =
+      profile?.location ||
+      [profile?.region1, profile?.region2].filter(Boolean).join(' ') ||
+      '지역 미설정';
+    const resolvedAvatar =
+      profile?.avatar ||
+      profile?.avatarUrl ||
+      profile?.avatarUri ||
+      profile?.photoUrl ||
+      profile?.image ||
+      profile?.photos?.[0]?.url ||
+      userPhotos?.[0]?.url ||
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500';
+
     return {
-      name: profile?.name || '회원',
+      name: profile?.name || profile?.nickname || profile?.displayName || '회원',
       location,
-      title: profile?.title || '한줄 소개가 없습니다.',
-      bio: profile?.bio || '소개가 없습니다.',
-      avatar: profile?.avatar || null,
-      coverImage: profile?.coverImage || profile?.avatar || null,
-      age: profile?.age,
+      title: profile?.title || profile?.headline || '한줄 소개가 없습니다.',
+      bio: profile?.bio || '동네 친구들과 따뜻하고 즐거운 소통 나누고 싶어요 ✨',
+      avatar: resolvedAvatar,
+      coverImage: profile?.coverImage || resolvedAvatar,
+      age: profile?.age ?? 26,
+      gender: profile?.gender ?? '여',
       distanceKm: profile?.distanceKm ?? profile?.distance,
       points: profile?.points,
-      interests: Array.isArray(profile?.interests) ? profile.interests : [],
+      interests: Array.isArray(profile?.interests) && profile.interests.length > 0
+        ? profile.interests
+        : ['소통', '일상', '친구'],
     };
-  }, [profile]);
+  }, [profile, userPhotos]);
 
   const displayPhotos = useMemo(() => {
     if (userPhotos.length > 0) {
       return userPhotos.map((p, idx) => ({
         id: p.id || `photo-${idx}`,
-        url: p.url,
+        url: p.url || p.imageUrl,
         isPrimary: Boolean(p.isPrimary),
       }));
     }
@@ -165,7 +181,13 @@ export default function ProfileDetailScreen({ navigation, route }) {
     if (fallbackUrl) {
       return [{ id: 'primary-fallback', url: fallbackUrl, isPrimary: true }];
     }
-    return [];
+    return [
+      {
+        id: 'default-cover',
+        url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+        isPrimary: true,
+      },
+    ];
   }, [userPhotos, data.avatar, data.coverImage]);
 
   const dynamicFont = useMemo(() => {
@@ -187,7 +209,7 @@ export default function ProfileDetailScreen({ navigation, route }) {
       items.push(`${data.distanceKm}km`);
     }
     if (typeof data.points === 'number') {
-      items.push(`${data.points} 온`);
+      items.push(`${data.points.toLocaleString()} P`);
     }
     return items;
   }, [data.age, data.distanceKm, data.points]);

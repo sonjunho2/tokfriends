@@ -65,16 +65,29 @@ export const UserProfileBottomSheet = memo(({
 
   // Max 9 photos sorted by order
   const photoList = useMemo(() => {
+    const rawAvatar =
+      user?.avatarUrl ||
+      (user as any)?.avatarUri ||
+      (user as any)?.avatar ||
+      (user as any)?.photoUrl ||
+      (user as any)?.image;
+
     if (!user?.photos || user.photos.length === 0) {
-      if (user?.avatarUrl) {
-        return [{ id: 'avatar', imageUrl: user.avatarUrl, order: 0 }];
+      if (rawAvatar) {
+        return [{ id: 'avatar', imageUrl: rawAvatar, order: 0 }];
       }
-      return [];
+      return [
+        {
+          id: 'default-avatar',
+          imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+          order: 0,
+        },
+      ];
     }
     return [...user.photos]
       .sort((a, b) => a.order - b.order)
       .slice(0, 9);
-  }, [user?.photos, user?.avatarUrl]);
+  }, [user?.photos, user?.avatarUrl, (user as any)?.avatarUri, (user as any)?.avatar]);
 
   // PanResponder for smooth bottom-sheet drag down gesture
   const panY = useRef(new Animated.Value(0)).current;
@@ -225,9 +238,9 @@ export const UserProfileBottomSheet = memo(({
 
           {/* User Header Profile (Avatar + Nickname + Bio) */}
           <View style={styles.headerInfoRow}>
-            {user.avatarUrl ? (
+            {photoList[0]?.imageUrl ? (
               <Image
-                source={{ uri: user.avatarUrl }}
+                source={{ uri: photoList[0].imageUrl }}
                 style={styles.avatarThumbnail}
               />
             ) : (
@@ -238,6 +251,11 @@ export const UserProfileBottomSheet = memo(({
             <View style={styles.headerTextGroup}>
               <View style={styles.nicknameBadgeRow}>
                 <Text style={styles.nicknameText}>{user.nickname}</Text>
+                {(user as any).age ? (
+                  <Text style={{ fontSize: 13, color: '#6366F1', fontWeight: '700', marginLeft: 4 }}>
+                    {(user as any).age}세
+                  </Text>
+                ) : null}
                 {user.role === 'CREATOR' && (
                   <View style={styles.creatorBadge}>
                     <Text style={styles.creatorBadgeText}>CREATOR</Text>

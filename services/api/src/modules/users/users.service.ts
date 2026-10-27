@@ -60,6 +60,8 @@ export class UsersService implements OnModuleInit {
     const region1 = ext.region1 || '서울특별시';
     const region2 = ext.region2 || '강남구 역삼동';
     const interests = Array.isArray(ext.interests) ? ext.interests : ['소통', '일상', '친구'];
+    const age = user.age !== undefined ? user.age : (ext.age !== undefined ? ext.age : 26);
+    const gender = user.gender || ext.gender || '여';
 
     const pointBal = user.pointBalance ?? 0;
 
@@ -80,6 +82,8 @@ export class UsersService implements OnModuleInit {
       region2,
       location: `${region1} ${region2}`.trim(),
       interests,
+      age,
+      gender,
       profile: {
         id: user.id,
         nickname,
@@ -92,6 +96,8 @@ export class UsersService implements OnModuleInit {
         region1,
         region2,
         interests,
+        age,
+        gender,
       },
       photos: (user.photos || []).map((p: any) => ({
         ...p,
@@ -169,6 +175,8 @@ export class UsersService implements OnModuleInit {
       ...(data.interests !== undefined ? { interests: data.interests } : {}),
       ...(data.avatarUrl !== undefined ? { avatarUrl: data.avatarUrl } : {}),
       ...(data.avatarUri !== undefined ? { avatarUrl: data.avatarUri, avatarUri: data.avatarUri } : {}),
+      ...(data.age !== undefined ? { age: Number(data.age) } : {}),
+      ...(data.gender !== undefined ? { gender: data.gender } : {}),
     };
     this.saveExtendedProfiles();
 

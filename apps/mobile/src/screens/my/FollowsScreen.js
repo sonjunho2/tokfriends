@@ -78,16 +78,52 @@ export default function FollowsScreen({ navigation, route }) {
   };
 
   const handlePressUser = (item) => {
+    const avatar = item.avatarUri || item.avatarUrl || item.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300';
     const profilePayload = {
       id: item.userId || item.id,
       targetAccountId: item.id,
-      targetUserId: item.userId || undefined,
-      name: item.displayName || '회원',
-      avatar: item.avatarUri,
-      location: [item.region1, item.region2].filter(Boolean).join(' ') || '지역 미설정',
-      headline: item.headline || '한줄 소개가 없습니다.',
+      targetUserId: item.userId || item.id,
+      name: item.displayName || item.nickname || '회원',
+      nickname: item.nickname || item.displayName || '회원',
+      avatar,
+      avatarUrl: avatar,
+      avatarUri: avatar,
+      location: [item.region1, item.region2].filter(Boolean).join(' ') || item.region || '서울 강남구',
+      headline: item.headline || '반가워요! 소통하며 지내요 ✨',
+      age: item.age || 25,
+      gender: item.gender || '여',
     };
     navigation.navigate('ProfileDetail', { profile: profilePayload });
+  };
+
+  // 1:1 대화방 열기
+  const handleStartChat = (item) => {
+    const avatar = item.avatarUri || item.avatarUrl || item.avatar;
+    navigation.navigate('ChatRoom', {
+      counterpartAccountId: item.id,
+      targetUserId: item.userId || item.id,
+      title: item.displayName || item.nickname || '친구',
+      user: {
+        id: item.userId || item.id,
+        name: item.displayName || item.nickname || '친구',
+        avatar,
+        avatarUrl: avatar,
+        avatarUri: avatar,
+        location: [item.region1, item.region2].filter(Boolean).join(' ') || '서울 강남구',
+      },
+    });
+  };
+
+  // 실시간 라이브 방송방 입장
+  const handleEnterLive = (item) => {
+    const roomId = item.liveRoomId || 'live-def-1';
+    const avatar = item.avatarUri || item.avatarUrl || item.avatar;
+    navigation.navigate('LiveRoom', {
+      roomId,
+      roomTitle: item.liveTitle || `${item.displayName}님의 라이브 방송`,
+      hostName: item.displayName || item.nickname || '호스트',
+      hostAvatar: avatar,
+    });
   };
 
   // 언팔로우 액션
@@ -141,83 +177,135 @@ export default function FollowsScreen({ navigation, route }) {
   const currentList = activeTab === 'followers' ? followers : following;
 
   const renderUserItem = ({ item }) => {
-    const location = [item.region1, item.region2].filter(Boolean).join(' ');
+    const location = [item.region1, item.region2].filter(Boolean).join(' ') || item.region || '';
     const isFollowed = isUserFollowedByMe(item.id);
     const isProcessing = actionProcessingId === item.id;
+    const avatar = item.avatarUri || item.avatarUrl || item.avatar;
 
     return (
-      <TouchableOpacity
-        style={styles.userCard}
-        activeOpacity={0.85}
-        onPress={() => handlePressUser(item)}
-      >
-        {/* 아바타 */}
-        {item.avatarUri ? (
-          <Image source={{ uri: item.avatarUri }} style={styles.avatar} />
-        ) : (
-          <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <Ionicons name="person" size={24} color="#A1A1AA" />
-          </View>
-        )}
+      <View style={styles.userCard}>
+        {/* 아바타 (라이브 중이면 네온 링 표시) */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => (item.isLive ? handleEnterLive(item) : handlePressUser(item))}
+          style={{ position: 'relative' }}
+        >
+          {avatar ? (
+            <Image
+              source={{ uri: avatar }}
+              style={[styles.avatar, item.isLive && { borderColor: '#EF4444', borderWidth: 2 }]}
+            />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <Ionicons name="person" size={24} color="#A1A1AA" />
+            </View>
+          )}
+          {item.isLive && (
+            <View style={styles.liveBadgeOverlay}>
+              <Text style={styles.liveBadgeText}>LIVE</Text>
+            </View>
+          )}
+        </TouchableOpacity>
 
         {/* 유저 정보 */}
-        <View style={styles.cardInfo}>
-          <Text style={styles.displayName} numberOfLines={1}>
-            {item.displayName || '회원'}
-          </Text>
+        <TouchableOpacity
+          style={styles.cardInfo}
+          activeOpacity={0.85}
+          onPress={() => handlePressUser(item)}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.displayName} numberOfLines={1}>
+              {item.displayName || item.nickname || '회원'}
+            </Text>
+            {item.age ? (
+              <Text style={styles.ageBadgeText}>
+                {item.age}세 · {item.gender || '여'}
+              </Text>
+            ) : null}
+          </View>
           {location ? (
             <Text style={styles.locationText} numberOfLines={1}>
               📍 {location}
             </Text>
           ) : null}
-          {item.headline ? (
+          {item.isLive ? (
+            <Text style={{ fontSize: 11, color: '#EF4444', fontWeight: '700' }} numberOfLines={1}>
+              🔴 {item.liveTitle || '라이브 방송 중입니다'}
+            </Text>
+          ) : item.headline ? (
             <Text style={styles.headlineText} numberOfLines={1}>
               {item.headline}
             </Text>
           ) : null}
-        </View>
+        </TouchableOpacity>
 
-        {/* 액션 버튼 */}
-        {activeTab === 'following' ? (
+        {/* 우측 연계 액션 버튼군 (1:1 채팅 & 라이브 & 팔로우 토글) */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          {/* 1:1 채팅 바로가기 버튼 */}
           <TouchableOpacity
-            style={styles.unfollowBtn}
-            onPress={() => handleUnfollow(item)}
-            disabled={isProcessing}
+            style={styles.chatActionBtn}
+            onPress={() => handleStartChat(item)}
+            activeOpacity={0.8}
             hitSlop={6}
           >
-            {isProcessing ? (
-              <ActivityIndicator size="small" color="#71717A" />
-            ) : (
-              <Text style={styles.unfollowBtnText}>팔로잉</Text>
-            )}
+            <Ionicons name="chatbubble-ellipses" size={15} color="#4F46E5" />
           </TouchableOpacity>
-        ) : isFollowed ? (
-          <TouchableOpacity
-            style={styles.mutualFollowBtn}
-            onPress={() => handleUnfollow(item)}
-            disabled={isProcessing}
-            hitSlop={6}
-          >
-            <Text style={styles.mutualFollowText}>맞팔로우 중</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.followBtn}
-            onPress={() => handleFollowBack(item)}
-            disabled={isProcessing}
-            hitSlop={6}
-          >
-            {isProcessing ? (
-              <ActivityIndicator size="small" color="#191919" />
-            ) : (
-              <>
-                <Ionicons name="person-add" size={14} color="#191919" />
-                <Text style={styles.followBtnText}>맞팔로우</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        )}
-      </TouchableOpacity>
+
+          {/* 라이브 방송 중이면 LIVE 입장 버튼 */}
+          {item.isLive && (
+            <TouchableOpacity
+              style={styles.liveActionBtn}
+              onPress={() => handleEnterLive(item)}
+              activeOpacity={0.8}
+              hitSlop={6}
+            >
+              <Ionicons name="radio" size={14} color="#FFFFFF" />
+              <Text style={styles.liveActionBtnText}>시청</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* 팔로우 상태 버튼 */}
+          {activeTab === 'following' ? (
+            <TouchableOpacity
+              style={styles.unfollowBtn}
+              onPress={() => handleUnfollow(item)}
+              disabled={isProcessing}
+              hitSlop={6}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#71717A" />
+              ) : (
+                <Text style={styles.unfollowBtnText}>팔로잉</Text>
+              )}
+            </TouchableOpacity>
+          ) : isFollowed ? (
+            <TouchableOpacity
+              style={styles.mutualFollowBtn}
+              onPress={() => handleUnfollow(item)}
+              disabled={isProcessing}
+              hitSlop={6}
+            >
+              <Text style={styles.mutualFollowText}>맞팔로우 중</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.followBtn}
+              onPress={() => handleFollowBack(item)}
+              disabled={isProcessing}
+              hitSlop={6}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#191919" />
+              ) : (
+                <>
+                  <Ionicons name="person-add" size={13} color="#191919" />
+                  <Text style={styles.followBtnText}>맞팔로우</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
     );
   };
 
@@ -442,18 +530,59 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#52525B',
   },
-  mutualFollowBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 12,
-    backgroundColor: '#ECFDF5',
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
-  },
   mutualFollowText: {
     fontSize: 12,
     fontWeight: '700',
     color: '#059669',
+  },
+  chatActionBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+  },
+  liveActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    borderRadius: 10,
+    gap: 3,
+  },
+  liveActionBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  liveBadgeOverlay: {
+    position: 'absolute',
+    bottom: -3,
+    left: '50%',
+    marginLeft: -16,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
+    zIndex: 10,
+  },
+  liveBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    fontWeight: '900',
+  },
+  ageBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6366F1',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
   },
   centerContainer: {
     flex: 1,

@@ -19,4 +19,13 @@ export class UpdateUserDto {
   @IsInt()
   @Min(0)
   callRatePerMinute?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  age?: number;
+
+  @IsOptional()
+  @IsString()
+  gender?: string;
 }

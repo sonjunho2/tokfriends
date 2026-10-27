@@ -12,8 +12,8 @@ import {
   Modal,
   Switch,
   ActivityIndicator,
-  Platform,
   TextInput,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,32 +26,135 @@ import { UserAvatar } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
 import { apiClient } from '../../api/client';
 import { claimAdReward } from '../../services/adsService';
+import { INITIAL_MARKET_PRODUCTS } from '../../services/marketService';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function MyPageScreen({ navigation }) {
   const { user, logout, refreshMe } = useAuth();
   const userProfile = user?.profile ?? {};
 
-  // 프로필 정보
-  const nickname = user?.nickname || userProfile?.nickname || user?.displayName || '다온이';
-  const locationLabel = [user?.region1 || userProfile?.region1, user?.region2 || userProfile?.region2].filter(Boolean).join(' · ') || user?.location || '서울 강남구 역삼1동';
-  const tagline = user?.headline || userProfile?.headline || user?.bio || userProfile?.bio || '동네 친구들과 따뜻하고 즐거운 소통 나누고 싶어요 ✨';
-  const avatarUri = user?.avatarUrl || user?.avatarUri || userProfile?.avatarUri || userProfile?.avatarUrl || user?.photos?.[0]?.url || null;
+  // 프로필 기본 정보 (나이 및 성별 포함)
+  const nickname = user?.nickname || userProfile?.nickname || user?.displayName || '모꼬이웃';
+  const age = user?.age || userProfile?.age || 26;
+  const gender = user?.gender || userProfile?.gender || '여';
+  const locationLabel =
+    [user?.region1 || userProfile?.region1, user?.region2 || userProfile?.region2].filter(Boolean).join(' · ') ||
+    user?.location ||
+    '서울 강남구 역삼1동';
+  const tagline =
+    user?.headline ||
+    userProfile?.headline ||
+    user?.bio ||
+    userProfile?.bio ||
+    '동네 친구들과 따뜻하고 즐거운 소통 나누고 싶어요 ✨';
+  const avatarUri =
+    user?.avatarUrl ||
+    user?.avatarUri ||
+    userProfile?.avatarUri ||
+    userProfile?.avatarUrl ||
+    user?.photos?.[0]?.url ||
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500';
 
-  // 보유 온(ON) 자산
-  const balance = useMemo(() => {
+  // 1. 모꼬 포인트 잔액 (인앱 라이브/후원/채팅용)
+  const pointBalance = useMemo(() => {
     const p = user?.pointBalance ?? user?.pointsBalance ?? user?.points ?? user?.balance ?? 1250;
     if (typeof p === 'number') return p;
     const numeric = parseInt(String(p).replace(/\D/g, ''), 10);
     return Number.isFinite(numeric) ? numeric : 1250;
   }, [user]);
 
-  // 마켓 거래 및 라이브 활동 지표
-  const [commerceStats, setCommerceStats] = useState({
-    sellingCount: 2,
-    boughtCount: 4,
-    liveHostedCount: 8,
-    liveLikedCount: 154,
+  // 2. 판매 정산금 (중고거래 및 마켓 판매 정산용 - 원화 KRW 분리)
+  const [sellerRevenue, setSellerRevenue] = useState(185000);
+
+  // 3. 소셜 팔로워 / 팔로잉 통계 (방문자, 내인연 제거 완료)
+  const [socialStats, setSocialStats] = useState({
+    followers: 124,
+    following: 58,
   });
+
+  // 4. 중고거래 & 마켓거래 관리 데이터 상태
+  // (1) 관심목록 (찜한 상품)
+  const [wishlist, setWishlist] = useState([
+    INITIAL_MARKET_PRODUCTS[0], // 아이폰 15 프로
+    INITIAL_MARKET_PRODUCTS[1], // 캠핑 체어
+    INITIAL_MARKET_PRODUCTS[3], // 논산 설향 딸기
+  ]);
+  const [wishlistModalVisible, setWishlistModalVisible] = useState(false);
+
+  // (2) 판매관리 (내 판매 물품: 판매중/예약중/판매완료)
+  const [mySalesList, setMySalesList] = useState([
+    {
+      id: 'my-sale-01',
+      title: '소니 WH-1000XM5 노이즈캔슬링 헤드폰 실버 풀박스',
+      price: 320000,
+      status: 'SELLING', // 'SELLING' | 'RESERVED' | 'COMPLETED'
+      statusLabel: '판매중',
+      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400',
+      likes: 19,
+      chats: 7,
+      createdAt: '2시간 전',
+      region: '역삼1동',
+    },
+    {
+      id: 'my-sale-02',
+      title: 'M2 맥북 에어 15인치 16GB 512GB 스페이스그레이',
+      price: 1480000,
+      status: 'RESERVED',
+      statusLabel: '예약중',
+      image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400',
+      likes: 35,
+      chats: 12,
+      createdAt: '어제',
+      region: '역삼1동',
+    },
+    {
+      id: 'my-sale-03',
+      title: '닌텐도 스위치 OLED 화이트 본체 풀박스',
+      price: 290000,
+      status: 'COMPLETED',
+      statusLabel: '판매완료',
+      image: 'https://images.unsplash.com/photo-1578303512597-81e6cc155b3e?w=400',
+      likes: 27,
+      chats: 14,
+      createdAt: '3일 전',
+      region: '역삼1동',
+    },
+  ]);
+  const [salesModalVisible, setSalesModalVisible] = useState(false);
+  const [salesFilterTab, setSalesFilterTab] = useState('ALL'); // 'ALL' | 'SELLING' | 'RESERVED' | 'COMPLETED'
+
+  // (3) 구매 / 예약 내역 (안전결제 주문)
+  const [myOrdersList, setMyOrdersList] = useState([
+    {
+      id: 'ord-safe-01',
+      orderNumber: 'ORD-20261027-891',
+      title: '아이폰 15 프로 256GB 내추럴 티타늄',
+      sellerName: '테크러버',
+      price: 980000,
+      status: 'RESERVED',
+      statusText: '직거래 예약중',
+      paymentType: '에스크로 안전결제',
+      image: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400',
+      date: '2026.10.27',
+      location: '역삼역 3번출구',
+    },
+    {
+      id: 'ord-safe-02',
+      orderNumber: 'ORD-20261025-420',
+      title: '[입점사특가] 제주 산지직송 프리미엄 흑돼지 오겹살 1kg',
+      sellerName: '제주푸드 본사 직영',
+      price: 32900,
+      status: 'COMPLETED',
+      statusText: '구매확정 완료',
+      paymentType: '안전결제 택배배송',
+      image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=400',
+      date: '2026.10.25',
+      location: '택배 배송 완료',
+    },
+  ]);
+  const [ordersModalVisible, setOrdersModalVisible] = useState(false);
+  const [ordersFilterTab, setOrdersFilterTab] = useState('ALL'); // 'ALL' | 'ACTIVE' | 'COMPLETED'
 
   // 무료 MC 충전소 광고 시청 상태
   const [rewardAdModalVisible, setRewardAdModalVisible] = useState(false);
@@ -60,15 +163,7 @@ export default function MyPageScreen({ navigation }) {
   const [claimingReward, setClaimingReward] = useState(false);
   const [todayRewardClaims, setTodayRewardClaims] = useState(0);
 
-  // 소셜 통계 카운터 상태
-  const [stats, setStats] = useState({
-    visitors: 48,
-    followers: 124,
-    following: 58,
-    friends: 19,
-  });
-
-  // 1:1 채팅 / 영상(LIVE) 단가 설정 상태
+  // 1:1 대화 / 영상(LIVE) 단가 설정 상태 (모꼬 포인트 P 기준)
   const [rateModalVisible, setRateModalVisible] = useState(false);
   const [chatEntryFee, setChatEntryFee] = useState(
     Number(user?.chatEntryFee ?? userProfile?.chatEntryFee ?? 30)
@@ -125,72 +220,127 @@ export default function MyPageScreen({ navigation }) {
         refreshMe().catch(() => {});
       }
 
+      // 팔로워/팔로잉 최신 수치 로드
+      if (user?.id) {
+        Promise.allSettled([
+          apiClient.getFollowers(user.id),
+          apiClient.getFollowing(user.id),
+        ]).then(([f1, f2]) => {
+          if (!isMounted) return;
+          const followersCnt =
+            f1.status === 'fulfilled' && Array.isArray(f1.value?.items || f1.value)
+              ? (f1.value.items || f1.value).length
+              : 124;
+          const followingCnt =
+            f2.status === 'fulfilled' && Array.isArray(f2.value?.items || f2.value)
+              ? (f2.value.items || f2.value).length
+              : 58;
+          setSocialStats({ followers: followersCnt, following: followingCnt });
+        });
+      }
+
       // 저장된 설정 로드
       AsyncStorage.multiGet([
-        'dagaon_chat_entry_fee',
-        'dagaon_live_rate',
-        'dagaon_call_rate',
-        'dagaon_chat_push',
-        'dagaon_live_push',
-        'dagaon_night_push',
+        'mocco_chat_entry_fee',
+        'mocco_live_rate',
+        'mocco_chat_push',
+        'mocco_live_push',
+        'mocco_night_push',
       ]).then((pairs) => {
         if (!isMounted) return;
         pairs.forEach(([key, val]) => {
           if (!val) return;
-          if (key === 'dagaon_chat_entry_fee') {
-            setChatEntryFee(Number(val) || 0);
-          }
-          if (key === 'dagaon_live_rate' || key === 'dagaon_call_rate') {
-            setCurrentLiveRate(Number(val) || 1500);
-          }
-          if (key === 'dagaon_chat_push') setChatPush(val === 'true');
-          if (key === 'dagaon_live_push') setLivePush(val === 'true');
-          if (key === 'dagaon_night_push') setNightPush(val === 'true');
+          if (key === 'mocco_chat_entry_fee') setChatEntryFee(Number(val) || 0);
+          if (key === 'mocco_live_rate') setCurrentLiveRate(Number(val) || 1500);
+          if (key === 'mocco_chat_push') setChatPush(val === 'true');
+          if (key === 'mocco_live_push') setLivePush(val === 'true');
+          if (key === 'mocco_night_push') setNightPush(val === 'true');
         });
       });
 
       return () => {
         isMounted = false;
       };
-    }, [refreshMe])
+    }, [refreshMe, user?.id])
   );
 
-  // 1:1 채팅 입장 단가 저장
-  const handleSaveChatFee = useCallback(async (fee) => {
-    const numericFee = Math.max(0, parseInt(String(fee).replace(/\D/g, ''), 10) || 0);
-    setChatEntryFee(numericFee);
-    await AsyncStorage.setItem('dagaon_chat_entry_fee', String(numericFee));
-    try {
-      if (user?.id) {
-        await apiClient.updateUser(user.id, { chatEntryFee: numericFee });
-      }
-      if (refreshMe) refreshMe().catch(() => {});
-    } catch {}
-    setCustomChatFeeInput('');
-    Alert.alert('설정 완료', `1:1 대화방 입장 단가가 ${numericFee} ON으로 성공적으로 저장되었습니다! ✨`);
-  }, [user?.id, refreshMe]);
+  // 1:1 대화 입장료 저장 (모꼬 포인트 P)
+  const handleSaveChatFee = useCallback(
+    async (fee) => {
+      const numericFee = Math.max(0, parseInt(String(fee).replace(/\D/g, ''), 10) || 0);
+      setChatEntryFee(numericFee);
+      await AsyncStorage.setItem('mocco_chat_entry_fee', String(numericFee));
+      try {
+        if (user?.id) {
+          await apiClient.updateUser(user.id, { chatEntryFee: numericFee });
+        }
+        if (refreshMe) refreshMe().catch(() => {});
+      } catch {}
+      setCustomChatFeeInput('');
+      Alert.alert('설정 완료', `1:1 대화방 입장 단가가 ${numericFee} P로 성공적으로 저장되었습니다! ✨`);
+    },
+    [user?.id, refreshMe]
+  );
 
-  // 1:1 영상/LIVE 단가 저장
-  const handleSaveLiveRate = useCallback(async (rate) => {
-    const numericRate = Number(rate);
-    if (!numericRate || numericRate < 100 || numericRate > 100000) {
-      Alert.alert('단가 오류', '영상/통화 단가는 분당 100 ~ 100,000 ON 사이의 숫자로 입력해주세요.');
-      return;
-    }
-    setCurrentLiveRate(numericRate);
-    await AsyncStorage.setItem('dagaon_live_rate', String(numericRate));
-    try {
-      if (user?.id) {
-        await apiClient.updateUser(user.id, {
-          liveRatePerMinute: numericRate,
-          callRatePerMinute: numericRate,
-        });
+  // 1:1 영상/LIVE 단가 저장 (모꼬 포인트 P)
+  const handleSaveLiveRate = useCallback(
+    async (rate) => {
+      const numericRate = Number(rate);
+      if (!numericRate || numericRate < 100 || numericRate > 100000) {
+        Alert.alert('단가 오류', '영상/통화 단가는 분당 100 ~ 100,000 P 사이의 숫자로 입력해주세요.');
+        return;
       }
-      if (refreshMe) refreshMe().catch(() => {});
-    } catch {}
-    setCustomRateInput('');
-    Alert.alert('설정 완료', `1:1 영상 단가가 분당 ${numericRate.toLocaleString()} ON으로 성공적으로 변경되었습니다! ✨`);
-  }, [user?.id, refreshMe]);
+      setCurrentLiveRate(numericRate);
+      await AsyncStorage.setItem('mocco_live_rate', String(numericRate));
+      try {
+        if (user?.id) {
+          await apiClient.updateUser(user.id, {
+            liveRatePerMinute: numericRate,
+            callRatePerMinute: numericRate,
+          });
+        }
+        if (refreshMe) refreshMe().catch(() => {});
+      } catch {}
+      setCustomRateInput('');
+      Alert.alert('설정 완료', `1:1 영상 단가가 분당 ${numericRate.toLocaleString()} P로 성공적으로 변경되었습니다! ✨`);
+    },
+    [user?.id, refreshMe]
+  );
+
+  // 내 판매 물품 상태 변경 (판매중 / 예약중 / 판매완료)
+  const handleChangeSaleStatus = (itemId, nextStatus) => {
+    setMySalesList((prev) =>
+      prev.map((item) => {
+        if (item.id === itemId) {
+          const label = nextStatus === 'SELLING' ? '판매중' : nextStatus === 'RESERVED' ? '예약중' : '판매완료';
+          return { ...item, status: nextStatus, statusLabel: label };
+        }
+        return item;
+      })
+    );
+    Alert.alert('상태 변경 완료', '상품의 거래 상태가 정상적으로 업데이트되었습니다.');
+  };
+
+  // 내 판매 물품 삭제
+  const handleDeleteSaleItem = (itemId) => {
+    Alert.alert('상품 삭제', '이 판매 상품을 목록에서 삭제하시겠습니까?', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '삭제',
+        style: 'destructive',
+        onPress: () => {
+          setMySalesList((prev) => prev.filter((i) => i.id !== itemId));
+          Alert.alert('삭제 완료', '판매 상품이 삭제되었습니다.');
+        },
+      },
+    ]);
+  };
+
+  // 찜 해제
+  const handleRemoveWishItem = (prodId) => {
+    setWishlist((prev) => prev.filter((p) => p.id !== prodId));
+    Alert.alert('관심 상품 해제', '관심목록에서 제거되었습니다.');
+  };
 
   // 1:1 고객 문의 접수 처리
   const handleSubmitInquiry = useCallback(async () => {
@@ -252,7 +402,7 @@ export default function MyPageScreen({ navigation }) {
     if (todayRewardClaims >= 5) {
       Alert.alert(
         '일일 시청 한도 초과',
-        '오늘 무료 ON 광고 시청 한도(5회)를 모두 소진하셨습니다.\n내일 자정에 다시 참여해주세요! ✨'
+        '오늘 무료 포인트 광고 시청 한도(5회)를 모두 소진하셨습니다.\n내일 자정에 다시 참여해주세요! ✨'
       );
       return;
     }
@@ -293,14 +443,14 @@ export default function MyPageScreen({ navigation }) {
       }
 
       Alert.alert(
-        '🎉 10 MC 충전 완료!',
-        `10 MC이 충전되었습니다! (오늘 잔여: ${remaining}/5회)\n지갑 잔액이 즉시 반영되었습니다.`,
+        '🎉 10 모꼬 포인트 충전 완료!',
+        `10 P가 충전되었습니다! (오늘 잔여: ${remaining}/5회)\n포인트 잔액이 즉시 반영되었습니다.`,
         [{ text: '확인' }]
       );
     } catch {
       setClaimingReward(false);
       setRewardAdModalVisible(false);
-      Alert.alert('리워드 지급 완료', '10 MC이 충전되었습니다!');
+      Alert.alert('리워드 지급 완료', '10 P가 충전되었습니다!');
       if (refreshMe) refreshMe().catch(() => {});
     }
   };
@@ -316,7 +466,7 @@ export default function MyPageScreen({ navigation }) {
         </View>
         <TouchableOpacity
           style={styles.navIconBtn}
-          onPress={() => navigation.navigate('ProfileEdit', { profile: userProfile })}
+          onPress={() => navigation.navigate('ProfileEdit', { profile: { ...user, ...userProfile } })}
           activeOpacity={0.8}
         >
           <Ionicons name="settings-outline" size={22} color={tokens.colors.textPrimary} />
@@ -328,10 +478,10 @@ export default function MyPageScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 2. 상단 프로필 헤더 카드 */}
+        {/* 2. 상단 프로필 헤더 카드 (나이 및 성별 반영) */}
         <View style={styles.profileCard}>
           <View style={styles.profileTopRow}>
-            {/* 코랄-퍼플 그라데이션 스토리 링 + 모꼬 캐릭터 뱃지 */}
+            {/* 아바타 */}
             <View style={{ position: 'relative' }}>
               <LinearGradient
                 colors={tokens.colors.gradients.primaryPurple}
@@ -349,22 +499,24 @@ export default function MyPageScreen({ navigation }) {
                   />
                 </View>
               </LinearGradient>
-              <Image
-                source={require('../../../assets/mocco-mascot.png')}
-                style={styles.profileMascotBadge}
-              />
             </View>
 
             <View style={styles.profileInfoCol}>
               <View style={styles.nameRow}>
-                <Text style={styles.profileName} numberOfLines={1}>{nickname}</Text>
-                <View style={styles.verifiedBadge}>
-                  <Ionicons name="checkmark-circle" size={13} color={tokens.colors.primary} />
-                  <Text style={styles.verifiedText}>모꼬 공식 이웃</Text>
+                <Text style={styles.profileName} numberOfLines={1}>
+                  {nickname}
+                </Text>
+                {/* 📌 나이 & 성별 뱃지 추가 */}
+                <View style={styles.ageBadge}>
+                  <Text style={styles.ageBadgeText}>
+                    {age}세 · {gender}
+                  </Text>
                 </View>
               </View>
               <Text style={styles.locationText}>📍 {locationLabel}</Text>
-              <Text style={styles.taglineText} numberOfLines={2}>{tagline}</Text>
+              <Text style={styles.taglineText} numberOfLines={2}>
+                {tagline}
+              </Text>
             </View>
 
             {/* 우측 [✏️ 프로필 수정] 캡슐 버튼 */}
@@ -377,91 +529,74 @@ export default function MyPageScreen({ navigation }) {
               <Text style={styles.editProfileText}>수정</Text>
             </TouchableOpacity>
           </View>
-
-          {/* 프로필 완성도 프로그레스 바 유도 UI */}
-          <TouchableOpacity
-            style={styles.profileCompletionContainer}
-            onPress={() => navigation.navigate('ProfileEdit', { profile: userProfile })}
-            activeOpacity={0.88}
-          >
-            <View style={styles.completionLabelRow}>
-              <Text style={styles.completionTitle}>내 프로필 매력도 <Text style={styles.completionHighlight}>65% 📈</Text></Text>
-              <Text style={styles.completionHint}>사진 2장 더 등록하면 매칭 확률 3배!</Text>
-            </View>
-            <View style={styles.progressBarTrack}>
-              <LinearGradient
-                colors={tokens.colors.gradients.primaryPink || ['#FF3B6B', '#FF758C']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[styles.progressBarFill, { width: '65%' }]}
-              />
-            </View>
-          </TouchableOpacity>
         </View>
 
-        {/* 3. 온(ON) 지갑 카드 (VIP Asset Box - 토스/프리미엄 스타일) */}
-        <View style={styles.walletCardWrapper}>
+        {/* 3. 자산/지갑 체계 전면 분리 (🪙 모꼬 포인트 vs 💵 판매 정산금 원화 분리) */}
+        <View style={styles.walletSectionWrap}>
+          {/* (1) 모꼬 포인트 카드 (인앱 소통, 라이브 입장/후원) */}
           <LinearGradient
-            colors={['#0F172A', '#1E293B', '#334155']}
+            colors={['#0F172A', '#1E293B']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.walletGradient}
+            style={styles.pointWalletCard}
           >
-            {/* 상단 레이블 & VIP 태그 */}
-            <View style={styles.walletTopRow}>
-              <View style={styles.walletLabelGroup}>
-                <Text style={styles.walletLabel}>내 보유 모꼬 코인 (MC)</Text>
-                <View style={styles.vipAssetTag}>
-                  <Text style={styles.vipAssetTagText}>👑 VIP 크리에이터</Text>
+            <View style={styles.walletHeaderRow}>
+              <View style={styles.walletTitleGroup}>
+                <Text style={styles.walletLabel}>🪙 모꼬 포인트</Text>
+                <View style={styles.walletMiniTag}>
+                  <Text style={styles.walletMiniTagText}>소통·후원</Text>
                 </View>
               </View>
               <TouchableOpacity
-                onPress={() => navigation.navigate('Shop')}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-              </TouchableOpacity>
-            </View>
-
-            {/* 잔액 표시 */}
-            <View style={styles.balanceRow}>
-              <Text style={styles.balanceCoin}>🪙</Text>
-              <Text style={styles.balanceValue}>{balance.toLocaleString()}</Text>
-              <Text style={styles.balanceUnit}>MC</Text>
-            </View>
-            <Text style={styles.balanceSubText}>이번 달 리워드 및 선물 적립 +3,450 ON</Text>
-
-            {/* 듀얼 버튼: 충전하기 & 크리에이터 정산/출금 */}
-            <View style={styles.walletActionRow}>
-              <TouchableOpacity
-                style={styles.chargeBtn}
+                style={styles.chargeBtnMini}
                 onPress={() => navigation.navigate('Shop')}
                 activeOpacity={0.88}
               >
                 <LinearGradient
                   colors={tokens.colors.gradients.primaryPink || ['#FF3B6B', '#FF758C']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.chargeBtnGradient}
+                  style={styles.chargeBtnMiniGradient}
                 >
-                  <Ionicons name="flash" size={15} color="#FFFFFF" />
-                  <Text style={styles.chargeBtnText}>충전하기</Text>
+                  <Ionicons name="flash" size={12} color="#FFFFFF" />
+                  <Text style={styles.chargeBtnMiniText}>충전하기</Text>
                 </LinearGradient>
               </TouchableOpacity>
+            </View>
 
+            <View style={styles.walletBalanceRow}>
+              <Text style={styles.walletBalanceNumber}>{pointBalance.toLocaleString()}</Text>
+              <Text style={styles.walletBalanceUnit}>P</Text>
+            </View>
+            <Text style={styles.walletSubHint}>라이브 방송 후원, 1:1 대화 및 선물 교환 시 사용</Text>
+          </LinearGradient>
+
+          {/* (2) 판매 정산금 카드 (중고거래 및 마켓 판매 수익금 - 원화 KRW) */}
+          <View style={styles.cashWalletCard}>
+            <View style={styles.walletHeaderRow}>
+              <View style={styles.walletTitleGroup}>
+                <Text style={styles.cashWalletLabel}>💵 판매 정산금 (원)</Text>
+                <View style={styles.cashMiniTag}>
+                  <Text style={styles.cashMiniTagText}>안전정산</Text>
+                </View>
+              </View>
               <TouchableOpacity
-                style={styles.settleBtn}
+                style={styles.settleBtnAction}
                 onPress={() => navigation.navigate('Settlement')}
                 activeOpacity={0.85}
               >
-                <Ionicons name="wallet-outline" size={15} color="#F8FAFC" />
-                <Text style={styles.settleBtnText}>크리에이터 정산/출금</Text>
+                <Ionicons name="wallet-outline" size={13} color="#1E293B" />
+                <Text style={styles.settleBtnActionText}>정산/출금</Text>
               </TouchableOpacity>
             </View>
-          </LinearGradient>
+
+            <View style={styles.walletBalanceRow}>
+              <Text style={styles.cashBalanceNumber}>{sellerRevenue.toLocaleString()}</Text>
+              <Text style={styles.cashBalanceUnit}>원</Text>
+            </View>
+            <Text style={styles.cashSubHint}>중고거래 및 마켓 상품 판매 완료 시 계좌로 출금 가능</Text>
+          </View>
         </View>
 
-        {/* 3.4. 무료 MC 충전소 (광고 보고 10 MC 받기) 숏컷 배너 */}
+        {/* 3.5 무료 모꼬 포인트 충전소 (광고 보고 10 P 받기) */}
         <TouchableOpacity
           style={styles.rewardBannerBtn}
           activeOpacity={0.88}
@@ -475,157 +610,122 @@ export default function MyPageScreen({ navigation }) {
           >
             <View style={styles.rewardBannerLeft}>
               <View style={styles.rewardBannerIconBox}>
-                <Ionicons name="film" size={20} color="#FFFFFF" />
+                <Ionicons name="film" size={18} color="#FFFFFF" />
               </View>
               <View style={styles.rewardBannerTextBox}>
                 <View style={styles.rewardBannerBadgeRow}>
-                  <Text style={styles.rewardBannerTitle}>🎬 무료 MC 충전소</Text>
+                  <Text style={styles.rewardBannerTitle}>🎬 무료 모꼬 포인트 충전소</Text>
                   <View style={styles.rewardPointBadge}>
-                    <Text style={styles.rewardPointBadgeText}>+10 MC</Text>
+                    <Text style={styles.rewardPointBadgeText}>+10 P</Text>
                   </View>
                 </View>
                 <Text style={styles.rewardBannerDesc}>
-                  광고 시청 완료 시 10 MC 즉시 지급! (오늘 잔여: {Math.max(0, 5 - todayRewardClaims)}/5회)
+                  광고 시청 완료 시 10 P 즉시 적립 (오늘 잔여: {Math.max(0, 5 - todayRewardClaims)}/5회)
                 </Text>
               </View>
             </View>
             <View style={styles.rewardBannerRight}>
-              <Text style={styles.rewardBannerActionText}>충전하기</Text>
-              <Ionicons name="chevron-forward" size={14} color="#FFFFFF" />
+              <Text style={styles.rewardBannerActionText}>충전</Text>
+              <Ionicons name="chevron-forward" size={13} color="#FFFFFF" />
             </View>
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* 3.5. 나의 마켓 거래 & 라이브 활동 현황 (에스크로 안전결제 / 공구 / 라이브) */}
-        <View style={styles.activityStatsCard}>
-          <View style={styles.activityHeaderRow}>
-            <Text style={styles.activityHeaderTitle}>🛍️ 나의 마켓 & 라이브 활동</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Market', { screen: 'MarketMain' })}>
-              <Text style={styles.activityHeaderMore}>마켓 가기 ›</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.activityGrid}>
-            <TouchableOpacity
-              style={styles.activityGridItem}
-              activeOpacity={0.75}
-              onPress={() => navigation.navigate('Market', { screen: 'MarketMain' })}
-            >
-              <View style={[styles.activityIconCircle, { backgroundColor: '#EEF2FF' }]}>
-                <Ionicons name="pricetags" size={18} color="#4F46E5" />
-              </View>
-              <Text style={styles.activityItemCount}>{commerceStats.sellingCount}건</Text>
-              <Text style={styles.activityItemLabel}>판매 내역</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.activityGridItem}
-              activeOpacity={0.75}
-              onPress={() => navigation.navigate('Market', { screen: 'MarketMain' })}
-            >
-              <View style={[styles.activityIconCircle, { backgroundColor: '#ECFDF5' }]}>
-                <Ionicons name="shield-checkmark" size={18} color="#10B981" />
-              </View>
-              <Text style={styles.activityItemCount}>{commerceStats.boughtCount}건</Text>
-              <Text style={styles.activityItemLabel}>안전구매 내역</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.activityGridItem}
-              activeOpacity={0.75}
-              onPress={() => navigation.navigate('Live', { screen: 'LiveMain' })}
-            >
-              <View style={[styles.activityIconCircle, { backgroundColor: '#FFF1F2' }]}>
-                <Ionicons name="radio" size={18} color="#FF3B6B" />
-              </View>
-              <Text style={styles.activityItemCount}>{commerceStats.liveHostedCount}회</Text>
-              <Text style={styles.activityItemLabel}>방송 내역</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.activityGridItem}
-              activeOpacity={0.75}
-              onPress={() => navigation.navigate('Chat', { screen: 'ChatsMain' })}
-            >
-              <View style={[styles.activityIconCircle, { backgroundColor: '#FDF4FF' }]}>
-                <Ionicons name="chatbubbles" size={18} color="#C026D3" />
-              </View>
-              <Text style={styles.activityItemCount}>1줄 수다</Text>
-              <Text style={styles.activityItemLabel}>작성글/답장</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* 4. 소셜 스탯 카운터 (방문자, 팔로워, 팔로잉, 내 인연) */}
-        <View style={styles.socialStatsCard}>
+        {/* 4. 소셜 스탯 카운터 (방문자, 내인연 제거 완료 -> 팔로워, 팔로잉만 듀얼 와이드 배치) */}
+        <View style={styles.socialFollowDualCard}>
           <TouchableOpacity
-            style={styles.statItem}
-            onPress={() => navigation.navigate('Visitors')}
-            activeOpacity={0.75}
-          >
-            <Text style={styles.statCount}>{stats.visitors}</Text>
-            <Text style={styles.statLabel}>방문자</Text>
-          </TouchableOpacity>
-
-          <View style={styles.statDivider} />
-
-          <TouchableOpacity
-            style={styles.statItem}
+            style={styles.followStatBox}
             onPress={() => navigation.navigate('Follows', { initialTab: 'followers' })}
-            activeOpacity={0.75}
+            activeOpacity={0.8}
           >
-            <Text style={styles.statCount}>{stats.followers}</Text>
-            <Text style={styles.statLabel}>팔로워</Text>
+            <View style={styles.followIconCircle}>
+              <Ionicons name="people" size={18} color="#3B82F6" />
+            </View>
+            <View>
+              <Text style={styles.followCount}>{socialStats.followers}</Text>
+              <Text style={styles.followLabel}>팔로워</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={14} color="#CBD5E1" style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
 
-          <View style={styles.statDivider} />
+          <View style={styles.followDivider} />
 
           <TouchableOpacity
-            style={styles.statItem}
+            style={styles.followStatBox}
             onPress={() => navigation.navigate('Follows', { initialTab: 'following' })}
-            activeOpacity={0.75}
+            activeOpacity={0.8}
           >
-            <Text style={styles.statCount}>{stats.following}</Text>
-            <Text style={styles.statLabel}>팔로잉</Text>
-          </TouchableOpacity>
-
-          <View style={styles.statDivider} />
-
-          <TouchableOpacity
-            style={styles.statItem}
-            onPress={() => navigation.navigate('Friends')}
-            activeOpacity={0.75}
-          >
-            <Text style={styles.statCount}>{stats.friends}</Text>
-            <Text style={styles.statLabel}>내 인연</Text>
+            <View style={[styles.followIconCircle, { backgroundColor: '#FDF2F8' }]}>
+              <Ionicons name="person-add" size={18} color="#EC4899" />
+            </View>
+            <View>
+              <Text style={styles.followCount}>{socialStats.following}</Text>
+              <Text style={styles.followLabel}>팔로잉</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={14} color="#CBD5E1" style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
         </View>
 
-        {/* 5. 그룹형 메뉴 리스트 1: 소셜 & 활동 설정 */}
+        {/* 5. 중고거래 & 마켓거래 종합 관리 섹션 (관심목록, 판매관리, 구매/예약내역) */}
+        <View style={styles.tradeManagementCard}>
+          <View style={styles.tradeHeaderRow}>
+            <Text style={styles.tradeHeaderTitle}>🛍️ 마켓 & 중고거래 관리</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Market', { screen: 'MarketMain' })}>
+              <Text style={styles.tradeHeaderMore}>마켓 구경가기 ›</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.tradeItemsRow}>
+            {/* 1) 관심목록 (찜 목록) */}
+            <TouchableOpacity
+              style={styles.tradeActionBtn}
+              activeOpacity={0.82}
+              onPress={() => setWishlistModalVisible(true)}
+            >
+              <View style={[styles.tradeIconWrap, { backgroundColor: '#FFF1F2' }]}>
+                <Ionicons name="heart" size={20} color="#FF3B6B" />
+              </View>
+              <Text style={styles.tradeBtnTitle}>관심목록</Text>
+              <Text style={styles.tradeBtnSub}>{wishlist.length}개 찜</Text>
+            </TouchableOpacity>
+
+            {/* 2) 판매관리 (내 판매 물품 - 판매중/예약중/판매완료) */}
+            <TouchableOpacity
+              style={styles.tradeActionBtn}
+              activeOpacity={0.82}
+              onPress={() => setSalesModalVisible(true)}
+            >
+              <View style={[styles.tradeIconWrap, { backgroundColor: '#EEF2FF' }]}>
+                <Ionicons name="pricetags" size={20} color="#4F46E5" />
+              </View>
+              <Text style={styles.tradeBtnTitle}>판매관리</Text>
+              <Text style={styles.tradeBtnSub}>{mySalesList.length}건 등록</Text>
+            </TouchableOpacity>
+
+            {/* 3) 구매/예약 내역 (안전결제 주문) */}
+            <TouchableOpacity
+              style={styles.tradeActionBtn}
+              activeOpacity={0.82}
+              onPress={() => setOrdersModalVisible(true)}
+            >
+              <View style={[styles.tradeIconWrap, { backgroundColor: '#ECFDF5' }]}>
+                <Ionicons name="receipt" size={20} color="#059669" />
+              </View>
+              <Text style={styles.tradeBtnTitle}>구매/예약내역</Text>
+              <Text style={styles.tradeBtnSub}>{myOrdersList.length}건 진행</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 6. 그룹형 메뉴 리스트 1: 소셜 & 크리에이터 설정 */}
+        {/* 📌 "마켓상품 등록하기" 삭제 완료 */}
         <View style={styles.menuGroup}>
           <Text style={styles.groupHeader}>소셜 & 크리에이터 설정</Text>
           <View style={styles.menuContainer}>
-            {/* 🛍️ 내 마켓 판매 상품 등록 및 관리 */}
-            <TouchableOpacity
-              style={styles.menuRow}
-              onPress={() => navigation.navigate('Market', { screen: 'MarketCreate' })}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.menuIconBox, { backgroundColor: '#EEF2FF' }]}>
-                <Ionicons name="add-circle" size={18} color="#4F46E5" />
-              </View>
-              <View style={styles.menuTextBox}>
-                <Text style={styles.menuTitle}>마켓 상품 등록하기</Text>
-                <Text style={styles.menuDesc}>중고 직거래 및 라이브 연결 상품 판매</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-            </TouchableOpacity>
-
-            <View style={styles.menuDivider} />
-
             {/* 📸 갤러리 관리 */}
             <TouchableOpacity
               style={styles.menuRow}
-              onPress={() => navigation.navigate('ProfileEdit', { profile: userProfile })}
+              onPress={() => navigation.navigate('ProfileEdit', { profile: { ...user, ...userProfile } })}
               activeOpacity={0.8}
             >
               <View style={[styles.menuIconBox, { backgroundColor: '#FFE4E6' }]}>
@@ -640,7 +740,7 @@ export default function MyPageScreen({ navigation }) {
 
             <View style={styles.menuDivider} />
 
-            {/* 💬/🎥 1:1 채팅/영상 단가설정 */}
+            {/* 💬/🎥 1:1 대화 및 영상 단가설정 (모꼬 포인트 P 기준) */}
             <TouchableOpacity
               style={styles.menuRow}
               onPress={() => {
@@ -654,9 +754,9 @@ export default function MyPageScreen({ navigation }) {
                 <Ionicons name="chatbubbles" size={18} color="#DB2777" />
               </View>
               <View style={styles.menuTextBox}>
-                <Text style={styles.menuTitle}>1:1 채팅/영상 단가설정</Text>
+                <Text style={styles.menuTitle}>1:1 대화 및 영상 단가설정</Text>
                 <Text style={styles.menuDesc}>
-                  채팅 입장 {chatEntryFee} ON · 영상 분당 {currentLiveRate.toLocaleString()} ON
+                  채팅 입장 {chatEntryFee} P · 영상 분당 {currentLiveRate.toLocaleString()} P
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
@@ -682,7 +782,7 @@ export default function MyPageScreen({ navigation }) {
           </View>
         </View>
 
-        {/* 6. 그룹형 메뉴 리스트 2: 안심 케어 & 지원 */}
+        {/* 7. 그룹형 메뉴 리스트 2: 안심 케어 & 지원 */}
         <View style={styles.menuGroup}>
           <Text style={styles.groupHeader}>안심 보호 & 지원</Text>
           <View style={styles.menuContainer}>
@@ -751,24 +851,303 @@ export default function MyPageScreen({ navigation }) {
               </View>
               <View style={styles.menuTextBox}>
                 <Text style={styles.menuTitle}>고객센터 & 약관</Text>
-                <Text style={styles.menuDesc}>커뮤니티 가이드라인 및 이용약관</Text>
+                <Text style={styles.menuDesc}>자주 묻는 질문 및 1:1 고객 문의</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* 7. 하단 로그아웃 */}
+        {/* 8. 하단 로그아웃 */}
         <View style={styles.footerSection}>
           <TouchableOpacity onPress={handleLogout} activeOpacity={0.7}>
             <Text style={styles.logoutText}>로그아웃</Text>
           </TouchableOpacity>
-          <Text style={styles.versionText}>다가온 v1.2.0 • Expo SDK 57</Text>
+          <Text style={styles.versionText}>MOCCO v1.3.0 • Expo SDK 57</Text>
         </View>
       </ScrollView>
 
       {/* =================================================================== */}
-      {/* 모달 1: 1:1 채팅/영상 단가설정 (직접 입력 지원) */}
+      {/* 📌 신규 모달 A: 관심목록 (찜 목록) */}
+      {/* =================================================================== */}
+      <Modal
+        visible={wishlistModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setWishlistModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.dialogCard, { maxHeight: '82%', width: '92%' }]}>
+            <View style={styles.dialogHeader}>
+              <View style={[styles.dialogIconBox, { backgroundColor: '#FFF1F2' }]}>
+                <Ionicons name="heart" size={20} color="#FF3B6B" />
+              </View>
+              <Text style={styles.dialogTitle}>관심목록 (찜한 상품)</Text>
+              <Text style={styles.dialogSub}>내가 관심 등록한 중고 거래 및 마켓 공구 상품입니다.</Text>
+            </View>
+
+            <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+              {wishlist.length === 0 ? (
+                <View style={{ padding: 30, alignItems: 'center' }}>
+                  <Ionicons name="heart-dislike-outline" size={40} color="#94A3B8" />
+                  <Text style={{ marginTop: 10, color: '#64748B', fontSize: 14 }}>
+                    관심 등록된 상품이 없습니다.
+                  </Text>
+                </View>
+              ) : (
+                wishlist.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.modalListItem}
+                    activeOpacity={0.88}
+                    onPress={() => {
+                      setWishlistModalVisible(false);
+                      navigation.navigate('Market', {
+                        screen: 'ProductDetail',
+                        params: { productId: item.id, product: item },
+                      });
+                    }}
+                  >
+                    <Image source={{ uri: item.images?.[0] }} style={styles.modalItemThumb} />
+                    <View style={{ flex: 1, marginHorizontal: 10 }}>
+                      <Text style={styles.modalItemTitle} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      <Text style={styles.modalItemPrice}>{item.price?.toLocaleString()}원</Text>
+                      <Text style={styles.modalItemLocation}>📍 {item.locationName || '동네 인증'}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.removeWishBtn}
+                      onPress={() => handleRemoveWishItem(item.id)}
+                      hitSlop={8}
+                    >
+                      <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.dialogCancelBtn, { marginTop: 12 }]}
+              onPress={() => setWishlistModalVisible(false)}
+            >
+              <Text style={styles.dialogCancelText}>닫기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* =================================================================== */}
+      {/* 📌 신규 모달 B: 판매관리 (내 판매 물품 상태 관리) */}
+      {/* =================================================================== */}
+      <Modal
+        visible={salesModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSalesModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.dialogCard, { maxHeight: '86%', width: '92%' }]}>
+            <View style={styles.dialogHeader}>
+              <View style={[styles.dialogIconBox, { backgroundColor: '#EEF2FF' }]}>
+                <Ionicons name="pricetags" size={20} color="#4F46E5" />
+              </View>
+              <Text style={styles.dialogTitle}>내 판매 물품 관리</Text>
+              <Text style={styles.dialogSub}>등록한 중고 거래 물품의 상태를 실시간 변경하세요.</Text>
+            </View>
+
+            {/* 필터 탭 바 (전체 / 판매중 / 예약중 / 판매완료) */}
+            <View style={styles.filterTabBar}>
+              {[
+                { key: 'ALL', label: '전체' },
+                { key: 'SELLING', label: '판매중' },
+                { key: 'RESERVED', label: '예약중' },
+                { key: 'COMPLETED', label: '판매완료' },
+              ].map((tab) => (
+                <TouchableOpacity
+                  key={tab.key}
+                  style={[styles.filterTabBtn, salesFilterTab === tab.key && styles.filterTabBtnActive]}
+                  onPress={() => setSalesFilterTab(tab.key)}
+                >
+                  <Text
+                    style={[styles.filterTabText, salesFilterTab === tab.key && styles.filterTabTextActive]}
+                  >
+                    {tab.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+              {mySalesList
+                .filter((item) => (salesFilterTab === 'ALL' ? true : item.status === salesFilterTab))
+                .map((item) => (
+                  <View key={item.id} style={styles.saleManageCard}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Image source={{ uri: item.image }} style={styles.modalItemThumb} />
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                          <View
+                            style={[
+                              styles.statusChip,
+                              item.status === 'SELLING'
+                                ? { backgroundColor: '#ECFDF5' }
+                                : item.status === 'RESERVED'
+                                ? { backgroundColor: '#FFFBEB' }
+                                : { backgroundColor: '#F1F5F9' },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.statusChipText,
+                                item.status === 'SELLING'
+                                  ? { color: '#059669' }
+                                  : item.status === 'RESERVED'
+                                  ? { color: '#D97706' }
+                                  : { color: '#64748B' },
+                              ]}
+                            >
+                              {item.statusLabel}
+                            </Text>
+                          </View>
+                          <Text style={{ fontSize: 11, color: '#94A3B8' }}>{item.createdAt}</Text>
+                        </View>
+                        <Text style={styles.modalItemTitle} numberOfLines={1}>
+                          {item.title}
+                        </Text>
+                        <Text style={styles.modalItemPrice}>{item.price?.toLocaleString()}원</Text>
+                      </View>
+                    </View>
+
+                    {/* 상태 변경 퀵 액션 버튼 바 */}
+                    <View style={styles.statusActionRow}>
+                      <TouchableOpacity
+                        style={[styles.statusChangeBtn, item.status === 'SELLING' && styles.statusChangeBtnDisabled]}
+                        disabled={item.status === 'SELLING'}
+                        onPress={() => handleChangeSaleStatus(item.id, 'SELLING')}
+                      >
+                        <Text style={styles.statusChangeBtnText}>판매중</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.statusChangeBtn, item.status === 'RESERVED' && styles.statusChangeBtnDisabled]}
+                        disabled={item.status === 'RESERVED'}
+                        onPress={() => handleChangeSaleStatus(item.id, 'RESERVED')}
+                      >
+                        <Text style={styles.statusChangeBtnText}>예약중</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.statusChangeBtn, item.status === 'COMPLETED' && styles.statusChangeBtnDisabled]}
+                        disabled={item.status === 'COMPLETED'}
+                        onPress={() => handleChangeSaleStatus(item.id, 'COMPLETED')}
+                      >
+                        <Text style={styles.statusChangeBtnText}>판매완료</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.statusChangeBtn, { backgroundColor: '#FEE2E2', borderColor: '#FECDD3' }]}
+                        onPress={() => handleDeleteSaleItem(item.id)}
+                      >
+                        <Ionicons name="trash" size={13} color="#EF4444" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.dialogCancelBtn, { marginTop: 12 }]}
+              onPress={() => setSalesModalVisible(false)}
+            >
+              <Text style={styles.dialogCancelText}>닫기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* =================================================================== */}
+      {/* 📌 신규 모달 C: 구매 / 예약 내역 (안전결제 주문) */}
+      {/* =================================================================== */}
+      <Modal
+        visible={ordersModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setOrdersModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.dialogCard, { maxHeight: '86%', width: '92%' }]}>
+            <View style={styles.dialogHeader}>
+              <View style={[styles.dialogIconBox, { backgroundColor: '#ECFDF5' }]}>
+                <Ionicons name="shield-checkmark" size={20} color="#059669" />
+              </View>
+              <Text style={styles.dialogTitle}>구매 및 예약 내역</Text>
+              <Text style={styles.dialogSub}>에스크로 안심 결제 및 거래 예약 진행 상태입니다.</Text>
+            </View>
+
+            <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+              {myOrdersList.map((order) => (
+                <View key={order.id} style={styles.orderCard}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748B' }}>
+                      {order.orderNumber}
+                    </Text>
+                    <View style={styles.orderStatusBadge}>
+                      <Text style={styles.orderStatusText}>{order.statusText}</Text>
+                    </View>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Image source={{ uri: order.image }} style={styles.modalItemThumb} />
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                      <Text style={styles.modalItemTitle} numberOfLines={1}>
+                        {order.title}
+                      </Text>
+                      <Text style={styles.modalItemPrice}>{order.price?.toLocaleString()}원</Text>
+                      <Text style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
+                        판매자: {order.sellerName} · {order.location}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.orderFooterActions}>
+                    <TouchableOpacity
+                      style={styles.orderChatBtn}
+                      onPress={() => {
+                        setOrdersModalVisible(false);
+                        navigation.navigate('Chat', { screen: 'ChatsMain' });
+                      }}
+                    >
+                      <Ionicons name="chatbubble-ellipses" size={13} color="#4F46E5" />
+                      <Text style={styles.orderChatBtnText}>판매자와 대화</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.orderReceiptBtn}
+                      onPress={() => {
+                        Alert.alert('안전결제 보증', `주문번호: ${order.orderNumber}\n결제수단: ${order.paymentType}\n모꼬 에스크로 시스템에 의해 구매 확정 시까지 결제 대금이 안전하게 보관됩니다.`);
+                      }}
+                    >
+                      <Text style={styles.orderReceiptBtnText}>안전보증서</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.dialogCancelBtn, { marginTop: 12 }]}
+              onPress={() => setOrdersModalVisible(false)}
+            >
+              <Text style={styles.dialogCancelText}>닫기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* =================================================================== */}
+      {/* 모달 1: 1:1 대화/영상 단가설정 (모꼬 포인트 P 기준) */}
       {/* =================================================================== */}
       <Modal
         visible={rateModalVisible}
@@ -782,23 +1161,23 @@ export default function MyPageScreen({ navigation }) {
               <View style={[styles.dialogIconBox, { backgroundColor: '#FDF2F8' }]}>
                 <Ionicons name="chatbubbles" size={20} color="#DB2777" />
               </View>
-              <Text style={styles.dialogTitle}>1:1 채팅/영상 단가설정</Text>
+              <Text style={styles.dialogTitle}>1:1 대화 및 영상 단가설정</Text>
               <Text style={styles.dialogSub}>
-                상대방이 나와 1:1 대화를 신청하거나 영상 통화를 요청할 때 지불할 온(ON) 단가를 설정하세요.
+                상대방이 1:1 대화를 신청하거나 영상 통화를 요청할 때 지불할 모꼬 포인트(P)를 설정하세요.
               </Text>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
-              {/* 섹션 A: 1:1 대화방 입장 단가 (건당 ON) */}
+              {/* 섹션 A: 1:1 대화방 입장 단가 (P) */}
               <View style={{ marginBottom: 20 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <Text style={styles.rateSectionLabel}>💬 1:1 대화방 입장 단가 (건당 ON)</Text>
+                  <Text style={styles.rateSectionLabel}>💬 1:1 대화방 입장 단가 (건당 P)</Text>
                   <Text style={{ fontSize: 13, fontWeight: '800', color: '#FF3B6B' }}>
-                    {chatEntryFee > 0 ? `${chatEntryFee} ON` : '무료'}
+                    {chatEntryFee > 0 ? `${chatEntryFee} P` : '무료'}
                   </Text>
                 </View>
                 <Text style={{ fontSize: 12, color: tokens.colors.textSecondary, marginBottom: 8, lineHeight: 16 }}>
-                  상대방이 1:1 대화를 신청하거나 추천 대화방 입장 시 나에게 적립됩니다.
+                  상대방이 1:1 대화를 신청할 때 지불하며, 나에게 모꼬 포인트로 적립됩니다.
                 </Text>
 
                 {/* 채팅 프리셋 칩 */}
@@ -825,7 +1204,7 @@ export default function MyPageScreen({ navigation }) {
                             { fontSize: 12, textAlign: 'center' },
                           ]}
                         >
-                          {fee === 0 ? '무료' : `${fee} ON`}
+                          {fee === 0 ? '무료' : `${fee} P`}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -837,7 +1216,7 @@ export default function MyPageScreen({ navigation }) {
                   <TextInput
                     style={[styles.customRateInput, { flex: 1 }]}
                     keyboardType="numeric"
-                    placeholder="채팅 단가 직접 입력 (ON)"
+                    placeholder="채팅 단가 직접 입력 (P)"
                     placeholderTextColor="#94A3B8"
                     value={customChatFeeInput}
                     onChangeText={setCustomChatFeeInput}
@@ -858,16 +1237,16 @@ export default function MyPageScreen({ navigation }) {
 
               <View style={{ height: 1, backgroundColor: '#E2E8F0', marginBottom: 18 }} />
 
-              {/* 섹션 B: 1:1 영상/LIVE 단가 (분당 ON) */}
+              {/* 섹션 B: 1:1 영상/LIVE 단가 (분당 P) */}
               <View style={{ marginBottom: 10 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <Text style={styles.rateSectionLabel}>🎥 1:1 영상/LIVE 단가 (분당 ON)</Text>
+                  <Text style={styles.rateSectionLabel}>🎥 1:1 영상/LIVE 단가 (분당 P)</Text>
                   <Text style={{ fontSize: 13, fontWeight: '800', color: '#DB2777' }}>
-                    분당 {currentLiveRate.toLocaleString()} ON
+                    분당 {currentLiveRate.toLocaleString()} P
                   </Text>
                 </View>
                 <Text style={{ fontSize: 12, color: tokens.colors.textSecondary, marginBottom: 8, lineHeight: 16 }}>
-                  1:1 라이브 통화 시 분당 차감되어 나에게 적립됩니다.
+                  1:1 영상 라이브 시 분당 차감되어 나에게 모꼬 포인트로 적립됩니다.
                 </Text>
 
                 {/* 영상 프리셋 */}
@@ -894,7 +1273,7 @@ export default function MyPageScreen({ navigation }) {
                             { fontSize: 12, textAlign: 'center' },
                           ]}
                         >
-                          분당 {rate.toLocaleString()} ON
+                          분당 {rate.toLocaleString()} P
                         </Text>
                       </TouchableOpacity>
                     );
@@ -964,7 +1343,7 @@ export default function MyPageScreen({ navigation }) {
                 value={chatPush}
                 onValueChange={(val) => {
                   setChatPush(val);
-                  AsyncStorage.setItem('dagaon_chat_push', String(val));
+                  AsyncStorage.setItem('mocco_chat_push', String(val));
                 }}
                 trackColor={{ false: '#CBD5E1', true: tokens.colors.primary }}
               />
@@ -979,7 +1358,7 @@ export default function MyPageScreen({ navigation }) {
                 value={livePush}
                 onValueChange={(val) => {
                   setLivePush(val);
-                  AsyncStorage.setItem('dagaon_live_push', String(val));
+                  AsyncStorage.setItem('mocco_live_push', String(val));
                 }}
                 trackColor={{ false: '#CBD5E1', true: tokens.colors.primary }}
               />
@@ -994,7 +1373,7 @@ export default function MyPageScreen({ navigation }) {
                 value={nightPush}
                 onValueChange={(val) => {
                   setNightPush(val);
-                  AsyncStorage.setItem('dagaon_night_push', String(val));
+                  AsyncStorage.setItem('mocco_night_push', String(val));
                 }}
                 trackColor={{ false: '#CBD5E1', true: tokens.colors.primary }}
               />
@@ -1100,72 +1479,44 @@ export default function MyPageScreen({ navigation }) {
                     <Text style={styles.inquiryBannerSub}>운영팀이 실시간으로 확인 후 지원합니다</Text>
                   </View>
                 </View>
-                <Ionicons name="arrow-forward-circle" size={22} color="#FF3B6B" />
+                <Ionicons name="chevron-forward" size={16} color="#FF3B6B" />
               </TouchableOpacity>
 
-              {/* 관리자 연동 FAQ 아코디언 */}
-              <Text style={styles.faqSectionHeader}>자주 묻는 질문 (FAQ)</Text>
-              <View style={styles.faqListContainer}>
-                {faqsList.map((faq) => {
-                  const isExpanded = expandedFaqId === faq.id;
-                  return (
-                    <View key={faq.id} style={styles.faqItemCard}>
-                      <TouchableOpacity
-                        style={styles.faqItemHeader}
-                        onPress={() => setExpandedFaqId(isExpanded ? null : faq.id)}
-                        activeOpacity={0.7}
-                      >
-                        <View style={{ flex: 1 }}>
-                          <View style={styles.faqCategoryBadge}>
-                            <Text style={styles.faqCategoryText}>{faq.category}</Text>
-                          </View>
-                          <Text style={styles.faqQuestionText}>{faq.question}</Text>
-                        </View>
-                        <Ionicons
-                          name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                          size={18}
-                          color="#94A3B8"
-                        />
-                      </TouchableOpacity>
-                      {isExpanded && (
-                        <View style={styles.faqAnswerContainer}>
-                          <Text style={styles.faqAnswerText}>{faq.answer}</Text>
-                        </View>
-                      )}
-                    </View>
-                  );
-                })}
-              </View>
-
-              {/* 약관 및 가이드라인 */}
-              <Text style={[styles.faqSectionHeader, { marginTop: 16 }]}>이용약관 및 정책</Text>
-              <View style={styles.termsList}>
-                <TouchableOpacity
-                  style={styles.termsRow}
-                  onPress={() => Alert.alert('이용약관', '다가온 서비스 이용약관 전문입니다.\n\n제1조 (목적)\n본 약관은 다가온 서비스의 이용조건 및 절차, 회사와 회원 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.')}
-                >
-                  <Text style={styles.termsText}>서비스 이용약관</Text>
-                  <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.termsRow}
-                  onPress={() => Alert.alert('개인정보처리방침', '개인정보 처리방침 전문입니다.\n\n회사는 회원의 소중한 개인정보를 안전하게 보호하며, 관련 법령을 엄격히 준수합니다.')}
-                >
-                  <Text style={styles.termsText}>개인정보 처리방침</Text>
-                  <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.termsRow}
-                  onPress={() => Alert.alert('커뮤니티 가이드라인', '건전한 소통을 위한 커뮤니티 운영 가이드라인입니다.\n\n타인 비방, 욕설, 불법 광고 등은 24시간 실시간 AI 모니터링 시스템 및 운영진에 의해 즉시 차단 조치됩니다.')}
-                >
-                  <Text style={styles.termsText}>커뮤니티 운영 가이드라인</Text>
-                  <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
-                </TouchableOpacity>
-              </View>
+              {/* FAQ 아코디언 목록 */}
+              <Text style={[styles.faqSectionHeader, { marginTop: 14 }]}>자주 묻는 질문 (FAQ)</Text>
+              {faqsList.map((faq) => {
+                const isExpanded = expandedFaqId === faq.id;
+                return (
+                  <View key={faq.id} style={styles.faqItem}>
+                    <TouchableOpacity
+                      style={styles.faqQuestionRow}
+                      activeOpacity={0.7}
+                      onPress={() => setExpandedFaqId(isExpanded ? null : faq.id)}
+                    >
+                      <View style={styles.faqBadge}>
+                        <Text style={styles.faqBadgeText}>{faq.category || 'FAQ'}</Text>
+                      </View>
+                      <Text style={styles.faqQuestionText} numberOfLines={2}>
+                        {faq.question}
+                      </Text>
+                      <Ionicons
+                        name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                        size={16}
+                        color={tokens.colors.textSecondary}
+                      />
+                    </TouchableOpacity>
+                    {isExpanded && (
+                      <View style={styles.faqAnswerBox}>
+                        <Text style={styles.faqAnswerText}>{faq.answer}</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
             </ScrollView>
 
             <TouchableOpacity
-              style={styles.dialogCancelBtn}
+              style={[styles.dialogCancelBtn, { marginTop: 14 }]}
               onPress={() => setTermsModalVisible(false)}
             >
               <Text style={styles.dialogCancelText}>닫기</Text>
@@ -1175,224 +1526,172 @@ export default function MyPageScreen({ navigation }) {
       </Modal>
 
       {/* =================================================================== */}
-      {/* 모달 5: 1:1 고객센터 문의 작성 (관리자 연동) */}
+      {/* 모달 5: 1:1 고객 문의 작성 모달 */}
       {/* =================================================================== */}
       <Modal
         visible={inquiryModalVisible}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setInquiryModalVisible(false)}
       >
         <View style={styles.modalBackdrop}>
           <View style={[styles.dialogCard, { maxHeight: '90%' }]}>
             <View style={styles.dialogHeader}>
-              <View style={[styles.dialogIconBox, { backgroundColor: '#FFE4E6' }]}>
-                <Ionicons name="headset" size={22} color="#FF3B6B" />
+              <View style={[styles.dialogIconBox, { backgroundColor: '#FFF1F2' }]}>
+                <Ionicons name="create" size={22} color="#FF3B6B" />
               </View>
               <Text style={styles.dialogTitle}>1:1 고객 문의 접수</Text>
               <Text style={styles.dialogSub}>
-                문의하신 내용은 관리자 지원 센터로 실시간 전달되어 확인 후 신속히 안내됩니다.
+                문의 유형과 내용을 남겨주시면 담당 관리자가 확인 후 답변드립니다.
               </Text>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              {/* 분류 선택 */}
-              <Text style={styles.inquiryFieldLabel}>문의 분류</Text>
-              <View style={styles.inquiryCategoryRow}>
-                {['문의', '환불/결제', '버그 신고', '계정'].map((cat) => {
-                  const isSel = inquiryCategory === cat;
-                  return (
-                    <TouchableOpacity
-                      key={cat}
+              {/* 유형 선택 칩 */}
+              <Text style={styles.inputGroupLabel}>문의 유형</Text>
+              <View style={styles.categoryChipRow}>
+                {['문의', '신고', '환불/정산', '기타'].map((cat) => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[
+                      styles.categoryChip,
+                      inquiryCategory === cat && styles.categoryChipActive,
+                    ]}
+                    onPress={() => setInquiryCategory(cat)}
+                  >
+                    <Text
                       style={[
-                        styles.inquiryCategoryChip,
-                        isSel ? styles.inquiryCategoryChipActive : null,
+                        styles.categoryChipText,
+                        inquiryCategory === cat && styles.categoryChipTextActive,
                       ]}
-                      onPress={() => setInquiryCategory(cat)}
                     >
-                      <Text
-                        style={[
-                          styles.inquiryCategoryChipText,
-                          isSel ? styles.inquiryCategoryChipTextActive : null,
-                        ]}
-                      >
-                        {cat}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
 
-              {/* 답변 받을 연락처 */}
-              <Text style={styles.inquiryFieldLabel}>회신 받을 연락처 (전화번호/이메일)</Text>
+              {/* 답변 받을 연락처 / 이메일 */}
+              <Text style={[styles.inputGroupLabel, { marginTop: 12 }]}>연락처 또는 이메일</Text>
               <TextInput
                 style={styles.inquiryInput}
-                placeholder="010-0000-0000 또는 이메일"
-                placeholderTextColor="#94A3B8"
+                placeholder="답변 받을 휴대폰 번호 또는 이메일"
+                placeholderTextColor={tokens.colors.textTertiary}
                 value={inquiryContact}
                 onChangeText={setInquiryContact}
               />
 
               {/* 문의 내용 */}
-              <Text style={styles.inquiryFieldLabel}>문의 내용</Text>
+              <Text style={[styles.inputGroupLabel, { marginTop: 12 }]}>문의 내용</Text>
               <TextInput
                 style={[styles.inquiryInput, styles.inquiryTextArea]}
-                placeholder="겪으신 문제나 문의 사항을 구체적으로 적어주세요."
-                placeholderTextColor="#94A3B8"
+                placeholder="문의하실 내용을 구체적으로 작성해 주세요."
+                placeholderTextColor={tokens.colors.textTertiary}
                 value={inquiryMessage}
                 onChangeText={setInquiryMessage}
                 multiline
-                numberOfLines={4}
+                numberOfLines={5}
                 textAlignVertical="top"
               />
-
-              {/* 제출 버튼 */}
-              <TouchableOpacity
-                style={[
-                  styles.inquirySubmitBtn,
-                  submittingInquiry ? styles.inquirySubmitBtnDisabled : null,
-                ]}
-                disabled={submittingInquiry}
-                onPress={handleSubmitInquiry}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.inquirySubmitBtnText}>
-                  {submittingInquiry ? '접수 처리 중...' : '문의 접수하기'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.dialogCancelBtn}
-                onPress={() => setInquiryModalVisible(false)}
-              >
-                <Text style={styles.dialogCancelText}>취소</Text>
-              </TouchableOpacity>
             </ScrollView>
+
+            <View style={styles.inquiryBtnRow}>
+              <TouchableOpacity
+                style={styles.inquiryCancelBtn}
+                onPress={() => setInquiryModalVisible(false)}
+                disabled={submittingInquiry}
+              >
+                <Text style={styles.inquiryCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.inquirySubmitBtn, submittingInquiry && { opacity: 0.6 }]}
+                onPress={handleSubmitInquiry}
+                disabled={submittingInquiry}
+              >
+                {submittingInquiry ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.inquirySubmitText}>접수하기</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
 
-      {/* 8. 보상형 광고 시청 모달 (무료 ON 리워드) */}
+      {/* =================================================================== */}
+      {/* 모달 6: 무료 MC 충전소 광고 시청 */}
+      {/* =================================================================== */}
       <Modal
         visible={rewardAdModalVisible}
-        animationType="fade"
         transparent
+        animationType="fade"
         onRequestClose={() => {
-          if (rewardAdCountdown > 0) {
-            Alert.alert(
-              '광고 시청 중단',
-              '광고를 끝까지 시청해야 10 MC이 지급됩니다. 시청을 종료하시겠습니까?',
-              [
-                { text: '계속 시청', style: 'cancel' },
-                {
-                  text: '종료',
-                  style: 'destructive',
-                  onPress: () => {
-                    setRewardAdModalVisible(false);
-                    setIsAdWatching(false);
-                  },
-                },
-              ]
-            );
-          } else {
-            setRewardAdModalVisible(false);
-            setIsAdWatching(false);
-          }
+          if (!isAdWatching) setRewardAdModalVisible(false);
         }}
       >
-        <View style={styles.adModalBackdrop}>
-          <View style={styles.adModalContainer}>
-            {/* 상단 닫기 & 타이머 바 */}
-            <View style={styles.adModalTopBar}>
-              <View style={styles.adBadgePill}>
-                <Text style={styles.adBadgeText}>🎬 보상형 스폰서 광고</Text>
+        <View style={styles.rewardModalBackdrop}>
+          <View style={styles.rewardModalCard}>
+            <View style={styles.rewardModalHeader}>
+              <View style={styles.rewardAdTag}>
+                <Text style={styles.rewardAdTagText}>SPONSORED AD</Text>
               </View>
               {rewardAdCountdown > 0 ? (
-                <View style={styles.adTimerChip}>
+                <View style={styles.rewardTimerChip}>
                   <Ionicons name="time-outline" size={12} color="#FFFFFF" />
-                  <Text style={styles.adTimerText}>{rewardAdCountdown}초 후 리워드</Text>
+                  <Text style={styles.rewardTimerText}>{rewardAdCountdown}초 후 보상</Text>
                 </View>
               ) : (
                 <TouchableOpacity
-                  style={styles.adCloseBtn}
-                  onPress={() => {
-                    setRewardAdModalVisible(false);
-                    setIsAdWatching(false);
-                  }}
+                  style={styles.rewardCloseBtn}
+                  onPress={() => setRewardAdModalVisible(false)}
                 >
                   <Ionicons name="close" size={18} color="#FFFFFF" />
                 </TouchableOpacity>
               )}
             </View>
 
-            {/* 광고 비디오 시뮬레이션 영역 */}
-            <View style={styles.adVideoFrame}>
+            <View style={styles.rewardAdVideoBox}>
               <Image
                 source={{
-                  uri: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=800&auto=format&fit=crop&q=80',
+                  uri: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800',
                 }}
-                style={styles.adVideoImage}
+                style={styles.rewardAdVideoImg}
                 resizeMode="cover"
               />
               <LinearGradient
                 colors={['transparent', 'rgba(15, 23, 42, 0.9)']}
-                style={styles.adVideoOverlay}
+                style={styles.rewardAdVideoOverlay}
               >
-                <View style={styles.adSponsorRow}>
-                  <View style={styles.adBrandIcon}>
-                    <Text style={{ fontSize: 16 }}>🎁</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.adSponsorName}>다가온 파트너스 공식 리워드</Text>
-                    <Text style={styles.adSponsorTitle}>매일매일 출석체크 & 10 MC 즉시 충전</Text>
-                  </View>
-                </View>
+                <Text style={styles.rewardAdBrand}>✨ 모꼬 프리미엄 라이프</Text>
+                <Text style={styles.rewardAdHeadline}>
+                  새로운 동네 친구와 나누는 따뜻한 소통의 순간
+                </Text>
               </LinearGradient>
-
-              {/* 진행률 바 */}
-              <View style={styles.adProgressBarTrack}>
-                <View
-                  style={[
-                    styles.adProgressBarFill,
-                    { width: `${((5 - rewardAdCountdown) / 5) * 100}%` },
-                  ]}
-                />
-              </View>
             </View>
 
-            {/* 하단 리워드 액션 바 */}
-            <View style={styles.adModalFooter}>
-              {rewardAdCountdown > 0 ? (
-                <View style={styles.adWatchingWaitBox}>
-                  <ActivityIndicator size="small" color="#4F46E5" />
-                  <Text style={styles.adWatchingWaitText}>
-                    광고 시청 중... 잠시만 기다려주세요 ({rewardAdCountdown}s)
+            <View style={styles.rewardModalBottom}>
+              <View style={styles.rewardRewardBadgeRow}>
+                <Ionicons name="gift" size={18} color="#FF3B6B" />
+                <Text style={styles.rewardRewardDesc}>광고 시청 완료 보상: +10 모꼬 포인트</Text>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.rewardClaimBtn,
+                  rewardAdCountdown > 0 && styles.rewardClaimBtnDisabled,
+                ]}
+                disabled={rewardAdCountdown > 0 || claimingReward}
+                onPress={handleClaimAdReward}
+              >
+                {claimingReward ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.rewardClaimBtnText}>
+                    {rewardAdCountdown > 0 ? `${rewardAdCountdown}초 후 보상받기` : '10 P 받기'}
                   </Text>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={styles.adClaimBtn}
-                  activeOpacity={0.88}
-                  disabled={claimingReward}
-                  onPress={handleClaimAdReward}
-                >
-                  <LinearGradient
-                    colors={['#FF3B6B', '#FF758C']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.adClaimGradient}
-                  >
-                    {claimingReward ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <>
-                        <Ionicons name="gift" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                        <Text style={styles.adClaimBtnText}>10 MC 즉시 받기</Text>
-                      </>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
+                )}
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -1402,38 +1701,302 @@ export default function MyPageScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  // 3.4 무료 MC 충전소 숏컷 배너 스타일
+  container: {
+    flex: 1,
+    backgroundColor: '#FAFAFB',
+  },
+  navBar: {
+    height: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  navTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  navTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.3,
+  },
+  navIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+  scrollArea: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+
+  // 1. 프로필 헤더 카드
+  profileCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 14,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  profileTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  storyRing: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    padding: 2.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  storyRingInner: {
+    width: 63,
+    height: 63,
+    borderRadius: 31.5,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInfoCol: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 6,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  profileName: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  ageBadge: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 6,
+  },
+  ageBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#4F46E5',
+  },
+  locationText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+    marginBottom: 3,
+  },
+  taglineText: {
+    fontSize: 12,
+    color: '#475569',
+    lineHeight: 16,
+  },
+  editProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#FFF1F2',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  editProfileText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FF3B6B',
+  },
+
+  // 2. 자산/지갑 분리 섹션 (모꼬 포인트 vs 판매 정산금 원화)
+  walletSectionWrap: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    gap: 10,
+  },
+  pointWalletCard: {
+    borderRadius: 18,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+  walletHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  walletTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  walletLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#F8FAFC',
+  },
+  walletMiniTag: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 6,
+  },
+  walletMiniTagText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  chargeBtnMini: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  chargeBtnMiniGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  chargeBtnMiniText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  walletBalanceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+    marginBottom: 3,
+  },
+  walletBalanceNumber: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  walletBalanceUnit: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#F8FAFC',
+  },
+  walletSubHint: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+
+  // 원화 판매 정산금 카드
+  cashWalletCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  cashWalletLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  cashMiniTag: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 6,
+  },
+  cashMiniTagText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#059669',
+  },
+  settleBtnAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  settleBtnActionText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  cashBalanceNumber: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  cashBalanceUnit: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#334155',
+  },
+  cashSubHint: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+
+  // 무료 충전소 배너
   rewardBannerBtn: {
     marginHorizontal: 16,
-    marginBottom: 14,
+    marginTop: 10,
     borderRadius: 14,
     overflow: 'hidden',
     shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
   rewardBannerGradient: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   rewardBannerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
     flex: 1,
   },
   rewardBannerIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
   },
   rewardBannerTextBox: {
     flex: 1,
@@ -1442,681 +2005,489 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 3,
+    marginBottom: 2,
   },
   rewardBannerTitle: {
-    fontSize: 14,
-    fontWeight: '800',
     color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
   },
   rewardPointBadge: {
-    backgroundColor: '#FF3B6B',
-    paddingHorizontal: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 4,
   },
   rewardPointBadgeText: {
-    fontSize: 10,
-    fontWeight: '900',
     color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '900',
   },
   rewardBannerDesc: {
-    fontSize: 11,
-    color: '#E0E7FF',
-    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: 10.5,
   },
   rewardBannerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8,
+    gap: 2,
+    marginLeft: 8,
   },
   rewardBannerActionText: {
-    fontSize: 11,
-    fontWeight: '700',
     color: '#FFFFFF',
-  },
-
-  // 3.5 마켓 & 라이브 활동 내역 카드
-  activityStatsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  activityHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  activityHeaderTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  activityHeaderMore: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#4F46E5',
-  },
-  activityGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  activityGridItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  activityIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  activityItemCount: {
-    fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 2,
-  },
-  activityItemLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#64748B',
   },
 
-  // 광고 시청 모달 스타일
-  adModalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  adModalContainer: {
-    width: '100%',
-    backgroundColor: '#1E293B',
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  adModalTopBar: {
+  // 3. 소셜 팔로워 / 팔로잉 듀얼 와이드 카드
+  socialFollowDualCard: {
     flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 14,
-    backgroundColor: '#0F172A',
   },
-  adBadgePill: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  adBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  adTimerChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#4F46E5',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  adTimerText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  adCloseBtn: {
-    padding: 4,
-  },
-  adVideoFrame: {
-    width: '100%',
-    height: 220,
-    position: 'relative',
-    backgroundColor: '#000',
-  },
-  adVideoImage: {
-    width: '100%',
-    height: '100%',
-  },
-  adVideoOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    padding: 14,
-  },
-  adSponsorRow: {
+  followStatBox: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  adBrandIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  adSponsorName: {
-    color: '#CBD5E1',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  adSponsorTitle: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  adProgressBarTrack: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  adProgressBarFill: {
-    height: '100%',
-    backgroundColor: '#FF3B6B',
-  },
-  adModalFooter: {
-    padding: 16,
-    backgroundColor: '#0F172A',
-  },
-  adWatchingWaitBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 10,
-  },
-  adWatchingWaitText: {
-    color: '#94A3B8',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  adClaimBtn: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  adClaimGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-  },
-  adClaimBtnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '900',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: tokens.colors.background,
-  },
-  navBar: {
-    height: 52,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    backgroundColor: tokens.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: tokens.colors.borderLight,
-  },
-  navTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  navMascotIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-  },
-  navTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: tokens.colors.textPrimary,
-  },
-  profileMascotBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    backgroundColor: '#FFFFFF',
-  },
-  navIconBtn: {
+  followIconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  scrollArea: {
-    flex: 1,
+  followCount: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  // 프로필 헤더 카드
-  profileCard: {
-    backgroundColor: tokens.colors.surface,
-    borderRadius: tokens.radii.card,
-    padding: 16,
-    marginBottom: 14,
-    ...tokens.shadows.card,
-  },
-  profileTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  storyRing: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    padding: 2.5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  storyRingInner: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 34,
-    backgroundColor: '#FFFFFF',
-    padding: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileInfoCol: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  profileName: {
-    fontSize: 19,
-    fontWeight: '800',
-    color: tokens.colors.textPrimary,
-    maxWidth: 130,
-  },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    backgroundColor: '#FFF1F4',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 9999,
-  },
-  verifiedText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: tokens.colors.primary,
-  },
-  locationText: {
-    fontSize: 12,
-    color: tokens.colors.textSecondary,
-    marginTop: 2,
-  },
-  taglineText: {
-    fontSize: 13,
-    color: tokens.colors.textPrimary,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  editProfileBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: '#FFF1F4',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: tokens.radii.pill,
-    alignSelf: 'flex-start',
-  },
-  editProfileText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: tokens.colors.primary,
-  },
-  profileCompletionContainer: {
-    marginTop: 14,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: tokens.colors.borderLight,
-  },
-  completionLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  completionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: tokens.colors.textPrimary,
-  },
-  completionHighlight: {
-    color: tokens.colors.primary,
-  },
-  completionHint: {
+  followLabel: {
     fontSize: 11,
-    color: tokens.colors.textSecondary,
-  },
-  progressBarTrack: {
-    height: 6,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  // 온(ON) 지갑 카드 (VIP Asset Box)
-  walletCardWrapper: {
-    borderRadius: tokens.radii.card,
-    overflow: 'hidden',
-    marginBottom: 14,
-    ...tokens.shadows.float,
-  },
-  walletGradient: {
-    padding: 20,
-  },
-  walletTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  walletLabelGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  walletLabel: {
-    fontSize: 13,
-    color: '#94A3B8',
+    color: '#64748B',
     fontWeight: '600',
   },
-  vipAssetTag: {
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 9999,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.4)',
-  },
-  vipAssetTagText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#FBBF24',
-  },
-  balanceRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 6,
-  },
-  balanceCoin: {
-    fontSize: 22,
-  },
-  balanceValue: {
-    fontSize: 30,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-  },
-  balanceUnit: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#CBD5E1',
-  },
-  balanceSubText: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginTop: 4,
-    marginBottom: 16,
-  },
-  walletActionRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  chargeBtn: {
-    flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  chargeBtnGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    height: 42,
-  },
-  chargeBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  settleBtn: {
-    flex: 1.2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  settleBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#F8FAFC',
-  },
-  // 소셜 스탯 카운터
-  socialStatsCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: tokens.colors.surface,
-    borderRadius: tokens.radii.card,
-    paddingVertical: 14,
-    marginBottom: 16,
-    ...tokens.shadows.card,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statCount: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: tokens.colors.textPrimary,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: tokens.colors.textSecondary,
-    marginTop: 3,
-  },
-  statDivider: {
+  followDivider: {
     width: 1,
-    height: 24,
-    backgroundColor: tokens.colors.borderLight,
+    height: 30,
+    backgroundColor: '#F1F5F9',
+    marginHorizontal: 12,
   },
-  // 그룹형 메뉴 리스트
+
+  // 4. 중고거래 & 마켓거래 종합 관리 섹션 (관심목록, 판매관리, 구매/예약내역)
+  tradeManagementCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 14,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  tradeHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  tradeHeaderTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  tradeHeaderMore: {
+    fontSize: 12,
+    color: '#4F46E5',
+    fontWeight: '700',
+  },
+  tradeItemsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  tradeActionBtn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  tradeIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  tradeBtnTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  tradeBtnSub: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+
+  // 5. 메뉴 그룹
   menuGroup: {
-    marginBottom: 18,
+    marginHorizontal: 16,
+    marginTop: 18,
   },
   groupHeader: {
     fontSize: 13,
-    fontWeight: '700',
-    color: tokens.colors.textSecondary,
+    fontWeight: '800',
+    color: '#64748B',
     marginBottom: 8,
-    paddingLeft: 4,
+    marginLeft: 4,
   },
   menuContainer: {
-    backgroundColor: tokens.colors.surface,
-    borderRadius: tokens.radii.card,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
     overflow: 'hidden',
-    ...tokens.shadows.card,
   },
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
     paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   menuIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    justifyContent: 'center',
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12,
   },
   menuTextBox: {
     flex: 1,
   },
   menuTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
-    color: tokens.colors.textPrimary,
+    color: '#1E293B',
+    marginBottom: 2,
   },
   menuDesc: {
-    fontSize: 12,
-    color: tokens.colors.textSecondary,
-    marginTop: 2,
+    fontSize: 11,
+    color: '#94A3B8',
   },
   menuDivider: {
     height: 1,
-    backgroundColor: tokens.colors.borderLight,
-    marginLeft: 64,
+    backgroundColor: '#F8FAFC',
+    marginLeft: 62,
   },
+
+  // 6. 하단 로그아웃
   footerSection: {
     alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 30,
-    gap: 8,
+    marginTop: 24,
+    marginBottom: 10,
   },
   logoutText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
     color: '#94A3B8',
+    fontWeight: '600',
     textDecorationLine: 'underline',
+    marginBottom: 8,
   },
   versionText: {
     fontSize: 11,
     color: '#CBD5E1',
   },
+
   // 모달 공통 스타일
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: 16,
   },
   dialogCard: {
     width: '100%',
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    padding: 20,
-    ...tokens.shadows.float,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
   },
   dialogHeader: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   dialogIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
-    marginBottom: 10,
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   dialogTitle: {
     fontSize: 17,
-    fontWeight: '800',
-    color: tokens.colors.textPrimary,
+    fontWeight: '900',
+    color: '#0F172A',
     marginBottom: 4,
   },
   dialogSub: {
-    fontSize: 13,
-    color: tokens.colors.textSecondary,
+    fontSize: 12,
+    color: '#64748B',
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 16,
   },
-  rateOptionsContainer: {
+  dialogCancelBtn: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  dialogCancelText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#475569',
+  },
+
+  // 모달 내 리스트 아이템 스타일
+  modalListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  modalItemThumb: {
+    width: 52,
+    height: 52,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+  },
+  modalItemTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 3,
+  },
+  modalItemPrice: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  modalItemLocation: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  removeWishBtn: {
+    padding: 8,
+  },
+
+  // 판매관리 카드
+  saleManageCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  statusChip: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  statusChipText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  filterTabBar: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 12,
+  },
+  filterTabBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+  },
+  filterTabBtnActive: {
+    backgroundColor: '#0F172A',
+  },
+  filterTabText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  filterTabTextActive: {
+    color: '#FFFFFF',
+  },
+  statusActionRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  statusChangeBtn: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusChangeBtnDisabled: {
+    opacity: 0.4,
+    backgroundColor: '#E2E8F0',
+  },
+  statusChangeBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#334155',
+  },
+
+  // 구매/예약 내역 카드
+  orderCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  orderStatusBadge: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  orderStatusText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#059669',
+  },
+  orderFooterActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
     gap: 8,
-    marginBottom: 14,
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  orderChatBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  orderChatBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#4F46E5',
+  },
+  orderReceiptBtn: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  orderReceiptBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+  },
+
+  // 단가 설정 관련
+  rateSectionLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
   },
   rateOptionBtn: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
   },
   rateOptionActive: {
-    backgroundColor: '#FFF1F4',
-    borderColor: tokens.colors.primary,
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
   },
   rateOptionInactive: {
     backgroundColor: '#F8FAFC',
     borderColor: '#E2E8F0',
   },
   rateOptionText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  rateOptionTextActive: {
-    color: tokens.colors.primary,
     fontWeight: '700',
   },
-  rateOptionTextInactive: {
-    color: tokens.colors.textPrimary,
+  rateOptionTextActive: {
+    color: '#FFFFFF',
   },
+  rateOptionTextInactive: {
+    color: '#475569',
+  },
+  customRateInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  customRateInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: '#0F172A',
+  },
+  customRateSaveBtn: {
+    backgroundColor: '#0F172A',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  customRateSaveBtnDisabled: {
+    opacity: 0.4,
+  },
+  customRateSaveBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+
+  // 스위치 행
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2128,13 +2499,15 @@ const styles = StyleSheet.create({
   switchLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: tokens.colors.textPrimary,
+    color: '#0F172A',
+    marginBottom: 2,
   },
   switchSub: {
-    fontSize: 12,
-    color: tokens.colors.textSecondary,
-    marginTop: 2,
+    fontSize: 11,
+    color: '#94A3B8',
   },
+
+  // 안심 케어 센터
   safetyBulletList: {
     gap: 12,
     marginVertical: 10,
@@ -2146,101 +2519,21 @@ const styles = StyleSheet.create({
   },
   safetyBulletText: {
     flex: 1,
-    fontSize: 13,
-    color: tokens.colors.textSecondary,
+    fontSize: 12,
+    color: '#475569',
     lineHeight: 18,
   },
-  termsList: {
-    marginVertical: 8,
-  },
-  termsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  termsText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: tokens.colors.textPrimary,
-  },
-  dialogCancelBtn: {
-    marginTop: 14,
-    height: 46,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dialogCancelText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: tokens.colors.textSecondary,
-  },
-  // 1:1 LIVE 단가 관련 추가 스타일
-  rateSectionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#64748B',
-    marginBottom: 6,
-  },
-  customRateContainer: {
-    marginTop: 6,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  customRateInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  customRateInput: {
-    flex: 1,
-    height: 44,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    fontSize: 15,
-    fontWeight: '700',
-    color: tokens.colors.textPrimary,
-  },
-  customRateUnit: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  customRateSaveBtn: {
-    paddingHorizontal: 16,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: '#FF3B6B',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  customRateSaveBtnDisabled: {
-    backgroundColor: '#CBD5E1',
-  },
-  customRateSaveBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  // 고객센터 & 약관 FAQ 및 1:1 문의 스타일
+
+  // 고객센터 & 약관
   inquiryBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFF1F4',
+    backgroundColor: '#FFF1F2',
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#FFE4E6',
-    marginBottom: 14,
+    borderColor: '#FECDD3',
   },
   inquiryBannerLeft: {
     flexDirection: 'row',
@@ -2248,9 +2541,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inquiryBannerTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
-    color: '#FF3B6B',
+    color: '#E11D48',
   },
   inquiryBannerSub: {
     fontSize: 11,
@@ -2260,121 +2553,232 @@ const styles = StyleSheet.create({
   faqSectionHeader: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#334155',
+    color: '#64748B',
     marginBottom: 8,
   },
-  faqListContainer: {
-    gap: 8,
-    marginBottom: 6,
-  },
-  faqItemCard: {
+  faqItem: {
     backgroundColor: '#F8FAFC',
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    marginBottom: 6,
     overflow: 'hidden',
   },
-  faqItemHeader: {
+  faqQuestionRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 10,
+    padding: 12,
+    gap: 8,
   },
-  faqCategoryBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#EDE9FE',
-    paddingHorizontal: 6,
+  faqBadge: {
+    backgroundColor: '#E2E8F0',
+    paddingHorizontal: 5,
     paddingVertical: 2,
     borderRadius: 4,
-    marginBottom: 4,
   },
-  faqCategoryText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#7C3AED',
+  faqBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#475569',
   },
   faqQuestionText: {
-    fontSize: 13,
+    flex: 1,
+    fontSize: 12,
     fontWeight: '700',
-    color: tokens.colors.textPrimary,
-    lineHeight: 18,
+    color: '#1E293B',
   },
-  faqAnswerContainer: {
-    padding: 10,
-    paddingTop: 4,
-    backgroundColor: '#FFFFFF',
+  faqAnswerBox: {
+    padding: 12,
+    paddingTop: 0,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
   faqAnswerText: {
-    fontSize: 12,
-    color: '#475569',
-    lineHeight: 18,
+    fontSize: 11.5,
+    color: '#64748B',
+    lineHeight: 17,
   },
-  // 1:1 문의 접수 폼 스타일
-  inquiryFieldLabel: {
+
+  // 1:1 고객 문의 모달
+  inputGroupLabel: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#475569',
     marginBottom: 6,
-    marginTop: 10,
   },
-  inquiryCategoryRow: {
+  categoryChipRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 6,
-    marginBottom: 4,
+    marginBottom: 6,
   },
-  inquiryCategoryChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+  categoryChip: {
+    flex: 1,
+    paddingVertical: 7,
+    alignItems: 'center',
     backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderRadius: 8,
   },
-  inquiryCategoryChipActive: {
-    backgroundColor: '#FFF1F4',
-    borderColor: '#FF3B6B',
+  categoryChipActive: {
+    backgroundColor: '#FF3B6B',
   },
-  inquiryCategoryChipText: {
-    fontSize: 12,
-    fontWeight: '600',
+  categoryChipText: {
+    fontSize: 11,
+    fontWeight: '700',
     color: '#64748B',
   },
-  inquiryCategoryChipTextActive: {
-    color: '#FF3B6B',
-    fontWeight: '700',
+  categoryChipTextActive: {
+    color: '#FFFFFF',
   },
   inquiryInput: {
-    height: 42,
     backgroundColor: '#F8FAFC',
-    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    borderRadius: 10,
     paddingHorizontal: 12,
+    paddingVertical: 8,
     fontSize: 13,
-    color: tokens.colors.textPrimary,
+    color: '#0F172A',
   },
   inquiryTextArea: {
-    height: 90,
-    paddingTop: 10,
+    minHeight: 100,
+  },
+  inquiryBtnRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16,
+  },
+  inquiryCancelBtn: {
+    flex: 1,
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  inquiryCancelText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
   },
   inquirySubmitBtn: {
-    marginTop: 16,
-    height: 46,
-    borderRadius: 12,
+    flex: 1.5,
     backgroundColor: '#FF3B6B',
-    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
     alignItems: 'center',
-    ...tokens.shadows.glow,
   },
-  inquirySubmitBtnDisabled: {
-    backgroundColor: '#CBD5E1',
-  },
-  inquirySubmitBtnText: {
-    fontSize: 15,
+  inquirySubmitText: {
+    fontSize: 13,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+
+  // 무료 충전소 광고 시청 모달
+  rewardModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  rewardModalCard: {
+    width: '100%',
+    backgroundColor: '#0F172A',
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  rewardModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+  },
+  rewardAdTag: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  rewardAdTagText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  rewardTimerChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  rewardTimerText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  rewardCloseBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rewardAdVideoBox: {
+    width: '100%',
+    height: 220,
+    position: 'relative',
+  },
+  rewardAdVideoImg: {
+    width: '100%',
+    height: '100%',
+  },
+  rewardAdVideoOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: 0,
+    justifyContent: 'flex-end',
+    padding: 14,
+  },
+  rewardAdBrand: {
+    color: '#CBD5E1',
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  rewardAdHeadline: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 19,
+  },
+  rewardModalBottom: {
+    padding: 16,
+  },
+  rewardRewardBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  rewardRewardDesc: {
+    color: '#F8FAFC',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  rewardClaimBtn: {
+    backgroundColor: '#FF3B6B',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  rewardClaimBtnDisabled: {
+    backgroundColor: '#475569',
+  },
+  rewardClaimBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '900',
   },
 });

@@ -456,7 +456,27 @@ export default function ProductDetailScreen({ route, navigation }: any) {
 
         {/* 3. 판매자 프로필 정보 (매너온도 / 신뢰지수) */}
         <View style={styles.sellerSection}>
-          <View style={styles.sellerLeft}>
+          <TouchableOpacity
+            style={styles.sellerLeft}
+            activeOpacity={0.85}
+            onPress={() => {
+              navigation.navigate('ProfileDetail', {
+                profile: {
+                  id: product.seller.id,
+                  targetUserId: product.seller.id,
+                  name: product.seller.nickname,
+                  nickname: product.seller.nickname,
+                  avatar: product.seller.avatarUrl,
+                  avatarUrl: product.seller.avatarUrl,
+                  avatarUri: product.seller.avatarUrl,
+                  location: product.locationName,
+                  headline: `${product.locationName} 동네 이웃`,
+                  age: 26,
+                  gender: '여',
+                },
+              });
+            }}
+          >
             <Image source={{ uri: product.seller.avatarUrl }} style={styles.sellerAvatar} />
             <View style={styles.sellerNameBox}>
               <View style={styles.sellerBadgeRow}>
@@ -471,7 +491,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
                 {product.locationName} · {product.distanceKm > 0 ? `${product.distanceKm}km 이내` : '로컬 인증'}
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.trustScoreBox}>
             <View style={styles.trustScoreRow}>

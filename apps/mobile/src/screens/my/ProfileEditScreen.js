@@ -70,6 +70,8 @@ export default function ProfileEditScreen({ navigation, route }) {
   const [chatEntryFee, setChatEntryFee] = useState(
     Number(user?.chatEntryFee ?? userProfile?.chatEntryFee ?? profile?.chatEntryFee ?? 30)
   );
+  const [age, setAge] = useState(String(user?.age ?? userProfile?.age ?? profile?.age ?? '26'));
+  const [gender, setGender] = useState(user?.gender ?? userProfile?.gender ?? profile?.gender ?? '여');
   const [avatarUri, setAvatarUri] = useState(
     user?.avatarUrl ?? user?.avatarUri ?? userProfile?.avatarUri ?? profile?.avatarUri ?? profile?.image ?? null,
   );
@@ -396,6 +398,8 @@ export default function ProfileEditScreen({ navigation, route }) {
         headline: title.trim(),
         bio: bio.trim(),
         chatEntryFee: Number(chatEntryFee) || 0,
+        age: Math.max(1, Math.min(120, parseInt(age, 10) || 26)),
+        gender: gender || '여',
         interests,
         avatarUri: nextAvatarUri,
         avatarUrl: nextAvatarUri,
@@ -633,6 +637,50 @@ export default function ProfileEditScreen({ navigation, route }) {
                 placeholderTextColor={colors.textTertiary}
                 maxLength={20}
               />
+            </View>
+          </View>
+
+          {/* 2.5 나이 및 성별 */}
+          <View style={styles.fieldBlock}>
+            <Text style={styles.label}>나이 및 성별</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                <TextInput
+                  style={[styles.input, { flex: 1, textAlign: 'center' }]}
+                  value={age}
+                  onChangeText={setAge}
+                  placeholder="예: 26"
+                  placeholderTextColor={colors.textTertiary}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                />
+                <Text style={{ marginLeft: 6, fontSize: 15, fontWeight: '700', color: colors.text }}>세</Text>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                <TouchableOpacity
+                  style={[
+                    styles.checkButton,
+                    gender === '여' ? { backgroundColor: '#FF3B6B' } : { backgroundColor: '#F1F5F9' },
+                    { paddingHorizontal: 16, height: 48, borderRadius: 12, justifyContent: 'center' },
+                  ]}
+                  onPress={() => setGender('여')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={{ fontWeight: '800', color: gender === '여' ? '#FFFFFF' : '#64748B' }}>여성</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.checkButton,
+                    gender === '남' ? { backgroundColor: '#3B82F6' } : { backgroundColor: '#F1F5F9' },
+                    { paddingHorizontal: 16, height: 48, borderRadius: 12, justifyContent: 'center' },
+                  ]}
+                  onPress={() => setGender('남')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={{ fontWeight: '800', color: gender === '남' ? '#FFFFFF' : '#64748B' }}>남성</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 

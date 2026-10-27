@@ -67,20 +67,38 @@ export default function GlobalProfileModal() {
   }, [visible, loadPhotos]);
 
   const profileData = useMemo(() => {
-    if (profile) return profile;
-    if (!user) return null;
-
     const userProfile = user?.profile ?? {};
+    const src = profile || user;
+    if (!src) return null;
+
+    const resolvedAvatar =
+      src.avatar ||
+      src.avatarUrl ||
+      src.avatarUri ||
+      src.photoUrl ||
+      src.image ||
+      src.photos?.[0]?.url ||
+      userProfile?.avatarUri ||
+      userProfile?.avatarUrl ||
+      user?.avatarUrl ||
+      user?.avatarUri ||
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500';
+
     const location =
-      [user?.region1, user?.region2].filter(Boolean).join(' · ') || '지역 미설정';
+      src.location ||
+      [src.region1 || user?.region1, src.region2 || user?.region2].filter(Boolean).join(' · ') ||
+      '서울 강남구';
 
     return {
-      name: userProfile?.nickname || user?.displayName || '회원님',
+      id: src.id,
+      name: src.nickname || src.displayName || src.name || userProfile?.nickname || '회원님',
       location,
-      title: userProfile?.headline || '한줄 소개가 없습니다.',
-      bio: userProfile?.bio || '소개가 없습니다.',
-      avatar: userProfile?.avatarUri || null,
-      coverImage: userProfile?.avatarUri || null,
+      title: src.headline || src.title || userProfile?.headline || '반가워요! 소통하며 지내요 ✨',
+      bio: src.bio || userProfile?.bio || '동네 친구들과 따뜻하고 즐거운 소통 나누고 싶어요 💬',
+      avatar: resolvedAvatar,
+      coverImage: src.coverImage || resolvedAvatar,
+      age: src.age ?? user?.age ?? 26,
+      gender: src.gender ?? user?.gender ?? '여',
     };
   }, [profile, user]);
 
@@ -88,7 +106,7 @@ export default function GlobalProfileModal() {
     if (photos.length > 0) {
       return photos.map((p, idx) => ({
         id: p.id || `photo-${idx}`,
-        url: p.url,
+        url: p.url || p.imageUrl,
         isPrimary: Boolean(p.isPrimary),
       }));
     }
@@ -96,7 +114,13 @@ export default function GlobalProfileModal() {
     if (fallback) {
       return [{ id: 'primary-fallback', url: fallback, isPrimary: true }];
     }
-    return [];
+    return [
+      {
+        id: 'default-cover',
+        url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+        isPrimary: true,
+      },
+    ];
   }, [photos, profileData?.avatar, profileData?.coverImage]);
 
   const handleClose = () => {
@@ -252,8 +276,8 @@ export default function GlobalProfileModal() {
           </View>
 
           <Text style={styles.joinedLabel}>{profileData.title}</Text>
-          <Text style={styles.name}>{profileData.name}님의 프로필</Text>
-          <Text style={styles.location}>{profileData.location}</Text>
+          <Text style={styles.name}>{profileData.name} ({profileData.age}세 · {profileData.gender})</Text>
+          <Text style={styles.location}>📍 {profileData.location}</Text>
 
           <View style={styles.infoCard}>
             <Ionicons name="paw-outline" size={20} color={colors.primary} />
