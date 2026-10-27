@@ -20,6 +20,10 @@ import ChatRoomScreen from '../screens/main/ChatRoomScreen';
 import ProfileDetailScreen from '../screens/main/ProfileDetailScreen';
 import NotificationsScreen from '../screens/main/NotificationsScreen';
 
+// Auth Screens
+import OnboardingScreen from '../screens/auth/OnboardingScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
+
 // Market (Phase 1)
 import MarketScreen from '../screens/market/MarketScreen';
 import ProductDetailScreen from '../screens/market/ProductDetailScreen';
@@ -94,6 +98,16 @@ export function HomeStack() {
         name="ChatRoom"
         component={ChatRoomScreen}
         options={{ animation: 'slide_from_right' }}
+      />
+      <HomeStackNav.Screen
+        name="Onboarding"
+        component={OnboardingScreen}
+        options={{ animation: 'slide_from_bottom', headerShown: false }}
+      />
+      <HomeStackNav.Screen
+        name="Login"
+        component={LoginScreen}
+        options={{ animation: 'slide_from_right', headerShown: false }}
       />
     </HomeStackNav.Navigator>
   );
@@ -281,6 +295,16 @@ export function MyPageStack() {
         name="ChatRoom"
         component={ChatRoomScreen}
         options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="Onboarding"
+        component={OnboardingScreen}
+        options={{ animation: 'slide_from_bottom', headerShown: false }}
+      />
+      <MyPageStackNav.Screen
+        name="Login"
+        component={LoginScreen}
+        options={{ animation: 'slide_from_right', headerShown: false }}
       />
     </MyPageStackNav.Navigator>
   );

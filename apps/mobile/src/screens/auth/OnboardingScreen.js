@@ -96,8 +96,8 @@ export default function OnboardingScreen({ navigation }) {
     };
   }, [floatAnim, pulseAnim]);
 
-  // 온보딩 완료 처리
-  const handleFinishOnboarding = useCallback(async () => {
+  // 로그인 화면으로 바로 이동
+  const goToLogin = useCallback(async () => {
     try {
       await AsyncStorage.multiSet([
         ['@mocco_onboarded', 'true'],
@@ -106,8 +106,8 @@ export default function OnboardingScreen({ navigation }) {
     } catch (e) {
       console.warn('Failed to save onboarding state:', e);
     }
-    if (navigation?.canGoBack && navigation.canGoBack()) {
-      navigation.goBack();
+    if (navigation?.navigate) {
+      navigation.navigate('Login');
     } else if (navigation?.reset) {
       navigation.reset({
         index: 0,
@@ -115,6 +115,8 @@ export default function OnboardingScreen({ navigation }) {
       });
     }
   }, [navigation]);
+
+  const handleFinishOnboarding = goToLogin;
 
   // 슬라이드 변경 애니메이션
   const goToSlide = (nextIndex) => {
@@ -149,10 +151,13 @@ export default function OnboardingScreen({ navigation }) {
   };
 
   const handleNext = () => {
-    if (currentIndex < SLIDES.length - 1) {
+    if (currentIndex === 0) {
+      // 슬라이드 1 시안의 '시작하기' 누르면 즉시 로그인 화면으로 이동!
+      goToLogin();
+    } else if (currentIndex < SLIDES.length - 1) {
       goToSlide(currentIndex + 1);
     } else {
-      handleFinishOnboarding();
+      goToLogin();
     }
   };
 
@@ -354,6 +359,18 @@ export default function OnboardingScreen({ navigation }) {
               );
             })}
           </View>
+
+          {/* 로그인 바로가기 링크 */}
+          <TouchableOpacity
+            onPress={goToLogin}
+            hitSlop={{ top: 10, bottom: 10, left: 16, right: 16 }}
+            style={{ marginTop: 12, paddingVertical: 4 }}
+            activeOpacity={0.7}
+          >
+            <Text style={{ fontSize: 13, color: '#64748B', fontWeight: '600' }}>
+              이미 계정이 있으신가요? <Text style={{ color: '#FF5A36', fontWeight: '800' }}>로그인</Text>
+            </Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     </LinearGradient>

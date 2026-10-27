@@ -277,6 +277,11 @@ function MyPageStack() {
         component={OnboardingScreen}
         options={{ animation: 'slide_from_bottom', headerShown: false }}
       />
+      <MyPageStackNav.Screen
+        name="Login"
+        component={LoginScreen}
+        options={{ animation: 'slide_from_right', headerShown: false }}
+      />
     </MyPageStackNav.Navigator>
   );
 }

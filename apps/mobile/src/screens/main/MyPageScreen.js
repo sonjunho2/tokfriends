@@ -867,6 +867,24 @@ export default function MyPageScreen({ navigation }) {
 
             <View style={styles.menuDivider} />
 
+            {/* 🔐 로그인 / 회원가입 화면 */}
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => navigation.navigate('Login')}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.menuIconBox, { backgroundColor: '#EEF2FF' }]}>
+                <Ionicons name="log-in-outline" size={18} color="#4F46E5" />
+              </View>
+              <View style={styles.menuTextBox}>
+                <Text style={styles.menuTitle}>로그인 / 회원가입 화면</Text>
+                <Text style={styles.menuDesc}>모꼬 계정 로그인 및 간편가입</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+            </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
             {/* 📄 고객센터 & 약관 */}
             <TouchableOpacity
               style={styles.menuRow}
