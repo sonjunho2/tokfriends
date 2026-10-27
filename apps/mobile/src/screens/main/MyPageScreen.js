@@ -849,42 +849,6 @@ export default function MyPageScreen({ navigation }) {
 
             <View style={styles.menuDivider} />
 
-            {/* 🌟 모꼬 온보딩 둘러보기 */}
-            <TouchableOpacity
-              style={styles.menuRow}
-              onPress={() => navigation.navigate('Onboarding')}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.menuIconBox, { backgroundColor: '#FFF0ED' }]}>
-                <Ionicons name="sparkles" size={18} color="#FF5A36" />
-              </View>
-              <View style={styles.menuTextBox}>
-                <Text style={styles.menuTitle}>모꼬 온보딩 가이드</Text>
-                <Text style={styles.menuDesc}>새로워진 모꼬 둘러보기 및 기능 안내</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-            </TouchableOpacity>
-
-            <View style={styles.menuDivider} />
-
-            {/* 🔐 로그인 / 회원가입 화면 */}
-            <TouchableOpacity
-              style={styles.menuRow}
-              onPress={() => navigation.navigate('Login')}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.menuIconBox, { backgroundColor: '#EEF2FF' }]}>
-                <Ionicons name="log-in-outline" size={18} color="#4F46E5" />
-              </View>
-              <View style={styles.menuTextBox}>
-                <Text style={styles.menuTitle}>로그인 / 회원가입 화면</Text>
-                <Text style={styles.menuDesc}>모꼬 계정 로그인 및 간편가입</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-            </TouchableOpacity>
-
-            <View style={styles.menuDivider} />
-
             {/* 📄 고객센터 & 약관 */}
             <TouchableOpacity
               style={styles.menuRow}
@@ -903,9 +867,15 @@ export default function MyPageScreen({ navigation }) {
           </View>
         </View>
 
-        {/* 8. 하단 로그아웃 */}
+        {/* 8. 하단 로그아웃 (시원하고 명확하게 누를 수 있는 카드형 버튼) */}
         <View style={styles.footerSection}>
-          <TouchableOpacity onPress={handleLogout} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.logoutBtn}
+            onPress={handleLogout}
+            activeOpacity={0.8}
+            hitSlop={{ top: 12, bottom: 12, left: 24, right: 24 }}
+          >
+            <Ionicons name="log-out-outline" size={17} color="#EF4444" />
             <Text style={styles.logoutText}>로그아웃</Text>
           </TouchableOpacity>
           <Text style={styles.versionText}>MOCCO v1.3.0 • Expo SDK 57</Text>
@@ -1792,7 +1762,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 150,
   },
 
   // 1. 프로필 헤더 카드
@@ -2267,19 +2237,38 @@ const styles = StyleSheet.create({
   // 6. 하단 로그아웃
   footerSection: {
     alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 10,
+    marginTop: 20,
+    marginBottom: 30,
+    paddingHorizontal: 20,
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FFE4E6',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    width: '100%',
+    shadowColor: '#EF4444',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
   logoutText: {
-    fontSize: 13,
-    color: '#94A3B8',
-    fontWeight: '600',
-    textDecorationLine: 'underline',
-    marginBottom: 8,
+    fontSize: 14,
+    color: '#EF4444',
+    fontWeight: '800',
   },
   versionText: {
     fontSize: 11,
-    color: '#CBD5E1',
+    color: '#94A3B8',
+    fontWeight: '600',
+    marginTop: 14,
   },
 
   // 모달 공통 스타일
