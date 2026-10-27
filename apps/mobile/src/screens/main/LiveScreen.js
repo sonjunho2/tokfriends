@@ -549,11 +549,6 @@ export default function LiveScreen({ navigation }) {
       {/* Top Header */}
       <View style={styles.header}>
         <View style={styles.brandRow}>
-          <Image
-            source={require('../../../assets/mocco-mascot.png')}
-            style={styles.headerMascotLogo}
-            resizeMode="contain"
-          />
           <Text style={styles.brand}>모꼬 LIVE</Text>
           <View style={styles.liveHeaderBadge}>
             <View style={styles.liveDot} />

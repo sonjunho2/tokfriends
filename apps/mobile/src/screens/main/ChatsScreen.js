@@ -559,11 +559,6 @@ export default function ChatsScreen({ navigation }: any) {
       {/* 1. 상단 모꼬쳇 공식 헤더 */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Image
-            source={require('../../../assets/mocco-mascot.png')}
-            style={styles.headerMascotLogo}
-            resizeMode="contain"
-          />
           <Text style={styles.headerTitle}>모꼬쳇</Text>
           <View style={styles.locationBadge}>
             <Ionicons name="globe-outline" size={12} color="#FF3B6B" />

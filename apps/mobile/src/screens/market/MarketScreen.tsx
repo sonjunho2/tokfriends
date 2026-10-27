@@ -567,11 +567,6 @@ export default function MarketScreen({ navigation }: any) {
       {/* 1. 상단 통일 56px 헤더 (공유 아이콘 제거, 검색/알림 동작) */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Image
-            source={require('../../../assets/mocco-mascot.png')}
-            style={styles.headerMascotLogo}
-            resizeMode="contain"
-          />
           <Text style={styles.headerTitle}>모꼬마켓</Text>
           <View style={styles.locationBadge}>
             <Ionicons name="globe-outline" size={12} color="#FF3B6B" />

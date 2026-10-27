@@ -481,11 +481,6 @@ export default function CommunityFeedScreen({ navigation, route }) {
       {/* 헤더 바 */}
       <View style={styles.topBar}>
         <View style={styles.titleRow}>
-          <Image
-            source={require('../../../assets/mocco-mascot.png')}
-            style={styles.headerMascotLogo}
-            resizeMode="contain"
-          />
           <Text style={styles.headerTitle}>동네 모꼬지</Text>
           <View style={styles.locationPill}>
             <Ionicons name="location-sharp" size={12} color={tokens.colors.primary} />

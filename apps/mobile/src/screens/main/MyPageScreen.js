@@ -312,11 +312,6 @@ export default function MyPageScreen({ navigation }) {
       {/* 1. 상단 내비 바 */}
       <View style={styles.navBar}>
         <View style={styles.navTitleRow}>
-          <Image
-            source={require('../../../assets/mocco-mascot.png')}
-            style={styles.navMascotIcon}
-            resizeMode="contain"
-          />
           <Text style={styles.navTitle}>마이모꼬</Text>
         </View>
         <TouchableOpacity
