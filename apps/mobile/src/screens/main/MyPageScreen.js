@@ -849,6 +849,24 @@ export default function MyPageScreen({ navigation }) {
 
             <View style={styles.menuDivider} />
 
+            {/* 🌟 모꼬 온보딩 둘러보기 */}
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => navigation.navigate('Onboarding')}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.menuIconBox, { backgroundColor: '#FFF0ED' }]}>
+                <Ionicons name="sparkles" size={18} color="#FF5A36" />
+              </View>
+              <View style={styles.menuTextBox}>
+                <Text style={styles.menuTitle}>모꼬 온보딩 가이드</Text>
+                <Text style={styles.menuDesc}>새로워진 모꼬 둘러보기 및 기능 안내</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+            </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
             {/* 📄 고객센터 & 약관 */}
             <TouchableOpacity
               style={styles.menuRow}

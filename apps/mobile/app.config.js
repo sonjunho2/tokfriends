@@ -27,14 +27,14 @@ module.exports = ({ config }) => {
 
   return {
     ...resolvedConfig,
-    name: '모꼬 (Mocco)',
+    name: '모꼬',
     slug: 'mocco',
     version: '1.2.0',
     orientation: 'portrait',
-    icon: './assets/mocco-mascot.png',
+    icon: './assets/mocco-text-icon.png',
     scheme: 'mocco',
     splash: {
-      image: './assets/mocco-mascot.png',
+      image: './assets/mocco-text-icon.png',
       resizeMode: 'contain',
       backgroundColor: '#FFFFFF',
     },
@@ -42,7 +42,7 @@ module.exports = ({ config }) => {
       ...(resolvedConfig.android ?? {}),
       package: 'com.mocco.app',
       adaptiveIcon: {
-        foregroundImage: './assets/mocco-mascot.png',
+        foregroundImage: './assets/mocco-text-icon.png',
         backgroundColor: '#FFFFFF',
       },
       permissions: [

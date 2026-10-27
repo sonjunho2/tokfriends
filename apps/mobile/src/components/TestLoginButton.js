@@ -70,7 +70,7 @@ export default function TestLoginButton({ onSuccess, onLoginSuccess, style }) {
             <Ionicons name="flask" size={18} color="#6366F1" />
           )}
           <Text style={styles.buttonText}>
-            {loading ? '테스트 계정 로그인 중...' : '🧪 테스트 간편 로그인 (다가온테스터)'}
+            {loading ? '테스트 계정 로그인 중...' : '🧪 테스트 간편 로그인 (모꼬테스터)'}
           </Text>
         </View>
         <Text style={styles.hintText}>인증 없이 즉시 앱 기능 전체 탐색</Text>

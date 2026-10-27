@@ -61,7 +61,7 @@ export const DUMMY_MESSAGES_STORE = {
       id: 'msg-1',
       chatId: 'chat-mock-1',
       senderAccountId: 'acc-jisoo',
-      content: '안녕하세요! 다가온에서 프로필 보고 인사드려요 👋',
+      content: '안녕하세요! 모꼬에서 프로필 보고 인사드려요 👋',
       createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
       type: 'text',
     },
@@ -529,8 +529,8 @@ export const apiClient = {
           access_token: 'dummy-token',
           user: {
             id: 'dummy-user',
-            displayName: '다가온테스터',
-            email: 'test_user@dagaon.com',
+            displayName: '모꼬테스터',
+            email: 'test_user@mocco.com',
             activityAccountId: 'dummy-account',
           },
         };

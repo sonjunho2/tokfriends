@@ -8,70 +8,54 @@ import {
   Dimensions,
   Animated,
   StatusBar,
-  Platform,
+  Image,
+  PanResponder,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { tokens } from '../../theme/tokens';
-
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const SLIDES = [
   {
     key: 'slide-1',
-    badge: '인연의 발견',
-    title: '새로운 사람이 다가오고,\n새로운 인연이 시작돼요',
-    desc: '동네 이웃부터 취향이 통하는 특별한 대화까지,\n당신에게 꼭 맞는 인연을 찾아보세요.',
-    accentColor: '#FF3B6B',
+    badge: '우리 동네 잔치',
+    title: '우리 동네 매일매일\n열리는 잔치!',
+    desc: '모꼬에서 이웃들과 따뜻한 이야기와\n핫딜을 만나보세요!',
+    btnText: '시작하기',
+    accentColor: '#FF6445',
   },
   {
     key: 'slide-2',
-    badge: '3D 실시간 라이브',
-    title: '감동을 선물하는\n생생한 3D 실시간 라이브',
-    desc: '화려한 3D 애니메이션 선물 폭죽과 함께\n호스트 및 시청자들과 실시간으로 소통하세요.',
+    badge: '실시간 LIVE & 통화',
+    title: '실시간 LIVE 소통과\n생생한 1:1 대화!',
+    desc: '인기 크리에이터의 라이브 방송과 프라이빗 통화,\n화려한 3D 선물로 마음을 전해보세요!',
+    btnText: '다음으로',
     accentColor: '#8B5CF6',
   },
   {
     key: 'slide-3',
-    badge: '안심 케어 24/7',
-    title: '언제나 안심할 수 있는\nAI 클린 & 세이프티 소통',
-    desc: '철저한 동네 인증과 24시간 실시간 AI 가디언으로\n모두가 믿고 즐길 수 있는 환경을 만듭니다.',
-    accentColor: '#10B981',
+    badge: '안심 직거래 & 특가',
+    title: '이웃과 함께하는\n안심 직거래 & 특가 마켓!',
+    desc: '수수료 없는 안전 정산과 검증된 이웃들,\n우리 동네에서 매일 열리는 특별한 거래!',
+    btnText: '모꼬 시작하기 ✨',
+    accentColor: '#FF6445',
   },
 ];
 
 export default function OnboardingScreen({ navigation }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // 애니메이션 컨트롤
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  // 부드러운 애니메이션
   const floatAnim = useRef(new Animated.Value(0)).current;
-  const scanAnim = useRef(new Animated.Value(-60)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
   const contentFadeAnim = useRef(new Animated.Value(1)).current;
   const contentSlideAnim = useRef(new Animated.Value(0)).current;
 
-  // 1. 펄스 & 플로팅 루프 애니메이션
   useEffect(() => {
-    // 펄스 애니메이션
-    const pulseLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.08,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    // 부드러운 상하 플로팅
+    // 마스코트 부드러운 상하 플로팅
     const floatLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim, {
@@ -87,845 +71,567 @@ export default function OnboardingScreen({ navigation }) {
       ])
     );
 
-    // 홀로그램 스캔 레이저 (슬라이드 3)
-    const scanLoop = Animated.loop(
+    // 펄스 효과
+    const pulseLoop = Animated.loop(
       Animated.sequence([
-        Animated.timing(scanAnim, {
-          toValue: 60,
-          duration: 1800,
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 1500,
           useNativeDriver: true,
         }),
-        Animated.timing(scanAnim, {
-          toValue: -60,
-          duration: 1800,
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1500,
           useNativeDriver: true,
         }),
       ])
     );
 
-    pulseLoop.start();
     floatLoop.start();
-    scanLoop.start();
+    pulseLoop.start();
 
     return () => {
-      pulseLoop.stop();
       floatLoop.stop();
-      scanLoop.stop();
+      pulseLoop.stop();
     };
-  }, [pulseAnim, floatAnim, scanAnim]);
+  }, [floatAnim, pulseAnim]);
 
-  // 온보딩 완료 처리 및 로그인 화면 전환
+  // 온보딩 완료 처리
   const handleFinishOnboarding = useCallback(async () => {
     try {
-      await AsyncStorage.setItem('@dagaon_onboarded', 'true');
+      await AsyncStorage.multiSet([
+        ['@mocco_onboarded', 'true'],
+        ['@dagaon_onboarded', 'true'],
+      ]);
     } catch (e) {
       console.warn('Failed to save onboarding state:', e);
     }
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Login' }],
-    });
+    if (navigation?.canGoBack && navigation.canGoBack()) {
+      navigation.goBack();
+    } else if (navigation?.reset) {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    }
   }, [navigation]);
 
-  // 슬라이드 전환
-  const handleNext = () => {
-    if (currentIndex < SLIDES.length - 1) {
+  // 슬라이드 변경 애니메이션
+  const goToSlide = (nextIndex) => {
+    if (nextIndex < 0 || nextIndex >= SLIDES.length) return;
+    Animated.parallel([
+      Animated.timing(contentFadeAnim, {
+        toValue: 0,
+        duration: 140,
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentSlideAnim, {
+        toValue: -15,
+        duration: 140,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setCurrentIndex(nextIndex);
+      contentSlideAnim.setValue(15);
       Animated.parallel([
         Animated.timing(contentFadeAnim, {
-          toValue: 0,
-          duration: 150,
+          toValue: 1,
+          duration: 200,
           useNativeDriver: true,
         }),
         Animated.timing(contentSlideAnim, {
-          toValue: -15,
-          duration: 150,
+          toValue: 0,
+          duration: 200,
           useNativeDriver: true,
         }),
-      ]).start(() => {
-        setCurrentIndex((prev) => prev + 1);
-        contentSlideAnim.setValue(15);
-        Animated.parallel([
-          Animated.timing(contentFadeAnim, {
-            toValue: 1,
-            duration: 220,
-            useNativeDriver: true,
-          }),
-          Animated.timing(contentSlideAnim, {
-            toValue: 0,
-            duration: 220,
-            useNativeDriver: true,
-          }),
-        ]).start();
-      });
+      ]).start();
+    });
+  };
+
+  const handleNext = () => {
+    if (currentIndex < SLIDES.length - 1) {
+      goToSlide(currentIndex + 1);
     } else {
       handleFinishOnboarding();
     }
   };
 
+  // 스와이프 제스처 핸들러
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dx) > 25 && Math.abs(gestureState.dy) < 40;
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx < -50) {
+          // 좌로 스와이프 -> 다음 슬라이드
+          if (currentIndex < SLIDES.length - 1) {
+            goToSlide(currentIndex + 1);
+          } else {
+            handleFinishOnboarding();
+          }
+        } else if (gestureState.dx > 50) {
+          // 우로 스와이프 -> 이전 슬라이드
+          if (currentIndex > 0) {
+            goToSlide(currentIndex - 1);
+          }
+        }
+      },
+    })
+  ).current;
+
   const currentSlide = SLIDES[currentIndex];
 
-  // =========================================================================
-  // 3D 비주얼 렌더러 (너비 280px, 높이 280px 중심)
-  // =========================================================================
+  // 슬라이드별 비주얼 렌더링
   const renderVisual = () => {
     if (currentIndex === 0) {
-      // 슬라이드 1: 3D 플로팅 매칭 카드 스택 & 코랄 핑크 앰비언트 글로우
+      // 슬라이드 1: 참고 이미지의 귀여운 마스코트 캐릭터 & MOCCO 버블 로고
       return (
-        <View style={styles.visualContainer}>
-          {/* 네온 코랄 핑크 앰비언트 글로우 */}
-          <Animated.View
-            style={[
-              styles.ambientGlow,
-              {
-                backgroundColor: 'rgba(255, 59, 107, 0.22)',
-                transform: [{ scale: pulseAnim }],
-              },
-            ]}
-          />
-
-          {/* 뒤쪽 서브 카드 2 (기울어짐) */}
-          <View style={[styles.matchCard, styles.matchCardBack2]}>
-            <View style={styles.cardHeaderSmall}>
-              <View style={[styles.avatarCircleSmall, { backgroundColor: '#C084FC' }]} />
-              <View style={styles.cardBarSmall} />
-            </View>
+        <Animated.View
+          style={[
+            styles.slide1HeroContainer,
+            { transform: [{ translateY: floatAnim }] },
+          ]}
+        >
+          <View style={styles.slide1CropBox}>
+            <Image
+              source={require('../../../assets/mocco-onboarding-welcome.png')}
+              style={styles.slide1MascotImage}
+              resizeMode="contain"
+            />
           </View>
-
-          {/* 뒤쪽 서브 카드 1 (반대편 기울어짐) */}
-          <View style={[styles.matchCard, styles.matchCardBack1]}>
-            <View style={styles.cardHeaderSmall}>
-              <View style={[styles.avatarCircleSmall, { backgroundColor: '#38BDF8' }]} />
-              <View style={styles.cardBarSmall} />
-            </View>
-          </View>
-
-          {/* 앞면 메인 3D 매칭 카드 */}
-          <Animated.View
-            style={[
-              styles.matchCard,
-              styles.matchCardFront,
-              { transform: [{ translateY: floatAnim }] },
-            ]}
-          >
-            {/* 카드 상단 배지 */}
-            <View style={styles.matchScoreBadge}>
-              <Ionicons name="sparkles" size={12} color="#FFFFFF" />
-              <Text style={styles.matchScoreText}>98% MATCH</Text>
-            </View>
-
-            {/* 유저 아바타 & 정보 */}
-            <View style={styles.frontCardAvatarWrap}>
-              <LinearGradient
-                colors={tokens.colors.gradients.primaryPink || ['#FF3B6B', '#FF758C']}
-                style={styles.frontAvatarGrad}
-              >
-                <Ionicons name="person" size={32} color="#FFFFFF" />
-              </LinearGradient>
-            </View>
-
-            <Text style={styles.frontCardName}>서연, 25</Text>
-            <Text style={styles.frontCardMeta}>📍 역삼동 • 카페 탐방 & 음악</Text>
-
-            {/* 카드 액션 하트 */}
-            <View style={styles.frontCardActionRow}>
-              <View style={styles.frontCardHeartBtn}>
-                <Ionicons name="heart" size={20} color="#FF3B6B" />
-              </View>
-            </View>
-          </Animated.View>
-
-          {/* 플로팅 3D 이모지 배지 */}
-          <Animated.View
-            style={[
-              styles.floatingBadgeLeft,
-              { transform: [{ translateY: floatAnim }] },
-            ]}
-          >
-            <Text style={styles.floatingBadgeText}>💌 톡 도착!</Text>
-          </Animated.View>
-
-          <Animated.View
-            style={[
-              styles.floatingBadgeRight,
-              { transform: [{ translateY: floatAnim }] },
-            ]}
-          >
-            <Text style={styles.floatingBadgeText}>✨ 새로운 매칭</Text>
-          </Animated.View>
-        </View>
+        </Animated.View>
       );
     }
 
     if (currentIndex === 1) {
-      // 슬라이드 2: 3D 실시간 라이브 & 화면 밖으로 튀어나오는 선물 폭죽
+      // 슬라이드 2: 헤드폰을 쓴 3D 캐릭터 & 라이브/1:1 대화 플로팅 칩
       return (
-        <View style={styles.visualContainer}>
-          {/* 퍼플-코랄 앰비언트 글로우 */}
-          <Animated.View
-            style={[
-              styles.ambientGlow,
-              {
-                backgroundColor: 'rgba(139, 92, 246, 0.22)',
-                transform: [{ scale: pulseAnim }],
-              },
-            ]}
-          />
-
-          {/* 3D 라이브 스트림 프레임 */}
-          <Animated.View
-            style={[
-              styles.liveFrame,
-              { transform: [{ translateY: floatAnim }] },
-            ]}
-          >
-            <LinearGradient
-              colors={['#1E1B4B', '#312E81']}
-              style={styles.liveFrameInner}
-            >
-              {/* 상단 🔴 LIVE & 시청자 배지 */}
-              <View style={styles.liveTopBar}>
-                <View style={styles.liveRedDot}>
-                  <Text style={styles.liveRedText}>🔴 LIVE</Text>
-                </View>
-                <View style={styles.liveViewerBadge}>
-                  <Ionicons name="eye" size={10} color="#FFFFFF" />
-                  <Text style={styles.liveViewerText}>1.4k</Text>
-                </View>
-              </View>
-
-              {/* 중앙 실시간 소통 비주얼 */}
-              <View style={styles.liveCenterHost}>
-                <Ionicons name="videocam" size={36} color="#A78BFA" />
-                <Text style={styles.liveHostText}>라이브 방송 중</Text>
-              </View>
-
-              {/* 하단 채팅 말풍선 */}
-              <View style={styles.liveCommentBubble}>
-                <Text style={styles.liveCommentUser}>민우</Text>
-                <Text style={styles.liveCommentMsg}>오늘 분위기 너무 좋아요! ✨</Text>
-              </View>
-            </LinearGradient>
-          </Animated.View>
-
-          {/* 화면 밖으로 튀어나오는 3D 선물 폭죽 1: 슈퍼카 배지 */}
-          <Animated.View
-            style={[
-              styles.giftBadgeSupercar,
-              { transform: [{ scale: pulseAnim }] },
-            ]}
-          >
-            <LinearGradient
-              colors={['#F43F5E', '#BE123C']}
-              style={styles.giftBadgeGrad}
-            >
-              <Text style={styles.giftBadgeEmoji}>🏎️</Text>
-              <Text style={styles.giftBadgeLabel}>VIP 슈퍼카</Text>
-            </LinearGradient>
-          </Animated.View>
-
-          {/* 화면 밖으로 튀어나오는 3D 선물 폭죽 2: 골든 스타 */}
-          <Animated.View
-            style={[
-              styles.giftBadgeStar,
-              { transform: [{ translateY: floatAnim }] },
-            ]}
-          >
-            <LinearGradient
-              colors={['#F59E0B', '#D97706']}
-              style={styles.giftBadgeGradSmall}
-            >
-              <Text style={styles.giftStarEmoji}>👑 50,000P</Text>
-            </LinearGradient>
-          </Animated.View>
-        </View>
-      );
-    }
-
-    // 슬라이드 3: 안심 케어 24/7 (에메랄드 글래스모피즘 방패 & 스캔 홀로그램)
-    return (
-      <View style={styles.visualContainer}>
-        {/* 에메랄드 앰비언트 글로우 */}
         <Animated.View
           style={[
-            styles.ambientGlow,
-            {
-              backgroundColor: 'rgba(16, 185, 129, 0.22)',
-              transform: [{ scale: pulseAnim }],
-            },
-          ]}
-        />
-
-        {/* 3D 글래스모피즘 방패 */}
-        <Animated.View
-          style={[
-            styles.shieldBox,
+            styles.slide2HeroContainer,
             { transform: [{ translateY: floatAnim }] },
           ]}
         >
-          <LinearGradient
-            colors={['rgba(255, 255, 255, 0.95)', 'rgba(209, 250, 229, 0.75)']}
-            style={styles.shieldGrad}
-          >
-            {/* 방패 중앙 아이콘 */}
-            <View style={styles.shieldCenterIconCircle}>
-              <Ionicons name="shield-checkmark" size={68} color="#10B981" />
+          <View style={styles.headphoneCard}>
+            <Image
+              source={require('../../../assets/mocco-character-headphones.jpg')}
+              style={styles.headphoneImg}
+              resizeMode="cover"
+            />
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.55)']}
+              style={styles.headphoneGradientOverlay}
+            />
+            <View style={styles.liveTagPill}>
+              <View style={styles.livePulseDot} />
+              <Text style={styles.liveTagText}>MOCCO LIVE</Text>
             </View>
+          </View>
 
-            {/* 홀로그램 스캔 레이저 라인 */}
-            <Animated.View
-              style={[
-                styles.scanLine,
-                { transform: [{ translateY: scanAnim }] },
-              ]}
-            >
-              <LinearGradient
-                colors={['transparent', '#10B981', 'transparent']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.scanLineGrad}
-              />
-            </Animated.View>
+          {/* 플로팅 칩 1: 1:1 대화 */}
+          <View style={styles.floatChipTalk}>
+            <Ionicons name="chatbubbles" size={15} color="#8B5CF6" />
+            <Text style={styles.floatChipText}>1:1 프라이빗 통화</Text>
+          </View>
 
-            <View style={styles.shieldMetaBox}>
-              <Text style={styles.shieldMetaTitle}>AI GUARDIAN 24/7</Text>
-              <Text style={styles.shieldMetaSub}>실시간 비전 AI 안심 보호 가동 중</Text>
-            </View>
-          </LinearGradient>
+          {/* 플로팅 칩 2: 3D 선물 */}
+          <View style={styles.floatChipGift}>
+            <Ionicons name="gift" size={15} color="#EC4899" />
+            <Text style={styles.floatChipText}>3D 선물 폭죽 🎁</Text>
+          </View>
         </Animated.View>
+      );
+    }
 
-        {/* 좌측 안심 뱃지 */}
-        <View style={styles.safetyChipLeft}>
-          <Ionicons name="lock-closed" size={13} color="#059669" />
-          <Text style={styles.safetyChipText}>개인정보 암호화</Text>
+    // 슬라이드 3: 마스코트 & 안심 마켓 직거래
+    return (
+      <Animated.View
+        style={[
+          styles.slide3HeroContainer,
+          { transform: [{ translateY: floatAnim }] },
+        ]}
+      >
+        <View style={styles.marketCircleBg}>
+          <Image
+            source={require('../../../assets/mocco-mascot.png')}
+            style={styles.marketMascotImg}
+            resizeMode="contain"
+          />
         </View>
 
-        {/* 우측 클린 뱃지 */}
-        <View style={styles.safetyChipRight}>
-          <Ionicons name="checkmark-done-circle" size={14} color="#059669" />
-          <Text style={styles.safetyChipText}>100% 동네 인증</Text>
+        {/* 플로팅 칩 1: 오늘의 핫딜 */}
+        <View style={styles.floatChipHotdeal}>
+          <Ionicons name="pricetag" size={15} color="#EA580C" />
+          <Text style={styles.floatChipText}>오늘의 특가 공구 ⚡</Text>
         </View>
-      </View>
+
+        {/* 플로팅 칩 2: 수수료 0원 */}
+        <View style={styles.floatChipSafeTrade}>
+          <Ionicons name="shield-checkmark" size={15} color="#059669" />
+          <Text style={styles.floatChipText}>판매 수수료 0원 · 안전정산</Text>
+        </View>
+      </Animated.View>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <LinearGradient
+      colors={['#FFE6D5', '#FFF3EB', '#F2E8FF', '#EAE0FF']}
+      start={{ x: 0.1, y: 0 }}
+      end={{ x: 0.9, y: 1 }}
+      style={styles.gradientContainer}
+    >
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFE6D5" />
 
-      {/* 상단 건너뛰기 버튼 */}
-      <View style={styles.topHeader}>
-        <View style={styles.brandTitleWrap}>
-          <Text style={styles.brandTitle}>다가온</Text>
-          <View style={styles.brandDot} />
-        </View>
-
-        <TouchableOpacity
-          onPress={handleFinishOnboarding}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          style={styles.skipBtn}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.skipText}>건너뛰기</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 중앙 3D 비주얼 영역 */}
-      <View style={styles.visualSection}>
-        {renderVisual()}
-      </View>
-
-      {/* 하단 텍스트 및 인터랙션 */}
-      <View style={styles.bottomSection}>
-        <Animated.View
-          style={{
-            opacity: contentFadeAnim,
-            transform: [{ translateY: contentSlideAnim }],
-          }}
-        >
-          {/* 슬라이드 뱃지 */}
-          <View style={[styles.slideBadge, { borderColor: currentSlide.accentColor + '40' }]}>
-            <Text style={[styles.slideBadgeText, { color: currentSlide.accentColor }]}>
-              {currentSlide.badge}
-            </Text>
-          </View>
-
-          {/* 타이틀 및 설명 */}
-          <Text style={styles.titleText}>{currentSlide.title}</Text>
-          <Text style={styles.descText}>{currentSlide.desc}</Text>
-        </Animated.View>
-
-        {/* 가로형 알약(Pill) 페이징 인디케이터 */}
-        <View style={styles.indicatorRow}>
-          {SLIDES.map((s, idx) => {
-            const isActive = idx === currentIndex;
-            return (
-              <View
-                key={s.key}
-                style={[
-                  styles.indicatorDot,
-                  isActive ? styles.indicatorPillActive : styles.indicatorDotInactive,
-                ]}
-              />
-            );
-          })}
-        </View>
-
-        {/* 하단 메인 CTA 버튼 (tokens.colors.primary 네온 그라데이션 풀 캡슐 56px) */}
-        <TouchableOpacity
-          style={styles.ctaBtn}
-          onPress={handleNext}
-          activeOpacity={0.88}
-        >
-          <LinearGradient
-            colors={tokens.colors.gradients.primaryPink || ['#FF3B6B', '#FF758C']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.ctaBtnGradient}
+        {/* 1. 상단 바 (건너뛰기) */}
+        <View style={styles.topHeader}>
+          <View style={{ width: 60 }} />
+          <TouchableOpacity
+            onPress={handleFinishOnboarding}
+            hitSlop={{ top: 12, bottom: 12, left: 16, right: 16 }}
+            style={styles.skipBtn}
+            activeOpacity={0.7}
           >
-            <Text style={styles.ctaBtnText}>
-              {currentIndex === SLIDES.length - 1 ? '✨ 다가온 시작하기' : '다음으로 ➔'}
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+            <Text style={styles.skipText}>건너뛰기</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 2. 중앙 캐릭터 및 비주얼 영역 (스와이프 지원) */}
+        <View style={styles.visualSection} {...panResponder.panHandlers}>
+          {renderVisual()}
+        </View>
+
+        {/* 3. 하단 텍스트 및 인터랙션 */}
+        <View style={styles.bottomSection}>
+          <Animated.View
+            style={{
+              opacity: contentFadeAnim,
+              transform: [{ translateY: contentSlideAnim }],
+              alignItems: 'center',
+            }}
+          >
+            {/* 타이틀 및 서브타이틀 */}
+            <Text style={styles.titleText}>{currentSlide.title}</Text>
+            <Text style={styles.descText}>{currentSlide.desc}</Text>
+          </Animated.View>
+
+          {/* 4. 메인 CTA 버튼 (참고 이미지 '시작하기' 완벽 일치) */}
+          <TouchableOpacity
+            style={styles.ctaBtn}
+            onPress={handleNext}
+            activeOpacity={0.88}
+          >
+            <LinearGradient
+              colors={['#FF6B4A', '#FF5533']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.ctaBtnGradient}
+            >
+              <Text style={styles.ctaBtnText}>{currentSlide.btnText}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* 5. 3개 원형 인디케이터 도트 */}
+          <View style={styles.indicatorRow}>
+            {SLIDES.map((s, idx) => {
+              const isActive = idx === currentIndex;
+              return (
+                <TouchableOpacity
+                  key={s.key}
+                  onPress={() => goToSlide(idx)}
+                  hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[
+                      styles.indicatorDot,
+                      isActive ? styles.indicatorDotActive : styles.indicatorDotInactive,
+                    ]}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  gradientContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+  },
+  safeArea: {
+    flex: 1,
+    justifyContent: 'space-between',
   },
   topHeader: {
-    height: 52,
+    height: 50,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 22,
   },
-  brandTitleWrap: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  brandTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: tokens.colors.primary,
-    letterSpacing: -0.5,
-  },
-  brandDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: tokens.colors.secondary,
-    marginLeft: 3,
+  skipBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.07)',
   },
   skipText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: tokens.colors.textSecondary,
+    fontWeight: '700',
+    color: '#4B5563',
   },
+
+  // 비주얼 영역
   visualSection: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
   },
-  visualContainer: {
-    width: 280,
-    height: 280,
-    justifyContent: 'center',
+
+  // 슬라이드 1 비주얼
+  slide1HeroContainer: {
+    width: SCREEN_WIDTH * 0.92,
+    height: 330,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  slide1CropBox: {
+    width: SCREEN_WIDTH * 0.92,
+    height: 330,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  slide1MascotImage: {
+    width: SCREEN_WIDTH * 0.92,
+    height: (SCREEN_WIDTH * 0.92) * (1024 / 571),
+    marginTop: -42, // 건너뛰기 텍스트 제외하고 캐릭터+로고 포커싱
+  },
+
+  // 슬라이드 2 비주얼 (헤드폰 3D 캐릭터)
+  slide2HeroContainer: {
+    width: 270,
+    height: 320,
+    alignItems: 'center',
+    justifyContent: 'center',
     position: 'relative',
   },
-  ambientGlow: {
-    position: 'absolute',
+  headphoneCard: {
     width: 220,
-    height: 220,
-    borderRadius: 110,
-  },
-  // 슬라이드 1: 3D 매칭 카드 스택
-  matchCard: {
-    position: 'absolute',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
-    ...tokens.shadows.card,
-  },
-  matchCardBack2: {
-    width: 170,
-    height: 210,
-    transform: [{ rotate: '-12deg' }, { translateY: -4 }],
-    opacity: 0.6,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-  },
-  matchCardBack1: {
-    width: 180,
-    height: 220,
-    transform: [{ rotate: '8deg' }, { translateY: -2 }],
-    opacity: 0.85,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  matchCardFront: {
-    width: 196,
-    height: 236,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FFF1F4',
-    ...tokens.shadows.float,
-  },
-  matchScoreBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: tokens.colors.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 9999,
-    marginBottom: 10,
-  },
-  matchScoreText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  frontCardAvatarWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    marginBottom: 8,
+    height: 250,
+    borderRadius: 30,
     overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#8B5CF6',
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
-  frontAvatarGrad: {
+  headphoneImg: {
     width: '100%',
     height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  frontCardName: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: tokens.colors.textPrimary,
+  headphoneGradientOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
   },
-  frontCardMeta: {
-    fontSize: 11,
-    color: tokens.colors.textSecondary,
-    marginTop: 2,
-    textAlign: 'center',
-  },
-  frontCardActionRow: {
-    marginTop: 10,
-  },
-  frontCardHeartBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFF1F4',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardHeaderSmall: {
+  liveTagPill: {
+    position: 'absolute',
+    bottom: 12,
+    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
   },
-  avatarCircleSmall: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-  },
-  cardBarSmall: {
-    width: 60,
+  livePulseDot: {
+    width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#E2E8F0',
-  },
-  floatingBadgeLeft: {
-    position: 'absolute',
-    left: -12,
-    top: 40,
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    ...tokens.shadows.card,
   },
-  floatingBadgeRight: {
-    position: 'absolute',
-    right: -10,
-    bottom: 45,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    ...tokens.shadows.card,
-  },
-  floatingBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: tokens.colors.textPrimary,
-  },
-  // 슬라이드 2: 3D 라이브 프레임 & 선물 폭죽
-  liveFrame: {
-    width: 200,
-    height: 240,
-    borderRadius: 24,
-    overflow: 'hidden',
-    ...tokens.shadows.float,
-  },
-  liveFrameInner: {
-    flex: 1,
-    padding: 14,
-    justifyContent: 'space-between',
-  },
-  liveTopBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  liveRedDot: {
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  liveRedText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  liveViewerBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  liveViewerText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  liveCenterHost: {
-    alignItems: 'center',
-  },
-  liveHostText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#E0E7FF',
-    marginTop: 6,
-  },
-  liveCommentBubble: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 10,
-    padding: 8,
-  },
-  liveCommentUser: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#F472B6',
-  },
-  liveCommentMsg: {
+  liveTagText: {
     fontSize: 11,
+    fontWeight: '900',
     color: '#FFFFFF',
-    marginTop: 1,
+    letterSpacing: 0.5,
   },
-  giftBadgeSupercar: {
+  floatChipTalk: {
     position: 'absolute',
-    right: -16,
-    top: 20,
-    borderRadius: 16,
-    overflow: 'hidden',
-    ...tokens.shadows.float,
-  },
-  giftBadgeGrad: {
+    top: 15,
+    left: -10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
     paddingVertical: 8,
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  giftBadgeEmoji: {
-    fontSize: 18,
+  floatChipGift: {
+    position: 'absolute',
+    bottom: 25,
+    right: -10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  giftBadgeLabel: {
+  floatChipText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: '#1F2937',
   },
-  giftBadgeStar: {
-    position: 'absolute',
-    left: -14,
-    bottom: 25,
-    borderRadius: 14,
-    overflow: 'hidden',
-    ...tokens.shadows.card,
-  },
-  giftBadgeGradSmall: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  giftStarEmoji: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  // 슬라이드 3: 안심 케어 글래스모피즘 방패
-  shieldBox: {
-    width: 200,
-    height: 230,
-    borderRadius: 24,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: '#10B981',
-    ...tokens.shadows.float,
-  },
-  shieldGrad: {
-    flex: 1,
+
+  // 슬라이드 3 비주얼 (안심 마켓)
+  slide3HeroContainer: {
+    width: 270,
+    height: 320,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
     position: 'relative',
   },
-  shieldCenterIconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: '#ECFDF5',
+  marketCircleBg: {
+    width: 210,
+    height: 210,
+    borderRadius: 105,
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
+    shadowColor: '#FF6445',
+    shadowOpacity: 0.15,
+    shadowRadius: 18,
+    elevation: 6,
   },
-  scanLine: {
+  marketMascotImg: {
+    width: 170,
+    height: 170,
+  },
+  floatChipHotdeal: {
     position: 'absolute',
-    width: '100%',
-    height: 4,
-    top: '50%',
-  },
-  scanLineGrad: {
-    width: '100%',
-    height: '100%',
-  },
-  shieldMetaBox: {
+    top: 25,
+    right: -8,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  shieldMetaTitle: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#065F46',
-    letterSpacing: 1,
-  },
-  shieldMetaSub: {
-    fontSize: 10,
-    color: '#047857',
-    marginTop: 2,
-  },
-  safetyChipLeft: {
+  floatChipSafeTrade: {
     position: 'absolute',
+    bottom: 25,
     left: -10,
-    top: 50,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#D1FAE5',
-    ...tokens.shadows.card,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  safetyChipRight: {
-    position: 'absolute',
-    right: -10,
-    bottom: 40,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#D1FAE5',
-    ...tokens.shadows.card,
-  },
-  safetyChipText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#065F46',
-  },
-  // 하단 텍스트 및 CTA 영역
+
+  // 하단 텍스트 및 액션
   bottomSection: {
     paddingHorizontal: 28,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 28,
-  },
-  slideBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: tokens.radii.pill,
-    borderWidth: 1,
-    backgroundColor: '#FFFFFF',
-    marginBottom: 8,
-  },
-  slideBadgeText: {
-    fontSize: 12,
-    fontWeight: '800',
+    paddingBottom: 24,
+    alignItems: 'center',
   },
   titleText: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: tokens.colors.textPrimary,
-    lineHeight: 30,
-    letterSpacing: -0.5,
-    marginBottom: 8,
+    fontSize: 27,
+    fontWeight: '900',
+    color: '#1E1E24',
+    textAlign: 'center',
+    lineHeight: 37,
+    letterSpacing: -0.6,
+    marginBottom: 10,
   },
   descText: {
-    fontSize: 14,
-    color: tokens.colors.textSecondary,
-    lineHeight: 20,
-    marginBottom: 20,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#4B5563',
+    textAlign: 'center',
+    lineHeight: 23,
+    letterSpacing: -0.2,
+    marginBottom: 28,
   },
+
+  // 메인 CTA 버튼
+  ctaBtn: {
+    width: '100%',
+    height: 56,
+    borderRadius: 28,
+    shadowColor: '#FF5533',
+    shadowOpacity: 0.38,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+    marginBottom: 22,
+  },
+  ctaBtnGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaBtnText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+
+  // 3개 인디케이터 도트
   indicatorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 24,
+    gap: 8,
   },
   indicatorDot: {
-    height: 6,
-    borderRadius: 3,
+    height: 7,
+    borderRadius: 3.5,
   },
-  indicatorPillActive: {
-    width: 24,
-    backgroundColor: tokens.colors.primary,
+  indicatorDotActive: {
+    width: 22,
+    backgroundColor: '#FF6445',
   },
   indicatorDotInactive: {
-    width: 6,
-    backgroundColor: '#E2E8F0',
-  },
-  ctaBtn: {
-    borderRadius: 28,
-    overflow: 'hidden',
-    ...tokens.shadows.float,
-  },
-  ctaBtnGradient: {
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  ctaBtnText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    width: 7,
+    backgroundColor: '#D1D5DB',
   },
 });

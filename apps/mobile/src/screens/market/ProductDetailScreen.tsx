@@ -81,10 +81,10 @@ export default function ProductDetailScreen({ route, navigation }: any) {
       }
 
       const discountMsg = discountRate > 0 ? ` - ${discountRate}% 특가 할인!` : '';
-      const message = `[다가온] ${name || '특가 상품'}${discountMsg} 지금 확인해보세요.\n${shareUrl}`;
+      const message = `[모꼬] ${name || '특가 상품'}${discountMsg} 지금 확인해보세요.\n${shareUrl}`;
 
       await Share.share({
-        title: `[다가온] ${name || '상품 안내'}`,
+        title: `[모꼬] ${name || '상품 안내'}`,
         message,
         url: shareUrl,
       });

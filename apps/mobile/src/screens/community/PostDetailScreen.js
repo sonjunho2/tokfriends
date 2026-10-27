@@ -410,7 +410,7 @@ export default function PostDetailScreen({ navigation, route }) {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `[다가온] ${post?.author?.name}님의 이야기:\n${post?.content || ''}`,
+        message: `[모꼬] ${post?.author?.name}님의 이야기:\n${post?.content || ''}`,
       });
     } catch {
       // silent

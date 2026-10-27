@@ -272,6 +272,11 @@ function MyPageStack() {
         component={ChatRoomScreen}
         options={{ animation: 'slide_from_right' }}
       />
+      <MyPageStackNav.Screen
+        name="Onboarding"
+        component={OnboardingScreen}
+        options={{ animation: 'slide_from_bottom', headerShown: false }}
+      />
     </MyPageStackNav.Navigator>
   );
 }
@@ -309,7 +314,9 @@ export default function RootNavigator() {
     let isMounted = true;
     async function checkOnboarding() {
       try {
-        const flag = await AsyncStorage.getItem('@dagaon_onboarded');
+        const moccoFlag = await AsyncStorage.getItem('@mocco_onboarded');
+        const dagaonFlag = await AsyncStorage.getItem('@dagaon_onboarded');
+        const flag = moccoFlag || dagaonFlag;
         if (isMounted) {
           setIsOnboarded(flag === 'true');
         }
@@ -335,10 +342,10 @@ export default function RootNavigator() {
           <View style={styles.splashIconCircle}>
             <Ionicons name="sparkles" size={32} color={tokens.colors.primary} />
           </View>
-          <Text style={styles.splashTitle}>다가온</Text>
-          <Text style={styles.splashSubtitle}>새로운 인연이 다가옵니다</Text>
+          <Text style={styles.splashTitle}>모꼬 (MOCCO)</Text>
+          <Text style={styles.splashSubtitle}>우리 동네 매일매일 열리는 잔치!</Text>
         </View>
-        <ActivityIndicator size="large" color={tokens.colors.primary} style={styles.splashSpinner} />
+        <ActivityIndicator size="large" color="#FF5A36" style={styles.splashSpinner} />
       </View>
     );
   }
@@ -349,14 +356,6 @@ export default function RootNavigator() {
 
   return (
     <View style={{ flex: 1, backgroundColor: tokens.colors.background }}>
-      {isOffline && (
-        <View style={styles.offlineNoticeBar}>
-          <Ionicons name="cloud-offline" size={13} color="#92400E" />
-          <Text style={styles.offlineNoticeText}>
-            서버 연결 확인 중입니다. 캐시된 프로필로 작동 중입니다.
-          </Text>
-        </View>
-      )}
       {isSignedIn ? (
         <AppFlow />
       ) : (

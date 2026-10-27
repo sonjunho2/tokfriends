@@ -59,7 +59,10 @@ export default function LoginScreen({ navigation }) {
   // 로그인 성공 후처리
   const onLoginSuccess = async () => {
     try {
-      await AsyncStorage.setItem('@dagaon_onboarded', 'true');
+      await AsyncStorage.multiSet([
+        ['@mocco_onboarded', 'true'],
+        ['@dagaon_onboarded', 'true'],
+      ]);
     } catch (e) {
       console.warn('Failed to save onboarded state:', e);
     }
@@ -160,11 +163,11 @@ export default function LoginScreen({ navigation }) {
         {/* 상단 브랜드 헤더 영역 */}
         <View style={styles.headerSection}>
           <View style={styles.logoBadge}>
-            <Text style={styles.logoBadgeText}>DAGAON</Text>
+            <Text style={styles.logoBadgeText}>MOCCO</Text>
           </View>
           <Text style={styles.title}>
-            새로운 인연이 다가오는 곳,{'\n'}
-            <Text style={styles.titleHighlight}>다가온</Text>에 오신 것을 환영해요
+            우리 동네 매일매일 열리는 잔치,{'\n'}
+            <Text style={styles.titleHighlight}>모꼬</Text>에 오신 것을 환영해요
           </Text>
           <Text style={styles.subtitle}>
             선호하시는 간편 로그인으로 빠르고 안전하게 시작하세요.
@@ -287,7 +290,7 @@ export default function LoginScreen({ navigation }) {
         {/* 하단 약관 고지 */}
         <View style={styles.footerNote}>
           <Text style={styles.footerNoteText}>
-            로그인 시 다가온의{' '}
+            로그인 시 모꼬의{' '}
             <Text
               style={styles.footerNoteLink}
               onPress={() => navigation.navigate('Agreement')}

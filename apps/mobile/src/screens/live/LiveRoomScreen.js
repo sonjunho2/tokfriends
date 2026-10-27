@@ -161,10 +161,10 @@ export default function LiveRoomScreen({ navigation, route }) {
         room?.hostNickname ||
         room?.title ||
         '호스트';
-      const shareUrl = `https://dagaon.app/share/live/${roomId}`;
+      const shareUrl = `https://mocco.app/share/live/${roomId}`;
       await Share.share({
-        title: `[다가온 D LIVE] ${hostNickname}님의 실시간 라이브 방송`,
-        message: `[다가온 D LIVE] ${hostNickname}님의 실시간 라이브 방송에 참여해보세요!\n${shareUrl}`,
+        title: `[MOCCO LIVE] ${hostNickname}님의 실시간 라이브 방송`,
+        message: `[MOCCO LIVE] ${hostNickname}님의 실시간 라이브 방송에 참여해보세요!\n${shareUrl}`,
         url: shareUrl,
       });
     } catch (error) {

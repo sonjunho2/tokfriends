@@ -302,7 +302,7 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.welcomeTitle}>다가온에서 사용할{'\n'}프로필을 완성해 주세요 ✨</Text>
+          <Text style={styles.welcomeTitle}>모꼬에서 사용할{'\n'}프로필을 완성해 주세요 ✨</Text>
           <Text style={styles.welcomeSub}>이웃과 첫인사를 나눌 멋진 프로필을 등록하세요.</Text>
 
           {/* 아바타 사진 등록 */}
@@ -550,7 +550,7 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
               <ActivityIndicator size="small" color="#191919" />
             ) : (
               <>
-                <Text style={styles.submitButtonText}>다가온 시작하기 ✨</Text>
+                <Text style={styles.submitButtonText}>모꼬 시작하기 ✨</Text>
                 <Ionicons name="arrow-forward" size={18} color="#191919" />
               </>
             )}

@@ -347,7 +347,7 @@ export default function CommunityFeedScreen({ navigation, route }) {
     try {
       await Share.share({
         title: post.title,
-        message: `[다가온 동네 커뮤니티]\n"${post.title}"\n${post.content?.slice(0, 80)}...`,
+        message: `[모꼬 동네 커뮤니티]\n"${post.title}"\n${post.content?.slice(0, 80)}...`,
       });
     } catch {}
   };
