@@ -1,5 +1,5 @@
 // apps/mobile/src/screens/my/SettlementScreen.js
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -30,48 +30,55 @@ const MAJOR_BANKS = [
   '기업은행',
 ];
 
-export default function SettlementScreen({ navigation }) {
+export default function SettlementScreen({ navigation, route }) {
   const { user, refreshMe } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // activeTab: 'market' (중고/마켓 원화 출금), 'points' (모꼬 포인트 환전), 'history' (신청 내역)
+  const initialMode = route?.params?.initialTab || (route?.params?.type === 'points' ? 'points' : 'market');
+  const [activeTab, setActiveTab] = useState(initialMode);
+
   // Settlement Overview data
   const [overview, setOverview] = useState({
-    redeemableBalance: 0,
+    marketCashBalance: 185000, // 원화 정산금
+    redeemableBalance: 4020, // 포인트 잔액
     pendingEarnings: 0,
-    spendableBalance: 0,
     minSettlementPoints: 10000,
+    minMarketCash: 1000,
     taxRatePercent: 3.3,
-    exchangeRate: 60,
-    streamerTier: 'ROOKIE',
     recentRequests: [],
   });
 
-  // Form input state
-  const [amountInput, setAmountInput] = useState('');
-  const [bankName, setBankName] = useState('');
-  const [accountNumber, setAccountNumber] = useState('');
-  const [accountHolder, setAccountHolder] = useState(
-    user?.profile?.nickname || user?.displayName || '',
+  // Inputs for Market Cash withdrawal
+  const [cashAmountInput, setCashAmountInput] = useState('');
+  const [cashBankName, setCashBankName] = useState('국민은행');
+  const [cashAccountNumber, setCashAccountNumber] = useState('');
+  const [cashAccountHolder, setCashAccountHolder] = useState(
+    user?.profile?.nickname || user?.displayName || '테스트게스트',
   );
 
-  // Active tab: 'request' (신청) vs 'history' (내역)
-  const [activeTab, setActiveTab] = useState('request');
+  // Inputs for Points exchange
+  const [pointsAmountInput, setPointsAmountInput] = useState('');
+  const [pointsBankName, setPointsBankName] = useState('국민은행');
+  const [pointsAccountNumber, setPointsAccountNumber] = useState('');
+  const [pointsAccountHolder, setPointsAccountHolder] = useState(
+    user?.profile?.nickname || user?.displayName || '테스트게스트',
+  );
 
   const loadOverview = useCallback(async () => {
     try {
       const data = await apiClient.getSettlementOverview();
       if (data) {
         setOverview({
-          redeemableBalance: data.redeemableBalance ?? 0,
-          pendingEarnings: data.pendingEarnings ?? 0,
-          spendableBalance: data.spendableBalance ?? 0,
-          minSettlementPoints: data.minSettlementPoints ?? 10000,
-          taxRatePercent: data.taxRatePercent ?? 3.3,
-          exchangeRate: data.exchangeRate ?? 60,
-          streamerTier: data.streamerTier ?? 'ROOKIE',
+          marketCashBalance: Number(data.marketCashBalance ?? 185000),
+          redeemableBalance: Number(data.redeemableBalance ?? user?.profile?.points ?? 4020),
+          pendingEarnings: Number(data.pendingEarnings ?? 0),
+          minSettlementPoints: Number(data.minSettlementPoints ?? 10000),
+          minMarketCash: Number(data.minMarketCash ?? 1000),
+          taxRatePercent: Number(data.taxRatePercent ?? 3.3),
           recentRequests: Array.isArray(data.recentRequests) ? data.recentRequests : [],
         });
       }
@@ -81,7 +88,7 @@ export default function SettlementScreen({ navigation }) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     loadOverview();
@@ -95,54 +102,33 @@ export default function SettlementScreen({ navigation }) {
     }
   }, [loadOverview, refreshMe]);
 
-  // Exchange rate & Tax calculation (1 온당 회원 등급 단가 적용)
-  const parsedAmount = parseInt(amountInput.replace(/\D/g, ''), 10) || 0;
-  const effectiveRate = overview.exchangeRate || 60;
-  const krwGrossAmount = parsedAmount * effectiveRate;
-  const taxAmount = Math.round(krwGrossAmount * 0.033);
-  const netEstimatedAmount = Math.max(0, krwGrossAmount - taxAmount);
+  // Points tax calculation
+  const parsedPoints = parseInt(pointsAmountInput.replace(/\D/g, ''), 10) || 0;
+  const pointsGrossKrw = parsedPoints; // 1 P = 1 KRW
+  const pointsTaxAmount = Math.round(pointsGrossKrw * 0.033);
+  const pointsNetKrw = Math.max(0, pointsGrossKrw - pointsTaxAmount);
 
-  const handleAddAmount = (add) => {
-    const next = Math.min(overview.redeemableBalance || 0, parsedAmount + add);
-    setAmountInput(String(next));
-  };
+  // Market Cash calculation
+  const parsedCash = parseInt(cashAmountInput.replace(/\D/g, ''), 10) || 0;
 
-  const handleResetAmount = () => {
-    setAmountInput('');
-  };
-
-  const handleAccountNumberChange = (text) => {
-    const numeric = text.replace(/[^0-9]/g, '');
-    setAccountNumber(numeric);
-  };
-
-  // Handle Submit Settlement Request
-  const handleSubmit = async () => {
-    const minPoints = overview.minSettlementPoints || 10000;
-    if (parsedAmount < minPoints) {
-      Alert.alert('출금 안내', `최소 출금 신청 수량은 ${minPoints.toLocaleString()} 온(ON)입니다.`);
+  // Handle Market Cash withdrawal submit
+  const handleCashSubmit = async () => {
+    if (parsedCash < overview.minMarketCash) {
+      Alert.alert('출금 안내', `최소 출금 신청 금액은 ${overview.minMarketCash.toLocaleString()}원입니다.`);
       return;
     }
-    if (parsedAmount > overview.redeemableBalance) {
-      Alert.alert('잔액 부족', '출금 가능한 보유 온(ON)을 초과하여 신청할 수 없습니다.');
+    if (parsedCash > overview.marketCashBalance) {
+      Alert.alert('잔액 부족', '출금 가능한 판매 정산금을 초과하여 신청할 수 없습니다.');
       return;
     }
-    if (!bankName.trim()) {
-      Alert.alert('입력 확인', '입금 받으실 은행명을 선택 또는 입력해 주세요.');
-      return;
-    }
-    if (!accountNumber.trim()) {
-      Alert.alert('입력 확인', '계좌번호를 입력해 주세요.');
-      return;
-    }
-    if (!accountHolder.trim()) {
-      Alert.alert('입력 확인', '예금주 성명을 입력해 주세요.');
+    if (!cashBankName.trim() || !cashAccountNumber.trim() || !cashAccountHolder.trim()) {
+      Alert.alert('입력 확인', '입금 받으실 은행명, 계좌번호, 예금주를 모두 입력해 주세요.');
       return;
     }
 
     Alert.alert(
-      '출금 신청 확인',
-      `신청 수량: ${parsedAmount.toLocaleString()} 온(ON)\n지급 환전액: ${krwGrossAmount.toLocaleString()}원\n원천징수세(3.3%): -${taxAmount.toLocaleString()}원\n실 입금액: ${netEstimatedAmount.toLocaleString()}원\n\n입금 계좌: ${bankName.trim()} ${accountNumber.trim()} (예금주: ${accountHolder.trim()})\n\n정말로 출금 신청을 진행하시겠습니까?`,
+      '원화 출금 신청 확인',
+      `신청 금액: ${parsedCash.toLocaleString()}원\n수수료: 0원 (비과세 정산)\n실 입금액: ${parsedCash.toLocaleString()}원\n\n입금 계좌: ${cashBankName.trim()} ${cashAccountNumber.trim()} (예금주: ${cashAccountHolder.trim()})\n\n정말로 출금 신청을 진행하시겠습니까?`,
       [
         { text: '취소', style: 'cancel' },
         {
@@ -151,20 +137,80 @@ export default function SettlementScreen({ navigation }) {
             setSubmitting(true);
             try {
               await apiClient.requestSettlement({
-                pointsAmount: parsedAmount,
-                bankName: bankName.trim(),
-                accountNumber: accountNumber.trim(),
-                accountHolder: accountHolder.trim(),
+                type: 'MARKET_CASH',
+                cashAmount: parsedCash,
+                bankName: cashBankName.trim(),
+                accountNumber: cashAccountNumber.trim(),
+                accountHolder: cashAccountHolder.trim(),
               });
               Alert.alert(
                 '출금 신청 완료',
-                '출금 신청이 정상적으로 접수되었습니다.\n영업일 기준 1~3일 이내에 관리자 심사 후 등록하신 계좌로 입금됩니다.',
+                '판매 정산금 출금 신청이 정상 접수되었습니다.\n영업일 기준 1일 이내에 등록하신 계좌로 입금 처리됩니다.',
                 [{ text: '확인', onPress: () => setActiveTab('history') }],
               );
-              setAmountInput('');
+              setCashAmountInput('');
+              setOverview((prev) => ({
+                ...prev,
+                marketCashBalance: Math.max(0, prev.marketCashBalance - parsedCash),
+              }));
               await Promise.allSettled([loadOverview(), refreshMe ? refreshMe() : Promise.resolve()]);
             } catch (e) {
-              Alert.alert('신청 실패', e?.message || '출금 신청 처리 중 오류가 발생했습니다.');
+              Alert.alert('신청 실패', e?.message || '출금 신청 중 오류가 발생했습니다.');
+            } finally {
+              setSubmitting(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  // Handle Points exchange submit
+  const handlePointsSubmit = async () => {
+    const minPoints = overview.minSettlementPoints || 10000;
+    if (parsedPoints < minPoints) {
+      Alert.alert('환전 안내', `최소 모꼬 포인트 환전 수량은 ${minPoints.toLocaleString()} P입니다.`);
+      return;
+    }
+    if (parsedPoints > overview.redeemableBalance) {
+      Alert.alert('잔액 부족', '환전 가능한 보유 포인트를 초과하여 신청할 수 없습니다.');
+      return;
+    }
+    if (!pointsBankName.trim() || !pointsAccountNumber.trim() || !pointsAccountHolder.trim()) {
+      Alert.alert('입력 확인', '입금 받으실 은행명, 계좌번호, 예금주를 모두 입력해 주세요.');
+      return;
+    }
+
+    Alert.alert(
+      '포인트 환전 신청 확인',
+      `신청 포인트: ${parsedPoints.toLocaleString()} P\n환전 기준액: ${pointsGrossKrw.toLocaleString()}원\n원천징수세(3.3%): -${pointsTaxAmount.toLocaleString()}원\n실 입금액: ${pointsNetKrw.toLocaleString()}원\n\n입금 계좌: ${pointsBankName.trim()} ${pointsAccountNumber.trim()} (예금주: ${pointsAccountHolder.trim()})\n\n정말로 환전 신청을 진행하시겠습니까?`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '신청하기',
+          onPress: async () => {
+            setSubmitting(true);
+            try {
+              await apiClient.requestSettlement({
+                type: 'POINTS_EXCHANGE',
+                pointsAmount: parsedPoints,
+                bankName: pointsBankName.trim(),
+                accountNumber: pointsAccountNumber.trim(),
+                accountHolder: pointsAccountHolder.trim(),
+              });
+              Alert.alert(
+                '환전 신청 완료',
+                '모꼬 포인트 환전 신청이 정상 접수되었습니다.\n사업소득세(3.3%) 원천징수 후 영업일 기준 1~3일 이내에 계좌로 입금됩니다.',
+                [{ text: '확인', onPress: () => setActiveTab('history') }],
+              );
+              setPointsAmountInput('');
+              setOverview((prev) => ({
+                ...prev,
+                redeemableBalance: Math.max(0, prev.redeemableBalance - parsedPoints),
+              }));
+              await Promise.allSettled([loadOverview(), refreshMe ? refreshMe() : Promise.resolve()]);
+            } catch (e) {
+              Alert.alert('신청 실패', e?.message || '환전 신청 중 오류가 발생했습니다.');
             } finally {
               setSubmitting(false);
             }
@@ -192,10 +238,16 @@ export default function SettlementScreen({ navigation }) {
           onPress={() => navigation.goBack()}
           hitSlop={8}
         >
-          <Ionicons name="chevron-back" size={24} color={colors.textPrimary || '#191919'} />
+          <Ionicons name="chevron-back" size={24} color="#191919" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>크리에이터 수익 정산</Text>
-        <View style={{ width: 36 }} />
+        <Text style={styles.headerTitle}>정산 및 출금 센터</Text>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('PointCharge')}
+          style={styles.headerChargeBtn}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.headerChargeBtnText}>포인트 충전</Text>
+        </TouchableOpacity>
       </View>
 
       <KeyboardAvoidingView
@@ -214,66 +266,85 @@ export default function SettlementScreen({ navigation }) {
             />
           }
         >
-          {/* Revenue Balance Summary Card */}
+          {/* Dual Balance Summary Card */}
           <View style={styles.summaryCard}>
-            <View style={styles.summaryTopRow}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Ionicons name="wallet" size={20} color="#059669" />
-                <Text style={styles.summaryTopTitle}>내 크리에이터 수익금</Text>
-              </View>
-              <View style={{ flexDirection: 'row', gap: 4 }}>
-                <View style={[styles.taxBadge, { backgroundColor: '#EDE9FE' }]}>
-                  <Text style={[styles.taxBadgeText, { color: '#6D28D9' }]}>
-                    {overview.streamerTier === 'PARTNER'
-                      ? '파트너 스트리머'
-                      : overview.streamerTier === 'BEST'
-                      ? '베스트 스트리머'
-                      : '루키 호스트'}
+            <Text style={styles.summaryMainTitle}>내 출금 가능 자산</Text>
+
+            <View style={styles.summaryRow}>
+              {/* Box 1: 중고거래/마켓 판매 정산금 (원) */}
+              <TouchableOpacity
+                style={[
+                  styles.balanceSubBox,
+                  activeTab === 'market' && styles.balanceSubBoxActive,
+                ]}
+                onPress={() => setActiveTab('market')}
+                activeOpacity={0.85}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={{ fontSize: 14 }}>💵</Text>
+                  <Text style={styles.subBoxLabel}>중고·마켓 판매금</Text>
+                </View>
+                <Text style={styles.subBoxAmountGreen}>
+                  {overview.marketCashBalance.toLocaleString()}{' '}
+                  <Text style={{ fontSize: 13, color: '#374151' }}>원</Text>
+                </Text>
+                <View style={styles.subBoxTag}>
+                  <Text style={styles.subBoxTagText}>수수료 0원 · 비과세</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Box 2: 후원 모꼬 포인트 (P) */}
+              <TouchableOpacity
+                style={[
+                  styles.balanceSubBox,
+                  activeTab === 'points' && styles.balanceSubBoxActive,
+                ]}
+                onPress={() => setActiveTab('points')}
+                activeOpacity={0.85}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={{ fontSize: 14 }}>🟡</Text>
+                  <Text style={styles.subBoxLabel}>후원·선물 포인트</Text>
+                </View>
+                <Text style={styles.subBoxAmountGold}>
+                  {overview.redeemableBalance.toLocaleString()}{' '}
+                  <Text style={{ fontSize: 13, color: '#374151' }}>P</Text>
+                </Text>
+                <View style={[styles.subBoxTag, { backgroundColor: '#EDE9FE' }]}>
+                  <Text style={[styles.subBoxTagText, { color: '#6D28D9' }]}>
+                    원천징수 3.3% 환전
                   </Text>
                 </View>
-                <View style={styles.taxBadge}>
-                  <Text style={styles.taxBadgeText}>원천징수 3.3% 적용</Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.summaryMainRow}>
-              <View style={styles.summaryCol}>
-                <Text style={styles.summaryLabel}>출금 가능 수익</Text>
-                <Text style={styles.summaryAmountHighlight}>
-                  {(overview.redeemableBalance || 0).toLocaleString()}
-                  <Text style={styles.summaryUnit}> 온</Text>
-                </Text>
-              </View>
-
-              <View style={styles.summaryDivider} />
-
-              <View style={styles.summaryCol}>
-                <Text style={styles.summaryLabel}>심사/정산 대기</Text>
-                <Text style={[styles.summaryAmountHighlight, { color: '#D97706' }]}>
-                  {(overview.pendingEarnings || 0).toLocaleString()}
-                  <Text style={styles.summaryUnit}> 온</Text>
-                </Text>
-              </View>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.summaryNoticeRow}>
               <Ionicons name="information-circle-outline" size={14} color="#6B7280" />
               <Text style={styles.summaryNoticeText}>
-                최소 {overview.minSettlementPoints?.toLocaleString()} 온부터 출금 신청이 가능하며, 회원 등급별 정산 환전율이 적용됩니다.
+                중고거래 정산금과 크리에이터 후원 포인트는 회계 기준에 따라 별도 출금 신청됩니다.
               </Text>
             </View>
           </View>
 
-          {/* Tab Selector: 신청하기 vs 신청 내역 */}
+          {/* 3-Way Segment Tabs */}
           <View style={styles.tabContainer}>
             <TouchableOpacity
-              style={[styles.tabButton, activeTab === 'request' && styles.tabButtonActive]}
-              onPress={() => setActiveTab('request')}
+              style={[styles.tabButton, activeTab === 'market' && styles.tabButtonActive]}
+              onPress={() => setActiveTab('market')}
               activeOpacity={0.8}
             >
-              <Text style={[styles.tabText, activeTab === 'request' && styles.tabTextActive]}>
-                출금 신청하기
+              <Text style={[styles.tabText, activeTab === 'market' && styles.tabTextActive]}>
+                💵 중고·마켓 출금 (원)
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tabButton, activeTab === 'points' && styles.tabButtonActive]}
+              onPress={() => setActiveTab('points')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.tabText, activeTab === 'points' && styles.tabTextActive]}>
+                🟡 포인트 환전 (P)
               </Text>
             </TouchableOpacity>
 
@@ -283,20 +354,27 @@ export default function SettlementScreen({ navigation }) {
               activeOpacity={0.8}
             >
               <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>
-                신청 내역 ({overview.recentRequests?.length || 0})
+                신청 내역 ({overview.recentRequests.length})
               </Text>
             </TouchableOpacity>
           </View>
 
-          {activeTab === 'request' ? (
-            /* TAB 1: 출금 신청 양식 */
+          {/* TAB 1: 중고/마켓 판매금 출금 (원화) */}
+          {activeTab === 'market' && (
             <View style={styles.formContainer}>
-              {/* 포인트 입력 필드 */}
+              <View style={styles.formSectionHeader}>
+                <Text style={styles.formSectionTitle}>중고·마켓 판매대금 출금 신청</Text>
+                <Text style={styles.formSectionSub}>
+                  안전결제 및 직거래 완료로 정산된 원화 잔액을 본인 계좌로 이체합니다.
+                </Text>
+              </View>
+
+              {/* 금액 입력 */}
               <View style={styles.fieldGroup}>
                 <View style={styles.fieldLabelRow}>
-                  <Text style={styles.fieldLabel}>출금 신청 수량 (온)</Text>
+                  <Text style={styles.fieldLabel}>출금 신청 금액 (원)</Text>
                   <TouchableOpacity
-                    onPress={() => setAmountInput(String(overview.redeemableBalance || 0))}
+                    onPress={() => setCashAmountInput(String(overview.marketCashBalance))}
                     activeOpacity={0.7}
                   >
                     <Text style={styles.allInText}>전액 입력</Text>
@@ -305,41 +383,53 @@ export default function SettlementScreen({ navigation }) {
                 <View style={styles.inputWrapper}>
                   <TextInput
                     style={styles.textInput}
-                    placeholder={`최소 ${(overview.minSettlementPoints || 10000).toLocaleString()} 온 이상 입력`}
+                    placeholder={`최소 ${overview.minMarketCash.toLocaleString()}원 이상 입력`}
                     placeholderTextColor="#9CA3AF"
                     keyboardType="numeric"
-                    value={amountInput}
-                    onChangeText={setAmountInput}
+                    value={cashAmountInput}
+                    onChangeText={(t) => setCashAmountInput(t.replace(/[^0-9]/g, ''))}
                   />
-                  <Text style={styles.inputAffix}>온</Text>
+                  <Text style={styles.inputAffix}>원</Text>
                 </View>
 
                 {/* 빠른 증액 칩 */}
                 <View style={styles.amountChipRow}>
                   <TouchableOpacity
                     style={styles.amountChip}
-                    onPress={() => handleAddAmount(10000)}
+                    onPress={() =>
+                      setCashAmountInput(
+                        String(Math.min(overview.marketCashBalance, parsedCash + 10000)),
+                      )
+                    }
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.amountChipText}>+1만 온</Text>
+                    <Text style={styles.amountChipText}>+1만 원</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.amountChip}
-                    onPress={() => handleAddAmount(50000)}
+                    onPress={() =>
+                      setCashAmountInput(
+                        String(Math.min(overview.marketCashBalance, parsedCash + 50000)),
+                      )
+                    }
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.amountChipText}>+5만 온</Text>
+                    <Text style={styles.amountChipText}>+5만 원</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.amountChip}
-                    onPress={() => handleAddAmount(100000)}
+                    onPress={() =>
+                      setCashAmountInput(
+                        String(Math.min(overview.marketCashBalance, parsedCash + 100000)),
+                      )
+                    }
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.amountChipText}>+10만 온</Text>
+                    <Text style={styles.amountChipText}>+10만 원</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.amountChip, styles.amountChipReset]}
-                    onPress={handleResetAmount}
+                    onPress={() => setCashAmountInput('')}
                     activeOpacity={0.7}
                   >
                     <Text style={styles.amountChipResetText}>초기화</Text>
@@ -347,61 +437,57 @@ export default function SettlementScreen({ navigation }) {
                 </View>
               </View>
 
-              {/* 실시간 세금 계산 카드 */}
-              {parsedAmount > 0 && (
-                <View style={styles.calcCard}>
+              {/* 실지급액 안내 카드 */}
+              {parsedCash > 0 && (
+                <View style={styles.calcCardGreen}>
                   <View style={styles.calcRow}>
-                    <Text style={styles.calcLabel}>환전 기준액</Text>
-                    <Text style={styles.calcVal}>{krwGrossAmount.toLocaleString()}원</Text>
+                    <Text style={styles.calcLabel}>신청 금액</Text>
+                    <Text style={styles.calcVal}>{parsedCash.toLocaleString()}원</Text>
                   </View>
                   <View style={styles.calcRow}>
-                    <Text style={[styles.calcLabel, { color: '#EF4444' }]}>원천징수세액 (3.3%)</Text>
-                    <Text style={[styles.calcVal, { color: '#EF4444' }]}>
-                      -{taxAmount.toLocaleString()}원
-                    </Text>
+                    <Text style={styles.calcLabel}>정산 수수료</Text>
+                    <Text style={[styles.calcVal, { color: '#059669' }]}>0원 (무료)</Text>
                   </View>
                   <View style={styles.calcDivider} />
                   <View style={styles.calcRow}>
                     <Text style={styles.calcNetLabel}>실제 입금 예정액</Text>
-                    <Text style={styles.calcNetVal}>{netEstimatedAmount.toLocaleString()}원</Text>
+                    <Text style={styles.calcNetVal}>{parsedCash.toLocaleString()}원</Text>
                   </View>
-                  <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 8, textAlign: 'center' }}>
-                    ※ 회원 등급별 환전 비율 및 세금(3.3%)을 제외한 최종 실지급액입니다.
-                  </Text>
                 </View>
               )}
 
-              {/* 계좌 정보 입력 */}
+              {/* 계좌 정보 */}
               <View style={styles.fieldGroup}>
                 <Text style={styles.fieldLabel}>입금 은행</Text>
-                {/* 주요 은행 칩 */}
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.bankChipScroll}
                 >
-                  {MAJOR_BANKS.map((bank) => {
-                    const isSelected = bankName === bank;
-                    return (
-                      <TouchableOpacity
-                        key={bank}
-                        style={[styles.bankChip, isSelected && styles.bankChipActive]}
-                        onPress={() => setBankName(bank)}
-                        activeOpacity={0.8}
+                  {MAJOR_BANKS.map((b) => (
+                    <TouchableOpacity
+                      key={b}
+                      style={[styles.bankChip, cashBankName === b && styles.bankChipActive]}
+                      onPress={() => setCashBankName(b)}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.bankChipText,
+                          cashBankName === b && styles.bankChipTextActive,
+                        ]}
                       >
-                        <Text style={[styles.bankChipText, isSelected && styles.bankChipTextActive]}>
-                          {bank}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                        {b}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </ScrollView>
                 <TextInput
                   style={[styles.textInput, { marginTop: 8 }]}
                   placeholder="또는 직접 은행명 입력"
                   placeholderTextColor="#9CA3AF"
-                  value={bankName}
-                  onChangeText={setBankName}
+                  value={cashBankName}
+                  onChangeText={setCashBankName}
                 />
               </View>
 
@@ -409,11 +495,11 @@ export default function SettlementScreen({ navigation }) {
                 <Text style={styles.fieldLabel}>계좌번호</Text>
                 <TextInput
                   style={styles.textInput}
-                  placeholder="숫자만 입력 (하이픈 자동 처리)"
+                  placeholder="숫자만 입력"
                   placeholderTextColor="#9CA3AF"
                   keyboardType="number-pad"
-                  value={accountNumber}
-                  onChangeText={handleAccountNumberChange}
+                  value={cashAccountNumber}
+                  onChangeText={(t) => setCashAccountNumber(t.replace(/[^0-9]/g, ''))}
                 />
               </View>
 
@@ -423,51 +509,247 @@ export default function SettlementScreen({ navigation }) {
                   style={styles.textInput}
                   placeholder="본인 실명 입력"
                   placeholderTextColor="#9CA3AF"
-                  value={accountHolder}
-                  onChangeText={setAccountHolder}
+                  value={cashAccountHolder}
+                  onChangeText={setCashAccountHolder}
                 />
                 <Text style={styles.fieldHelper}>
-                  * 반드시 본인 명의의 계좌만 승인되며 타인 명의 계좌는 반려될 수 있습니다.
+                  * 중고거래 사기 방지를 위해 본인 명의 계좌로만 출금됩니다.
                 </Text>
               </View>
 
-              {/* 신청 제출 버튼 */}
               <TouchableOpacity
                 style={[
                   styles.submitBtn,
-                  (submitting || parsedAmount < 10000 || !bankName || !accountNumber || !accountHolder) &&
+                  (submitting ||
+                    parsedCash < overview.minMarketCash ||
+                    !cashBankName ||
+                    !cashAccountNumber ||
+                    !cashAccountHolder) &&
                     styles.submitBtnDisabled,
                 ]}
                 disabled={
                   submitting ||
-                  parsedAmount < 10000 ||
-                  !bankName ||
-                  !accountNumber ||
-                  !accountHolder
+                  parsedCash < overview.minMarketCash ||
+                  !cashBankName ||
+                  !cashAccountNumber ||
+                  !cashAccountHolder
                 }
                 activeOpacity={0.85}
-                onPress={handleSubmit}
+                onPress={handleCashSubmit}
               >
                 {submitting ? (
                   <ActivityIndicator size="small" color="#191919" />
                 ) : (
-                  <Text style={styles.submitBtnText}>출금 신청하기</Text>
+                  <Text style={styles.submitBtnText}>원화 정산금 출금 신청하기</Text>
                 )}
               </TouchableOpacity>
             </View>
-          ) : (
-            /* TAB 2: 신청 내역 */
+          )}
+
+          {/* TAB 2: 모꼬 포인트 환전 출금 (P) */}
+          {activeTab === 'points' && (
+            <View style={styles.formContainer}>
+              <View style={styles.formSectionHeader}>
+                <Text style={styles.formSectionTitle}>모꼬 포인트(P) 현금 환전 신청</Text>
+                <Text style={styles.formSectionSub}>
+                  라이브 방송 후원 및 1:1 대화로 획득한 포인트를 원화로 환전 입금합니다.
+                </Text>
+              </View>
+
+              {/* 포인트 입력 */}
+              <View style={styles.fieldGroup}>
+                <View style={styles.fieldLabelRow}>
+                  <Text style={styles.fieldLabel}>환전 신청 포인트 (P)</Text>
+                  <TouchableOpacity
+                    onPress={() => setPointsAmountInput(String(overview.redeemableBalance))}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.allInText}>전액 입력</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder={`최소 ${overview.minSettlementPoints.toLocaleString()} P 이상 입력`}
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="numeric"
+                    value={pointsAmountInput}
+                    onChangeText={(t) => setPointsAmountInput(t.replace(/[^0-9]/g, ''))}
+                  />
+                  <Text style={styles.inputAffix}>P</Text>
+                </View>
+
+                {/* 빠른 증액 칩 */}
+                <View style={styles.amountChipRow}>
+                  <TouchableOpacity
+                    style={styles.amountChip}
+                    onPress={() =>
+                      setPointsAmountInput(
+                        String(Math.min(overview.redeemableBalance, parsedPoints + 10000)),
+                      )
+                    }
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.amountChipText}>+1만 P</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.amountChip}
+                    onPress={() =>
+                      setPointsAmountInput(
+                        String(Math.min(overview.redeemableBalance, parsedPoints + 50000)),
+                      )
+                    }
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.amountChipText}>+5만 P</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.amountChip}
+                    onPress={() =>
+                      setPointsAmountInput(
+                        String(Math.min(overview.redeemableBalance, parsedPoints + 100000)),
+                      )
+                    }
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.amountChipText}>+10만 P</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.amountChip, styles.amountChipReset]}
+                    onPress={() => setPointsAmountInput('')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.amountChipResetText}>초기화</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* 세금 및 실수령 계산기 */}
+              {parsedPoints > 0 && (
+                <View style={styles.calcCardGold}>
+                  <View style={styles.calcRow}>
+                    <Text style={styles.calcLabel}>환전 기준액 (1 P = 1원)</Text>
+                    <Text style={styles.calcVal}>{pointsGrossKrw.toLocaleString()}원</Text>
+                  </View>
+                  <View style={styles.calcRow}>
+                    <Text style={[styles.calcLabel, { color: '#EF4444' }]}>
+                      원천징수 사업소득세 (3.3%)
+                    </Text>
+                    <Text style={[styles.calcVal, { color: '#EF4444' }]}>
+                      -{pointsTaxAmount.toLocaleString()}원
+                    </Text>
+                  </View>
+                  <View style={styles.calcDivider} />
+                  <View style={styles.calcRow}>
+                    <Text style={styles.calcNetLabelGold}>실제 입금 예정액</Text>
+                    <Text style={styles.calcNetValGold}>{pointsNetKrw.toLocaleString()}원</Text>
+                  </View>
+                  <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 4, textAlign: 'center' }}>
+                    ※ 크리에이터 사업소득세 3.3%가 원천징수된 후 입금됩니다.
+                  </Text>
+                </View>
+              )}
+
+              {/* 계좌 정보 */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>입금 은행</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.bankChipScroll}
+                >
+                  {MAJOR_BANKS.map((b) => (
+                    <TouchableOpacity
+                      key={b}
+                      style={[styles.bankChip, pointsBankName === b && styles.bankChipActive]}
+                      onPress={() => setPointsBankName(b)}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.bankChipText,
+                          pointsBankName === b && styles.bankChipTextActive,
+                        ]}
+                      >
+                        {b}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                <TextInput
+                  style={[styles.textInput, { marginTop: 8 }]}
+                  placeholder="또는 직접 은행명 입력"
+                  placeholderTextColor="#9CA3AF"
+                  value={pointsBankName}
+                  onChangeText={setPointsBankName}
+                />
+              </View>
+
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>계좌번호</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="숫자만 입력"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="number-pad"
+                  value={pointsAccountNumber}
+                  onChangeText={(t) => setPointsAccountNumber(t.replace(/[^0-9]/g, ''))}
+                />
+              </View>
+
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>예금주 성명</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="본인 실명 입력"
+                  placeholderTextColor="#9CA3AF"
+                  value={pointsAccountHolder}
+                  onChangeText={setPointsAccountHolder}
+                />
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.submitBtn,
+                  (submitting ||
+                    parsedPoints < overview.minSettlementPoints ||
+                    !pointsBankName ||
+                    !pointsAccountNumber ||
+                    !pointsAccountHolder) &&
+                    styles.submitBtnDisabled,
+                ]}
+                disabled={
+                  submitting ||
+                  parsedPoints < overview.minSettlementPoints ||
+                  !pointsBankName ||
+                  !pointsAccountNumber ||
+                  !pointsAccountHolder
+                }
+                activeOpacity={0.85}
+                onPress={handlePointsSubmit}
+              >
+                {submitting ? (
+                  <ActivityIndicator size="small" color="#191919" />
+                ) : (
+                  <Text style={styles.submitBtnText}>모꼬 포인트 환전 신청하기</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* TAB 3: 신청 내역 */}
+          {activeTab === 'history' && (
             <View style={styles.historyContainer}>
               {overview.recentRequests.length === 0 ? (
                 <View style={styles.emptyHistoryBox}>
                   <Ionicons name="receipt-outline" size={48} color="#D1D5DB" />
                   <Text style={styles.emptyHistoryTitle}>신청 내역이 없습니다.</Text>
                   <Text style={styles.emptyHistorySubtitle}>
-                    크리에이터 수익을 모아 첫 출금을 신청해보세요!
+                    중고거래 정산금 및 크리에이터 포인트를 모아 첫 출금을 신청해보세요!
                   </Text>
                   <TouchableOpacity
                     style={styles.emptyHistoryBtn}
-                    onPress={() => setActiveTab('request')}
+                    onPress={() => setActiveTab('market')}
                     activeOpacity={0.85}
                   >
                     <Text style={styles.emptyHistoryBtnText}>첫 출금 신청하러 가기</Text>
@@ -475,15 +757,16 @@ export default function SettlementScreen({ navigation }) {
                 </View>
               ) : (
                 overview.recentRequests.map((req) => {
+                  const isMarket = req.type === 'MARKET_CASH' || Boolean(req.cashAmount);
                   const isApproved = req.status === 'APPROVED';
                   const isRejected = req.status === 'REJECTED';
-                  const statusText = isApproved ? '승인완료' : isRejected ? '반려됨' : '심사중';
-                  const statusBadgeStyle = isApproved
+                  const statusText = isApproved ? '입금완료' : isRejected ? '반려됨' : '심사중';
+                  const badgeStyle = isApproved
                     ? styles.badgeApproved
                     : isRejected
                     ? styles.badgeRejected
                     : styles.badgePending;
-                  const statusTextStyle = isApproved
+                  const textStyle = isApproved
                     ? styles.badgeTextApproved
                     : isRejected
                     ? styles.badgeTextRejected
@@ -492,55 +775,57 @@ export default function SettlementScreen({ navigation }) {
                   return (
                     <View key={req.id} style={styles.historyCard}>
                       <View style={styles.historyCardHeader}>
-                        <View style={statusBadgeStyle}>
-                          <Text style={statusTextStyle}>{statusText}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <View
+                            style={[
+                              styles.typeBadge,
+                              isMarket ? { backgroundColor: '#ECFDF5' } : { backgroundColor: '#FEF3C7' },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.typeBadgeText,
+                                isMarket ? { color: '#059669' } : { color: '#D97706' },
+                              ]}
+                            >
+                              {isMarket ? '💵 중고/마켓 출금' : '🟡 포인트 환전'}
+                            </Text>
+                          </View>
+                          <View style={badgeStyle}>
+                            <Text style={textStyle}>{statusText}</Text>
+                          </View>
                         </View>
                         <Text style={styles.historyDate}>
-                          {new Date(req.createdAt).toLocaleDateString('ko-KR', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                          })}
+                          {new Date(req.createdAt || req.requestedAt || Date.now()).toLocaleDateString(
+                            'ko-KR',
+                            { month: 'short', day: 'numeric' },
+                          )}
                         </Text>
                       </View>
 
                       <View style={styles.historyCardBody}>
                         <View style={styles.historyRow}>
-                          <Text style={styles.historyLabel}>신청 수량</Text>
+                          <Text style={styles.historyLabel}>신청 내역</Text>
                           <Text style={styles.historyAmount}>
-                            {Number(req.pointsAmount).toLocaleString()} 온
+                            {isMarket
+                              ? `${Number(req.cashAmount || req.requestedAmount).toLocaleString()}원`
+                              : `${Number(req.pointsAmount || req.requestedAmount).toLocaleString()} P`}
                           </Text>
                         </View>
-                        {req.netAmount ? (
-                          <View style={styles.historyRow}>
-                            <Text style={styles.historyLabel}>실지급액</Text>
-                            <Text style={[styles.historyAmount, { color: '#059669', fontWeight: '800' }]}>
-                              {Number(req.netAmount).toLocaleString()}원
-                            </Text>
-                          </View>
-                        ) : null}
+
+                        <View style={styles.historyRow}>
+                          <Text style={styles.historyLabel}>실 입금 예정액</Text>
+                          <Text style={[styles.historyAmount, { color: '#059669', fontWeight: '800' }]}>
+                            {Number(req.netAmount || req.cashAmount || req.pointsAmount).toLocaleString()}원
+                          </Text>
+                        </View>
+
                         <View style={styles.historyRow}>
                           <Text style={styles.historyLabel}>입금 계좌</Text>
                           <Text style={styles.historyValue}>
                             {req.bankName} {req.accountNumber} ({req.accountHolder})
                           </Text>
                         </View>
-
-                        {Boolean(req.rejectReason) && (
-                          <View style={styles.rejectReasonBox}>
-                            <Ionicons name="alert-circle" size={14} color="#EF4444" />
-                            <Text style={styles.rejectReasonText}>
-                              반려 사유: {req.rejectReason}
-                            </Text>
-                          </View>
-                        )}
-
-                        {Boolean(req.adminMemo) && (
-                          <View style={styles.memoBox}>
-                            <Ionicons name="checkmark-circle" size={14} color="#059669" />
-                            <Text style={styles.memoText}>{req.adminMemo}</Text>
-                          </View>
-                        )}
                       </View>
                     </View>
                   );
@@ -594,73 +879,84 @@ const styles = StyleSheet.create({
     color: '#191919',
     letterSpacing: -0.4,
   },
+  headerChargeBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#FEF08A',
+    borderRadius: 10,
+  },
+  headerChargeBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#854D0E',
+  },
   summaryCard: {
     margin: 16,
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    padding: 20,
+    padding: 18,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 2,
     borderWidth: 1,
     borderColor: '#F0F0F0',
+    gap: 14,
   },
-  summaryTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  summaryTopTitle: {
+  summaryMainTitle: {
     fontSize: 15,
     fontWeight: '800',
     color: '#191919',
   },
-  taxBadge: {
-    backgroundColor: '#ECFDF5',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  taxBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#059669',
-  },
-  summaryMainRow: {
-    marginTop: 18,
+  summaryRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    gap: 10,
   },
-  summaryCol: {
+  balanceSubBox: {
     flex: 1,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    gap: 4,
   },
-  summaryLabel: {
+  balanceSubBoxActive: {
+    borderColor: '#10B981',
+    backgroundColor: '#F0FDF4',
+  },
+  subBoxLabel: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  summaryAmountHighlight: {
-    marginTop: 6,
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#059669',
-    letterSpacing: -0.5,
-  },
-  summaryUnit: {
-    fontSize: 15,
     fontWeight: '700',
-    color: '#374151',
+    color: '#4B5563',
   },
-  summaryDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: '#E5E7EB',
-    marginHorizontal: 16,
+  subBoxAmountGreen: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#059669',
+    letterSpacing: -0.4,
+  },
+  subBoxAmountGold: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#D97706',
+    letterSpacing: -0.4,
+  },
+  subBoxTag: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginTop: 2,
+  },
+  subBoxTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#059669',
   },
   summaryNoticeRow: {
-    marginTop: 16,
-    paddingTop: 12,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
     flexDirection: 'row',
@@ -668,10 +964,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   summaryNoticeText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#6B7280',
     flex: 1,
-    lineHeight: 16,
+    lineHeight: 15,
   },
   tabContainer: {
     flexDirection: 'row',
@@ -694,7 +990,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#6B7280',
   },
@@ -713,6 +1009,22 @@ const styles = StyleSheet.create({
     elevation: 1,
     gap: 18,
   },
+  formSectionHeader: {
+    gap: 4,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  formSectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#191919',
+  },
+  formSectionSub: {
+    fontSize: 12,
+    color: '#6B7280',
+    lineHeight: 16,
+  },
   fieldGroup: {
     gap: 8,
   },
@@ -722,7 +1034,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   fieldLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#191919',
   },
@@ -756,12 +1068,49 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#6B7280',
   },
-  calcCard: {
+  amountChipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  amountChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  amountChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  amountChipReset: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+    marginLeft: 'auto',
+  },
+  amountChipResetText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#EF4444',
+  },
+  calcCardGreen: {
     backgroundColor: '#F0FDF4',
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
     borderColor: '#DCFCE7',
+    gap: 8,
+  },
+  calcCardGold: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#FEF3C7',
     gap: 8,
   },
   calcRow: {
@@ -781,7 +1130,7 @@ const styles = StyleSheet.create({
   },
   calcDivider: {
     height: 1,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: '#E5E7EB',
     marginVertical: 2,
   },
   calcNetLabel: {
@@ -793,6 +1142,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '900',
     color: '#059669',
+  },
+  calcNetLabelGold: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  calcNetValGold: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#D97706',
   },
   bankChipScroll: {
     gap: 8,
@@ -820,9 +1179,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   fieldHelper: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#9CA3AF',
-    lineHeight: 16,
+    lineHeight: 15,
   },
   submitBtn: {
     marginTop: 8,
@@ -841,7 +1200,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitBtnText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     color: '#191919',
   },
@@ -865,6 +1224,22 @@ const styles = StyleSheet.create({
   emptyHistorySubtitle: {
     fontSize: 13,
     color: '#9CA3AF',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  emptyHistoryBtn: {
+    marginTop: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: colors.primary || '#FEE500',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyHistoryBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#191919',
   },
   historyCard: {
     backgroundColor: '#FFFFFF',
@@ -878,6 +1253,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  typeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  typeBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
   },
   badgePending: {
     backgroundColor: '#FEF3C7',
@@ -929,7 +1313,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   historyAmount: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     color: '#191919',
   },
@@ -937,78 +1321,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#374151',
-  },
-  rejectReasonBox: {
-    marginTop: 6,
-    padding: 10,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  rejectReasonText: {
-    fontSize: 12,
-    color: '#EF4444',
-    fontWeight: '600',
-    flex: 1,
-  },
-  memoBox: {
-    marginTop: 6,
-    padding: 10,
-    backgroundColor: '#F0FDF4',
-    borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  memoText: {
-    fontSize: 12,
-    color: '#059669',
-    fontWeight: '600',
-    flex: 1,
-  },
-  amountChipRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-  },
-  amountChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  amountChipText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#374151',
-  },
-  amountChipReset: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FECACA',
-    marginLeft: 'auto',
-  },
-  amountChipResetText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#EF4444',
-  },
-  emptyHistoryBtn: {
-    marginTop: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: colors.primary || '#FEE500',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyHistoryBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#191919',
   },
 });

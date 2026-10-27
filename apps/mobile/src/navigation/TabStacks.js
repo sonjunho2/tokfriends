@@ -15,6 +15,7 @@ import FollowsScreen from '../screens/my/FollowsScreen';
 import CommunityFeedScreen from '../screens/community/CommunityFeedScreen';
 import PostDetailScreen from '../screens/community/PostDetailScreen';
 import SettlementScreen from '../screens/my/SettlementScreen';
+import PointChargeScreen from '../screens/my/PointChargeScreen';
 import ChatRoomScreen from '../screens/main/ChatRoomScreen';
 import ProfileDetailScreen from '../screens/main/ProfileDetailScreen';
 import NotificationsScreen from '../screens/main/NotificationsScreen';
@@ -67,6 +68,11 @@ export function HomeStack() {
       <HomeStackNav.Screen
         name="Settlement"
         component={SettlementScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <HomeStackNav.Screen
+        name="PointCharge"
+        component={PointChargeScreen}
         options={{ animation: 'slide_from_right' }}
       />
       <HomeStackNav.Screen
@@ -249,6 +255,11 @@ export function MyPageStack() {
       <MyPageStackNav.Screen
         name="Settlement"
         component={SettlementScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="PointCharge"
+        component={PointChargeScreen}
         options={{ animation: 'slide_from_right' }}
       />
       <MyPageStackNav.Screen

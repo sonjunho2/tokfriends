@@ -89,6 +89,7 @@ export default function TabNavigator() {
       'ProfileDetail',
       'ProfileEdit',
       'Settlement',
+      'PointCharge',
       'Shop',
       'Points',
       'Notifications',

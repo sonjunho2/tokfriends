@@ -549,7 +549,7 @@ export default function MyPageScreen({ navigation }) {
               </View>
               <TouchableOpacity
                 style={styles.chargeBtnMini}
-                onPress={() => navigation.navigate('Shop')}
+                onPress={() => navigation.navigate('PointCharge')}
                 activeOpacity={0.88}
               >
                 <LinearGradient
@@ -565,6 +565,13 @@ export default function MyPageScreen({ navigation }) {
             <View style={styles.walletBalanceRow}>
               <Text style={styles.walletBalanceNumber}>{pointBalance.toLocaleString()}</Text>
               <Text style={styles.walletBalanceUnit}>P</Text>
+              <TouchableOpacity
+                style={styles.pointExchangeLink}
+                onPress={() => navigation.navigate('Settlement', { initialTab: 'points' })}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.pointExchangeLinkText}>환전 신청 ›</Text>
+              </TouchableOpacity>
             </View>
             <Text style={styles.walletSubHint}>라이브 방송 후원, 1:1 대화 및 선물 교환 시 사용</Text>
           </LinearGradient>
@@ -580,7 +587,7 @@ export default function MyPageScreen({ navigation }) {
               </View>
               <TouchableOpacity
                 style={styles.settleBtnAction}
-                onPress={() => navigation.navigate('Settlement')}
+                onPress={() => navigation.navigate('Settlement', { initialTab: 'market' })}
                 activeOpacity={0.85}
               >
                 <Ionicons name="wallet-outline" size={13} color="#1E293B" />
@@ -1901,6 +1908,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: '#F8FAFC',
+  },
+  pointExchangeLink: {
+    marginLeft: 'auto',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  pointExchangeLinkText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#E2E8F0',
   },
   walletSubHint: {
     fontSize: 11,

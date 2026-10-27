@@ -60,7 +60,7 @@ export class SocialController implements OnModuleInit {
     },
   ];
 
-  private followersStore = [
+  private followersStore: any[] = [
     {
       id: 'u-seed-1',
       userId: 'u-seed-1',
@@ -115,7 +115,7 @@ export class SocialController implements OnModuleInit {
     },
   ];
 
-  private followingStore = [
+  private followingStore: any[] = [
     {
       id: 'u-seed-1',
       userId: 'u-seed-1',

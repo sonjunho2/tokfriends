@@ -394,30 +394,36 @@ export class StoreController {
   }
 
   // ==========================================
-  // Creator Settlement & Redemption
+  // Mocco Settlement & Redemption Center
   // ==========================================
   @Public()
   @Get(['settlement/overview', 'store/settlement/overview'])
   async getSettlementOverview(@CurrentUser() user?: any) {
     const userId = user?.id || user?.sub;
-    let balance = 1250;
+    let balance = 4020;
     if (userId) {
       try {
         const dbUser = await this.prisma.user.findUnique({
           where: { id: userId },
           select: { pointBalance: true },
         });
-        if (dbUser) balance = dbUser.pointBalance;
+        if (dbUser && typeof dbUser.pointBalance === 'number') {
+          balance = dbUser.pointBalance;
+        }
       } catch {}
     }
 
     return {
       ok: true,
-      redeemableBalance: Math.max(50000, balance * 10),
+      marketCashBalance: 185000, // 중고거래 & 마켓 판매 정산금 (원)
+      redeemableBalance: balance, // 후원/선물 모꼬 포인트 (P)
       spendableBalance: balance,
       pendingEarnings: 0,
       minSettlementPoints: 10000,
+      minMarketCash: 1000,
       taxRatePercent: 3.3,
+      streamerTier: 'ROOKIE',
+      exchangeRate: 1, // 1 P = 1 KRW
       recentRequests: this.settlementRequestsStore,
     };
   }
@@ -426,28 +432,57 @@ export class StoreController {
   @Post('settlement/requests')
   async requestSettlement(@CurrentUser() user: any, @Body() body: any) {
     const userId = user?.id || user?.sub;
-    const points = Math.floor(Number(body.pointsAmount || 10000));
-    if (points < 10000) {
-      throw new BadRequestException('최소 출금 신청 수량은 10,000 온(ON)입니다.');
-    }
+    const type = body.type === 'MARKET_CASH' ? 'MARKET_CASH' : 'POINTS_EXCHANGE';
+    
+    let requestedAmount = 0;
+    let netAmount = 0;
+    let taxAmount = 0;
+    let summaryText = '';
 
-    if (userId) {
-      try {
-        await this.prisma.user.update({
-          where: { id: userId },
-          data: { pointBalance: { decrement: points } },
-        });
-      } catch {}
+    if (type === 'MARKET_CASH') {
+      requestedAmount = Math.floor(Number(body.amount || body.cashAmount || 10000));
+      if (requestedAmount < 1000) {
+        throw new BadRequestException('중고거래 판매금 최소 출금 신청 금액은 1,000원입니다.');
+      }
+      taxAmount = 0; // 중고거래/마켓 실물거래 정산금은 원천징수 없음 (0%)
+      netAmount = requestedAmount;
+      summaryText = `${requestedAmount.toLocaleString()}원 중고/마켓 판매금 출금 신청`;
+    } else {
+      // POINTS_EXCHANGE
+      requestedAmount = Math.floor(Number(body.pointsAmount || body.amount || 10000));
+      if (requestedAmount < 10000) {
+        throw new BadRequestException('최소 모꼬 포인트 환전 신청 수량은 10,000 P입니다.');
+      }
+
+      if (userId) {
+        try {
+          await this.prisma.user.update({
+            where: { id: userId },
+            data: { pointBalance: { decrement: requestedAmount } },
+          });
+        } catch {}
+      }
+
+      taxAmount = Math.round(requestedAmount * 0.033);
+      netAmount = Math.max(0, requestedAmount - taxAmount);
+      summaryText = `${requestedAmount.toLocaleString()} P 모꼬 포인트 환전 신청`;
     }
 
     const item = {
       id: `set-req-${Date.now()}`,
-      pointsAmount: points,
-      bankName: body.bankName,
-      accountNumber: body.accountNumber,
-      accountHolder: body.accountHolder,
+      type,
+      requestedAmount,
+      pointsAmount: type === 'POINTS_EXCHANGE' ? requestedAmount : 0,
+      cashAmount: type === 'MARKET_CASH' ? requestedAmount : 0,
+      taxAmount,
+      netAmount,
+      bankName: body.bankName || '국민은행',
+      accountNumber: body.accountNumber || '123-456-7890',
+      accountHolder: body.accountHolder || '테스트게스트',
       status: 'PENDING',
       requestedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      summary: summaryText,
     };
     this.settlementRequestsStore.unshift(item);
 
@@ -456,7 +491,7 @@ export class StoreController {
       success: true,
       data: item,
       request: item,
-      message: `${points.toLocaleString()} ON 출금 신청이 완료되었습니다.`,
+      message: `${summaryText}이(가) 정상적으로 접수되었습니다.`,
     };
   }
 }
