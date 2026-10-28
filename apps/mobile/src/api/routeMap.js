@@ -28,6 +28,17 @@ export function mapPath(original) {
       break;
     }
   }
+
+  // 백엔드 글로벌 프리픽스 (/v1) 보장 (308 리다이렉트 방지 및 즉시 직통 통신)
+  if (
+    !rewritten.startsWith('/v1') &&
+    !rewritten.startsWith('/socket.io') &&
+    !rewritten.startsWith('/docs') &&
+    rewritten !== ''
+  ) {
+    rewritten = `/v1${rewritten.startsWith('/') ? '' : '/'}${rewritten}`;
+  }
+
   if (rewritten === pathOnly) return original;
   return `${rewritten}${query}${hash}`;
 }

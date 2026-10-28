@@ -144,19 +144,38 @@ export const AuthProvider = ({ children }) => {
       if (!token) throw new Error('토큰이 필요합니다.');
       await saveToken(token);
       setState((s) => ({ ...s, token, isOffline: false }));
-      const hasCanonicalActivityAccount = Boolean(
-        userPayload &&
-          typeof userPayload.activityAccountId === 'string' &&
-          userPayload.activityAccountId.trim(),
-      );
-      const me = hasCanonicalActivityAccount
-        ? userPayload
-        : await apiClient.getMe();
-      const normalized = normalizeAuthUser(me);
-      if (normalized) {
+
+      // 1. 이미 userPayload(id, nickname 등)가 존재하면 즉시 세션 활성화
+      let normalized = normalizeAuthUser(userPayload);
+      if (normalized && (normalized.id || normalized._id || normalized.nickname)) {
         await saveStoredUser(normalized);
+        setState((s) => ({ ...s, user: normalized, initializing: false }));
       }
-      setState((s) => ({ ...s, user: normalized, initializing: false }));
+
+      // 2. 백엔드에서 최신 프로필 갱신 시도 (실패해도 초기 유저 세션 유지)
+      try {
+        const me = await apiClient.getMe();
+        if (me) {
+          let finalBal = me.pointBalance ?? me.pointsBalance ?? me.points ?? me.balance;
+          try {
+            const balRes = await apiClient.getPointBalance();
+            if (typeof balRes?.balance === 'number') {
+              finalBal = balRes.balance;
+            }
+          } catch {}
+          normalized = normalizeAuthUser({ ...me, pointBalance: finalBal });
+          if (normalized) {
+            await saveStoredUser(normalized);
+            setState((s) => ({ ...s, user: normalized, initializing: false }));
+          }
+        }
+      } catch (meErr) {
+        console.warn('Failed to fetch getMe in authenticateWithToken, keeping initial user payload:', meErr?.message);
+        if (!normalized) {
+          throw meErr;
+        }
+      }
+
       registerPushNotifications().catch(() => {});
       return { success: true, user: normalized };
     } catch (e) {
@@ -167,9 +186,9 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const res = await apiClient.login(email, password);
-      const token = res?.access_token || res?.token;
+      const token = res?.access_token || res?.token || res?.accessToken || res?.data?.token || res?.data?.accessToken;
       if (!token) throw new Error('토큰 응답이 비어 있습니다.');
-      return await authenticateWithToken(token);
+      return await authenticateWithToken(token, res?.user || res?.data?.user);
     } catch (e) {
       return { success: false, error: e?.message || '아이디 또는 비밀번호를 확인해 주세요.' };
     }
@@ -178,9 +197,16 @@ export const AuthProvider = ({ children }) => {
   const testLogin = async () => {
     try {
       const res = await apiClient.testLogin();
-      const token = res?.access_token || res?.token;
+      const token =
+        res?.token ||
+        res?.accessToken ||
+        res?.access_token ||
+        res?.data?.token ||
+        res?.data?.accessToken ||
+        res?.data?.access_token;
       if (!token) throw new Error('테스트 로그인 토큰 발급에 실패했습니다.');
-      return await authenticateWithToken(token, res?.user);
+      const user = res?.user || res?.data?.user;
+      return await authenticateWithToken(token, user);
     } catch (e) {
       return { success: false, error: e?.message || '테스트 로그인에 실패했습니다.' };
     }
@@ -205,9 +231,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    try { await unregisterPushNotifications(); } catch {}
+    // 1. 푸시 알림 등록 해제는 비동기로 넘겨 타임아웃 지연(10초) 방지
+    unregisterPushNotifications().catch(() => {});
+    // 2. 토큰 및 캐시 유저 즉시 제거
     try { await clearToken(); } catch {}
     try { await clearStoredUser(); } catch {}
+    // 3. 인증 상태 즉시 리셋 -> 0.01초 만에 로그인 화면 전환
     setState({ user: null, token: null, initializing: false, isOffline: false });
   };
 

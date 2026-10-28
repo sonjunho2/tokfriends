@@ -384,15 +384,31 @@ export default function MyPageScreen({ navigation }) {
   }, []);
 
   // 로그아웃
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
+    const doLogout = async () => {
+      try {
+        if (logout) await logout();
+      } catch (err) {
+        console.warn('Logout error:', err);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm) {
+        const confirmed = window.confirm('정말 로그아웃 하시겠습니까?');
+        if (confirmed) await doLogout();
+      } else {
+        await doLogout();
+      }
+      return;
+    }
+
     Alert.alert('로그아웃', '정말 로그아웃 하시겠습니까?', [
       { text: '취소', style: 'cancel' },
       {
         text: '로그아웃',
         style: 'destructive',
-        onPress: async () => {
-          if (logout) await logout();
-        },
+        onPress: doLogout,
       },
     ]);
   }, [logout]);
@@ -795,24 +811,6 @@ export default function MyPageScreen({ navigation }) {
         <View style={styles.menuGroup}>
           <Text style={styles.groupHeader}>안심 보호 & 지원</Text>
           <View style={styles.menuContainer}>
-            {/* 🛡️ AI 안심 케어 센터 */}
-            <TouchableOpacity
-              style={styles.menuRow}
-              onPress={() => setSafetyModalVisible(true)}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.menuIconBox, { backgroundColor: '#EDE9FE' }]}>
-                <Ionicons name="shield-checkmark" size={18} color="#8B5CF6" />
-              </View>
-              <View style={styles.menuTextBox}>
-                <Text style={styles.menuTitle}>AI 안심 케어 센터</Text>
-                <Text style={styles.menuDesc}>24시간 AI 실시간 클린 필터링 가동 중</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-            </TouchableOpacity>
-
-            <View style={styles.menuDivider} />
-
             {/* 🚫 내가 차단한 회원 */}
             <TouchableOpacity
               style={styles.menuRow}

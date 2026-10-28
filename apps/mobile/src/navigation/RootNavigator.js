@@ -339,6 +339,16 @@ export default function RootNavigator() {
     };
   }, []);
 
+  React.useEffect(() => {
+    if (isSignedIn && !isOnboarded) {
+      setIsOnboarded(true);
+      AsyncStorage.multiSet([
+        ['@mocco_onboarded', 'true'],
+        ['@dagaon_onboarded', 'true'],
+      ]).catch(() => {});
+    }
+  }, [isSignedIn, isOnboarded]);
+
   // 초기화 중이거나 온보딩 상태 검사 중: 깔끔한 tokens.colors.background(#F8FAFC) + #FF3B6B 스피너 렌더링
   if (initializing || checkingOnboarding) {
     return (
