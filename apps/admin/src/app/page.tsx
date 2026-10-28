@@ -53,6 +53,8 @@ import {
   Scale,
   PhoneCall,
   Info,
+  Users,
+  Trophy,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -266,14 +268,154 @@ const INITIAL_LIVES: LiveRoomItem[] = [
   },
   {
     id: 'live-04',
+    rank: 4,
     title: '☕ [일반회원 자유방송] 동네 카페 투어 라이브 & 홈카페 감성 소통!',
-    category: '일상',
+    category: '일상/토크',
     hostNickname: '카페라떼러버 (모꼬 이웃)',
     hostAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
     viewerCount: 620,
     coverUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800',
     hasCommerce: false,
     isOfficialCreator: false,
+  },
+  {
+    id: 'live-05',
+    rank: 5,
+    title: '🎤 화이팅 노래 라이브 & 신청곡 어쿠스틱 감성 버스킹',
+    category: '음악/소통',
+    hostNickname: '혜니',
+    hostAvatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500',
+    viewerCount: 556,
+    coverUrl: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800',
+    hasCommerce: false,
+    isOfficialCreator: true,
+  },
+  {
+    id: 'live-06',
+    rank: 6,
+    title: '🎮 모바일 배틀그라운드 신맵 탐방 & 동네 이웃 스쿼드 대전',
+    category: '게임/e스포츠',
+    hostNickname: '게이머_준호',
+    hostAvatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=500',
+    viewerCount: 480,
+    coverUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800',
+    hasCommerce: false,
+    isOfficialCreator: true,
+  },
+  {
+    id: 'live-07',
+    rank: 7,
+    title: '🍐 나주 햇배 특등급 당도 선별 실시간 패킹 현장 직송',
+    category: '산지직송/특가',
+    hostNickname: '로컬푸드_나주',
+    hostAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
+    viewerCount: 438,
+    coverUrl: 'https://images.unsplash.com/photo-1514756331096-242fdeb7004a?w=800',
+    hasCommerce: true,
+    isOfficialCreator: false,
+    pinnedProduct: {
+      id: 'gp-001',
+      title: '나주 특등급 햇배 5kg (당도 13Brix 보장)',
+      price: 19900,
+      originalPrice: 35000,
+      image: 'https://images.unsplash.com/photo-1514756331096-242fdeb7004a?w=600',
+    },
+  },
+  {
+    id: 'live-08',
+    rank: 8,
+    title: '👗 가을 데일리룩 코디 & 동네 직거래 옷장 털기 라이브',
+    category: '패션/뷰티',
+    hostNickname: '패션_은지',
+    hostAvatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500',
+    viewerCount: 324,
+    coverUrl: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800',
+    hasCommerce: false,
+    isOfficialCreator: true,
+  },
+]
+
+interface LiveRankingItem {
+  rank: number
+  nickname: string
+  avatar: string
+  badgeText: string
+  scoreText: string
+  isLive: boolean
+  liveId?: string
+}
+
+const LIVE_RANKINGS: LiveRankingItem[] = [
+  {
+    rank: 1,
+    nickname: '별빛소통_민지',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500',
+    badgeText: '공식 크리에이터',
+    scoreText: '7,006,391 P',
+    isLive: true,
+    liveId: 'live-02',
+  },
+  {
+    rank: 2,
+    nickname: '제주푸드 본사 직영',
+    avatar: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=500',
+    badgeText: '공식 입점사',
+    scoreText: '6,568,816 P',
+    isLive: true,
+    liveId: 'live-01',
+  },
+  {
+    rank: 3,
+    nickname: '혜니',
+    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500',
+    badgeText: '음악 크리에이터',
+    scoreText: '6,403,437 P',
+    isLive: true,
+    liveId: 'live-05',
+  },
+  {
+    rank: 4,
+    nickname: '테크러버',
+    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500',
+    badgeText: '인증 이웃',
+    scoreText: '6,101,965 P',
+    isLive: false,
+  },
+  {
+    rank: 5,
+    nickname: '카페라떼러버',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+    badgeText: '모꼬 이웃',
+    scoreText: '5,869,450 P',
+    isLive: true,
+    liveId: 'live-04',
+  },
+  {
+    rank: 6,
+    nickname: '게이머_준호',
+    avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=500',
+    badgeText: '게임 스트리머',
+    scoreText: '5,030,438 P',
+    isLive: true,
+    liveId: 'live-06',
+  },
+  {
+    rank: 7,
+    nickname: '로컬푸드_나주',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
+    badgeText: '공식 입점사',
+    scoreText: '4,520,098 P',
+    isLive: true,
+    liveId: 'live-07',
+  },
+  {
+    rank: 8,
+    nickname: '패션_은지',
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500',
+    badgeText: '패션 크리에이터',
+    scoreText: '4,049,562 P',
+    isLive: true,
+    liveId: 'live-08',
   },
 ]
 
@@ -1364,116 +1506,210 @@ export default function CustomerWebStorefrontPage() {
                 </div>
               </div>
 
-              {/* 2) 🔥 실시간 LIVE Top 3 (모바일 앱의 화려한 왕관 엠블럼 연계) */}
+              {/* 2) 🔴 인기 라이브 & 🏆 랭킹 (2열 분할 레이아웃) */}
               <section className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Flame className="h-5 w-5 text-rose-500" />
-                    <h3 className="font-extrabold text-lg text-slate-900">
-                      실시간 HOT 모꼬 LIVE Top 3
-                    </h3>
-                    <Badge variant="outline" className="text-[10px] text-rose-600 border-rose-200 bg-rose-50 font-bold">
-                      실시간 온에어
-                    </Badge>
-                  </div>
-                  <Button
-                    onClick={() => setActiveTab('LIVE')}
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-slate-600 hover:text-slate-900 font-semibold"
-                  >
-                    LIVE 전체보기
-                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {lives.slice(0, 3).map((live, idx) => {
-                    const rankNum = idx + 1
-                    const isGold = rankNum === 1
-                    const isSilver = rankNum === 2
-
-                    return (
-                      <Card
-                        key={live.id}
-                        onClick={() => setActiveLiveModal(live)}
-                        className={`group relative overflow-hidden rounded-3xl cursor-pointer border hover:shadow-lg transition-all ${
-                          isGold ? 'border-amber-300 ring-2 ring-amber-400/20' : isSilver ? 'border-slate-300' : 'border-orange-200'
-                        }`}
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                  {/* Left (3 cols): 인기 라이브 그리드 */}
+                  <div className="lg:col-span-3 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Radio className="h-5 w-5 text-[#FF3B6B] animate-pulse" />
+                        <h3 className="font-extrabold text-xl text-slate-900 tracking-tight">
+                          인기 라이브
+                        </h3>
+                        <Badge className="bg-rose-50 text-[#FF3B6B] border border-rose-200 text-[10px] font-bold">
+                          실시간 온에어
+                        </Badge>
+                      </div>
+                      <Button
+                        onClick={() => setActiveTab('LIVE')}
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-slate-600 hover:text-slate-900 font-semibold"
                       >
-                        <div className="relative aspect-video w-full bg-slate-900 overflow-hidden">
-                          <img
-                            src={live.coverUrl}
-                            alt={live.title}
-                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                        LIVE 전체보기
+                        <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                      </Button>
+                    </div>
 
-                          {/* Top Rank Crown Emblem */}
-                          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full shadow-md font-black text-xs text-white backdrop-blur-xs border bg-slate-950/80">
-                            <Crown
-                              className={`h-3.5 w-3.5 ${
-                                isGold ? 'text-amber-400' : isSilver ? 'text-slate-300' : 'text-orange-400'
-                              }`}
+                    {/* 8-Card Live Grid (2 rows x 4 cols) */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                      {lives.slice(0, 8).map((live) => (
+                        <div
+                          key={live.id}
+                          onClick={() => setActiveLiveModal(live)}
+                          className="group relative flex flex-col overflow-hidden rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-rose-200 transition-all cursor-pointer"
+                        >
+                          {/* Live Cover Photo */}
+                          <div className="relative aspect-square w-full bg-slate-950 overflow-hidden">
+                            <img
+                              src={live.coverUrl}
+                              alt={live.title}
+                              className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
-                            <span className={isGold ? 'text-amber-300' : isSilver ? 'text-slate-200' : 'text-orange-300'}>
-                              No.{rankNum}
-                            </span>
-                            <span className="text-[9px] text-amber-400">★★★</span>
-                          </div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
 
-                          {/* Live Viewer Badge */}
-                          <div className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-600/90 text-white text-[10px] font-bold">
-                            <span className="h-1.5 w-1.5 rounded-full bg-white animate-ping" />
-                            LIVE · {live.viewerCount.toLocaleString()}명
-                          </div>
-
-                          {/* Pinned Product Preview */}
-                          {live.pinnedProduct && (
-                            <div className="absolute bottom-2 left-2 right-2 flex items-center gap-2 rounded-xl bg-white/95 p-1.5 text-slate-900 shadow-md backdrop-blur-xs">
-                              <img
-                                src={live.pinnedProduct.image}
-                                alt="pin"
-                                className="h-8 w-8 rounded-lg object-cover"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <span className="block text-[10px] text-rose-600 font-bold">
-                                  방송 단독 핀 특가
-                                </span>
-                                <p className="text-[11px] font-bold truncate">
-                                  {live.pinnedProduct.title}
-                                </p>
-                              </div>
-                              <span className="text-xs font-black text-slate-900 pr-1">
-                                {live.pinnedProduct.price.toLocaleString()}원
-                              </span>
+                            {/* Live Viewer Badge */}
+                            <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-white text-[10px] font-semibold">
+                              <span className="h-1.5 w-1.5 rounded-full bg-[#FF3B6B] animate-ping" />
+                              <Users className="h-3 w-3 text-slate-300" />
+                              <span>{live.viewerCount.toLocaleString()}</span>
                             </div>
-                          )}
-                        </div>
 
-                        <CardContent className="p-4 space-y-2">
-                          <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-rose-600 transition-colors">
-                            {live.title}
-                          </h4>
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            {/* Official Creator Badge */}
+                            {live.isOfficialCreator && (
+                              <Badge className="absolute top-2 left-2 bg-[#8B5CF6] text-white text-[9px] font-bold border-none px-1.5 py-0">
+                                🎙️ 크리에이터
+                              </Badge>
+                            )}
+
+                            {/* Pinned Product Mini Badge if any */}
+                            {live.pinnedProduct && (
+                              <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5 rounded-xl bg-white/95 p-1 text-slate-900 backdrop-blur-xs shadow-xs">
+                                <img
+                                  src={live.pinnedProduct.image}
+                                  alt="pin"
+                                  className="h-5 w-5 rounded-md object-cover shrink-0"
+                                />
+                                <span className="text-[10px] font-bold text-[#FF3B6B] truncate">
+                                  {live.pinnedProduct.price.toLocaleString()}원
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Live Info Underneath */}
+                          <div className="p-2.5 space-y-1">
                             <div className="flex items-center gap-1.5">
                               <img
                                 src={live.hostAvatar}
                                 alt="avatar"
-                                className="h-5 w-5 rounded-full object-cover"
+                                className="h-4 w-4 rounded-full object-cover shrink-0 border border-slate-200"
                               />
-                              <span className="font-semibold text-slate-700 truncate max-w-[120px]">
+                              <span className="text-[11px] font-bold text-slate-700 truncate">
                                 {live.hostNickname}
                               </span>
                             </div>
-                            <span className="text-[11px] font-medium bg-slate-100 px-1.5 py-0.5 rounded">
-                              {live.category}
-                            </span>
+                            <h4 className="font-bold text-xs text-slate-900 line-clamp-1 group-hover:text-[#FF3B6B] transition-colors leading-tight">
+                              {live.title}
+                            </h4>
                           </div>
-                        </CardContent>
-                      </Card>
-                    )
-                  })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Right (1 col): 랭킹 (단일 순위 목록, beans/views 나누지 않음) */}
+                  <div className="lg:col-span-1 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Trophy className="h-5 w-5 text-amber-500" />
+                        <h3 className="font-extrabold text-xl text-slate-900 tracking-tight">
+                          랭킹
+                        </h3>
+                      </div>
+                      <span className="text-[11px] text-muted-foreground font-semibold">
+                        실시간 Top 8
+                      </span>
+                    </div>
+
+                    <div className="bg-white rounded-3xl border border-slate-200/80 p-3 shadow-xs space-y-1 divide-y divide-slate-100">
+                      {LIVE_RANKINGS.map((item) => {
+                        const isGold = item.rank === 1
+                        const isSilver = item.rank === 2
+                        const isBronze = item.rank === 3
+
+                        return (
+                          <div
+                            key={item.rank}
+                            onClick={() => {
+                              if (item.liveId) {
+                                const target = lives.find((l) => l.id === item.liveId)
+                                if (target) setActiveLiveModal(target)
+                              } else {
+                                setActiveTab('LIVE')
+                              }
+                            }}
+                            className="flex items-center justify-between py-2.5 px-2 hover:bg-slate-50 rounded-2xl transition-colors cursor-pointer group"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {/* Rank Medal / Number */}
+                              <div className="w-5 flex items-center justify-center shrink-0">
+                                {isGold ? (
+                                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-100 text-amber-600 font-black text-xs shadow-xs">
+                                    <Crown className="h-3 w-3 fill-amber-400 text-amber-500" />
+                                  </div>
+                                ) : isSilver ? (
+                                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-slate-700 font-black text-[11px]">
+                                    2
+                                  </div>
+                                ) : isBronze ? (
+                                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-700/10 text-amber-800 font-black text-[11px]">
+                                    3
+                                  </div>
+                                ) : (
+                                  <span className="text-xs font-bold text-slate-400">
+                                    {item.rank}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Avatar with Online/Live Indicator */}
+                              <div className="relative shrink-0">
+                                <img
+                                  src={item.avatar}
+                                  alt={item.nickname}
+                                  className={`h-9 w-9 rounded-full object-cover border-2 ${
+                                    isGold
+                                      ? 'border-amber-400'
+                                      : isSilver
+                                      ? 'border-slate-300'
+                                      : isBronze
+                                      ? 'border-amber-600/40'
+                                      : 'border-slate-200'
+                                  }`}
+                                />
+                                {item.isLive && (
+                                  <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-[#FF3B6B] border border-white" />
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Nickname & Badge */}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs font-bold text-slate-900 truncate group-hover:text-[#FF3B6B] transition-colors">
+                                    {item.nickname}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-muted-foreground block truncate">
+                                  {item.badgeText}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Score / ON Points */}
+                            <div className="text-right shrink-0 pl-2">
+                              <span className="text-xs font-extrabold text-slate-900 group-hover:text-[#FF3B6B] transition-colors block">
+                                {item.scoreText}
+                              </span>
+                              {item.isLive ? (
+                                <span className="text-[9px] font-bold text-[#FF3B6B] bg-rose-50 px-1.5 py-0.2 rounded">
+                                  ON AIR
+                                </span>
+                              ) : (
+                                <span className="text-[9px] text-slate-400">
+                                  오프라인
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
               </section>
 
