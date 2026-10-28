@@ -4,22 +4,18 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import {
-  ShoppingBag,
+  Home,
   Store,
-  Users2,
-  Tag,
-  Search,
-  Download,
-  QrCode,
-  ShieldCheck,
-  Truck,
+  ShoppingBag,
+  Radio,
+  MessageCircle,
+  User,
   Heart,
   Share2,
   ExternalLink,
   CheckCircle2,
   X,
   CreditCard,
-  Radio,
   Sparkles,
   ArrowRight,
   Package,
@@ -30,7 +26,6 @@ import {
   MapPin,
   Flame,
   Percent,
-  MessageCircle,
   Video,
   Send,
   PlusCircle,
@@ -44,6 +39,16 @@ import {
   Check,
   Volume2,
   VolumeX,
+  ShieldCheck,
+  Truck,
+  Search,
+  Download,
+  QrCode,
+  ThumbsUp,
+  Coins,
+  Wallet,
+  Award,
+  Filter,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -67,6 +72,7 @@ export interface LiveRoomItem {
   coverUrl: string
   hasCommerce: boolean
   isOfficialCreator?: boolean
+  rank?: number
   pinnedProduct?: {
     id: string
     title: string
@@ -88,6 +94,7 @@ export interface ChatMessageItem {
 
 export interface ChatRoomItem {
   id: string
+  type: 'SUDA' | 'MARKET'
   targetNickname: string
   targetAvatar: string
   lastMessage: string
@@ -139,15 +146,68 @@ export interface MarketProductItem {
   affiliateCommissionRate?: number
 }
 
+export interface SudaPostItem {
+  id: string
+  nickname: string
+  avatar: string
+  region: string
+  content: string
+  time: string
+  likes: number
+  comments: number
+  isLiked?: boolean
+}
+
+export interface NeighborFriendItem {
+  id: string
+  nickname: string
+  avatar: string
+  region: string
+  distance: string
+  mannerTemp: number
+  statusMessage: string
+  isOnline: boolean
+  gender: '여성' | '남성'
+  age: number
+}
+
 // ==========================================
 // 2. Initial Sample Data (모꼬 리브랜딩)
 // ==========================================
 
+const INITIAL_HERO_BANNERS = [
+  {
+    id: 'hero-1',
+    badge: '산지직송 핫딜',
+    title: '제주 청정 흑돼지 1등급 오겹살 & 목살 산지직송 라이브 특가',
+    desc: '당일 도축 후 신선 보랭 포장 발송! 모꼬 LIVE 단독 35% 파격 할인',
+    image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=1200',
+    linkTab: 'LIVE' as const,
+  },
+  {
+    id: 'hero-2',
+    badge: '특가 공동구매',
+    title: '당도 13Brix 보장 나주 특등급 햇배 5kg 공동구매 오픈!',
+    desc: '목표 수량 20박스 달성 시 43% 할인 혜택! 모꼬 이웃 전원 무료배송',
+    image: 'https://images.unsplash.com/photo-1514756331096-242fdeb7004a?w=1200',
+    linkTab: 'MARKET' as const,
+  },
+  {
+    id: 'hero-3',
+    badge: '웰컴 이벤트',
+    title: '모꼬 신규 가입 시 웰컴 10,000 ON 포인트 즉시 지급!',
+    desc: '라이브 방송 후원, 1:1 대화 입장, 마켓 안전결제 시 현금처럼 사용 가능',
+    image: 'https://images.unsplash.com/photo-1556742049-0a67e557224f?w=1200',
+    linkTab: 'MY' as const,
+  },
+]
+
 const INITIAL_LIVES: LiveRoomItem[] = [
   {
     id: 'live-01',
+    rank: 1,
     title: '🔴 [본사특가] 당일 도축 제주 흑돼지 1등급 오겹살 & 목살 실시간 구이 먹방 라이브!',
-    category: '푸드/라이브커머스',
+    category: '쇼핑/커머스',
     hostNickname: '제주푸드 본사 직영',
     hostAvatar: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=500',
     viewerCount: 2480,
@@ -164,8 +224,9 @@ const INITIAL_LIVES: LiveRoomItem[] = [
   },
   {
     id: 'live-02',
+    rank: 2,
     title: '✨ [이웃소통] 오늘 밤 판교 직장인의 힐링 토크 & 인생 음향기기 솔직 리뷰',
-    category: '소통/토크/IT',
+    category: '토크/소통',
     hostNickname: '별빛소통_민지 (크리에이터)',
     hostAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500',
     viewerCount: 1350,
@@ -182,8 +243,9 @@ const INITIAL_LIVES: LiveRoomItem[] = [
   },
   {
     id: 'live-03',
+    rank: 3,
     title: '🍊 제주 유기농 감귤 순수 착즙 원액주스 1000ml 현장 맛보기 방송!',
-    category: '건강/신선식품',
+    category: '쇼핑/커머스',
     hostNickname: '제주푸드 공식몰',
     hostAvatar: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?w=500',
     viewerCount: 890,
@@ -201,7 +263,7 @@ const INITIAL_LIVES: LiveRoomItem[] = [
   {
     id: 'live-04',
     title: '☕ [일반회원 자유방송] 동네 카페 투어 라이브 & 홈카페 감성 소통!',
-    category: '일상/취미',
+    category: '일상',
     hostNickname: '카페라떼러버 (모꼬 이웃)',
     hostAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
     viewerCount: 620,
@@ -409,9 +471,104 @@ const INITIAL_MARKET_PRODUCTS: MarketProductItem[] = [
   },
 ]
 
+const INITIAL_SUDA_POSTS: SudaPostItem[] = [
+  {
+    id: 'suda-1',
+    nickname: '민지 (모꼬이웃)',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+    region: '역삼1동',
+    content: '오늘 역삼역 앞 벚꽃 산책로 날씨 진짜 화창하네요! 다들 점심 맛있게 드셨나요? ☀️',
+    time: '5분 전',
+    likes: 12,
+    comments: 4,
+  },
+  {
+    id: 'suda-2',
+    nickname: '준호',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
+    region: '판교 백현동',
+    content: '퇴근 후 저녁 8시에 탄천 러닝 같이 뛰실 이웃 크루 구해요! 🏃‍♂️ 편하게 댓글 주세요.',
+    time: '18분 전',
+    likes: 8,
+    comments: 6,
+  },
+  {
+    id: 'suda-3',
+    nickname: '지은',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
+    region: '서초동',
+    content: '모꼬 LIVE 제주 흑돼지 방송 보고 주문했는데 당일 발송 바로 떠서 너무 신나요 🥩',
+    time: '34분 전',
+    likes: 15,
+    comments: 2,
+  },
+  {
+    id: 'suda-4',
+    nickname: '도윤',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300',
+    region: '삼성동',
+    content: '동네 조용하고 콘센트 많은 카공 카페 아시는 분 추천 부탁드립니다 ☕',
+    time: '1시간 전',
+    likes: 9,
+    comments: 5,
+  },
+]
+
+const INITIAL_FRIENDS: NeighborFriendItem[] = [
+  {
+    id: 'friend-1',
+    nickname: '민지 (모꼬지)',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+    region: '서울 강남구 역삼동',
+    distance: '0.4km',
+    mannerTemp: 39.2,
+    statusMessage: '오늘 날씨 너무 좋아요 ☀️ 실시간 소통 환영해요!',
+    isOnline: true,
+    gender: '여성',
+    age: 26,
+  },
+  {
+    id: 'friend-2',
+    nickname: '준호',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
+    region: '경기 성남시 판교',
+    distance: '1.2km',
+    mannerTemp: 38.5,
+    statusMessage: 'IT 개발 & 음악 이야기 나누실 분 환영해요 🎧',
+    isOnline: true,
+    gender: '남성',
+    age: 29,
+  },
+  {
+    id: 'friend-3',
+    nickname: '지은',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
+    region: '서울 서초구',
+    distance: '1.8km',
+    mannerTemp: 37.8,
+    statusMessage: '카페 투어 & 전시회 감상 좋아합니다 ☕',
+    isOnline: true,
+    gender: '여성',
+    age: 25,
+  },
+  {
+    id: 'friend-4',
+    nickname: '도윤',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300',
+    region: '서울 송파구 잠실',
+    distance: '3.1km',
+    mannerTemp: 36.5,
+    statusMessage: '주말 한강 자전거 라이딩 메이트 찾습니다 🚴',
+    isOnline: false,
+    gender: '남성',
+    age: 32,
+  },
+]
+
 const INITIAL_CHAT_ROOMS: ChatRoomItem[] = [
   {
     id: 'chat-01',
+    type: 'MARKET',
     targetNickname: '테크러버 (아이폰 판매자)',
     targetAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500',
     lastMessage: '네! 역삼역 3번출구에서 오늘 저녁 7시 직거래 가능합니다.',
@@ -450,6 +607,7 @@ const INITIAL_CHAT_ROOMS: ChatRoomItem[] = [
   },
   {
     id: 'chat-02',
+    type: 'MARKET',
     targetNickname: '제주푸드 본사 직영',
     targetAvatar: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=500',
     lastMessage: '고객님 주문하신 흑돼지 신선 냉장 상품 오늘 정상 출고되었습니다!',
@@ -465,9 +623,28 @@ const INITIAL_CHAT_ROOMS: ChatRoomItem[] = [
       },
     ],
   },
+  {
+    id: 'chat-03',
+    type: 'SUDA',
+    targetNickname: '민지 (모꼬이웃)',
+    targetAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+    lastMessage: '안녕하세요! 역삼동 근처 사시나봐요 반가워요 😊',
+    lastTime: '어제',
+    unreadCount: 0,
+    messages: [
+      {
+        id: 'msg-5',
+        senderId: 'target',
+        senderNickname: '민지',
+        text: '안녕하세요! 역삼동 근처 사시나봐요 반가워요 😊',
+        time: '어제 오후 5:10',
+      },
+    ],
+  },
 ]
 
-type ActiveTab = 'LIVE' | 'CHAT' | 'USED' | 'MARKET'
+// 5 Mobile App Equivalent Tabs
+type ActiveTab = 'HOME' | 'MARKET' | 'LIVE' | 'CHAT' | 'MY'
 
 export default function CustomerWebStorefrontPage() {
   const { toast } = useToast()
@@ -493,18 +670,30 @@ export default function CustomerWebStorefrontPage() {
     requireAuth,
   } = useWebAuth()
 
-  // 1. Navigation Active Tab
-  const [activeTab, setActiveTab] = useState<ActiveTab>('LIVE')
+  // 1. Navigation Active Tab (모바일 앱 5대 구조와 100% 동일)
+  const [activeTab, setActiveTab] = useState<ActiveTab>('HOME')
 
-  // 2. Data States
+  // 2. Sub-tab Filters
+  const [marketSubTab, setMarketSubTab] = useState<'C2C_USED' | 'B2C_NORMAL' | 'B2C_GROUP'>('C2C_USED')
+  const [chatSubTab, setChatSubTab] = useState<'FRIENDS' | 'SUDA' | 'CHATS'>('FRIENDS')
+  const [chatBoxFilter, setChatBoxFilter] = useState<'ALL' | 'SUDA' | 'MARKET'>('ALL')
+  const [liveCategoryFilter, setLiveCategoryFilter] = useState<string>('전체')
+  const [marketCategoryFilter, setMarketCategoryFilter] = useState<string>('전체')
+  const [friendRegionFilter, setFriendRegionFilter] = useState<string>('전체')
+
+  // 3. Data States
   const [lives, setLives] = useState<LiveRoomItem[]>(INITIAL_LIVES)
   const [usedProducts, setUsedProducts] = useState<UsedProductItem[]>(INITIAL_USED_PRODUCTS)
   const [marketProducts, setMarketProducts] = useState<MarketProductItem[]>(INITIAL_MARKET_PRODUCTS)
+  const [sudaPosts, setSudaPosts] = useState<SudaPostItem[]>(INITIAL_SUDA_POSTS)
+  const [friends, setFriends] = useState<NeighborFriendItem[]>(INITIAL_FRIENDS)
   const [chatRooms, setChatRooms] = useState<ChatRoomItem[]>(INITIAL_CHAT_ROOMS)
   const [activeChatRoom, setActiveChatRoom] = useState<ChatRoomItem | null>(INITIAL_CHAT_ROOMS[0])
   const [chatInputText, setChatInputText] = useState('')
+  const [sudaInputText, setSudaInputText] = useState('')
+  const [heroIndex, setHeroIndex] = useState(0)
 
-  // 3. Modals
+  // 4. Modals
   // Live Viewer Modal
   const [activeLiveModal, setActiveLiveModal] = useState<LiveRoomItem | null>(null)
   const [liveChatInput, setLiveChatInput] = useState('')
@@ -517,7 +706,7 @@ export default function CustomerWebStorefrontPage() {
   // New Live Creation Modal (일반 회원 누구나 방송 가능, 크리에이터는 상품 핀 연결 가능)
   const [isStartLiveModalOpen, setIsStartLiveModalOpen] = useState(false)
   const [newLiveTitle, setNewLiveTitle] = useState('')
-  const [newLiveCategory, setNewLiveCategory] = useState('소통/일상')
+  const [newLiveCategory, setNewLiveCategory] = useState('토크/소통')
 
   // Used Product Register Modal
   const [isNewUsedModalOpen, setIsNewUsedModalOpen] = useState(false)
@@ -576,8 +765,27 @@ export default function CustomerWebStorefrontPage() {
     activeTime: '매일 저녁 8시',
   })
 
-  // Filter States
-  const [marketSubTab, setMarketSubTab] = useState<'ALL' | 'HQ' | 'MERCHANT' | 'GROUP'>('ALL')
+  // My Page Selling Management State
+  const [mySalesList, setMySalesList] = useState([
+    {
+      id: 'my-1',
+      title: '소니 WH-1000XM5 노이즈캔슬링 헤드폰 실버 풀박스',
+      price: 320000,
+      status: 'ACTIVE' as const,
+      statusLabel: '판매중',
+      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400',
+    },
+    {
+      id: 'my-2',
+      title: 'M2 맥북 에어 15인치 16GB 512GB 스페이스그레이',
+      price: 1480000,
+      status: 'RESERVED' as const,
+      statusLabel: '예약중',
+      image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400',
+    },
+  ])
+
+  // Search query
   const [searchQuery, setSearchQuery] = useState('')
 
   // Auto scroll chat
@@ -587,6 +795,14 @@ export default function CustomerWebStorefrontPage() {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
     }
   }, [activeChatRoom?.messages])
+
+  // Hero auto-slide
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHeroIndex((prev) => (prev + 1) % INITIAL_HERO_BANNERS.length)
+    }, 4500)
+    return () => clearInterval(timer)
+  }, [])
 
   // ==========================================
   // Handlers
@@ -657,6 +873,48 @@ export default function CustomerWebStorefrontPage() {
     })
   }
 
+  // Post Suda (한 줄 수다)
+  const handlePostSuda = () => {
+    requireAuth(() => {
+      if (!sudaInputText.trim()) return
+      const newSuda: SudaPostItem = {
+        id: 'suda-' + Date.now(),
+        nickname: user?.nickname || '모꼬이웃',
+        avatar: user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+        region: '역삼1동',
+        content: sudaInputText.trim(),
+        time: '방금 전',
+        likes: 0,
+        comments: 0,
+      }
+      setSudaPosts([newSuda, ...sudaPosts])
+      setSudaInputText('')
+      toast({
+        title: '💬 동네 1줄 수다 등록 완료',
+        description: '동네 타임라인에 한 줄 이야기가 등록되었습니다.',
+      })
+    })
+  }
+
+  // Like Suda Post
+  const handleLikeSuda = (postId: string) => {
+    requireAuth(() => {
+      setSudaPosts((prev) =>
+        prev.map((p) => {
+          if (p.id === postId) {
+            const nextLiked = !p.isLiked
+            return {
+              ...p,
+              isLiked: nextLiked,
+              likes: nextLiked ? p.likes + 1 : p.likes - 1,
+            }
+          }
+          return p
+        })
+      )
+    })
+  }
+
   // Register New Used Product
   const handleRegisterUsedProduct = () => {
     if (!newUsedTitle.trim() || !newUsedPrice) {
@@ -715,6 +973,44 @@ export default function CustomerWebStorefrontPage() {
     setChatInputText('')
   }
 
+  // Start chat with neighbor
+  const handleStartNeighborChat = (friend: NeighborFriendItem) => {
+    requireAuth(() => {
+      // Find or create chat room
+      const existing = chatRooms.find((r) => r.targetNickname.includes(friend.nickname))
+      if (existing) {
+        setActiveChatRoom(existing)
+      } else {
+        const newRoom: ChatRoomItem = {
+          id: 'chat-n-' + Date.now(),
+          type: 'SUDA',
+          targetNickname: friend.nickname,
+          targetAvatar: friend.avatar,
+          lastMessage: '대화가 시작되었습니다.',
+          lastTime: '방금',
+          unreadCount: 0,
+          messages: [
+            {
+              id: 'init-1',
+              senderId: 'target',
+              senderNickname: friend.nickname,
+              text: `안녕하세요! ${friend.region}에 사는 ${friend.nickname}입니다. 반가워요! ✨`,
+              time: '방금',
+            },
+          ],
+        }
+        setChatRooms([newRoom, ...chatRooms])
+        setActiveChatRoom(newRoom)
+      }
+      setActiveTab('CHAT')
+      setChatSubTab('CHATS')
+      toast({
+        title: '💬 대화방 연결',
+        description: `${friend.nickname} 님과의 1:1 대화방으로 이동했습니다.`,
+      })
+    })
+  }
+
   // Checkout Execution
   const handleExecutePayment = () => {
     setIsProcessingPay(true)
@@ -729,7 +1025,7 @@ export default function CustomerWebStorefrontPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between pb-20 md:pb-6">
       <div>
         {/* ========================================================= */}
         {/* 1. Global Navigation Bar (GNB) Header                     */}
@@ -738,7 +1034,10 @@ export default function CustomerWebStorefrontPage() {
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
             {/* Logo & Brand Name: MOCCO (모꼬) */}
             <div className="flex items-center gap-6">
-              <Link href="/" className="flex items-center gap-2.5 group">
+              <button
+                onClick={() => setActiveTab('HOME')}
+                className="flex items-center gap-2.5 group text-left"
+              >
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-500 text-white font-black text-xl shadow-md group-hover:scale-105 transition-transform">
                   M
                 </div>
@@ -755,63 +1054,80 @@ export default function CustomerWebStorefrontPage() {
                     실시간 라이브 · 채팅 · 동네 중고거래 · 마켓
                   </p>
                 </div>
-              </Link>
+              </button>
 
-              {/* 4 Core Service Tabs */}
+              {/* 5 Core App Tabs Navigation (Desktop) */}
               <nav className="hidden md:flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+                {/* 1. 모꼬홈 */}
                 <button
-                  onClick={() => setActiveTab('LIVE')}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    activeTab === 'LIVE'
-                      ? 'bg-white text-rose-600 shadow-xs'
+                  onClick={() => setActiveTab('HOME')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    activeTab === 'HOME'
+                      ? 'bg-white text-slate-900 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <Radio className="h-4 w-4 animate-pulse text-rose-500" />
-                  <span>라이브</span>
-                  <span className="flex h-2 w-2 rounded-full bg-rose-500" />
+                  <Home className={`h-4 w-4 ${activeTab === 'HOME' ? 'text-pink-600' : 'text-slate-500'}`} />
+                  <span>모꼬홈</span>
                 </button>
 
-                <button
-                  onClick={() => setActiveTab('CHAT')}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    activeTab === 'CHAT'
-                      ? 'bg-white text-blue-600 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <MessageCircle className="h-4 w-4 text-blue-500" />
-                  <span>채팅(1:1톡)</span>
-                  {isAuthenticated && <span className="rounded-full bg-blue-500 px-1 text-[10px] text-white">1</span>}
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('USED')}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    activeTab === 'USED'
-                      ? 'bg-white text-orange-600 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Store className="h-4 w-4 text-orange-500" />
-                  <span>동네 중고거래</span>
-                </button>
-
+                {/* 2. 모꼬마켓 */}
                 <button
                   onClick={() => setActiveTab('MARKET')}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                     activeTab === 'MARKET'
-                      ? 'bg-white text-emerald-600 shadow-xs'
+                      ? 'bg-white text-emerald-700 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <ShoppingBag className="h-4 w-4 text-emerald-500" />
-                  <span>마켓&공구</span>
+                  <Store className={`h-4 w-4 ${activeTab === 'MARKET' ? 'text-emerald-600' : 'text-slate-500'}`} />
+                  <span>모꼬마켓</span>
+                </button>
+
+                {/* 3. 모꼬 LIVE (Central Signature Protruding Pill) */}
+                <button
+                  onClick={() => setActiveTab('LIVE')}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
+                    activeTab === 'LIVE'
+                      ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md'
+                      : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                  }`}
+                >
+                  <Radio className={`h-4 w-4 animate-pulse ${activeTab === 'LIVE' ? 'text-white' : 'text-rose-600'}`} />
+                  <span>모꼬 LIVE</span>
+                  <span className={`flex h-2 w-2 rounded-full ${activeTab === 'LIVE' ? 'bg-white animate-ping' : 'bg-rose-500'}`} />
+                </button>
+
+                {/* 4. 모꼬쳇 */}
+                <button
+                  onClick={() => setActiveTab('CHAT')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    activeTab === 'CHAT'
+                      ? 'bg-white text-blue-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <MessageCircle className={`h-4 w-4 ${activeTab === 'CHAT' ? 'text-blue-600' : 'text-slate-500'}`} />
+                  <span>모꼬쳇</span>
+                  {isAuthenticated && <span className="rounded-full bg-blue-500 px-1 text-[9px] text-white">1</span>}
+                </button>
+
+                {/* 5. 마이모꼬 */}
+                <button
+                  onClick={() => setActiveTab('MY')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    activeTab === 'MY'
+                      ? 'bg-white text-purple-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <User className={`h-4 w-4 ${activeTab === 'MY' ? 'text-purple-600' : 'text-slate-500'}`} />
+                  <span>마이모꼬</span>
                 </button>
               </nav>
             </div>
 
-            {/* Right Area: Clean User Status & Admin Shortcuts (NO INLINE SWITCHER) */}
+            {/* Right Area: Clean User Status & Admin Shortcuts */}
             <div className="flex items-center gap-2 sm:gap-3">
               {!isAuthenticated ? (
                 /* Guest State */
@@ -847,9 +1163,9 @@ export default function CustomerWebStorefrontPage() {
 
                   {/* Promotion Buttons for Normal User */}
                   {role === 'USER' && (
-                    <div className="flex items-center gap-1.5">
+                    <div className="hidden lg:flex items-center gap-1.5">
                       <Button
-                        onClick={openMerchantModal}
+                        onClick={() => openMerchantModal()}
                         variant="outline"
                         size="sm"
                         className="border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-semibold h-8"
@@ -858,7 +1174,7 @@ export default function CustomerWebStorefrontPage() {
                         🏪 입점 신청
                       </Button>
                       <Button
-                        onClick={openCreatorModal}
+                        onClick={() => openCreatorModal()}
                         variant="outline"
                         size="sm"
                         className="border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-semibold h-8"
@@ -916,42 +1232,47 @@ export default function CustomerWebStorefrontPage() {
 
                   {/* User Profile Info & Logout */}
                   <div className="flex items-center gap-2 pl-2 border-l">
-                    <div className="h-8 w-8 rounded-full overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center">
-                      {user?.avatarUrl ? (
-                        <img src={user.avatarUrl} alt="avatar" className="h-full w-full object-cover" />
-                      ) : (
-                        <span className="text-xs font-bold text-slate-600">
-                          {user?.nickname?.slice(0, 1) || 'U'}
-                        </span>
-                      )}
-                    </div>
-                    <div className="hidden lg:block text-left">
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs font-bold leading-tight truncate max-w-[100px]">
-                          {user?.nickname}
-                        </span>
-                        <Badge
-                          variant="secondary"
-                          className={`text-[9px] px-1 py-0 ${
-                            role === 'ADMIN'
-                              ? 'bg-amber-100 text-amber-800'
-                              : role === 'MERCHANT'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : role === 'CREATOR'
-                              ? 'bg-purple-100 text-purple-800'
-                              : 'bg-slate-100 text-slate-700'
-                          }`}
-                        >
-                          {role === 'ADMIN'
-                            ? '운영진'
-                            : role === 'MERCHANT'
-                            ? '입점사'
-                            : role === 'CREATOR'
-                            ? '크리에이터'
-                            : '일반회원'}
-                        </Badge>
+                    <button
+                      onClick={() => setActiveTab('MY')}
+                      className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                    >
+                      <div className="h-8 w-8 rounded-full overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center">
+                        {user?.avatarUrl ? (
+                          <img src={user.avatarUrl} alt="avatar" className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="text-xs font-bold text-slate-600">
+                            {user?.nickname?.slice(0, 1) || 'U'}
+                          </span>
+                        )}
                       </div>
-                    </div>
+                      <div className="hidden lg:block text-left">
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-bold leading-tight truncate max-w-[100px]">
+                            {user?.nickname}
+                          </span>
+                          <Badge
+                            variant="secondary"
+                            className={`text-[9px] px-1 py-0 ${
+                              role === 'ADMIN'
+                                ? 'bg-amber-100 text-amber-800'
+                                : role === 'MERCHANT'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : role === 'CREATOR'
+                                ? 'bg-purple-100 text-purple-800'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {role === 'ADMIN'
+                              ? '운영진'
+                              : role === 'MERCHANT'
+                              ? '입점사'
+                              : role === 'CREATOR'
+                              ? '크리에이터'
+                              : '일반회원'}
+                          </Badge>
+                        </div>
+                      </div>
+                    </button>
 
                     <Button
                       onClick={logout}
@@ -967,51 +1288,726 @@ export default function CustomerWebStorefrontPage() {
               )}
             </div>
           </div>
-
-          {/* Mobile Sub Navigation Bar */}
-          <div className="flex md:hidden border-t px-2 py-1.5 bg-slate-50/80 justify-around text-xs font-semibold">
-            <button
-              onClick={() => setActiveTab('LIVE')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-md ${activeTab === 'LIVE' ? 'text-rose-600 bg-white font-bold shadow-2xs' : 'text-slate-600'}`}
-            >
-              <Radio className="h-3.5 w-3.5 text-rose-500" />
-              라이브
-            </button>
-            <button
-              onClick={() => setActiveTab('CHAT')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-md ${activeTab === 'CHAT' ? 'text-blue-600 bg-white font-bold shadow-2xs' : 'text-slate-600'}`}
-            >
-              <MessageCircle className="h-3.5 w-3.5 text-blue-500" />
-              채팅
-            </button>
-            <button
-              onClick={() => setActiveTab('USED')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-md ${activeTab === 'USED' ? 'text-orange-600 bg-white font-bold shadow-2xs' : 'text-slate-600'}`}
-            >
-              <Store className="h-3.5 w-3.5 text-orange-500" />
-              중고거래
-            </button>
-            <button
-              onClick={() => setActiveTab('MARKET')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-md ${activeTab === 'MARKET' ? 'text-emerald-600 bg-white font-bold shadow-2xs' : 'text-slate-600'}`}
-            >
-              <ShoppingBag className="h-3.5 w-3.5 text-emerald-500" />
-              마켓·공구
-            </button>
-          </div>
         </header>
 
         {/* ========================================================= */}
-        {/* 2. Main Content Area According to Active Tab              */}
+        {/* 2. Main Content Area (5 Mobile-Parity Tabs)               */}
         {/* ========================================================= */}
         <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-          {/* --------------------------------------------------------- */}
-          {/* TAB 1: 🔴 라이브 방송 (MOCCO LIVE)                         */}
-          {/* --------------------------------------------------------- */}
+          {/* ======================================================= */}
+          {/* TAB 1: 🏠 모꼬홈 (HOME) - 앱 HomeScreen과 100% 일치     */}
+          {/* ======================================================= */}
+          {activeTab === 'HOME' && (
+            <div className="space-y-8 animate-in fade-in duration-200">
+              {/* Home Subheader: Location & Live Stats */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-2xl border shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-100 text-pink-600">
+                    <MapPin className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5 font-bold text-sm text-slate-900">
+                      <span>서울 강남구 역삼1동</span>
+                      <ChevronDown className="h-3.5 w-3.5 text-slate-400 cursor-pointer" />
+                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-semibold">
+                        동네 인증 완료
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      현재 반경 3km 내 온라인 접속 이웃 1,842명
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1 sm:w-64">
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="중고 매물, 라이브 방송, 마켓 검색"
+                      className="pl-8 text-xs h-8 bg-slate-50"
+                    />
+                  </div>
+                  <Button
+                    onClick={() => setIsAppDownloadOpen(true)}
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs font-semibold gap-1 text-slate-700"
+                  >
+                    <QrCode className="h-3.5 w-3.5 text-pink-500" />
+                    앱 QR
+                  </Button>
+                </div>
+              </div>
+
+              {/* 1) Hero Promotional Carousel */}
+              <div className="relative overflow-hidden rounded-3xl bg-slate-900 text-white shadow-xl min-h-[220px] sm:min-h-[260px] flex items-center">
+                <img
+                  src={INITIAL_HERO_BANNERS[heroIndex].image}
+                  alt="banner"
+                  className="absolute inset-0 h-full w-full object-cover opacity-40 transition-opacity duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/70 to-transparent" />
+                <div className="relative z-10 p-6 sm:p-10 max-w-2xl space-y-3">
+                  <Badge className="bg-pink-500 text-white font-bold border-none text-[11px]">
+                    {INITIAL_HERO_BANNERS[heroIndex].badge}
+                  </Badge>
+                  <h2 className="text-xl sm:text-3xl font-extrabold tracking-tight leading-snug">
+                    {INITIAL_HERO_BANNERS[heroIndex].title}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-300">
+                    {INITIAL_HERO_BANNERS[heroIndex].desc}
+                  </p>
+                  <div className="pt-2">
+                    <Button
+                      onClick={() => setActiveTab(INITIAL_HERO_BANNERS[heroIndex].linkTab)}
+                      className="bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs h-8 sm:h-9 shadow-md"
+                    >
+                      자세히 보러가기
+                      <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Carousel Dots */}
+                <div className="absolute bottom-4 right-6 z-10 flex items-center gap-1.5">
+                  {INITIAL_HERO_BANNERS.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setHeroIndex(i)}
+                      className={`h-2 rounded-full transition-all ${
+                        heroIndex === i ? 'w-6 bg-pink-500' : 'w-2 bg-white/40'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* 2) 🔥 실시간 LIVE Top 3 (모바일 앱의 화려한 왕관 엠블럼 연계) */}
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Flame className="h-5 w-5 text-rose-500" />
+                    <h3 className="font-extrabold text-lg text-slate-900">
+                      실시간 HOT 모꼬 LIVE Top 3
+                    </h3>
+                    <Badge variant="outline" className="text-[10px] text-rose-600 border-rose-200 bg-rose-50 font-bold">
+                      실시간 온에어
+                    </Badge>
+                  </div>
+                  <Button
+                    onClick={() => setActiveTab('LIVE')}
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-slate-600 hover:text-slate-900 font-semibold"
+                  >
+                    LIVE 전체보기
+                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {lives.slice(0, 3).map((live, idx) => {
+                    const rankNum = idx + 1
+                    const isGold = rankNum === 1
+                    const isSilver = rankNum === 2
+
+                    return (
+                      <Card
+                        key={live.id}
+                        onClick={() => setActiveLiveModal(live)}
+                        className={`group relative overflow-hidden rounded-2xl cursor-pointer border hover:shadow-lg transition-all ${
+                          isGold ? 'border-amber-300 ring-2 ring-amber-400/20' : isSilver ? 'border-slate-300' : 'border-orange-200'
+                        }`}
+                      >
+                        <div className="relative aspect-video w-full bg-slate-900 overflow-hidden">
+                          <img
+                            src={live.coverUrl}
+                            alt={live.title}
+                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                          {/* Top Rank Crown Emblem */}
+                          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full shadow-md font-black text-xs text-white backdrop-blur-xs border bg-slate-950/80">
+                            <Crown
+                              className={`h-3.5 w-3.5 ${
+                                isGold ? 'text-amber-400' : isSilver ? 'text-slate-300' : 'text-orange-400'
+                              }`}
+                            />
+                            <span className={isGold ? 'text-amber-300' : isSilver ? 'text-slate-200' : 'text-orange-300'}>
+                              No.{rankNum}
+                            </span>
+                            <span className="text-[9px] text-amber-400">★★★</span>
+                          </div>
+
+                          {/* Live Viewer Badge */}
+                          <div className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-600/90 text-white text-[10px] font-bold">
+                            <span className="h-1.5 w-1.5 rounded-full bg-white animate-ping" />
+                            LIVE · {live.viewerCount.toLocaleString()}명
+                          </div>
+
+                          {/* Pinned Product Preview */}
+                          {live.pinnedProduct && (
+                            <div className="absolute bottom-2 left-2 right-2 flex items-center gap-2 rounded-xl bg-white/95 p-1.5 text-slate-900 shadow-md backdrop-blur-xs">
+                              <img
+                                src={live.pinnedProduct.image}
+                                alt="pin"
+                                className="h-8 w-8 rounded-lg object-cover"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <span className="block text-[10px] text-rose-600 font-bold">
+                                  방송 단독 핀 특가
+                                </span>
+                                <p className="text-[11px] font-bold truncate">
+                                  {live.pinnedProduct.title}
+                                </p>
+                              </div>
+                              <span className="text-xs font-black text-slate-900 pr-1">
+                                {live.pinnedProduct.price.toLocaleString()}원
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        <CardContent className="p-3.5 space-y-2">
+                          <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-rose-600 transition-colors">
+                            {live.title}
+                          </h4>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                              <img
+                                src={live.hostAvatar}
+                                alt="avatar"
+                                className="h-5 w-5 rounded-full object-cover"
+                              />
+                              <span className="font-semibold text-slate-700 truncate max-w-[120px]">
+                                {live.hostNickname}
+                              </span>
+                            </div>
+                            <span className="text-[11px] font-medium bg-slate-100 px-1.5 py-0.5 rounded">
+                              {live.category}
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+                </div>
+              </section>
+
+              {/* 3) 💬 실시간 동네 1줄 수다 (SUDA Feed & Quick Post) */}
+              <section className="rounded-2xl bg-gradient-to-br from-blue-50/60 via-indigo-50/30 to-purple-50/50 p-5 border border-blue-100/70 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5 text-blue-600" />
+                    <h3 className="font-extrabold text-base sm:text-lg text-slate-900">
+                      실시간 동네 1줄 수다 (SUDA)
+                    </h3>
+                    <Badge variant="secondary" className="text-[10px] bg-blue-100 text-blue-800 font-bold border-none">
+                      실시간 타임라인
+                    </Badge>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setActiveTab('CHAT')
+                      setChatSubTab('SUDA')
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-blue-700 hover:text-blue-900 font-semibold"
+                  >
+                    수다방 가기
+                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </div>
+
+                {/* Quick Suda Input */}
+                <div className="flex items-center gap-2 bg-white p-2 rounded-xl border shadow-2xs">
+                  <Input
+                    value={sudaInputText}
+                    onChange={(e) => setSudaInputText(e.target.value)}
+                    placeholder="우리 동네 이웃들에게 가볍게 한 줄 수다를 건네보세요! (비로그인 시 로그인 유도)"
+                    className="text-xs border-none shadow-none focus-visible:ring-0"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handlePostSuda()
+                    }}
+                  />
+                  <Button
+                    onClick={handlePostSuda}
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-8 px-3 shrink-0"
+                  >
+                    <Send className="h-3.5 w-3.5 mr-1" />
+                    남기기
+                  </Button>
+                </div>
+
+                {/* Suda Feed Preview */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {sudaPosts.slice(0, 4).map((post) => (
+                    <div
+                      key={post.id}
+                      className="flex items-start gap-3 bg-white p-3 rounded-xl border shadow-2xs hover:border-blue-200 transition-colors"
+                    >
+                      <img
+                        src={post.avatar}
+                        alt="avatar"
+                        className="h-9 w-9 rounded-full object-cover shrink-0"
+                      />
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-slate-900">{post.nickname}</span>
+                          <span className="text-[10px] text-muted-foreground">{post.time}</span>
+                        </div>
+                        <p className="text-xs text-slate-700 line-clamp-2 leading-relaxed">
+                          {post.content}
+                        </p>
+                        <div className="flex items-center gap-3 pt-1 text-[11px] text-muted-foreground">
+                          <button
+                            onClick={() => handleLikeSuda(post.id)}
+                            className={`flex items-center gap-1 hover:text-rose-600 transition-colors ${
+                              post.isLiked ? 'text-rose-600 font-bold' : ''
+                            }`}
+                          >
+                            <Heart className={`h-3 w-3 ${post.isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
+                            <span>{post.likes}</span>
+                          </button>
+                          <span className="flex items-center gap-1">
+                            <MessageCircle className="h-3 w-3" />
+                            <span>{post.comments}</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* 4) 🥕 동네 중고거래 핫 아이템 & 🛒 특가 공동구매 2열 섹션 */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 4-1) 동네 중고거래 인기 매물 */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Store className="h-5 w-5 text-orange-500" />
+                      <h3 className="font-extrabold text-base sm:text-lg text-slate-900">
+                        동네 인기 중고거래
+                      </h3>
+                      <Badge className="bg-orange-50 text-orange-700 border-orange-200 text-[10px] font-bold">
+                        에스크로 안전
+                      </Badge>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        setActiveTab('MARKET')
+                        setMarketSubTab('C2C_USED')
+                      }}
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-orange-700 hover:text-orange-900 font-semibold"
+                    >
+                      중고 더보기
+                      <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {usedProducts.slice(0, 2).map((item) => (
+                      <Card
+                        key={item.id}
+                        onClick={() => setSelectedUsedItem(item)}
+                        className="group overflow-hidden rounded-2xl cursor-pointer hover:shadow-md transition-shadow border"
+                      >
+                        <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
+                          <img
+                            src={item.images[0]}
+                            alt={item.title}
+                            className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                          />
+                          <Badge className="absolute bottom-2 left-2 bg-black/60 text-white text-[9px] font-semibold border-none">
+                            {item.locationName.split(' ')[1] || item.locationName}
+                          </Badge>
+                        </div>
+                        <CardContent className="p-3 space-y-1">
+                          <h4 className="font-bold text-xs text-slate-900 line-clamp-1 group-hover:text-orange-600 transition-colors">
+                            {item.title}
+                          </h4>
+                          <p className="font-extrabold text-sm text-slate-900">
+                            {item.price.toLocaleString()}원
+                          </p>
+                          <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t">
+                            <span>매너 {item.mannerTemp}℃</span>
+                            <span>채팅 {item.chatsCount}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 4-2) 마켓 & 특가 공동구매 */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ShoppingBag className="h-5 w-5 text-emerald-600" />
+                      <h3 className="font-extrabold text-base sm:text-lg text-slate-900">
+                        모꼬 마켓 & 특가 공구
+                      </h3>
+                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
+                        본사직영 · 입점사
+                      </Badge>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        setActiveTab('MARKET')
+                        setMarketSubTab('B2C_GROUP')
+                      }}
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-emerald-700 hover:text-emerald-900 font-semibold"
+                    >
+                      마켓 더보기
+                      <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {marketProducts.slice(0, 2).map((item) => (
+                      <Card
+                        key={item.id}
+                        onClick={() => setSelectedProduct(item)}
+                        className="group overflow-hidden rounded-2xl cursor-pointer hover:shadow-md transition-shadow border"
+                      >
+                        <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
+                          <img
+                            src={item.images[0]}
+                            alt={item.title}
+                            className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                          />
+                          {item.type === 'B2C_GROUP' && (
+                            <Badge className="absolute top-2 left-2 bg-rose-600 text-white text-[9px] font-bold border-none">
+                              공구특가
+                            </Badge>
+                          )}
+                        </div>
+                        <CardContent className="p-3 space-y-1">
+                          <span className="text-[10px] text-muted-foreground block truncate">
+                            {item.sellerName}
+                          </span>
+                          <h4 className="font-bold text-xs text-slate-900 line-clamp-1 group-hover:text-emerald-600 transition-colors">
+                            {item.title}
+                          </h4>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="font-extrabold text-sm text-slate-900">
+                              {item.price.toLocaleString()}원
+                            </span>
+                            {item.originalPrice && (
+                              <span className="text-[10px] text-slate-400 line-through">
+                                {item.originalPrice.toLocaleString()}원
+                              </span>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 5) 👥 동네 이웃 추천 (Neighbour Recommendations) */}
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="h-5 w-5 text-purple-600" />
+                    <h3 className="font-extrabold text-base sm:text-lg text-slate-900">
+                      내 주변 추천 동네 이웃
+                    </h3>
+                    <span className="text-xs text-muted-foreground">
+                      가까운 거리의 인증된 이웃들과 친구가 되어보세요.
+                    </span>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setActiveTab('CHAT')
+                      setChatSubTab('FRIENDS')
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-purple-700 hover:text-purple-900 font-semibold"
+                  >
+                    이웃 목록 전체보기
+                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  {friends.map((friend) => (
+                    <Card
+                      key={friend.id}
+                      className="rounded-2xl border p-4 space-y-3 hover:shadow-md transition-shadow text-center flex flex-col items-center"
+                    >
+                      <div className="relative">
+                        <img
+                          src={friend.avatar}
+                          alt="avatar"
+                          className="h-16 w-16 rounded-full object-cover border-2 border-white shadow-xs"
+                        />
+                        {friend.isOnline && (
+                          <span className="absolute bottom-0 right-0 h-4 w-4 rounded-full bg-emerald-500 border-2 border-white shadow-2xs" />
+                        )}
+                      </div>
+                      <div className="space-y-0.5">
+                        <h4 className="font-bold text-sm text-slate-900">{friend.nickname}</h4>
+                        <p className="text-[11px] text-muted-foreground">
+                          {friend.region} · {friend.distance}
+                        </p>
+                      </div>
+                      <p className="text-xs text-slate-600 line-clamp-1 italic bg-slate-50 px-2 py-1 rounded w-full">
+                        &quot;{friend.statusMessage}&quot;
+                      </p>
+                      <div className="w-full flex items-center justify-between text-[11px] font-semibold text-slate-500 pt-1 border-t">
+                        <span>온도 {friend.mannerTemp}℃</span>
+                        <span>{friend.gender} · {friend.age}세</span>
+                      </div>
+                      <Button
+                        onClick={() => handleStartNeighborChat(friend)}
+                        size="sm"
+                        variant="outline"
+                        className="w-full text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50 h-8"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                        1:1 대화 신청
+                      </Button>
+                    </Card>
+                  ))}
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* ======================================================= */}
+          {/* TAB 2: 🏪 모꼬마켓 (MARKET) - C2C 중고 + B2C 일반 + 공구  */}
+          {/* ======================================================= */}
+          {activeTab === 'MARKET' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              {/* Market Sub-nav Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                    🏪 모꼬마켓
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    동네 이웃 간 C2C 에스크로 중고거래부터 본사 직영 신선식품, 특가 공동구매까지!
+                  </p>
+                </div>
+
+                {/* 3 Subtabs */}
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                  <button
+                    onClick={() => setMarketSubTab('C2C_USED')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                      marketSubTab === 'C2C_USED' ? 'bg-white text-orange-600 shadow-xs' : 'text-slate-600'
+                    }`}
+                  >
+                    <span>🥕 동네 중고거래</span>
+                  </button>
+                  <button
+                    onClick={() => setMarketSubTab('B2C_NORMAL')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                      marketSubTab === 'B2C_NORMAL' ? 'bg-white text-emerald-600 shadow-xs' : 'text-slate-600'
+                    }`}
+                  >
+                    <span>🛒 상시 입점 상품</span>
+                  </button>
+                  <button
+                    onClick={() => setMarketSubTab('B2C_GROUP')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                      marketSubTab === 'B2C_GROUP' ? 'bg-white text-rose-600 shadow-xs' : 'text-slate-600'
+                    }`}
+                  >
+                    <span>🔥 특가 공동구매</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Bar: Category filter & Register Button */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                  {['전체', '디지털/가전', '가구/인테리어', '패션/의류', '생활/리빙', '식품/신선'].map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setMarketCategoryFilter(cat)}
+                      className={`px-3 py-1.5 rounded-full font-semibold shrink-0 transition-colors ${
+                        marketCategoryFilter === cat
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-white border text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => {
+                      requireAuth(() => setIsNewUsedModalOpen(true))
+                    }}
+                    className="bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold h-8 shadow-xs"
+                  >
+                    <PlusCircle className="h-3.5 w-3.5 mr-1" />
+                    중고 물품 판매 등록
+                  </Button>
+                  {(role === 'MERCHANT' || role === 'ADMIN') && (
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-xs font-bold h-8"
+                    >
+                      <Link href="/seller">
+                        <Store className="h-3.5 w-3.5 mr-1" />
+                        셀러 센터 상품 등록
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Market Products Display */}
+              {marketSubTab === 'C2C_USED' ? (
+                /* 1) C2C Used Grid */
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {usedProducts
+                    .filter((item) =>
+                      marketCategoryFilter === '전체' ? true : item.category.includes(marketCategoryFilter)
+                    )
+                    .map((item) => (
+                      <Card
+                        key={item.id}
+                        onClick={() => setSelectedUsedItem(item)}
+                        className="group overflow-hidden rounded-2xl cursor-pointer hover:shadow-lg transition-all border"
+                      >
+                        <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
+                          <img
+                            src={item.images[0]}
+                            alt={item.title}
+                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <Badge className="absolute top-2 left-2 bg-orange-600 text-white text-[10px] font-bold border-none">
+                            🥕 중고
+                          </Badge>
+                          <Badge className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] font-semibold border-none">
+                            {item.locationName}
+                          </Badge>
+                        </div>
+                        <CardContent className="p-3.5 space-y-2">
+                          <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-orange-600 transition-colors">
+                            {item.title}
+                          </h4>
+                          <div className="flex items-baseline justify-between">
+                            <span className="font-extrabold text-sm sm:text-base text-slate-900">
+                              {item.price.toLocaleString()}원
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">{item.createdAt}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
+                            <span className="font-semibold text-slate-700">매너 {item.mannerTemp}℃</span>
+                            <div className="flex items-center gap-2">
+                              <span>♥ {item.likesCount}</span>
+                              <span>💬 {item.chatsCount}</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                </div>
+              ) : (
+                /* 2) B2C Normal or Group Buy Grid */
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {marketProducts
+                    .filter((p) => {
+                      if (marketSubTab === 'B2C_NORMAL') return p.type === 'B2C_NORMAL'
+                      if (marketSubTab === 'B2C_GROUP') return p.type === 'B2C_GROUP'
+                      return true
+                    })
+                    .filter((p) => (marketCategoryFilter === '전체' ? true : p.category.includes(marketCategoryFilter)))
+                    .map((item) => (
+                      <Card
+                        key={item.id}
+                        onClick={() => setSelectedProduct(item)}
+                        className="group overflow-hidden rounded-2xl cursor-pointer hover:shadow-lg transition-all border"
+                      >
+                        <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
+                          <img
+                            src={item.images[0]}
+                            alt={item.title}
+                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          {item.type === 'B2C_GROUP' ? (
+                            <Badge className="absolute top-2 left-2 bg-rose-600 text-white text-[10px] font-bold border-none">
+                              🔥 공동구매 특가
+                            </Badge>
+                          ) : (
+                            <Badge className="absolute top-2 left-2 bg-emerald-600 text-white text-[10px] font-bold border-none">
+                              {item.isHqDirect ? '본사 직영' : '공식 입점'}
+                            </Badge>
+                          )}
+                        </div>
+                        <CardContent className="p-3.5 space-y-2">
+                          <span className="text-[10px] text-muted-foreground font-semibold block truncate">
+                            {item.sellerName}
+                          </span>
+                          <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-emerald-600 transition-colors">
+                            {item.title}
+                          </h4>
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-extrabold text-sm sm:text-base text-slate-900">
+                              {item.price.toLocaleString()}원
+                            </span>
+                            {item.originalPrice && (
+                              <span className="text-xs text-slate-400 line-through">
+                                {item.originalPrice.toLocaleString()}원
+                              </span>
+                            )}
+                          </div>
+                          {item.type === 'B2C_GROUP' && item.targetQuantity && (
+                            <div className="space-y-1 pt-1">
+                              <div className="flex justify-between text-[11px] font-semibold text-rose-600">
+                                <span>공구 달성률</span>
+                                <span>
+                                  {Math.round(((item.currentQuantity || 0) / item.targetQuantity) * 100)}% ({item.currentQuantity}/{item.targetQuantity}명)
+                                </span>
+                              </div>
+                              <div className="h-1.5 w-full bg-rose-100 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-rose-600 rounded-full"
+                                  style={{
+                                    width: `${Math.min(
+                                      100,
+                                      Math.round(((item.currentQuantity || 0) / item.targetQuantity) * 100)
+                                    )}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ======================================================= */}
+          {/* TAB 3: 🔴 모꼬 LIVE (LIVE) - 실시간 핫 라이브 & 방송하기  */}
+          {/* ======================================================= */}
           {activeTab === 'LIVE' && (
-            <section className="space-y-6">
+            <div className="space-y-6 animate-in fade-in duration-200">
               {/* Live Banner & Broadcast Starter (일반 회원 누구나 방송 가능) */}
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-rose-900 via-purple-900 to-slate-900 p-6 sm:p-8 text-white shadow-xl">
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-rose-900 via-purple-900 to-slate-900 p-6 sm:p-8 text-white shadow-xl">
                 <div className="relative z-10 max-w-2xl space-y-3">
                   <div className="flex items-center gap-2">
                     <span className="flex h-3 w-3 rounded-full bg-rose-500 animate-ping" />
@@ -1030,7 +2026,6 @@ export default function CustomerWebStorefrontPage() {
                   </p>
 
                   <div className="flex flex-wrap items-center gap-3 pt-2">
-                    {/* 일반 회원 누구나 방송 가능! */}
                     <Button
                       onClick={() => {
                         requireAuth(() => setIsStartLiveModalOpen(true))
@@ -1050,571 +2045,830 @@ export default function CustomerWebStorefrontPage() {
                         className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs sm:text-sm font-semibold h-9"
                       >
                         <Mic className="h-4 w-4 mr-1.5 text-purple-300" />
-                        상품 판매 혜택! 크리에이터 신청
+                        공식 크리에이터 승격 신청 (커머스 핀 판매)
                       </Button>
                     )}
-
-                    <Button
-                      onClick={() => setIsAppDownloadOpen(true)}
-                      variant="ghost"
-                      className="text-slate-300 hover:text-white text-xs sm:text-sm h-9"
-                    >
-                      <Download className="h-4 w-4 mr-1.5" />
-                      모바일 앱 다운로드
-                    </Button>
                   </div>
                 </div>
+              </div>
 
-                {/* Background Glow */}
-                <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-rose-500/20 blur-3xl" />
-                <div className="absolute -bottom-10 right-20 h-72 w-72 rounded-full bg-purple-500/20 blur-2xl" />
+              {/* Category Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                {['전체', '쇼핑/커머스', '토크/소통', '음악/노래', '일상', '취미'].map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setLiveCategoryFilter(cat)}
+                    className={`px-3 py-1.5 rounded-full font-semibold shrink-0 transition-colors ${
+                      liveCategoryFilter === cat
+                        ? 'bg-rose-600 text-white'
+                        : 'bg-white border text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
 
               {/* Live Rooms Grid */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-bold flex items-center gap-2">
-                      <Radio className="h-5 w-5 text-rose-600" />
-                      현재 실시간 진행 중인 모꼬 LIVE ({lives.length})
-                    </h2>
-                    <p className="text-xs text-muted-foreground">
-                      일반 회원의 소통 방송과 공식 크리에이터의 라이브 커머스 방송이 실시간 진행 중입니다.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                  {lives.map((room) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {lives
+                  .filter((live) => (liveCategoryFilter === '전체' ? true : live.category.includes(liveCategoryFilter)))
+                  .map((live, idx) => (
                     <Card
-                      key={room.id}
-                      onClick={() => setActiveLiveModal(room)}
-                      className="group cursor-pointer overflow-hidden border border-slate-200/80 hover:border-rose-300 hover:shadow-lg transition-all rounded-xl bg-white"
+                      key={live.id}
+                      onClick={() => setActiveLiveModal(live)}
+                      className="group overflow-hidden rounded-2xl cursor-pointer hover:shadow-xl transition-all border"
                     >
-                      {/* Cover Thumbnail with LIVE badges */}
-                      <div className="relative aspect-video w-full overflow-hidden bg-slate-900">
+                      <div className="aspect-video w-full bg-slate-900 overflow-hidden relative">
                         <img
-                          src={room.coverUrl}
-                          alt={room.title}
-                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90"
+                          src={live.coverUrl}
+                          alt={live.title}
+                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
-                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                          <Badge className="bg-rose-600 text-white font-bold text-[10px] px-2 py-0.5 border-none shadow-xs flex items-center gap-1">
-                            <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                            LIVE
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                        {/* Live viewer count */}
+                        <div className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-bold">
+                          <span className="h-1.5 w-1.5 rounded-full bg-white animate-ping" />
+                          LIVE · {live.viewerCount.toLocaleString()}명
+                        </div>
+
+                        {live.isOfficialCreator && (
+                          <Badge className="absolute top-2.5 left-2.5 bg-purple-600 text-white text-[10px] font-bold border-none">
+                            🎙️ 공식 크리에이터
                           </Badge>
-                          <Badge variant="secondary" className="bg-black/60 backdrop-blur-xs text-white text-[10px] border-none">
-                            {room.category}
-                          </Badge>
-                        </div>
+                        )}
 
-                        <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 text-white text-xs bg-black/60 backdrop-blur-xs px-2 py-0.5 rounded-md">
-                          <Users2 className="h-3 w-3" />
-                          <span>{room.viewerCount.toLocaleString()}명 시청 중</span>
-                        </div>
-                      </div>
-
-                      <CardContent className="p-4 space-y-3">
-                        {/* Host info */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                        {/* Pinned product preview */}
+                        {live.pinnedProduct && (
+                          <div className="absolute bottom-2 left-2 right-2 flex items-center gap-2 rounded-xl bg-white/95 p-1.5 text-slate-900 shadow-md">
                             <img
-                              src={room.hostAvatar}
-                              alt={room.hostNickname}
-                              className="h-7 w-7 rounded-full object-cover border"
-                            />
-                            <span className="text-xs font-semibold text-slate-700 truncate max-w-[120px]">
-                              {room.hostNickname}
-                            </span>
-                          </div>
-                          {room.isOfficialCreator && (
-                            <Badge className="text-[9px] bg-purple-100 text-purple-700 border-purple-200">
-                              공식 크리에이터
-                            </Badge>
-                          )}
-                        </div>
-
-                        {/* Title */}
-                        <h3 className="text-sm font-bold text-slate-900 line-clamp-2 group-hover:text-rose-600 transition-colors">
-                          {room.title}
-                        </h3>
-
-                        {/* Pinned Product Link */}
-                        {room.pinnedProduct ? (
-                          <div className="flex items-center gap-2 rounded-lg bg-rose-50/60 p-2 border border-rose-100">
-                            <img
-                              src={room.pinnedProduct.image}
-                              alt={room.pinnedProduct.title}
-                              className="h-10 w-10 rounded-md object-cover"
+                              src={live.pinnedProduct.image}
+                              alt="pin"
+                              className="h-7 w-7 rounded-lg object-cover"
                             />
                             <div className="flex-1 min-w-0">
-                              <span className="text-[10px] font-bold text-rose-600 uppercase tracking-tight">
-                                방송 특가 고정 상품
-                              </span>
-                              <p className="text-xs font-medium text-slate-800 truncate">
-                                {room.pinnedProduct.title}
+                              <p className="text-[10px] font-bold truncate">
+                                {live.pinnedProduct.title}
                               </p>
-                              <span className="text-xs font-extrabold text-slate-900">
-                                {room.pinnedProduct.price.toLocaleString()}원
-                              </span>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="rounded-lg bg-slate-50 p-2 text-center text-[11px] text-muted-foreground border">
-                            💬 이웃과 소통하는 자유 라이브 방송
+                            <span className="text-[11px] font-black text-rose-600 pr-1">
+                              {live.pinnedProduct.price.toLocaleString()}원
+                            </span>
                           </div>
                         )}
+                      </div>
+
+                      <CardContent className="p-3.5 space-y-2">
+                        <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-rose-600 transition-colors">
+                          {live.title}
+                        </h4>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1.5">
+                            <img
+                              src={live.hostAvatar}
+                              alt="avatar"
+                              className="h-5 w-5 rounded-full object-cover"
+                            />
+                            <span className="font-semibold text-slate-700 truncate max-w-[120px]">
+                              {live.hostNickname}
+                            </span>
+                          </div>
+                          <span className="text-[11px] bg-slate-100 px-1.5 py-0.5 rounded">
+                            {live.category}
+                          </span>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
-                </div>
               </div>
-            </section>
+            </div>
           )}
 
-          {/* --------------------------------------------------------- */}
-          {/* TAB 2: 💬 실시간 채팅 & 1:1 대화 (CHAT)                   */}
-          {/* --------------------------------------------------------- */}
+          {/* ======================================================= */}
+          {/* TAB 4: 💬 모꼬쳇 (CHAT) - 동네 친구들 + 1줄수다 + 대화함   */}
+          {/* ======================================================= */}
           {activeTab === 'CHAT' && (
-            <section className="space-y-4">
-              <div className="flex items-center justify-between">
+            <div className="space-y-6 animate-in fade-in duration-200">
+              {/* Chat Sub-nav Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4">
                 <div>
-                  <h2 className="text-lg font-bold flex items-center gap-2">
-                    <MessageCircle className="h-5 w-5 text-blue-600" />
-                    실시간 1:1 대화 & 중고거래 톡
+                  <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                    💬 모꼬쳇
                   </h2>
                   <p className="text-xs text-muted-foreground">
-                    판매자와 이웃 간 안전거래 및 상품 문의를 웹과 모바일 앱에서 실시간으로 대화합니다.
+                    우리 동네 이웃 찾기부터 실시간 1줄 수다 타임라인, 1:1 거래 톡까지!
                   </p>
+                </div>
+
+                {/* 3 Subtabs */}
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                  <button
+                    onClick={() => setChatSubTab('FRIENDS')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                      chatSubTab === 'FRIENDS' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600'
+                    }`}
+                  >
+                    <UserCheck className="h-3.5 w-3.5" />
+                    <span>👥 동네 친구들</span>
+                  </button>
+                  <button
+                    onClick={() => setChatSubTab('SUDA')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                      chatSubTab === 'SUDA' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600'
+                    }`}
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    <span>💬 전체 수다</span>
+                  </button>
+                  <button
+                    onClick={() => setChatSubTab('CHATS')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                      chatSubTab === 'CHATS' ? 'bg-white text-purple-700 shadow-xs' : 'text-slate-600'
+                    }`}
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                    <span>📩 대화함</span>
+                  </button>
                 </div>
               </div>
 
-              {!isAuthenticated ? (
-                <Card className="p-12 text-center space-y-4 bg-white border-dashed border-2">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-                    <MessageCircle className="h-8 w-8" />
+              {/* Subtab 1: 동네 친구들 (FRIENDS) */}
+              {chatSubTab === 'FRIENDS' && (
+                <div className="space-y-4">
+                  {/* Region Filter */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                    {['전체', '서울', '경기', '인천', '부산', '대구', '대전', '광주', '전남', '전북', '제주'].map((reg) => (
+                      <button
+                        key={reg}
+                        onClick={() => setFriendRegionFilter(reg)}
+                        className={`px-3 py-1.5 rounded-full font-semibold shrink-0 transition-colors ${
+                          friendRegionFilter === reg
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white border text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        {reg}
+                      </button>
+                    ))}
                   </div>
-                  <div className="space-y-1">
-                    <h3 className="text-base font-bold text-slate-900">
-                      로그인 후 실시간 대화에 참여하세요
-                    </h3>
-                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                      이웃과의 중고거래 채팅, 라이브 방송자 1:1 문의 등 모든 대화 내역이 모바일 앱과 즉시 동기화됩니다.
-                    </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {friends
+                      .filter((f) => (friendRegionFilter === '전체' ? true : f.region.includes(friendRegionFilter)))
+                      .map((friend) => (
+                        <Card
+                          key={friend.id}
+                          className="rounded-2xl border p-4 space-y-3 hover:shadow-md transition-shadow text-center flex flex-col items-center"
+                        >
+                          <div className="relative">
+                            <img
+                              src={friend.avatar}
+                              alt="avatar"
+                              className="h-16 w-16 rounded-full object-cover border-2 border-white shadow-xs"
+                            />
+                            {friend.isOnline && (
+                              <span className="absolute bottom-0 right-0 h-4 w-4 rounded-full bg-emerald-500 border-2 border-white shadow-2xs" />
+                            )}
+                          </div>
+                          <div className="space-y-0.5">
+                            <h4 className="font-bold text-sm text-slate-900">{friend.nickname}</h4>
+                            <p className="text-[11px] text-muted-foreground">
+                              {friend.region} · {friend.distance}
+                            </p>
+                          </div>
+                          <p className="text-xs text-slate-600 line-clamp-2 italic bg-slate-50 px-2 py-1.5 rounded w-full">
+                            &quot;{friend.statusMessage}&quot;
+                          </p>
+                          <div className="w-full flex items-center justify-between text-[11px] font-semibold text-slate-500 pt-1 border-t">
+                            <span>온도 {friend.mannerTemp}℃</span>
+                            <span>{friend.gender} · {friend.age}세</span>
+                          </div>
+                          <Button
+                            onClick={() => handleStartNeighborChat(friend)}
+                            size="sm"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-8 shadow-xs"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                            1:1 대화 신청하기
+                          </Button>
+                        </Card>
+                      ))}
                   </div>
-                  <Button
-                    onClick={() => openLoginModal()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs"
-                  >
-                    <LogIn className="h-3.5 w-3.5 mr-1" />
-                    간편 로그인하고 대화 시작하기
-                  </Button>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs h-[650px]">
-                  {/* Left: Chat Rooms List */}
-                  <div className="border-r border-slate-100 flex flex-col h-full bg-slate-50/50">
+                </div>
+              )}
+
+              {/* Subtab 2: 전체 수다 (SUDA) */}
+              {chatSubTab === 'SUDA' && (
+                <div className="space-y-4 max-w-3xl mx-auto">
+                  {/* Suda Post Input Bar */}
+                  <div className="flex items-center gap-2 bg-white p-3 rounded-2xl border shadow-xs">
+                    <Input
+                      value={sudaInputText}
+                      onChange={(e) => setSudaInputText(e.target.value)}
+                      placeholder="우리 동네 이웃들에게 따뜻한 한 줄 이야기를 전하세요! (Enter로 전송)"
+                      className="text-xs border-none shadow-none focus-visible:ring-0"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handlePostSuda()
+                      }}
+                    />
+                    <Button
+                      onClick={handlePostSuda}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-8 px-4 shrink-0"
+                    >
+                      <Send className="h-3.5 w-3.5 mr-1" />
+                      등록
+                    </Button>
+                  </div>
+
+                  {/* Suda Timeline Stream */}
+                  <div className="space-y-3">
+                    {sudaPosts.map((post) => (
+                      <div
+                        key={post.id}
+                        className="bg-white p-4 rounded-2xl border shadow-2xs space-y-2 hover:border-blue-200 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <img
+                              src={post.avatar}
+                              alt="avatar"
+                              className="h-9 w-9 rounded-full object-cover"
+                            />
+                            <div>
+                              <span className="font-bold text-xs text-slate-900 block">
+                                {post.nickname}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {post.region} · {post.time}
+                              </span>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-100">
+                            모꼬 수다
+                          </Badge>
+                        </div>
+                        <p className="text-xs sm:text-sm text-slate-800 leading-relaxed pl-11">
+                          {post.content}
+                        </p>
+                        <div className="flex items-center gap-4 pt-1 pl-11 text-xs text-muted-foreground border-t">
+                          <button
+                            onClick={() => handleLikeSuda(post.id)}
+                            className={`flex items-center gap-1 hover:text-rose-600 transition-colors ${
+                              post.isLiked ? 'text-rose-600 font-bold' : ''
+                            }`}
+                          >
+                            <Heart className={`h-3.5 w-3.5 ${post.isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
+                            <span>공감 {post.likes}</span>
+                          </button>
+                          <span className="flex items-center gap-1">
+                            <MessageCircle className="h-3.5 w-3.5" />
+                            <span>댓글 {post.comments}</span>
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Subtab 3: 📩 대화함 (CHATS) - Desktop 2-Column Split View */}
+              {chatSubTab === 'CHATS' && (
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-[620px] rounded-2xl bg-white border shadow-sm overflow-hidden">
+                  {/* Left Column: Chat Room List (4 cols) */}
+                  <div className="md:col-span-4 border-r flex flex-col h-full bg-slate-50/50">
                     <div className="p-3.5 border-b bg-white">
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                        <Input
-                          placeholder="대화 상대 또는 상품명 검색"
-                          className="pl-8 text-xs bg-slate-50 h-8"
-                        />
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-bold text-sm text-slate-900">대화 목록</h4>
+                        <span className="text-[11px] text-muted-foreground">
+                          {chatRooms.length}개의 대화방
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 text-[11px] font-semibold">
+                        <button
+                          onClick={() => setChatBoxFilter('ALL')}
+                          className={`px-2 py-0.5 rounded ${
+                            chatBoxFilter === 'ALL' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          전체
+                        </button>
+                        <button
+                          onClick={() => setChatBoxFilter('SUDA')}
+                          className={`px-2 py-0.5 rounded ${
+                            chatBoxFilter === 'SUDA' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          수다 톡
+                        </button>
+                        <button
+                          onClick={() => setChatBoxFilter('MARKET')}
+                          className={`px-2 py-0.5 rounded ${
+                            chatBoxFilter === 'MARKET' ? 'bg-orange-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          거래 톡
+                        </button>
                       </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
-                      {chatRooms.map((room) => {
-                        const isSelected = activeChatRoom?.id === room.id
-                        return (
-                          <div
-                            key={room.id}
-                            onClick={() => setActiveChatRoom(room)}
-                            className={`p-3.5 flex items-start gap-3 cursor-pointer transition-colors ${
-                              isSelected ? 'bg-blue-50/70' : 'hover:bg-slate-100/70'
-                            }`}
-                          >
-                            <img
-                              src={room.targetAvatar}
-                              alt={room.targetNickname}
-                              className="h-10 w-10 rounded-full object-cover border"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <h4 className="text-xs font-bold text-slate-900 truncate">
-                                  {room.targetNickname}
-                                </h4>
-                                <span className="text-[10px] text-slate-400">{room.lastTime}</span>
-                              </div>
-                              <p className="text-xs text-slate-600 truncate mt-0.5">
-                                {room.lastMessage}
-                              </p>
-                              {room.productInfo && (
-                                <div className="mt-1 flex items-center gap-1.5 text-[11px] text-blue-600 font-medium bg-blue-50/80 px-2 py-0.5 rounded w-fit">
-                                  <span>연결상품:</span>
-                                  <span className="truncate max-w-[140px]">{room.productInfo.title}</span>
+                    <div className="flex-1 overflow-y-auto divide-y">
+                      {chatRooms
+                        .filter((r) => (chatBoxFilter === 'ALL' ? true : r.type === chatBoxFilter))
+                        .map((room) => {
+                          const isActive = activeChatRoom?.id === room.id
+                          return (
+                            <button
+                              key={room.id}
+                              onClick={() => setActiveChatRoom(room)}
+                              className={`w-full p-3 flex items-start gap-3 text-left transition-colors ${
+                                isActive ? 'bg-blue-50/80 border-l-4 border-blue-600' : 'hover:bg-slate-100/70'
+                              }`}
+                            >
+                              <img
+                                src={room.targetAvatar}
+                                alt="avatar"
+                                className="h-10 w-10 rounded-full object-cover shrink-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-0.5">
+                                  <span className="font-bold text-xs text-slate-900 truncate">
+                                    {room.targetNickname}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground">{room.lastTime}</span>
                                 </div>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })}
+                                <p className="text-xs text-slate-600 truncate">{room.lastMessage}</p>
+                                {room.productInfo && (
+                                  <div className="flex items-center gap-1.5 mt-1.5 p-1 bg-white rounded border text-[10px] text-slate-700">
+                                    <span className="font-semibold text-orange-600 shrink-0">거래물품:</span>
+                                    <span className="truncate">{room.productInfo.title}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </button>
+                          )
+                        })}
                     </div>
                   </div>
 
-                  {/* Right: Active Chat Conversation */}
-                  <div className="md:col-span-2 flex flex-col h-full bg-white">
+                  {/* Right Column: Active Chat Stream (8 cols) */}
+                  <div className="md:col-span-8 flex flex-col h-full bg-white">
                     {activeChatRoom ? (
                       <>
-                        <div className="p-3.5 border-b flex items-center justify-between bg-slate-50/40">
+                        {/* Chat Header */}
+                        <div className="p-3.5 border-b flex items-center justify-between bg-white">
                           <div className="flex items-center gap-2.5">
                             <img
                               src={activeChatRoom.targetAvatar}
-                              alt={activeChatRoom.targetNickname}
-                              className="h-9 w-9 rounded-full object-cover border"
+                              alt="avatar"
+                              className="h-8 w-8 rounded-full object-cover"
                             />
                             <div>
-                              <h3 className="text-xs font-bold text-slate-900">
+                              <h4 className="font-bold text-xs sm:text-sm text-slate-900">
                                 {activeChatRoom.targetNickname}
-                              </h3>
+                              </h4>
                               <span className="text-[10px] text-emerald-600 flex items-center gap-1">
                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                대화 가능 (온라인)
+                                실시간 접속 중
                               </span>
                             </div>
                           </div>
 
                           {activeChatRoom.productInfo && (
-                            <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-lg border shadow-2xs">
-                              <img
-                                src={activeChatRoom.productInfo.image}
-                                alt={activeChatRoom.productInfo.title}
-                                className="h-7 w-7 rounded object-cover"
-                              />
-                              <div className="text-left">
-                                <p className="text-[11px] font-bold text-slate-800">
-                                {activeChatRoom.productInfo.price.toLocaleString()}원
-                                </p>
-                                <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">
-                                  {activeChatRoom.productInfo.title}
-                                </p>
-                              </div>
-                              <Button
-                                onClick={() => {
-                                  setCheckoutTarget({
-                                    title: activeChatRoom.productInfo!.title,
-                                    price: activeChatRoom.productInfo!.price,
-                                    shippingFee: 0,
-                                    image: activeChatRoom.productInfo!.image,
-                                    isUsed: true,
-                                  })
-                                  setIsCheckoutOpen(true)
-                                }}
-                                size="sm"
-                                className="h-6 text-[10px] bg-orange-600 hover:bg-orange-700 text-white font-bold ml-1 px-2"
-                              >
-                                안전구매
-                              </Button>
-                            </div>
+                            <Button
+                              onClick={() => {
+                                setCheckoutTarget({
+                                  title: activeChatRoom.productInfo!.title,
+                                  price: activeChatRoom.productInfo!.price,
+                                  shippingFee: 0,
+                                  image: activeChatRoom.productInfo!.image,
+                                  isUsed: true,
+                                })
+                                setIsCheckoutOpen(true)
+                              }}
+                              size="sm"
+                              className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs h-8"
+                            >
+                              <ShieldCheck className="h-3.5 w-3.5 mr-1" />
+                              안전결제 요청
+                            </Button>
                           )}
                         </div>
 
-                        <div
-                          ref={chatScrollRef}
-                          className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50/30"
-                        >
-                          {activeChatRoom.messages.map((m) => {
-                            const isMine = m.isMe || m.senderId === user?.id
-                            return (
-                              <div
-                                key={m.id}
-                                className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}
-                              >
-                                <div className="flex items-end gap-1.5 max-w-[80%]">
-                                  {!isMine && (
-                                    <span className="text-[10px] text-slate-500 font-semibold mb-1">
-                                      {m.senderNickname}
-                                    </span>
-                                  )}
-                                  <div
-                                    className={`rounded-2xl px-3.5 py-2 text-xs ${
-                                      isMine
-                                        ? 'bg-blue-600 text-white rounded-br-xs'
-                                        : 'bg-white border text-slate-800 rounded-bl-xs shadow-2xs'
-                                    }`}
-                                  >
-                                    {m.text}
-                                  </div>
-                                  <span className="text-[9px] text-slate-400 mb-0.5">{m.time}</span>
-                                </div>
+                        {/* Product Bar if exists */}
+                        {activeChatRoom.productInfo && (
+                          <div className="flex items-center justify-between p-2.5 bg-orange-50/50 border-b text-xs">
+                            <div className="flex items-center gap-2">
+                              <img
+                                src={activeChatRoom.productInfo.image}
+                                alt="prod"
+                                className="h-9 w-9 rounded-lg object-cover"
+                              />
+                              <div>
+                                <span className="font-bold text-slate-900 line-clamp-1">
+                                  {activeChatRoom.productInfo.title}
+                                </span>
+                                <span className="font-extrabold text-orange-600">
+                                  {activeChatRoom.productInfo.price.toLocaleString()}원
+                                </span>
                               </div>
-                            )
-                          })}
+                            </div>
+                            <Badge variant="outline" className="text-[10px] border-orange-300 text-orange-700">
+                              에스크로 보호 거래
+                            </Badge>
+                          </div>
+                        )}
+
+                        {/* Message Stream */}
+                        <div ref={chatScrollRef} className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50/40">
+                          {activeChatRoom.messages.map((msg) => (
+                            <div
+                              key={msg.id}
+                              className={`flex flex-col ${msg.isMe ? 'items-end' : 'items-start'}`}
+                            >
+                              <div
+                                className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-xs leading-relaxed ${
+                                  msg.isMe
+                                    ? 'bg-blue-600 text-white rounded-tr-none'
+                                    : 'bg-white text-slate-900 border rounded-tl-none shadow-2xs'
+                                }`}
+                              >
+                                {msg.text}
+                              </div>
+                              <span className="text-[10px] text-muted-foreground mt-0.5 px-1">
+                                {msg.time}
+                              </span>
+                            </div>
+                          ))}
                         </div>
 
+                        {/* Chat Input Bar */}
                         <div className="p-3 border-t bg-white flex items-center gap-2">
                           <Input
                             value={chatInputText}
                             onChange={(e) => setChatInputText(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                            placeholder="메시지를 입력하세요"
-                            className="text-xs h-9"
+                            placeholder="메시지를 입력하세요 (Enter로 전송)"
+                            className="text-xs"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSendMessage()
+                            }}
                           />
                           <Button
                             onClick={handleSendMessage}
-                            size="sm"
-                            className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-3"
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-9 px-4 shrink-0"
                           >
-                            <Send className="h-4 w-4" />
+                            <Send className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </>
                     ) : (
-                      <div className="flex flex-col items-center justify-center h-full text-slate-400 text-xs">
-                        대화할 채팅방을 좌측에서 선택해주세요.
+                      <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground">
+                        대화방을 선택해주세요.
                       </div>
                     )}
                   </div>
                 </div>
               )}
-            </section>
+            </div>
           )}
 
-          {/* --------------------------------------------------------- */}
-          {/* TAB 3: 🥕 동네 중고거래 (C2C USED MARKET)                 */}
-          {/* --------------------------------------------------------- */}
-          {activeTab === 'USED' && (
-            <section className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <h2 className="text-lg font-bold flex items-center gap-2">
-                    <Store className="h-5 w-5 text-orange-600" />
-                    동네 이웃과 믿고 거래하는 중고마켓
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    직거래 약속부터 에스크로 안전결제 택배 거래까지 안심하고 이용하세요.
-                  </p>
+          {/* ======================================================= */}
+          {/* TAB 5: 👤 마이모꼬 (MY) - 프로필, ON포인트, 승격신청, 관리자 */}
+          {/* ======================================================= */}
+          {activeTab === 'MY' && (
+            <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-200">
+              {/* Profile Card */}
+              <div className="rounded-3xl bg-white p-6 border shadow-sm space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <img
+                      src={user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500'}
+                      alt="avatar"
+                      className="h-16 w-16 rounded-full object-cover border-2 border-pink-200 shadow-sm"
+                    />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-extrabold text-slate-900">
+                          {user?.nickname || '모꼬이웃'}
+                        </h3>
+                        <Badge
+                          className={`text-[10px] font-bold ${
+                            role === 'ADMIN'
+                              ? 'bg-amber-100 text-amber-800'
+                              : role === 'MERCHANT'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : role === 'CREATOR'
+                              ? 'bg-purple-100 text-purple-800'
+                              : 'bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          {role === 'ADMIN'
+                            ? '운영진 관리자'
+                            : role === 'MERCHANT'
+                            ? '공식 입점사'
+                            : role === 'CREATOR'
+                            ? '공식 크리에이터'
+                            : '일반회원'}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        서울 강남구 역삼1동 · 매너온도 36.5℃
+                      </p>
+                      <p className="text-xs text-slate-600 italic mt-1">
+                        &quot;동네 친구들과 따뜻하고 즐거운 소통 나누고 싶어요 ✨&quot;
+                      </p>
+                    </div>
+                  </div>
+
+                  {!isAuthenticated ? (
+                    <Button
+                      onClick={() => openLoginModal()}
+                      className="bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold text-xs"
+                    >
+                      <LogIn className="h-4 w-4 mr-1.5" />
+                      로그인 / 회원가입
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={logout}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs text-slate-600 hover:text-rose-600"
+                    >
+                      <LogOut className="h-3.5 w-3.5 mr-1" />
+                      로그아웃
+                    </Button>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                {/* Point & Settlement Balance Dashboard */}
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div className="bg-pink-50/70 p-4 rounded-2xl border border-pink-100 space-y-1">
+                    <span className="text-xs font-bold text-pink-700 flex items-center gap-1">
+                      <Coins className="h-4 w-4" />
+                      내 보유 ON 포인트
+                    </span>
+                    <p className="text-xl font-black text-pink-900">
+                      {(user?.pointBalance || 0).toLocaleString()} P
+                    </p>
+                    <span className="text-[10px] text-pink-600 block">
+                      라이브 후원 & 1:1 대화 & 마켓 결제 사용 가능
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-50 p-4 rounded-2xl border space-y-1">
+                    <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                      <Wallet className="h-4 w-4" />
+                      판매 정산금 잔액
+                    </span>
+                    <p className="text-xl font-black text-slate-900">
+                      185,000 원
+                    </p>
+                    <span className="text-[10px] text-muted-foreground block">
+                      중고거래 및 마켓 판매 정산금 (출금 신청 가능)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Core Role Promotion & Dedicated Admin Gateways */}
+              <div className="space-y-3">
+                <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4 text-amber-500" />
+                  회원 권한 승격 & 전용 관리자 바로가기
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Merchant Promotion / Access Card */}
+                  <div className="p-4 rounded-2xl border bg-gradient-to-br from-emerald-50/60 to-white space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 font-bold">
+                        🏪
+                      </div>
+                      <div>
+                        <h5 className="font-bold text-sm text-slate-900">
+                          모꼬 입점사(판매자)
+                        </h5>
+                        <p className="text-[11px] text-muted-foreground">
+                          자체 상품 등록, 주문 배송 관리 및 판매 정산
+                        </p>
+                      </div>
+                    </div>
+
+                    {role === 'MERCHANT' || role === 'ADMIN' ? (
+                      <Button
+                        asChild
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 shadow-xs"
+                      >
+                        <Link href="/seller">
+                          <Store className="h-3.5 w-3.5 mr-1.5" />
+                          🏪 입점사 셀러 센터 이동하기
+                          <ExternalLink className="h-3 w-3 ml-1" />
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => requireAuth(() => openMerchantModal())}
+                        variant="outline"
+                        className="w-full border-emerald-300 text-emerald-700 hover:bg-emerald-50 font-bold text-xs h-9"
+                      >
+                        <Building2 className="h-3.5 w-3.5 mr-1.5" />
+                        입점사 신청하기 (사업자 등록)
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Creator Promotion / Access Card */}
+                  <div className="p-4 rounded-2xl border bg-gradient-to-br from-purple-50/60 to-white space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 text-purple-700 font-bold">
+                        🎙️
+                      </div>
+                      <div>
+                        <h5 className="font-bold text-sm text-slate-900">
+                          공식 크리에이터
+                        </h5>
+                        <p className="text-[11px] text-muted-foreground">
+                          라이브커머스 핀 상품 연동 및 판매 커미션 정산
+                        </p>
+                      </div>
+                    </div>
+
+                    {role === 'CREATOR' || role === 'ADMIN' ? (
+                      <Button
+                        asChild
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs h-9 shadow-xs"
+                      >
+                        <Link href="/streamer">
+                          <Radio className="h-3.5 w-3.5 mr-1.5" />
+                          🎙️ 크리에이터 스튜디오 이동하기
+                          <ExternalLink className="h-3 w-3 ml-1" />
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => requireAuth(() => openCreatorModal())}
+                        variant="outline"
+                        className="w-full border-purple-300 text-purple-700 hover:bg-purple-50 font-bold text-xs h-9"
+                      >
+                        <Mic className="h-3.5 w-3.5 mr-1.5" />
+                        크리에이터 신청하기 (소통·커머스)
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Company Super Admin Console Card (Admins Only) */}
+                {role === 'ADMIN' && (
+                  <div className="p-4 rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Crown className="h-5 w-5 text-amber-600" />
+                        <div>
+                          <h5 className="font-bold text-sm text-slate-900">
+                            👑 회사 총괄 운영진 관리자 콘솔
+                          </h5>
+                          <p className="text-[11px] text-muted-foreground">
+                            전체 회원 권한 심사, 입점 승인, 크리에이터 심사 및 결제 정산 통합 관리
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        asChild
+                        className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs h-8"
+                      >
+                        <Link href="/dashboard">
+                          콘솔 접속
+                          <ExternalLink className="h-3 w-3 ml-1" />
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* My Sales Management */}
+              <div className="rounded-3xl bg-white p-6 border shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+                    <Package className="h-4 w-4 text-orange-500" />
+                    내 중고 판매 관리
+                  </h4>
                   <Button
                     onClick={() => {
                       requireAuth(() => setIsNewUsedModalOpen(true))
                     }}
-                    className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-xs h-9"
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-orange-600 font-bold"
                   >
-                    <PlusCircle className="h-4 w-4 mr-1.5" />
-                    중고물품 판매글 작성
+                    + 새 상품 등록
                   </Button>
                 </div>
-              </div>
 
-              {/* Used Items Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-                {usedProducts.map((item) => (
-                  <Card
-                    key={item.id}
-                    onClick={() => setSelectedUsedItem(item)}
-                    className="group cursor-pointer overflow-hidden border border-slate-200/80 hover:border-orange-300 hover:shadow-lg transition-all rounded-xl bg-white"
-                  >
-                    <div className="relative aspect-square w-full overflow-hidden bg-slate-100">
-                      <img
-                        src={item.images[0]}
-                        alt={item.title}
-                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <Badge className="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-xs text-white text-[10px] border-none">
-                        {item.category}
+                <div className="space-y-3">
+                  {mySalesList.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between p-3 rounded-xl border bg-slate-50/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={item.image}
+                          alt="item"
+                          className="h-12 w-12 rounded-lg object-cover"
+                        />
+                        <div>
+                          <h5 className="font-bold text-xs text-slate-900">{item.title}</h5>
+                          <span className="font-extrabold text-xs text-slate-900">
+                            {item.price.toLocaleString()}원
+                          </span>
+                        </div>
+                      </div>
+
+                      <Badge
+                        className={`text-[10px] font-bold ${
+                          item.status === 'ACTIVE'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {item.statusLabel}
                       </Badge>
                     </div>
-
-                    <CardContent className="p-4 space-y-2">
-                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                        <span className="flex items-center gap-1 truncate max-w-[140px]">
-                          <MapPin className="h-3 w-3 text-orange-500" />
-                          {item.locationName}
-                        </span>
-                        <span>{item.createdAt}</span>
-                      </div>
-
-                      <h3 className="text-sm font-bold text-slate-900 line-clamp-2 group-hover:text-orange-600 transition-colors">
-                        {item.title}
-                      </h3>
-
-                      <div className="flex items-baseline justify-between pt-1">
-                        <span className="text-base font-extrabold text-slate-900">
-                          {item.price.toLocaleString()}원
-                        </span>
-                        <span className="text-[10px] font-semibold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">
-                          에스크로 안전거래
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2 border-t text-[11px] text-slate-500">
-                        <span className="truncate">{item.sellerNickname}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="flex items-center gap-0.5">
-                            <Heart className="h-3 w-3 text-rose-400" />
-                            {item.likesCount}
-                          </span>
-                          <span className="flex items-center gap-0.5">
-                            <MessageCircle className="h-3 w-3 text-blue-400" />
-                            {item.chatsCount}
-                          </span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* --------------------------------------------------------- */}
-          {/* TAB 4: 🛒 마켓 & 공동구매 (B2C & GROUP)                   */}
-          {/* --------------------------------------------------------- */}
-          {activeTab === 'MARKET' && (
-            <section className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <h2 className="text-lg font-bold flex items-center gap-2">
-                    <ShoppingBag className="h-5 w-5 text-emerald-600" />
-                    본사직영관 · 공식입점사관 · 공동구매 핫딜
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    검증된 산지직송 식품부터 생활 꿀템까지 모꼬 공식 보증으로 안심 쇼핑하세요.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
-                  <button
-                    onClick={() => setMarketSubTab('ALL')}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold ${marketSubTab === 'ALL' ? 'bg-white text-emerald-600 shadow-2xs' : 'text-slate-600'}`}
-                  >
-                    전체보기
-                  </button>
-                  <button
-                    onClick={() => setMarketSubTab('HQ')}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold ${marketSubTab === 'HQ' ? 'bg-white text-emerald-600 shadow-2xs' : 'text-slate-600'}`}
-                  >
-                    본사직영
-                  </button>
-                  <button
-                    onClick={() => setMarketSubTab('MERCHANT')}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold ${marketSubTab === 'MERCHANT' ? 'bg-white text-emerald-600 shadow-2xs' : 'text-slate-600'}`}
-                  >
-                    공식입점사
-                  </button>
-                  <button
-                    onClick={() => setMarketSubTab('GROUP')}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold ${marketSubTab === 'GROUP' ? 'bg-white text-emerald-600 shadow-2xs' : 'text-slate-600'}`}
-                  >
-                    공동구매특가
-                  </button>
-                </div>
-              </div>
-
-              {/* Products Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-                {marketProducts
-                  .filter((p) => {
-                    if (marketSubTab === 'HQ') return p.isHqDirect
-                    if (marketSubTab === 'MERCHANT') return p.ownerType === 'MERCHANT'
-                    if (marketSubTab === 'GROUP') return p.type === 'B2C_GROUP'
-                    return true
-                  })
-                  .map((product) => (
-                    <Card
-                      key={product.id}
-                      onClick={() => setSelectedProduct(product)}
-                      className="group cursor-pointer overflow-hidden border border-slate-200/80 hover:border-emerald-300 hover:shadow-lg transition-all rounded-xl bg-white"
-                    >
-                      <div className="relative aspect-square w-full overflow-hidden bg-slate-100">
-                        <img
-                          src={product.images[0]}
-                          alt={product.title}
-                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                          {product.isHqDirect ? (
-                            <Badge className="bg-amber-600 text-white font-bold text-[10px] border-none shadow-2xs">
-                              본사직영
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-emerald-600 text-white font-bold text-[10px] border-none shadow-2xs">
-                              공식입점
-                            </Badge>
-                          )}
-                          {product.type === 'B2C_GROUP' && (
-                            <Badge className="bg-rose-600 text-white font-bold text-[10px] border-none">
-                              공동구매
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-
-                      <CardContent className="p-4 space-y-2">
-                        <div className="text-[11px] font-semibold text-slate-500 truncate">
-                          {product.sellerName}
-                        </div>
-
-                        <h3 className="text-sm font-bold text-slate-900 line-clamp-2 group-hover:text-emerald-600 transition-colors">
-                          {product.title}
-                        </h3>
-
-                        <div className="pt-1">
-                          {product.originalPrice && (
-                            <span className="text-xs text-slate-400 line-through mr-1.5">
-                              {product.originalPrice.toLocaleString()}원
-                            </span>
-                          )}
-                          <div className="flex items-baseline gap-1.5">
-                            {product.originalPrice && (
-                              <span className="text-sm font-extrabold text-rose-600">
-                                {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
-                              </span>
-                            )}
-                            <span className="text-base font-extrabold text-slate-900">
-                              {product.price.toLocaleString()}원
-                            </span>
-                          </div>
-                        </div>
-
-                        {product.type === 'B2C_GROUP' && product.targetQuantity && (
-                          <div className="pt-2">
-                            <div className="flex justify-between text-[11px] mb-1 font-medium">
-                              <span className="text-rose-600 font-bold">
-                                목표 {product.targetQuantity}박스 중 {product.currentQuantity}박스 달성
-                              </span>
-                              <span className="text-slate-500">
-                                {Math.round(((product.currentQuantity || 0) / product.targetQuantity) * 100)}%
-                              </span>
-                            </div>
-                            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-rose-500 rounded-full"
-                                style={{
-                                  width: `${Math.min(
-                                    100,
-                                    Math.round(((product.currentQuantity || 0) / product.targetQuantity) * 100)
-                                  )}%`,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
                   ))}
+                </div>
               </div>
-            </section>
+            </div>
           )}
         </main>
       </div>
 
       {/* ========================================================= */}
-      {/* 3. Global Modals Section                                  */}
+      {/* 3. Mobile Bottom Navigation Bar (md:hidden)               */}
+      {/* 100% Matching apps/mobile TabNavigator                     */}
+      {/* ========================================================= */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t shadow-lg px-2 py-1.5 flex items-center justify-around">
+        {/* 1. 홈 */}
+        <button
+          onClick={() => setActiveTab('HOME')}
+          className={`flex flex-col items-center gap-0.5 py-1 px-2 ${
+            activeTab === 'HOME' ? 'text-pink-600 font-bold' : 'text-slate-500'
+          }`}
+        >
+          <Home className="h-5 w-5" />
+          <span className="text-[10px]">모꼬홈</span>
+        </button>
+
+        {/* 2. 마켓 */}
+        <button
+          onClick={() => setActiveTab('MARKET')}
+          className={`flex flex-col items-center gap-0.5 py-1 px-2 ${
+            activeTab === 'MARKET' ? 'text-emerald-600 font-bold' : 'text-slate-500'
+          }`}
+        >
+          <Store className="h-5 w-5" />
+          <span className="text-[10px]">모꼬마켓</span>
+        </button>
+
+        {/* 3. 라이브 (중앙 돌출 라운드 그라디언트 FAB) */}
+        <button
+          onClick={() => setActiveTab('LIVE')}
+          className="relative -top-3 flex flex-col items-center group"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-500 text-white shadow-lg shadow-rose-500/30 group-active:scale-95 transition-transform">
+            <Radio className="h-6 w-6 animate-pulse" />
+          </div>
+          <span className="text-[10px] font-extrabold text-rose-600 mt-0.5">
+            모꼬 LIVE
+          </span>
+        </button>
+
+        {/* 4. 채팅 */}
+        <button
+          onClick={() => setActiveTab('CHAT')}
+          className={`flex flex-col items-center gap-0.5 py-1 px-2 ${
+            activeTab === 'CHAT' ? 'text-blue-600 font-bold' : 'text-slate-500'
+          }`}
+        >
+          <MessageCircle className="h-5 w-5" />
+          <span className="text-[10px]">모꼬쳇</span>
+        </button>
+
+        {/* 5. 마이 */}
+        <button
+          onClick={() => setActiveTab('MY')}
+          className={`flex flex-col items-center gap-0.5 py-1 px-2 ${
+            activeTab === 'MY' ? 'text-purple-600 font-bold' : 'text-slate-500'
+          }`}
+        >
+          <User className="h-5 w-5" />
+          <span className="text-[10px]">마이모꼬</span>
+        </button>
+      </div>
+
+      {/* ========================================================= */}
+      {/* 4. Global Modals Section                                  */}
       {/* ========================================================= */}
 
       {/* 1) Login & Register Modal */}
@@ -1801,53 +3055,58 @@ export default function CustomerWebStorefrontPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-700">통신판매업 신고번호 (선택)</label>
+                <label className="font-semibold text-slate-700">통신판매업신고번호</label>
                 <Input
                   value={merchantForm.onlineOrderNumber}
                   onChange={(e) => setMerchantForm({ ...merchantForm, onlineOrderNumber: e.target.value })}
-                  placeholder="제2026-서울강남-0123호"
+                  placeholder="예: 제 2024-서울강남-1234호"
                   className="text-xs"
                 />
               </div>
 
-              <div className="rounded-xl bg-slate-50 p-3 border space-y-2">
-                <span className="font-bold text-slate-800">정산 계좌 정보</span>
-                <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-700">정산 은행</label>
                   <Input
                     value={merchantForm.bankName}
                     onChange={(e) => setMerchantForm({ ...merchantForm, bankName: e.target.value })}
-                    placeholder="은행명 (국민)"
+                    placeholder="국민은행"
                     className="text-xs"
                   />
+                </div>
+                <div className="space-y-1 col-span-2">
+                  <label className="font-semibold text-slate-700">정산 계좌번호</label>
                   <Input
                     value={merchantForm.accountNumber}
                     onChange={(e) => setMerchantForm({ ...merchantForm, accountNumber: e.target.value })}
-                    placeholder="계좌번호 (-포함)"
-                    className="text-xs col-span-2"
+                    placeholder="계좌번호 (- 없이 입력)"
+                    className="text-xs"
                   />
                 </div>
               </div>
 
-              <div className="rounded-lg bg-emerald-50 p-3 text-[11px] text-emerald-800 border border-emerald-200">
-                ✅ 입점 신청 즉시 승격 처리되며, 상단에 <strong>[🏪 입점사 셀러 센터]</strong> 버튼이 활성화되어 바로 관리자 화면으로 진입할 수 있습니다.
+              <div className="space-y-1">
+                <label className="font-semibold text-slate-700">예금주</label>
+                <Input
+                  value={merchantForm.accountHolder}
+                  onChange={(e) => setMerchantForm({ ...merchantForm, accountHolder: e.target.value })}
+                  placeholder="예금주 성명"
+                  className="text-xs"
+                />
               </div>
             </div>
 
             <Button
               onClick={async () => {
-                if (!merchantForm.businessName || !merchantForm.businessNumber) {
-                  toast({ title: '입력 오류', description: '상호명과 사업자번호를 입력해주세요.', variant: 'destructive' })
-                  return
-                }
                 await applyMerchant(merchantForm)
                 toast({
-                  title: '🎉 입점사 승격 완료!',
-                  description: '상단 네비게이션에 [🏪 입점사 셀러 센터] 버튼이 활성화되었습니다.',
+                  title: '🎉 모꼬 공식 입점사 승격 완료!',
+                  description: '상단 우측에 [🏪 입점사 셀러 센터] 바로가기 버튼이 활성화되었습니다.',
                 })
               }}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
             >
-              입점 신청 및 승격 완료하기
+              입점사 승격 신청 및 셀러 센터 활성화
             </Button>
           </div>
         </div>
@@ -1856,7 +3115,7 @@ export default function CustomerWebStorefrontPage() {
       {/* 3) Creator Application Modal (크리에이터 신청) */}
       {isCreatorModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border space-y-4">
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border space-y-4">
             <button
               onClick={closeCreatorModal}
               className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
@@ -1870,209 +3129,78 @@ export default function CustomerWebStorefrontPage() {
                   🎙️
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">
-                  모꼬 공식 크리에이터(스트리머) 파트너 신청
+                  모꼬 공식 크리에이터 신청
                 </h3>
               </div>
               <p className="text-xs text-muted-foreground">
-                일반 회원도 소통 방송을 할 수 있지만, 공식 크리에이터로 계약/승격되면 본사 및 입점사 상품을 내 방송에 핀으로 연결하여 판매하고 커미션 정산을 받을 수 있습니다.
+                크리에이터로 승격되면 방송 중에 마켓 상품을 핀(Pin)하여 실시간 판매하고 커미션 정산을 받을 수 있습니다.
               </p>
             </div>
 
             <div className="space-y-3 pt-2 text-xs">
               <div className="space-y-1">
-                <label className="font-semibold text-slate-700">활동 채널명 / 방송 닉네임</label>
+                <label className="font-semibold text-slate-700">활동 채널명 / 닉네임</label>
                 <Input
                   value={creatorForm.channelName}
                   onChange={(e) => setCreatorForm({ ...creatorForm, channelName: e.target.value })}
-                  placeholder="예: 별빛소통 민지 채널"
+                  placeholder="예: 별빛소통_민지"
                   className="text-xs"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-700">방송 주 분야 / 카테고리</label>
+                <label className="font-semibold text-slate-700">주요 방송 카테고리</label>
                 <select
                   value={creatorForm.category}
                   onChange={(e) => setCreatorForm({ ...creatorForm, category: e.target.value })}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs"
                 >
-                  <option value="소통/라이프">소통/일상/힐링 토크</option>
-                  <option value="푸드/먹방">푸드/신선식품 라이브커머스</option>
-                  <option value="패션/뷰티">패션/뷰티/스타일링</option>
-                  <option value="IT/전자기기">IT/전자기기/언박싱</option>
-                  <option value="취미/음악">취미/악기/음악 방송</option>
+                  <option value="소통/일상">소통 / 일상</option>
+                  <option value="라이브커머스/푸드">라이브커머스 / 푸드</option>
+                  <option value="IT/테크기기">IT / 테크기기</option>
+                  <option value="패션/뷰티">패션 / 뷰티</option>
+                  <option value="음악/노래">음악 / 라이브 버스킹</option>
                 </select>
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-700">채널 소개글</label>
+                <label className="font-semibold text-slate-700">주 활동 시간대</label>
                 <Input
-                  value={creatorForm.bio}
-                  onChange={(e) => setCreatorForm({ ...creatorForm, bio: e.target.value })}
-                  placeholder="이웃들과 진솔하게 소통하며 솔직한 리뷰를 전합니다 ✨"
+                  value={creatorForm.activeTime}
+                  onChange={(e) => setCreatorForm({ ...creatorForm, activeTime: e.target.value })}
+                  placeholder="예: 매일 저녁 8시 ~ 10시"
                   className="text-xs"
                 />
               </div>
 
-              <div className="rounded-lg bg-purple-50 p-3 text-[11px] text-purple-800 border border-purple-200">
-                ✨ 크리에이터 승격 즉시 상단에 <strong>[🎙️ 크리에이터 스튜디오]</strong> 버튼이 활성화되어 라이브커머스 핀 상품 바구니 담기 및 커미션 정산을 이용하실 수 있습니다.
+              <div className="space-y-1">
+                <label className="font-semibold text-slate-700">채널 소개 및 포부</label>
+                <Input
+                  value={creatorForm.bio}
+                  onChange={(e) => setCreatorForm({ ...creatorForm, bio: e.target.value })}
+                  placeholder="이웃들과 진솔한 소통 및 신선한 흑돼지 산지직송을 소개하고 싶습니다!"
+                  className="text-xs"
+                />
               </div>
             </div>
 
             <Button
               onClick={async () => {
-                if (!creatorForm.channelName) {
-                  toast({ title: '입력 오류', description: '활동 채널명을 입력해주세요.', variant: 'destructive' })
-                  return
-                }
                 await applyCreator(creatorForm)
                 toast({
-                  title: '🎉 공식 크리에이터 승격 완료!',
-                  description: '상단 네비게이션에 [🎙️ 크리에이터 스튜디오] 버튼이 활성화되었습니다.',
+                  title: '🎉 모꼬 공식 크리에이터 승격 완료!',
+                  description: '상단 우측에 [🎙️ 크리에이터 스튜디오] 바로가기 버튼이 활성화되었습니다.',
                 })
               }}
               className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs"
             >
-              크리에이터 파트너 신청 및 승격하기
+              크리에이터 승격 및 스튜디오 활성화
             </Button>
           </div>
         </div>
       )}
 
-      {/* 4) Interactive Live Viewer Modal */}
-      {activeLiveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-4xl h-[85vh] rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden shadow-2xl flex flex-col md:flex-row">
-            <button
-              onClick={() => setActiveLiveModal(null)}
-              className="absolute right-4 top-4 z-20 h-8 w-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/90"
-            >
-              <X className="h-4 w-4" />
-            </button>
-
-            {/* Left: Video Player Simulation */}
-            <div className="relative flex-1 bg-black flex flex-col justify-between p-4 overflow-hidden">
-              <img
-                src={activeLiveModal.coverUrl}
-                alt="stream"
-                className="absolute inset-0 h-full w-full object-cover opacity-60"
-              />
-
-              <div className="relative z-10 flex items-center justify-between">
-                <div className="flex items-center gap-2 bg-black/60 backdrop-blur-xs px-3 py-1.5 rounded-full text-white">
-                  <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-                  <span className="text-xs font-bold">MOCCO LIVE</span>
-                  <span className="text-xs text-slate-300">
-                    {activeLiveModal.viewerCount.toLocaleString()}명 시청 중
-                  </span>
-                </div>
-              </div>
-
-              {/* Bottom: Floating Pinned Product Card */}
-              <div className="relative z-10 space-y-2">
-                {activeLiveModal.pinnedProduct && (
-                  <div className="flex items-center justify-between rounded-xl bg-black/70 backdrop-blur-md p-3 border border-white/10 text-white">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={activeLiveModal.pinnedProduct.image}
-                        alt="pin"
-                        className="h-12 w-12 rounded-lg object-cover"
-                      />
-                      <div>
-                        <span className="text-[10px] font-bold text-rose-400">
-                          🔴 방송 단독 특가 상품
-                        </span>
-                        <h4 className="text-xs font-bold truncate max-w-[200px] sm:max-w-xs">
-                          {activeLiveModal.pinnedProduct.title}
-                        </h4>
-                        <span className="text-sm font-extrabold text-white">
-                          {activeLiveModal.pinnedProduct.price.toLocaleString()}원
-                        </span>
-                      </div>
-                    </div>
-
-                    <Button
-                      onClick={() => {
-                        requireAuth(() => {
-                          setCheckoutTarget({
-                            title: activeLiveModal.pinnedProduct!.title,
-                            price: activeLiveModal.pinnedProduct!.price,
-                            shippingFee: 0,
-                            image: activeLiveModal.pinnedProduct!.image,
-                          })
-                          setIsCheckoutOpen(true)
-                        })
-                      }}
-                      className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs"
-                      size="sm"
-                    >
-                      바로구매
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Right: Live Chat & Donation Sidebar */}
-            <div className="w-full md:w-80 h-72 md:h-full bg-slate-900 border-t md:border-t-0 md:border-l border-slate-800 flex flex-col text-white">
-              <div className="p-3 border-b border-slate-800 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <img
-                    src={activeLiveModal.hostAvatar}
-                    alt="host"
-                    className="h-8 w-8 rounded-full object-cover border border-slate-700"
-                  />
-                  <div>
-                    <h4 className="text-xs font-bold text-white">
-                      {activeLiveModal.hostNickname}
-                    </h4>
-                    <span className="text-[10px] text-slate-400">{activeLiveModal.category}</span>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={handleSendLiveGift}
-                  size="sm"
-                  className="h-7 text-[11px] bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold"
-                >
-                  <Heart className="h-3 w-3 mr-1 fill-white" />
-                  선물후원
-                </Button>
-              </div>
-
-              <div className="flex-1 p-3 overflow-y-auto space-y-2 text-xs">
-                {liveChatMessages.map((msg, idx) => (
-                  <div key={idx} className="space-y-0.5">
-                    <span className="font-semibold text-rose-400 text-[11px]">
-                      {msg.sender}:
-                    </span>
-                    <span className="text-slate-200 ml-1.5">{msg.text}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="p-3 border-t border-slate-800 flex items-center gap-2">
-                <Input
-                  value={liveChatInput}
-                  onChange={(e) => setLiveChatInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSendLiveChat()}
-                  placeholder={isAuthenticated ? '실시간 응원 채팅 입력...' : '로그인 후 채팅 가능'}
-                  className="bg-slate-800 border-slate-700 text-white text-xs h-8"
-                />
-                <Button
-                  onClick={handleSendLiveChat}
-                  size="sm"
-                  className="bg-rose-600 hover:bg-rose-700 text-white h-8 px-2.5"
-                >
-                  전송
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 5) Start Live Modal (일반 회원 누구나 방송 개설 가능!) */}
+      {/* 4) Start Live Modal (일반 회원 누구나 방송 가능, 크리에이터는 상품 핀 연결 가능) */}
       {isStartLiveModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
           <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border space-y-4">
@@ -2085,11 +3213,11 @@ export default function CustomerWebStorefrontPage() {
 
             <div className="space-y-1">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-1.5">
-                <Video className="h-5 w-5 text-rose-600" />
-                모꼬 실시간 라이브 방송 시작하기
+                <Radio className="h-4 w-4 text-rose-600" />
+                모꼬 실시간 라이브 방송 개설
               </h3>
               <p className="text-xs text-muted-foreground">
-                일반 회원은 이웃과의 자유 소통 방송을 열 수 있으며, 크리에이터는 상품 핀을 연결할 수 있습니다.
+                누구나 스마트폰 및 웹캠으로 동네 이웃과 소통 방송을 즉시 시작할 수 있습니다.
               </p>
             </div>
 
@@ -2099,7 +3227,7 @@ export default function CustomerWebStorefrontPage() {
                 <Input
                   value={newLiveTitle}
                   onChange={(e) => setNewLiveTitle(e.target.value)}
-                  placeholder="예: 오늘 밤 이웃들과 함께하는 편안한 일상 소통 토크"
+                  placeholder="예: 저녁 퇴근길 이웃과 소소한 커피 수다방 ☕"
                   className="text-xs"
                 />
               </div>
@@ -2111,31 +3239,168 @@ export default function CustomerWebStorefrontPage() {
                   onChange={(e) => setNewLiveCategory(e.target.value)}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs"
                 >
-                  <option value="소통/일상">소통/일상/힐링 토크</option>
-                  <option value="취미/토크">취미/음악/자유 수다</option>
-                  <option value="푸드/라이브커머스">푸드/라이브커머스</option>
-                  <option value="패션/뷰티">패션/뷰티</option>
+                  <option value="토크/소통">토크 / 소통</option>
+                  <option value="쇼핑/커머스">쇼핑 / 커머스 (크리에이터 권장)</option>
+                  <option value="일상">일상</option>
+                  <option value="취미">취미</option>
+                  <option value="음악/노래">음악 / 노래</option>
                 </select>
               </div>
 
-              {role === 'USER' && (
-                <div className="rounded-lg bg-slate-50 p-3 text-[11px] text-slate-600 border">
-                  💡 <strong>안내:</strong> 현재 일반 회원 권한으로 개설하는 소통 방송입니다. 방송 중에 본사 및 입점사 상품을 연결하여 판매하고 수익을 정산받으시려면 <strong>[크리에이터 파트너 신청]</strong>을 진행해 주세요.
+              {role === 'CREATOR' || role === 'ADMIN' ? (
+                <div className="rounded-xl bg-purple-50 p-3 border border-purple-100 text-purple-900 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <Sparkles className="h-3.5 w-3.5 text-purple-600" />
+                    공식 크리에이터 커머스 핀 혜택 적용
+                  </div>
+                  <p className="text-[11px] text-purple-700">
+                    방송 개설 시 모꼬 인기 상품(제주 흑돼지 등)이 자동으로 핀 상품으로 연결되어 실시간 판매 수수료가 적립됩니다.
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-xl bg-slate-50 p-3 border text-slate-600 text-[11px]">
+                  💡 일반 회원은 자유 소통 방송이 가능하며, 커머스 상품 판매를 원하시면 크리에이터 신청을 진행해주세요.
                 </div>
               )}
             </div>
 
             <Button
               onClick={handleCreateLiveRoom}
-              className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs h-10"
+              className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs"
             >
-              지금 온에어 방송 시작하기
+              온에어 방송 송출 시작하기
             </Button>
           </div>
         </div>
       )}
 
-      {/* 6) Used Item Detail Modal */}
+      {/* 5) Live Room Viewer Modal */}
+      {activeLiveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-4xl rounded-2xl bg-slate-950 text-white shadow-2xl border border-slate-800 overflow-hidden flex flex-col md:flex-row h-[85vh] max-h-[700px]">
+            <button
+              onClick={() => setActiveLiveModal(null)}
+              className="absolute right-3 top-3 z-20 rounded-full bg-black/60 p-1.5 text-white/80 hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Left Stream Area (Desktop Wide View) */}
+            <div className="relative flex-1 bg-black flex items-center justify-center overflow-hidden">
+              <img
+                src={activeLiveModal.coverUrl}
+                alt="stream"
+                className="h-full w-full object-cover opacity-90"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
+
+              {/* Stream Overlay Header */}
+              <div className="absolute top-3 left-3 flex items-center gap-2">
+                <Badge className="bg-rose-600 text-white font-bold border-none text-[10px]">
+                  LIVE ON-AIR
+                </Badge>
+                <span className="text-xs text-white/90 font-medium">
+                  시청자 {activeLiveModal.viewerCount.toLocaleString()}명
+                </span>
+              </div>
+
+              {/* Pinned Product In-Stream Overlay */}
+              {activeLiveModal.pinnedProduct && (
+                <div className="absolute bottom-4 left-4 right-4 flex items-center gap-3 rounded-2xl bg-white/95 p-2.5 text-slate-900 shadow-xl backdrop-blur-md">
+                  <img
+                    src={activeLiveModal.pinnedProduct.image}
+                    alt="product"
+                    className="h-12 w-12 rounded-xl object-cover"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] font-bold text-rose-600">
+                      🔴 방송 단독 핀 특가 상품
+                    </span>
+                    <h4 className="text-xs font-bold truncate">
+                      {activeLiveModal.pinnedProduct.title}
+                    </h4>
+                    <span className="text-sm font-black text-slate-900">
+                      {activeLiveModal.pinnedProduct.price.toLocaleString()}원
+                    </span>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      requireAuth(() => {
+                        setCheckoutTarget({
+                          title: activeLiveModal.pinnedProduct!.title,
+                          price: activeLiveModal.pinnedProduct!.price,
+                          shippingFee: 3000,
+                          image: activeLiveModal.pinnedProduct!.image,
+                        })
+                        setIsCheckoutOpen(true)
+                      })
+                    }}
+                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs h-9 px-3 shrink-0 shadow-md"
+                  >
+                    즉시 구매
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Right Live Chat Stream (Desktop Split View) */}
+            <div className="w-full md:w-80 flex flex-col bg-slate-900 border-l border-slate-800">
+              <div className="p-3 border-b border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <img
+                    src={activeLiveModal.hostAvatar}
+                    alt="host"
+                    className="h-7 w-7 rounded-full object-cover"
+                  />
+                  <span className="font-bold text-xs text-slate-200">
+                    {activeLiveModal.hostNickname}
+                  </span>
+                </div>
+                <Button
+                  onClick={handleSendLiveGift}
+                  size="sm"
+                  className="bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold text-[11px] h-7 px-2.5"
+                >
+                  <Heart className="h-3 w-3 mr-1 fill-white" />
+                  1,000 P 선물
+                </Button>
+              </div>
+
+              {/* Chat Log */}
+              <div className="flex-1 p-3 overflow-y-auto space-y-2 text-xs">
+                {liveChatMessages.map((m, i) => (
+                  <div key={i} className="flex items-start gap-1.5 leading-snug">
+                    <span className="font-bold text-pink-400 shrink-0">{m.sender}:</span>
+                    <span className="text-slate-300 break-all">{m.text}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Live Chat Input */}
+              <div className="p-3 border-t border-slate-800 flex items-center gap-2">
+                <Input
+                  value={liveChatInput}
+                  onChange={(e) => setLiveChatInput(e.target.value)}
+                  placeholder="실시간 댓글 남기기..."
+                  className="text-xs bg-slate-800 border-slate-700 text-white"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSendLiveChat()
+                  }}
+                />
+                <Button
+                  onClick={handleSendLiveChat}
+                  size="sm"
+                  className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-9"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6) Used Product Detail Modal */}
       {selectedUsedItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
           <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border space-y-4 max-h-[90vh] overflow-y-auto">
@@ -2146,7 +3411,7 @@ export default function CustomerWebStorefrontPage() {
               <X className="h-5 w-5" />
             </button>
 
-            <div className="aspect-video w-full rounded-xl overflow-hidden bg-slate-100">
+            <div className="aspect-square w-full rounded-xl overflow-hidden bg-slate-100">
               <img
                 src={selectedUsedItem.images[0]}
                 alt={selectedUsedItem.title}
@@ -2154,48 +3419,32 @@ export default function CustomerWebStorefrontPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Badge variant="secondary" className="text-xs">
-                  {selectedUsedItem.category}
-                </Badge>
-                <span className="text-xs text-muted-foreground">
-                  {selectedUsedItem.createdAt}
-                </span>
-              </div>
-
-              <h2 className="text-base font-bold text-slate-900">
-                {selectedUsedItem.title}
-              </h2>
-
-              <p className="text-xl font-extrabold text-slate-900">
-                {selectedUsedItem.price.toLocaleString()}원
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between rounded-xl bg-slate-50 p-3 border">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <img
                   src={selectedUsedItem.sellerAvatar}
                   alt="avatar"
-                  className="h-10 w-10 rounded-full object-cover border"
+                  className="h-10 w-10 rounded-full object-cover"
                 />
                 <div>
-                  <h4 className="text-xs font-bold text-slate-900">
+                  <h4 className="font-bold text-xs text-slate-900">
                     {selectedUsedItem.sellerNickname}
                   </h4>
-                  <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                    <MapPin className="h-3 w-3 text-orange-500" />
+                  <span className="text-[10px] text-muted-foreground">
                     {selectedUsedItem.locationName}
                   </span>
                 </div>
               </div>
-              <div className="text-right">
-                <span className="text-xs font-bold text-orange-600">
-                  {selectedUsedItem.mannerTemp}°C
-                </span>
-                <p className="text-[10px] text-muted-foreground">매너온도</p>
-              </div>
+              <Badge variant="outline" className="text-xs font-bold text-orange-600 border-orange-200">
+                매너온도 {selectedUsedItem.mannerTemp}℃
+              </Badge>
+            </div>
+
+            <div className="space-y-1 pt-1 border-t">
+              <h3 className="text-base font-bold text-slate-900">{selectedUsedItem.title}</h3>
+              <p className="text-xl font-black text-slate-900">
+                {selectedUsedItem.price.toLocaleString()}원
+              </p>
             </div>
 
             <div className="space-y-1">
@@ -2209,11 +3458,46 @@ export default function CustomerWebStorefrontPage() {
               <Button
                 onClick={() => {
                   requireAuth(() => {
+                    const target = selectedUsedItem
                     setSelectedUsedItem(null)
+                    // Open Chat with seller
+                    const existing = chatRooms.find((r) => r.targetNickname.includes(target.sellerNickname))
+                    if (existing) {
+                      setActiveChatRoom(existing)
+                    } else {
+                      const newRoom: ChatRoomItem = {
+                        id: 'chat-used-' + Date.now(),
+                        type: 'MARKET',
+                        targetNickname: target.sellerNickname,
+                        targetAvatar: target.sellerAvatar,
+                        lastMessage: '상품 문의드립니다!',
+                        lastTime: '방금',
+                        unreadCount: 0,
+                        productInfo: {
+                          id: target.id,
+                          title: target.title,
+                          price: target.price,
+                          image: target.images[0],
+                        },
+                        messages: [
+                          {
+                            id: 'msg-used-1',
+                            senderId: 'me',
+                            senderNickname: '나',
+                            text: `안녕하세요! 등록하신 '${target.title}' 상품 문의드립니다.`,
+                            time: '방금',
+                            isMe: true,
+                          },
+                        ],
+                      }
+                      setChatRooms([newRoom, ...chatRooms])
+                      setActiveChatRoom(newRoom)
+                    }
                     setActiveTab('CHAT')
+                    setChatSubTab('CHATS')
                     toast({
                       title: '💬 1:1 대화방 연결',
-                      description: `${selectedUsedItem.sellerNickname} 님과의 대화창으로 이동했습니다.`,
+                      description: `${target.sellerNickname} 님과의 대화창으로 이동했습니다.`,
                     })
                   })
                 }}
@@ -2495,7 +3779,8 @@ export default function CustomerWebStorefrontPage() {
                     <option value="디지털/가전">디지털/가전</option>
                     <option value="가구/인테리어">가구/인테리어</option>
                     <option value="패션/의류">패션/의류</option>
-                    <option value="생활/주방">생활/주방</option>
+                    <option value="생활/리빙">생활/리빙</option>
+                    <option value="식품/신선">식품/신선</option>
                   </select>
                 </div>
               </div>
@@ -2571,7 +3856,7 @@ export default function CustomerWebStorefrontPage() {
       )}
 
       {/* ========================================================= */}
-      {/* 4. 시연/검수용 플로팅 역할 스위처 (헤더 레이아웃 침범 방지)    */}
+      {/* 5. 시연/검수용 플로팅 역할 스위처 (헤더 레이아웃 침범 방지)    */}
       {/* 나중에 삭제 시 아래 한 줄만 지우면 깔끔하게 제거됩니다.        */}
       {/* ========================================================= */}
       <RoleSwitcherFloating />
