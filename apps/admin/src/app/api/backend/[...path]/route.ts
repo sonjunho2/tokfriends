@@ -29,9 +29,19 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
   }
 
   const token = request.cookies.get(SESSION_COOKIE)?.value
-  const isPublicHealthCheck = path === 'health'
+  const isPublicEndpoint =
+    path === 'health' ||
+    path.startsWith('auth/') ||
+    path.startsWith('market') ||
+    path.startsWith('streaming') ||
+    path.startsWith('merchants/products') ||
+    path.startsWith('affiliate/products') ||
+    path.startsWith('users/discover') ||
+    path.startsWith('users/check-nickname') ||
+    path.startsWith('users/search') ||
+    path.startsWith('suda')
 
-  if (!token && !isPublicHealthCheck) {
+  if (!token && !isPublicEndpoint) {
     return NextResponse.json({ message: 'Authentication required.' }, { status: 401, headers: { 'Cache-Control': 'no-store' } })
   }
 
@@ -58,9 +68,9 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
     })
   } catch (error) {
     if (error instanceof Error && error.name === 'TimeoutError') {
-      return NextResponse.json({ message: 'Admin API request timed out.' }, { status: 504, headers: { 'Cache-Control': 'no-store' } })
+      return NextResponse.json({ message: 'API request timed out.' }, { status: 504, headers: { 'Cache-Control': 'no-store' } })
     }
-    return NextResponse.json({ message: 'Admin API is unavailable.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
+    return NextResponse.json({ message: 'API is unavailable.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
   }
 
   const responseHeaders = new Headers()

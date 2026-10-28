@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Noto_Sans_KR } from 'next/font/google'
 import {
   BarChart3,
   Bell,
@@ -26,16 +25,15 @@ import {
 import { AppShell, type AppShellNavItem } from '@/components/layout/app-shell'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
+import { WebAuthProvider } from '@/lib/auth-context'
 import { clearAuthStorage } from '@/lib/api'
 import './globals.css'
 
-const notoSansKr = Noto_Sans_KR({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-})
+const notoSansKr = {
+  className: 'font-sans',
+}
 
-const PUBLIC_PATHS = ['/login', '/', '/portal', '/seller', '/streamer']
+const PUBLIC_PATHS = ['/login', '/', '/seller', '/streamer']
 
 const NAV_ITEMS: AppShellNavItem[] = [
   // 1. 본사 총괄 운영
@@ -213,7 +211,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     PUBLIC_PATHS.includes(pathname ?? '/') ||
     (pathname != null &&
       (pathname.startsWith('/web') ||
-        pathname.startsWith('/portal') ||
         pathname.startsWith('/share') ||
         pathname.startsWith('/seller') ||
         pathname.startsWith('/streamer')))
@@ -294,14 +291,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           enableSystem
           disableTransitionOnChange
         >
-          {isPublicPage ? (
-            children
-          ) : (
-            <AppShell items={NAV_ITEMS} adminName={adminName}>
-              {children}
-            </AppShell>
-          )}
-          <Toaster />
+          <WebAuthProvider>
+            {isPublicPage ? (
+              children
+            ) : (
+              <AppShell items={NAV_ITEMS} adminName={adminName}>
+                {children}
+              </AppShell>
+            )}
+            <Toaster />
+          </WebAuthProvider>
         </ThemeProvider>
       </body>
     </html>

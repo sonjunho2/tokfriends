@@ -1,1 +1,5 @@
-export { default } from '@/app/portal/page';
+import { redirect } from 'next/navigation'
+
+export default function WebMarketRedirectPage() {
+  redirect('/')
+}

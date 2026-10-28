@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
+import { useWebAuth } from '@/lib/auth-context'
 
 interface AffiliateProductItem {
   id: string
@@ -137,6 +138,7 @@ const INITIAL_AFFILIATE_PRODUCTS: AffiliateProductItem[] = [
 
 export default function StreamerStudioPage() {
   const { toast } = useToast()
+  const { user, role, openCreatorModal } = useWebAuth()
   const [activeTab, setActiveTab] = useState<'MY_PICKS' | 'EXPLORE'>('MY_PICKS')
   const [searchQuery, setSearchQuery] = useState('')
   const [ownerFilter, setOwnerFilter] = useState<'ALL' | 'HEADQUARTERS' | 'MERCHANT'>('ALL')
@@ -240,26 +242,54 @@ export default function StreamerStudioPage() {
   // Estimated stats
   const totalCommissionPotential = myPicks.reduce((acc, cur) => acc + cur.estimatedCommissionKrw, 0)
 
+  const isAuthorized = role === 'CREATOR' || role === 'ADMIN'
+  const channelName = user?.creatorInfo?.channelName || user?.nickname || '크리에이터'
+  const categoryDesc = user?.creatorInfo?.category || 'D LIVE 소통 & 라이브 커머스'
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
+      {!isAuthorized && (
+        <div className="border-b border-amber-300 bg-amber-50 px-6 py-3 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🎙️</span>
+            <div>
+              <p className="text-xs font-bold">크리에이터(Streamer) 전용 스튜디오입니다.</p>
+              <p className="text-[11px] text-amber-700">현재 일반 회원 권한입니다. 크리에이터 신청을 완료하면 즉시 방송 및 제휴 판매 권한이 활성화됩니다.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={openCreatorModal}
+              size="sm"
+              className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold h-8"
+            >
+              🎙️ 지금 크리에이터 신청하기
+            </Button>
+            <Button asChild variant="outline" size="sm" className="text-xs h-8 bg-white">
+              <Link href="/">홈으로 가기</Link>
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Top Header */}
       <header className="sticky top-0 z-40 border-b border-border/80 bg-background/95 backdrop-blur px-6 py-4">
         <div className="container max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-rose-500 via-pink-500 to-indigo-600 flex items-center justify-center text-white shadow-lg">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-600 via-rose-500 to-indigo-600 flex items-center justify-center text-white shadow-lg">
               <Radio className="w-5 h-5 animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-black tracking-tight bg-gradient-to-r from-rose-500 to-indigo-500 bg-clip-text text-transparent">
-                  모꼬(MOCCO) 스트리머 스튜디오
+                <h1 className="text-xl font-black tracking-tight bg-gradient-to-r from-purple-600 via-rose-500 to-indigo-600 bg-clip-text text-transparent">
+                  {channelName}
                 </h1>
-                <Badge className="bg-rose-500/15 text-rose-500 border-rose-500/30 text-xs font-bold">
-                  공식 계약 스트리머
+                <Badge className="bg-purple-500/15 text-purple-700 border-purple-500/30 text-xs font-bold">
+                  공식 크리에이터 스튜디오
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                제주소녀_혜원 (creator@dagaon.app) | D LIVE 라이브 커머스 제휴 위탁 판매 센터
+                {categoryDesc} | 실시간 라이브 송출 & 제휴 커머스 핀 연동
               </p>
             </div>
           </div>
@@ -273,9 +303,21 @@ export default function StreamerStudioPage() {
             >
               <Link href="/">
                 <ShoppingBag className="w-4 h-4" />
-                🛒 고객 웹 둘러보기
+                🛒 고객 웹 스토어
               </Link>
             </Button>
+            {role === 'ADMIN' && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs font-semibold border-amber-300 text-amber-700 bg-amber-50"
+                asChild
+              >
+                <Link href="/dashboard">
+                  👑 본사 총괄 관리자
+                </Link>
+              </Button>
+            )}
             <Button
               variant="default"
               size="sm"

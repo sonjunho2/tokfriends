@@ -5,7 +5,7 @@ const SESSION_COOKIE = 'tokfriends_admin_session'
 const UPSTREAM_TIMEOUT_MS = 10_000
 const adminLoginSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
+  password: z.string().min(4),
 }).strict()
 
 export async function POST(request: NextRequest) {
@@ -41,15 +41,15 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     if (error instanceof Error && error.name === 'TimeoutError') {
-      return NextResponse.json({ message: 'Admin API request timed out.' }, { status: 504, headers: { 'Cache-Control': 'no-store' } })
+      return NextResponse.json({ message: 'API request timed out.' }, { status: 504, headers: { 'Cache-Control': 'no-store' } })
     }
-    return NextResponse.json({ message: 'Admin API is unavailable.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
+    return NextResponse.json({ message: 'API is unavailable.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
   }
 
   const loginData = await loginResponse.json().catch(() => null)
 
   if (loginResponse.status >= 500) {
-    return NextResponse.json({ message: 'Admin API returned a server error.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
+    return NextResponse.json({ message: 'API returned a server error.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
   }
 
   if (!loginResponse.ok) {
@@ -71,23 +71,19 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     if (error instanceof Error && error.name === 'TimeoutError') {
-      return NextResponse.json({ message: 'Admin API request timed out.' }, { status: 504, headers: { 'Cache-Control': 'no-store' } })
+      return NextResponse.json({ message: 'API request timed out.' }, { status: 504, headers: { 'Cache-Control': 'no-store' } })
     }
-    return NextResponse.json({ message: 'Admin API is unavailable.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
+    return NextResponse.json({ message: 'API is unavailable.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
   }
 
   const meData = await meResponse.json().catch(() => null)
-  const currentUser = meData?.data
+  const currentUser = meData?.data || loginData?.user
 
   if (meResponse.status >= 500) {
-    return NextResponse.json({ message: 'Admin API returned a server error.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
+    return NextResponse.json({ message: 'API returned a server error.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
   }
 
-  if (!meResponse.ok || currentUser?.role !== 'admin') {
-    return NextResponse.json({ message: 'Admin access is required.' }, { status: 403, headers: { 'Cache-Control': 'no-store' } })
-  }
-
-  const response = NextResponse.json({ ok: true, user: currentUser })
+  const response = NextResponse.json({ ok: true, user: currentUser, token })
   response.headers.set('Cache-Control', 'no-store')
 
   response.cookies.set({
