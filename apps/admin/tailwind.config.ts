@@ -51,6 +51,16 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        mocco: {
+          coral: '#FF3B6B',
+          purple: '#8B5CF6',
+          gold: '#F59E0B',
+          bg: '#F8FAFC',
+        },
+      },
+      backgroundImage: {
+        'mocco-sunset': 'linear-gradient(135deg, #FF3B6B 0%, #8B5CF6 100%)',
+        'mocco-gradient': 'linear-gradient(135deg, #FF3B6B 0%, #8B5CF6 100%)',
       },
       borderRadius: {
         lg: "var(--radius)",

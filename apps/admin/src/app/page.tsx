@@ -1120,32 +1120,22 @@ export default function CustomerWebStorefrontPage() {
       <div>
         {/* ========================================================= */}
         {/* 1. Global Navigation Bar (GNB) Header                     */}
-        {/* Figma-Inspired Clean Modern Layout                        */}
+        {/* Clean, Unified Mocco Design System                        */}
         {/* ========================================================= */}
         <header className="sticky top-0 z-40 w-full border-b border-slate-200/80 bg-white/95 backdrop-blur-md shadow-xs">
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-            {/* Logo & Brand Name: MOCCO (모꼬) */}
+            {/* Logo & Brand Name: Large Clean MOCCO */}
             <div className="flex items-center gap-6">
               <button
                 onClick={() => setActiveTab('HOME')}
-                className="flex items-center gap-2.5 group text-left"
+                className="flex items-center gap-3 group text-left"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-500 text-white font-black text-xl shadow-md group-hover:scale-105 transition-transform">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#FF3B6B] to-[#8B5CF6] text-white font-black text-2xl shadow-md shadow-[#FF3B6B]/20 group-hover:scale-105 transition-transform">
                   M
                 </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-pink-600 via-rose-600 to-amber-600 bg-clip-text text-transparent">
-                      MOCCO
-                    </span>
-                    <Badge variant="secondary" className="text-[10px] bg-pink-50 text-pink-700 font-bold border-pink-200">
-                      모꼬 로컬 커머스
-                    </Badge>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground hidden sm:block">
-                    실시간 라이브 · 동네 중고거래 · 산지직송 마켓 · 소통 쳇
-                  </p>
-                </div>
+                <span className="font-black text-2xl sm:text-3xl tracking-tight bg-gradient-to-r from-[#FF3B6B] via-[#E11D48] to-[#8B5CF6] bg-clip-text text-transparent">
+                  MOCCO
+                </span>
               </button>
 
               {/* 5 Core App Tabs Navigation (Desktop) */}
@@ -1155,11 +1145,11 @@ export default function CustomerWebStorefrontPage() {
                   onClick={() => setActiveTab('HOME')}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                     activeTab === 'HOME'
-                      ? 'bg-white text-slate-900 shadow-xs'
+                      ? 'bg-white text-[#FF3B6B] shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <Home className={`h-4 w-4 ${activeTab === 'HOME' ? 'text-pink-600' : 'text-slate-500'}`} />
+                  <Home className={`h-4 w-4 ${activeTab === 'HOME' ? 'text-[#FF3B6B]' : 'text-slate-500'}`} />
                   <span>모꼬홈</span>
                 </button>
 
@@ -1176,18 +1166,18 @@ export default function CustomerWebStorefrontPage() {
                   <span>모꼬마켓</span>
                 </button>
 
-                {/* 3. 모꼬 LIVE (Central Signature Protruding Pill) */}
+                {/* 3. 모꼬 LIVE (Central Signature Pill) */}
                 <button
                   onClick={() => setActiveTab('LIVE')}
                   className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
                     activeTab === 'LIVE'
-                      ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md'
-                      : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                      ? 'bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] text-white shadow-md shadow-[#FF3B6B]/20'
+                      : 'bg-rose-50 text-[#FF3B6B] hover:bg-rose-100'
                   }`}
                 >
-                  <Radio className={`h-4 w-4 animate-pulse ${activeTab === 'LIVE' ? 'text-white' : 'text-rose-600'}`} />
+                  <Radio className={`h-4 w-4 animate-pulse ${activeTab === 'LIVE' ? 'text-white' : 'text-[#FF3B6B]'}`} />
                   <span>모꼬 LIVE</span>
-                  <span className={`flex h-2 w-2 rounded-full ${activeTab === 'LIVE' ? 'bg-white animate-ping' : 'bg-rose-500'}`} />
+                  <span className={`flex h-2 w-2 rounded-full ${activeTab === 'LIVE' ? 'bg-white animate-ping' : 'bg-[#FF3B6B]'}`} />
                 </button>
 
                 {/* 4. 모꼬쳇 */}
@@ -1219,7 +1209,7 @@ export default function CustomerWebStorefrontPage() {
               </nav>
             </div>
 
-            {/* Right Area: Clean User Status & Admin Shortcuts */}
+            {/* Right Area: Clean User Status & Admin Direct Console */}
             <div className="flex items-center gap-2 sm:gap-3">
               {!isAuthenticated ? (
                 /* Guest State */
@@ -1235,7 +1225,7 @@ export default function CustomerWebStorefrontPage() {
                   </Button>
                   <Button
                     onClick={() => openLoginModal()}
-                    className="bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white text-xs font-semibold shadow-xs rounded-xl"
+                    className="bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] hover:opacity-90 text-white text-xs font-semibold shadow-xs rounded-xl"
                     size="sm"
                   >
                     <LogIn className="h-3.5 w-3.5 mr-1" />
@@ -1245,78 +1235,16 @@ export default function CustomerWebStorefrontPage() {
               ) : (
                 /* Authenticated State */
                 <div className="flex items-center gap-2 sm:gap-3">
-                  {/* Point Balance */}
-                  <div className="hidden sm:flex items-center gap-1.5 rounded-xl bg-pink-50 px-2.5 py-1 border border-pink-100">
-                    <span className="text-[11px] font-semibold text-pink-600">ON</span>
-                    <span className="text-xs font-bold text-pink-700">
-                      {(user?.pointBalance || 0).toLocaleString()} P
-                    </span>
-                  </div>
-
-                  {/* Promotion Buttons for Normal User */}
-                  {role === 'USER' && (
-                    <div className="hidden lg:flex items-center gap-1.5">
-                      <Button
-                        onClick={() => openMerchantModal()}
-                        variant="outline"
-                        size="sm"
-                        className="border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-semibold h-8 rounded-xl"
-                      >
-                        <Building2 className="h-3.5 w-3.5 mr-1 text-emerald-600" />
-                        🏪 입점 신청
-                      </Button>
-                      <Button
-                        onClick={() => openCreatorModal()}
-                        variant="outline"
-                        size="sm"
-                        className="border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-semibold h-8 rounded-xl"
-                      >
-                        <Mic className="h-3.5 w-3.5 mr-1 text-purple-600" />
-                        🎙️ 크리에이터 신청
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Dedicated Seller Admin Button for Merchant */}
-                  {role === 'MERCHANT' && (
-                    <Button
-                      asChild
-                      size="sm"
-                      className="bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-bold shadow-xs h-8 rounded-xl"
-                    >
-                      <Link href="/seller">
-                        <Store className="h-3.5 w-3.5 mr-1" />
-                        🏪 입점사 셀러 센터
-                        <ExternalLink className="h-3 w-3 ml-1 opacity-70" />
-                      </Link>
-                    </Button>
-                  )}
-
-                  {/* Dedicated Streamer Studio Button for Creator */}
-                  {role === 'CREATOR' && (
-                    <Button
-                      asChild
-                      size="sm"
-                      className="bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 text-white text-xs font-bold shadow-xs h-8 rounded-xl"
-                    >
-                      <Link href="/streamer">
-                        <Radio className="h-3.5 w-3.5 mr-1" />
-                        🎙️ 크리에이터 스튜디오
-                        <ExternalLink className="h-3 w-3 ml-1 opacity-70" />
-                      </Link>
-                    </Button>
-                  )}
-
-                  {/* Dedicated Super Admin Console Button */}
+                  {/* Dedicated Super Admin Console Button for ADMIN role only */}
                   {role === 'ADMIN' && (
                     <Button
                       asChild
                       size="sm"
-                      className="bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 text-white text-xs font-bold shadow-xs h-8 rounded-xl"
+                      className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs h-8 rounded-xl px-3"
                     >
                       <Link href="/dashboard">
-                        <Crown className="h-3.5 w-3.5 mr-1" />
-                        👑 회사 총괄 관리자 콘솔
+                        <Crown className="h-3.5 w-3.5 mr-1 text-amber-400" />
+                        회사 총괄 관리자 콘솔
                         <ExternalLink className="h-3 w-3 ml-1 opacity-70" />
                       </Link>
                     </Button>
@@ -3266,10 +3194,10 @@ export default function CustomerWebStorefrontPage() {
           onClick={() => setActiveTab('LIVE')}
           className="relative -top-3 flex flex-col items-center group"
         >
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-500 text-white shadow-lg shadow-rose-500/30 group-active:scale-95 transition-transform">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-[#FF3B6B] to-[#8B5CF6] text-white shadow-lg shadow-[#FF3B6B]/30 group-active:scale-95 transition-transform">
             <Radio className="h-6 w-6 animate-pulse" />
           </div>
-          <span className="text-[10px] font-extrabold text-rose-600 mt-0.5">
+          <span className="text-[10px] font-extrabold text-[#FF3B6B] mt-0.5">
             모꼬 LIVE
           </span>
         </button>
@@ -3844,7 +3772,7 @@ export default function CustomerWebStorefrontPage() {
       {/* 6) Live Room Viewer Modal */}
       {activeLiveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-4xl rounded-3xl bg-slate-950 text-white shadow-2xl border border-slate-800 overflow-hidden flex flex-col md:flex-row h-[85vh] max-h-[700px]">
+          <div className="relative w-full max-w-4xl rounded-3xl bg-slate-950 text-white shadow-2xl border-2 border-[#FF3B6B]/40 shadow-[#FF3B6B]/20 overflow-hidden flex flex-col md:flex-row h-[85vh] max-h-[700px]">
             <button
               onClick={() => setActiveLiveModal(null)}
               className="absolute right-3 top-3 z-20 rounded-full bg-black/60 p-1.5 text-white/80 hover:text-white"
@@ -3902,7 +3830,7 @@ export default function CustomerWebStorefrontPage() {
                         setIsCheckoutOpen(true)
                       })
                     }}
-                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs h-9 px-3 shrink-0 shadow-md rounded-xl"
+                    className="bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] hover:opacity-90 text-white font-bold text-xs h-9 px-3 shrink-0 shadow-md shadow-[#FF3B6B]/25 rounded-xl"
                   >
                     즉시 구매
                   </Button>
@@ -4099,7 +4027,7 @@ export default function CustomerWebStorefrontPage() {
                     setIsCheckoutOpen(true)
                   })
                 }}
-                className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs h-10 shadow-xs rounded-xl"
+                className="bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] hover:opacity-90 text-white font-bold text-xs h-10 shadow-md shadow-[#FF3B6B]/20 rounded-xl"
               >
                 <ShieldCheck className="h-4 w-4 mr-1.5" />
                 에스크로 안전구매
@@ -4196,7 +4124,7 @@ export default function CustomerWebStorefrontPage() {
                   setIsCheckoutOpen(true)
                 })
               }}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-10 shadow-xs rounded-xl"
+              className="w-full bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] hover:opacity-90 text-white font-bold text-xs h-10 shadow-md shadow-[#FF3B6B]/20 rounded-xl"
             >
               에스크로 안전결제 주문하기 (총 {(selectedProduct.price * quantity + selectedProduct.shippingFee).toLocaleString()}원)
             </Button>
