@@ -76,7 +76,7 @@ const NAV_ITEMS: AppShellNavItem[] = [
   {
     label: '라이브 스트리밍',
     href: '/live',
-    description: 'D LIVE 실시간 방송 및 시청자·인스트림 커머스 운영',
+    description: '모꼬 LIVE 실시간 방송 및 시청자·인스트림 커머스 운영',
     group: '본사 총괄 운영',
     icon: Radio,
     accent: 'live',
@@ -192,7 +192,7 @@ const NAV_ITEMS: AppShellNavItem[] = [
     icon: ShoppingBag,
   },
   {
-    label: '🔴 D LIVE 웹 플레이어',
+    label: '🔴 모꼬 LIVE 웹 플레이어',
     href: '/web/live/live-101',
     description: '실시간 방송 시청 & 인스트림 라이브 커머스',
     group: '고객용 웹 바로가기',

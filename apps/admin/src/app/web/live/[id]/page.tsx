@@ -52,7 +52,7 @@ export default function WebLivePlayerPage() {
   // Floating Pinned Product
   const pinnedProduct = {
     id: 'np-001',
-    title: '[D LIVE 단독특가] 제주 산지직송 1등급 흑돼지 오겹살 1kg',
+    title: '[모꼬 LIVE 단독특가] 제주 산지직송 1등급 흑돼지 오겹살 1kg',
     price: 28900,
     originalPrice: 38000,
     discountRate: 24,
@@ -65,7 +65,7 @@ export default function WebLivePlayerPage() {
     {
       id: 'm1',
       sender: '시스템',
-      text: '다가온 D LIVE 실시간 방송에 오신 것을 환영합니다! 에스크로 안전결제로 방송 특가 상품을 바로 구매하실 수 있습니다.',
+      text: '모꼬(MOCCO) 실시간 라이브 방송에 오신 것을 환영합니다! 에스크로 안전결제로 방송 특가 상품을 바로 구매하실 수 있습니다.',
       isSystem: true,
       time: '12:00',
     },
@@ -196,16 +196,16 @@ export default function WebLivePlayerPage() {
       <header className="h-14 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link
-            href="/portal"
+            href="/"
             className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            웹 스토어 복귀
+            모꼬 웹 스토어 복귀
           </Link>
           <div className="h-4 w-px bg-slate-800" />
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
-            <span className="font-bold text-sm tracking-tight">D LIVE WEB PLAYER</span>
+            <span className="font-bold text-sm tracking-tight">MOCCO LIVE PLAYER</span>
             <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 text-[10px] font-bold">
               LIVE
             </Badge>

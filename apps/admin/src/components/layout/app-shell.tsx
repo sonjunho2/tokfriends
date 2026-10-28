@@ -63,11 +63,11 @@ export function AppShell({ items, adminName = '관리자', children }: AppShellP
         <aside className="hidden border-r bg-background px-4 py-6 md:flex md:w-72 md:flex-col">
           <div className="mb-6 space-y-1">
             <span className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-              DAGAON
+              MOCCO
             </span>
             <h1 className="text-lg font-semibold">Operations Console</h1>
             <p className="text-xs text-muted-foreground">
-              Premium social service administration
+              모꼬(MOCCO) 플랫폼 총괄 통합 관리 콘솔
             </p>
           </div>
           <div className="mb-5">
@@ -139,7 +139,7 @@ export function AppShell({ items, adminName = '관리자', children }: AppShellP
             <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3 md:px-8">
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                  DAGAON Admin
+                  MOCCO Admin
                 </p>
                 <h2 className="truncate text-base font-semibold">
                   {activeItem?.label ?? 'Dashboard'}

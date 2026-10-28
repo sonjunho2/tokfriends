@@ -203,7 +203,7 @@ export default function StreamerStudioPage() {
       }
       toast({
         title: '🎉 제휴 상품 바구니 담기 완료',
-        description: `'${product.name}' 상품이 내 방송 판매 목록에 등록되었습니다. D LIVE 방송 시 핀 목록에 우선 노출됩니다.`,
+        description: `'${product.name}' 상품이 내 방송 판매 목록에 등록되었습니다. 모꼬 LIVE 방송 시 핀 목록에 우선 노출됩니다.`,
       })
     } catch {
       toast({
@@ -244,7 +244,7 @@ export default function StreamerStudioPage() {
 
   const isAuthorized = role === 'CREATOR' || role === 'ADMIN'
   const channelName = user?.creatorInfo?.channelName || user?.nickname || '크리에이터'
-  const categoryDesc = user?.creatorInfo?.category || 'D LIVE 소통 & 라이브 커머스'
+  const categoryDesc = user?.creatorInfo?.category || '모꼬 LIVE 소통 & 라이브 커머스'
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -326,7 +326,7 @@ export default function StreamerStudioPage() {
             >
               <Link href="/web/live/live-101">
                 <Radio className="w-4 h-4" />
-                🔴 D LIVE 방송 시작 & 핀 연결
+                🔴 모꼬 LIVE 방송 시작 & 핀 연결
               </Link>
             </Button>
           </div>
