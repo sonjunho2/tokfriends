@@ -1124,16 +1124,13 @@ export default function CustomerWebStorefrontPage() {
         {/* ========================================================= */}
         <header className="sticky top-0 z-40 w-full border-b border-slate-200/80 bg-white/95 backdrop-blur-md shadow-xs">
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-            {/* Logo & Brand Name: Large Clean MOCCO */}
+            {/* Logo & Brand Name: Bold & Prominent MOCCO */}
             <div className="flex items-center gap-6">
               <button
                 onClick={() => setActiveTab('HOME')}
-                className="flex items-center gap-3 group text-left"
+                className="flex items-center group text-left cursor-pointer"
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#FF3B6B] to-[#8B5CF6] text-white font-black text-2xl shadow-md shadow-[#FF3B6B]/20 group-hover:scale-105 transition-transform">
-                  M
-                </div>
-                <span className="font-black text-2xl sm:text-3xl tracking-tight bg-gradient-to-r from-[#FF3B6B] via-[#E11D48] to-[#8B5CF6] bg-clip-text text-transparent">
+                <span className="font-black text-3xl sm:text-4xl tracking-tighter bg-gradient-to-r from-[#FF3B6B] via-[#E11D48] to-[#8B5CF6] bg-clip-text text-transparent hover:opacity-95 transition-opacity select-none">
                   MOCCO
                 </span>
               </button>
@@ -1209,29 +1206,34 @@ export default function CustomerWebStorefrontPage() {
               </nav>
             </div>
 
-            {/* Right Area: Clean User Status & Admin Direct Console */}
+            {/* Right Area: Search Bar + Clean User Status & Admin Direct Console */}
             <div className="flex items-center gap-2 sm:gap-3">
+              {/* Search Bar in GNB Header (replacing App Download button) */}
+              <div className="relative flex items-center w-40 sm:w-56 md:w-64 lg:w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && activeTab !== 'MARKET' && activeTab !== 'LIVE') {
+                      setActiveTab('MARKET')
+                    }
+                  }}
+                  placeholder="중고 매물, 라이브 방송, 마켓 검색"
+                  className="pl-8 pr-3 text-xs h-9 bg-slate-100/90 hover:bg-slate-100 focus:bg-white border-slate-200/80 rounded-full transition-all focus:ring-1 focus:ring-[#FF3B6B]/40"
+                />
+              </div>
+
               {!isAuthenticated ? (
                 /* Guest State */
-                <div className="flex items-center gap-2">
-                  <Button
-                    onClick={() => setIsAppDownloadOpen(true)}
-                    variant="outline"
-                    size="sm"
-                    className="hidden lg:flex items-center gap-1.5 text-xs text-slate-700 border-slate-200"
-                  >
-                    <Download className="h-3.5 w-3.5 text-slate-500" />
-                    앱 다운로드
-                  </Button>
-                  <Button
-                    onClick={() => openLoginModal()}
-                    className="bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] hover:opacity-90 text-white text-xs font-semibold shadow-xs rounded-xl"
-                    size="sm"
-                  >
-                    <LogIn className="h-3.5 w-3.5 mr-1" />
-                    로그인 / 가입
-                  </Button>
-                </div>
+                <Button
+                  onClick={() => openLoginModal()}
+                  className="bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] hover:opacity-90 text-white text-xs font-semibold shadow-xs rounded-xl h-9 px-3.5 shrink-0"
+                  size="sm"
+                >
+                  <LogIn className="h-3.5 w-3.5 mr-1" />
+                  로그인 / 가입
+                </Button>
               ) : (
                 /* Authenticated State */
                 <div className="flex items-center gap-2 sm:gap-3">
@@ -1240,7 +1242,7 @@ export default function CustomerWebStorefrontPage() {
                     <Button
                       asChild
                       size="sm"
-                      className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs h-8 rounded-xl px-3"
+                      className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs h-8 rounded-xl px-3 shrink-0"
                     >
                       <Link href="/dashboard">
                         <Crown className="h-3.5 w-3.5 mr-1 text-amber-400" />
@@ -1319,207 +1321,6 @@ export default function CustomerWebStorefrontPage() {
           {/* ======================================================= */}
           {activeTab === 'HOME' && (
             <div className="space-y-8 animate-in fade-in duration-200">
-              {/* Home Subheader: Location & Live Stats with Interactive Neighborhood Selector */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-3xl border border-slate-200/80 shadow-xs">
-                <button
-                  onClick={() => setIsLocationModalOpen(true)}
-                  className="flex items-center gap-2.5 text-left group hover:opacity-85 transition-opacity"
-                >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-pink-100 text-pink-600 group-hover:scale-105 transition-transform">
-                    <MapPin className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5 font-bold text-sm text-slate-900">
-                      <span>{currentLocation}</span>
-                      <ChevronDown className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-900 transition-colors" />
-                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-semibold">
-                        동네 인증 완료
-                      </Badge>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground">
-                      현재 반경 3km 내 온라인 접속 이웃 1,842명
-                    </p>
-                  </div>
-                </button>
-
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1 sm:w-64">
-                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
-                    <Input
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="중고 매물, 라이브 방송, 마켓 검색"
-                      className="pl-8 text-xs h-8 bg-slate-50 rounded-xl"
-                    />
-                  </div>
-                  <Button
-                    onClick={() => setIsAppDownloadOpen(true)}
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs font-semibold gap-1 text-slate-700 rounded-xl"
-                  >
-                    <QrCode className="h-3.5 w-3.5 text-pink-500" />
-                    앱 QR
-                  </Button>
-                </div>
-              </div>
-
-              {/* 0) Figma-style Service Value Proposition Showcase ("모꼬는 어떤 서비스인가요?") */}
-              <section className="rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-8 shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-pink-500/10 blur-3xl pointer-events-none" />
-                <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
-
-                <div className="relative z-10 space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-pink-500 text-white font-bold border-none text-[10px]">
-                          하이퍼로컬 소셜 & 라이브 커머스 플랫폼
-                        </Badge>
-                        <span className="text-[11px] text-pink-300 font-semibold">
-                          대한민국 100% 에스크로 안심 거래
-                        </span>
-                      </div>
-                      <h2 className="text-xl sm:text-2xl font-black tracking-tight mt-1">
-                        동네 이웃과 함께하는 모꼬 (MOCCO)에 오신 것을 환영합니다!
-                      </h2>
-                      <p className="text-xs text-slate-300 mt-1">
-                        실시간 소통 라이브부터 안전한 동네 중고 직거래, 제주 신선 산지직송 & 특가 공구까지 한곳에서 즐겨보세요!
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => setIsAppDownloadOpen(true)}
-                      variant="outline"
-                      size="sm"
-                      className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-bold h-8 rounded-xl shrink-0"
-                    >
-                      <Download className="h-3.5 w-3.5 mr-1" />
-                      모바일 앱 다운로드
-                    </Button>
-                  </div>
-
-                  {/* 4 Core Pillars Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
-                    {/* 1. 모꼬 LIVE */}
-                    <button
-                      onClick={() => setActiveTab('LIVE')}
-                      className="group p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-rose-400/50 transition-all text-left flex flex-col justify-between space-y-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-pink-600 text-white shadow-md">
-                          <Radio className="h-5 w-5 animate-pulse" />
-                        </div>
-                        <span className="text-[10px] font-bold text-rose-300 bg-rose-500/20 px-2 py-0.5 rounded-full">
-                          누구나 방송 ON
-                        </span>
-                      </div>
-                      <div>
-                        <h3 className="font-extrabold text-sm text-white group-hover:text-rose-300 transition-colors">
-                          1. 모꼬 LIVE
-                        </h3>
-                        <p className="text-[11px] text-slate-300 line-clamp-2 mt-1 leading-relaxed">
-                          동네 이웃과의 소소한 일상 수다 라이브부터 크리에이터 라이브커머스 핀 판매까지 실시간 참여
-                        </p>
-                      </div>
-                      <div className="flex items-center text-xs text-rose-300 font-bold group-hover:translate-x-1 transition-transform">
-                        <span>방송 둘러보기</span>
-                        <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                      </div>
-                    </button>
-
-                    {/* 2. 동네 중고거래 */}
-                    <button
-                      onClick={() => {
-                        setActiveTab('MARKET')
-                        setMarketSubTab('C2C_USED')
-                      }}
-                      className="group p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-orange-400/50 transition-all text-left flex flex-col justify-between space-y-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-orange-500 to-amber-600 text-white shadow-md">
-                          <Store className="h-5 w-5" />
-                        </div>
-                        <span className="text-[10px] font-bold text-orange-300 bg-orange-500/20 px-2 py-0.5 rounded-full">
-                          100% 안전 에스크로
-                        </span>
-                      </div>
-                      <div>
-                        <h3 className="font-extrabold text-sm text-white group-hover:text-orange-300 transition-colors">
-                          2. 동네 중고거래
-                        </h3>
-                        <p className="text-[11px] text-slate-300 line-clamp-2 mt-1 leading-relaxed">
-                          동네 이웃 간 안심 직거래는 물론, 택배 거래 시에도 구매확정 시까지 대금이 안전하게 예치
-                        </p>
-                      </div>
-                      <div className="flex items-center text-xs text-orange-300 font-bold group-hover:translate-x-1 transition-transform">
-                        <span>중고매물 보기</span>
-                        <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                      </div>
-                    </button>
-
-                    {/* 3. 산지직송 & 공구 */}
-                    <button
-                      onClick={() => {
-                        setActiveTab('MARKET')
-                        setMarketSubTab('B2C_GROUP')
-                      }}
-                      className="group p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-emerald-400/50 transition-all text-left flex flex-col justify-between space-y-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white shadow-md">
-                          <ShoppingBag className="h-5 w-5" />
-                        </div>
-                        <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full">
-                          산지직송 특가
-                        </span>
-                      </div>
-                      <div>
-                        <h3 className="font-extrabold text-sm text-white group-hover:text-emerald-300 transition-colors">
-                          3. 마켓 & 특가공구
-                        </h3>
-                        <p className="text-[11px] text-slate-300 line-clamp-2 mt-1 leading-relaxed">
-                          제주 흑돼지, 나주 배 산지직송 먹거리와 목표 수량 달성 시 최대 43% 파격 할인 공동구매
-                        </p>
-                      </div>
-                      <div className="flex items-center text-xs text-emerald-300 font-bold group-hover:translate-x-1 transition-transform">
-                        <span>특가공구 보기</span>
-                        <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                      </div>
-                    </button>
-
-                    {/* 4. 동네 1줄 수다 & 모꼬쳇 */}
-                    <button
-                      onClick={() => {
-                        setActiveTab('CHAT')
-                        setChatSubTab('SUDA')
-                      }}
-                      className="group p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-400/50 transition-all text-left flex flex-col justify-between space-y-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-600 text-white shadow-md">
-                          <MessageCircle className="h-5 w-5" />
-                        </div>
-                        <span className="text-[10px] font-bold text-blue-300 bg-blue-500/20 px-2 py-0.5 rounded-full">
-                          실시간 동네 수다
-                        </span>
-                      </div>
-                      <div>
-                        <h3 className="font-extrabold text-sm text-white group-hover:text-blue-300 transition-colors">
-                          4. 모꼬쳇 & 1줄수다
-                        </h3>
-                        <p className="text-[11px] text-slate-300 line-clamp-2 mt-1 leading-relaxed">
-                          동네 이웃들의 생생한 1줄 일상 이야기, 맛집 정보 공유 및 1:1 안전 대화로 따뜻한 소통
-                        </p>
-                      </div>
-                      <div className="flex items-center text-xs text-blue-300 font-bold group-hover:translate-x-1 transition-transform">
-                        <span>동네수다 가기</span>
-                        <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              </section>
-
               {/* 1) Hero Promotional Carousel */}
               <div className="relative overflow-hidden rounded-3xl bg-slate-900 text-white shadow-xl min-h-[220px] sm:min-h-[260px] flex items-center">
                 <img
@@ -2059,9 +1860,11 @@ export default function CustomerWebStorefrontPage() {
                 /* 1) C2C Used Grid */
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {usedProducts
-                    .filter((item) =>
-                      marketCategoryFilter === '전체' ? true : item.category.includes(marketCategoryFilter)
-                    )
+                    .filter((item) => {
+                      const matchCategory = marketCategoryFilter === '전체' ? true : item.category.includes(marketCategoryFilter)
+                      const matchSearch = !searchQuery.trim() ? true : (item.title.toLowerCase().includes(searchQuery.toLowerCase()) || item.description.toLowerCase().includes(searchQuery.toLowerCase()))
+                      return matchCategory && matchSearch
+                    })
                     .map((item) => (
                       <Card
                         key={item.id}
@@ -2111,7 +1914,11 @@ export default function CustomerWebStorefrontPage() {
                       if (marketSubTab === 'B2C_GROUP') return p.type === 'B2C_GROUP'
                       return true
                     })
-                    .filter((p) => (marketCategoryFilter === '전체' ? true : p.category.includes(marketCategoryFilter)))
+                    .filter((p) => {
+                      const matchCategory = marketCategoryFilter === '전체' ? true : p.category.includes(marketCategoryFilter)
+                      const matchSearch = !searchQuery.trim() ? true : (p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.description.toLowerCase().includes(searchQuery.toLowerCase()) || p.sellerName.toLowerCase().includes(searchQuery.toLowerCase()))
+                      return matchCategory && matchSearch
+                    })
                     .map((item) => (
                       <Card
                         key={item.id}
