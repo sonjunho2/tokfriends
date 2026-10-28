@@ -768,6 +768,18 @@ const INITIAL_FRIENDS: NeighborFriendItem[] = [
     gender: '여',
     age: 31,
   },
+  {
+    id: 'friend-6',
+    nickname: '승우',
+    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300',
+    region: '대구 수성구',
+    distance: '3.4km',
+    mannerTemp: 38.2,
+    statusMessage: '주말 테니스 & 러닝 함께할 운동 메이트 구해요 🎾',
+    isOnline: true,
+    gender: '남',
+    age: 28,
+  },
 ]
 
 const INITIAL_CHAT_ROOMS: ChatRoomItem[] = [
@@ -1922,9 +1934,9 @@ export default function CustomerWebStorefrontPage() {
               </section>
 
               {/* 2) 👥 좌측 친구들 (50%) & 💬 우측 전체수다 (50%) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                {/* 2-A) 좌측: 친구들 (목록 형식, 이미지 1 디자인 100% 일치) */}
-                <div className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+                {/* 2-A) 좌측: 친구들 (6명 목록 형식, 우측 수다 카드와 높이 및 비율 완벽 동기화) */}
+                <div className="flex flex-col h-full space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Users className="h-5 w-5 text-[#8B5CF6]" />
@@ -1949,11 +1961,11 @@ export default function CustomerWebStorefrontPage() {
                     </Button>
                   </div>
 
-                  <div className="bg-white rounded-3xl border border-slate-200/80 p-4 shadow-2xs divide-y divide-slate-100">
-                    {friends.slice(0, 5).map((friend) => (
+                  <div className="flex-1 bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-5 shadow-2xs divide-y divide-slate-100 flex flex-col justify-between">
+                    {friends.slice(0, 6).map((friend) => (
                       <div
                         key={friend.id}
-                        className="py-3 first:pt-1 last:pb-1 flex items-center justify-between gap-3 group"
+                        className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3 group"
                       >
                         <div className="flex items-center gap-3 min-w-0 flex-1">
                           {/* Round Avatar with Online Status */}
@@ -2000,8 +2012,8 @@ export default function CustomerWebStorefrontPage() {
                   </div>
                 </div>
 
-                {/* 2-B) 우측: 전체수다 (입력창 삭제, 실시간 연동 카드형, 이미지 2 디자인 100% 일치) */}
-                <div className="space-y-4">
+                {/* 2-B) 우측: 전체수다 (입력창 삭제, 실시간 연동 카드형, 카드 간격 비율 최적화) */}
+                <div className="flex flex-col h-full space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <MessageCircle className="h-5 w-5 text-[#FF3B6B]" />
@@ -2026,12 +2038,12 @@ export default function CustomerWebStorefrontPage() {
                     </Button>
                   </div>
 
-                  {/* Suda Feed Cards (입력창/남기기 완전 삭제) */}
-                  <div className="space-y-3">
+                  {/* Suda Feed Cards (간격 및 카드 높이 균등 분할) */}
+                  <div className="flex-1 flex flex-col justify-between gap-3">
                     {sudaPosts.slice(0, 4).map((post) => (
                       <div
                         key={post.id}
-                        className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-2xs hover:border-rose-200 transition-colors space-y-2"
+                        className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-2xs hover:border-rose-200 transition-colors space-y-2 flex-1 flex flex-col justify-center"
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2.5 min-w-0">
