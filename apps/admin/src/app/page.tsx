@@ -157,6 +157,7 @@ export interface SudaPostItem {
   nickname: string
   avatar: string
   region: string
+  distance?: string
   content: string
   time: string
   likes: number
@@ -173,7 +174,7 @@ export interface NeighborFriendItem {
   mannerTemp: number
   statusMessage: string
   isOnline: boolean
-  gender: '여성' | '남성'
+  gender: string
   age: number
 }
 
@@ -615,48 +616,94 @@ const INITIAL_MARKET_PRODUCTS: MarketProductItem[] = [
     status: 'ACTIVE',
     affiliateCommissionRate: 10.0,
   },
+  {
+    id: 'gp-003',
+    title: '[특가공구] 당일 도축 제주 1++ 한우 꽃등심 500g (냉장 구이용)',
+    description: '입에서 사르르 녹는 마블링 No.9 프리미엄 1++ 제주 한우 등심 산지 직송 공구 45% 할인.',
+    price: 48900,
+    originalPrice: 89000,
+    type: 'B2C_GROUP',
+    ownerType: 'HEADQUARTERS',
+    isHqDirect: true,
+    category: '식품/신선',
+    images: [
+      'https://images.unsplash.com/photo-1544025162-d76694265947?w=800',
+    ],
+    sellerName: '모꼬(MOCCO) 축산 직영',
+    shippingFee: 0,
+    stock: 50,
+    targetQuantity: 50,
+    currentQuantity: 46,
+    status: 'ACTIVE',
+    affiliateCommissionRate: 10.0,
+  },
+  {
+    id: 'gp-004',
+    title: '[특가공구] 지리산 100% 천연 벌꿀 1.2kg 튜브형 1+1 기획',
+    description: '물 한 방울 섞이지 않은 지리산 깊은 숲 자연 숙성 천연 벌꿀 튜브형 공동구매 42% 할인.',
+    price: 28000,
+    originalPrice: 48000,
+    type: 'B2C_GROUP',
+    ownerType: 'HEADQUARTERS',
+    isHqDirect: true,
+    category: '식품/건강',
+    images: [
+      'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800',
+    ],
+    sellerName: '지리산 농가 협동조합',
+    shippingFee: 0,
+    stock: 40,
+    targetQuantity: 40,
+    currentQuantity: 34,
+    status: 'ACTIVE',
+    affiliateCommissionRate: 12.0,
+  },
 ]
 
 const INITIAL_SUDA_POSTS: SudaPostItem[] = [
   {
-    id: 'suda-1',
-    nickname: '민지 (모꼬이웃)',
+    id: 'suda-sua',
+    nickname: '수아',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
     region: '역삼1동',
-    content: '오늘 역삼역 앞 벚꽃 산책로 날씨 진짜 화창하네요! 다들 점심 맛있게 드셨나요? ☀️',
+    distance: '0.6km',
     time: '5분 전',
-    likes: 12,
-    comments: 4,
-  },
-  {
-    id: 'suda-2',
-    nickname: '준호',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
-    region: '판교 백현동',
-    content: '퇴근 후 저녁 8시에 탄천 러닝 같이 뛰실 이웃 크루 구해요! 🏃‍♂️ 편하게 댓글 주세요.',
-    time: '18분 전',
+    content: '선선해서 양재천 산책하기 딱 좋은 날씨네요! 같이 가벼운 커피 한잔 하실 이웃 계실까요? ☕🌿',
     likes: 8,
-    comments: 6,
-  },
-  {
-    id: 'suda-3',
-    nickname: '지은',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
-    region: '서초동',
-    content: '모꼬 LIVE 제주 흑돼지 방송 보고 주문했는데 당일 발송 바로 떠서 너무 신나요 🥩',
-    time: '34분 전',
-    likes: 15,
     comments: 2,
   },
   {
-    id: 'suda-4',
-    nickname: '도윤',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300',
-    region: '삼성동',
-    content: '동네 조용하고 콘센트 많은 카공 카페 아시는 분 추천 부탁드립니다 ☕',
-    time: '1시간 전',
-    likes: 9,
+    id: 'suda-dohyun',
+    nickname: '도현',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
+    region: '역삼2동',
+    distance: '1.1km',
+    time: '12분 전',
+    content: '오늘 야식 메뉴 고민인데 치킨 vs 매운 떡볶이 골라주세요! 추천해주시면 감사해요 🍗🔥',
+    likes: 14,
     comments: 5,
+  },
+  {
+    id: 'suda-yujin',
+    nickname: '유진',
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300',
+    region: '도곡동',
+    distance: '1.8km',
+    time: '25분 전',
+    content: '강아지랑 매봉산 둘레길 가려고 하는데 오늘 산책로 상태 괜찮은가요? 댕댕이 친구 환영! 🐶',
+    likes: 19,
+    comments: 7,
+  },
+  {
+    id: 'suda-jiwoo',
+    nickname: '지우',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
+    region: '논현1동',
+    distance: '2.2km',
+    time: '42분 전',
+    content: '퇴근길에 예쁜 노을 사진 찍었어요 🌇 다들 오늘 하루도 고생 많으셨습니다 화이팅!',
+    likes: 23,
+    comments: 3,
   },
 ]
 
@@ -665,49 +712,61 @@ const INITIAL_FRIENDS: NeighborFriendItem[] = [
     id: 'friend-1',
     nickname: '민지 (모꼬지)',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
-    region: '서울 강남구 역삼동',
+    region: '서울 강남구',
     distance: '0.4km',
     mannerTemp: 39.2,
-    statusMessage: '오늘 날씨 너무 좋아요 ☀️ 실시간 소통 환영해요!',
+    statusMessage: '오늘 날씨 너무 좋아요 ☀️ 실시간 소통 환영...',
     isOnline: true,
-    gender: '여성',
+    gender: '여',
     age: 26,
   },
   {
     id: 'friend-2',
     nickname: '준호',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
-    region: '경기 성남시 판교',
+    region: '전남 여수시',
     distance: '1.2km',
     mannerTemp: 38.5,
-    statusMessage: 'IT 개발 & 음악 이야기 나누실 분 환영해요 🎧',
+    statusMessage: '여수 밤바다 보며 일상 수다 나눌 친구 찾아요 ...',
     isOnline: true,
-    gender: '남성',
+    gender: '남',
     age: 29,
   },
   {
     id: 'friend-3',
     nickname: '지은',
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
-    region: '서울 서초구',
+    region: '전북 전주시',
     distance: '1.8km',
     mannerTemp: 37.8,
-    statusMessage: '카페 투어 & 전시회 감상 좋아합니다 ☕',
+    statusMessage: '한옥마을 카페 투어 & 음악 감상 좋아합니다 ☕',
     isOnline: true,
-    gender: '여성',
-    age: 25,
+    gender: '여',
+    age: 24,
   },
   {
     id: 'friend-4',
     nickname: '도윤',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300',
-    region: '서울 송파구 잠실',
+    region: '부산 해운대구',
     distance: '3.1km',
     mannerTemp: 36.5,
-    statusMessage: '주말 한강 자전거 라이딩 메이트 찾습니다 🚴',
-    isOnline: false,
-    gender: '남성',
-    age: 32,
+    statusMessage: '비즈니스 & 맛집 정보 공유해요 ✨',
+    isOnline: true,
+    gender: '남',
+    age: 34,
+  },
+  {
+    id: 'friend-5',
+    nickname: '하은',
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300',
+    region: '경기 성남시 분당',
+    distance: '2.5km',
+    mannerTemp: 37.2,
+    statusMessage: '퇴근 후 소소한 대화 신청 환영해요!',
+    isOnline: true,
+    gender: '여',
+    age: 31,
   },
 ]
 
@@ -1207,7 +1266,7 @@ export default function CustomerWebStorefrontPage() {
     setChatInputText('')
   }
 
-  // Start chat with neighbor
+  // Start chat with neighbor (친구)
   const handleStartNeighborChat = (friend: NeighborFriendItem) => {
     requireAuth(() => {
       const existing = chatRooms.find((r) => r.targetNickname.includes(friend.nickname))
@@ -1240,6 +1299,43 @@ export default function CustomerWebStorefrontPage() {
       toast({
         title: '💬 대화방 연결',
         description: `${friend.nickname} 님과의 1:1 대화방으로 이동했습니다.`,
+      })
+    })
+  }
+
+  // Start chat from Suda post (전체수다)
+  const handleStartSudaChat = (post: SudaPostItem) => {
+    requireAuth(() => {
+      const existing = chatRooms.find((r) => r.targetNickname.includes(post.nickname))
+      if (existing) {
+        setActiveChatRoom(existing)
+      } else {
+        const newRoom: ChatRoomItem = {
+          id: 'chat-s-' + Date.now(),
+          type: 'SUDA',
+          targetNickname: post.nickname,
+          targetAvatar: post.avatar,
+          lastMessage: post.content,
+          lastTime: '방금',
+          unreadCount: 0,
+          messages: [
+            {
+              id: 'init-1',
+              senderId: 'target',
+              senderNickname: post.nickname,
+              text: `안녕하세요! "${post.content}" 수다글 보고 대화 신청 드려요 😊`,
+              time: '방금',
+            },
+          ],
+        }
+        setChatRooms([newRoom, ...chatRooms])
+        setActiveChatRoom(newRoom)
+      }
+      setActiveTab('CHAT')
+      setChatSubTab('CHATS')
+      toast({
+        title: '💬 대화방 연결',
+        description: `${post.nickname} 님과의 1:1 대화방으로 이동했습니다.`,
       })
     })
   }
@@ -1713,210 +1809,387 @@ export default function CustomerWebStorefrontPage() {
                 </div>
               </section>
 
-              {/* 3) 💬 실시간 동네 1줄 수다 (SUDA Feed & Quick Post) */}
-              <section className="rounded-3xl bg-gradient-to-br from-blue-50/60 via-indigo-50/30 to-purple-50/50 p-6 border border-blue-100/70 space-y-4">
+              {/* 1) 🔥 특가공구 (4칸 - 내용 실시간 연동/갱신) */}
+              <section className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <MessageCircle className="h-5 w-5 text-blue-600" />
+                    <Flame className="h-5 w-5 text-[#FF3B6B]" />
                     <h3 className="font-extrabold text-base sm:text-lg text-slate-900">
-                      실시간 동네 1줄 수다 (SUDA)
+                      특가공구
                     </h3>
-                    <Badge variant="secondary" className="text-[10px] bg-blue-100 text-blue-800 font-bold border-none">
-                      실시간 타임라인
+                    <Badge className="bg-rose-50 text-[#FF3B6B] border border-rose-200 text-[10px] font-bold">
+                      실시간 달성 중 · 파격 할인 & 무료배송
                     </Badge>
                   </div>
                   <Button
                     onClick={() => {
-                      setActiveTab('CHAT')
-                      setChatSubTab('SUDA')
+                      setActiveTab('MARKET')
+                      setMarketSubTab('B2C_GROUP')
                     }}
                     variant="ghost"
                     size="sm"
-                    className="text-xs text-blue-700 hover:text-blue-900 font-semibold"
+                    className="text-xs text-[#FF3B6B] hover:text-[#FF3B6B] hover:bg-rose-50 font-semibold"
                   >
-                    수다방 가기
+                    공구 더보기
                     <ArrowRight className="h-3.5 w-3.5 ml-1" />
                   </Button>
                 </div>
 
-                {/* Quick Suda Input */}
-                <div className="flex items-center gap-2 bg-white p-2 rounded-2xl border border-slate-200/80 shadow-2xs">
-                  <Input
-                    value={sudaInputText}
-                    onChange={(e) => setSudaInputText(e.target.value)}
-                    placeholder="우리 동네 이웃들에게 가볍게 한 줄 수다를 건네보세요! (비로그인 시 로그인 유도)"
-                    className="text-xs border-none shadow-none focus-visible:ring-0"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handlePostSuda()
-                    }}
-                  />
-                  <Button
-                    onClick={handlePostSuda}
-                    size="sm"
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-8 px-4 shrink-0 rounded-xl"
-                  >
-                    <Send className="h-3.5 w-3.5 mr-1" />
-                    남기기
-                  </Button>
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {marketProducts
+                    .filter((p) => p.type === 'B2C_GROUP')
+                    .slice(0, 4)
+                    .map((item) => {
+                      const target = item.targetQuantity || 30
+                      const current = item.currentQuantity || 22
+                      const rate = Math.round((current / target) * 100)
+                      const discountRate = item.originalPrice
+                        ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
+                        : 35
 
-                {/* Suda Feed Preview */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {sudaPosts.slice(0, 4).map((post) => (
-                    <div
-                      key={post.id}
-                      className="flex items-start gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/60 shadow-2xs hover:border-blue-200 transition-colors"
-                    >
-                      <img
-                        src={post.avatar}
-                        alt="avatar"
-                        className="h-9 w-9 rounded-full object-cover shrink-0"
-                      />
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold text-slate-900">{post.nickname}</span>
-                          <span className="text-[10px] text-muted-foreground">{post.time}</span>
-                        </div>
-                        <p className="text-xs text-slate-700 line-clamp-2 leading-relaxed">
-                          {post.content}
-                        </p>
-                        <div className="flex items-center gap-3 pt-1 text-[11px] text-muted-foreground">
-                          <button
-                            onClick={() => handleLikeSuda(post.id)}
-                            className={`flex items-center gap-1 hover:text-rose-600 transition-colors ${
-                              post.isLiked ? 'text-rose-600 font-bold' : ''
-                            }`}
-                          >
-                            <Heart className={`h-3 w-3 ${post.isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
-                            <span>{post.likes}</span>
-                          </button>
-                          <span className="flex items-center gap-1">
-                            <MessageCircle className="h-3 w-3" />
-                            <span>{post.comments}</span>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                      return (
+                        <Card
+                          key={item.id}
+                          onClick={() => setSelectedProduct(item)}
+                          className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80 bg-white flex flex-col justify-between"
+                        >
+                          <div>
+                            <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
+                              <img
+                                src={item.images[0]}
+                                alt={item.title}
+                                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                                <span className="bg-[#FF3B6B] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs">
+                                  공구특가
+                                </span>
+                                <span className="bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                  {discountRate}% OFF
+                                </span>
+                              </div>
+                            </div>
+                            <CardContent className="p-4 space-y-2">
+                              <span className="text-[10px] text-muted-foreground font-semibold block truncate">
+                                {item.sellerName}
+                              </span>
+                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-[#FF3B6B] transition-colors">
+                                {item.title}
+                              </h4>
+                              <div className="flex items-baseline gap-2">
+                                <span className="font-extrabold text-base text-slate-900">
+                                  {item.price.toLocaleString()}원
+                                </span>
+                                {item.originalPrice && (
+                                  <span className="text-xs text-slate-400 line-through">
+                                    {item.originalPrice.toLocaleString()}원
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Progress bar */}
+                              <div className="space-y-1 pt-1">
+                                <div className="flex items-center justify-between text-[11px] font-semibold">
+                                  <span className="text-slate-500">
+                                    목표 {target}개 중 {current}개
+                                  </span>
+                                  <span className="text-[#FF3B6B] font-bold">
+                                    {rate}% 달성
+                                  </span>
+                                </div>
+                                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] rounded-full transition-all duration-500"
+                                    style={{ width: `${Math.min(100, rate)}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </div>
+
+                          <div className="p-4 pt-0">
+                            <Button
+                              size="sm"
+                              className="w-full h-8 text-xs font-bold bg-rose-50 text-[#FF3B6B] hover:bg-[#FF3B6B] hover:text-white border border-rose-200 rounded-xl transition-all"
+                            >
+                              공구 참여하기
+                            </Button>
+                          </div>
+                        </Card>
+                      )
+                    })}
                 </div>
               </section>
 
-              {/* 4) 🥕 동네 중고거래 핫 아이템 & 🛒 특가 공동구매 2열 섹션 */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* 4-1) 동네 중고거래 인기 매물 */}
+              {/* 2) 👥 좌측 친구들 (50%) & 💬 우측 전체수다 (50%) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                {/* 2-A) 좌측: 친구들 (목록 형식, 이미지 1 디자인 100% 일치) */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Store className="h-5 w-5 text-orange-500" />
+                      <Users className="h-5 w-5 text-[#8B5CF6]" />
                       <h3 className="font-extrabold text-base sm:text-lg text-slate-900">
-                        동네 인기 중고거래
+                        친구들
                       </h3>
-                      <Badge className="bg-orange-50 text-orange-700 border-orange-200 text-[10px] font-bold">
-                        에스크로 안전
+                      <Badge className="bg-purple-50 text-[#8B5CF6] border border-purple-200 text-[10px] font-bold">
+                        실시간 접속 이웃
                       </Badge>
                     </div>
                     <Button
                       onClick={() => {
-                        setActiveTab('MARKET')
-                        setMarketSubTab('C2C_USED')
+                        setActiveTab('CHAT')
+                        setChatSubTab('FRIENDS')
                       }}
                       variant="ghost"
                       size="sm"
-                      className="text-xs text-orange-700 hover:text-orange-900 font-semibold"
+                      className="text-xs text-[#8B5CF6] hover:text-[#8B5CF6] hover:bg-purple-50 font-semibold"
                     >
-                      중고 더보기
+                      친구 더보기
                       <ArrowRight className="h-3.5 w-3.5 ml-1" />
                     </Button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    {usedProducts.slice(0, 2).map((item) => (
-                      <Card
-                        key={item.id}
-                        onClick={() => setSelectedUsedItem(item)}
-                        className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-md transition-shadow border border-slate-200/80"
+                  <div className="bg-white rounded-3xl border border-slate-200/80 p-4 shadow-2xs divide-y divide-slate-100">
+                    {friends.slice(0, 5).map((friend) => (
+                      <div
+                        key={friend.id}
+                        className="py-3 first:pt-1 last:pb-1 flex items-center justify-between gap-3 group"
                       >
-                        <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
-                          <img
-                            src={item.images[0]}
-                            alt={item.title}
-                            className="h-full w-full object-cover group-hover:scale-105 transition-transform"
-                          />
-                          <Badge className="absolute bottom-2 left-2 bg-black/60 text-white text-[9px] font-semibold border-none">
-                            {item.locationName.split(' ')[1] || item.locationName}
-                          </Badge>
-                        </div>
-                        <CardContent className="p-3.5 space-y-1">
-                          <h4 className="font-bold text-xs text-slate-900 line-clamp-1 group-hover:text-orange-600 transition-colors">
-                            {item.title}
-                          </h4>
-                          <p className="font-extrabold text-sm text-slate-900">
-                            {item.price.toLocaleString()}원
-                          </p>
-                          <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t">
-                            <span>매너 {item.mannerTemp}℃</span>
-                            <span>채팅 {item.chatsCount}</span>
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          {/* Round Avatar with Online Status */}
+                          <div className="relative shrink-0">
+                            <img
+                              src={friend.avatar}
+                              alt={friend.nickname}
+                              className="h-12 w-12 rounded-full object-cover border border-slate-100"
+                            />
+                            {friend.isOnline && (
+                              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white shadow-2xs" />
+                            )}
                           </div>
-                        </CardContent>
-                      </Card>
+
+                          {/* Info Block */}
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-sm text-slate-900 truncate">
+                                {friend.nickname}
+                              </span>
+                              <span className="bg-indigo-50 text-indigo-700 text-[11px] font-semibold px-2 py-0.5 rounded-md shrink-0">
+                                {friend.gender} · {friend.age}세
+                              </span>
+                              <span className="bg-slate-100 text-slate-600 text-[11px] font-medium px-2 py-0.5 rounded-md truncate">
+                                {friend.region}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-600 truncate">
+                              {friend.statusMessage}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Pink Pill Chat Request Button */}
+                        <button
+                          onClick={() => handleStartNeighborChat(friend)}
+                          className="shrink-0 flex items-center gap-1.5 border border-rose-200 text-[#FF3B6B] bg-rose-50/70 hover:bg-rose-100 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all shadow-2xs"
+                        >
+                          <MessageCircle className="h-3.5 w-3.5 text-[#FF3B6B]" />
+                          대화신청
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>
 
-                {/* 4-2) 마켓 & 특가 공동구매 */}
+                {/* 2-B) 우측: 전체수다 (입력창 삭제, 실시간 연동 카드형, 이미지 2 디자인 100% 일치) */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <ShoppingBag className="h-5 w-5 text-emerald-600" />
+                      <MessageCircle className="h-5 w-5 text-[#FF3B6B]" />
                       <h3 className="font-extrabold text-base sm:text-lg text-slate-900">
-                        모꼬 마켓 & 특가 공구
+                        전체수다
                       </h3>
-                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
-                        본사직영 · 입점사
+                      <Badge className="bg-rose-50 text-[#FF3B6B] border border-rose-200 text-[10px] font-bold">
+                        실시간 타임라인
                       </Badge>
                     </div>
                     <Button
                       onClick={() => {
-                        setActiveTab('MARKET')
-                        setMarketSubTab('B2C_GROUP')
+                        setActiveTab('CHAT')
+                        setChatSubTab('SUDA')
                       }}
                       variant="ghost"
                       size="sm"
-                      className="text-xs text-emerald-700 hover:text-emerald-900 font-semibold"
+                      className="text-xs text-[#FF3B6B] hover:text-[#FF3B6B] hover:bg-rose-50 font-semibold"
                     >
-                      마켓 더보기
+                      수다 더보기
                       <ArrowRight className="h-3.5 w-3.5 ml-1" />
                     </Button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    {marketProducts.slice(0, 2).map((item) => (
+                  {/* Suda Feed Cards (입력창/남기기 완전 삭제) */}
+                  <div className="space-y-3">
+                    {sudaPosts.slice(0, 4).map((post) => (
+                      <div
+                        key={post.id}
+                        className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-2xs hover:border-rose-200 transition-colors space-y-2"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <img
+                              src={post.avatar}
+                              alt="avatar"
+                              className="h-10 w-10 rounded-full object-cover shrink-0 border border-slate-100"
+                            />
+                            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                              <span className="font-bold text-sm text-slate-900 truncate">
+                                {post.nickname}
+                              </span>
+                              <span className="bg-slate-100 text-slate-600 text-[11px] px-2 py-0.5 rounded-md font-medium">
+                                {post.region}
+                              </span>
+                              <span className="text-xs text-slate-400">
+                                · {post.distance || '0.6km'}
+                              </span>
+                              <span className="text-xs text-slate-400">
+                                {post.time}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Pink Pill Chat Request Button */}
+                          <button
+                            onClick={() => handleStartSudaChat(post)}
+                            className="shrink-0 flex items-center gap-1.5 border border-rose-200 text-[#FF3B6B] bg-rose-50/70 hover:bg-rose-100 rounded-full px-3.5 py-1 text-xs font-bold transition-all shadow-2xs"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5 text-[#FF3B6B]" />
+                            대화신청
+                          </button>
+                        </div>
+
+                        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed pl-1">
+                          {post.content}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 3) 🥕 중고거래 (4칸 - 실시간 서버 연동) */}
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Store className="h-5 w-5 text-orange-500" />
+                    <h3 className="font-extrabold text-base sm:text-lg text-slate-900">
+                      중고거래
+                    </h3>
+                    <Badge className="bg-orange-50 text-orange-700 border border-orange-200 text-[10px] font-bold">
+                      100% 에스크로 안전 직거래
+                    </Badge>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setActiveTab('MARKET')
+                      setMarketSubTab('C2C_USED')
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-orange-700 hover:text-orange-900 hover:bg-orange-50 font-semibold"
+                  >
+                    중고 더보기
+                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {usedProducts.slice(0, 4).map((item) => (
+                    <Card
+                      key={item.id}
+                      onClick={() => setSelectedUsedItem(item)}
+                      className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-md transition-shadow border border-slate-200/80 bg-white"
+                    >
+                      <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
+                        <img
+                          src={item.images[0]}
+                          alt={item.title}
+                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <Badge className="absolute bottom-2 left-2 bg-black/60 text-white text-[9px] font-semibold border-none">
+                          {item.locationName.split(' ')[1] || item.locationName}
+                        </Badge>
+                      </div>
+                      <CardContent className="p-3.5 space-y-1">
+                        <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-orange-600 transition-colors">
+                          {item.title}
+                        </h4>
+                        <p className="font-extrabold text-sm sm:text-base text-slate-900">
+                          {item.price.toLocaleString()}원
+                        </p>
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t">
+                          <span>매너 {item.mannerTemp}℃</span>
+                          <span>채팅 {item.chatsCount}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </section>
+
+              {/* 4) 🏪 모꼬마켓 (4칸 - 실시간 서버 연동) */}
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ShoppingBag className="h-5 w-5 text-emerald-600" />
+                    <h3 className="font-extrabold text-base sm:text-lg text-slate-900">
+                      모꼬마켓
+                    </h3>
+                    <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                      본사직영 · 공식 입점사
+                    </Badge>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setActiveTab('MARKET')
+                      setMarketSubTab('B2C_NORMAL')
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 font-semibold"
+                  >
+                    마켓 더보기
+                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {marketProducts
+                    .filter((p) => p.type === 'B2C_NORMAL')
+                    .slice(0, 4)
+                    .map((item) => (
                       <Card
                         key={item.id}
                         onClick={() => setSelectedProduct(item)}
-                        className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-md transition-shadow border border-slate-200/80"
+                        className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-md transition-shadow border border-slate-200/80 bg-white"
                       >
                         <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
                           <img
                             src={item.images[0]}
                             alt={item.title}
-                            className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
-                          {item.type === 'B2C_GROUP' && (
-                            <Badge className="absolute top-2 left-2 bg-rose-600 text-white text-[9px] font-bold border-none">
-                              공구특가
-                            </Badge>
-                          )}
+                          <Badge className="absolute top-2 left-2 bg-emerald-600 text-white text-[9px] font-bold border-none">
+                            {item.isHqDirect ? '본사직영' : '공식입점'}
+                          </Badge>
                         </div>
                         <CardContent className="p-3.5 space-y-1">
                           <span className="text-[10px] text-muted-foreground font-semibold block truncate">
                             {item.sellerName}
                           </span>
-                          <h4 className="font-bold text-xs text-slate-900 line-clamp-1 group-hover:text-emerald-600 transition-colors">
+                          <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-emerald-600 transition-colors">
                             {item.title}
                           </h4>
                           <div className="flex items-baseline gap-1.5">
-                            <span className="font-extrabold text-sm text-slate-900">
+                            <span className="font-extrabold text-sm sm:text-base text-slate-900">
                               {item.price.toLocaleString()}원
                             </span>
                             {item.originalPrice && (
@@ -1928,76 +2201,6 @@ export default function CustomerWebStorefrontPage() {
                         </CardContent>
                       </Card>
                     ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* 5) 👥 동네 이웃 추천 (Neighbour Recommendations) */}
-              <section className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <UserCheck className="h-5 w-5 text-purple-600" />
-                    <h3 className="font-extrabold text-base sm:text-lg text-slate-900">
-                      내 주변 추천 동네 이웃
-                    </h3>
-                    <span className="text-xs text-muted-foreground">
-                      가까운 거리의 인증된 이웃들과 친구가 되어보세요.
-                    </span>
-                  </div>
-                  <Button
-                    onClick={() => {
-                      setActiveTab('CHAT')
-                      setChatSubTab('FRIENDS')
-                    }}
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-purple-700 hover:text-purple-900 font-semibold"
-                  >
-                    이웃 목록 전체보기
-                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                  {friends.map((friend) => (
-                    <Card
-                      key={friend.id}
-                      className="rounded-3xl border border-slate-200/80 p-4 space-y-3 hover:shadow-md transition-shadow text-center flex flex-col items-center"
-                    >
-                      <div className="relative">
-                        <img
-                          src={friend.avatar}
-                          alt="avatar"
-                          className="h-16 w-16 rounded-full object-cover border-2 border-white shadow-xs"
-                        />
-                        {friend.isOnline && (
-                          <span className="absolute bottom-0 right-0 h-4 w-4 rounded-full bg-emerald-500 border-2 border-white shadow-2xs" />
-                        )}
-                      </div>
-                      <div className="space-y-0.5">
-                        <h4 className="font-bold text-sm text-slate-900">{friend.nickname}</h4>
-                        <p className="text-[11px] text-muted-foreground">
-                          {friend.region} · {friend.distance}
-                        </p>
-                      </div>
-                      <p className="text-xs text-slate-600 line-clamp-1 italic bg-slate-50 px-2 py-1 rounded-lg w-full">
-                        &quot;{friend.statusMessage}&quot;
-                      </p>
-                      <div className="w-full flex items-center justify-between text-[11px] font-semibold text-slate-500 pt-1 border-t">
-                        <span>온도 {friend.mannerTemp}℃</span>
-                        <span>{friend.gender} · {friend.age}세</span>
-                      </div>
-                      <Button
-                        onClick={() => handleStartNeighborChat(friend)}
-                        size="sm"
-                        variant="outline"
-                        className="w-full text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50 h-8 rounded-xl"
-                      >
-                        <MessageCircle className="h-3.5 w-3.5 mr-1" />
-                        1:1 대화 신청
-                      </Button>
-                    </Card>
-                  ))}
                 </div>
               </section>
             </div>
