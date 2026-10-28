@@ -49,6 +49,10 @@ import {
   Wallet,
   Award,
   Filter,
+  FileText,
+  Scale,
+  PhoneCall,
+  Info,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -643,6 +647,86 @@ const INITIAL_CHAT_ROOMS: ChatRoomItem[] = [
   },
 ]
 
+// Legal Documents Dictionary for Modal
+const LEGAL_DOCUMENTS = {
+  'terms-of-service': {
+    title: '주식회사 모꼬글로벌 서비스 이용약관',
+    category: '전자상거래법 & 약관규제법 준수',
+    body: `제1조 (목적)
+본 약관은 주식회사 모꼬글로벌(이하 "회사")이 운영하는 모꼬(MOCCO) 웹사이트 및 모바일 애플리케이션(이하 "몰" 또는 "서비스")에서 제공하는 전자상거래 및 실시간 스트리밍, 동네 커뮤니티 서비스를 이용함에 있어 회사와 이용자의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.
+
+제2조 (통신판매중개자로서의 지위 및 면책)
+1. 회사는 통신판매중개자로서 이용자 간의 자유로운 재화 또는 용역의 거래 및 라이브 방송 후원을 위한 전자상거래 시스템을 운영 및 관리, 제공할 뿐입니다.
+2. 개별 판매자 및 회원이 등록한 상품의 정보, 배송, 교환, 환불 및 라이브 방송 내용에 대한 책임은 해당 정보를 등록한 당사자에게 있습니다.
+3. 단, 회사는 전자상거래 등에서의 소비자보호에 관한 법률(전자상거래법)에 따라 구매자의 안전한 거래를 보장하기 위해 100% 에스크로(매매보호) 서비스를 제공합니다.
+
+제3조 (서비스의 제공 및 변경)
+1. 회사는 다음과 같은 서비스를 제공합니다:
+  - 동네 기반 실시간 라이브 스트리밍 및 라이브커머스 중개
+  - 개인 간 중고물품 매매 중개 (에스크로 안전결제)
+  - 본사 직영 및 공식 입점사의 상품 판매 및 공동구매 중개
+  - 동네 1줄 수다(SUDA) 및 1:1 대화방 커뮤니티
+
+제4조 (청약철회 및 환불)
+1. 회사 및 입점사 상품을 구매한 이용자는 전자상거래법 제17조에 따라 상품 수령 후 7일 이내에 청약철회를 요청할 수 있습니다.
+2. 단, 소비자의 귀책사유로 상품이 멸실/훼손된 경우 또는 신선식품 등 시간의 경과에 의해 재판매가 불가능한 상품은 청약철회가 제한될 수 있습니다.`,
+  },
+  'privacy-policy': {
+    title: '주식회사 모꼬글로벌 개인정보처리방침',
+    category: '개인정보 보호법 제30조 준수',
+    body: `주식회사 모꼬글로벌(이하 "회사")은 정보주체의 자유와 권리 보호를 위해 「개인정보 보호법」 및 관계 법령이 정한 바를 준수하여, 적법하게 개인정보를 처리하고 안전하게 관리하고 있습니다.
+
+1. 개인정보의 수집 및 이용 목적
+- 회원 가입 및 본인 확인, 부정이용 방지
+- 상품 주문, 에스크로 결제 이행, 배송 및 정산금 지급
+- 위치기반 동네 이웃 추천 및 지역 라이브 방송 추천
+- 고객 불만 처리 및 분쟁 조정을 위한 기록 보존
+
+2. 수집하는 개인정보 항목
+- 필수 항목: 휴대전화번호, 닉네임, 성별, 연령, 계좌번호(판매자 및 크리에이터)
+- 선택 항목: 프로필 사진, 관심사, 행정동 단위 위치정보(동 단위 마스킹)
+
+3. 개인정보의 보유 및 이용 기간
+- 회원 탈퇴 시 지체 없이 5일 이내 파기 원칙.
+- 관계 법령에 따른 보존:
+  • 대금결제 및 재화공급에 관한 기록: 5년 (전자상거래법)
+  • 계약 또는 청약철회 등에 관한 기록: 5년 (전자상거래법)
+  • 소비자의 불만 또는 분쟁처리에 관한 기록: 3년 (전자상거래법)
+  • 웹사이트 접속 기록: 3개월 (통신비밀보호법)
+
+4. 개인정보보호책임자
+- 성명: 손준호
+- 직책: 대표이사 / 개인정보보호책임자 (CPO)
+- 문의처: privacy@mocco.kr / 1588-0000`,
+  },
+  'financial-terms': {
+    title: '전자금융거래 이용약관',
+    category: '전자금융거래법 준수',
+    body: `제1조 (목적)
+본 약관은 주식회사 모꼬글로벌(이하 "회사")이 제공하는 전자지급결제대행서비스, 선불전자지급수단(ON 포인트) 발행 및 관리서비스, 결제대금예치(에스크로) 서비스를 이용자가 이용함에 있어 회사와 이용자 간의 전자금융거래의 법률관계를 정하는 것을 목적으로 합니다.
+
+제2조 (결제대금예치서비스 - 에스크로)
+1. 회사는 전자상거래 등에서의 소비자보호에 관한 법률 제24조에 따라 선지급식 통신판매에 있어서 소비자가 요청하는 경우 토스페이먼츠 및 제휴 금융기관을 통한 결제대금예치(에스크로) 서비스를 제공합니다.
+2. 구매자가 물품을 정상 수령하고 [구매확정]을 완료한 후 또는 법정 기한 내에 이의 제기가 없는 경우에 한하여 판매자에게 대금을 정산 지급합니다.
+
+제3조 (선불전자지급수단 - ON 포인트)
+1. 이용자는 계좌이체, 신용카드, 이벤트 리워드 등을 통해 모꼬 ON 포인트를 충전하거나 적립받을 수 있습니다.
+2. 적립 및 충전된 포인트는 라이브 방송 후원, 1:1 대화방 입장, 상품 결제에 1 P = 1원의 가치로 사용됩니다.`,
+  },
+  'youth-protection': {
+    title: '청소년보호정책',
+    category: '청소년 보호법 준수',
+    body: `주식회사 모꼬글로벌은 청소년이 유해한 환경으로부터 보호받고 유익한 매체를 이용할 수 있도록 「청소년 보호법」 및 정보통신윤리위원회 심의규정을 준수하고 있습니다.
+
+1. 유해정보에 대한 청소년접근제한 및 관리조치
+회사는 청소년이 아무런 제약 없이 유해미디어 및 성인물에 접근하지 못하도록 별도의 연령인증 장치를 마련하고 있습니다.
+
+2. 청소년보호책임자 및 담당자
+- 청소년보호책임자: 손준호 대표이사
+- 연락처: youth@mocco.kr / 1588-0000`,
+  },
+}
+
 // 5 Mobile App Equivalent Tabs
 type ActiveTab = 'HOME' | 'MARKET' | 'LIVE' | 'CHAT' | 'MY'
 
@@ -681,7 +765,11 @@ export default function CustomerWebStorefrontPage() {
   const [marketCategoryFilter, setMarketCategoryFilter] = useState<string>('전체')
   const [friendRegionFilter, setFriendRegionFilter] = useState<string>('전체')
 
-  // 3. Data States
+  // 3. Location State (동네 설정)
+  const [currentLocation, setCurrentLocation] = useState('서울 강남구 역삼1동')
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
+
+  // 4. Data States
   const [lives, setLives] = useState<LiveRoomItem[]>(INITIAL_LIVES)
   const [usedProducts, setUsedProducts] = useState<UsedProductItem[]>(INITIAL_USED_PRODUCTS)
   const [marketProducts, setMarketProducts] = useState<MarketProductItem[]>(INITIAL_MARKET_PRODUCTS)
@@ -693,7 +781,11 @@ export default function CustomerWebStorefrontPage() {
   const [sudaInputText, setSudaInputText] = useState('')
   const [heroIndex, setHeroIndex] = useState(0)
 
-  // 4. Modals
+  // 5. Legal Policy Modal State
+  const [legalModalOpen, setLegalModalOpen] = useState(false)
+  const [selectedLegalSlug, setSelectedLegalSlug] = useState<keyof typeof LEGAL_DOCUMENTS>('privacy-policy')
+
+  // 6. Modals
   // Live Viewer Modal
   const [activeLiveModal, setActiveLiveModal] = useState<LiveRoomItem | null>(null)
   const [liveChatInput, setLiveChatInput] = useState('')
@@ -800,7 +892,7 @@ export default function CustomerWebStorefrontPage() {
   useEffect(() => {
     const timer = setInterval(() => {
       setHeroIndex((prev) => (prev + 1) % INITIAL_HERO_BANNERS.length)
-    }, 4500)
+    }, 5000)
     return () => clearInterval(timer)
   }, [])
 
@@ -976,7 +1068,6 @@ export default function CustomerWebStorefrontPage() {
   // Start chat with neighbor
   const handleStartNeighborChat = (friend: NeighborFriendItem) => {
     requireAuth(() => {
-      // Find or create chat room
       const existing = chatRooms.find((r) => r.targetNickname.includes(friend.nickname))
       if (existing) {
         setActiveChatRoom(existing)
@@ -1019,18 +1110,19 @@ export default function CustomerWebStorefrontPage() {
       setIsCheckoutOpen(false)
       toast({
         title: '🎉 에스크로 안전결제 주문 완료!',
-        description: `주문이 정상 접수되었습니다. 판매자가 발송할 때까지 결제 대금이 안전하게 예치됩니다.`,
+        description: `주문이 정상 접수되었습니다. 판매자가 발송하고 고객님이 구매확정할 때까지 결제 대금이 안전하게 예치됩니다.`,
       })
     }, 1200)
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between pb-20 md:pb-6">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col justify-between pb-20 md:pb-0">
       <div>
         {/* ========================================================= */}
         {/* 1. Global Navigation Bar (GNB) Header                     */}
+        {/* Figma-Inspired Clean Modern Layout                        */}
         {/* ========================================================= */}
-        <header className="sticky top-0 z-40 w-full border-b bg-white/95 backdrop-blur-md shadow-xs">
+        <header className="sticky top-0 z-40 w-full border-b border-slate-200/80 bg-white/95 backdrop-blur-md shadow-xs">
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
             {/* Logo & Brand Name: MOCCO (모꼬) */}
             <div className="flex items-center gap-6">
@@ -1047,21 +1139,21 @@ export default function CustomerWebStorefrontPage() {
                       MOCCO
                     </span>
                     <Badge variant="secondary" className="text-[10px] bg-pink-50 text-pink-700 font-bold border-pink-200">
-                      모꼬 웹 포털
+                      모꼬 로컬 커머스
                     </Badge>
                   </div>
                   <p className="text-[10px] text-muted-foreground hidden sm:block">
-                    실시간 라이브 · 채팅 · 동네 중고거래 · 마켓
+                    실시간 라이브 · 동네 중고거래 · 산지직송 마켓 · 소통 쳇
                   </p>
                 </div>
               </button>
 
               {/* 5 Core App Tabs Navigation (Desktop) */}
-              <nav className="hidden md:flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+              <nav className="hidden md:flex items-center gap-1 bg-slate-100/80 p-1 rounded-2xl border border-slate-200/60">
                 {/* 1. 모꼬홈 */}
                 <button
                   onClick={() => setActiveTab('HOME')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                     activeTab === 'HOME'
                       ? 'bg-white text-slate-900 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
@@ -1074,7 +1166,7 @@ export default function CustomerWebStorefrontPage() {
                 {/* 2. 모꼬마켓 */}
                 <button
                   onClick={() => setActiveTab('MARKET')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                     activeTab === 'MARKET'
                       ? 'bg-white text-emerald-700 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
@@ -1087,7 +1179,7 @@ export default function CustomerWebStorefrontPage() {
                 {/* 3. 모꼬 LIVE (Central Signature Protruding Pill) */}
                 <button
                   onClick={() => setActiveTab('LIVE')}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
                     activeTab === 'LIVE'
                       ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md'
                       : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
@@ -1101,7 +1193,7 @@ export default function CustomerWebStorefrontPage() {
                 {/* 4. 모꼬쳇 */}
                 <button
                   onClick={() => setActiveTab('CHAT')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                     activeTab === 'CHAT'
                       ? 'bg-white text-blue-700 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
@@ -1115,7 +1207,7 @@ export default function CustomerWebStorefrontPage() {
                 {/* 5. 마이모꼬 */}
                 <button
                   onClick={() => setActiveTab('MY')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                     activeTab === 'MY'
                       ? 'bg-white text-purple-700 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
@@ -1136,14 +1228,14 @@ export default function CustomerWebStorefrontPage() {
                     onClick={() => setIsAppDownloadOpen(true)}
                     variant="outline"
                     size="sm"
-                    className="hidden lg:flex items-center gap-1.5 text-xs text-slate-700"
+                    className="hidden lg:flex items-center gap-1.5 text-xs text-slate-700 border-slate-200"
                   >
                     <Download className="h-3.5 w-3.5 text-slate-500" />
                     앱 다운로드
                   </Button>
                   <Button
                     onClick={() => openLoginModal()}
-                    className="bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white text-xs font-semibold shadow-xs"
+                    className="bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white text-xs font-semibold shadow-xs rounded-xl"
                     size="sm"
                   >
                     <LogIn className="h-3.5 w-3.5 mr-1" />
@@ -1154,7 +1246,7 @@ export default function CustomerWebStorefrontPage() {
                 /* Authenticated State */
                 <div className="flex items-center gap-2 sm:gap-3">
                   {/* Point Balance */}
-                  <div className="hidden sm:flex items-center gap-1.5 rounded-lg bg-pink-50 px-2.5 py-1 border border-pink-100">
+                  <div className="hidden sm:flex items-center gap-1.5 rounded-xl bg-pink-50 px-2.5 py-1 border border-pink-100">
                     <span className="text-[11px] font-semibold text-pink-600">ON</span>
                     <span className="text-xs font-bold text-pink-700">
                       {(user?.pointBalance || 0).toLocaleString()} P
@@ -1168,7 +1260,7 @@ export default function CustomerWebStorefrontPage() {
                         onClick={() => openMerchantModal()}
                         variant="outline"
                         size="sm"
-                        className="border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-semibold h-8"
+                        className="border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-semibold h-8 rounded-xl"
                       >
                         <Building2 className="h-3.5 w-3.5 mr-1 text-emerald-600" />
                         🏪 입점 신청
@@ -1177,7 +1269,7 @@ export default function CustomerWebStorefrontPage() {
                         onClick={() => openCreatorModal()}
                         variant="outline"
                         size="sm"
-                        className="border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-semibold h-8"
+                        className="border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-semibold h-8 rounded-xl"
                       >
                         <Mic className="h-3.5 w-3.5 mr-1 text-purple-600" />
                         🎙️ 크리에이터 신청
@@ -1190,7 +1282,7 @@ export default function CustomerWebStorefrontPage() {
                     <Button
                       asChild
                       size="sm"
-                      className="bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-bold shadow-xs h-8"
+                      className="bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-bold shadow-xs h-8 rounded-xl"
                     >
                       <Link href="/seller">
                         <Store className="h-3.5 w-3.5 mr-1" />
@@ -1205,7 +1297,7 @@ export default function CustomerWebStorefrontPage() {
                     <Button
                       asChild
                       size="sm"
-                      className="bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 text-white text-xs font-bold shadow-xs h-8"
+                      className="bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 text-white text-xs font-bold shadow-xs h-8 rounded-xl"
                     >
                       <Link href="/streamer">
                         <Radio className="h-3.5 w-3.5 mr-1" />
@@ -1220,7 +1312,7 @@ export default function CustomerWebStorefrontPage() {
                     <Button
                       asChild
                       size="sm"
-                      className="bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 text-white text-xs font-bold shadow-xs h-8"
+                      className="bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 text-white text-xs font-bold shadow-xs h-8 rounded-xl"
                     >
                       <Link href="/dashboard">
                         <Crown className="h-3.5 w-3.5 mr-1" />
@@ -1299,16 +1391,19 @@ export default function CustomerWebStorefrontPage() {
           {/* ======================================================= */}
           {activeTab === 'HOME' && (
             <div className="space-y-8 animate-in fade-in duration-200">
-              {/* Home Subheader: Location & Live Stats */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-2xl border shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-100 text-pink-600">
+              {/* Home Subheader: Location & Live Stats with Interactive Neighborhood Selector */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-3xl border border-slate-200/80 shadow-xs">
+                <button
+                  onClick={() => setIsLocationModalOpen(true)}
+                  className="flex items-center gap-2.5 text-left group hover:opacity-85 transition-opacity"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-pink-100 text-pink-600 group-hover:scale-105 transition-transform">
                     <MapPin className="h-4 w-4" />
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5 font-bold text-sm text-slate-900">
-                      <span>서울 강남구 역삼1동</span>
-                      <ChevronDown className="h-3.5 w-3.5 text-slate-400 cursor-pointer" />
+                      <span>{currentLocation}</span>
+                      <ChevronDown className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-900 transition-colors" />
                       <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-semibold">
                         동네 인증 완료
                       </Badge>
@@ -1317,7 +1412,7 @@ export default function CustomerWebStorefrontPage() {
                       현재 반경 3km 내 온라인 접속 이웃 1,842명
                     </p>
                   </div>
-                </div>
+                </button>
 
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1 sm:w-64">
@@ -1326,20 +1421,176 @@ export default function CustomerWebStorefrontPage() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="중고 매물, 라이브 방송, 마켓 검색"
-                      className="pl-8 text-xs h-8 bg-slate-50"
+                      className="pl-8 text-xs h-8 bg-slate-50 rounded-xl"
                     />
                   </div>
                   <Button
                     onClick={() => setIsAppDownloadOpen(true)}
                     variant="outline"
                     size="sm"
-                    className="h-8 text-xs font-semibold gap-1 text-slate-700"
+                    className="h-8 text-xs font-semibold gap-1 text-slate-700 rounded-xl"
                   >
                     <QrCode className="h-3.5 w-3.5 text-pink-500" />
                     앱 QR
                   </Button>
                 </div>
               </div>
+
+              {/* 0) Figma-style Service Value Proposition Showcase ("모꼬는 어떤 서비스인가요?") */}
+              <section className="rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-8 shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-pink-500/10 blur-3xl pointer-events-none" />
+                <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
+
+                <div className="relative z-10 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-pink-500 text-white font-bold border-none text-[10px]">
+                          하이퍼로컬 소셜 & 라이브 커머스 플랫폼
+                        </Badge>
+                        <span className="text-[11px] text-pink-300 font-semibold">
+                          대한민국 100% 에스크로 안심 거래
+                        </span>
+                      </div>
+                      <h2 className="text-xl sm:text-2xl font-black tracking-tight mt-1">
+                        동네 이웃과 함께하는 모꼬 (MOCCO)에 오신 것을 환영합니다!
+                      </h2>
+                      <p className="text-xs text-slate-300 mt-1">
+                        실시간 소통 라이브부터 안전한 동네 중고 직거래, 제주 신선 산지직송 & 특가 공구까지 한곳에서 즐겨보세요!
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setIsAppDownloadOpen(true)}
+                      variant="outline"
+                      size="sm"
+                      className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-bold h-8 rounded-xl shrink-0"
+                    >
+                      <Download className="h-3.5 w-3.5 mr-1" />
+                      모바일 앱 다운로드
+                    </Button>
+                  </div>
+
+                  {/* 4 Core Pillars Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+                    {/* 1. 모꼬 LIVE */}
+                    <button
+                      onClick={() => setActiveTab('LIVE')}
+                      className="group p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-rose-400/50 transition-all text-left flex flex-col justify-between space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-pink-600 text-white shadow-md">
+                          <Radio className="h-5 w-5 animate-pulse" />
+                        </div>
+                        <span className="text-[10px] font-bold text-rose-300 bg-rose-500/20 px-2 py-0.5 rounded-full">
+                          누구나 방송 ON
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-sm text-white group-hover:text-rose-300 transition-colors">
+                          1. 모꼬 LIVE
+                        </h3>
+                        <p className="text-[11px] text-slate-300 line-clamp-2 mt-1 leading-relaxed">
+                          동네 이웃과의 소소한 일상 수다 라이브부터 크리에이터 라이브커머스 핀 판매까지 실시간 참여
+                        </p>
+                      </div>
+                      <div className="flex items-center text-xs text-rose-300 font-bold group-hover:translate-x-1 transition-transform">
+                        <span>방송 둘러보기</span>
+                        <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                      </div>
+                    </button>
+
+                    {/* 2. 동네 중고거래 */}
+                    <button
+                      onClick={() => {
+                        setActiveTab('MARKET')
+                        setMarketSubTab('C2C_USED')
+                      }}
+                      className="group p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-orange-400/50 transition-all text-left flex flex-col justify-between space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-orange-500 to-amber-600 text-white shadow-md">
+                          <Store className="h-5 w-5" />
+                        </div>
+                        <span className="text-[10px] font-bold text-orange-300 bg-orange-500/20 px-2 py-0.5 rounded-full">
+                          100% 안전 에스크로
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-sm text-white group-hover:text-orange-300 transition-colors">
+                          2. 동네 중고거래
+                        </h3>
+                        <p className="text-[11px] text-slate-300 line-clamp-2 mt-1 leading-relaxed">
+                          동네 이웃 간 안심 직거래는 물론, 택배 거래 시에도 구매확정 시까지 대금이 안전하게 예치
+                        </p>
+                      </div>
+                      <div className="flex items-center text-xs text-orange-300 font-bold group-hover:translate-x-1 transition-transform">
+                        <span>중고매물 보기</span>
+                        <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                      </div>
+                    </button>
+
+                    {/* 3. 산지직송 & 공구 */}
+                    <button
+                      onClick={() => {
+                        setActiveTab('MARKET')
+                        setMarketSubTab('B2C_GROUP')
+                      }}
+                      className="group p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-emerald-400/50 transition-all text-left flex flex-col justify-between space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white shadow-md">
+                          <ShoppingBag className="h-5 w-5" />
+                        </div>
+                        <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full">
+                          산지직송 특가
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-sm text-white group-hover:text-emerald-300 transition-colors">
+                          3. 마켓 & 특가공구
+                        </h3>
+                        <p className="text-[11px] text-slate-300 line-clamp-2 mt-1 leading-relaxed">
+                          제주 흑돼지, 나주 배 산지직송 먹거리와 목표 수량 달성 시 최대 43% 파격 할인 공동구매
+                        </p>
+                      </div>
+                      <div className="flex items-center text-xs text-emerald-300 font-bold group-hover:translate-x-1 transition-transform">
+                        <span>특가공구 보기</span>
+                        <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                      </div>
+                    </button>
+
+                    {/* 4. 동네 1줄 수다 & 모꼬쳇 */}
+                    <button
+                      onClick={() => {
+                        setActiveTab('CHAT')
+                        setChatSubTab('SUDA')
+                      }}
+                      className="group p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-400/50 transition-all text-left flex flex-col justify-between space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-600 text-white shadow-md">
+                          <MessageCircle className="h-5 w-5" />
+                        </div>
+                        <span className="text-[10px] font-bold text-blue-300 bg-blue-500/20 px-2 py-0.5 rounded-full">
+                          실시간 동네 수다
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-sm text-white group-hover:text-blue-300 transition-colors">
+                          4. 모꼬쳇 & 1줄수다
+                        </h3>
+                        <p className="text-[11px] text-slate-300 line-clamp-2 mt-1 leading-relaxed">
+                          동네 이웃들의 생생한 1줄 일상 이야기, 맛집 정보 공유 및 1:1 안전 대화로 따뜻한 소통
+                        </p>
+                      </div>
+                      <div className="flex items-center text-xs text-blue-300 font-bold group-hover:translate-x-1 transition-transform">
+                        <span>동네수다 가기</span>
+                        <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </section>
 
               {/* 1) Hero Promotional Carousel */}
               <div className="relative overflow-hidden rounded-3xl bg-slate-900 text-white shadow-xl min-h-[220px] sm:min-h-[260px] flex items-center">
@@ -1362,7 +1613,7 @@ export default function CustomerWebStorefrontPage() {
                   <div className="pt-2">
                     <Button
                       onClick={() => setActiveTab(INITIAL_HERO_BANNERS[heroIndex].linkTab)}
-                      className="bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs h-8 sm:h-9 shadow-md"
+                      className="bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs h-8 sm:h-9 shadow-md rounded-xl"
                     >
                       자세히 보러가기
                       <ArrowRight className="h-3.5 w-3.5 ml-1" />
@@ -1417,7 +1668,7 @@ export default function CustomerWebStorefrontPage() {
                       <Card
                         key={live.id}
                         onClick={() => setActiveLiveModal(live)}
-                        className={`group relative overflow-hidden rounded-2xl cursor-pointer border hover:shadow-lg transition-all ${
+                        className={`group relative overflow-hidden rounded-3xl cursor-pointer border hover:shadow-lg transition-all ${
                           isGold ? 'border-amber-300 ring-2 ring-amber-400/20' : isSilver ? 'border-slate-300' : 'border-orange-200'
                         }`}
                       >
@@ -1471,7 +1722,7 @@ export default function CustomerWebStorefrontPage() {
                           )}
                         </div>
 
-                        <CardContent className="p-3.5 space-y-2">
+                        <CardContent className="p-4 space-y-2">
                           <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-rose-600 transition-colors">
                             {live.title}
                           </h4>
@@ -1498,7 +1749,7 @@ export default function CustomerWebStorefrontPage() {
               </section>
 
               {/* 3) 💬 실시간 동네 1줄 수다 (SUDA Feed & Quick Post) */}
-              <section className="rounded-2xl bg-gradient-to-br from-blue-50/60 via-indigo-50/30 to-purple-50/50 p-5 border border-blue-100/70 space-y-4">
+              <section className="rounded-3xl bg-gradient-to-br from-blue-50/60 via-indigo-50/30 to-purple-50/50 p-6 border border-blue-100/70 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <MessageCircle className="h-5 w-5 text-blue-600" />
@@ -1524,7 +1775,7 @@ export default function CustomerWebStorefrontPage() {
                 </div>
 
                 {/* Quick Suda Input */}
-                <div className="flex items-center gap-2 bg-white p-2 rounded-xl border shadow-2xs">
+                <div className="flex items-center gap-2 bg-white p-2 rounded-2xl border border-slate-200/80 shadow-2xs">
                   <Input
                     value={sudaInputText}
                     onChange={(e) => setSudaInputText(e.target.value)}
@@ -1537,7 +1788,7 @@ export default function CustomerWebStorefrontPage() {
                   <Button
                     onClick={handlePostSuda}
                     size="sm"
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-8 px-3 shrink-0"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-8 px-4 shrink-0 rounded-xl"
                   >
                     <Send className="h-3.5 w-3.5 mr-1" />
                     남기기
@@ -1549,7 +1800,7 @@ export default function CustomerWebStorefrontPage() {
                   {sudaPosts.slice(0, 4).map((post) => (
                     <div
                       key={post.id}
-                      className="flex items-start gap-3 bg-white p-3 rounded-xl border shadow-2xs hover:border-blue-200 transition-colors"
+                      className="flex items-start gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/60 shadow-2xs hover:border-blue-200 transition-colors"
                     >
                       <img
                         src={post.avatar}
@@ -1618,7 +1869,7 @@ export default function CustomerWebStorefrontPage() {
                       <Card
                         key={item.id}
                         onClick={() => setSelectedUsedItem(item)}
-                        className="group overflow-hidden rounded-2xl cursor-pointer hover:shadow-md transition-shadow border"
+                        className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-md transition-shadow border border-slate-200/80"
                       >
                         <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
                           <img
@@ -1630,7 +1881,7 @@ export default function CustomerWebStorefrontPage() {
                             {item.locationName.split(' ')[1] || item.locationName}
                           </Badge>
                         </div>
-                        <CardContent className="p-3 space-y-1">
+                        <CardContent className="p-3.5 space-y-1">
                           <h4 className="font-bold text-xs text-slate-900 line-clamp-1 group-hover:text-orange-600 transition-colors">
                             {item.title}
                           </h4>
@@ -1678,7 +1929,7 @@ export default function CustomerWebStorefrontPage() {
                       <Card
                         key={item.id}
                         onClick={() => setSelectedProduct(item)}
-                        className="group overflow-hidden rounded-2xl cursor-pointer hover:shadow-md transition-shadow border"
+                        className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-md transition-shadow border border-slate-200/80"
                       >
                         <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
                           <img
@@ -1692,8 +1943,8 @@ export default function CustomerWebStorefrontPage() {
                             </Badge>
                           )}
                         </div>
-                        <CardContent className="p-3 space-y-1">
-                          <span className="text-[10px] text-muted-foreground block truncate">
+                        <CardContent className="p-3.5 space-y-1">
+                          <span className="text-[10px] text-muted-foreground font-semibold block truncate">
                             {item.sellerName}
                           </span>
                           <h4 className="font-bold text-xs text-slate-900 line-clamp-1 group-hover:text-emerald-600 transition-colors">
@@ -1746,7 +1997,7 @@ export default function CustomerWebStorefrontPage() {
                   {friends.map((friend) => (
                     <Card
                       key={friend.id}
-                      className="rounded-2xl border p-4 space-y-3 hover:shadow-md transition-shadow text-center flex flex-col items-center"
+                      className="rounded-3xl border border-slate-200/80 p-4 space-y-3 hover:shadow-md transition-shadow text-center flex flex-col items-center"
                     >
                       <div className="relative">
                         <img
@@ -1764,7 +2015,7 @@ export default function CustomerWebStorefrontPage() {
                           {friend.region} · {friend.distance}
                         </p>
                       </div>
-                      <p className="text-xs text-slate-600 line-clamp-1 italic bg-slate-50 px-2 py-1 rounded w-full">
+                      <p className="text-xs text-slate-600 line-clamp-1 italic bg-slate-50 px-2 py-1 rounded-lg w-full">
                         &quot;{friend.statusMessage}&quot;
                       </p>
                       <div className="w-full flex items-center justify-between text-[11px] font-semibold text-slate-500 pt-1 border-t">
@@ -1775,7 +2026,7 @@ export default function CustomerWebStorefrontPage() {
                         onClick={() => handleStartNeighborChat(friend)}
                         size="sm"
                         variant="outline"
-                        className="w-full text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50 h-8"
+                        className="w-full text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50 h-8 rounded-xl"
                       >
                         <MessageCircle className="h-3.5 w-3.5 mr-1" />
                         1:1 대화 신청
@@ -1804,10 +2055,10 @@ export default function CustomerWebStorefrontPage() {
                 </div>
 
                 {/* 3 Subtabs */}
-                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl text-xs font-bold border border-slate-200/60">
                   <button
                     onClick={() => setMarketSubTab('C2C_USED')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
                       marketSubTab === 'C2C_USED' ? 'bg-white text-orange-600 shadow-xs' : 'text-slate-600'
                     }`}
                   >
@@ -1815,7 +2066,7 @@ export default function CustomerWebStorefrontPage() {
                   </button>
                   <button
                     onClick={() => setMarketSubTab('B2C_NORMAL')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
                       marketSubTab === 'B2C_NORMAL' ? 'bg-white text-emerald-600 shadow-xs' : 'text-slate-600'
                     }`}
                   >
@@ -1823,7 +2074,7 @@ export default function CustomerWebStorefrontPage() {
                   </button>
                   <button
                     onClick={() => setMarketSubTab('B2C_GROUP')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
                       marketSubTab === 'B2C_GROUP' ? 'bg-white text-rose-600 shadow-xs' : 'text-slate-600'
                     }`}
                   >
@@ -1855,7 +2106,7 @@ export default function CustomerWebStorefrontPage() {
                     onClick={() => {
                       requireAuth(() => setIsNewUsedModalOpen(true))
                     }}
-                    className="bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold h-8 shadow-xs"
+                    className="bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold h-8 shadow-xs rounded-xl"
                   >
                     <PlusCircle className="h-3.5 w-3.5 mr-1" />
                     중고 물품 판매 등록
@@ -1864,7 +2115,7 @@ export default function CustomerWebStorefrontPage() {
                     <Button
                       asChild
                       variant="outline"
-                      className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-xs font-bold h-8"
+                      className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-xs font-bold h-8 rounded-xl"
                     >
                       <Link href="/seller">
                         <Store className="h-3.5 w-3.5 mr-1" />
@@ -1887,7 +2138,7 @@ export default function CustomerWebStorefrontPage() {
                       <Card
                         key={item.id}
                         onClick={() => setSelectedUsedItem(item)}
-                        className="group overflow-hidden rounded-2xl cursor-pointer hover:shadow-lg transition-all border"
+                        className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80"
                       >
                         <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
                           <img
@@ -1937,7 +2188,7 @@ export default function CustomerWebStorefrontPage() {
                       <Card
                         key={item.id}
                         onClick={() => setSelectedProduct(item)}
-                        className="group overflow-hidden rounded-2xl cursor-pointer hover:shadow-lg transition-all border"
+                        className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80"
                       >
                         <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
                           <img
@@ -2030,7 +2281,7 @@ export default function CustomerWebStorefrontPage() {
                       onClick={() => {
                         requireAuth(() => setIsStartLiveModalOpen(true))
                       }}
-                      className="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-xs sm:text-sm shadow-lg h-9"
+                      className="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-xs sm:text-sm shadow-lg h-9 rounded-xl"
                     >
                       <Video className="h-4 w-4 mr-1.5" />
                       내 라이브 방송 시작하기 (누구나 가능)
@@ -2042,7 +2293,7 @@ export default function CustomerWebStorefrontPage() {
                           requireAuth(() => openCreatorModal())
                         }}
                         variant="outline"
-                        className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs sm:text-sm font-semibold h-9"
+                        className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs sm:text-sm font-semibold h-9 rounded-xl"
                       >
                         <Mic className="h-4 w-4 mr-1.5 text-purple-300" />
                         공식 크리에이터 승격 신청 (커머스 핀 판매)
@@ -2077,7 +2328,7 @@ export default function CustomerWebStorefrontPage() {
                     <Card
                       key={live.id}
                       onClick={() => setActiveLiveModal(live)}
-                      className="group overflow-hidden rounded-2xl cursor-pointer hover:shadow-xl transition-all border"
+                      className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-xl transition-all border border-slate-200/80"
                     >
                       <div className="aspect-video w-full bg-slate-900 overflow-hidden relative">
                         <img
@@ -2119,7 +2370,7 @@ export default function CustomerWebStorefrontPage() {
                         )}
                       </div>
 
-                      <CardContent className="p-3.5 space-y-2">
+                      <CardContent className="p-4 space-y-2">
                         <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-rose-600 transition-colors">
                           {live.title}
                         </h4>
@@ -2162,10 +2413,10 @@ export default function CustomerWebStorefrontPage() {
                 </div>
 
                 {/* 3 Subtabs */}
-                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl text-xs font-bold border border-slate-200/60">
                   <button
                     onClick={() => setChatSubTab('FRIENDS')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
                       chatSubTab === 'FRIENDS' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600'
                     }`}
                   >
@@ -2174,7 +2425,7 @@ export default function CustomerWebStorefrontPage() {
                   </button>
                   <button
                     onClick={() => setChatSubTab('SUDA')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
                       chatSubTab === 'SUDA' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600'
                     }`}
                   >
@@ -2183,7 +2434,7 @@ export default function CustomerWebStorefrontPage() {
                   </button>
                   <button
                     onClick={() => setChatSubTab('CHATS')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
                       chatSubTab === 'CHATS' ? 'bg-white text-purple-700 shadow-xs' : 'text-slate-600'
                     }`}
                   >
@@ -2219,7 +2470,7 @@ export default function CustomerWebStorefrontPage() {
                       .map((friend) => (
                         <Card
                           key={friend.id}
-                          className="rounded-2xl border p-4 space-y-3 hover:shadow-md transition-shadow text-center flex flex-col items-center"
+                          className="rounded-3xl border border-slate-200/80 p-4 space-y-3 hover:shadow-md transition-shadow text-center flex flex-col items-center"
                         >
                           <div className="relative">
                             <img
@@ -2237,7 +2488,7 @@ export default function CustomerWebStorefrontPage() {
                               {friend.region} · {friend.distance}
                             </p>
                           </div>
-                          <p className="text-xs text-slate-600 line-clamp-2 italic bg-slate-50 px-2 py-1.5 rounded w-full">
+                          <p className="text-xs text-slate-600 line-clamp-2 italic bg-slate-50 px-2 py-1.5 rounded-lg w-full">
                             &quot;{friend.statusMessage}&quot;
                           </p>
                           <div className="w-full flex items-center justify-between text-[11px] font-semibold text-slate-500 pt-1 border-t">
@@ -2247,7 +2498,7 @@ export default function CustomerWebStorefrontPage() {
                           <Button
                             onClick={() => handleStartNeighborChat(friend)}
                             size="sm"
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-8 shadow-xs"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-8 shadow-xs rounded-xl"
                           >
                             <MessageCircle className="h-3.5 w-3.5 mr-1" />
                             1:1 대화 신청하기
@@ -2262,7 +2513,7 @@ export default function CustomerWebStorefrontPage() {
               {chatSubTab === 'SUDA' && (
                 <div className="space-y-4 max-w-3xl mx-auto">
                   {/* Suda Post Input Bar */}
-                  <div className="flex items-center gap-2 bg-white p-3 rounded-2xl border shadow-xs">
+                  <div className="flex items-center gap-2 bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs">
                     <Input
                       value={sudaInputText}
                       onChange={(e) => setSudaInputText(e.target.value)}
@@ -2274,7 +2525,7 @@ export default function CustomerWebStorefrontPage() {
                     />
                     <Button
                       onClick={handlePostSuda}
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-8 px-4 shrink-0"
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-8 px-4 shrink-0 rounded-xl"
                     >
                       <Send className="h-3.5 w-3.5 mr-1" />
                       등록
@@ -2286,7 +2537,7 @@ export default function CustomerWebStorefrontPage() {
                     {sudaPosts.map((post) => (
                       <div
                         key={post.id}
-                        className="bg-white p-4 rounded-2xl border shadow-2xs space-y-2 hover:border-blue-200 transition-colors"
+                        className="bg-white p-4 rounded-2xl border border-slate-200/70 shadow-2xs space-y-2 hover:border-blue-200 transition-colors"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2.5">
@@ -2334,7 +2585,7 @@ export default function CustomerWebStorefrontPage() {
 
               {/* Subtab 3: 📩 대화함 (CHATS) - Desktop 2-Column Split View */}
               {chatSubTab === 'CHATS' && (
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-[620px] rounded-2xl bg-white border shadow-sm overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-[620px] rounded-3xl bg-white border border-slate-200/80 shadow-sm overflow-hidden">
                   {/* Left Column: Chat Room List (4 cols) */}
                   <div className="md:col-span-4 border-r flex flex-col h-full bg-slate-50/50">
                     <div className="p-3.5 border-b bg-white">
@@ -2447,7 +2698,7 @@ export default function CustomerWebStorefrontPage() {
                                 setIsCheckoutOpen(true)
                               }}
                               size="sm"
-                              className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs h-8"
+                              className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs h-8 rounded-xl"
                             >
                               <ShieldCheck className="h-3.5 w-3.5 mr-1" />
                               안전결제 요청
@@ -2515,7 +2766,7 @@ export default function CustomerWebStorefrontPage() {
                           />
                           <Button
                             onClick={handleSendMessage}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-9 px-4 shrink-0"
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-9 px-4 shrink-0 rounded-xl"
                           >
                             <Send className="h-3.5 w-3.5" />
                           </Button>
@@ -2538,7 +2789,7 @@ export default function CustomerWebStorefrontPage() {
           {activeTab === 'MY' && (
             <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-200">
               {/* Profile Card */}
-              <div className="rounded-3xl bg-white p-6 border shadow-sm space-y-5">
+              <div className="rounded-3xl bg-white p-6 border border-slate-200/80 shadow-sm space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <img
@@ -2572,7 +2823,7 @@ export default function CustomerWebStorefrontPage() {
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        서울 강남구 역삼1동 · 매너온도 36.5℃
+                        {currentLocation} · 매너온도 36.5℃
                       </p>
                       <p className="text-xs text-slate-600 italic mt-1">
                         &quot;동네 친구들과 따뜻하고 즐거운 소통 나누고 싶어요 ✨&quot;
@@ -2583,7 +2834,7 @@ export default function CustomerWebStorefrontPage() {
                   {!isAuthenticated ? (
                     <Button
                       onClick={() => openLoginModal()}
-                      className="bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold text-xs"
+                      className="bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold text-xs rounded-xl"
                     >
                       <LogIn className="h-4 w-4 mr-1.5" />
                       로그인 / 회원가입
@@ -2593,7 +2844,7 @@ export default function CustomerWebStorefrontPage() {
                       onClick={logout}
                       variant="outline"
                       size="sm"
-                      className="text-xs text-slate-600 hover:text-rose-600"
+                      className="text-xs text-slate-600 hover:text-rose-600 rounded-xl"
                     >
                       <LogOut className="h-3.5 w-3.5 mr-1" />
                       로그아웃
@@ -2640,7 +2891,7 @@ export default function CustomerWebStorefrontPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Merchant Promotion / Access Card */}
-                  <div className="p-4 rounded-2xl border bg-gradient-to-br from-emerald-50/60 to-white space-y-3">
+                  <div className="p-4 rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50/60 to-white space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 font-bold">
                         🏪
@@ -2658,7 +2909,7 @@ export default function CustomerWebStorefrontPage() {
                     {role === 'MERCHANT' || role === 'ADMIN' ? (
                       <Button
                         asChild
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 shadow-xs"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 shadow-xs rounded-xl"
                       >
                         <Link href="/seller">
                           <Store className="h-3.5 w-3.5 mr-1.5" />
@@ -2670,7 +2921,7 @@ export default function CustomerWebStorefrontPage() {
                       <Button
                         onClick={() => requireAuth(() => openMerchantModal())}
                         variant="outline"
-                        className="w-full border-emerald-300 text-emerald-700 hover:bg-emerald-50 font-bold text-xs h-9"
+                        className="w-full border-emerald-300 text-emerald-700 hover:bg-emerald-50 font-bold text-xs h-9 rounded-xl"
                       >
                         <Building2 className="h-3.5 w-3.5 mr-1.5" />
                         입점사 신청하기 (사업자 등록)
@@ -2679,7 +2930,7 @@ export default function CustomerWebStorefrontPage() {
                   </div>
 
                   {/* Creator Promotion / Access Card */}
-                  <div className="p-4 rounded-2xl border bg-gradient-to-br from-purple-50/60 to-white space-y-3">
+                  <div className="p-4 rounded-3xl border border-purple-100 bg-gradient-to-br from-purple-50/60 to-white space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 text-purple-700 font-bold">
                         🎙️
@@ -2697,7 +2948,7 @@ export default function CustomerWebStorefrontPage() {
                     {role === 'CREATOR' || role === 'ADMIN' ? (
                       <Button
                         asChild
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs h-9 shadow-xs"
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs h-9 shadow-xs rounded-xl"
                       >
                         <Link href="/streamer">
                           <Radio className="h-3.5 w-3.5 mr-1.5" />
@@ -2709,7 +2960,7 @@ export default function CustomerWebStorefrontPage() {
                       <Button
                         onClick={() => requireAuth(() => openCreatorModal())}
                         variant="outline"
-                        className="w-full border-purple-300 text-purple-700 hover:bg-purple-50 font-bold text-xs h-9"
+                        className="w-full border-purple-300 text-purple-700 hover:bg-purple-50 font-bold text-xs h-9 rounded-xl"
                       >
                         <Mic className="h-3.5 w-3.5 mr-1.5" />
                         크리에이터 신청하기 (소통·커머스)
@@ -2720,7 +2971,7 @@ export default function CustomerWebStorefrontPage() {
 
                 {/* Company Super Admin Console Card (Admins Only) */}
                 {role === 'ADMIN' && (
-                  <div className="p-4 rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 space-y-2">
+                  <div className="p-4 rounded-3xl border border-amber-300 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Crown className="h-5 w-5 text-amber-600" />
@@ -2735,7 +2986,7 @@ export default function CustomerWebStorefrontPage() {
                       </div>
                       <Button
                         asChild
-                        className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs h-8"
+                        className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs h-8 rounded-xl"
                       >
                         <Link href="/dashboard">
                           콘솔 접속
@@ -2748,7 +2999,7 @@ export default function CustomerWebStorefrontPage() {
               </div>
 
               {/* My Sales Management */}
-              <div className="rounded-3xl bg-white p-6 border shadow-sm space-y-4">
+              <div className="rounded-3xl bg-white p-6 border border-slate-200/80 shadow-sm space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="font-bold text-sm text-slate-900 flex items-center gap-1.5">
                     <Package className="h-4 w-4 text-orange-500" />
@@ -2770,13 +3021,13 @@ export default function CustomerWebStorefrontPage() {
                   {mySalesList.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between p-3 rounded-xl border bg-slate-50/50"
+                      className="flex items-center justify-between p-3.5 rounded-2xl border bg-slate-50/50"
                     >
                       <div className="flex items-center gap-3">
                         <img
                           src={item.image}
                           alt="item"
-                          className="h-12 w-12 rounded-lg object-cover"
+                          className="h-12 w-12 rounded-xl object-cover"
                         />
                         <div>
                           <h5 className="font-bold text-xs text-slate-900">{item.title}</h5>
@@ -2802,10 +3053,189 @@ export default function CustomerWebStorefrontPage() {
             </div>
           )}
         </main>
+
+        {/* ========================================================= */}
+        {/* 3. Official Korean Legal Compliance Footer                */}
+        {/* 전자상거래 등에서의 소비자보호에 관한 법률 제10조 제1항 및 제20조 제2항 준수 */}
+        {/* ========================================================= */}
+        <footer className="mt-16 border-t border-slate-800 bg-slate-950 text-slate-300 text-xs">
+          {/* Top Customer Center & Guarantee Row */}
+          <div className="border-b border-slate-800">
+            <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                {/* Customer Center */}
+                <div className="space-y-2 md:col-span-1">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    모꼬 고객감동센터
+                  </span>
+                  <p className="text-2xl font-black text-white">1588-0000</p>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    운영시간: 평일 09:00 ~ 18:00<br />
+                    점심시간: 12:00 ~ 13:00<br />
+                    (토·일·공휴일 휴무)
+                  </p>
+                  <div className="pt-1">
+                    <Button
+                      onClick={() => {
+                        setActiveTab('CHAT')
+                        setChatSubTab('CHATS')
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="bg-slate-900 hover:bg-slate-800 text-white border-slate-700 text-xs h-8 rounded-xl"
+                    >
+                      <PhoneCall className="h-3.5 w-3.5 mr-1" />
+                      1:1 온라인 고객문의
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 100% Escrow Guarantee Notice */}
+                <div className="space-y-2 md:col-span-2 bg-slate-900/90 p-5 rounded-3xl border border-slate-800">
+                  <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+                    <ShieldCheck className="h-4 w-4" />
+                    <span>토스페이먼츠 구매안전(에스크로) 서비스 적용</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    모꼬(MOCCO)는 고객님의 안전한 전자상거래를 위해 전자상거래법에 의거, 결제대금예치(에스크로) 서비스를 적용하고 있습니다. 구매자가 물품을 수령하고 최종 구매확정하기 전까지 결제 대금이 제3자 에스크로 계좌에 안전하게 보관되므로 사기 및 미배송 피해를 원천 차단합니다.
+                  </p>
+                  <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
+                    <span>인허가 보증보험 증권번호: 100-24-91823091</span>
+                    <a
+                      href="https://www.ftc.go.kr"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-emerald-400 underline hover:text-emerald-300"
+                    >
+                      서비스 가입사실 확인 &gt;
+                    </a>
+                  </div>
+                </div>
+
+                {/* Quick App Download */}
+                <div className="space-y-2 md:col-span-1">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    모바일 모꼬 앱
+                  </span>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    실시간 라이브 방송 알림과 1:1 대화 푸시 메시지를 스마트폰 앱에서 즉시 받아보세요.
+                  </p>
+                  <Button
+                    onClick={() => setIsAppDownloadOpen(true)}
+                    size="sm"
+                    className="w-full bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white font-bold text-xs h-8 rounded-xl shadow-md"
+                  >
+                    <QrCode className="h-3.5 w-3.5 mr-1" />
+                    모바일 앱 QR 다운로드
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Policy Navigation Links Bar */}
+          <div className="border-b border-slate-800 bg-slate-950/70">
+            <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
+                <button
+                  onClick={() => {
+                    setSelectedLegalSlug('terms-of-service')
+                    setLegalModalOpen(true)
+                  }}
+                  className="hover:text-white transition-colors"
+                >
+                  서비스 이용약관
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedLegalSlug('privacy-policy')
+                    setLegalModalOpen(true)
+                  }}
+                  className="font-extrabold text-white underline hover:text-pink-400 transition-colors"
+                >
+                  개인정보처리방침
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedLegalSlug('financial-terms')
+                    setLegalModalOpen(true)
+                  }}
+                  className="hover:text-white transition-colors"
+                >
+                  전자금융거래 이용약관
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedLegalSlug('youth-protection')
+                    setLegalModalOpen(true)
+                  }}
+                  className="hover:text-white transition-colors"
+                >
+                  청소년보호정책
+                </button>
+                <a
+                  href="https://www.ftc.go.kr"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-white transition-colors flex items-center gap-1"
+                >
+                  사업자정보확인
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+                <button
+                  onClick={() => {
+                    setActiveTab('MY')
+                  }}
+                  className="hover:text-white transition-colors"
+                >
+                  입점 및 제휴 문의
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Legal Business Information Section (전자상거래법 제10조 제1항 완벽 준수) */}
+          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 space-y-4">
+            <div className="text-[11px] text-slate-400 space-y-1.5 leading-relaxed">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span className="font-bold text-slate-200">주식회사 모꼬글로벌 (MOCCO Global Inc.)</span>
+                <span>대표이사: 손준호</span>
+                <span>개인정보보호책임자: 손준호 (privacy@mocco.kr)</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span>사업자등록번호: 123-86-12345</span>
+                <span>통신판매업신고번호: 제 2026-서울강남-0123 호</span>
+                <span>호스팅 서비스 제공자: 주식회사 모꼬글로벌</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span>사업장 소재지: 서울특별시 강남구 테헤란로 152 강남파이낸스센터 12층</span>
+                <span>대표전화: 1588-0000</span>
+                <span>팩스: 02-123-4567</span>
+                <span>대표 이메일: support@mocco.kr</span>
+              </div>
+            </div>
+
+            {/* 통신판매중개자 법적 고지 (전자상거래법 제20조 제2항 준수) */}
+            <div className="rounded-2xl bg-slate-900 p-4 border border-slate-800 text-[10px] text-slate-400 leading-relaxed">
+              <span className="font-bold text-slate-300 block mb-0.5">
+                [통신판매중개자 법적 고지 및 면책 안내]
+              </span>
+              (주)모꼬글로벌은 통신판매중개자로서 회원 상호 간의 자유로운 상품 매매 및 라이브 방송 거래를 위한 시스템 플랫폼을 운영 및 관리, 제공할 뿐이며, 입점 판매자 및 개별 회원이 등록한 상품/중고물품의 정보, 거래 조건 및 방송 내용에 대하여 일체의 책임을 지지 않습니다. 등록된 모든 재화의 판매 당사자는 등록 회원(판매자) 본인입니다. 단, (주)모꼬글로벌이 직접 매입하여 공급하는 [본사 직영] 표시 상품의 경우 통신판매당사자로서 책임을 부담합니다.
+            </div>
+
+            {/* Copyright */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-800/80">
+              <p>Copyright © 2026 MOCCO Global Inc. All rights reserved.</p>
+              <p className="text-[10px] text-slate-500 mt-1 sm:mt-0">
+                모꼬(MOCCO)는 특허청에 상표 등록된 고유 지식재산권 플랫폼입니다.
+              </p>
+            </div>
+          </div>
+        </footer>
       </div>
 
       {/* ========================================================= */}
-      {/* 3. Mobile Bottom Navigation Bar (md:hidden)               */}
+      {/* 4. Mobile Bottom Navigation Bar (md:hidden)               */}
       {/* 100% Matching apps/mobile TabNavigator                     */}
       {/* ========================================================= */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t shadow-lg px-2 py-1.5 flex items-center justify-around">
@@ -2868,13 +3298,150 @@ export default function CustomerWebStorefrontPage() {
       </div>
 
       {/* ========================================================= */}
-      {/* 4. Global Modals Section                                  */}
+      {/* 5. Global Modals Section                                  */}
       {/* ========================================================= */}
 
-      {/* 1) Login & Register Modal */}
+      {/* 0) Location Selector Modal (동네 변경) */}
+      {isLocationModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl border space-y-4">
+            <button
+              onClick={() => setIsLocationModalOpen(false)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="space-y-1">
+              <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-1.5">
+                <MapPin className="h-5 w-5 text-pink-600" />
+                동네 위치 설정
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                이웃을 검색하고 소통할 기준 동네를 선택해주세요.
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              {[
+                '서울 강남구 역삼1동 (현재 위치)',
+                '경기 성남시 분당구 정자동',
+                '서울 서초구 서초2동',
+                '서울 송파구 잠실본동',
+                '서울 마포구 공덕동',
+                '부산 해운대구 우동',
+                '전남 여수시 학동',
+                '전북 전주시 완산구 효자동',
+              ].map((loc) => {
+                const isCurrent = loc.startsWith(currentLocation.split(' ')[1] || '역삼1동')
+                return (
+                  <button
+                    key={loc}
+                    onClick={() => {
+                      const cleanName = loc.replace(' (현재 위치)', '')
+                      setCurrentLocation(cleanName)
+                      setIsLocationModalOpen(false)
+                      toast({
+                        title: '📍 동네 설정 완료',
+                        description: `${cleanName}(으)로 동네가 성공적으로 변경되었습니다.`,
+                      })
+                    }}
+                    className={`w-full p-2.5 rounded-xl text-left text-xs font-semibold flex items-center justify-between transition-colors ${
+                      isCurrent
+                        ? 'bg-pink-50 text-pink-700 border border-pink-200'
+                        : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>{loc}</span>
+                    {isCurrent && <Check className="h-4 w-4 text-pink-600" />}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 1) Legal Document Viewer Modal (전자상거래법/개인정보보호법 전문 열람) */}
+      {legalModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl border space-y-4 max-h-[85vh] flex flex-col">
+            <button
+              onClick={() => setLegalModalOpen(false)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="space-y-1 pr-8">
+              <div className="flex items-center gap-2">
+                <Scale className="h-5 w-5 text-slate-700" />
+                <h3 className="text-base font-extrabold text-slate-900">
+                  {LEGAL_DOCUMENTS[selectedLegalSlug]?.title}
+                </h3>
+              </div>
+              <Badge variant="secondary" className="text-[10px] font-bold">
+                {LEGAL_DOCUMENTS[selectedLegalSlug]?.category}
+              </Badge>
+            </div>
+
+            {/* Document Tabs */}
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold overflow-x-auto">
+              <button
+                onClick={() => setSelectedLegalSlug('terms-of-service')}
+                className={`px-3 py-1.5 rounded-lg shrink-0 transition-colors ${
+                  selectedLegalSlug === 'terms-of-service' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
+                }`}
+              >
+                이용약관
+              </button>
+              <button
+                onClick={() => setSelectedLegalSlug('privacy-policy')}
+                className={`px-3 py-1.5 rounded-lg shrink-0 transition-colors ${
+                  selectedLegalSlug === 'privacy-policy' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-600'
+                }`}
+              >
+                개인정보처리방침
+              </button>
+              <button
+                onClick={() => setSelectedLegalSlug('financial-terms')}
+                className={`px-3 py-1.5 rounded-lg shrink-0 transition-colors ${
+                  selectedLegalSlug === 'financial-terms' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
+                }`}
+              >
+                전자금융거래약관
+              </button>
+              <button
+                onClick={() => setSelectedLegalSlug('youth-protection')}
+                className={`px-3 py-1.5 rounded-lg shrink-0 transition-colors ${
+                  selectedLegalSlug === 'youth-protection' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
+                }`}
+              >
+                청소년보호정책
+              </button>
+            </div>
+
+            {/* Body Scroll */}
+            <div className="flex-1 overflow-y-auto p-4 rounded-2xl bg-slate-50 border text-xs text-slate-700 whitespace-pre-line leading-relaxed font-sans">
+              {LEGAL_DOCUMENTS[selectedLegalSlug]?.body}
+            </div>
+
+            <div className="pt-2">
+              <Button
+                onClick={() => setLegalModalOpen(false)}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs h-9 rounded-xl"
+              >
+                확인 및 닫기
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2) Login & Register Modal */}
       {isLoginModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border space-y-5">
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border space-y-5">
             <button
               onClick={closeLoginModal}
               className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
@@ -2923,7 +3490,7 @@ export default function CustomerWebStorefrontPage() {
                     value={quickNickInput}
                     onChange={(e) => setQuickNickInput(e.target.value)}
                     placeholder="예: 강남이웃_행복 (미입력 시 자동생성)"
-                    className="text-xs"
+                    className="text-xs rounded-xl"
                     autoFocus
                   />
                   <p className="text-[11px] text-muted-foreground">
@@ -2939,7 +3506,7 @@ export default function CustomerWebStorefrontPage() {
                       description: '일반 회원으로 로그인되었습니다. 웰컴 10,000 P가 지급되었습니다.',
                     })
                   }}
-                  className="w-full bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white font-bold text-xs shadow-md"
+                  className="w-full bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white font-bold text-xs shadow-md rounded-xl"
                 >
                   1초 만에 시작하기
                 </Button>
@@ -2952,7 +3519,7 @@ export default function CustomerWebStorefrontPage() {
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     placeholder="admin@tokfriends.com"
-                    className="text-xs"
+                    className="text-xs rounded-xl"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -2962,7 +3529,7 @@ export default function CustomerWebStorefrontPage() {
                     value={passwordInput}
                     onChange={(e) => setPasswordInput(e.target.value)}
                     placeholder="비밀번호 입력"
-                    className="text-xs"
+                    className="text-xs rounded-xl"
                   />
                 </div>
 
@@ -2976,7 +3543,7 @@ export default function CustomerWebStorefrontPage() {
                       })
                     }
                   }}
-                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs"
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl"
                 >
                   로그인
                 </Button>
@@ -2986,10 +3553,10 @@ export default function CustomerWebStorefrontPage() {
         </div>
       )}
 
-      {/* 2) Merchant Application Modal (입점 신청) */}
+      {/* 3) Merchant Application Modal (입점 신청) */}
       {isMerchantModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border space-y-4 max-h-[90vh] overflow-y-auto">
             <button
               onClick={closeMerchantModal}
               className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
@@ -2999,7 +3566,7 @@ export default function CustomerWebStorefrontPage() {
 
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 font-bold">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 font-bold">
                   🏪
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">
@@ -3019,7 +3586,7 @@ export default function CustomerWebStorefrontPage() {
                     value={merchantForm.businessName}
                     onChange={(e) => setMerchantForm({ ...merchantForm, businessName: e.target.value })}
                     placeholder="예: 제주푸드 주식회사"
-                    className="text-xs"
+                    className="text-xs rounded-xl"
                   />
                 </div>
                 <div className="space-y-1">
@@ -3028,7 +3595,7 @@ export default function CustomerWebStorefrontPage() {
                     value={merchantForm.businessNumber}
                     onChange={(e) => setMerchantForm({ ...merchantForm, businessNumber: e.target.value })}
                     placeholder="123-45-67890"
-                    className="text-xs"
+                    className="text-xs rounded-xl"
                   />
                 </div>
               </div>
@@ -3040,7 +3607,7 @@ export default function CustomerWebStorefrontPage() {
                     value={merchantForm.representative}
                     onChange={(e) => setMerchantForm({ ...merchantForm, representative: e.target.value })}
                     placeholder="홍길동"
-                    className="text-xs"
+                    className="text-xs rounded-xl"
                   />
                 </div>
                 <div className="space-y-1">
@@ -3049,7 +3616,7 @@ export default function CustomerWebStorefrontPage() {
                     value={merchantForm.contactPhone}
                     onChange={(e) => setMerchantForm({ ...merchantForm, contactPhone: e.target.value })}
                     placeholder="010-1234-5678"
-                    className="text-xs"
+                    className="text-xs rounded-xl"
                   />
                 </div>
               </div>
@@ -3060,7 +3627,7 @@ export default function CustomerWebStorefrontPage() {
                   value={merchantForm.onlineOrderNumber}
                   onChange={(e) => setMerchantForm({ ...merchantForm, onlineOrderNumber: e.target.value })}
                   placeholder="예: 제 2024-서울강남-1234호"
-                  className="text-xs"
+                  className="text-xs rounded-xl"
                 />
               </div>
 
@@ -3071,7 +3638,7 @@ export default function CustomerWebStorefrontPage() {
                     value={merchantForm.bankName}
                     onChange={(e) => setMerchantForm({ ...merchantForm, bankName: e.target.value })}
                     placeholder="국민은행"
-                    className="text-xs"
+                    className="text-xs rounded-xl"
                   />
                 </div>
                 <div className="space-y-1 col-span-2">
@@ -3080,7 +3647,7 @@ export default function CustomerWebStorefrontPage() {
                     value={merchantForm.accountNumber}
                     onChange={(e) => setMerchantForm({ ...merchantForm, accountNumber: e.target.value })}
                     placeholder="계좌번호 (- 없이 입력)"
-                    className="text-xs"
+                    className="text-xs rounded-xl"
                   />
                 </div>
               </div>
@@ -3091,7 +3658,7 @@ export default function CustomerWebStorefrontPage() {
                   value={merchantForm.accountHolder}
                   onChange={(e) => setMerchantForm({ ...merchantForm, accountHolder: e.target.value })}
                   placeholder="예금주 성명"
-                  className="text-xs"
+                  className="text-xs rounded-xl"
                 />
               </div>
             </div>
@@ -3104,7 +3671,7 @@ export default function CustomerWebStorefrontPage() {
                   description: '상단 우측에 [🏪 입점사 셀러 센터] 바로가기 버튼이 활성화되었습니다.',
                 })
               }}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 rounded-xl"
             >
               입점사 승격 신청 및 셀러 센터 활성화
             </Button>
@@ -3112,10 +3679,10 @@ export default function CustomerWebStorefrontPage() {
         </div>
       )}
 
-      {/* 3) Creator Application Modal (크리에이터 신청) */}
+      {/* 4) Creator Application Modal (크리에이터 신청) */}
       {isCreatorModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border space-y-4">
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border space-y-4">
             <button
               onClick={closeCreatorModal}
               className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
@@ -3125,7 +3692,7 @@ export default function CustomerWebStorefrontPage() {
 
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 text-purple-700 font-bold">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-100 text-purple-700 font-bold">
                   🎙️
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">
@@ -3144,7 +3711,7 @@ export default function CustomerWebStorefrontPage() {
                   value={creatorForm.channelName}
                   onChange={(e) => setCreatorForm({ ...creatorForm, channelName: e.target.value })}
                   placeholder="예: 별빛소통_민지"
-                  className="text-xs"
+                  className="text-xs rounded-xl"
                 />
               </div>
 
@@ -3153,7 +3720,7 @@ export default function CustomerWebStorefrontPage() {
                 <select
                   value={creatorForm.category}
                   onChange={(e) => setCreatorForm({ ...creatorForm, category: e.target.value })}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs"
+                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-xs"
                 >
                   <option value="소통/일상">소통 / 일상</option>
                   <option value="라이브커머스/푸드">라이브커머스 / 푸드</option>
@@ -3169,7 +3736,7 @@ export default function CustomerWebStorefrontPage() {
                   value={creatorForm.activeTime}
                   onChange={(e) => setCreatorForm({ ...creatorForm, activeTime: e.target.value })}
                   placeholder="예: 매일 저녁 8시 ~ 10시"
-                  className="text-xs"
+                  className="text-xs rounded-xl"
                 />
               </div>
 
@@ -3179,7 +3746,7 @@ export default function CustomerWebStorefrontPage() {
                   value={creatorForm.bio}
                   onChange={(e) => setCreatorForm({ ...creatorForm, bio: e.target.value })}
                   placeholder="이웃들과 진솔한 소통 및 신선한 흑돼지 산지직송을 소개하고 싶습니다!"
-                  className="text-xs"
+                  className="text-xs rounded-xl"
                 />
               </div>
             </div>
@@ -3192,7 +3759,7 @@ export default function CustomerWebStorefrontPage() {
                   description: '상단 우측에 [🎙️ 크리에이터 스튜디오] 바로가기 버튼이 활성화되었습니다.',
                 })
               }}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs"
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs h-9 rounded-xl"
             >
               크리에이터 승격 및 스튜디오 활성화
             </Button>
@@ -3200,10 +3767,10 @@ export default function CustomerWebStorefrontPage() {
         </div>
       )}
 
-      {/* 4) Start Live Modal (일반 회원 누구나 방송 가능, 크리에이터는 상품 핀 연결 가능) */}
+      {/* 5) Start Live Modal (일반 회원 누구나 방송 가능, 크리에이터는 상품 핀 연결 가능) */}
       {isStartLiveModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border space-y-4">
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border space-y-4">
             <button
               onClick={() => setIsStartLiveModalOpen(false)}
               className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
@@ -3228,7 +3795,7 @@ export default function CustomerWebStorefrontPage() {
                   value={newLiveTitle}
                   onChange={(e) => setNewLiveTitle(e.target.value)}
                   placeholder="예: 저녁 퇴근길 이웃과 소소한 커피 수다방 ☕"
-                  className="text-xs"
+                  className="text-xs rounded-xl"
                 />
               </div>
 
@@ -3237,7 +3804,7 @@ export default function CustomerWebStorefrontPage() {
                 <select
                   value={newLiveCategory}
                   onChange={(e) => setNewLiveCategory(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs"
+                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-xs"
                 >
                   <option value="토크/소통">토크 / 소통</option>
                   <option value="쇼핑/커머스">쇼핑 / 커머스 (크리에이터 권장)</option>
@@ -3248,7 +3815,7 @@ export default function CustomerWebStorefrontPage() {
               </div>
 
               {role === 'CREATOR' || role === 'ADMIN' ? (
-                <div className="rounded-xl bg-purple-50 p-3 border border-purple-100 text-purple-900 space-y-1">
+                <div className="rounded-2xl bg-purple-50 p-3.5 border border-purple-100 text-purple-900 space-y-1">
                   <div className="flex items-center gap-1.5 font-bold">
                     <Sparkles className="h-3.5 w-3.5 text-purple-600" />
                     공식 크리에이터 커머스 핀 혜택 적용
@@ -3258,7 +3825,7 @@ export default function CustomerWebStorefrontPage() {
                   </p>
                 </div>
               ) : (
-                <div className="rounded-xl bg-slate-50 p-3 border text-slate-600 text-[11px]">
+                <div className="rounded-2xl bg-slate-50 p-3.5 border text-slate-600 text-[11px]">
                   💡 일반 회원은 자유 소통 방송이 가능하며, 커머스 상품 판매를 원하시면 크리에이터 신청을 진행해주세요.
                 </div>
               )}
@@ -3266,7 +3833,7 @@ export default function CustomerWebStorefrontPage() {
 
             <Button
               onClick={handleCreateLiveRoom}
-              className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs"
+              className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs h-9 rounded-xl"
             >
               온에어 방송 송출 시작하기
             </Button>
@@ -3274,10 +3841,10 @@ export default function CustomerWebStorefrontPage() {
         </div>
       )}
 
-      {/* 5) Live Room Viewer Modal */}
+      {/* 6) Live Room Viewer Modal */}
       {activeLiveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-4xl rounded-2xl bg-slate-950 text-white shadow-2xl border border-slate-800 overflow-hidden flex flex-col md:flex-row h-[85vh] max-h-[700px]">
+          <div className="relative w-full max-w-4xl rounded-3xl bg-slate-950 text-white shadow-2xl border border-slate-800 overflow-hidden flex flex-col md:flex-row h-[85vh] max-h-[700px]">
             <button
               onClick={() => setActiveLiveModal(null)}
               className="absolute right-3 top-3 z-20 rounded-full bg-black/60 p-1.5 text-white/80 hover:text-white"
@@ -3335,7 +3902,7 @@ export default function CustomerWebStorefrontPage() {
                         setIsCheckoutOpen(true)
                       })
                     }}
-                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs h-9 px-3 shrink-0 shadow-md"
+                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs h-9 px-3 shrink-0 shadow-md rounded-xl"
                   >
                     즉시 구매
                   </Button>
@@ -3359,7 +3926,7 @@ export default function CustomerWebStorefrontPage() {
                 <Button
                   onClick={handleSendLiveGift}
                   size="sm"
-                  className="bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold text-[11px] h-7 px-2.5"
+                  className="bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold text-[11px] h-7 px-2.5 rounded-lg"
                 >
                   <Heart className="h-3 w-3 mr-1 fill-white" />
                   1,000 P 선물
@@ -3382,7 +3949,7 @@ export default function CustomerWebStorefrontPage() {
                   value={liveChatInput}
                   onChange={(e) => setLiveChatInput(e.target.value)}
                   placeholder="실시간 댓글 남기기..."
-                  className="text-xs bg-slate-800 border-slate-700 text-white"
+                  className="text-xs bg-slate-800 border-slate-700 text-white rounded-xl"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSendLiveChat()
                   }}
@@ -3390,7 +3957,7 @@ export default function CustomerWebStorefrontPage() {
                 <Button
                   onClick={handleSendLiveChat}
                   size="sm"
-                  className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-9"
+                  className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-9 rounded-xl"
                 >
                   <Send className="h-3.5 w-3.5" />
                 </Button>
@@ -3400,10 +3967,10 @@ export default function CustomerWebStorefrontPage() {
         </div>
       )}
 
-      {/* 6) Used Product Detail Modal */}
+      {/* 7) Used Product Detail Modal */}
       {selectedUsedItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border space-y-4 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setSelectedUsedItem(null)}
               className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
@@ -3411,7 +3978,7 @@ export default function CustomerWebStorefrontPage() {
               <X className="h-5 w-5" />
             </button>
 
-            <div className="aspect-square w-full rounded-xl overflow-hidden bg-slate-100">
+            <div className="aspect-square w-full rounded-2xl overflow-hidden bg-slate-100">
               <img
                 src={selectedUsedItem.images[0]}
                 alt={selectedUsedItem.title}
@@ -3449,9 +4016,19 @@ export default function CustomerWebStorefrontPage() {
 
             <div className="space-y-1">
               <h4 className="text-xs font-bold text-slate-700">상품 상세 설명</h4>
-              <p className="text-xs text-slate-600 whitespace-pre-line leading-relaxed bg-slate-50/50 p-3 rounded-lg border">
+              <p className="text-xs text-slate-600 whitespace-pre-line leading-relaxed bg-slate-50/50 p-3 rounded-xl border">
                 {selectedUsedItem.description}
               </p>
+            </div>
+
+            {/* Korean Legal & Escrow Guide Banner */}
+            <div className="rounded-xl bg-orange-50/70 p-3 border border-orange-200/60 text-[11px] text-orange-950 space-y-1">
+              <div className="font-bold text-orange-800 flex items-center gap-1">
+                <ShieldCheck className="h-3.5 w-3.5 text-orange-600" />
+                동네 중고 에스크로 안심거래 안내
+              </div>
+              <p>• 직거래 시 유동인구가 많은 안전한 장소에서 거래하시고, 택배 거래 시에는 에스크로 안전결제를 이용해주세요.</p>
+              <p>• 에스크로 안전결제 이용 시 구매자가 최종 물품을 확인하고 [구매확정]을 완료해야 판매자에게 정산금이 전달됩니다.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-2">
@@ -3502,7 +4079,7 @@ export default function CustomerWebStorefrontPage() {
                   })
                 }}
                 variant="outline"
-                className="text-xs font-bold h-10 border-blue-200 text-blue-700 bg-blue-50/50"
+                className="text-xs font-bold h-10 border-blue-200 text-blue-700 bg-blue-50/50 rounded-xl"
               >
                 <MessageCircle className="h-4 w-4 mr-1.5" />
                 판매자와 1:1 채팅
@@ -3522,7 +4099,7 @@ export default function CustomerWebStorefrontPage() {
                     setIsCheckoutOpen(true)
                   })
                 }}
-                className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs h-10 shadow-xs"
+                className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs h-10 shadow-xs rounded-xl"
               >
                 <ShieldCheck className="h-4 w-4 mr-1.5" />
                 에스크로 안전구매
@@ -3532,10 +4109,10 @@ export default function CustomerWebStorefrontPage() {
         </div>
       )}
 
-      {/* 7) Market Product Detail Modal */}
+      {/* 8) Market Product Detail Modal */}
       {selectedProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border space-y-4 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setSelectedProduct(null)}
               className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
@@ -3543,7 +4120,7 @@ export default function CustomerWebStorefrontPage() {
               <X className="h-5 w-5" />
             </button>
 
-            <div className="aspect-square w-full rounded-xl overflow-hidden bg-slate-100">
+            <div className="aspect-square w-full rounded-2xl overflow-hidden bg-slate-100">
               <img
                 src={selectedProduct.images[0]}
                 alt={selectedProduct.title}
@@ -3569,9 +4146,19 @@ export default function CustomerWebStorefrontPage() {
               </div>
             </div>
 
-            <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border">
+            <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border">
               {selectedProduct.description}
             </p>
+
+            {/* Korean E-commerce Law Notice */}
+            <div className="rounded-xl bg-emerald-50/70 p-3 border border-emerald-200/60 text-[11px] text-emerald-950 space-y-1">
+              <div className="font-bold text-emerald-800 flex items-center gap-1">
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                전자상거래법 소비자 보호 규정 준수
+              </div>
+              <p>• 전자상거래법 제17조에 따라 상품 수령 후 7일 이내 청약철회(반품/환불)가 가능합니다. (단, 신선식품 등 시간 경과 시 재판매가 곤란한 재화는 예외 적용)</p>
+              <p>• 결제 대금은 구매자가 구매확정 시까지 토스페이먼츠 에스크로 계좌에 안전하게 예치됩니다.</p>
+            </div>
 
             <div className="flex items-center justify-between py-2 border-y text-xs">
               <span className="font-semibold text-slate-700">주문 수량</span>
@@ -3580,7 +4167,7 @@ export default function CustomerWebStorefrontPage() {
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   variant="outline"
                   size="sm"
-                  className="h-7 w-7 p-0"
+                  className="h-7 w-7 p-0 rounded-lg"
                 >
                   -
                 </Button>
@@ -3589,7 +4176,7 @@ export default function CustomerWebStorefrontPage() {
                   onClick={() => setQuantity(quantity + 1)}
                   variant="outline"
                   size="sm"
-                  className="h-7 w-7 p-0"
+                  className="h-7 w-7 p-0 rounded-lg"
                 >
                   +
                 </Button>
@@ -3609,7 +4196,7 @@ export default function CustomerWebStorefrontPage() {
                   setIsCheckoutOpen(true)
                 })
               }}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-10 shadow-xs"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-10 shadow-xs rounded-xl"
             >
               에스크로 안전결제 주문하기 (총 {(selectedProduct.price * quantity + selectedProduct.shippingFee).toLocaleString()}원)
             </Button>
@@ -3617,10 +4204,10 @@ export default function CustomerWebStorefrontPage() {
         </div>
       )}
 
-      {/* 8) Checkout Modal */}
+      {/* 9) Checkout Modal (에스크로 결제 & 미성년자 고지 포함) */}
       {isCheckoutOpen && checkoutTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border space-y-4">
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border space-y-4">
             <button
               onClick={() => setIsCheckoutOpen(false)}
               className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
@@ -3634,15 +4221,15 @@ export default function CustomerWebStorefrontPage() {
                 모꼬 에스크로 안전결제 주문
               </h3>
               <p className="text-xs text-muted-foreground">
-                구매 확정 시까지 결제 대금이 플랫폼에 안전하게 보관됩니다.
+                구매 확정 시까지 결제 대금이 플랫폼(토스페이먼츠)에 안전하게 보관됩니다.
               </p>
             </div>
 
-            <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border">
+            <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border">
               <img
                 src={checkoutTarget.image}
                 alt="target"
-                className="h-12 w-12 rounded-lg object-cover"
+                className="h-12 w-12 rounded-xl object-cover"
               />
               <div className="flex-1 min-w-0">
                 <h4 className="text-xs font-bold text-slate-900 truncate">
@@ -3661,7 +4248,7 @@ export default function CustomerWebStorefrontPage() {
                   <Input
                     value={buyerName}
                     onChange={(e) => setBuyerName(e.target.value)}
-                    className="text-xs"
+                    className="text-xs rounded-xl"
                   />
                 </div>
                 <div className="space-y-1">
@@ -3669,7 +4256,7 @@ export default function CustomerWebStorefrontPage() {
                   <Input
                     value={buyerPhone}
                     onChange={(e) => setBuyerPhone(e.target.value)}
-                    className="text-xs"
+                    className="text-xs rounded-xl"
                   />
                 </div>
               </div>
@@ -3679,7 +4266,7 @@ export default function CustomerWebStorefrontPage() {
                 <Input
                   value={shippingAddress}
                   onChange={(e) => setShippingAddress(e.target.value)}
-                  className="text-xs"
+                  className="text-xs rounded-xl"
                 />
               </div>
 
@@ -3691,7 +4278,7 @@ export default function CustomerWebStorefrontPage() {
                     onClick={() => setPayMethod('CARD')}
                     variant={payMethod === 'CARD' ? 'default' : 'outline'}
                     size="sm"
-                    className="text-xs h-8"
+                    className="text-xs h-8 rounded-xl"
                   >
                     신용/체크카드
                   </Button>
@@ -3700,7 +4287,7 @@ export default function CustomerWebStorefrontPage() {
                     onClick={() => setPayMethod('TOSS_PAY')}
                     variant={payMethod === 'TOSS_PAY' ? 'default' : 'outline'}
                     size="sm"
-                    className="text-xs h-8"
+                    className="text-xs h-8 rounded-xl"
                   >
                     토스페이
                   </Button>
@@ -3709,18 +4296,24 @@ export default function CustomerWebStorefrontPage() {
                     onClick={() => setPayMethod('KAKAO_PAY')}
                     variant={payMethod === 'KAKAO_PAY' ? 'default' : 'outline'}
                     size="sm"
-                    className="text-xs h-8"
+                    className="text-xs h-8 rounded-xl"
                   >
                     카카오페이
                   </Button>
                 </div>
+              </div>
+
+              {/* Korean Consumer Protection Notice */}
+              <div className="rounded-xl bg-slate-50 p-2.5 border text-[10px] text-slate-500 space-y-0.5">
+                <p>• <strong>에스크로 보호</strong>: 구매확정 전까지 결제 대금이 안전하게 예치됩니다.</p>
+                <p>• <strong>미성년자 결제 안내</strong>: 미성년자가 법정대리인의 동의 없이 구매한 경우 취소할 수 있습니다.</p>
               </div>
             </div>
 
             <Button
               onClick={handleExecutePayment}
               disabled={isProcessingPay}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs h-10"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs h-10 rounded-xl"
             >
               {isProcessingPay ? '안전결제 승인 진행 중...' : `총 ${(checkoutTarget.price + checkoutTarget.shippingFee).toLocaleString()}원 결제하기`}
             </Button>
@@ -3728,10 +4321,10 @@ export default function CustomerWebStorefrontPage() {
         </div>
       )}
 
-      {/* 9) New Used Item Modal */}
+      {/* 10) New Used Item Modal */}
       {isNewUsedModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border space-y-4">
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border space-y-4">
             <button
               onClick={() => setIsNewUsedModalOpen(false)}
               className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
@@ -3755,7 +4348,7 @@ export default function CustomerWebStorefrontPage() {
                   value={newUsedTitle}
                   onChange={(e) => setNewUsedTitle(e.target.value)}
                   placeholder="예: 아이폰 14 128GB 블루"
-                  className="text-xs"
+                  className="text-xs rounded-xl"
                 />
               </div>
 
@@ -3766,7 +4359,7 @@ export default function CustomerWebStorefrontPage() {
                     value={newUsedPrice}
                     onChange={(e) => setNewUsedPrice(e.target.value)}
                     placeholder="예: 450000"
-                    className="text-xs"
+                    className="text-xs rounded-xl"
                   />
                 </div>
                 <div className="space-y-1">
@@ -3774,7 +4367,7 @@ export default function CustomerWebStorefrontPage() {
                   <select
                     value={newUsedCategory}
                     onChange={(e) => setNewUsedCategory(e.target.value)}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs"
+                    className="w-full rounded-xl border border-input bg-background px-3 py-2 text-xs"
                   >
                     <option value="디지털/가전">디지털/가전</option>
                     <option value="가구/인테리어">가구/인테리어</option>
@@ -3791,7 +4384,7 @@ export default function CustomerWebStorefrontPage() {
                   value={newUsedLocation}
                   onChange={(e) => setNewUsedLocation(e.target.value)}
                   placeholder="예: 서울 강남구 역삼역 3번출구"
-                  className="text-xs"
+                  className="text-xs rounded-xl"
                 />
               </div>
 
@@ -3801,14 +4394,14 @@ export default function CustomerWebStorefrontPage() {
                   value={newUsedDesc}
                   onChange={(e) => setNewUsedDesc(e.target.value)}
                   placeholder="상태, 구매 시기, 네고 여부 등"
-                  className="text-xs"
+                  className="text-xs rounded-xl"
                 />
               </div>
             </div>
 
             <Button
               onClick={handleRegisterUsedProduct}
-              className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs"
+              className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs h-9 rounded-xl"
             >
               판매글 등록하기
             </Button>
@@ -3816,10 +4409,10 @@ export default function CustomerWebStorefrontPage() {
         </div>
       )}
 
-      {/* 10) App Download QR Modal */}
+      {/* 11) App Download QR Modal */}
       {isAppDownloadOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl border text-center space-y-4">
+          <div className="relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl border text-center space-y-4">
             <button
               onClick={() => setIsAppDownloadOpen(false)}
               className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
@@ -3840,7 +4433,7 @@ export default function CustomerWebStorefrontPage() {
               </p>
             </div>
 
-            <div className="mx-auto flex h-40 w-40 items-center justify-center rounded-xl bg-slate-50 border p-2">
+            <div className="mx-auto flex h-40 w-40 items-center justify-center rounded-2xl bg-slate-50 border p-2">
               <img
                 src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://tokfriends.vercel.app/"
                 alt="QR Code"
@@ -3856,7 +4449,7 @@ export default function CustomerWebStorefrontPage() {
       )}
 
       {/* ========================================================= */}
-      {/* 5. 시연/검수용 플로팅 역할 스위처 (헤더 레이아웃 침범 방지)    */}
+      {/* 6. 시연/검수용 플로팅 역할 스위처 (헤더 레이아웃 침범 방지)    */}
       {/* 나중에 삭제 시 아래 한 줄만 지우면 깔끔하게 제거됩니다.        */}
       {/* ========================================================= */}
       <RoleSwitcherFloating />
