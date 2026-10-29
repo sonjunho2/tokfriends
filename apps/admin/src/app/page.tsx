@@ -2304,15 +2304,17 @@ export default function CustomerWebStorefrontPage() {
 
                 {/* Right Action Buttons */}
                 <div className="flex items-center gap-2">
-                  <Button
-                    onClick={() => {
-                      requireAuth(() => setIsNewUsedModalOpen(true))
-                    }}
-                    className="bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm font-bold h-9 sm:h-10 px-4 shadow-sm rounded-xl"
-                  >
-                    <PlusCircle className="h-4 w-4 mr-1.5" />
-                    중고 물품 판매 등록
-                  </Button>
+                  {marketSubTab === 'C2C_USED' && (
+                    <Button
+                      onClick={() => {
+                        requireAuth(() => setIsNewUsedModalOpen(true))
+                      }}
+                      className="bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm font-bold h-9 sm:h-10 px-4 shadow-sm rounded-xl"
+                    >
+                      <PlusCircle className="h-4 w-4 mr-1.5" />
+                      중고 물품 판매 등록
+                    </Button>
+                  )}
                   {(role === 'MERCHANT' || role === 'ADMIN') && (
                     <Button
                       asChild
@@ -2344,6 +2346,91 @@ export default function CustomerWebStorefrontPage() {
                   </button>
                 ))}
               </div>
+
+              {/* 4) 🏆 실시간 인기랭킹 (마켓상품 & 공동구매 탭에서 카테고리와 상품 그리드 사이에 모꼬 스타일로 노출) */}
+              {marketSubTab !== 'C2C_USED' && (
+                <section className="bg-gradient-to-b from-purple-50/50 via-white to-white rounded-3xl p-5 sm:p-6 border border-purple-100/80 shadow-2xs space-y-4">
+                  <div className="text-center space-y-1">
+                    <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center justify-center gap-1.5">
+                      <span>🏆</span>
+                      <span>실시간 인기랭킹</span>
+                      <span>🏆</span>
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      가장 인기있는 상품만 모아보세요!
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
+                    {marketProducts.slice(0, 5).map((item, idx) => {
+                      const rank = idx + 1
+                      const discountRate = item.originalPrice
+                        ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
+                        : 20
+                      const couponBadge =
+                        idx === 0
+                          ? '최대20% 쿠폰'
+                          : idx === 1
+                          ? '멤버스특가'
+                          : idx === 2
+                          ? '+최대15% 쿠폰'
+                          : idx === 3
+                          ? '+20% 쿠폰'
+                          : '모꼬특가'
+
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => setSelectedProduct(item)}
+                          className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs hover:shadow-md hover:border-purple-200 transition-all cursor-pointer flex flex-col justify-between group"
+                        >
+                          <div>
+                            <div className="aspect-square w-full rounded-xl overflow-hidden bg-slate-100 relative mb-2.5">
+                              <img
+                                src={item.images[0]}
+                                alt={item.title}
+                                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <span className="absolute top-2 left-2 bg-[#8B5CF6] text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-md shadow-2xs">
+                                {couponBadge}
+                              </span>
+                            </div>
+
+                            <div className="flex items-start gap-1.5">
+                              <span className="text-lg sm:text-xl font-black text-slate-900 shrink-0 leading-tight">
+                                {rank}
+                              </span>
+                              <h5 className="font-bold text-xs text-slate-800 line-clamp-2 leading-snug group-hover:text-[#FF3B6B] transition-colors">
+                                {item.title}
+                              </h5>
+                            </div>
+
+                            <div className="flex items-baseline gap-1.5 pt-1 pl-4">
+                              <span className="font-extrabold text-xs sm:text-sm text-[#FF3B6B]">
+                                {discountRate}%
+                              </span>
+                              <span className="font-extrabold text-xs sm:text-sm text-slate-900">
+                                {item.price.toLocaleString()}원~
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSelectedProduct(item)
+                            }}
+                            className="w-full mt-3 py-1.5 rounded-xl border border-slate-200 hover:border-purple-300 hover:bg-purple-50 text-[11px] font-bold text-slate-700 flex items-center justify-center gap-1 transition-all"
+                          >
+                            <ShoppingBag className="h-3 w-3 text-slate-500 group-hover:text-purple-600" />
+                            <span>담기</span>
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
+              )}
 
               {/* Market Products Display */}
               {marketSubTab === 'C2C_USED' ? (
