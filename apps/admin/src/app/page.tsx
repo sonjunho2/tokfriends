@@ -65,20 +65,13 @@ import { useWebAuth, type UserRole, type MerchantApplication, type CreatorApplic
 import { RoleSwitcherFloating } from '@/components/common/RoleSwitcherFloating'
 import { getLiveTop3Rooms, getLiveRankings } from '@/lib/api'
 
-function RankBadgeImage({ rank, className = 'w-20 h-24' }: { rank: 1 | 2 | 3; className?: string }) {
-  const offsetPercent = rank === 1 ? '0%' : rank === 2 ? '-100%' : '-200%'
+function RankBadgeImage({ rank, className = 'w-24 h-auto' }: { rank: 1 | 2 | 3; className?: string }) {
   return (
-    <div className={`relative overflow-hidden shrink-0 pointer-events-none drop-shadow-md ${className}`}>
-      <img
-        src="/images/live-rank-badges.jpg"
-        alt={`Rank ${rank}`}
-        className="absolute top-0 h-full max-w-none object-contain mix-blend-multiply"
-        style={{
-          width: '300%',
-          left: offsetPercent,
-        }}
-      />
-    </div>
+    <img
+      src={`/images/rank-badge-${rank}.png`}
+      alt={`Rank ${rank}`}
+      className={`pointer-events-none drop-shadow-xl shrink-0 object-contain ${className}`}
+    />
   )
 }
 
@@ -2996,10 +2989,10 @@ export default function CustomerWebStorefrontPage() {
                 </div>
               </div>
 
-              {/* 2) Main Integrated Grid (좌측: 베스트 123위 + 라이브목록 / 우측: 통합 랭킹) */}
+              {/* 2) Main Integrated Grid (좌측 3열: 베스트 123위 + 라이브목록 / 우측 1열: 랭킹) */}
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
                 {/* [좌측 메인 영역: lg:col-span-3] */}
-                <div className="lg:col-span-3 space-y-6 flex flex-col">
+                <div className="lg:col-span-3 space-y-7 flex flex-col">
                   {/* (A) 👑 실시간 HOT 모꼬 LIVE BEST TOP 3 (가운데 1위, 좌측 2위, 우측 3위 포디움 시상대) */}
                   <section className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -3017,8 +3010,8 @@ export default function CustomerWebStorefrontPage() {
                       </span>
                     </div>
 
-                    {/* 포디움 그리드: [2위 (좌측)] - [1위 (중앙)] - [3위 (우측)] */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-5 items-end">
+                    {/* 포디움 그리드: 상단 엠블럼 오버랩 공간을 확보하기 위해 pt-12 적용 */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-5 items-end pt-12 sm:pt-14">
                       {/* --- [좌측: 2위 (Silver & Blue)] --- */}
                       {(() => {
                         const item = top3Lives[1] || top3Lives[0] || lives[1] || lives[0]
@@ -3026,18 +3019,18 @@ export default function CustomerWebStorefrontPage() {
                         return (
                           <div
                             onClick={() => setActiveLiveModal(item)}
-                            className="group relative flex flex-col rounded-3xl bg-gradient-to-b from-sky-50/90 via-white to-sky-50/30 border-2 border-sky-300 shadow-md hover:shadow-xl hover:border-sky-400 transition-all cursor-pointer overflow-hidden order-2 md:order-1 pt-3 pb-4 px-3.5 space-y-3"
+                            className="group relative flex flex-col rounded-3xl bg-gradient-to-b from-sky-50/90 via-white to-sky-50/30 border-2 border-sky-300 shadow-md hover:shadow-xl hover:border-sky-400 transition-all cursor-pointer overflow-visible order-2 md:order-1"
                           >
-                            {/* 상단 2위 배지 (첨부 이미지 2위 엠블럼) */}
-                            <div className="flex flex-col items-center justify-center -mb-2">
-                              <RankBadgeImage rank={2} className="w-20 h-24" />
-                              <Badge className="bg-sky-600 text-white text-[10px] font-black px-2 py-0.5 border-none shadow-xs -mt-2">
+                            {/* 상단 2위 배지: 박스 상단 중앙에 오버랩 돌출 배치 (배경 완전 투명) */}
+                            <div className="absolute -top-10 sm:-top-11 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center pointer-events-none">
+                              <RankBadgeImage rank={2} className="w-22 sm:w-24 h-auto" />
+                              <Badge className="bg-sky-600 text-white text-[10px] font-black px-2 py-0.5 border-none shadow-xs -mt-1.5">
                                 🥈 실시간 2위
                               </Badge>
                             </div>
 
-                            {/* 라이브 커버 */}
-                            <div className="relative aspect-video w-full rounded-2xl bg-slate-950 overflow-hidden shadow-inner">
+                            {/* 박스 상단을 좌우 끝까지 100% 꽉 채우는 Full-Bleed 커버 이미지 */}
+                            <div className="relative w-full aspect-[4/3] rounded-t-[22px] overflow-hidden bg-slate-950">
                               <img
                                 src={item.coverUrl}
                                 alt={item.title}
@@ -3045,7 +3038,7 @@ export default function CustomerWebStorefrontPage() {
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
 
-                              <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-white text-[10px] font-semibold">
+                              <div className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-white text-[10px] font-semibold">
                                 <span className="h-1.5 w-1.5 rounded-full bg-[#FF3B6B] animate-ping" />
                                 <Users className="h-3 w-3 text-slate-300" />
                                 <span>{item.viewerCount.toLocaleString()}</span>
@@ -3065,8 +3058,8 @@ export default function CustomerWebStorefrontPage() {
                               )}
                             </div>
 
-                            {/* 호스트 & 정보 */}
-                            <div className="space-y-1.5 px-1">
+                            {/* 호스트 & 정보 패널 */}
+                            <div className="p-3.5 space-y-1.5">
                               <div className="flex items-center gap-1.5">
                                 <img
                                   src={item.hostAvatar}
@@ -3077,7 +3070,7 @@ export default function CustomerWebStorefrontPage() {
                                   {item.hostNickname}
                                 </span>
                               </div>
-                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-2 group-hover:text-sky-600 transition-colors leading-tight">
+                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-sky-600 transition-colors leading-tight">
                                 {item.title}
                               </h4>
                               <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
@@ -3104,15 +3097,15 @@ export default function CustomerWebStorefrontPage() {
                         return (
                           <div
                             onClick={() => setActiveLiveModal(item)}
-                            className="group relative flex flex-col rounded-3xl bg-gradient-to-b from-amber-500/15 via-white to-rose-500/10 border-2 border-amber-400 shadow-xl shadow-amber-500/15 hover:shadow-2xl hover:border-amber-500 transition-all cursor-pointer overflow-hidden order-1 md:order-2 pt-2 pb-5 px-4 space-y-3 md:-translate-y-2 z-10"
+                            className="group relative flex flex-col rounded-3xl bg-gradient-to-b from-amber-500/15 via-white to-rose-500/10 border-2 border-amber-400 shadow-xl shadow-amber-500/15 hover:shadow-2xl hover:border-amber-500 transition-all cursor-pointer overflow-visible order-1 md:order-2 md:-translate-y-2 z-10"
                           >
-                            {/* 상단 1위 왕관 배지 (첨부 이미지 1위 엠블럼 - 화려하게 중앙 배치) */}
-                            <div className="flex flex-col items-center justify-center -mb-2">
+                            {/* 상단 1위 왕관 배지: 박스 상단 중앙에 오버랩 돌출 배치 (배경 완전 투명) */}
+                            <div className="absolute -top-12 sm:-top-14 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center pointer-events-none">
                               <div className="relative">
-                                <RankBadgeImage rank={1} className="w-24 h-28" />
-                                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                <RankBadgeImage rank={1} className="w-28 sm:w-32 h-auto" />
+                                <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-500"></span>
                                 </span>
                               </div>
                               <Badge className="bg-gradient-to-r from-red-600 to-rose-600 text-white text-[11px] font-black px-2.5 py-0.5 border-none shadow-md -mt-2">
@@ -3120,23 +3113,23 @@ export default function CustomerWebStorefrontPage() {
                               </Badge>
                             </div>
 
-                            {/* 라이브 커버 */}
-                            <div className="relative aspect-video w-full rounded-2xl bg-slate-950 overflow-hidden shadow-md">
+                            {/* 박스 상단을 좌우 끝까지 100% 꽉 채우는 Full-Bleed 커버 이미지 */}
+                            <div className="relative w-full aspect-[4/3] rounded-t-[22px] overflow-hidden bg-slate-950">
                               <img
                                 src={item.coverUrl}
                                 alt={item.title}
                                 className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/20" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/25" />
 
                               {/* 시청자 수 */}
-                              <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-600 text-white text-[11px] font-bold shadow-md">
+                              <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-600 text-white text-[11px] font-bold shadow-md">
                                 <span className="h-2 w-2 rounded-full bg-white animate-ping" />
                                 <span>LIVE {item.viewerCount.toLocaleString()}명</span>
                               </div>
 
                               {item.isOfficialCreator && (
-                                <Badge className="absolute top-2 left-2 bg-[#8B5CF6] text-white text-[10px] font-bold border-none px-2 py-0.5 shadow-sm">
+                                <Badge className="absolute top-2.5 left-2.5 bg-[#8B5CF6] text-white text-[10px] font-bold border-none px-2 py-0.5 shadow-sm">
                                   🎙️ 공식 크리에이터
                                 </Badge>
                               )}
@@ -3160,8 +3153,8 @@ export default function CustomerWebStorefrontPage() {
                               )}
                             </div>
 
-                            {/* 호스트 & 정보 */}
-                            <div className="space-y-2 px-1">
+                            {/* 호스트 & 정보 패널 */}
+                            <div className="p-3.5 space-y-2">
                               <div className="flex items-center gap-2">
                                 <div className="relative">
                                   <img
@@ -3175,7 +3168,7 @@ export default function CustomerWebStorefrontPage() {
                                   {item.hostNickname}
                                 </span>
                               </div>
-                              <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 line-clamp-2 group-hover:text-rose-600 transition-colors leading-tight">
+                              <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-rose-600 transition-colors leading-tight">
                                 {item.title}
                               </h4>
                               <div className="flex items-center justify-between pt-1">
@@ -3201,18 +3194,18 @@ export default function CustomerWebStorefrontPage() {
                         return (
                           <div
                             onClick={() => setActiveLiveModal(item)}
-                            className="group relative flex flex-col rounded-3xl bg-gradient-to-b from-orange-50/90 via-white to-amber-50/30 border-2 border-amber-500/40 shadow-md hover:shadow-xl hover:border-amber-500 transition-all cursor-pointer overflow-hidden order-3 pt-3 pb-4 px-3.5 space-y-3"
+                            className="group relative flex flex-col rounded-3xl bg-gradient-to-b from-orange-50/90 via-white to-amber-50/30 border-2 border-amber-500/40 shadow-md hover:shadow-xl hover:border-amber-500 transition-all cursor-pointer overflow-visible order-3"
                           >
-                            {/* 상단 3위 배지 (첨부 이미지 3위 엠블럼) */}
-                            <div className="flex flex-col items-center justify-center -mb-2">
-                              <RankBadgeImage rank={3} className="w-20 h-24" />
-                              <Badge className="bg-orange-600 text-white text-[10px] font-black px-2 py-0.5 border-none shadow-xs -mt-2">
+                            {/* 상단 3위 배지: 박스 상단 중앙에 오버랩 돌출 배치 (배경 완전 투명) */}
+                            <div className="absolute -top-10 sm:-top-11 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center pointer-events-none">
+                              <RankBadgeImage rank={3} className="w-22 sm:w-24 h-auto" />
+                              <Badge className="bg-orange-600 text-white text-[10px] font-black px-2 py-0.5 border-none shadow-xs -mt-1.5">
                                 🥉 실시간 3위
                               </Badge>
                             </div>
 
-                            {/* 라이브 커버 */}
-                            <div className="relative aspect-video w-full rounded-2xl bg-slate-950 overflow-hidden shadow-inner">
+                            {/* 박스 상단을 좌우 끝까지 100% 꽉 채우는 Full-Bleed 커버 이미지 */}
+                            <div className="relative w-full aspect-[4/3] rounded-t-[22px] overflow-hidden bg-slate-950">
                               <img
                                 src={item.coverUrl}
                                 alt={item.title}
@@ -3220,7 +3213,7 @@ export default function CustomerWebStorefrontPage() {
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
 
-                              <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-white text-[10px] font-semibold">
+                              <div className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-white text-[10px] font-semibold">
                                 <span className="h-1.5 w-1.5 rounded-full bg-[#FF3B6B] animate-ping" />
                                 <Users className="h-3 w-3 text-slate-300" />
                                 <span>{item.viewerCount.toLocaleString()}</span>
@@ -3240,8 +3233,8 @@ export default function CustomerWebStorefrontPage() {
                               )}
                             </div>
 
-                            {/* 호스트 & 정보 */}
-                            <div className="space-y-1.5 px-1">
+                            {/* 호스트 & 정보 패널 */}
+                            <div className="p-3.5 space-y-1.5">
                               <div className="flex items-center gap-1.5">
                                 <img
                                   src={item.hostAvatar}
@@ -3252,7 +3245,7 @@ export default function CustomerWebStorefrontPage() {
                                   {item.hostNickname}
                                 </span>
                               </div>
-                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-2 group-hover:text-orange-600 transition-colors leading-tight">
+                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-orange-600 transition-colors leading-tight">
                                 {item.title}
                               </h4>
                               <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
@@ -3274,7 +3267,7 @@ export default function CustomerWebStorefrontPage() {
                     </div>
                   </section>
 
-                  {/* (B) 🔴 실시간 온에어 라이브 방송 목록 (하단) */}
+                  {/* (B) 🔴 실시간 온에어 라이브 방송 목록 (하단: 4칸 그리드로 확대 & 이미지 꽉 차게) */}
                   <section className="space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
@@ -3305,76 +3298,74 @@ export default function CustomerWebStorefrontPage() {
                       </div>
                     </div>
 
-                    {/* Live Rooms Grid (3 cols on lg) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {/* Live Rooms Grid: 옆으로 퍼져보이지 않도록 4칸(grid-cols-2 sm:grid-cols-3 xl:grid-cols-4)으로 확대 & 이미지가 박스에 꽉 차는 aspect-square */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3.5">
                       {lives
                         .filter((live) => (liveCategoryFilter === '전체' ? true : live.category.includes(liveCategoryFilter)))
                         .map((live) => (
                           <Card
                             key={live.id}
                             onClick={() => setActiveLiveModal(live)}
-                            className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-xl transition-all border border-slate-200/80 bg-white"
+                            className="group overflow-hidden rounded-2xl cursor-pointer hover:shadow-xl transition-all border border-slate-200/80 bg-white flex flex-col"
                           >
-                            <div className="aspect-video w-full bg-slate-900 overflow-hidden relative">
+                            {/* 이미지가 박스에 100% 꽉 차는 정사각형(aspect-square) 라이브 커버 */}
+                            <div className="aspect-square w-full bg-slate-950 overflow-hidden relative">
                               <img
                                 src={live.coverUrl}
                                 alt={live.title}
                                 className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
 
                               {/* Live viewer count */}
-                              <div className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-bold shadow-xs">
-                                <span className="h-1.5 w-1.5 rounded-full bg-white animate-ping" />
-                                LIVE · {live.viewerCount.toLocaleString()}명
+                              <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-white text-[10px] font-semibold">
+                                <span className="h-1.5 w-1.5 rounded-full bg-[#FF3B6B] animate-ping" />
+                                <Users className="h-3 w-3 text-slate-300" />
+                                <span>{live.viewerCount.toLocaleString()}</span>
                               </div>
 
                               {live.isOfficialCreator && (
-                                <Badge className="absolute top-2.5 left-2.5 bg-purple-600 text-white text-[10px] font-bold border-none shadow-xs">
-                                  🎙️ 공식 크리에이터
+                                <Badge className="absolute top-2 left-2 bg-[#8B5CF6] text-white text-[9px] font-bold border-none px-1.5 py-0 shadow-xs">
+                                  🎙️ 크리에이터
                                 </Badge>
                               )}
 
                               {/* Pinned product preview */}
                               {live.pinnedProduct && (
-                                <div className="absolute bottom-2 left-2 right-2 flex items-center gap-2 rounded-xl bg-white/95 p-1.5 text-slate-900 shadow-md backdrop-blur-xs">
+                                <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5 rounded-xl bg-white/95 p-1 text-slate-900 shadow-xs backdrop-blur-xs">
                                   <img
                                     src={live.pinnedProduct.image}
                                     alt="pin"
-                                    className="h-7 w-7 rounded-lg object-cover"
+                                    className="h-5 w-5 rounded-md object-cover shrink-0"
                                   />
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-[10px] font-bold truncate">
-                                      {live.pinnedProduct.title}
-                                    </p>
-                                  </div>
-                                  <span className="text-[11px] font-black text-rose-600 pr-1">
+                                  <span className="text-[10px] font-bold text-[#FF3B6B] truncate">
                                     {live.pinnedProduct.price.toLocaleString()}원
                                   </span>
                                 </div>
                               )}
                             </div>
 
-                            <CardContent className="p-4 space-y-2">
-                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-rose-600 transition-colors">
+                            {/* 하단 정보 패널 */}
+                            <div className="p-2.5 space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <img
+                                  src={live.hostAvatar}
+                                  alt={live.hostNickname}
+                                  className="h-4 w-4 rounded-full object-cover shrink-0 border border-slate-200"
+                                />
+                                <span className="text-[11px] font-bold text-slate-700 truncate">
+                                  {live.hostNickname}
+                                </span>
+                              </div>
+                              <h4 className="font-bold text-xs text-slate-900 line-clamp-1 group-hover:text-[#FF3B6B] transition-colors leading-tight">
                                 {live.title}
                               </h4>
-                              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <div className="flex items-center gap-1.5">
-                                  <img
-                                    src={live.hostAvatar}
-                                    alt="avatar"
-                                    className="h-5 w-5 rounded-full object-cover"
-                                  />
-                                  <span className="font-semibold text-slate-700 truncate max-w-[120px]">
-                                    {live.hostNickname}
-                                  </span>
-                                </div>
-                                <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-medium">
+                              <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5">
+                                <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium truncate max-w-[90px]">
                                   {live.category}
                                 </span>
                               </div>
-                            </CardContent>
+                            </div>
                           </Card>
                         ))}
                     </div>

@@ -368,30 +368,26 @@ export default function LiveScreen({ navigation }) {
   const renderTop3Section = () => {
     if (!top3Rooms || top3Rooms.length === 0) return null;
 
-    // 첨부 이미지(live-rank-badges.jpg) 활용한 화려한 리본 엠블럼 (상단 중앙 오버랩)
+    // 첨부 이미지 활용한 화려한 리본 엠블럼 (상단 중앙 오버랩 & 완전 투명 배경)
     const renderRankRibbonBadge = (rank) => {
       const isRank1 = rank === 1;
-      const isRank2 = rank === 2;
-      const isRank3 = rank === 3;
+      const imgSource =
+        rank === 1
+          ? require('../../../assets/rank-badge-1.png')
+          : rank === 2
+          ? require('../../../assets/rank-badge-2.png')
+          : require('../../../assets/rank-badge-3.png');
 
       const badgeW = isRank1 ? 46 : 38;
-      const badgeH = isRank1 ? 52 : 44;
-      const fullW = badgeW * 3;
-      const offsetX = rank === 1 ? 0 : rank === 2 ? -badgeW : -badgeW * 2;
+      const badgeH = isRank1 ? 58 : 48;
 
       return (
         <View style={[styles.ribbonBadgeWrapper, isRank1 && styles.ribbonBadgeWrapperGold]}>
-          <View style={[styles.ribbonBadgeCrop, { width: badgeW, height: badgeH }]}>
-            <Image
-              source={require('../../../assets/live-rank-badges.jpg')}
-              style={{
-                width: fullW,
-                height: badgeH,
-                transform: [{ translateX: offsetX }],
-              }}
-              resizeMode="contain"
-            />
-          </View>
+          <Image
+            source={imgSource}
+            style={{ width: badgeW, height: badgeH }}
+            resizeMode="contain"
+          />
         </View>
       );
     };
