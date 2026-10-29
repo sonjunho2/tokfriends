@@ -499,7 +499,7 @@ const INITIAL_USED_PRODUCTS: UsedProductItem[] = [
 const INITIAL_MARKET_PRODUCTS: MarketProductItem[] = [
   {
     id: 'np-001',
-    title: '[본사직영] 제주 산지직송 프리미엄 1등급 흑돼지 오겹살 1kg (신선 냉장)',
+    title: '[모꼬직영] 제주 산지직송 프리미엄 1등급 흑돼지 오겹살 1kg (신선 냉장)',
     description: '제주 청정 농가에서 당일 도축 후 신선 보랭 포장 발송하는 1등급 명품 흑돼지 오겹살입니다.',
     price: 32900,
     originalPrice: 38000,
@@ -519,7 +519,7 @@ const INITIAL_MARKET_PRODUCTS: MarketProductItem[] = [
   },
   {
     id: 'np-002',
-    title: '[입점사상시] 제주 유기농 감귤 착즙 원액주스 1000ml (3병 선물세트)',
+    title: '제주 유기농 감귤 착즙 원액주스 1000ml (3병 선물세트)',
     description: '물 한 방울 섞지 않은 무가당 100% 제주 감귤 순수 착즙 프리미엄 주스입니다.',
     price: 24900,
     originalPrice: 29000,
@@ -530,7 +530,7 @@ const INITIAL_MARKET_PRODUCTS: MarketProductItem[] = [
     images: [
       'https://images.unsplash.com/photo-1613478223719-2ab802602423?w=800',
     ],
-    sellerName: '제주푸드 본사 직영 (공식입점)',
+    sellerName: '제주푸드 본사 직영',
     shippingFee: 0,
     stock: 80,
     status: 'ACTIVE',
@@ -559,7 +559,7 @@ const INITIAL_MARKET_PRODUCTS: MarketProductItem[] = [
   },
   {
     id: 'np-003',
-    title: '[입점사상시] 고순도 프리미엄 알티지 오메가3 120캡슐 (4개월분)',
+    title: '고순도 프리미엄 알티지 오메가3 120캡슐 (4개월분)',
     description: 'IFOS 최고등급 원료 사용, 흡수율 높은 rTG형 오메가3로 혈행 및 눈 건강을 지켜드립니다.',
     price: 42000,
     originalPrice: 55000,
@@ -599,7 +599,7 @@ const INITIAL_MARKET_PRODUCTS: MarketProductItem[] = [
   },
   {
     id: 'np-004',
-    title: '[입점사상시] 무소음 초음파 감성 아로마 무드등 가습기 500ml',
+    title: '무소음 초음파 감성 아로마 무드등 가습기 500ml',
     description: '심플한 모던 인테리어 디자인과 7가지 은은한 LED 무드등 기능이 탑재된 초음파 가습기.',
     price: 35000,
     originalPrice: 42000,
@@ -2156,7 +2156,7 @@ export default function CustomerWebStorefrontPage() {
                       모꼬마켓
                     </h3>
                     <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
-                      본사직영 · 공식 입점사
+                      100% 품질보장 · 신선 산지직송
                     </Badge>
                   </div>
                   <Button
@@ -2190,7 +2190,7 @@ export default function CustomerWebStorefrontPage() {
                             className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                           <Badge className="absolute top-2 left-2 bg-emerald-600 text-white text-[9px] font-bold border-none">
-                            {item.isHqDirect ? '본사직영' : '공식입점'}
+                            {item.isHqDirect ? '본사직영' : '모꼬인증'}
                           </Badge>
                         </div>
                         <CardContent className="p-3.5 space-y-1">
@@ -2223,87 +2223,126 @@ export default function CustomerWebStorefrontPage() {
           {/* ======================================================= */}
           {activeTab === 'MARKET' && (
             <div className="space-y-6 animate-in fade-in duration-200">
-              {/* Market Sub-nav Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-                    🏪 모꼬마켓
+              {/* 1) Hero Promotional Carousel (모꼬홈과 동일한 상단 광고 배너 배치) */}
+              <div className="relative overflow-hidden rounded-3xl bg-slate-900 text-white shadow-xl min-h-[220px] sm:min-h-[260px] flex items-center">
+                <img
+                  src={INITIAL_HERO_BANNERS[heroIndex].image}
+                  alt="banner"
+                  className="absolute inset-0 h-full w-full object-cover opacity-40 transition-opacity duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/70 to-transparent" />
+                <div className="relative z-10 p-6 sm:p-10 max-w-2xl space-y-3">
+                  <Badge className="bg-pink-500 text-white font-bold border-none text-[11px]">
+                    {INITIAL_HERO_BANNERS[heroIndex].badge}
+                  </Badge>
+                  <h2 className="text-xl sm:text-3xl font-extrabold tracking-tight leading-snug">
+                    {INITIAL_HERO_BANNERS[heroIndex].title}
                   </h2>
-                  <p className="text-xs text-muted-foreground">
-                    동네 이웃 간 C2C 에스크로 중고거래부터 본사 직영 신선식품, 특가 공동구매까지!
+                  <p className="text-xs sm:text-sm text-slate-300">
+                    {INITIAL_HERO_BANNERS[heroIndex].desc}
                   </p>
+                  <div className="pt-2">
+                    <Button
+                      onClick={() => setActiveTab(INITIAL_HERO_BANNERS[heroIndex].linkTab)}
+                      className="bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs h-8 sm:h-9 shadow-md rounded-xl"
+                    >
+                      자세히 보러가기
+                      <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                    </Button>
+                  </div>
                 </div>
 
-                {/* 3 Subtabs */}
-                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl text-xs font-bold border border-slate-200/60">
-                  <button
-                    onClick={() => setMarketSubTab('C2C_USED')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                      marketSubTab === 'C2C_USED' ? 'bg-white text-orange-600 shadow-xs' : 'text-slate-600'
-                    }`}
-                  >
-                    <span>🥕 동네 중고거래</span>
-                  </button>
-                  <button
-                    onClick={() => setMarketSubTab('B2C_NORMAL')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                      marketSubTab === 'B2C_NORMAL' ? 'bg-white text-emerald-600 shadow-xs' : 'text-slate-600'
-                    }`}
-                  >
-                    <span>🛒 상시 입점 상품</span>
-                  </button>
-                  <button
-                    onClick={() => setMarketSubTab('B2C_GROUP')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
-                      marketSubTab === 'B2C_GROUP' ? 'bg-white text-rose-600 shadow-xs' : 'text-slate-600'
-                    }`}
-                  >
-                    <span>🔥 특가 공동구매</span>
-                  </button>
+                {/* Carousel Indicators */}
+                <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1.5">
+                  {INITIAL_HERO_BANNERS.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setHeroIndex(idx)}
+                      className={`h-1.5 rounded-full transition-all ${
+                        heroIndex === idx ? 'w-6 bg-pink-500' : 'w-1.5 bg-white/40'
+                      }`}
+                    />
+                  ))}
                 </div>
               </div>
 
-              {/* Action Bar: Category filter & Register Button */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-                  {['전체', '디지털/가전', '가구/인테리어', '패션/의류', '생활/리빙', '식품/신선'].map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => setMarketCategoryFilter(cat)}
-                      className={`px-3 py-1.5 rounded-full font-semibold shrink-0 transition-colors ${
-                        marketCategoryFilter === cat
-                          ? 'bg-slate-900 text-white'
-                          : 'bg-white border text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
+              {/* 2) Market Sub-nav Header (좌측 대형 탭: 중고거래 / 마켓상품 / 공동구매) */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
+                {/* 3 Subtabs on the Left (더 크고 직관적인 좌측 버튼) */}
+                <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/80">
+                  <button
+                    onClick={() => setMarketSubTab('C2C_USED')}
+                    className={`flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl text-sm sm:text-base font-extrabold transition-all ${
+                      marketSubTab === 'C2C_USED'
+                        ? 'bg-white text-orange-600 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>🥕 중고거래</span>
+                  </button>
+                  <button
+                    onClick={() => setMarketSubTab('B2C_NORMAL')}
+                    className={`flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl text-sm sm:text-base font-extrabold transition-all ${
+                      marketSubTab === 'B2C_NORMAL'
+                        ? 'bg-white text-emerald-600 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>🛒 마켓상품</span>
+                  </button>
+                  <button
+                    onClick={() => setMarketSubTab('B2C_GROUP')}
+                    className={`flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl text-sm sm:text-base font-extrabold transition-all ${
+                      marketSubTab === 'B2C_GROUP'
+                        ? 'bg-white text-rose-600 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>🔥 공동구매</span>
+                  </button>
                 </div>
 
+                {/* Right Action Buttons */}
                 <div className="flex items-center gap-2">
                   <Button
                     onClick={() => {
                       requireAuth(() => setIsNewUsedModalOpen(true))
                     }}
-                    className="bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold h-8 shadow-xs rounded-xl"
+                    className="bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm font-bold h-9 sm:h-10 px-4 shadow-sm rounded-xl"
                   >
-                    <PlusCircle className="h-3.5 w-3.5 mr-1" />
+                    <PlusCircle className="h-4 w-4 mr-1.5" />
                     중고 물품 판매 등록
                   </Button>
                   {(role === 'MERCHANT' || role === 'ADMIN') && (
                     <Button
                       asChild
                       variant="outline"
-                      className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-xs font-bold h-8 rounded-xl"
+                      className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-xs sm:text-sm font-bold h-9 sm:h-10 px-4 rounded-xl"
                     >
                       <Link href="/seller">
-                        <Store className="h-3.5 w-3.5 mr-1" />
+                        <Store className="h-4 w-4 mr-1.5" />
                         셀러 센터 상품 등록
                       </Link>
                     </Button>
                   )}
                 </div>
+              </div>
+
+              {/* 3) Category Filter */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                {['전체', '디지털/가전', '가구/인테리어', '패션/의류', '생활/리빙', '식품/신선'].map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setMarketCategoryFilter(cat)}
+                    className={`px-3.5 py-1.5 rounded-full font-semibold shrink-0 transition-colors ${
+                      marketCategoryFilter === cat
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-white border text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
 
               {/* Market Products Display */}
@@ -2388,7 +2427,7 @@ export default function CustomerWebStorefrontPage() {
                             </Badge>
                           ) : (
                             <Badge className="absolute top-2 left-2 bg-emerald-600 text-white text-[10px] font-bold border-none">
-                              {item.isHqDirect ? '본사 직영' : '공식 입점'}
+                              {item.isHqDirect ? '본사직영' : '모꼬인증'}
                             </Badge>
                           )}
                         </div>
