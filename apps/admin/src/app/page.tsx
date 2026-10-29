@@ -2013,7 +2013,7 @@ export default function CustomerWebStorefrontPage() {
                           <div className="p-4 pt-0">
                             <Button
                               size="sm"
-                              className="w-full h-8 text-xs font-bold bg-rose-50 text-[#FF3B6B] hover:bg-[#FF3B6B] hover:text-white border border-rose-200 rounded-xl transition-all"
+                              className="w-full h-9 text-xs font-bold bg-[#FF3B6B] text-white hover:bg-[#e02e5b] rounded-xl shadow-xs transition-all"
                             >
                               공구 참여하기
                             </Button>
@@ -2652,7 +2652,7 @@ export default function CustomerWebStorefrontPage() {
                                 e.stopPropagation()
                                 setSelectedProduct(item)
                               }}
-                              className="w-full mt-3 py-1.5 rounded-xl bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] hover:opacity-95 text-[11px] font-bold text-white flex items-center justify-center gap-1 transition-all shadow-2xs"
+                              className="w-full mt-3 py-1.5 rounded-xl bg-[#FF3B6B] hover:bg-[#e02e5b] text-[11px] font-bold text-white flex items-center justify-center gap-1 transition-all shadow-xs"
                             >
                               <Flame className="h-3 w-3" />
                               <span>공구 참여</span>
@@ -2714,83 +2714,171 @@ export default function CustomerWebStorefrontPage() {
                       </Card>
                     ))}
                 </div>
-              ) : (
-                /* 2) B2C Normal or Group Buy Grid */
+              ) : marketSubTab === 'B2C_GROUP' ? (
+                /* 2) 🔥 공동구매 그리드 (홈 화면의 특가공구 프리미엄 박스 디자인과 100% 동일한 완성도) */
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {marketProducts
-                    .filter((p) => {
-                      if (marketSubTab === 'B2C_NORMAL') return p.type === 'B2C_NORMAL'
-                      if (marketSubTab === 'B2C_GROUP') return p.type === 'B2C_GROUP'
-                      return true
-                    })
+                    .filter((p) => p.type === 'B2C_GROUP')
                     .filter((p) => {
                       const matchCategory = marketCategoryFilter === '전체' ? true : p.category.includes(marketCategoryFilter)
                       const matchSearch = !searchQuery.trim() ? true : (p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.description.toLowerCase().includes(searchQuery.toLowerCase()) || p.sellerName.toLowerCase().includes(searchQuery.toLowerCase()))
                       return matchCategory && matchSearch
                     })
-                    .map((item) => (
-                      <Card
-                        key={item.id}
-                        onClick={() => setSelectedProduct(item)}
-                        className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80"
-                      >
-                        <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
-                          <img
-                            src={item.images[0]}
-                            alt={item.title}
-                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          {item.type === 'B2C_GROUP' ? (
-                            <Badge className="absolute top-2 left-2 bg-rose-600 text-white text-[10px] font-bold border-none">
-                              🔥 공동구매 특가
-                            </Badge>
-                          ) : (
-                            <Badge className="absolute top-2 left-2 bg-emerald-600 text-white text-[10px] font-bold border-none">
-                              {item.isHqDirect ? '본사직영' : '모꼬인증'}
-                            </Badge>
-                          )}
-                        </div>
-                        <CardContent className="p-3.5 space-y-2">
-                          <span className="text-[10px] text-muted-foreground font-semibold block truncate">
-                            {item.sellerName}
-                          </span>
-                          <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-emerald-600 transition-colors">
-                            {item.title}
-                          </h4>
-                          <div className="flex items-baseline gap-2">
-                            <span className="font-extrabold text-sm sm:text-base text-slate-900">
-                              {item.price.toLocaleString()}원
-                            </span>
-                            {item.originalPrice && (
-                              <span className="text-xs text-slate-400 line-through">
-                                {item.originalPrice.toLocaleString()}원
-                              </span>
-                            )}
-                          </div>
-                          {item.type === 'B2C_GROUP' && item.targetQuantity && (
-                            <div className="space-y-1 pt-1">
-                              <div className="flex justify-between text-[11px] font-semibold text-rose-600">
-                                <span>공구 달성률</span>
-                                <span>
-                                  {Math.round(((item.currentQuantity || 0) / item.targetQuantity) * 100)}% ({item.currentQuantity}/{item.targetQuantity}명)
+                    .map((item) => {
+                      const target = item.targetQuantity || 30
+                      const current = item.currentQuantity || 22
+                      const rate = Math.round((current / target) * 100)
+                      const discountRate = item.originalPrice
+                        ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
+                        : 35
+
+                      return (
+                        <Card
+                          key={item.id}
+                          onClick={() => setSelectedProduct(item)}
+                          className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80 bg-white flex flex-col justify-between"
+                        >
+                          <div>
+                            <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
+                              <img
+                                src={item.images[0]}
+                                alt={item.title}
+                                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                                <span className="bg-[#FF3B6B] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs">
+                                  공구특가
+                                </span>
+                                <span className="bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                  {discountRate}% OFF
                                 </span>
                               </div>
-                              <div className="h-1.5 w-full bg-rose-100 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-rose-600 rounded-full"
-                                  style={{
-                                    width: `${Math.min(
-                                      100,
-                                      Math.round(((item.currentQuantity || 0) / item.targetQuantity) * 100)
-                                    )}%`,
-                                  }}
-                                />
+                            </div>
+                            <CardContent className="p-4 space-y-2">
+                              <span className="text-[10px] text-muted-foreground font-semibold block truncate">
+                                {item.sellerName}
+                              </span>
+                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-[#FF3B6B] transition-colors">
+                                {item.title}
+                              </h4>
+                              <div className="flex items-baseline gap-2">
+                                <span className="font-extrabold text-base text-slate-900">
+                                  {item.price.toLocaleString()}원
+                                </span>
+                                {item.originalPrice && (
+                                  <span className="text-xs text-slate-400 line-through">
+                                    {item.originalPrice.toLocaleString()}원
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Progress bar */}
+                              <div className="space-y-1 pt-1">
+                                <div className="flex items-center justify-between text-[11px] font-semibold">
+                                  <span className="text-slate-500">
+                                    목표 {target}개 중 {current}개
+                                  </span>
+                                  <span className="text-[#FF3B6B] font-bold">
+                                    {rate}% 달성
+                                  </span>
+                                </div>
+                                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] rounded-full transition-all duration-500"
+                                    style={{ width: `${Math.min(100, rate)}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </div>
+
+                          <div className="p-4 pt-0">
+                            <Button
+                              size="sm"
+                              className="w-full h-9 text-xs font-bold bg-[#FF3B6B] text-white hover:bg-[#e02e5b] rounded-xl shadow-xs transition-all"
+                            >
+                              공구 참여하기
+                            </Button>
+                          </div>
+                        </Card>
+                      )
+                    })}
+                </div>
+              ) : (
+                /* 3) 🛍️ 일반 마켓상품 그리드 (B2C_NORMAL) */
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {marketProducts
+                    .filter((p) => p.type === 'B2C_NORMAL')
+                    .filter((p) => {
+                      const matchCategory = marketCategoryFilter === '전체' ? true : p.category.includes(marketCategoryFilter)
+                      const matchSearch = !searchQuery.trim() ? true : (p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.description.toLowerCase().includes(searchQuery.toLowerCase()) || p.sellerName.toLowerCase().includes(searchQuery.toLowerCase()))
+                      return matchCategory && matchSearch
+                    })
+                    .map((item) => {
+                      const discountRate = item.originalPrice
+                        ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
+                        : 20
+
+                      return (
+                        <Card
+                          key={item.id}
+                          onClick={() => setSelectedProduct(item)}
+                          className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80 bg-white flex flex-col justify-between"
+                        >
+                          <div>
+                            <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
+                              <img
+                                src={item.images[0]}
+                                alt={item.title}
+                                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                                <span className="bg-[#8B5CF6] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs">
+                                  모꼬특가
+                                </span>
+                                {discountRate > 0 && (
+                                  <span className="bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                    {discountRate}% OFF
+                                  </span>
+                                )}
                               </div>
                             </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
+                            <CardContent className="p-4 space-y-2">
+                              <span className="text-[10px] text-muted-foreground font-semibold block truncate">
+                                {item.sellerName}
+                              </span>
+                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-[#FF3B6B] transition-colors">
+                                {item.title}
+                              </h4>
+                              <div className="flex items-baseline gap-2">
+                                <span className="font-extrabold text-base text-slate-900">
+                                  {item.price.toLocaleString()}원
+                                </span>
+                                {item.originalPrice && (
+                                  <span className="text-xs text-slate-400 line-through">
+                                    {item.originalPrice.toLocaleString()}원
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                                <span>주문 {item.orderCount || 500}+건</span>
+                                <span className="text-amber-500 font-bold">★ {item.rating || '4.9'}</span>
+                              </div>
+                            </CardContent>
+                          </div>
+
+                          <div className="p-4 pt-0">
+                            <Button
+                              size="sm"
+                              className="w-full h-9 text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5"
+                            >
+                              <ShoppingBag className="h-3.5 w-3.5" />
+                              <span>장바구니 담기</span>
+                            </Button>
+                          </div>
+                        </Card>
+                      )
+                    })}
                 </div>
               )}
             </div>
