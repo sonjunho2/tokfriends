@@ -76,6 +76,14 @@ import { useToast } from '@/components/ui/use-toast'
 import { useWebAuth, type UserRole, type MerchantApplication, type CreatorApplication } from '@/lib/auth-context'
 import { RoleSwitcherFloating } from '@/components/common/RoleSwitcherFloating'
 import { getLiveTop3Rooms, getLiveRankings } from '@/lib/api'
+import {
+  MarketProductDetailModal,
+  type MarketProductDetail,
+} from '@/components/market/MarketProductDetailModal'
+import {
+  MarketProductCreateModal,
+  type CreateProductPayload,
+} from '@/components/market/MarketProductCreateModal'
 
 function RankBadgeImage({ rank, className = 'w-24 h-auto' }: { rank: 1 | 2 | 3; className?: string }) {
   return (
@@ -1201,6 +1209,9 @@ export default function CustomerWebStorefrontPage() {
   // 6. Modals
   // Live Viewer Modal
   const [activeLiveModal, setActiveLiveModal] = useState<LiveRoomItem | null>(null)
+  // Market Detail & Create Modals (통신판매 규정 준수 및 입점사 등록)
+  const [selectedProductDetail, setSelectedProductDetail] = useState<MarketProductDetail | null>(null)
+  const [isProductCreateModalOpen, setIsProductCreateModalOpen] = useState(false)
   const [liveChatInput, setLiveChatInput] = useState('')
   const [liveChatMessages, setLiveChatMessages] = useState<LiveChatMessageItem[]>([
     { sender: '시스템', text: '모꼬(MOCCO) 실시간 라이브 방송에 오신 것을 환영합니다!', isSystem: true, time: '12:00' },
@@ -1329,7 +1340,128 @@ export default function CustomerWebStorefrontPage() {
   // QR Modal
   const [isAppDownloadOpen, setIsAppDownloadOpen] = useState(false)
 
-  // Form states for login modal
+    // Helper: Map MarketProductItem or UsedProductItem to MarketProductDetail (통신판매 규정 고시 지원)
+  const mapItemToDetail = (item: MarketProductItem | UsedProductItem | any): MarketProductDetail => {
+    const isUsed = !('type' in item) || item.type === 'C2C_USED'
+    const productType: 'C2C_USED' | 'B2C_NORMAL' | 'B2C_GROUP' = isUsed 
+      ? 'C2C_USED' 
+      : (item.type || 'B2C_NORMAL')
+
+    return {
+      id: item.id,
+      name: item.title,
+      category: item.category,
+      type: productType,
+      price: item.price,
+      originalPrice: item.originalPrice,
+      images: item.images && item.images.length > 0 ? item.images : ['https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'],
+      description: item.description || `${item.title}에 대한 상세 설명입니다. 대한민국 전자상거래법 및 모꼬 안심 에스크로 100% 안전결제로 보호되는 정품/안심 상품입니다.`,
+      stock: item.stock || (isUsed ? 1 : 50),
+      shippingFee: item.shippingFee ?? 3000,
+      isFreeShipping: item.shippingFee === 0 || item.price >= 50000,
+      freeShippingThreshold: 50000,
+      merchantInfo: isUsed ? undefined : {
+        businessName: item.sellerName || '(주)모꼬 공식인증 파트너',
+        representative: '김대표',
+        businessNumber: '214-88-90123',
+        onlineOrderNumber: '제2026-서울강남-0912호',
+        address: '서울특별시 강남구 테헤란로 152 강남파이낸스센터 18층',
+        contactPhone: '1588-0923',
+        customerServiceHours: '평일 09:30 ~ 18:00 (주말/공휴일 휴무)',
+      },
+      noticeInfo: isUsed ? undefined : {
+        itemModelName: item.title,
+        certification: '식품위생법 검사 적합 / KC 안전인증 완료',
+        origin: '대한민국 (국산 100%)',
+        manufacturer: item.sellerName || '모꼬 제휴 생산자 직영라인',
+        expirationDate: '제조일로부터 12개월 (포장별도표기)',
+        asContact: '1588-0923 또는 모꼬 1:1 안심톡 문의',
+      },
+      shippingInfo: {
+        courierName: 'CJ대한통운 / 우체국택배 안심특송',
+        deliveryDays: '오후 2시 이전 결제 완료 시 당일 출발 (평균 1~2일 소요)',
+        returnFee: 3000,
+        exchangeFee: 6000,
+        returnAddress: '경기도 이천시 물류센터로 45 모꼬안심물류센터 B동 3호',
+        nonReturnableReasons: [
+          '소비자의 책임 있는 사유로 상품 등이 멸실 또는 훼손된 경우',
+          '소비자의 사용 또는 일부 소비로 상품의 가치가 현저히 감소한 경우',
+          '시간의 경과에 의하여 재판매가 곤란할 정도로 상품의 가치가 현저히 감소한 경우 (신선식품 등)',
+          '복제가 가능한 상품 등의 포장을 훼손한 경우',
+        ],
+      },
+      usedCondition: isUsed ? 'S' : undefined,
+      isLiveSellLinked: isUsed ? true : undefined,
+      sellerNickname: item.sellerNickname || item.sellerName || '모꼬 이웃',
+      sellerAvatar: item.sellerAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+      sellerLocation: item.locationName || item.location || '모꼬 동네인증 완료',
+    }
+  }
+
+  // Handle Create Product Submit
+  const handleCreateProductSubmit = (payload: CreateProductPayload) => {
+    if (payload.type === 'C2C_USED') {
+      const newUsed: UsedProductItem = {
+        id: `used-${Date.now()}`,
+        title: payload.name,
+        description: payload.description,
+        price: payload.price,
+        category: payload.category,
+        locationName: '서울 강남구 역삼동',
+        sellerNickname: user?.nickname || '모꼬 회원',
+        sellerAvatar: user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+        mannerTemp: 36.5,
+        images: payload.images,
+        likesCount: 0,
+        chatsCount: 0,
+        createdAt: '방금 전',
+        status: 'ACTIVE',
+      }
+      setUsedProducts((prev) => [newUsed, ...prev])
+      toast({
+        title: '🎉 중고 물품 등록 완료!',
+        description: '내 중고물품이 등록되었으며, 모바일 라이브 방송 시 핀 상품으로 실시간 판매할 수 있습니다.',
+      })
+    } else {
+      const newItem: MarketProductItem = {
+        id: `prod-${Date.now()}`,
+        title: payload.name,
+        category: payload.category,
+        type: payload.type as 'B2C_NORMAL' | 'B2C_GROUP',
+        ownerType: 'MERCHANT',
+        price: payload.price,
+        originalPrice: payload.originalPrice,
+        images: payload.images,
+        description: payload.description,
+        stock: payload.stock,
+        sellerName: user?.nickname || '(주)모꼬 파트너사',
+        shippingFee: payload.shippingFee,
+        status: 'ACTIVE',
+        salesCount: 0,
+        orderCount: 0,
+        rating: 5.0,
+      }
+      setMarketProducts((prev) => [newItem, ...prev])
+      toast({
+        title: '🎉 공식 마켓 상품 등록 완료!',
+        description: '대한민국 전자상거래 규정에 맞춘 공식 마켓 상품이 성공적으로 등록되었습니다.',
+      })
+    }
+  }
+
+  // Handle Buy Product in Detail Modal
+  const handleBuyProductInModal = (prod: MarketProductDetail, qty: number) => {
+    requireAuth(() => {
+      const totalCost = (prod.price * qty) + (prod.isFreeShipping ? 0 : 3000)
+      toast({
+        title: '🛡️ 토스페이먼츠 PG 에스크로 안전결제 완료',
+        description: `${prod.name} (${qty}개) 총 ${totalCost.toLocaleString()}원이 에스크로 계좌에 안전하게 예치되었습니다. 수령 후 [구매확정]을 눌러주세요.`,
+      })
+      setSelectedProductDetail(null)
+    })
+  }
+
+// Form states for login modal
   const [loginTab, setLoginTab] = useState<'QUICK' | 'EMAIL' | 'QR'>('QUICK')
   const [quickNickInput, setQuickNickInput] = useState('')
   const [emailInput, setEmailInput] = useState('')
@@ -2047,7 +2179,7 @@ export default function CustomerWebStorefrontPage() {
                       {lives.slice(0, 8).map((live) => (
                         <div
                           key={live.id}
-                          onClick={() => setActiveLiveModal(live)}
+                          onClick={() => requireAuth(() => setActiveLiveModal(live))}
                           className="group relative flex flex-col overflow-hidden rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-rose-200 transition-all cursor-pointer"
                         >
                           {/* Live Cover Photo */}
@@ -2135,7 +2267,7 @@ export default function CustomerWebStorefrontPage() {
                             onClick={() => {
                               if (item.liveId) {
                                 const target = lives.find((l) => l.id === item.liveId)
-                                if (target) setActiveLiveModal(target)
+                                if (target) requireAuth(() => setActiveLiveModal(target))
                               } else {
                                 setActiveTab('LIVE')
                               }
@@ -2264,7 +2396,7 @@ export default function CustomerWebStorefrontPage() {
                       return (
                         <Card
                           key={item.id}
-                          onClick={() => setSelectedProduct(item)}
+                          onClick={() => requireAuth(() => setSelectedProductDetail(mapItemToDetail(item)))}
                           className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80 bg-white flex flex-col justify-between"
                         >
                           <div>
@@ -2582,7 +2714,7 @@ export default function CustomerWebStorefrontPage() {
                     .map((item) => (
                       <Card
                         key={item.id}
-                        onClick={() => setSelectedProduct(item)}
+                        onClick={() => requireAuth(() => setSelectedProductDetail(mapItemToDetail(item)))}
                         className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-md transition-shadow border border-slate-200/80 bg-white"
                       >
                         <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
@@ -2798,7 +2930,7 @@ export default function CustomerWebStorefrontPage() {
                         return (
                           <div
                             key={item.id}
-                            onClick={() => setSelectedProduct(item)}
+                            onClick={() => requireAuth(() => setSelectedProductDetail(mapItemToDetail(item)))}
                             className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs hover:shadow-md hover:border-purple-300 transition-all cursor-pointer flex flex-col justify-between group"
                           >
                             <div>
@@ -2845,7 +2977,7 @@ export default function CustomerWebStorefrontPage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                setSelectedProduct(item)
+                                requireAuth(() => setSelectedProductDetail(mapItemToDetail(item)))
                               }}
                               className="w-full mt-3 py-1.5 rounded-xl border border-slate-200 hover:border-purple-300 hover:bg-purple-50 text-[11px] font-bold text-slate-700 flex items-center justify-center gap-1 transition-all"
                             >
@@ -2903,7 +3035,7 @@ export default function CustomerWebStorefrontPage() {
                         return (
                           <div
                             key={item.id}
-                            onClick={() => setSelectedProduct(item)}
+                            onClick={() => requireAuth(() => setSelectedProductDetail(mapItemToDetail(item)))}
                             className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs hover:shadow-md hover:border-rose-300 transition-all cursor-pointer flex flex-col justify-between group"
                           >
                             <div>
@@ -2961,7 +3093,7 @@ export default function CustomerWebStorefrontPage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                setSelectedProduct(item)
+                                requireAuth(() => setSelectedProductDetail(mapItemToDetail(item)))
                               }}
                               className="w-full mt-3 py-1.5 rounded-xl bg-rose-50 text-[#FF3B6B] border border-rose-200 hover:bg-gradient-to-r hover:from-[#FF3B6B] hover:to-[#8B5CF6] hover:text-white hover:border-transparent text-[11px] font-bold flex items-center justify-center gap-1 transition-all duration-300 shadow-2xs hover:shadow-md"
                             >
@@ -3046,7 +3178,7 @@ export default function CustomerWebStorefrontPage() {
                       return (
                         <Card
                           key={item.id}
-                          onClick={() => setSelectedProduct(item)}
+                          onClick={() => requireAuth(() => setSelectedProductDetail(mapItemToDetail(item)))}
                           className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80 bg-white flex flex-col justify-between"
                         >
                           <div>
@@ -3133,7 +3265,7 @@ export default function CustomerWebStorefrontPage() {
                       return (
                         <Card
                           key={item.id}
-                          onClick={() => setSelectedProduct(item)}
+                          onClick={() => requireAuth(() => setSelectedProductDetail(mapItemToDetail(item)))}
                           className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80 bg-white flex flex-col justify-between"
                         >
                           <div>
@@ -3272,7 +3404,7 @@ export default function CustomerWebStorefrontPage() {
                         if (!item) return null
                         return (
                           <div
-                            onClick={() => setActiveLiveModal(item)}
+                            onClick={() => requireAuth(() => setActiveLiveModal(item))}
                             className="group relative flex flex-col rounded-3xl bg-gradient-to-b from-sky-50/90 via-white to-sky-50/30 border-2 border-sky-300 shadow-md hover:shadow-xl hover:border-sky-400 transition-all cursor-pointer overflow-visible order-2 md:order-1"
                           >
                             {/* 상단 2위 배지: 박스 상단 중앙에 오버랩 돌출 배치 (배경 완전 투명) */}
@@ -3350,7 +3482,7 @@ export default function CustomerWebStorefrontPage() {
                         if (!item) return null
                         return (
                           <div
-                            onClick={() => setActiveLiveModal(item)}
+                            onClick={() => requireAuth(() => setActiveLiveModal(item))}
                             className="group relative flex flex-col rounded-3xl bg-gradient-to-b from-amber-500/15 via-white to-rose-500/10 border-2 border-amber-400 shadow-xl shadow-amber-500/15 hover:shadow-2xl hover:border-amber-500 transition-all cursor-pointer overflow-visible order-1 md:order-2 md:-translate-y-2 z-10"
                           >
                             {/* 상단 1위 왕관 배지: 박스 상단 중앙에 오버랩 돌출 배치 (배경 완전 투명) */}
@@ -3447,7 +3579,7 @@ export default function CustomerWebStorefrontPage() {
                         if (!item) return null
                         return (
                           <div
-                            onClick={() => setActiveLiveModal(item)}
+                            onClick={() => requireAuth(() => setActiveLiveModal(item))}
                             className="group relative flex flex-col rounded-3xl bg-gradient-to-b from-orange-50/90 via-white to-amber-50/30 border-2 border-amber-500/40 shadow-md hover:shadow-xl hover:border-amber-500 transition-all cursor-pointer overflow-visible order-3"
                           >
                             {/* 상단 3위 배지: 박스 상단 중앙에 오버랩 돌출 배치 (배경 완전 투명) */}
@@ -3559,7 +3691,7 @@ export default function CustomerWebStorefrontPage() {
                         .map((live) => (
                           <Card
                             key={live.id}
-                            onClick={() => setActiveLiveModal(live)}
+                            onClick={() => requireAuth(() => setActiveLiveModal(live))}
                             className="group overflow-hidden rounded-2xl cursor-pointer hover:shadow-xl transition-all border border-slate-200/80 bg-white flex flex-col"
                           >
                             {/* 이미지가 박스에 100% 꽉 차는 정사각형(aspect-square) 라이브 커버 */}
@@ -4493,22 +4625,27 @@ export default function CustomerWebStorefrontPage() {
           {/* ======================================================= */}
           {activeTab === 'MY' && (
             <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in duration-200">
-              
-              {/* [🌟 웹 전용 4대 비즈니스 & 크리에이터 센터] - 웹만의 전용 기능 */}
+              {/* [🌟 역할(Role) 기반 비즈니스 & 크리에이터 센터] */}
               <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 p-6 sm:p-7 text-white shadow-xl border border-indigo-900/50 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="flex h-2.5 w-2.5 rounded-full bg-pink-500 animate-ping" />
                       <Badge className="bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] text-white font-extrabold px-2.5 py-0.5 border-none text-[11px] shadow-sm">
-                        WEB ONLY SPECIAL
+                        {role === 'GUEST' ? 'GUEST 둘러보기' : role === 'USER' ? '일반 회원' : role === 'MERCHANT' ? '🏢 공식 입점사' : role === 'CREATOR' ? '✨ 공식 크리에이터' : '🛡️ 총괄 관리자'}
                       </Badge>
                       <span className="text-xs text-indigo-300 font-semibold">
-                        비즈니스 파트너 & 공식 크리에이터 전용 웹 게이트웨이
+                        {role === 'GUEST'
+                          ? '로그인 후 라이브 방송, 중고거래, 마켓 쇼핑의 모든 혜택을 이용해보세요'
+                          : role === 'USER'
+                          ? '일반 회원도 라이브 방송으로 중고물품을 판매하고 선물을 받을 수 있습니다!'
+                          : role === 'MERCHANT'
+                          ? '공식 B2C 마켓 및 공구 상품 등록 / 셀러 주문배송 관리'
+                          : '입점사 마켓 상품 연동 판매 및 라이브 후원금 수수료 수익 센터'}
                       </span>
                     </div>
                     <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
-                      <span>모꼬 비즈니스 파트너 & 크리에이터 센터</span>
+                      <span>모꼬 파트너스 & 크리에이터 센터</span>
                       <Sparkles className="h-4 w-4 text-amber-400" />
                     </h3>
                   </div>
@@ -4527,106 +4664,209 @@ export default function CustomerWebStorefrontPage() {
                   )}
                 </div>
 
-                {/* 4대 전용 기능 그리드 (1. 입점사신청 / 2. 크리에이터신청 / 3. 입점사관리자 / 4. 크리에이터관리자) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1">
-                  {/* (1) 🏪 입점사 신청 */}
-                  <div className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 transition-all flex flex-col justify-between space-y-3">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-2xl">🏪</span>
-                        <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-bold">
-                          입점 파트너
-                        </Badge>
-                      </div>
-                      <h4 className="font-extrabold text-sm text-white">입점사 신청</h4>
-                      <p className="text-[11px] text-slate-300 leading-snug">
-                        사업자 등록 후 공식 입점사 승격! 대량 직영 상품 판매 및 에스크로 정산 혜택
+                {/* Role-Specific Grid Cards */}
+                {role === 'GUEST' ? (
+                  /* GUEST: 로그인 유도 배너 */
+                  <div className="p-6 rounded-2xl bg-white/10 border border-white/20 text-center space-y-4">
+                    <div className="space-y-1">
+                      <div className="text-2xl">🔐</div>
+                      <h4 className="text-base sm:text-lg font-black text-white">로그인이 필요합니다</h4>
+                      <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+                        모꼬 회원이 되시면 라이브 방송 송출 및 선물 수신, C2C 중고거래, 마켓 특가 쇼핑, 실시간 채팅을 모두 무료로 이용하실 수 있습니다!
                       </p>
                     </div>
-                    <Button
-                      onClick={() => requireAuth(() => openMerchantModal())}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-8 rounded-xl shadow-sm"
-                    >
-                      <Building2 className="h-3.5 w-3.5 mr-1" />
-                      입점사 신청하기
-                    </Button>
+                    <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                      <Button
+                        onClick={() => openLoginModal()}
+                        className="bg-gradient-to-r from-pink-500 to-indigo-600 hover:opacity-95 text-white font-extrabold text-xs h-10 px-6 rounded-xl shadow-lg"
+                      >
+                        간편 로그인 / 1초 회원가입
+                      </Button>
+                    </div>
                   </div>
+                ) : role === 'MERCHANT' ? (
+                  /* MERCHANT: 입점사 전용 관리자 및 상품 등록 센터 */
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                    <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-950/70 to-slate-900 border border-emerald-500/40 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-3xl">🏢</span>
+                        <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold">
+                          공식 인증 셀러
+                        </Badge>
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-base text-white">입점사 관리자 (셀러 콘솔)</h4>
+                        <p className="text-xs text-slate-300 mt-1 leading-snug">
+                          등록된 B2C 마켓 상품 관리, 실시간 주문 접수, 택배 송장 입력 및 정산금 출금
+                        </p>
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          asChild
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-9 rounded-xl shadow-sm"
+                        >
+                          <Link href="/seller">
+                            <Store className="h-4 w-4 mr-1.5" />
+                            셀러 콘솔 바로가기
+                          </Link>
+                        </Button>
+                        <Button
+                          onClick={() => setIsProductCreateModalOpen(true)}
+                          className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-3 rounded-xl"
+                        >
+                          + 상품 등록
+                        </Button>
+                      </div>
+                    </div>
 
-                  {/* (2) 🎙️ 크리에이터 신청 */}
-                  <div className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 transition-all flex flex-col justify-between space-y-3">
-                    <div className="space-y-1.5">
+                    <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-950/70 to-slate-900 border border-indigo-500/40 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-2xl">🎙️</span>
-                        <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[9px] font-bold">
-                          인플루언서
+                        <span className="text-3xl">📦</span>
+                        <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold">
+                          마켓 / 공구 등록
                         </Badge>
                       </div>
-                      <h4 className="font-extrabold text-sm text-white">크리에이터 신청</h4>
-                      <p className="text-[11px] text-slate-300 leading-snug">
-                        라이브 방송 송출, 실시간 커머스 상품 핀 연동 및 판매 수수료 커미션 획득
-                      </p>
+                      <div>
+                        <h4 className="font-extrabold text-base text-white">대한민국 통신판매 규정 상품 등록</h4>
+                        <p className="text-xs text-slate-300 mt-1 leading-snug">
+                          공정위 상품정보제공고시 표기, 상세페이지 이미지 및 무료배송 정책 설정
+                        </p>
+                      </div>
+                      <div className="pt-2">
+                        <Button
+                          onClick={() => setIsProductCreateModalOpen(true)}
+                          className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-9 rounded-xl shadow-sm"
+                        >
+                          <Building2 className="h-4 w-4 mr-1.5" />
+                          공식 B2C 마켓 / 공구 상품 등록하기
+                        </Button>
+                      </div>
                     </div>
-                    <Button
-                      onClick={() => requireAuth(() => openCreatorModal())}
-                      className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs h-8 rounded-xl shadow-sm"
-                    >
-                      <Mic className="h-3.5 w-3.5 mr-1" />
-                      크리에이터 신청하기
-                    </Button>
                   </div>
+                ) : role === 'CREATOR' ? (
+                  /* CREATOR: 크리에이터 전용 스튜디오 및 상품 핀 판매 센터 */
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                    <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-950/70 to-slate-900 border border-purple-500/40 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-3xl">🎬</span>
+                        <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold">
+                          공식 크리에이터
+                        </Badge>
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-base text-white">크리에이터 스튜디오 콘솔</h4>
+                        <p className="text-xs text-slate-300 mt-1 leading-snug">
+                          라이브 방송 편성, 단독 핀 특가 상품 매칭, 실시간 시청자 및 선물 후원 분석
+                        </p>
+                      </div>
+                      <div className="pt-2">
+                        <Button
+                          asChild
+                          className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs h-9 rounded-xl shadow-sm"
+                        >
+                          <Link href="/streamer">
+                            <Radio className="h-4 w-4 mr-1.5" />
+                            크리에이터 스튜디오 바로가기
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
 
-                  {/* (3) 💼 입점사 관리자 (셀러 센터) */}
-                  <div className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 transition-all flex flex-col justify-between space-y-3">
-                    <div className="space-y-1.5">
+                    <div className="p-5 rounded-2xl bg-gradient-to-br from-pink-950/70 to-slate-900 border border-pink-500/40 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-2xl">💼</span>
-                        <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[9px] font-bold">
-                          셀러 콘솔
+                        <span className="text-3xl">💰</span>
+                        <Badge className="bg-pink-500/20 text-pink-300 border border-pink-500/30 text-xs font-bold">
+                          어필리에이트 수익
                         </Badge>
                       </div>
-                      <h4 className="font-extrabold text-sm text-white">입점사 관리자</h4>
-                      <p className="text-[11px] text-slate-300 leading-snug">
-                        입점 상품 등록/수정, 주문 배송 처리, 송장 입력, 매출 정산금 출금 관리
-                      </p>
+                      <div>
+                        <h4 className="font-extrabold text-base text-white">입점사 마켓 상품 연동 판매</h4>
+                        <p className="text-xs text-slate-300 mt-1 leading-snug">
+                          입점사의 인기 상품을 내 라이브 방송에 핀으로 걸고 판매 시 건당 수수료 획득!
+                        </p>
+                      </div>
+                      <div className="pt-2">
+                        <Button
+                          onClick={() => setActiveTab('MARKET')}
+                          className="w-full bg-pink-600 hover:bg-pink-500 text-white font-bold text-xs h-9 rounded-xl shadow-sm"
+                        >
+                          <Sparkles className="h-4 w-4 mr-1.5" />
+                          연동 판매할 마켓 상품 둘러보기
+                        </Button>
+                      </div>
                     </div>
-                    <Button
-                      asChild
-                      className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white font-bold text-xs h-8 rounded-xl shadow-sm"
-                    >
-                      <Link href="/seller">
-                        <Store className="h-3.5 w-3.5 mr-1" />
-                        셀러센터 바로가기
-                        <ExternalLink className="h-3 w-3 ml-1 opacity-70" />
-                      </Link>
-                    </Button>
                   </div>
+                ) : (
+                  /* USER (일반회원): 라이브 방송 안내 + 입점사/크리에이터 신청 */
+                  <div className="space-y-4 pt-1">
+                    {/* 일반 회원 라이브 방송 가능 안내 카드 */}
+                    <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-900/40 via-indigo-900/40 to-slate-900 border border-purple-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-3xl">📱✨</span>
+                        <div>
+                          <div className="font-bold text-sm text-purple-200">
+                            일반 회원님도 라이브 방송으로 소통 & 중고물품을 판매할 수 있습니다!
+                          </div>
+                          <div className="text-xs text-slate-300 mt-0.5">
+                            모바일 앱에서 언제든 방송을 켜고 시청자 선물을 받거나, 내가 올린 중고물품을 실시간 판매해보세요.
+                          </div>
+                        </div>
+                      </div>
+                      <Badge className="bg-purple-500/30 text-purple-200 border-none text-[11px] shrink-0 self-start sm:self-auto">
+                        모바일 앱 전용 송출
+                      </Badge>
+                    </div>
 
-                  {/* (4) 🎬 크리에이터 관리자 (스튜디오 콘솔) */}
-                  <div className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 transition-all flex flex-col justify-between space-y-3">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-2xl">🎬</span>
-                        <Badge className="bg-pink-500/20 text-pink-300 border border-pink-500/30 text-[9px] font-bold">
-                          스튜디오
-                        </Badge>
+                    {/* 입점사 신청 & 크리에이터 신청 2개 카드 */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      {/* (1) 🏪 입점사 신청 */}
+                      <div className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 transition-all flex flex-col justify-between space-y-3">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-2xl">🏪</span>
+                            <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-bold">
+                              사업자 전용
+                            </Badge>
+                          </div>
+                          <h4 className="font-extrabold text-sm text-white">공식 입점사 신청하기</h4>
+                          <p className="text-[11px] text-slate-300 leading-snug">
+                            사업자 등록 후 공식 B2C 마켓 및 특가 공구 상품을 전문 등록하고 에스크로 정산 혜택을 받으세요.
+                          </p>
+                        </div>
+                        <Button
+                          onClick={() => requireAuth(() => openMerchantModal())}
+                          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-8 rounded-xl shadow-sm"
+                        >
+                          <Building2 className="h-3.5 w-3.5 mr-1" />
+                          입점사 신청서 작성
+                        </Button>
                       </div>
-                      <h4 className="font-extrabold text-sm text-white">크리에이터 관리자</h4>
-                      <p className="text-[11px] text-slate-300 leading-snug">
-                        라이브 방송 편성, 단독 핀 특가 상품 매칭, 실시간 시청자/선물 후원 분석
-                      </p>
+
+                      {/* (2) 🎙️ 크리에이터 신청 */}
+                      <div className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 transition-all flex flex-col justify-between space-y-3">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-2xl">🎙️</span>
+                            <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[9px] font-bold">
+                              인플루언서 커머스
+                            </Badge>
+                          </div>
+                          <h4 className="font-extrabold text-sm text-white">크리에이터 신청하기</h4>
+                          <p className="text-[11px] text-slate-300 leading-snug">
+                            입점사들의 인기 마켓 상품을 내 방송에 핀으로 걸고 대신 판매하여 건당 수수료 수익을 창출하세요.
+                          </p>
+                        </div>
+                        <Button
+                          onClick={() => requireAuth(() => openCreatorModal())}
+                          className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs h-8 rounded-xl shadow-sm"
+                        >
+                          <Mic className="h-3.5 w-3.5 mr-1" />
+                          크리에이터 신청서 작성
+                        </Button>
+                      </div>
                     </div>
-                    <Button
-                      asChild
-                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-95 text-white font-bold text-xs h-8 rounded-xl shadow-sm"
-                    >
-                      <Link href="/streamer">
-                        <Radio className="h-3.5 w-3.5 mr-1" />
-                        스튜디오 바로가기
-                        <ExternalLink className="h-3 w-3 ml-1 opacity-70" />
-                      </Link>
-                    </Button>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* [모바일 앱 100% 동일] (1) 프로필 카드 */}
@@ -6439,6 +6679,22 @@ export default function CustomerWebStorefrontPage() {
       )}
 
       {/* 6) Live Room Viewer Modal (최대 화면비율 영상 & 우측 채팅방 & 3D 선물 시스템) */}
+      {/* Market Product Detail Modal (통신판매 규정 준수 상세페이지) */}
+      <MarketProductDetailModal
+        product={selectedProductDetail}
+        isOpen={!!selectedProductDetail}
+        onClose={() => setSelectedProductDetail(null)}
+        onBuy={handleBuyProductInModal}
+      />
+
+      {/* Market Product Create Modal (C2C 중고 & B2C 마켓/공구 등록 시스템) */}
+      <MarketProductCreateModal
+        isOpen={isProductCreateModalOpen}
+        onClose={() => setIsProductCreateModalOpen(false)}
+        userRole={role}
+        onSubmit={handleCreateProductSubmit}
+      />
+
       {activeLiveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 lg:p-6 animate-in fade-in duration-200">
           <div className="relative w-full max-w-[1360px] h-[92vh] max-h-[920px] rounded-3xl bg-slate-950 text-white shadow-2xl border border-slate-800/90 overflow-hidden flex flex-col md:flex-row">
