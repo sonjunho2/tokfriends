@@ -63,6 +63,24 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { useWebAuth, type UserRole, type MerchantApplication, type CreatorApplication } from '@/lib/auth-context'
 import { RoleSwitcherFloating } from '@/components/common/RoleSwitcherFloating'
+import { getLiveTop3Rooms, getLiveRankings } from '@/lib/api'
+
+function RankBadgeImage({ rank, className = 'w-20 h-24' }: { rank: 1 | 2 | 3; className?: string }) {
+  const offsetPercent = rank === 1 ? '0%' : rank === 2 ? '-100%' : '-200%'
+  return (
+    <div className={`relative overflow-hidden shrink-0 pointer-events-none drop-shadow-md ${className}`}>
+      <img
+        src="/images/live-rank-badges.jpg"
+        alt={`Rank ${rank}`}
+        className="absolute top-0 h-full max-w-none object-contain mix-blend-multiply"
+        style={{
+          width: '300%',
+          left: offsetPercent,
+        }}
+      />
+    </div>
+  )
+}
 
 // ==========================================
 // 1. Data Models
@@ -1075,6 +1093,8 @@ export default function CustomerWebStorefrontPage() {
 
   // 4. Data States
   const [lives, setLives] = useState<LiveRoomItem[]>(INITIAL_LIVES)
+  const [top3Lives, setTop3Lives] = useState<LiveRoomItem[]>(INITIAL_LIVES.slice(0, 3))
+  const [rankingsList, setRankingsList] = useState<LiveRankingItem[]>(LIVE_RANKINGS)
   const [usedProducts, setUsedProducts] = useState<UsedProductItem[]>(INITIAL_USED_PRODUCTS)
   const [marketProducts, setMarketProducts] = useState<MarketProductItem[]>(INITIAL_MARKET_PRODUCTS)
   const [sudaPosts, setSudaPosts] = useState<SudaPostItem[]>(INITIAL_SUDA_POSTS)
@@ -1191,6 +1211,45 @@ export default function CustomerWebStorefrontPage() {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
     }
   }, [activeChatRoom?.messages])
+
+  // Load real-time live top 3 and rankings from API
+  useEffect(() => {
+    getLiveTop3Rooms()
+      .then((items) => {
+        if (Array.isArray(items) && items.length > 0) {
+          const formatted: LiveRoomItem[] = items.map((item, idx) => ({
+            id: item.id || `live-top-${idx + 1}`,
+            title: item.title,
+            category: item.category || '일상/토크',
+            hostNickname: item.hostNickname || item.host?.displayName || item.host?.name || '호스트',
+            hostAvatar:
+              item.hostAvatar ||
+              item.host?.avatarUrl ||
+              item.host?.avatar ||
+              'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500',
+            viewerCount: Number(item.viewerCount || 0),
+            coverUrl:
+              item.coverUrl ||
+              item.coverUri ||
+              'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800',
+            hasCommerce: Boolean(item.hasCommerce || item.pinnedProduct),
+            isOfficialCreator: Boolean(item.isOfficialCreator ?? true),
+            rank: item.rank || idx + 1,
+            pinnedProduct: item.pinnedProduct,
+          }))
+          setTop3Lives(formatted)
+        }
+      })
+      .catch(() => {})
+
+    getLiveRankings()
+      .then((items) => {
+        if (Array.isArray(items) && items.length > 0) {
+          setRankingsList(items)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   // Hero auto-slide
   useEffect(() => {
@@ -2885,38 +2944,40 @@ export default function CustomerWebStorefrontPage() {
           )}
 
           {/* ======================================================= */}
-          {/* TAB 3: 🔴 모꼬 LIVE (LIVE) - 실시간 핫 라이브 & 방송하기  */}
+          {/* TAB 3: 🔴 모꼬 LIVE (LIVE) - 실시간 핫 라이브 & 베스트 순위 1·2·3위 포디움 & 통합 랭킹 */}
           {/* ======================================================= */}
           {activeTab === 'LIVE' && (
             <div className="space-y-6 animate-in fade-in duration-200">
-              {/* Live Banner & Broadcast Starter (일반 회원 누구나 방송 가능) */}
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-rose-900 via-purple-900 to-slate-900 p-6 sm:p-8 text-white shadow-xl">
-                <div className="relative z-10 max-w-2xl space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-3 w-3 rounded-full bg-rose-500 animate-ping" />
-                    <Badge className="bg-rose-500 text-white font-bold px-2 py-0.5 border-none">
-                      MOCCO LIVE ON-AIR
-                    </Badge>
-                    <span className="text-xs text-rose-200">
-                      실시간 시청 중인 이웃 5,420명
-                    </span>
+              {/* 1) Live Top Smart Banner (방송 시작 & 크리에이터 신청) */}
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-rose-950 via-purple-950 to-slate-950 p-6 sm:p-7 text-white shadow-xl border border-rose-900/40">
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-2 max-w-2xl">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-2.5 w-2.5 rounded-full bg-rose-500 animate-ping" />
+                      <Badge className="bg-rose-600 text-white font-bold px-2.5 py-0.5 border-none text-[11px] shadow-sm">
+                        MOCCO LIVE ON-AIR
+                      </Badge>
+                      <span className="text-xs text-rose-300 font-medium">
+                        실시간 방송 중인 이웃과 함께하는 온에어 라이브
+                      </span>
+                    </div>
+                    <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white">
+                      실시간 소통 방송 & 모꼬 특가 단독 핫딜 라이브
+                    </h1>
+                    <p className="text-xs sm:text-sm text-slate-300">
+                      일반 회원 누구나 자유롭게 방송을 개설할 수 있으며, 공식 크리에이터는 라이브 중 실시간 상품을 핀으로 고정해 판매할 수 있습니다.
+                    </p>
                   </div>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                    이웃과 나누는 실시간 소통 방송 & 단독 핫딜 라이브
-                  </h1>
-                  <p className="text-sm text-slate-300">
-                    모꼬에서는 일반 회원도 누구나 동네 이웃과 자유롭게 소통 라이브를 열 수 있습니다. 공식 크리에이터로 승격되면 방송 중에 상품을 연결하여 판매하고 커미션 정산을 받을 수 있습니다.
-                  </p>
 
-                  <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                     <Button
                       onClick={() => {
                         requireAuth(() => setIsStartLiveModalOpen(true))
                       }}
-                      className="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-xs sm:text-sm shadow-lg h-9 rounded-xl"
+                      className="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-xs sm:text-sm shadow-lg h-10 px-4 rounded-xl transition-all"
                     >
                       <Video className="h-4 w-4 mr-1.5" />
-                      내 라이브 방송 시작하기 (누구나 가능)
+                      내 방송 시작하기
                     </Button>
 
                     {role !== 'CREATOR' && role !== 'ADMIN' && (
@@ -2925,110 +2986,519 @@ export default function CustomerWebStorefrontPage() {
                           requireAuth(() => openCreatorModal())
                         }}
                         variant="outline"
-                        className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs sm:text-sm font-semibold h-9 rounded-xl"
+                        className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs sm:text-sm font-semibold h-10 px-3.5 rounded-xl transition-all"
                       >
                         <Mic className="h-4 w-4 mr-1.5 text-purple-300" />
-                        공식 크리에이터 승격 신청 (커머스 핀 판매)
+                        크리에이터 승격 신청
                       </Button>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Category Filter Pills */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-                {['전체', '쇼핑/커머스', '토크/소통', '음악/노래', '일상', '취미'].map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setLiveCategoryFilter(cat)}
-                    className={`px-3 py-1.5 rounded-full font-semibold shrink-0 transition-colors ${
-                      liveCategoryFilter === cat
-                        ? 'bg-rose-600 text-white'
-                        : 'bg-white border text-slate-700 hover:bg-slate-100'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
+              {/* 2) Main Integrated Grid (좌측: 베스트 123위 + 라이브목록 / 우측: 통합 랭킹) */}
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+                {/* [좌측 메인 영역: lg:col-span-3] */}
+                <div className="lg:col-span-3 space-y-6 flex flex-col">
+                  {/* (A) 👑 실시간 HOT 모꼬 LIVE BEST TOP 3 (가운데 1위, 좌측 2위, 우측 3위 포디움 시상대) */}
+                  <section className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Trophy className="h-5 w-5 text-amber-500" />
+                        <h3 className="font-extrabold text-xl text-slate-900 tracking-tight">
+                          실시간 HOT 모꼬 LIVE BEST TOP 3
+                        </h3>
+                        <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[10px] font-bold">
+                          실시간 시청자 + 후원 집계
+                        </Badge>
+                      </div>
+                      <span className="text-xs text-muted-foreground hidden sm:inline">
+                        1위 ~ 3위 명예의 전당
+                      </span>
+                    </div>
 
-              {/* Live Rooms Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {lives
-                  .filter((live) => (liveCategoryFilter === '전체' ? true : live.category.includes(liveCategoryFilter)))
-                  .map((live, idx) => (
-                    <Card
-                      key={live.id}
-                      onClick={() => setActiveLiveModal(live)}
-                      className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-xl transition-all border border-slate-200/80"
-                    >
-                      <div className="aspect-video w-full bg-slate-900 overflow-hidden relative">
-                        <img
-                          src={live.coverUrl}
-                          alt={live.title}
-                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-                        {/* Live viewer count */}
-                        <div className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-bold">
-                          <span className="h-1.5 w-1.5 rounded-full bg-white animate-ping" />
-                          LIVE · {live.viewerCount.toLocaleString()}명
-                        </div>
-
-                        {live.isOfficialCreator && (
-                          <Badge className="absolute top-2.5 left-2.5 bg-purple-600 text-white text-[10px] font-bold border-none">
-                            🎙️ 공식 크리에이터
-                          </Badge>
-                        )}
-
-                        {/* Pinned product preview */}
-                        {live.pinnedProduct && (
-                          <div className="absolute bottom-2 left-2 right-2 flex items-center gap-2 rounded-xl bg-white/95 p-1.5 text-slate-900 shadow-md">
-                            <img
-                              src={live.pinnedProduct.image}
-                              alt="pin"
-                              className="h-7 w-7 rounded-lg object-cover"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[10px] font-bold truncate">
-                                {live.pinnedProduct.title}
-                              </p>
+                    {/* 포디움 그리드: [2위 (좌측)] - [1위 (중앙)] - [3위 (우측)] */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-5 items-end">
+                      {/* --- [좌측: 2위 (Silver & Blue)] --- */}
+                      {(() => {
+                        const item = top3Lives[1] || top3Lives[0] || lives[1] || lives[0]
+                        if (!item) return null
+                        return (
+                          <div
+                            onClick={() => setActiveLiveModal(item)}
+                            className="group relative flex flex-col rounded-3xl bg-gradient-to-b from-sky-50/90 via-white to-sky-50/30 border-2 border-sky-300 shadow-md hover:shadow-xl hover:border-sky-400 transition-all cursor-pointer overflow-hidden order-2 md:order-1 pt-3 pb-4 px-3.5 space-y-3"
+                          >
+                            {/* 상단 2위 배지 (첨부 이미지 2위 엠블럼) */}
+                            <div className="flex flex-col items-center justify-center -mb-2">
+                              <RankBadgeImage rank={2} className="w-20 h-24" />
+                              <Badge className="bg-sky-600 text-white text-[10px] font-black px-2 py-0.5 border-none shadow-xs -mt-2">
+                                🥈 실시간 2위
+                              </Badge>
                             </div>
-                            <span className="text-[11px] font-black text-rose-600 pr-1">
-                              {live.pinnedProduct.price.toLocaleString()}원
-                            </span>
+
+                            {/* 라이브 커버 */}
+                            <div className="relative aspect-video w-full rounded-2xl bg-slate-950 overflow-hidden shadow-inner">
+                              <img
+                                src={item.coverUrl}
+                                alt={item.title}
+                                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+
+                              <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-white text-[10px] font-semibold">
+                                <span className="h-1.5 w-1.5 rounded-full bg-[#FF3B6B] animate-ping" />
+                                <Users className="h-3 w-3 text-slate-300" />
+                                <span>{item.viewerCount.toLocaleString()}</span>
+                              </div>
+
+                              {item.pinnedProduct && (
+                                <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5 rounded-xl bg-white/95 p-1 text-slate-900 backdrop-blur-xs shadow-xs">
+                                  <img
+                                    src={item.pinnedProduct.image}
+                                    alt="pin"
+                                    className="h-5 w-5 rounded-md object-cover shrink-0"
+                                  />
+                                  <span className="text-[10px] font-bold text-[#FF3B6B] truncate">
+                                    {item.pinnedProduct.price.toLocaleString()}원
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* 호스트 & 정보 */}
+                            <div className="space-y-1.5 px-1">
+                              <div className="flex items-center gap-1.5">
+                                <img
+                                  src={item.hostAvatar}
+                                  alt={item.hostNickname}
+                                  className="h-5 w-5 rounded-full object-cover border border-sky-200"
+                                />
+                                <span className="text-xs font-bold text-slate-800 truncate">
+                                  {item.hostNickname}
+                                </span>
+                              </div>
+                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-2 group-hover:text-sky-600 transition-colors leading-tight">
+                                {item.title}
+                              </h4>
+                              <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                                <span className="bg-sky-100 text-sky-800 px-2 py-0.5 rounded-md font-semibold text-[10px]">
+                                  {item.category}
+                                </span>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 text-[11px] px-2.5 rounded-lg border-sky-300 text-sky-700 hover:bg-sky-100 font-bold"
+                                >
+                                  입장하기
+                                </Button>
+                              </div>
+                            </div>
                           </div>
-                        )}
+                        )
+                      })()}
+
+                      {/* --- [가운데: 1위 (Gold & Red - The Champion - 가장 높고 돋보임!)] --- */}
+                      {(() => {
+                        const item = top3Lives[0] || lives[0]
+                        if (!item) return null
+                        return (
+                          <div
+                            onClick={() => setActiveLiveModal(item)}
+                            className="group relative flex flex-col rounded-3xl bg-gradient-to-b from-amber-500/15 via-white to-rose-500/10 border-2 border-amber-400 shadow-xl shadow-amber-500/15 hover:shadow-2xl hover:border-amber-500 transition-all cursor-pointer overflow-hidden order-1 md:order-2 pt-2 pb-5 px-4 space-y-3 md:-translate-y-2 z-10"
+                          >
+                            {/* 상단 1위 왕관 배지 (첨부 이미지 1위 엠블럼 - 화려하게 중앙 배치) */}
+                            <div className="flex flex-col items-center justify-center -mb-2">
+                              <div className="relative">
+                                <RankBadgeImage rank={1} className="w-24 h-28" />
+                                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                                </span>
+                              </div>
+                              <Badge className="bg-gradient-to-r from-red-600 to-rose-600 text-white text-[11px] font-black px-2.5 py-0.5 border-none shadow-md -mt-2">
+                                👑 실시간 1위 · 베스트 LIVE
+                              </Badge>
+                            </div>
+
+                            {/* 라이브 커버 */}
+                            <div className="relative aspect-video w-full rounded-2xl bg-slate-950 overflow-hidden shadow-md">
+                              <img
+                                src={item.coverUrl}
+                                alt={item.title}
+                                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/20" />
+
+                              {/* 시청자 수 */}
+                              <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-600 text-white text-[11px] font-bold shadow-md">
+                                <span className="h-2 w-2 rounded-full bg-white animate-ping" />
+                                <span>LIVE {item.viewerCount.toLocaleString()}명</span>
+                              </div>
+
+                              {item.isOfficialCreator && (
+                                <Badge className="absolute top-2 left-2 bg-[#8B5CF6] text-white text-[10px] font-bold border-none px-2 py-0.5 shadow-sm">
+                                  🎙️ 공식 크리에이터
+                                </Badge>
+                              )}
+
+                              {item.pinnedProduct && (
+                                <div className="absolute bottom-2 left-2 right-2 flex items-center gap-2 rounded-xl bg-white/95 p-1.5 text-slate-900 backdrop-blur-xs shadow-md">
+                                  <img
+                                    src={item.pinnedProduct.image}
+                                    alt="pin"
+                                    className="h-6 w-6 rounded-lg object-cover shrink-0"
+                                  />
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[10px] font-bold text-slate-800 truncate">
+                                      {item.pinnedProduct.title}
+                                    </p>
+                                  </div>
+                                  <span className="text-[11px] font-black text-rose-600 shrink-0">
+                                    {item.pinnedProduct.price.toLocaleString()}원
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* 호스트 & 정보 */}
+                            <div className="space-y-2 px-1">
+                              <div className="flex items-center gap-2">
+                                <div className="relative">
+                                  <img
+                                    src={item.hostAvatar}
+                                    alt={item.hostNickname}
+                                    className="h-6 w-6 rounded-full object-cover border-2 border-amber-400 shadow-xs"
+                                  />
+                                  <Crown className="h-3 w-3 absolute -top-1 -right-1 text-amber-500 fill-amber-400" />
+                                </div>
+                                <span className="text-xs font-extrabold text-slate-900 truncate">
+                                  {item.hostNickname}
+                                </span>
+                              </div>
+                              <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 line-clamp-2 group-hover:text-rose-600 transition-colors leading-tight">
+                                {item.title}
+                              </h4>
+                              <div className="flex items-center justify-between pt-1">
+                                <span className="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md font-bold text-[10px]">
+                                  {item.category}
+                                </span>
+                                <Button
+                                  size="sm"
+                                  className="h-7 text-xs px-3 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-extrabold shadow-sm"
+                                >
+                                  실시간 시청하기
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })()}
+
+                      {/* --- [우측: 3위 (Bronze & Orange)] --- */}
+                      {(() => {
+                        const item = top3Lives[2] || top3Lives[0] || lives[2] || lives[0]
+                        if (!item) return null
+                        return (
+                          <div
+                            onClick={() => setActiveLiveModal(item)}
+                            className="group relative flex flex-col rounded-3xl bg-gradient-to-b from-orange-50/90 via-white to-amber-50/30 border-2 border-amber-500/40 shadow-md hover:shadow-xl hover:border-amber-500 transition-all cursor-pointer overflow-hidden order-3 pt-3 pb-4 px-3.5 space-y-3"
+                          >
+                            {/* 상단 3위 배지 (첨부 이미지 3위 엠블럼) */}
+                            <div className="flex flex-col items-center justify-center -mb-2">
+                              <RankBadgeImage rank={3} className="w-20 h-24" />
+                              <Badge className="bg-orange-600 text-white text-[10px] font-black px-2 py-0.5 border-none shadow-xs -mt-2">
+                                🥉 실시간 3위
+                              </Badge>
+                            </div>
+
+                            {/* 라이브 커버 */}
+                            <div className="relative aspect-video w-full rounded-2xl bg-slate-950 overflow-hidden shadow-inner">
+                              <img
+                                src={item.coverUrl}
+                                alt={item.title}
+                                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+
+                              <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-white text-[10px] font-semibold">
+                                <span className="h-1.5 w-1.5 rounded-full bg-[#FF3B6B] animate-ping" />
+                                <Users className="h-3 w-3 text-slate-300" />
+                                <span>{item.viewerCount.toLocaleString()}</span>
+                              </div>
+
+                              {item.pinnedProduct && (
+                                <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5 rounded-xl bg-white/95 p-1 text-slate-900 backdrop-blur-xs shadow-xs">
+                                  <img
+                                    src={item.pinnedProduct.image}
+                                    alt="pin"
+                                    className="h-5 w-5 rounded-md object-cover shrink-0"
+                                  />
+                                  <span className="text-[10px] font-bold text-[#FF3B6B] truncate">
+                                    {item.pinnedProduct.price.toLocaleString()}원
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* 호스트 & 정보 */}
+                            <div className="space-y-1.5 px-1">
+                              <div className="flex items-center gap-1.5">
+                                <img
+                                  src={item.hostAvatar}
+                                  alt={item.hostNickname}
+                                  className="h-5 w-5 rounded-full object-cover border border-orange-200"
+                                />
+                                <span className="text-xs font-bold text-slate-800 truncate">
+                                  {item.hostNickname}
+                                </span>
+                              </div>
+                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-2 group-hover:text-orange-600 transition-colors leading-tight">
+                                {item.title}
+                              </h4>
+                              <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                                <span className="bg-orange-100 text-orange-900 px-2 py-0.5 rounded-md font-semibold text-[10px]">
+                                  {item.category}
+                                </span>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 text-[11px] px-2.5 rounded-lg border-orange-300 text-orange-700 hover:bg-orange-100 font-bold"
+                                >
+                                  입장하기
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </div>
+                  </section>
+
+                  {/* (B) 🔴 실시간 온에어 라이브 방송 목록 (하단) */}
+                  <section className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Radio className="h-5 w-5 text-[#FF3B6B] animate-pulse" />
+                        <h3 className="font-extrabold text-xl text-slate-900 tracking-tight">
+                          실시간 라이브 방송 목록
+                        </h3>
+                        <Badge className="bg-rose-50 text-[#FF3B6B] border border-rose-200 text-[10px] font-bold">
+                          온에어 {lives.length}개
+                        </Badge>
                       </div>
 
-                      <CardContent className="p-4 space-y-2">
-                        <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-rose-600 transition-colors">
-                          {live.title}
-                        </h4>
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <img
-                              src={live.hostAvatar}
-                              alt="avatar"
-                              className="h-5 w-5 rounded-full object-cover"
-                            />
-                            <span className="font-semibold text-slate-700 truncate max-w-[120px]">
-                              {live.hostNickname}
+                      {/* Category Filter Pills */}
+                      <div className="flex items-center gap-1.5 overflow-x-auto text-xs pb-1 sm:pb-0">
+                        {['전체', '쇼핑/커머스', '토크/소통', '음악/노래', '일상', '취미'].map((cat) => (
+                          <button
+                            key={cat}
+                            onClick={() => setLiveCategoryFilter(cat)}
+                            className={`px-3 py-1 rounded-full font-semibold shrink-0 transition-colors text-xs ${
+                              liveCategoryFilter === cat
+                                ? 'bg-rose-600 text-white shadow-xs'
+                                : 'bg-white border text-slate-700 hover:bg-slate-100'
+                            }`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Live Rooms Grid (3 cols on lg) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {lives
+                        .filter((live) => (liveCategoryFilter === '전체' ? true : live.category.includes(liveCategoryFilter)))
+                        .map((live) => (
+                          <Card
+                            key={live.id}
+                            onClick={() => setActiveLiveModal(live)}
+                            className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-xl transition-all border border-slate-200/80 bg-white"
+                          >
+                            <div className="aspect-video w-full bg-slate-900 overflow-hidden relative">
+                              <img
+                                src={live.coverUrl}
+                                alt={live.title}
+                                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                              {/* Live viewer count */}
+                              <div className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-bold shadow-xs">
+                                <span className="h-1.5 w-1.5 rounded-full bg-white animate-ping" />
+                                LIVE · {live.viewerCount.toLocaleString()}명
+                              </div>
+
+                              {live.isOfficialCreator && (
+                                <Badge className="absolute top-2.5 left-2.5 bg-purple-600 text-white text-[10px] font-bold border-none shadow-xs">
+                                  🎙️ 공식 크리에이터
+                                </Badge>
+                              )}
+
+                              {/* Pinned product preview */}
+                              {live.pinnedProduct && (
+                                <div className="absolute bottom-2 left-2 right-2 flex items-center gap-2 rounded-xl bg-white/95 p-1.5 text-slate-900 shadow-md backdrop-blur-xs">
+                                  <img
+                                    src={live.pinnedProduct.image}
+                                    alt="pin"
+                                    className="h-7 w-7 rounded-lg object-cover"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] font-bold truncate">
+                                      {live.pinnedProduct.title}
+                                    </p>
+                                  </div>
+                                  <span className="text-[11px] font-black text-rose-600 pr-1">
+                                    {live.pinnedProduct.price.toLocaleString()}원
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            <CardContent className="p-4 space-y-2">
+                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-rose-600 transition-colors">
+                                {live.title}
+                              </h4>
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1.5">
+                                  <img
+                                    src={live.hostAvatar}
+                                    alt="avatar"
+                                    className="h-5 w-5 rounded-full object-cover"
+                                  />
+                                  <span className="font-semibold text-slate-700 truncate max-w-[120px]">
+                                    {live.hostNickname}
+                                  </span>
+                                </div>
+                                <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-medium">
+                                  {live.category}
+                                </span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </div>
+                  </section>
+                </div>
+
+                {/* [우측 사이드바: 1 col - 🏆 실시간 크리에이터 랭킹 (홈화면과 동일한 디자인 & 연동)] */}
+                <div className="lg:col-span-1 space-y-4 flex flex-col sticky top-20">
+                  <div className="flex items-center justify-between min-h-[36px]">
+                    <div className="flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-amber-500" />
+                      <h3 className="font-extrabold text-xl text-slate-900 tracking-tight">
+                        실시간 랭킹
+                      </h3>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground font-semibold">
+                      실시간 Top 8
+                    </span>
+                  </div>
+
+                  <div className="bg-white rounded-3xl border border-slate-200/80 p-3.5 shadow-sm divide-y divide-slate-100 flex flex-col space-y-1">
+                    {rankingsList.slice(0, 8).map((item) => {
+                      const isGold = item.rank === 1
+                      const isSilver = item.rank === 2
+                      const isBronze = item.rank === 3
+
+                      return (
+                        <div
+                          key={item.rank}
+                          onClick={() => {
+                            if (item.liveId) {
+                              const target = lives.find((l) => l.id === item.liveId) || top3Lives.find((l) => l.id === item.liveId)
+                              if (target) {
+                                setActiveLiveModal(target)
+                              } else {
+                                setActiveLiveModal({
+                                  id: item.liveId,
+                                  title: `🔴 ${item.nickname}의 실시간 라이브 방송`,
+                                  category: '일상/토크',
+                                  hostNickname: item.nickname,
+                                  hostAvatar: item.avatar,
+                                  viewerCount: 450,
+                                  coverUrl: item.avatar,
+                                  hasCommerce: true,
+                                })
+                              }
+                            }
+                          }}
+                          className="flex items-center justify-between py-2.5 px-2 hover:bg-slate-50 rounded-2xl transition-colors cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            {/* Rank Medal / Number */}
+                            <div className="w-5 flex items-center justify-center shrink-0">
+                              {isGold ? (
+                                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-100 text-amber-600 font-black text-xs shadow-xs">
+                                  <Crown className="h-3 w-3 fill-amber-400 text-amber-500" />
+                                </div>
+                              ) : isSilver ? (
+                                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-slate-700 font-black text-[11px]">
+                                  2
+                                </div>
+                              ) : isBronze ? (
+                                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-700/10 text-amber-800 font-black text-[11px]">
+                                  3
+                                </div>
+                              ) : (
+                                <span className="text-xs font-bold text-slate-400">
+                                  {item.rank}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Avatar with Online/Live Indicator */}
+                            <div className="relative shrink-0">
+                              <img
+                                src={item.avatar}
+                                alt={item.nickname}
+                                className={`h-9 w-9 rounded-full object-cover border ${
+                                  item.isLive
+                                    ? 'border-[#FF3B6B] ring-2 ring-[#FF3B6B]/30'
+                                    : 'border-slate-200'
+                                }`}
+                              />
+                              {item.isLive && (
+                                <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF3B6B] opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF3B6B]"></span>
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Nickname & Badge */}
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-bold text-slate-900 truncate group-hover:text-[#FF3B6B] transition-colors">
+                                {item.nickname}
+                              </p>
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <span className="text-[10px] text-muted-foreground font-medium truncate">
+                                  {item.badgeText}
+                                </span>
+                                {item.isLive && (
+                                  <span className="bg-rose-100 text-rose-600 text-[9px] font-bold px-1 rounded leading-tight">
+                                    LIVE
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Score Text */}
+                          <div className="text-right shrink-0 pl-2">
+                            <span className="text-[11px] font-extrabold text-[#FF3B6B]">
+                              {item.scoreText}
                             </span>
                           </div>
-                          <span className="text-[11px] bg-slate-100 px-1.5 py-0.5 rounded">
-                            {live.category}
-                          </span>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                      )
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
-          {/* ======================================================= */}
           {/* TAB 4: 💬 모꼬쳇 (CHAT) - 동네 친구들 + 1줄수다 + 대화함   */}
           {/* ======================================================= */}
           {activeTab === 'CHAT' && (

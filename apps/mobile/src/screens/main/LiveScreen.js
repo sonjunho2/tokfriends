@@ -364,9 +364,37 @@ export default function LiveScreen({ navigation }) {
   };
 
 
-  // [👑 실시간 Top3] 전용 섹션 렌더링 (한 화면 3열 고정 & 화려한 엠블럼 오버레이)
+  // [👑 실시간 Top3] 전용 섹션 렌더링 (한 화면 3열 고정: [2위(좌)] - [1위(가운데)] - [3위(우)] 포디움 배치)
   const renderTop3Section = () => {
     if (!top3Rooms || top3Rooms.length === 0) return null;
+
+    // 첨부 이미지(live-rank-badges.jpg) 활용한 화려한 리본 엠블럼 (상단 중앙 오버랩)
+    const renderRankRibbonBadge = (rank) => {
+      const isRank1 = rank === 1;
+      const isRank2 = rank === 2;
+      const isRank3 = rank === 3;
+
+      const badgeW = isRank1 ? 46 : 38;
+      const badgeH = isRank1 ? 52 : 44;
+      const fullW = badgeW * 3;
+      const offsetX = rank === 1 ? 0 : rank === 2 ? -badgeW : -badgeW * 2;
+
+      return (
+        <View style={[styles.ribbonBadgeWrapper, isRank1 && styles.ribbonBadgeWrapperGold]}>
+          <View style={[styles.ribbonBadgeCrop, { width: badgeW, height: badgeH }]}>
+            <Image
+              source={require('../../../assets/live-rank-badges.jpg')}
+              style={{
+                width: fullW,
+                height: badgeH,
+                transform: [{ translateX: offsetX }],
+              }}
+              resizeMode="contain"
+            />
+          </View>
+        </View>
+      );
+    };
 
     // 첨부 이미지 스타일의 화려한 원형 엠블럼 (상단 중앙 오버랩)
     const renderRankEmblem = (rank) => {
@@ -457,31 +485,41 @@ export default function LiveScreen({ navigation }) {
           <Text style={styles.top3Subtitle}>시청자 + 후원 집계</Text>
         </View>
 
-        {/* 3열 한눈에 보이는 고정 그리드 (스크롤 없이 1~3위 동시 노출) */}
+        {/* 3열 포디움 고정 그리드: [2위 (좌측)] - [1위 (가운데)] - [3위 (우측)] */}
         <View style={styles.top3RowContainer}>
-          {top3Rooms.slice(0, 3).map((item, index) => {
-            const rank = item.rank || index + 1;
-            const isRank1 = rank === 1;
-            const isRank2 = rank === 2;
+          {(() => {
+            const r1 = top3Rooms.find((r) => r.rank === 1) || top3Rooms[0];
+            const r2 = top3Rooms.find((r) => r.rank === 2) || top3Rooms[1];
+            const r3 = top3Rooms.find((r) => r.rank === 3) || top3Rooms[2];
+            const podiumItems = [
+              { room: r2, rank: 2 },
+              { room: r1, rank: 1 },
+              { room: r3, rank: 3 },
+            ];
 
-            const cardBorderColor = isRank1 ? '#F59E0B' : isRank2 ? '#94A3B8' : '#D97706';
-            const viewerFormatted =
-              item.viewerCount >= 1000
-                ? `${(item.viewerCount / 1000).toFixed(1)}k`
-                : (item.viewerCount || 0).toLocaleString();
+            return podiumItems.map(({ room: item, rank }, index) => {
+              if (!item) return null;
+              const isRank1 = rank === 1;
+              const isRank2 = rank === 2;
 
-            return (
-              <View
-                key={item.id || String(index)}
-                style={[
-                  styles.top3CardOuter,
-                  isRank1 && styles.top3CardOuterGold,
-                  isRank2 && styles.top3CardOuterSilver,
-                  !isRank1 && !isRank2 && styles.top3CardOuterBronze,
-                ]}
-              >
-                {/* 상단 중앙에 오버랩되는 첨부 스타일 화려한 엠블럼 */}
-                {renderRankEmblem(rank)}
+              const cardBorderColor = isRank1 ? '#F59E0B' : isRank2 ? '#38BDF8' : '#FB923C';
+              const viewerFormatted =
+                item.viewerCount >= 1000
+                  ? `${(item.viewerCount / 1000).toFixed(1)}k`
+                  : (item.viewerCount || 0).toLocaleString();
+
+              return (
+                <View
+                  key={item.id || String(index)}
+                  style={[
+                    styles.top3CardOuter,
+                    isRank1 && styles.top3CardOuterGold,
+                    isRank2 && styles.top3CardOuterSilver,
+                    !isRank1 && !isRank2 && styles.top3CardOuterBronze,
+                  ]}
+                >
+                  {/* 상단 중앙에 오버랩되는 첨부 스타일 화려한 리본 엠블럼 */}
+                  {renderRankRibbonBadge(rank)}
 
                 <TouchableOpacity
                   style={[styles.top3CardInner, { borderColor: cardBorderColor }]}
@@ -537,8 +575,9 @@ export default function LiveScreen({ navigation }) {
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
-            );
-          })}
+              );
+            });
+          })()}
         </View>
       </View>
     );
@@ -1038,6 +1077,30 @@ const styles = StyleSheet.create({
     width: TOP3_CARD_WIDTH,
     height: 154,
     zIndex: 2,
+  },
+  ribbonBadgeWrapper: {
+    position: 'absolute',
+    top: -24,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  ribbonBadgeWrapperGold: {
+    top: -28,
+  },
+  ribbonBadgeCrop: {
+    overflow: 'hidden',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  top3CardInnerGold: {
+    borderWidth: 2,
+    shadowColor: '#F59E0B',
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
   top3CardOuterBronze: {
     width: TOP3_CARD_WIDTH,

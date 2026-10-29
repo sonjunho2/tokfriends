@@ -167,12 +167,119 @@ export class LiveController {
         ...room,
         rank: idx + 1,
         rankBadge: idx === 0 ? '👑 골드' : idx === 1 ? '🥈 실버' : '🥉 브론즈',
+        coverUrl: room.coverUri,
+        hostNickname: room.host?.displayName || room.host?.name || '호스트',
+        hostAvatar: room.host?.avatarUrl || room.host?.avatar,
+        pinnedProduct: (room as any).pinnedProduct || (room.id === 'LIVE-101' ? {
+          id: 'prod-key-01',
+          title: '[모꼬단독] 프리미엄 무선 기계식 키보드',
+          price: 89000,
+          originalPrice: 129000,
+          image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=300',
+        } : room.id === 'LIVE-102' ? {
+          id: 'prod-tea-02',
+          title: '[본사직영] 올데이 프리미엄 티 세트',
+          price: 42000,
+          originalPrice: 60000,
+          image: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=300',
+        } : {
+          id: 'prod-knit-03',
+          title: '포근 램스울 오버핏 니트',
+          price: 59000,
+          originalPrice: 79000,
+          image: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=300',
+        }),
       }));
 
     return {
       ok: true,
       data: ranked,
       items: ranked,
+    };
+  }
+
+  /**
+   * 실시간 크리에이터 & 스트리머 랭킹 목록 Top 10
+   */
+  @Public()
+  @Get('rankings')
+  async getLiveRankings() {
+    const defaultRankings = [
+      {
+        rank: 1,
+        nickname: '별빛소통_민지',
+        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500',
+        badgeText: '공식 크리에이터',
+        scoreText: '7,006,391 P',
+        isLive: true,
+        liveId: 'LIVE-101',
+      },
+      {
+        rank: 2,
+        nickname: '제주푸드 본사 직영',
+        avatar: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=500',
+        badgeText: '공식 입점사',
+        scoreText: '6,568,816 P',
+        isLive: true,
+        liveId: 'LIVE-102',
+      },
+      {
+        rank: 3,
+        nickname: '혜니_어쿠스틱',
+        avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500',
+        badgeText: '음악 크리에이터',
+        scoreText: '6,403,437 P',
+        isLive: true,
+        liveId: 'LIVE-103',
+      },
+      {
+        rank: 4,
+        nickname: '테크러버_진호',
+        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500',
+        badgeText: '인증 이웃',
+        scoreText: '6,101,965 P',
+        isLive: false,
+      },
+      {
+        rank: 5,
+        nickname: '카페라떼러버',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+        badgeText: '모꼬 이웃',
+        scoreText: '5,869,450 P',
+        isLive: true,
+        liveId: 'live-04',
+      },
+      {
+        rank: 6,
+        nickname: '도윤이네_심야라디오',
+        avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=500',
+        badgeText: '보이스 크리에이터',
+        scoreText: '5,420,110 P',
+        isLive: false,
+        liveId: 'LIVE-104',
+      },
+      {
+        rank: 7,
+        nickname: '가로수길_스타일러',
+        avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500',
+        badgeText: '패션 크리에이터',
+        scoreText: '5,123,000 P',
+        isLive: false,
+      },
+      {
+        rank: 8,
+        nickname: '달콤베이킹_수아',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
+        badgeText: '취미 크리에이터',
+        scoreText: '4,890,200 P',
+        isLive: false,
+      },
+    ];
+
+    return {
+      ok: true,
+      data: defaultRankings,
+      items: defaultRankings,
     };
   }
 

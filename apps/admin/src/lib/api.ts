@@ -2683,6 +2683,26 @@ export async function updateAdminLiveStreamConfig(config: {
   return (response.data as any)?.data ?? response.data
 }
 
+export async function getLiveTop3Rooms(): Promise<any[]> {
+  try {
+    const response = await api.get('/live/top3')
+    const d = (response.data as any)?.data ?? response.data
+    return Array.isArray(d) ? d : []
+  } catch {
+    return []
+  }
+}
+
+export async function getLiveRankings(): Promise<any[]> {
+  try {
+    const response = await api.get('/live/rankings')
+    const d = (response.data as any)?.data ?? response.data
+    return Array.isArray(d) ? d : []
+  } catch {
+    return []
+  }
+}
+
 // =============================================
 // Admin Permissions, Approvals & Audit
 // =============================================
