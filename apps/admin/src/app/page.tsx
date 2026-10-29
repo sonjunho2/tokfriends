@@ -2013,7 +2013,7 @@ export default function CustomerWebStorefrontPage() {
                           <div className="p-4 pt-0">
                             <Button
                               size="sm"
-                              className="w-full h-9 text-xs font-bold bg-[#FF3B6B] text-white hover:bg-[#e02e5b] rounded-xl shadow-xs transition-all"
+                              className="w-full h-9 text-xs font-bold bg-rose-50 text-[#FF3B6B] border border-rose-200 hover:bg-gradient-to-r hover:from-[#FF3B6B] hover:to-[#8B5CF6] hover:text-white hover:border-transparent rounded-xl shadow-2xs hover:shadow-md transition-all duration-300"
                             >
                               공구 참여하기
                             </Button>
@@ -2652,7 +2652,7 @@ export default function CustomerWebStorefrontPage() {
                                 e.stopPropagation()
                                 setSelectedProduct(item)
                               }}
-                              className="w-full mt-3 py-1.5 rounded-xl bg-[#FF3B6B] hover:bg-[#e02e5b] text-[11px] font-bold text-white flex items-center justify-center gap-1 transition-all shadow-xs"
+                              className="w-full mt-3 py-1.5 rounded-xl bg-rose-50 text-[#FF3B6B] border border-rose-200 hover:bg-gradient-to-r hover:from-[#FF3B6B] hover:to-[#8B5CF6] hover:text-white hover:border-transparent text-[11px] font-bold flex items-center justify-center gap-1 transition-all duration-300 shadow-2xs hover:shadow-md"
                             >
                               <Flame className="h-3 w-3" />
                               <span>공구 참여</span>
@@ -2795,7 +2795,7 @@ export default function CustomerWebStorefrontPage() {
                           <div className="p-4 pt-0">
                             <Button
                               size="sm"
-                              className="w-full h-9 text-xs font-bold bg-[#FF3B6B] text-white hover:bg-[#e02e5b] rounded-xl shadow-xs transition-all"
+                              className="w-full h-9 text-xs font-bold bg-rose-50 text-[#FF3B6B] border border-rose-200 hover:bg-gradient-to-r hover:from-[#FF3B6B] hover:to-[#8B5CF6] hover:text-white hover:border-transparent rounded-xl shadow-2xs hover:shadow-md transition-all duration-300"
                             >
                               공구 참여하기
                             </Button>
