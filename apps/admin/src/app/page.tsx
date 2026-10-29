@@ -159,6 +159,22 @@ export interface LiveRoomItem {
   }
 }
 
+export interface LiveChatMessageItem {
+  sender: string
+  text: string
+  isSystem?: boolean
+  isHost?: boolean
+  isGift?: boolean
+  gift?: {
+    id: string
+    name: string
+    amount: number
+    description: string
+    icon?: string
+  }
+  time?: string
+}
+
 export interface ChatMessageItem {
   id: string
   senderId: string
@@ -1179,16 +1195,24 @@ export default function CustomerWebStorefrontPage() {
   // Live Viewer Modal
   const [activeLiveModal, setActiveLiveModal] = useState<LiveRoomItem | null>(null)
   const [liveChatInput, setLiveChatInput] = useState('')
-  const [liveChatMessages, setLiveChatMessages] = useState<{ sender: string; text: string; isHost?: boolean }[]>([
-    { sender: '시스템', text: '모꼬(MOCCO) 실시간 라이브 방송에 오신 것을 환영합니다!' },
-    { sender: '고기러버', text: '오겹살 때깔 미쳤네요 바로 주문합니다!' },
-    { sender: '제주도민', text: '당일 도축이라 진짜 신선해요 추천!' },
+  const [liveChatMessages, setLiveChatMessages] = useState<LiveChatMessageItem[]>([
+    { sender: '시스템', text: '모꼬(MOCCO) 실시간 라이브 방송에 오신 것을 환영합니다!', isSystem: true, time: '12:00' },
+    { sender: '고기러버', text: '오겹살 때깔 미쳤네요 바로 주문합니다!', time: '12:01' },
+    { sender: '제주도민', text: '당일 도축이라 진짜 신선해요 추천!', time: '12:02' },
   ])
 
-  // New Live Creation Modal (일반 회원 누구나 방송 가능, 크리에이터는 상품 핀 연결 가능)
-  const [isStartLiveModalOpen, setIsStartLiveModalOpen] = useState(false)
-  const [newLiveTitle, setNewLiveTitle] = useState('')
-  const [newLiveCategory, setNewLiveCategory] = useState('토크/소통')
+  // Live Stream Viewer & 3D Gift States
+  const [liveGiftEffect, setLiveGiftEffect] = useState<{
+    name: string
+    icon: string
+    description: string
+    sender: string
+    amount: number
+  } | null>(null)
+  const [isLiveGiftPickerOpen, setIsLiveGiftPickerOpen] = useState(false)
+  const [liveGiftCategory, setLiveGiftCategory] = useState<'all' | 'mocco_special' | 'mocco_vip'>('all')
+  const [isLiveMuted, setIsLiveMuted] = useState(false)
+  const [floatingHearts, setFloatingHearts] = useState<{ id: number; color: string; left: number }[]>([])
 
   // Used Product Register Modal
   const [isNewUsedModalOpen, setIsNewUsedModalOpen] = useState(false)
@@ -1341,57 +1365,76 @@ export default function CustomerWebStorefrontPage() {
     })
   }
 
-  // Live Donation (Heart/Gift)
-  const handleSendLiveGift = () => {
+  // Live Donation: Send 3D Mocco Gift with full screen animation and chat sync
+  const handleSendLiveGiftItem = (gift: MoccoChatGiftItem) => {
     requireAuth(() => {
-      toast({
-        title: '💖 모꼬 선물 후원 완료!',
-        description: `1,000 P가 방송자(${activeLiveModal?.hostNickname})에게 전송되었습니다.`,
+      if (!activeLiveModal) return
+      if (myPoints < gift.pricePoints) {
+        toast({
+          title: '포인트 부족',
+          description: `보유 온(ON) 포인트가 부족합니다. (필요: ${gift.pricePoints.toLocaleString()} P, 보유: ${myPoints.toLocaleString()} P)`,
+          variant: 'destructive',
+        })
+        return
+      }
+
+      setMyPoints((prev) => prev - gift.pricePoints)
+      setIsLiveGiftPickerOpen(false)
+
+      const senderName = user?.nickname || '나 (시청자)'
+      const giftMsg: LiveChatMessageItem = {
+        sender: senderName,
+        text: `🎁 [선물] ${gift.name} (${gift.pricePoints.toLocaleString()} ON 후원)`,
+        isGift: true,
+        gift: {
+          id: gift.id,
+          name: gift.name,
+          amount: gift.pricePoints,
+          description: gift.description,
+          icon: gift.icon,
+        },
+        time: '방금',
+      }
+
+      setLiveChatMessages((prev) => [...prev, giftMsg])
+
+      // 3D Gift Effect Overlay on Video Player
+      setLiveGiftEffect({
+        name: gift.name,
+        icon: gift.icon,
+        description: gift.description,
+        sender: senderName,
+        amount: gift.pricePoints,
       })
-      setLiveChatMessages((prev) => [
-        ...prev,
-        { sender: '시스템', text: `✨ [${user?.nickname}] 님이 1,000 포인트를 후원하셨습니다!` },
-      ])
+      setTimeout(() => {
+        setLiveGiftEffect(null)
+      }, 4000)
+
+      toast({
+        title: '🎉 모꼬 3D 선물 후원 완료!',
+        description: `${gift.name} (${gift.pricePoints.toLocaleString()} ON)을 ${activeLiveModal.hostNickname}님께 선물했습니다!`,
+      })
     })
   }
 
-  // Start New Live (일반 회원 누구나 방송 가능, 크리에이터는 상품 핀 혜택)
-  const handleCreateLiveRoom = () => {
-    if (!newLiveTitle.trim()) {
-      toast({ title: '오류', description: '방송 제목을 입력해주세요.', variant: 'destructive' })
-      return
+  // Floating Hearts on Tap Cheer
+  const handleSendFloatingHeart = () => {
+    const colors = ['#FF3B6B', '#EC4899', '#8B5CF6', '#F59E0B', '#10B981']
+    const heart = {
+      id: Date.now() + Math.random(),
+      color: colors[Math.floor(Math.random() * colors.length)],
+      left: 50 + Math.random() * 35,
     }
+    setFloatingHearts((prev) => [...prev.slice(-15), heart])
+    setTimeout(() => {
+      setFloatingHearts((prev) => prev.filter((h) => h.id !== heart.id))
+    }, 1800)
+  }
 
-    const isCreator = role === 'CREATOR' || role === 'ADMIN'
-
-    const newRoom: LiveRoomItem = {
-      id: 'live-' + Date.now(),
-      title: `🔴 ${newLiveTitle.trim()}`,
-      category: newLiveCategory,
-      hostNickname: user?.nickname || '모꼬이웃',
-      hostAvatar: user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
-      viewerCount: 1,
-      coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800',
-      hasCommerce: isCreator,
-      isOfficialCreator: isCreator,
-      pinnedProduct: isCreator
-        ? {
-            id: 'np-001',
-            title: '[방송특가] 제주 흑돼지 1등급 오겹살 1kg',
-            price: 28900,
-            originalPrice: 38000,
-            image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600',
-          }
-        : undefined,
-    }
-
-    setLives([newRoom, ...lives])
-    setIsStartLiveModalOpen(false)
-    setNewLiveTitle('')
-    toast({
-      title: isCreator ? '🎉 공식 라이브 커머스 방송 시작!' : '🎉 모꼬 실시간 소통 방송 시작!',
-      description: '실시간 방송이 개설되어 라이브 목록 최상단에 온에어로 노출됩니다.',
-    })
+  // Quick 1,000 P gift handler
+  const handleSendLiveGift = () => {
+    const defaultGift = MOCCO_CHAT_GIFTS[0] // 볼빨간 모꼬 (1,000 P)
+    handleSendLiveGiftItem(defaultGift)
   }
 
   // Post Suda (한 줄 수다)
@@ -3090,20 +3133,15 @@ export default function CustomerWebStorefrontPage() {
                       실시간 소통 방송 & 모꼬 특가 단독 핫딜 라이브
                     </h1>
                     <p className="text-xs sm:text-sm text-slate-300">
-                      일반 회원 누구나 자유롭게 방송을 개설할 수 있으며, 공식 크리에이터는 라이브 중 실시간 상품을 핀으로 고정해 판매할 수 있습니다.
+                      모꼬 모바일 앱에서 누구나 손쉽게 라이브 방송을 송출할 수 있으며, 웹에서는 최고화질 시청과 실시간 채팅, 3D 선물 후원을 쾌적하게 즐길 수 있습니다.
                     </p>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-                    <Button
-                      onClick={() => {
-                        requireAuth(() => setIsStartLiveModalOpen(true))
-                      }}
-                      className="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-xs sm:text-sm shadow-lg h-10 px-4 rounded-xl transition-all"
-                    >
-                      <Video className="h-4 w-4 mr-1.5" />
-                      내 방송 시작하기
-                    </Button>
+                    <div className="flex items-center gap-2 bg-white/10 backdrop-blur-xs px-3.5 py-2 rounded-2xl border border-white/20 text-xs">
+                      <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+                      <span className="text-slate-200 font-semibold">📱 방송 송출은 모바일 앱 전용입니다</span>
+                    </div>
 
                     {role !== 'CREATOR' && role !== 'ADMIN' && (
                       <Button
@@ -5302,197 +5340,342 @@ export default function CustomerWebStorefrontPage() {
         </div>
       )}
 
-      {/* 5) Start Live Modal (일반 회원 누구나 방송 가능, 크리에이터는 상품 핀 연결 가능) */}
-      {isStartLiveModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border space-y-4">
-            <button
-              onClick={() => setIsStartLiveModalOpen(false)}
-              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            <div className="space-y-1">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-1.5">
-                <Radio className="h-4 w-4 text-rose-600" />
-                모꼬 실시간 라이브 방송 개설
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                누구나 스마트폰 및 웹캠으로 동네 이웃과 소통 방송을 즉시 시작할 수 있습니다.
-              </p>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="space-y-1">
-                <label className="font-semibold text-slate-700">방송 제목</label>
-                <Input
-                  value={newLiveTitle}
-                  onChange={(e) => setNewLiveTitle(e.target.value)}
-                  placeholder="예: 저녁 퇴근길 이웃과 소소한 커피 수다방 ☕"
-                  className="text-xs rounded-xl"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-semibold text-slate-700">방송 카테고리</label>
-                <select
-                  value={newLiveCategory}
-                  onChange={(e) => setNewLiveCategory(e.target.value)}
-                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-xs"
-                >
-                  <option value="토크/소통">토크 / 소통</option>
-                  <option value="쇼핑/커머스">쇼핑 / 커머스 (크리에이터 권장)</option>
-                  <option value="일상">일상</option>
-                  <option value="취미">취미</option>
-                  <option value="음악/노래">음악 / 노래</option>
-                </select>
-              </div>
-
-              {role === 'CREATOR' || role === 'ADMIN' ? (
-                <div className="rounded-2xl bg-purple-50 p-3.5 border border-purple-100 text-purple-900 space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold">
-                    <Sparkles className="h-3.5 w-3.5 text-purple-600" />
-                    공식 크리에이터 커머스 핀 혜택 적용
-                  </div>
-                  <p className="text-[11px] text-purple-700">
-                    방송 개설 시 모꼬 인기 상품(제주 흑돼지 등)이 자동으로 핀 상품으로 연결되어 실시간 판매 수수료가 적립됩니다.
-                  </p>
-                </div>
-              ) : (
-                <div className="rounded-2xl bg-slate-50 p-3.5 border text-slate-600 text-[11px]">
-                  💡 일반 회원은 자유 소통 방송이 가능하며, 커머스 상품 판매를 원하시면 크리에이터 신청을 진행해주세요.
-                </div>
-              )}
-            </div>
-
-            <Button
-              onClick={handleCreateLiveRoom}
-              className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs h-9 rounded-xl"
-            >
-              온에어 방송 송출 시작하기
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* 6) Live Room Viewer Modal */}
+      {/* 6) Live Room Viewer Modal (최대 화면비율 영상 & 우측 채팅방 & 3D 선물 시스템) */}
       {activeLiveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-4xl rounded-3xl bg-slate-950 text-white shadow-2xl border-2 border-[#FF3B6B]/40 shadow-[#FF3B6B]/20 overflow-hidden flex flex-col md:flex-row h-[85vh] max-h-[700px]">
-            <button
-              onClick={() => setActiveLiveModal(null)}
-              className="absolute right-3 top-3 z-20 rounded-full bg-black/60 p-1.5 text-white/80 hover:text-white"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            {/* Left Stream Area (Desktop Wide View) */}
-            <div className="relative flex-1 bg-black flex items-center justify-center overflow-hidden">
-              <img
-                src={activeLiveModal.coverUrl}
-                alt="stream"
-                className="h-full w-full object-cover opacity-90"
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 lg:p-6 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-[1360px] h-[92vh] max-h-[920px] rounded-3xl bg-slate-950 text-white shadow-2xl border border-slate-800/90 overflow-hidden flex flex-col md:flex-row">
+            
+            {/* [좌측: 최대 영상 비율 라이브 비디오 플레이어 화면] */}
+            <div className="relative flex-1 bg-black flex items-center justify-center overflow-hidden h-full select-none">
+              {/* 은은한 앰비언트 백그라운드 블러 글로우 */}
+              <div
+                className="absolute inset-0 bg-cover bg-center filter blur-3xl opacity-30 scale-125 pointer-events-none"
+                style={{ backgroundImage: `url(${activeLiveModal.coverUrl})` }}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
+              <div className="absolute inset-0 bg-black/60 pointer-events-none" />
 
-              {/* Stream Overlay Header */}
-              <div className="absolute top-3 left-3 flex items-center gap-2">
-                <Badge className="bg-rose-600 text-white font-bold border-none text-[10px]">
-                  LIVE ON-AIR
-                </Badge>
-                <span className="text-xs text-white/90 font-medium">
-                  시청자 {activeLiveModal.viewerCount.toLocaleString()}명
-                </span>
-              </div>
+              {/* 9:16 모바일 라이브 본래 비율을 온전히 살린 대형 비디오 캔버스 컨테이너 */}
+              <div className="relative h-full aspect-[9/16] max-w-full flex items-center justify-center overflow-hidden bg-slate-950 shadow-2xl ring-1 ring-white/10">
+                <img
+                  src={activeLiveModal.coverUrl}
+                  alt="stream"
+                  className="h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/60 pointer-events-none" />
 
-              {/* Pinned Product In-Stream Overlay */}
-              {activeLiveModal.pinnedProduct && (
-                <div className="absolute bottom-4 left-4 right-4 flex items-center gap-3 rounded-2xl bg-white/95 p-2.5 text-slate-900 shadow-xl backdrop-blur-md">
-                  <img
-                    src={activeLiveModal.pinnedProduct.image}
-                    alt="product"
-                    className="h-12 w-12 rounded-xl object-cover"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[10px] font-bold text-rose-600">
-                      🔴 방송 단독 핀 특가 상품
-                    </span>
-                    <h4 className="text-xs font-bold truncate">
-                      {activeLiveModal.pinnedProduct.title}
-                    </h4>
-                    <span className="text-sm font-black text-slate-900">
-                      {activeLiveModal.pinnedProduct.price.toLocaleString()}원
+                {/* 상단 오버레이 헤더 (LIVE 배지, 시청자 수, 방송자) */}
+                <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between z-20">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-rose-600 text-white font-extrabold border-none text-[10px] px-2.5 py-1 shadow-md flex items-center gap-1.5">
+                      <span className="flex h-2 w-2 rounded-full bg-white animate-ping" />
+                      LIVE ON-AIR
+                    </Badge>
+                    <span className="text-xs text-white/95 font-bold bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5 text-rose-400" />
+                      시청자 {activeLiveModal.viewerCount.toLocaleString()}명
                     </span>
                   </div>
-                  <Button
-                    onClick={() => {
-                      requireAuth(() => {
-                        setCheckoutTarget({
-                          title: activeLiveModal.pinnedProduct!.title,
-                          price: activeLiveModal.pinnedProduct!.price,
-                          shippingFee: 3000,
-                          image: activeLiveModal.pinnedProduct!.image,
-                        })
-                        setIsCheckoutOpen(true)
-                      })
-                    }}
-                    className="bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] hover:opacity-90 text-white font-bold text-xs h-9 px-3 shrink-0 shadow-md shadow-[#FF3B6B]/25 rounded-xl"
-                  >
-                    즉시 구매
-                  </Button>
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] bg-black/50 text-slate-300 font-bold px-2 py-0.5 rounded-md border border-white/10">
+                      HD 1080p
+                    </span>
+                    <button
+                      onClick={() => setIsLiveMuted((prev) => !prev)}
+                      className="h-7 w-7 rounded-full bg-black/50 hover:bg-black/80 flex items-center justify-center text-white/90 border border-white/10 transition-colors"
+                    >
+                      {isLiveMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
                 </div>
-              )}
+
+                {/* ✨ 3D 모꼬 선물 전체 화면 애니메이션 이펙트 (GiftEffectOverlay) */}
+                {liveGiftEffect && (
+                  <div className="absolute inset-0 z-30 bg-black/65 flex flex-col items-center justify-center p-6 text-center pointer-events-none animate-in fade-in zoom-in-75 duration-300">
+                    <div className="relative mb-3">
+                      <span className="text-7xl sm:text-8xl animate-bounce block drop-shadow-2xl">
+                        {liveGiftEffect.icon}
+                      </span>
+                      <span className="absolute -top-4 -right-4 text-4xl animate-spin">✨</span>
+                      <span className="absolute -bottom-3 -left-4 text-4xl animate-ping">💖</span>
+                      <span className="absolute -top-2 -left-3 text-3xl animate-bounce">🪙</span>
+                    </div>
+
+                    <div className="bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-full border border-amber-400/40 mb-2 shadow-lg">
+                      <span className="text-[11px] font-extrabold text-amber-300">
+                        🎉 {liveGiftEffect.sender}님의 특별 모꼬 선물!
+                      </span>
+                    </div>
+
+                    <h3 className="font-black text-2xl sm:text-3xl text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-pink-400 to-rose-400 drop-shadow-lg">
+                      {liveGiftEffect.name}
+                    </h3>
+
+                    <p className="text-xs sm:text-sm text-white/95 mt-1.5 max-w-xs drop-shadow-md leading-snug font-medium">
+                      {liveGiftEffect.description}
+                    </p>
+
+                    <Badge className="mt-3 bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 text-white font-black text-xs px-4 py-1 border-none shadow-xl">
+                      +{liveGiftEffect.amount.toLocaleString()} ON 후원 완료
+                    </Badge>
+                  </div>
+                )}
+
+                {/* 플로팅 하트 애니메이션 (응원 터치 시) */}
+                {floatingHearts.map((h) => (
+                  <div
+                    key={h.id}
+                    style={{ left: `${h.left}%`, color: h.color }}
+                    className="absolute bottom-28 text-3xl pointer-events-none animate-float-heart drop-shadow-md z-25"
+                  >
+                    💖
+                  </div>
+                ))}
+
+                {/* 🔴 방송 단독 핀 특가 상품 (In-stream Pinned Commerce Card) */}
+                {activeLiveModal.pinnedProduct && (
+                  <div className="absolute bottom-4 left-4 right-4 z-20 flex items-center gap-3 rounded-2xl bg-white/95 p-3 text-slate-900 shadow-2xl backdrop-blur-md border border-white/50">
+                    <img
+                      src={activeLiveModal.pinnedProduct.image}
+                      alt="product"
+                      className="h-13 w-13 rounded-xl object-cover border border-slate-200 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] font-bold text-rose-600 flex items-center gap-1">
+                        <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+                        방송 단독 핀 특가 상품
+                      </span>
+                      <h4 className="text-xs font-bold text-slate-900 truncate">
+                        {activeLiveModal.pinnedProduct.title}
+                      </h4>
+                      <span className="text-sm font-black text-slate-950">
+                        {activeLiveModal.pinnedProduct.price.toLocaleString()}원
+                      </span>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        requireAuth(() => {
+                          setCheckoutTarget({
+                            title: activeLiveModal.pinnedProduct!.title,
+                            price: activeLiveModal.pinnedProduct!.price,
+                            shippingFee: 3000,
+                            image: activeLiveModal.pinnedProduct!.image,
+                          })
+                          setIsCheckoutOpen(true)
+                        })
+                      }}
+                      className="bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] hover:opacity-95 text-white font-black text-xs h-9 px-3.5 shrink-0 shadow-md shadow-[#FF3B6B]/25 rounded-xl"
+                    >
+                      즉시 구매
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Right Live Chat Stream (Desktop Split View) */}
-            <div className="w-full md:w-80 flex flex-col bg-slate-900 border-l border-slate-800">
-              <div className="p-3 border-b border-slate-800 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <img
-                    src={activeLiveModal.hostAvatar}
-                    alt="host"
-                    className="h-7 w-7 rounded-full object-cover"
-                  />
-                  <span className="font-bold text-xs text-slate-200">
-                    {activeLiveModal.hostNickname}
-                  </span>
+            {/* [우측: 실시간 라이브 채팅방 & 3D 선물 후원 시스템] */}
+            <div className="w-full md:w-[380px] lg:w-[420px] flex flex-col bg-slate-900/98 border-l border-slate-800 shrink-0 h-full relative">
+              {/* (1) 채팅 헤더: 호스트 정보 & 내 보유 포인트 & 닫기(X) 버튼 (충돌 없이 깔끔 분리) */}
+              <div className="p-3.5 px-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 shrink-0">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="relative">
+                    <img
+                      src={activeLiveModal.hostAvatar}
+                      alt="host"
+                      className="h-9 w-9 rounded-full object-cover border-2 border-pink-500/60"
+                    />
+                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 border border-slate-900" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-extrabold text-xs text-white truncate max-w-[140px]">
+                        {activeLiveModal.hostNickname}
+                      </span>
+                      <Badge className="bg-purple-900/60 text-purple-300 border border-purple-500/40 text-[9px] px-1.5 py-0 font-bold">
+                        크리에이터
+                      </Badge>
+                    </div>
+                    <span className="text-[10px] text-slate-400 block truncate">
+                      {activeLiveModal.title}
+                    </span>
+                  </div>
                 </div>
-                <Button
-                  onClick={handleSendLiveGift}
-                  size="sm"
-                  className="bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold text-[11px] h-7 px-2.5 rounded-lg"
-                >
-                  <Heart className="h-3 w-3 mr-1 fill-white" />
-                  1,000 P 선물
-                </Button>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-700/60 text-right">
+                    <span className="text-[9px] text-slate-400 block font-semibold leading-tight">내 포인트</span>
+                    <span className="text-[11px] font-black text-amber-300 leading-tight">
+                      {myPoints.toLocaleString()} ON
+                    </span>
+                  </div>
+
+                  {/* 닫기 버튼: 헤더 우측에 단독 배치하여 어떤 요소와도 겹치지 않음 */}
+                  <button
+                    onClick={() => setActiveLiveModal(null)}
+                    className="h-8 w-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
 
-              {/* Chat Log */}
-              <div className="flex-1 p-3 overflow-y-auto space-y-2 text-xs">
+              {/* (2) 실시간 채팅 메시지 스트림 (선물 카드 포함) */}
+              <div className="flex-1 p-3.5 overflow-y-auto space-y-2.5 text-xs bg-slate-950/60">
                 {liveChatMessages.map((m, i) => (
-                  <div key={i} className="flex items-start gap-1.5 leading-snug">
-                    <span className="font-bold text-pink-400 shrink-0">{m.sender}:</span>
-                    <span className="text-slate-300 break-all">{m.text}</span>
+                  <div key={i} className="animate-in fade-in duration-150">
+                    {m.isGift && m.gift ? (
+                      /* 선물 전송 카드 말풍선 */
+                      <div className="rounded-2xl p-2.5 bg-gradient-to-r from-pink-950/80 via-rose-950/80 to-slate-900 border border-pink-500/40 text-white shadow-md flex items-center justify-between gap-2 my-1">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-2xl shrink-0">{m.gift.icon}</span>
+                          <div className="min-w-0">
+                            <span className="text-[10px] text-pink-300 font-bold block truncate">
+                              {m.sender}
+                            </span>
+                            <span className="text-xs font-black text-amber-300 block truncate">
+                              {m.gift.name} 선물!
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-black bg-pink-500/30 text-pink-200 px-2 py-0.5 rounded-full shrink-0 border border-pink-400/30">
+                          +{m.gift.amount.toLocaleString()} ON
+                        </span>
+                      </div>
+                    ) : m.isSystem ? (
+                      /* 시스템 공지 */
+                      <div className="bg-blue-950/40 border border-blue-800/40 rounded-xl p-2 text-blue-300 text-[11px] leading-relaxed">
+                        <span className="font-bold text-blue-400 mr-1.5">[공지]</span>
+                        {m.text}
+                      </div>
+                    ) : (
+                      /* 일반 유저 채팅 */
+                      <div className="flex items-start gap-1.5 leading-snug">
+                        <span className="font-bold text-pink-400 shrink-0">{m.sender}:</span>
+                        <span className="text-slate-200 break-all">{m.text}</span>
+                        {m.time && <span className="text-[9px] text-slate-500 shrink-0 ml-auto">{m.time}</span>}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
 
-              {/* Live Chat Input */}
-              <div className="p-3 border-t border-slate-800 flex items-center gap-2">
+              {/* (3) 🎁 폰 선물함과 100% 동일한 3D 선물 선택 바텀 트레이 */}
+              {isLiveGiftPickerOpen && (
+                <div className="absolute inset-x-0 bottom-16 bg-slate-950/95 border-t border-pink-500/30 p-3.5 space-y-3 z-40 backdrop-blur-md shadow-2xl animate-in slide-in-from-bottom duration-200">
+                  <div className="flex items-center justify-between pb-1 border-b border-slate-800">
+                    <div className="flex items-center gap-1.5">
+                      <Gift className="h-4 w-4 text-pink-400" />
+                      <span className="font-extrabold text-xs text-white">
+                        모꼬 3D 라이브 선물상자
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-500/30">
+                        보유 {myPoints.toLocaleString()} ON
+                      </span>
+                      <button
+                        onClick={() => setIsLiveGiftPickerOpen(false)}
+                        className="h-6 w-6 rounded-full hover:bg-slate-800 flex items-center justify-center text-slate-400"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 카테고리 탭 */}
+                  <div className="flex items-center gap-1 text-[10px] font-bold">
+                    {[
+                      { key: 'all', label: '전체' },
+                      { key: 'mocco_special', label: '3D 모꼬' },
+                      { key: 'mocco_vip', label: 'VIP 모꼬' },
+                    ].map((cat) => (
+                      <button
+                        key={cat.key}
+                        onClick={() => setLiveGiftCategory(cat.key as any)}
+                        className={`px-2.5 py-1 rounded-lg transition-colors ${
+                          liveGiftCategory === cat.key
+                            ? 'bg-gradient-to-r from-pink-500 to-rose-600 text-white'
+                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* 선물 그리드 */}
+                  <div className="grid grid-cols-2 gap-2 overflow-y-auto max-h-[220px] pr-1">
+                    {MOCCO_CHAT_GIFTS
+                      .filter((g) => (liveGiftCategory === 'all' ? true : g.category === liveGiftCategory))
+                      .map((gift) => (
+                        <div
+                          key={gift.id}
+                          onClick={() => handleSendLiveGiftItem(gift)}
+                          className="group p-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 hover:bg-pink-950/40 hover:border-pink-500/60 transition-all cursor-pointer text-left space-y-1 flex flex-col justify-between"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-2xl group-hover:scale-110 transition-transform">{gift.icon}</span>
+                            <span className="text-[10px] font-black text-amber-300 bg-amber-950/60 px-1.5 py-0.2 rounded border border-amber-500/20">
+                              {gift.pricePoints.toLocaleString()} ON
+                            </span>
+                          </div>
+                          <div>
+                            <h6 className="font-bold text-[11px] text-white truncate">
+                              {gift.name}
+                            </h6>
+                            <p className="text-[9px] text-slate-400 line-clamp-1">
+                              {gift.description}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            className="w-full h-5 text-[9px] bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white font-bold rounded-lg mt-1"
+                          >
+                            선물하기
+                          </Button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* (4) 하단 실시간 채팅 & 선물 & 응원 툴바 */}
+              <div className="p-3 border-t border-slate-800 bg-slate-900/90 flex items-center gap-2 shrink-0">
+                {/* 🎁 선물하기 버튼 (선물함 열기) */}
+                <Button
+                  onClick={() => setIsLiveGiftPickerOpen((prev) => !prev)}
+                  size="sm"
+                  className="bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white font-bold text-xs h-9 px-3 rounded-xl shrink-0 shadow-md flex items-center gap-1"
+                >
+                  <Gift className="h-3.5 w-3.5" />
+                  <span>선물</span>
+                </Button>
+
+                {/* 💖 라이브 응원 하트 버튼 */}
+                <button
+                  onClick={handleSendFloatingHeart}
+                  className="h-9 w-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-rose-400 hover:text-rose-300 border border-slate-700/60 shrink-0 transition-transform active:scale-90"
+                  title="라이브 응원하기"
+                >
+                  <Heart className="h-4 w-4 fill-rose-500" />
+                </button>
+
+                {/* 채팅 입력창 */}
                 <Input
                   value={liveChatInput}
                   onChange={(e) => setLiveChatInput(e.target.value)}
                   placeholder="실시간 댓글 남기기..."
-                  className="text-xs bg-slate-800 border-slate-700 text-white rounded-xl"
+                  className="text-xs bg-slate-800/90 border-slate-700 text-white rounded-xl h-9 placeholder:text-slate-500 focus-visible:ring-1 focus-visible:ring-pink-500"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSendLiveChat()
                   }}
                 />
+
+                {/* 전송 버튼 */}
                 <Button
                   onClick={handleSendLiveChat}
                   size="sm"
-                  className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-9 rounded-xl"
+                  className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-9 w-9 p-0 shrink-0 rounded-xl shadow-md"
                 >
                   <Send className="h-3.5 w-3.5" />
                 </Button>

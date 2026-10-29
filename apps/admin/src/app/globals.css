@@ -59,3 +59,12 @@
     font-feature-settings: 'rlig' 1, 'calt' 1;
   }
 }
+
+
+@keyframes floatUp {
+  0% { transform: translateY(0) scale(0.8); opacity: 1; }
+  100% { transform: translateY(-160px) scale(1.4); opacity: 0; }
+}
+.animate-float-heart {
+  animation: floatUp 1.8s ease-out forwards;
+}
