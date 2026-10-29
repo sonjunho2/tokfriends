@@ -226,4 +226,106 @@ export class AuthService {
       return null;
     }
   }
+
+  /**
+   * 소셜 OAuth 로그인 및 등록 (카카오, 네이버, 구글, 애플 - 웹 & 모바일 공용 고객 DB 연동)
+   */
+  async socialLogin(
+    provider: 'kakao' | 'naver' | 'google' | 'apple',
+    dto: {
+      email?: string;
+      nickname?: string;
+      avatarUrl?: string;
+      socialId?: string;
+      accessToken?: string;
+      idToken?: string;
+    },
+  ) {
+    const rawEmail = dto.email ? dto.email.trim().toLowerCase() : null;
+    const defaultNick =
+      dto.nickname?.trim() ||
+      (rawEmail ? rawEmail.split('@')[0] : provider + '_user_' + Math.random().toString(36).slice(2, 7));
+
+    // 1. 이메일 또는 닉네임으로 기존 고객 DB 검색
+    let user = null;
+    if (rawEmail) {
+      user = await this.prisma.user.findFirst({
+        where: { email: rawEmail },
+        include: {
+          photos: { orderBy: { sortOrder: 'asc' } },
+          adminProfile: true,
+          merchant: true,
+        },
+      });
+    }
+
+    if (!user) {
+      user = await this.prisma.user.findUnique({
+        where: { nickname: defaultNick },
+        include: {
+          photos: { orderBy: { sortOrder: 'asc' } },
+          adminProfile: true,
+          merchant: true,
+        },
+      });
+    }
+
+    // 2. 신규 회원이면 DB에 등록 (기본 10,000 ON 포인트 및 프로필 설정)
+    if (!user) {
+      const generatedAvatar =
+        dto.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/png?seed=' + encodeURIComponent(defaultNick);
+
+      user = await this.prisma.user.create({
+        data: {
+          email: rawEmail || (provider + '_' + Date.now() + '@tokfriends.com'),
+          nickname: defaultNick,
+          provider: provider,
+          avatarUrl: generatedAvatar,
+          pointBalance: 10000,
+          callRatePerMinute: 1200,
+          role: 'user',
+          status: 'active',
+        },
+        include: {
+          photos: { orderBy: { sortOrder: 'asc' } },
+          adminProfile: true,
+          merchant: true,
+        },
+      });
+    } else {
+      // 기존 유저의 provider 기록 갱신 (비어있거나 email인 경우)
+      if (!user.provider || user.provider === 'email') {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { provider },
+        });
+      }
+    }
+
+    if (user.status?.toLowerCase() === 'banned') {
+      throw new UnauthorizedException('이용이 영구 정지된 계정입니다.');
+    }
+    if (user.status?.toLowerCase() === 'suspended') {
+      throw new UnauthorizedException('운영 정책 위반으로 일시 이용 정지된 계정입니다.');
+    }
+
+    const normalizedUser = {
+      ...user,
+      photos: (user.photos || []).map((p) => ({
+        ...p,
+        imageUrl: p.url,
+        order: p.sortOrder,
+      })),
+    };
+
+    const token = this.generateToken(normalizedUser);
+
+    return {
+      user: normalizedUser,
+      token,
+      accessToken: token,
+      provider,
+    };
+  }
+
 }

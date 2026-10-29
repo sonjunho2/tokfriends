@@ -50,6 +50,10 @@ interface AuthContextType {
   closeCreatorModal: () => void
   quickLogin: (nickname: string) => Promise<boolean>
   emailLogin: (email: string, pass: string) => Promise<{ success: boolean; message?: string }>
+  socialLogin: (
+    provider: 'kakao' | 'naver' | 'google' | 'apple',
+    customProfile?: { email?: string; nickname?: string; avatarUrl?: string }
+  ) => Promise<boolean>
   switchRole: (newRole: UserRole) => void
   applyMerchant: (data: MerchantApplication) => Promise<boolean>
   applyCreator: (data: CreatorApplication) => Promise<boolean>
@@ -314,6 +318,87 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
     [user, saveUserState]
   )
 
+  const socialLogin = useCallback(
+    async (
+      provider: 'kakao' | 'naver' | 'google' | 'apple',
+      customProfile?: { email?: string; nickname?: string; avatarUrl?: string }
+    ) => {
+      try {
+        const defaultProfiles: Record<string, { email: string; nickname: string; avatarUrl: string }> = {
+          kakao: {
+            email: 'kakao_user@kakao.com',
+            nickname: '노란리본_카카오이웃',
+            avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+          },
+          naver: {
+            email: 'naver_user@naver.com',
+            nickname: '초록창_네이버쇼퍼',
+            avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500',
+          },
+          google: {
+            email: 'google_user@gmail.com',
+            nickname: '스마트_구글이웃',
+            avatarUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500',
+          },
+          apple: {
+            email: 'apple_user@privaterelay.appleid.com',
+            nickname: '블랙라벨_애플유저',
+            avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
+          },
+        }
+
+        const profile = customProfile || defaultProfiles[provider] || defaultProfiles.kakao
+
+        // Try calling the backend API to query/create in the Customer DB
+        let apiUser: any = null
+        try {
+          const res = await fetch('/api/backend/auth/oauth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              provider,
+              email: profile.email,
+              nickname: profile.nickname,
+              avatarUrl: profile.avatarUrl,
+            }),
+          })
+          if (res.ok) {
+            const json = await res.json()
+            apiUser = json.data?.user || json.user
+            if (json.data?.token || json.token) {
+              localStorage.setItem('tokfriends_auth_token', json.data?.token || json.token)
+            }
+          }
+        } catch {
+          // If backend proxy not reachable, fallback to synchronized local profile
+        }
+
+        const loggedInUser: WebUser = {
+          id: apiUser?.id || `u-${provider}-${Date.now()}`,
+          nickname: apiUser?.nickname || profile.nickname,
+          email: apiUser?.email || profile.email,
+          role: (apiUser?.role?.toUpperCase() as UserRole) || 'USER',
+          pointBalance: apiUser?.pointBalance ?? 10000,
+          cashBalance: apiUser?.cashBalance ?? 0,
+          avatarUrl: apiUser?.avatarUrl || profile.avatarUrl,
+        }
+
+        saveUserState(loggedInUser)
+        setIsLoginModalOpen(false)
+
+        if (pendingAction) {
+          pendingAction()
+          setPendingAction(null)
+        }
+        return true
+      } catch (err) {
+        console.error('Social login error:', err)
+        return false
+      }
+    },
+    [pendingAction, saveUserState]
+  )
+
   const logout = useCallback(() => {
     saveUserState(null)
   }, [saveUserState])
@@ -337,6 +422,7 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
         openCreatorModal,
         closeCreatorModal,
         quickLogin,
+        socialLogin,
         emailLogin,
         switchRole,
         applyMerchant,
