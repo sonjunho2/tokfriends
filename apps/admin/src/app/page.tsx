@@ -1705,12 +1705,12 @@ export default function CustomerWebStorefrontPage() {
                 </div>
               </div>
 
-              {/* 2) 🔴 인기 라이브 & 🏆 랭킹 (2열 분할 레이아웃) */}
+              {/* 2) 🔴 인기 라이브 & 🏆 랭킹 (좌우 높이 및 수직 비율 완벽 동기화 레이아웃) */}
               <section className="space-y-4">
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                  {/* Left (3 cols): 인기 라이브 그리드 */}
-                  <div className="lg:col-span-3 space-y-4">
-                    <div className="flex items-center justify-between">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-stretch">
+                  {/* Left (3 cols): 인기 라이브 그리드 (2행 4열) */}
+                  <div className="lg:col-span-3 space-y-4 flex flex-col">
+                    <div className="flex items-center justify-between min-h-[36px]">
                       <div className="flex items-center gap-2">
                         <Radio className="h-5 w-5 text-[#FF3B6B] animate-pulse" />
                         <h3 className="font-extrabold text-xl text-slate-900 tracking-tight">
@@ -1732,7 +1732,7 @@ export default function CustomerWebStorefrontPage() {
                     </div>
 
                     {/* 8-Card Live Grid (2 rows x 4 cols) */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5 flex-1">
                       {lives.slice(0, 8).map((live) => (
                         <div
                           key={live.id}
@@ -1798,9 +1798,9 @@ export default function CustomerWebStorefrontPage() {
                     </div>
                   </div>
 
-                  {/* Right (1 col): 랭킹 (단일 순위 목록, beans/views 나누지 않음) */}
-                  <div className="lg:col-span-1 space-y-4">
-                    <div className="flex items-center justify-between">
+                  {/* Right (1 col): 랭킹 (좌측 8개 카드와 상단선 및 하단 끝선 100% 매칭 & 세로 비율 균등 분할) */}
+                  <div className="lg:col-span-1 space-y-4 flex flex-col h-full">
+                    <div className="flex items-center justify-between min-h-[36px]">
                       <div className="flex items-center gap-2">
                         <Trophy className="h-5 w-5 text-amber-500" />
                         <h3 className="font-extrabold text-xl text-slate-900 tracking-tight">
@@ -1812,7 +1812,7 @@ export default function CustomerWebStorefrontPage() {
                       </span>
                     </div>
 
-                    <div className="bg-white rounded-3xl border border-slate-200/80 p-3 shadow-xs space-y-1 divide-y divide-slate-100">
+                    <div className="bg-white rounded-3xl border border-slate-200/80 p-3.5 shadow-xs divide-y divide-slate-100 flex-1 flex flex-col justify-between">
                       {LIVE_RANKINGS.map((item) => {
                         const isGold = item.rank === 1
                         const isSilver = item.rank === 2
@@ -1829,7 +1829,7 @@ export default function CustomerWebStorefrontPage() {
                                 setActiveTab('LIVE')
                               }
                             }}
-                            className="flex items-center justify-between py-2.5 px-2 hover:bg-slate-50 rounded-2xl transition-colors cursor-pointer group"
+                            className="flex-1 flex items-center justify-between py-2 px-2 hover:bg-slate-50 rounded-2xl transition-colors cursor-pointer group"
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
                               {/* Rank Medal / Number */}
