@@ -3236,31 +3236,26 @@ export default function CustomerWebStorefrontPage() {
                   ))}
                 </div>
               </div>
-            </div>
-          )}
-        </main>
 
-        {/* ========================================================= */}
-        {/* 3. Official Korean Legal Compliance Footer                */}
-        {/* 전자상거래 등에서의 소비자보호에 관한 법률 제10조 제1항 및 제20조 제2항 준수 */}
-        {/* ========================================================= */}
-        <footer className="mt-16 border-t border-slate-800 bg-slate-950 text-slate-300 text-xs">
-          {/* Top Customer Center & Guarantee Row */}
-          <div className="border-b border-slate-800">
-            <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                {/* Customer Center */}
-                <div className="space-y-2 md:col-span-1">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    모꼬 고객감동센터
-                  </span>
-                  <p className="text-2xl font-black text-white">1588-0000</p>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
-                    운영시간: 평일 09:00 ~ 18:00<br />
-                    점심시간: 12:00 ~ 13:00<br />
-                    (토·일·공휴일 휴무)
-                  </p>
-                  <div className="pt-1">
+              {/* 이용약관 및 고객안내 (마이모꼬) */}
+              <div className="rounded-3xl bg-white p-6 border border-slate-200/80 shadow-sm space-y-5">
+                <div className="flex items-center justify-between border-b pb-3">
+                  <h4 className="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+                    <ShieldCheck className="h-4 w-4 text-purple-600" />
+                    고객센터 & 약관 및 정책
+                  </h4>
+                  <span className="text-xs text-muted-foreground">100% 에스크로 안전거래 준수</span>
+                </div>
+
+                {/* 고객센터 & 에스크로 정보 요약 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5">
+                    <span className="text-xs font-bold text-slate-700 block">모꼬 고객감동센터</span>
+                    <p className="text-xl font-extrabold text-[#FF3B6B]">1588-0000</p>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      운영시간: 평일 09:00 ~ 18:00 (점심: 12:00 ~ 13:00)<br />
+                      토·일·공휴일 휴무 / 1:1 온라인 문의 상시 접수
+                    </p>
                     <Button
                       onClick={() => {
                         setActiveTab('CHAT')
@@ -3268,153 +3263,110 @@ export default function CustomerWebStorefrontPage() {
                       }}
                       variant="outline"
                       size="sm"
-                      className="bg-slate-900 hover:bg-slate-800 text-white border-slate-700 text-xs h-8 rounded-xl"
+                      className="mt-2 text-xs h-7 rounded-lg border-slate-300 hover:bg-slate-100"
                     >
-                      <PhoneCall className="h-3.5 w-3.5 mr-1" />
+                      <PhoneCall className="h-3 w-3 mr-1" />
                       1:1 온라인 고객문의
                     </Button>
                   </div>
-                </div>
 
-                {/* 100% Escrow Guarantee Notice */}
-                <div className="space-y-2 md:col-span-2 bg-slate-900/90 p-5 rounded-3xl border border-slate-800">
-                  <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
-                    <ShieldCheck className="h-4 w-4" />
-                    <span>토스페이먼츠 구매안전(에스크로) 서비스 적용</span>
-                  </div>
-                  <p className="text-[11px] text-slate-300 leading-relaxed">
-                    모꼬(MOCCO)는 고객님의 안전한 전자상거래를 위해 전자상거래법에 의거, 결제대금예치(에스크로) 서비스를 적용하고 있습니다. 구매자가 물품을 수령하고 최종 구매확정하기 전까지 결제 대금이 제3자 에스크로 계좌에 안전하게 보관되므로 사기 및 미배송 피해를 원천 차단합니다.
-                  </p>
-                  <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
-                    <span>인허가 보증보험 증권번호: 100-24-91823091</span>
-                    <a
-                      href="https://www.ftc.go.kr"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-emerald-400 underline hover:text-emerald-300"
-                    >
-                      서비스 가입사실 확인 &gt;
-                    </a>
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5">
+                    <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                      토스페이먼츠 구매안전(에스크로) 적용
+                    </span>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      구매자가 물품을 수령하고 최종 구매확정하기 전까지 결제 대금이 안전하게 보관됩니다.
+                    </p>
+                    <div className="text-[10px] text-slate-400 pt-1">
+                      <span>인허가 보증보험: 100-24-91823091</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Quick App Download */}
-                <div className="space-y-2 md:col-span-1">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    모바일 모꼬 앱
-                  </span>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    실시간 라이브 방송 알림과 1:1 대화 푸시 메시지를 스마트폰 앱에서 즉시 받아보세요.
-                  </p>
-                  <Button
-                    onClick={() => setIsAppDownloadOpen(true)}
-                    size="sm"
-                    className="w-full bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white font-bold text-xs h-8 rounded-xl shadow-md"
+                {/* 약관 리스트 버튼들 */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                  <button
+                    onClick={() => {
+                      setSelectedLegalSlug('terms-of-service')
+                      setLegalModalOpen(true)
+                    }}
+                    className="p-3 rounded-xl border border-slate-200/80 hover:border-purple-300 hover:bg-purple-50/50 text-xs font-bold text-slate-700 text-center transition-all"
                   >
-                    <QrCode className="h-3.5 w-3.5 mr-1" />
-                    모바일 앱 QR 다운로드
-                  </Button>
+                    서비스 이용약관
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedLegalSlug('privacy-policy')
+                      setLegalModalOpen(true)
+                    }}
+                    className="p-3 rounded-xl border border-rose-200 bg-rose-50/40 hover:bg-rose-50 text-xs font-bold text-[#FF3B6B] text-center transition-all"
+                  >
+                    개인정보처리방침
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedLegalSlug('financial-terms')
+                      setLegalModalOpen(true)
+                    }}
+                    className="p-3 rounded-xl border border-slate-200/80 hover:border-purple-300 hover:bg-purple-50/50 text-xs font-bold text-slate-700 text-center transition-all"
+                  >
+                    전자금융거래 이용약관
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedLegalSlug('youth-protection')
+                      setLegalModalOpen(true)
+                    }}
+                    className="p-3 rounded-xl border border-slate-200/80 hover:border-purple-300 hover:bg-purple-50/50 text-xs font-bold text-slate-700 text-center transition-all"
+                  >
+                    청소년보호정책
+                  </button>
+                </div>
+
+                {/* 통신판매중개자 법적 고지 */}
+                <div className="p-3.5 rounded-xl bg-slate-50 border text-[11px] text-slate-500 leading-relaxed">
+                  <span className="font-bold text-slate-700 block mb-0.5">[통신판매중개자 법적 고지 및 면책 안내]</span>
+                  (주)모꼬글로벌은 통신판매중개자로서 회원 상호 간의 자유로운 상품 매매 및 라이브 방송 거래를 위한 시스템 플랫폼을 운영 및 관리, 제공할 뿐이며, 입점 판매자 및 개별 회원이 등록한 상품/중고물품의 정보, 거래 조건 및 방송 내용에 대하여 일체의 책임을 지지 않습니다. 등록된 모든 재화의 판매 당사자는 등록 회원(판매자) 본인입니다.
                 </div>
               </div>
             </div>
-          </div>
+          )}
+        </main>
 
-          {/* Policy Navigation Links Bar */}
-          <div className="border-b border-slate-800 bg-slate-950/70">
-            <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6">
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
-                <button
-                  onClick={() => {
-                    setSelectedLegalSlug('terms-of-service')
-                    setLegalModalOpen(true)
-                  }}
-                  className="hover:text-white transition-colors"
-                >
-                  서비스 이용약관
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedLegalSlug('privacy-policy')
-                    setLegalModalOpen(true)
-                  }}
-                  className="font-extrabold text-white underline hover:text-pink-400 transition-colors"
-                >
-                  개인정보처리방침
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedLegalSlug('financial-terms')
-                    setLegalModalOpen(true)
-                  }}
-                  className="hover:text-white transition-colors"
-                >
-                  전자금융거래 이용약관
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedLegalSlug('youth-protection')
-                    setLegalModalOpen(true)
-                  }}
-                  className="hover:text-white transition-colors"
-                >
-                  청소년보호정책
-                </button>
-                <a
-                  href="https://www.ftc.go.kr"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-white transition-colors flex items-center gap-1"
-                >
-                  사업자정보확인
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-                <button
-                  onClick={() => {
-                    setActiveTab('MY')
-                  }}
-                  className="hover:text-white transition-colors"
-                >
-                  입점 및 제휴 문의
-                </button>
-              </div>
-            </div>
-          </div>
+        {/* ========================================================= */}
+        {/* 3. Sleek & Minimal Footer (타사 Buzzworks 스타일 준수)       */}
+        {/* ========================================================= */}
+        <footer className="mt-16 bg-[#111111] text-slate-400 text-xs">
+          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-8">
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
+              {/* Left Side: Brand & Company Details */}
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-black tracking-tight text-white">MOCCO</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-[#FF3B6B]">
+                      모꼬
+                    </span>
+                  </div>
+                  <p className="text-sm font-bold text-slate-200 mt-1">주식회사 모꼬글로벌</p>
+                </div>
 
-          {/* Legal Business Information Section (전자상거래법 제10조 제1항 완벽 준수) */}
-          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 space-y-4">
-            <div className="text-[11px] text-slate-400 space-y-1.5 leading-relaxed">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                <span className="font-bold text-slate-200">주식회사 모꼬글로벌 (MOCCO Global Inc.)</span>
-                <span>대표이사: 손준호</span>
-                <span>개인정보보호책임자: 손준호 (privacy@mocco.kr)</span>
+                <div className="space-y-1.5 text-xs text-slate-400 leading-relaxed font-light">
+                  <p>서울시 강남구 테헤란로 152 강남파이낸스센터 12층</p>
+                  <p>TEL. 1588-0000 / FAX. 02-123-4567</p>
+                  <p>E-MAIL. SUPPORT@MOCCO.KR</p>
+                  <p className="text-[11px] text-slate-500 pt-1">
+                    사업자등록번호: 123-86-12345 | 대표: 손준호 | 통신판매업신고: 제 2026-서울강남-0123 호
+                  </p>
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                <span>사업자등록번호: 123-86-12345</span>
-                <span>통신판매업신고번호: 제 2026-서울강남-0123 호</span>
-                <span>호스팅 서비스 제공자: 주식회사 모꼬글로벌</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                <span>사업장 소재지: 서울특별시 강남구 테헤란로 152 강남파이낸스센터 12층</span>
-                <span>대표전화: 1588-0000</span>
-                <span>팩스: 02-123-4567</span>
-                <span>대표 이메일: support@mocco.kr</span>
-              </div>
-            </div>
 
-            {/* 통신판매중개자 법적 고지 (전자상거래법 제20조 제2항 준수) */}
-            <div className="rounded-2xl bg-slate-900 p-4 border border-slate-800 text-[10px] text-slate-400 leading-relaxed">
-              <span className="font-bold text-slate-300 block mb-0.5">
-                [통신판매중개자 법적 고지 및 면책 안내]
-              </span>
-              (주)모꼬글로벌은 통신판매중개자로서 회원 상호 간의 자유로운 상품 매매 및 라이브 방송 거래를 위한 시스템 플랫폼을 운영 및 관리, 제공할 뿐이며, 입점 판매자 및 개별 회원이 등록한 상품/중고물품의 정보, 거래 조건 및 방송 내용에 대하여 일체의 책임을 지지 않습니다. 등록된 모든 재화의 판매 당사자는 등록 회원(판매자) 본인입니다. 단, (주)모꼬글로벌이 직접 매입하여 공급하는 [본사 직영] 표시 상품의 경우 통신판매당사자로서 책임을 부담합니다.
-            </div>
-
-            {/* Copyright */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-800/80">
-              <p>Copyright © 2026 MOCCO Global Inc. All rights reserved.</p>
-              <p className="text-[10px] text-slate-500 mt-1 sm:mt-0">
-                모꼬(MOCCO)는 특허청에 상표 등록된 고유 지식재산권 플랫폼입니다.
-              </p>
+              {/* Right Side: Copyright */}
+              <div className="md:text-right shrink-0 space-y-1 text-slate-500 text-xs tracking-wider font-medium">
+                <p>COPYRIGHT (C) MOCCO GLOBAL INC.</p>
+                <p>ALL RIGHTS RESERVED.</p>
+              </div>
             </div>
           </div>
         </footer>
