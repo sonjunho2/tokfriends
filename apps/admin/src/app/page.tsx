@@ -61,6 +61,12 @@ import {
   Wifi,
   ArrowLeft,
   Phone,
+  Camera,
+  Ban,
+  Play,
+  Trash2,
+  Sliders,
+  Bell,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -1213,6 +1219,83 @@ export default function CustomerWebStorefrontPage() {
   const [liveGiftCategory, setLiveGiftCategory] = useState<'all' | 'mocco_special' | 'mocco_vip'>('all')
   const [isLiveMuted, setIsLiveMuted] = useState(false)
   const [floatingHearts, setFloatingHearts] = useState<{ id: number; color: string; left: number }[]>([])
+
+  // ==========================================
+  // 마이모꼬 (MY) 모바일 완전 동기화 상태들
+  // ==========================================
+  const [sellerRevenue, setSellerRevenue] = useState(185000)
+  const [userAge, setUserAge] = useState(26)
+  const [userGender, setUserGender] = useState<'여' | '남'>('여')
+  const [userHeadline, setUserHeadline] = useState('동네 친구들과 따뜻하고 즐거운 소통 나누고 싶어요 ✨')
+  const [chatRoomRate, setChatRoomRate] = useState(300)
+  const [videoCallRate, setVideoCallRate] = useState(1000)
+  const [notifyChat, setNotifyChat] = useState(true)
+  const [notifyLive, setNotifyLive] = useState(true)
+  const [notifyNightLimit, setNotifyNightLimit] = useState(false)
+  const [cacheSize, setCacheSize] = useState('24.5 MB')
+  const [blockedUsers, setBlockedUsers] = useState(['광고스팸러99', '불량유저01'])
+
+  // 마이모꼬 모달 상태
+  const [isProfileEditOpen, setIsProfileEditOpen] = useState(false)
+  const [isRateSettingOpen, setIsRateSettingOpen] = useState(false)
+  const [isNotifySettingOpen, setIsNotifySettingOpen] = useState(false)
+  const [isBlockedUsersOpen, setIsBlockedUsersOpen] = useState(false)
+  const [isSafetyCenterOpen, setIsSafetyCenterOpen] = useState(false)
+  const [isCustomerInquiryOpen, setIsCustomerInquiryOpen] = useState(false)
+  const [isRewardAdOpen, setIsRewardAdOpen] = useState(false)
+  const [rewardAdCountdown, setRewardAdCountdown] = useState(3)
+  const [myTradeTab, setMyTradeTab] = useState<'WISHLIST' | 'SALES' | 'ORDERS'>('SALES')
+
+  // 1:1 고객문의 폼
+  const [inquiryType, setInquiryType] = useState('거래/결제/정산 문의')
+  const [inquiryContact, setInquiryContact] = useState('010-9876-5432')
+  const [inquiryContent, setInquiryContent] = useState('')
+
+  // 환전/출금 폼
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false)
+  const [withdrawBank, setWithdrawBank] = useState('국민은행')
+  const [withdrawAccount, setWithdrawAccount] = useState('123-45-678901')
+  const [withdrawHolder, setWithdrawHolder] = useState('김모꼬')
+  const [withdrawAmount, setWithdrawAmount] = useState('100000')
+
+  // 관심목록 & 구매내역
+  const [myWishlist, setMyWishlist] = useState([
+    {
+      id: 'w-1',
+      title: '소니 WH-1000XM5 노이즈캔슬링 무선 헤드폰',
+      price: 320000,
+      image: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=400',
+      category: '디지털/가전',
+      seller: '헤드폰마니아',
+    },
+    {
+      id: 'w-2',
+      title: '[산지직송] 제주도 특급 흑돼지 & 한라봉 세트',
+      price: 49900,
+      image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=400',
+      category: '신선식품',
+      seller: '제주푸드 본사 직영',
+    },
+  ])
+
+  const [myOrdersList, setMyOrdersList] = useState([
+    {
+      id: 'ord-101',
+      title: '소니 WH-1000XM5 노이즈캔슬링 무선 헤드폰',
+      price: 320000,
+      image: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=400',
+      statusText: '에스크로 결제완료 (배송준비중)',
+      date: '2026-10-29',
+      seller: '헤드폰마니아',
+    },
+  ])
+
+  // 대표 갤러리 슬롯 (최대 9장)
+  const [galleryPhotos, setGalleryPhotos] = useState<string[]>([
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+    'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500',
+    'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500',
+  ])
 
   // Used Product Register Modal
   const [isNewUsedModalOpen, setIsNewUsedModalOpen] = useState(false)
@@ -4405,24 +4488,169 @@ export default function CustomerWebStorefrontPage() {
             </div>
           )}
 
-          {/* TAB 5: 👤 마이모꼬 (MY) - 프로필, ON포인트, 승격신청, 관리자 */}
+          {/* TAB 5: 👤 마이모꼬 (MY) - 모바일 앱 기능 100% 동기화 + 웹 전용 4대 비즈니스/크리에이터 센터 */}
           {/* ======================================================= */}
           {activeTab === 'MY' && (
-            <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-200">
-              {/* Profile Card */}
-              <div className="rounded-3xl bg-white p-6 border border-slate-200/80 shadow-sm space-y-5">
+            <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in duration-200">
+              
+              {/* [🌟 웹 전용 4대 비즈니스 & 크리에이터 센터] - 웹만의 전용 기능 */}
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 p-6 sm:p-7 text-white shadow-xl border border-indigo-900/50 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-2.5 w-2.5 rounded-full bg-pink-500 animate-ping" />
+                      <Badge className="bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] text-white font-extrabold px-2.5 py-0.5 border-none text-[11px] shadow-sm">
+                        WEB ONLY SPECIAL
+                      </Badge>
+                      <span className="text-xs text-indigo-300 font-semibold">
+                        비즈니스 파트너 & 공식 크리에이터 전용 웹 게이트웨이
+                      </span>
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                      <span>모꼬 비즈니스 파트너 & 크리에이터 센터</span>
+                      <Sparkles className="h-4 w-4 text-amber-400" />
+                    </h3>
+                  </div>
+
+                  {role === 'ADMIN' && (
+                    <Button
+                      asChild
+                      className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs h-9 px-3.5 rounded-xl shadow-lg shrink-0"
+                    >
+                      <Link href="/dashboard">
+                        <Crown className="h-4 w-4 mr-1.5 text-slate-950" />
+                        👑 회사 총괄 운영진 콘솔
+                        <ExternalLink className="h-3 w-3 ml-1 opacity-80" />
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+
+                {/* 4대 전용 기능 그리드 (1. 입점사신청 / 2. 크리에이터신청 / 3. 입점사관리자 / 4. 크리에이터관리자) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1">
+                  {/* (1) 🏪 입점사 신청 */}
+                  <div className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 transition-all flex flex-col justify-between space-y-3">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl">🏪</span>
+                        <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-bold">
+                          입점 파트너
+                        </Badge>
+                      </div>
+                      <h4 className="font-extrabold text-sm text-white">입점사 신청</h4>
+                      <p className="text-[11px] text-slate-300 leading-snug">
+                        사업자 등록 후 공식 입점사 승격! 대량 직영 상품 판매 및 에스크로 정산 혜택
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => requireAuth(() => openMerchantModal())}
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-8 rounded-xl shadow-sm"
+                    >
+                      <Building2 className="h-3.5 w-3.5 mr-1" />
+                      입점사 신청하기
+                    </Button>
+                  </div>
+
+                  {/* (2) 🎙️ 크리에이터 신청 */}
+                  <div className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 transition-all flex flex-col justify-between space-y-3">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl">🎙️</span>
+                        <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[9px] font-bold">
+                          인플루언서
+                        </Badge>
+                      </div>
+                      <h4 className="font-extrabold text-sm text-white">크리에이터 신청</h4>
+                      <p className="text-[11px] text-slate-300 leading-snug">
+                        라이브 방송 송출, 실시간 커머스 상품 핀 연동 및 판매 수수료 커미션 획득
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => requireAuth(() => openCreatorModal())}
+                      className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs h-8 rounded-xl shadow-sm"
+                    >
+                      <Mic className="h-3.5 w-3.5 mr-1" />
+                      크리에이터 신청하기
+                    </Button>
+                  </div>
+
+                  {/* (3) 💼 입점사 관리자 (셀러 센터) */}
+                  <div className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 transition-all flex flex-col justify-between space-y-3">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl">💼</span>
+                        <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[9px] font-bold">
+                          셀러 콘솔
+                        </Badge>
+                      </div>
+                      <h4 className="font-extrabold text-sm text-white">입점사 관리자</h4>
+                      <p className="text-[11px] text-slate-300 leading-snug">
+                        입점 상품 등록/수정, 주문 배송 처리, 송장 입력, 매출 정산금 출금 관리
+                      </p>
+                    </div>
+                    <Button
+                      asChild
+                      className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white font-bold text-xs h-8 rounded-xl shadow-sm"
+                    >
+                      <Link href="/seller">
+                        <Store className="h-3.5 w-3.5 mr-1" />
+                        셀러센터 바로가기
+                        <ExternalLink className="h-3 w-3 ml-1 opacity-70" />
+                      </Link>
+                    </Button>
+                  </div>
+
+                  {/* (4) 🎬 크리에이터 관리자 (스튜디오 콘솔) */}
+                  <div className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 transition-all flex flex-col justify-between space-y-3">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl">🎬</span>
+                        <Badge className="bg-pink-500/20 text-pink-300 border border-pink-500/30 text-[9px] font-bold">
+                          스튜디오
+                        </Badge>
+                      </div>
+                      <h4 className="font-extrabold text-sm text-white">크리에이터 관리자</h4>
+                      <p className="text-[11px] text-slate-300 leading-snug">
+                        라이브 방송 편성, 단독 핀 특가 상품 매칭, 실시간 시청자/선물 후원 분석
+                      </p>
+                    </div>
+                    <Button
+                      asChild
+                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-95 text-white font-bold text-xs h-8 rounded-xl shadow-sm"
+                    >
+                      <Link href="/streamer">
+                        <Radio className="h-3.5 w-3.5 mr-1" />
+                        스튜디오 바로가기
+                        <ExternalLink className="h-3 w-3 ml-1 opacity-70" />
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* [모바일 앱 100% 동일] (1) 프로필 카드 */}
+              <div className="rounded-3xl bg-white p-6 border border-slate-200/80 shadow-xs space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <img
-                      src={user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500'}
-                      alt="avatar"
-                      className="h-16 w-16 rounded-full object-cover border-2 border-pink-200 shadow-sm"
-                    />
-                    <div>
+                    <div className="relative group cursor-pointer" onClick={() => setIsProfileEditOpen(true)}>
+                      <img
+                        src={user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500'}
+                        alt="avatar"
+                        className="h-16 w-16 rounded-full object-cover border-2 border-pink-300 shadow-sm"
+                      />
+                      <span className="absolute bottom-0 right-0 h-5 w-5 rounded-full bg-slate-900 border-2 border-white text-white flex items-center justify-center">
+                        <Camera className="h-3 w-3" />
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-extrabold text-slate-900">
+                        <h3 className="text-lg font-black text-slate-900">
                           {user?.nickname || '모꼬이웃'}
                         </h3>
+                        <Badge className="bg-pink-100 text-pink-700 border-pink-200 font-extrabold text-[10px] px-2 py-0">
+                          {userAge}세 · {userGender === '여' ? '여성' : '남성'}
+                        </Badge>
                         <Badge
                           className={`text-[10px] font-bold ${
                             role === 'ADMIN'
@@ -4443,290 +4671,542 @@ export default function CustomerWebStorefrontPage() {
                             : '일반회원'}
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {currentLocation} · 매너온도 36.5℃
-                      </p>
-                      <p className="text-xs text-slate-600 italic mt-1">
-                        &quot;동네 친구들과 따뜻하고 즐거운 소통 나누고 싶어요 ✨&quot;
+
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1 font-semibold text-slate-700">
+                          <MapPin className="h-3 w-3 text-rose-500" />
+                          {currentLocation}
+                        </span>
+                        <span>·</span>
+                        <span className="text-rose-600 font-bold">매너온도 36.5℃</span>
+                      </div>
+
+                      <p className="text-xs text-slate-600 italic">
+                        &quot;{userHeadline}&quot;
                       </p>
                     </div>
                   </div>
 
-                  {!isAuthenticated ? (
+                  <div className="flex items-center gap-2 shrink-0">
                     <Button
-                      onClick={() => openLoginModal()}
-                      className="bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold text-xs rounded-xl"
-                    >
-                      <LogIn className="h-4 w-4 mr-1.5" />
-                      로그인 / 회원가입
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={logout}
+                      onClick={() => setIsProfileEditOpen(true)}
                       variant="outline"
                       size="sm"
-                      className="text-xs text-slate-600 hover:text-rose-600 rounded-xl"
+                      className="text-xs h-9 px-3.5 rounded-xl border-slate-300 font-bold"
                     >
-                      <LogOut className="h-3.5 w-3.5 mr-1" />
-                      로그아웃
+                      프로필 수정
                     </Button>
-                  )}
+
+                    {!isAuthenticated ? (
+                      <Button
+                        onClick={() => openLoginModal()}
+                        className="bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold text-xs rounded-xl h-9 px-4"
+                      >
+                        <LogIn className="h-4 w-4 mr-1.5" />
+                        로그인 / 가입
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={logout}
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-slate-500 hover:text-rose-600 h-9 rounded-xl"
+                      >
+                        <LogOut className="h-4 w-4 mr-1" />
+                        로그아웃
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
-                {/* Point & Settlement Balance Dashboard */}
-                <div className="grid grid-cols-2 gap-3 pt-2">
-                  <div className="bg-pink-50/70 p-4 rounded-2xl border border-pink-100 space-y-1">
-                    <span className="text-xs font-bold text-pink-700 flex items-center gap-1">
-                      <Coins className="h-4 w-4" />
-                      내 보유 ON 포인트
-                    </span>
-                    <p className="text-xl font-black text-pink-900">
-                      {(user?.pointBalance || 0).toLocaleString()} P
-                    </p>
-                    <span className="text-[10px] text-pink-600 block">
-                      라이브 후원 & 1:1 대화 & 마켓 결제 사용 가능
-                    </span>
+                {/* [모바일 앱 100% 동일] (2) 지갑 대시보드 (모꼬 포인트 & 판매 정산금) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                  {/* 🪙 모꼬 포인트 지갑 */}
+                  <div className="bg-pink-50/70 p-4 rounded-2xl border border-pink-100 space-y-2 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-base">🪙</span>
+                        <span className="text-xs font-black text-pink-900">모꼬 포인트</span>
+                        <Badge className="bg-pink-200/60 text-pink-800 text-[9px] px-1.5 py-0 font-bold">
+                          소통·후원
+                        </Badge>
+                      </div>
+                      <Button
+                        onClick={() => {
+                          setMyPoints((prev) => prev + 10000)
+                          toast({
+                            title: '🎉 모꼬 포인트 10,000 ON 무료 충전 완료!',
+                            description: '채팅 및 라이브 3D 선물에 자유롭게 사용하세요.',
+                          })
+                        }}
+                        size="sm"
+                        className="bg-pink-600 hover:bg-pink-700 text-white font-extrabold text-[11px] h-7 px-3 rounded-lg shadow-xs"
+                      >
+                        + 충전하기
+                      </Button>
+                    </div>
+
+                    <div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black text-pink-950">
+                          {myPoints.toLocaleString()}
+                        </span>
+                        <span className="text-sm font-bold text-pink-800">P</span>
+                      </div>
+                      <p className="text-[10px] text-pink-700 mt-0.5">
+                        라이브 방송 후원, 1:1 대화 및 3D 모꼬 선물 교환 시 사용
+                      </p>
+                    </div>
+
+                    <div className="pt-1 border-t border-pink-200/60 flex items-center justify-end">
+                      <button
+                        onClick={() => setIsWithdrawOpen(true)}
+                        className="text-[11px] font-bold text-pink-700 hover:underline flex items-center"
+                      >
+                        환전 신청 ›
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="bg-slate-50 p-4 rounded-2xl border space-y-1">
-                    <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                      <Wallet className="h-4 w-4" />
-                      판매 정산금 잔액
-                    </span>
-                    <p className="text-xl font-black text-slate-900">
-                      185,000 원
-                    </p>
-                    <span className="text-[10px] text-muted-foreground block">
-                      중고거래 및 마켓 판매 정산금 (출금 신청 가능)
-                    </span>
+                  {/* 💵 판매 정산금 지갑 */}
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-base">💵</span>
+                        <span className="text-xs font-black text-slate-800">판매 정산금 (원)</span>
+                        <Badge className="bg-slate-200 text-slate-700 text-[9px] px-1.5 py-0 font-bold">
+                          안전정산
+                        </Badge>
+                      </div>
+                      <Button
+                        onClick={() => setIsWithdrawOpen(true)}
+                        size="sm"
+                        variant="outline"
+                        className="border-slate-300 text-slate-700 hover:bg-slate-100 font-extrabold text-[11px] h-7 px-3 rounded-lg"
+                      >
+                        정산 / 출금
+                      </Button>
+                    </div>
+
+                    <div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black text-slate-900">
+                          {sellerRevenue.toLocaleString()}
+                        </span>
+                        <span className="text-sm font-bold text-slate-600">원</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        중고거래 및 마켓 상품 판매 완료 시 계좌로 출금 가능
+                      </p>
+                    </div>
+
+                    <div className="pt-1 border-t border-slate-200 flex items-center justify-end">
+                      <button
+                        onClick={() => setIsWithdrawOpen(true)}
+                        className="text-[11px] font-bold text-slate-600 hover:underline flex items-center"
+                      >
+                        계좌 출금 신청 ›
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* [모바일 앱 100% 동일] (3) 🎬 무료 모꼬 포인트 충전소 (리워드 광고) */}
+                <div
+                  onClick={() => {
+                    setIsRewardAdOpen(true)
+                    setRewardAdCountdown(3)
+                    const timer = setInterval(() => {
+                      setRewardAdCountdown((prev) => {
+                        if (prev <= 1) {
+                          clearInterval(timer)
+                          setMyPoints((p) => p + 10)
+                          toast({
+                            title: '🎉 리워드 보상 적립 완료!',
+                            description: '스폰서 광고 시청 보상으로 +10 ON이 충전되었습니다.',
+                          })
+                          setTimeout(() => setIsRewardAdOpen(false), 500)
+                          return 0
+                        }
+                        return prev - 1
+                      })
+                    }, 1000)
+                  }}
+                  className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 p-4 text-white shadow-md cursor-pointer hover:shadow-lg transition-all flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center text-xl">
+                      🎬
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h5 className="font-extrabold text-xs sm:text-sm">무료 모꼬 포인트 충전소</h5>
+                        <Badge className="bg-amber-400 text-slate-950 text-[10px] font-black px-1.5 py-0 border-none">
+                          +10 P
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-violet-100 mt-0.5">
+                        스폰서 광고를 시청하고 실시간 선물용 무료 포인트를 충전하세요!
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="bg-white text-indigo-700 hover:bg-slate-100 font-black text-xs h-8 px-3.5 rounded-xl shrink-0"
+                  >
+                    <Play className="h-3 w-3 mr-1 fill-indigo-700" />
+                    충전
+                  </Button>
+                </div>
+
+                {/* [모바일 앱 100% 동일] (4) 소셜 팔로워 / 팔로잉 듀얼 카드 */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3.5 rounded-2xl border bg-slate-50/70 text-center hover:bg-slate-100 transition-colors cursor-pointer">
+                    <span className="text-lg font-black text-slate-900 block">128</span>
+                    <span className="text-xs font-semibold text-slate-500">팔로워</span>
+                  </div>
+                  <div className="p-3.5 rounded-2xl border bg-slate-50/70 text-center hover:bg-slate-100 transition-colors cursor-pointer">
+                    <span className="text-lg font-black text-slate-900 block">42</span>
+                    <span className="text-xs font-semibold text-slate-500">팔로잉</span>
                   </div>
                 </div>
               </div>
 
-              {/* Core Role Promotion & Dedicated Admin Gateways */}
-              <div className="space-y-3">
-                <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
-                  <Sparkles className="h-4 w-4 text-amber-500" />
-                  회원 권한 승격 & 전용 관리자 바로가기
-                </h4>
+              {/* [모바일 앱 100% 동일] (5) 🛍️ 마켓 & 중고거래 관리 (3대 세그먼트) */}
+              <div className="rounded-3xl bg-white p-6 border border-slate-200/80 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
+                  <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
+                    <Package className="h-4 w-4 text-orange-500" />
+                    🛍️ 마켓 & 중고거래 관리
+                  </h4>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Merchant Promotion / Access Card */}
-                  <div className="p-4 rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50/60 to-white space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 font-bold">
-                        🏪
-                      </div>
-                      <div>
-                        <h5 className="font-bold text-sm text-slate-900">
-                          모꼬 입점사(판매자)
-                        </h5>
-                        <p className="text-[11px] text-muted-foreground">
-                          자체 상품 등록, 주문 배송 관리 및 판매 정산
-                        </p>
-                      </div>
-                    </div>
-
-                    {role === 'MERCHANT' || role === 'ADMIN' ? (
-                      <Button
-                        asChild
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 shadow-xs rounded-xl"
-                      >
-                        <Link href="/seller">
-                          <Store className="h-3.5 w-3.5 mr-1.5" />
-                          🏪 입점사 셀러 센터 이동하기
-                          <ExternalLink className="h-3 w-3 ml-1" />
-                        </Link>
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={() => requireAuth(() => openMerchantModal())}
-                        variant="outline"
-                        className="w-full border-emerald-300 text-emerald-700 hover:bg-emerald-50 font-bold text-xs h-9 rounded-xl"
-                      >
-                        <Building2 className="h-3.5 w-3.5 mr-1.5" />
-                        입점사 신청하기 (사업자 등록)
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Creator Promotion / Access Card */}
-                  <div className="p-4 rounded-3xl border border-purple-100 bg-gradient-to-br from-purple-50/60 to-white space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 text-purple-700 font-bold">
-                        🎙️
-                      </div>
-                      <div>
-                        <h5 className="font-bold text-sm text-slate-900">
-                          공식 크리에이터
-                        </h5>
-                        <p className="text-[11px] text-muted-foreground">
-                          라이브커머스 핀 상품 연동 및 판매 커미션 정산
-                        </p>
-                      </div>
-                    </div>
-
-                    {role === 'CREATOR' || role === 'ADMIN' ? (
-                      <Button
-                        asChild
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs h-9 shadow-xs rounded-xl"
-                      >
-                        <Link href="/streamer">
-                          <Radio className="h-3.5 w-3.5 mr-1.5" />
-                          🎙️ 크리에이터 스튜디오 이동하기
-                          <ExternalLink className="h-3 w-3 ml-1" />
-                        </Link>
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={() => requireAuth(() => openCreatorModal())}
-                        variant="outline"
-                        className="w-full border-purple-300 text-purple-700 hover:bg-purple-50 font-bold text-xs h-9 rounded-xl"
-                      >
-                        <Mic className="h-3.5 w-3.5 mr-1.5" />
-                        크리에이터 신청하기 (소통·커머스)
-                      </Button>
-                    )}
+                  {/* 세그먼트 탭 버튼 */}
+                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                    <button
+                      onClick={() => setMyTradeTab('WISHLIST')}
+                      className={`px-3 py-1.5 rounded-lg transition-all ${
+                        myTradeTab === 'WISHLIST'
+                          ? 'bg-white text-pink-600 shadow-2xs font-black'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      관심목록 ({myWishlist.length})
+                    </button>
+                    <button
+                      onClick={() => setMyTradeTab('SALES')}
+                      className={`px-3 py-1.5 rounded-lg transition-all ${
+                        myTradeTab === 'SALES'
+                          ? 'bg-white text-orange-600 shadow-2xs font-black'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      판매관리 ({mySalesList.length})
+                    </button>
+                    <button
+                      onClick={() => setMyTradeTab('ORDERS')}
+                      className={`px-3 py-1.5 rounded-lg transition-all ${
+                        myTradeTab === 'ORDERS'
+                          ? 'bg-white text-indigo-600 shadow-2xs font-black'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      구매/예약내역 ({myOrdersList.length})
+                    </button>
                   </div>
                 </div>
 
-                {/* Company Super Admin Console Card (Admins Only) */}
-                {role === 'ADMIN' && (
-                  <div className="p-4 rounded-3xl border border-amber-300 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Crown className="h-5 w-5 text-amber-600" />
-                        <div>
-                          <h5 className="font-bold text-sm text-slate-900">
-                            👑 회사 총괄 운영진 관리자 콘솔
-                          </h5>
-                          <p className="text-[11px] text-muted-foreground">
-                            전체 회원 권한 심사, 입점 승인, 크리에이터 심사 및 결제 정산 통합 관리
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        asChild
-                        className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs h-8 rounded-xl"
+                {/* 탭별 내용 */}
+                {myTradeTab === 'WISHLIST' && (
+                  <div className="space-y-2.5">
+                    {myWishlist.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between p-3 rounded-2xl border bg-slate-50/50 hover:bg-slate-50 transition-colors"
                       >
-                        <Link href="/dashboard">
-                          콘솔 접속
-                          <ExternalLink className="h-3 w-3 ml-1" />
-                        </Link>
+                        <div className="flex items-center gap-3">
+                          <img src={item.image} alt="wish" className="h-12 w-12 rounded-xl object-cover" />
+                          <div>
+                            <span className="text-[10px] text-muted-foreground block">{item.seller}</span>
+                            <h5 className="font-bold text-xs text-slate-900 line-clamp-1">{item.title}</h5>
+                            <span className="font-black text-xs text-slate-900">{item.price.toLocaleString()}원</span>
+                          </div>
+                        </div>
+                        <Button
+                          onClick={() => {
+                            setCheckoutTarget({
+                              title: item.title,
+                              price: item.price,
+                              shippingFee: 3000,
+                              image: item.image,
+                            })
+                            setIsCheckoutOpen(true)
+                          }}
+                          size="sm"
+                          className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs h-8 px-3 rounded-xl"
+                        >
+                          바로구매
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {myTradeTab === 'SALES' && (
+                  <div className="space-y-3">
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={() => requireAuth(() => setIsNewUsedModalOpen(true))}
+                        size="sm"
+                        className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs h-8 px-3 rounded-xl"
+                      >
+                        + 새 중고 물품 등록
                       </Button>
                     </div>
+                    {mySalesList.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between p-3.5 rounded-2xl border bg-slate-50/50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <img src={item.image} alt="sale" className="h-12 w-12 rounded-xl object-cover" />
+                          <div>
+                            <h5 className="font-bold text-xs text-slate-900">{item.title}</h5>
+                            <span className="font-extrabold text-xs text-slate-900">
+                              {item.price.toLocaleString()}원
+                            </span>
+                          </div>
+                        </div>
+                        <Badge
+                          className={`text-[10px] font-bold ${
+                            item.status === 'ACTIVE'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {item.statusLabel}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {myTradeTab === 'ORDERS' && (
+                  <div className="space-y-2.5">
+                    {myOrdersList.map((order) => (
+                      <div
+                        key={order.id}
+                        className="flex items-center justify-between p-3 rounded-2xl border bg-slate-50/50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <img src={order.image} alt="order" className="h-12 w-12 rounded-xl object-cover" />
+                          <div>
+                            <span className="text-[10px] text-emerald-600 font-bold block">{order.statusText}</span>
+                            <h5 className="font-bold text-xs text-slate-900 line-clamp-1">{order.title}</h5>
+                            <span className="font-black text-xs text-slate-900">{order.price.toLocaleString()}원 · {order.date}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            onClick={() => {
+                              setActiveTab('CHAT')
+                              setChatSubTab('CHATS')
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-8 px-3 rounded-xl font-bold"
+                          >
+                            판매자와 대화
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
 
-              {/* My Sales Management */}
-              <div className="rounded-3xl bg-white p-6 border border-slate-200/80 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-sm text-slate-900 flex items-center gap-1.5">
-                    <Package className="h-4 w-4 text-orange-500" />
-                    내 중고 판매 관리
-                  </h4>
-                  <Button
-                    onClick={() => {
-                      requireAuth(() => setIsNewUsedModalOpen(true))
-                    }}
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-orange-600 font-bold"
-                  >
-                    + 새 상품 등록
-                  </Button>
-                </div>
+              {/* [모바일 앱 100% 동일] (6) 소셜 & 크리에이터 설정 (3대 메뉴) */}
+              <div className="rounded-3xl bg-white p-6 border border-slate-200/80 shadow-xs space-y-4">
+                <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5 border-b pb-3">
+                  <Sliders className="h-4 w-4 text-purple-600" />
+                  소셜 & 크리에이터 설정
+                </h4>
 
-                <div className="space-y-3">
-                  {mySalesList.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between p-3.5 rounded-2xl border bg-slate-50/50"
-                    >
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={item.image}
-                          alt="item"
-                          className="h-12 w-12 rounded-xl object-cover"
-                        />
-                        <div>
-                          <h5 className="font-bold text-xs text-slate-900">{item.title}</h5>
-                          <span className="font-extrabold text-xs text-slate-900">
-                            {item.price.toLocaleString()}원
-                          </span>
-                        </div>
+                <div className="divide-y divide-slate-100">
+                  {/* 대표 갤러리 관리 */}
+                  <div className="py-3.5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h5 className="font-bold text-xs text-slate-900">대표 갤러리 관리 (최대 9장)</h5>
+                        <p className="text-[11px] text-muted-foreground">매칭 및 바텀시트에 노출될 대표 프로필 사진</p>
                       </div>
-
-                      <Badge
-                        className={`text-[10px] font-bold ${
-                          item.status === 'ACTIVE'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-amber-100 text-amber-800'
-                        }`}
-                      >
-                        {item.statusLabel}
-                      </Badge>
+                      <span className="text-xs font-bold text-pink-600">{galleryPhotos.length} / 9장</span>
                     </div>
-                  ))}
-                </div>
-              </div>
 
-              {/* 이용약관 및 고객안내 (마이모꼬) */}
-              <div className="rounded-3xl bg-white p-6 border border-slate-200/80 shadow-sm space-y-5">
-                <div className="flex items-center justify-between border-b pb-3">
-                  <h4 className="font-bold text-sm text-slate-900 flex items-center gap-1.5">
-                    <ShieldCheck className="h-4 w-4 text-purple-600" />
-                    고객센터 & 약관 및 정책
-                  </h4>
-                  <span className="text-xs text-muted-foreground">100% 에스크로 안전거래 준수</span>
-                </div>
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                      {galleryPhotos.map((url, i) => (
+                        <div key={i} className="relative h-16 w-16 rounded-xl overflow-hidden border shrink-0 group">
+                          <img src={url} alt="gal" className="h-full w-full object-cover" />
+                          <button
+                            onClick={() => setGalleryPhotos((p) => p.filter((_, idx) => idx !== i))}
+                            className="absolute top-1 right-1 h-4 w-4 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </div>
+                      ))}
+                      {galleryPhotos.length < 9 && (
+                        <button
+                          onClick={() => {
+                            setGalleryPhotos((p) => [
+                              ...p,
+                              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+                            ])
+                            toast({ title: '사진 추가 완료', description: '대표 갤러리에 새 사진이 추가되었습니다.' })
+                          }}
+                          className="h-16 w-16 rounded-xl border-2 border-dashed border-slate-200 hover:border-pink-300 flex flex-col items-center justify-center text-slate-400 hover:text-pink-600 shrink-0 transition-colors"
+                        >
+                          <PlusCircle className="h-5 w-5" />
+                          <span className="text-[9px] font-bold mt-0.5">추가</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
 
-                {/* 고객센터 & 에스크로 정보 요약 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5">
-                    <span className="text-xs font-bold text-slate-700 block">모꼬 고객감동센터</span>
-                    <p className="text-xl font-extrabold text-[#FF3B6B]">1588-0000</p>
-                    <p className="text-[11px] text-slate-500 leading-relaxed">
-                      운영시간: 평일 09:00 ~ 18:00 (점심: 12:00 ~ 13:00)<br />
-                      토·일·공휴일 휴무 / 1:1 온라인 문의 상시 접수
-                    </p>
+                  {/* 1:1 대화 및 영상 단가설정 */}
+                  <div className="py-3.5 flex items-center justify-between">
+                    <div>
+                      <h5 className="font-bold text-xs text-slate-900">1:1 대화 및 영상 단가설정</h5>
+                      <p className="text-[11px] text-muted-foreground">
+                        현재 설정: 채팅 건당 {chatRoomRate} P / 영상 분당 {videoCallRate} P
+                      </p>
+                    </div>
                     <Button
-                      onClick={() => {
-                        setActiveTab('CHAT')
-                        setChatSubTab('CHATS')
-                      }}
-                      variant="outline"
+                      onClick={() => setIsRateSettingOpen(true)}
                       size="sm"
-                      className="mt-2 text-xs h-7 rounded-lg border-slate-300 hover:bg-slate-100"
+                      variant="outline"
+                      className="text-xs h-8 px-3 rounded-xl font-bold"
                     >
-                      <PhoneCall className="h-3 w-3 mr-1" />
-                      1:1 온라인 고객문의
+                      단가 설정
                     </Button>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5">
-                    <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                      토스페이먼츠 구매안전(에스크로) 적용
-                    </span>
-                    <p className="text-[11px] text-slate-500 leading-relaxed">
-                      구매자가 물품을 수령하고 최종 구매확정하기 전까지 결제 대금이 안전하게 보관됩니다.
-                    </p>
-                    <div className="text-[10px] text-slate-400 pt-1">
-                      <span>인허가 보증보험: 100-24-91823091</span>
+                  {/* 알림 수신 설정 */}
+                  <div className="py-3.5 flex items-center justify-between">
+                    <div>
+                      <h5 className="font-bold text-xs text-slate-900">알림 수신 설정</h5>
+                      <p className="text-[11px] text-muted-foreground">
+                        채팅 알림({notifyChat ? 'ON' : 'OFF'}), 관심 LIVE({notifyLive ? 'ON' : 'OFF'}), 야간 알림 제한({notifyNightLimit ? 'ON' : 'OFF'})
+                      </p>
                     </div>
+                    <Button
+                      onClick={() => setIsNotifySettingOpen(true)}
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-8 px-3 rounded-xl font-bold"
+                    >
+                      알림 맞춤설정
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* [모바일 앱 100% 동일] (7) 안심 보호 & 고객지원 (4대 메뉴) */}
+              <div className="rounded-3xl bg-white p-6 border border-slate-200/80 shadow-xs space-y-4">
+                <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5 border-b pb-3">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                  안심 보호 & 고객지원
+                </h4>
+
+                <div className="divide-y divide-slate-100">
+                  {/* 내가 차단한 회원 관리 */}
+                  <div className="py-3.5 flex items-center justify-between">
+                    <div>
+                      <h5 className="font-bold text-xs text-slate-900">내가 차단한 회원 관리</h5>
+                      <p className="text-[11px] text-muted-foreground">
+                        차단 회원 목록 ({blockedUsers.length}명) 및 차단 해제 설정
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setIsBlockedUsersOpen(true)}
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-8 px-3 rounded-xl font-bold text-rose-600 border-rose-200 hover:bg-rose-50"
+                    >
+                      차단 목록 관리
+                    </Button>
+                  </div>
+
+                  {/* 임시 캐시 및 저장공간 정리 */}
+                  <div className="py-3.5 flex items-center justify-between">
+                    <div>
+                      <h5 className="font-bold text-xs text-slate-900">임시 캐시 및 저장공간 정리</h5>
+                      <p className="text-[11px] text-muted-foreground">현재 캐시 사용량: {cacheSize}</p>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        setCacheSize('0 B')
+                        toast({
+                          title: '🧹 캐시 정리 완료',
+                          description: '임시 저장 데이터 및 미디어 캐시가 깨끗하게 비워졌습니다.',
+                        })
+                      }}
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-8 px-3 rounded-xl font-bold"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1" />
+                      캐시 정리
+                    </Button>
+                  </div>
+
+                  {/* AI 안심 케어 센터 */}
+                  <div className="py-3.5 flex items-center justify-between">
+                    <div>
+                      <h5 className="font-bold text-xs text-slate-900">AI 안심 케어 센터</h5>
+                      <p className="text-[11px] text-muted-foreground">
+                        실시간 비전 AI 방송 감시, 클린 텍스트 사기 필터링 및 개인정보 보호
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setIsSafetyCenterOpen(true)}
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-8 px-3 rounded-xl font-bold text-purple-700 border-purple-200 hover:bg-purple-50"
+                    >
+                      안심 케어 보기
+                    </Button>
+                  </div>
+
+                  {/* 고객센터 및 1:1 문의 */}
+                  <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h5 className="font-bold text-xs text-slate-900">고객센터 & 1:1 상담</h5>
+                        <span className="font-extrabold text-xs text-pink-600">TEL. 1588-0000</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        평일 09:00 ~ 18:00 / 1:1 온라인 고객문의 상시 접수 지원
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setIsCustomerInquiryOpen(true)}
+                      size="sm"
+                      className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs h-8 px-3.5 rounded-xl"
+                    >
+                      <PhoneCall className="h-3.5 w-3.5 mr-1" />
+                      1:1 고객문의 접수
+                    </Button>
                   </div>
                 </div>
 
-                {/* 약관 리스트 버튼들 */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                {/* 약관 버튼들 */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
                   <button
                     onClick={() => {
                       setSelectedLegalSlug('terms-of-service')
                       setLegalModalOpen(true)
                     }}
-                    className="p-3 rounded-xl border border-slate-200/80 hover:border-purple-300 hover:bg-purple-50/50 text-xs font-bold text-slate-700 text-center transition-all"
+                    className="p-2.5 rounded-xl border border-slate-200/80 hover:border-purple-300 hover:bg-purple-50/50 text-[11px] font-bold text-slate-700 text-center transition-all"
                   >
                     서비스 이용약관
                   </button>
@@ -4735,7 +5215,7 @@ export default function CustomerWebStorefrontPage() {
                       setSelectedLegalSlug('privacy-policy')
                       setLegalModalOpen(true)
                     }}
-                    className="p-3 rounded-xl border border-rose-200 bg-rose-50/40 hover:bg-rose-50 text-xs font-bold text-[#FF3B6B] text-center transition-all"
+                    className="p-2.5 rounded-xl border border-rose-200 bg-rose-50/40 hover:bg-rose-50 text-[11px] font-bold text-[#FF3B6B] text-center transition-all"
                   >
                     개인정보처리방침
                   </button>
@@ -4744,30 +5224,23 @@ export default function CustomerWebStorefrontPage() {
                       setSelectedLegalSlug('financial-terms')
                       setLegalModalOpen(true)
                     }}
-                    className="p-3 rounded-xl border border-slate-200/80 hover:border-purple-300 hover:bg-purple-50/50 text-xs font-bold text-slate-700 text-center transition-all"
+                    className="p-2.5 rounded-xl border border-slate-200/80 hover:border-purple-300 hover:bg-purple-50/50 text-[11px] font-bold text-slate-700 text-center transition-all"
                   >
-                    전자금융거래 이용약관
+                    전자금융거래 약관
                   </button>
                   <button
                     onClick={() => {
                       setSelectedLegalSlug('youth-protection')
                       setLegalModalOpen(true)
                     }}
-                    className="p-3 rounded-xl border border-slate-200/80 hover:border-purple-300 hover:bg-purple-50/50 text-xs font-bold text-slate-700 text-center transition-all"
+                    className="p-2.5 rounded-xl border border-slate-200/80 hover:border-purple-300 hover:bg-purple-50/50 text-[11px] font-bold text-slate-700 text-center transition-all"
                   >
                     청소년보호정책
                   </button>
                 </div>
-
-                {/* 통신판매중개자 법적 고지 */}
-                <div className="p-3.5 rounded-xl bg-slate-50 border text-[11px] text-slate-500 leading-relaxed">
-                  <span className="font-bold text-slate-700 block mb-0.5">[통신판매중개자 법적 고지 및 면책 안내]</span>
-                  (주)모꼬글로벌은 통신판매중개자로서 회원 상호 간의 자유로운 상품 매매 및 라이브 방송 거래를 위한 시스템 플랫폼을 운영 및 관리, 제공할 뿐이며, 입점 판매자 및 개별 회원이 등록한 상품/중고물품의 정보, 거래 조건 및 방송 내용에 대하여 일체의 책임을 지지 않습니다. 등록된 모든 재화의 판매 당사자는 등록 회원(판매자) 본인입니다.
-                </div>
               </div>
             </div>
-          )}
-        </main>
+          )}</main>
 
         {/* ========================================================= */}
         {/* 3. Sleek & Minimal Footer (타사 Buzzworks 스타일 준수)       */}
@@ -5336,6 +5809,451 @@ export default function CustomerWebStorefrontPage() {
             >
               크리에이터 승격 및 스튜디오 활성화
             </Button>
+          </div>
+        </div>
+      )}
+
+      {/* (A) 프로필 수정 모달 */}
+      {isProfileEditOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 border border-slate-200">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h4 className="font-extrabold text-sm text-slate-900">프로필 정보 수정</h4>
+              <button onClick={() => setIsProfileEditOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">나이</label>
+                <Input
+                  type="number"
+                  value={userAge}
+                  onChange={(e) => setUserAge(Number(e.target.value) || 20)}
+                  className="h-9 text-xs"
+                />
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">성별</label>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setUserGender('여')}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${
+                      userGender === '여' ? 'bg-pink-600 text-white border-pink-600' : 'bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    여성
+                  </button>
+                  <button
+                    onClick={() => setUserGender('남')}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${
+                      userGender === '남' ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    남성
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">자기소개 한마디</label>
+                <Input
+                  value={userHeadline}
+                  onChange={(e) => setUserHeadline(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </div>
+            </div>
+            <Button
+              onClick={() => {
+                setIsProfileEditOpen(false)
+                toast({ title: '프로필 수정 완료', description: '프로필 정보가 성공적으로 반영되었습니다.' })
+              }}
+              className="w-full bg-[#FF3B6B] hover:bg-[#e0345e] text-white font-bold text-xs h-9 rounded-xl shadow-md"
+            >
+              저장하기
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* (B) 환전/출금 신청 모달 */}
+      {isWithdrawOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 border border-slate-200">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h4 className="font-extrabold text-sm text-slate-900">정산금 계좌 출금 신청</h4>
+              <button onClick={() => setIsWithdrawOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-3 text-xs">
+              <div className="p-3 bg-slate-50 rounded-2xl border space-y-1">
+                <span className="text-[11px] text-muted-foreground">출금 가능 정산 잔액</span>
+                <p className="text-lg font-black text-slate-900">{sellerRevenue.toLocaleString()} 원</p>
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">입금 은행</label>
+                <select
+                  value={withdrawBank}
+                  onChange={(e) => setWithdrawBank(e.target.value)}
+                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-xs"
+                >
+                  <option value="국민은행">국민은행</option>
+                  <option value="신한은행">신한은행</option>
+                  <option value="카카오뱅크">카카오뱅크</option>
+                  <option value="토스뱅크">토스뱅크</option>
+                  <option value="우리은행">우리은행</option>
+                  <option value="하나은행">하나은행</option>
+                  <option value="농협은행">농협은행</option>
+                </select>
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">계좌번호</label>
+                <Input
+                  value={withdrawAccount}
+                  onChange={(e) => setWithdrawAccount(e.target.value)}
+                  placeholder="'-' 없이 입력"
+                  className="h-9 text-xs"
+                />
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">예금주</label>
+                <Input
+                  value={withdrawHolder}
+                  onChange={(e) => setWithdrawHolder(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">출금 신청 금액 (원)</label>
+                <Input
+                  type="number"
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </div>
+            </div>
+            <Button
+              onClick={() => {
+                const amt = Number(withdrawAmount) || 0
+                if (amt <= 0 || amt > sellerRevenue) {
+                  toast({ title: '금액 오류', description: '정산 가능 잔액 내에서 입력해주세요.', variant: 'destructive' })
+                  return
+                }
+                setSellerRevenue((prev) => prev - amt)
+                setIsWithdrawOpen(false)
+                toast({
+                  title: '🎉 출금 신청 접수 완료!',
+                  description: `${amt.toLocaleString()}원이 등록 계좌로 안전 출금 처리됩니다.`,
+                })
+              }}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs h-9 rounded-xl shadow-md"
+            >
+              출금 신청하기
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* (C) 1:1 대화 및 영상 단가설정 모달 */}
+      {isRateSettingOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 border border-slate-200">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h4 className="font-extrabold text-sm text-slate-900">1:1 대화 및 영상 단가설정</h4>
+              <button onClick={() => setIsRateSettingOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-4 text-xs">
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-800 block">💬 1:1 대화방 입장 단가 (건당 P)</label>
+                <p className="text-[11px] text-muted-foreground">이웃이 나와 1:1 대화를 시작할 때 소모되는 포인트입니다.</p>
+                <div className="grid grid-cols-4 gap-1.5 pt-1">
+                  {[100, 300, 500, 1000].map((rate) => (
+                    <button
+                      key={rate}
+                      onClick={() => setChatRoomRate(rate)}
+                      className={`py-2 rounded-xl text-xs font-bold border transition-colors ${
+                        chatRoomRate === rate ? 'bg-pink-600 text-white border-pink-600' : 'bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      {rate} P
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-800 block">🎥 1:1 영상/LIVE 단가 (분당 P)</label>
+                <p className="text-[11px] text-muted-foreground">1:1 영상 통화 진행 시 분당 차감되는 포인트입니다.</p>
+                <div className="grid grid-cols-4 gap-1.5 pt-1">
+                  {[500, 1000, 2000, 3000].map((rate) => (
+                    <button
+                      key={rate}
+                      onClick={() => setVideoCallRate(rate)}
+                      className={`py-2 rounded-xl text-xs font-bold border transition-colors ${
+                        videoCallRate === rate ? 'bg-purple-600 text-white border-purple-600' : 'bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      {rate} P
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <Button
+              onClick={() => {
+                setIsRateSettingOpen(false)
+                toast({ title: '단가 설정 저장 완료', description: '새로운 대화/영상 단가가 적용되었습니다.' })
+              }}
+              className="w-full bg-[#FF3B6B] hover:bg-[#e0345e] text-white font-bold text-xs h-9 rounded-xl shadow-md"
+            >
+              설정 완료
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* (D) 알림 수신 설정 모달 */}
+      {isNotifySettingOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 border border-slate-200">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h4 className="font-extrabold text-sm text-slate-900">알림 수신 설정</h4>
+              <button onClick={() => setIsNotifySettingOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-3 text-xs divide-y divide-slate-100">
+              <div className="pt-2 flex items-center justify-between">
+                <div>
+                  <h6 className="font-bold text-slate-900">1:1 대화 알림</h6>
+                  <p className="text-[11px] text-muted-foreground">새로운 메시지가 도착했을 때 푸시 알림</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={notifyChat}
+                  onChange={(e) => setNotifyChat(e.target.checked)}
+                  className="h-4 w-4 rounded accent-pink-600"
+                />
+              </div>
+              <div className="pt-3 flex items-center justify-between">
+                <div>
+                  <h6 className="font-bold text-slate-900">관심 크리에이터 LIVE 알림</h6>
+                  <p className="text-[11px] text-muted-foreground">팔로우한 크리에이터가 방송을 시작할 때 알림</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={notifyLive}
+                  onChange={(e) => setNotifyLive(e.target.checked)}
+                  className="h-4 w-4 rounded accent-purple-600"
+                />
+              </div>
+              <div className="pt-3 flex items-center justify-between">
+                <div>
+                  <h6 className="font-bold text-slate-900">야간 알림 제한 (22:00 ~ 08:00)</h6>
+                  <p className="text-[11px] text-muted-foreground">수면 시간 동안 소리/진동을 차단합니다</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={notifyNightLimit}
+                  onChange={(e) => setNotifyNightLimit(e.target.checked)}
+                  className="h-4 w-4 rounded accent-slate-800"
+                />
+              </div>
+            </div>
+            <Button
+              onClick={() => {
+                setIsNotifySettingOpen(false)
+                toast({ title: '알림 설정 저장', description: '알림 수신 환경이 맞춤 설정되었습니다.' })
+              }}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs h-9 rounded-xl shadow-md"
+            >
+              완료
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* (E) 차단 회원 관리 모달 */}
+      {isBlockedUsersOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 border border-slate-200">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h4 className="font-extrabold text-sm text-slate-900">내가 차단한 회원 관리</h4>
+              <button onClick={() => setIsBlockedUsersOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-2 text-xs max-h-60 overflow-y-auto">
+              {blockedUsers.length === 0 ? (
+                <p className="text-center text-slate-400 py-6">차단된 회원이 없습니다.</p>
+              ) : (
+                blockedUsers.map((user) => (
+                  <div key={user} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border">
+                    <span className="font-bold text-slate-800">{user}</span>
+                    <Button
+                      onClick={() => {
+                        setBlockedUsers((p) => p.filter((u) => u !== user))
+                        toast({ title: '차단 해제', description: `${user}님의 차단이 해제되었습니다.` })
+                      }}
+                      size="sm"
+                      variant="outline"
+                      className="text-[11px] h-7 px-2.5 rounded-lg border-slate-300"
+                    >
+                      차단 해제
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+            <Button
+              onClick={() => setIsBlockedUsersOpen(false)}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs h-9 rounded-xl shadow-md"
+            >
+              닫기
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* (F) AI 안심 케어 센터 모달 */}
+      {isSafetyCenterOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 border border-slate-200">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                AI 안심 케어 센터
+              </h4>
+              <button onClick={() => setIsSafetyCenterOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-3 text-xs leading-relaxed text-slate-600">
+              <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-emerald-900 space-y-1">
+                <span className="font-bold text-xs flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                  실시간 비전 AI 방송 감시
+                </span>
+                <p className="text-[11px] text-emerald-800">
+                  방송 중 유해 영상이나 불법 콘텐츠 감지 시 즉시 블라인드 처리 및 계정 자동 차단이 실행됩니다.
+                </p>
+              </div>
+              <div className="p-3 bg-blue-50 rounded-2xl border border-blue-100 text-blue-900 space-y-1">
+                <span className="font-bold text-xs flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
+                  클린 텍스트 사기 필터링
+                </span>
+                <p className="text-[11px] text-blue-800">
+                  비방, 욕설, 금전 사기 유도 문구를 실시간 마스킹하고 안전 결제만을 유도합니다.
+                </p>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-2xl border text-slate-700 space-y-1">
+                <span className="font-bold text-xs">철저한 개인정보 보호</span>
+                <p className="text-[11px] text-slate-500">
+                  휴대폰 번호 및 실제 상세 위치는 상대방에게 절대 노출되지 않으며 안심 번호로 중개됩니다.
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => setIsSafetyCenterOpen(false)}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs h-9 rounded-xl shadow-md"
+            >
+              확인
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* (G) 1:1 고객문의 접수 모달 */}
+      {isCustomerInquiryOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 border border-slate-200">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h4 className="font-extrabold text-sm text-slate-900">1:1 고객 문의 접수</h4>
+              <button onClick={() => setIsCustomerInquiryOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">문의 유형</label>
+                <select
+                  value={inquiryType}
+                  onChange={(e) => setInquiryType(e.target.value)}
+                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-xs"
+                >
+                  <option value="거래/결제/정산 문의">거래 / 결제 / 정산 문의</option>
+                  <option value="사기/불량 이용자 신고">사기 / 불량 이용자 신고</option>
+                  <option value="계정/로그인 문의">계정 / 로그인 문의</option>
+                  <option value="입점/크리에이터 제휴 문의">입점 / 크리에이터 제휴 문의</option>
+                  <option value="기타 제안 및 오류 제보">기타 제안 및 오류 제보</option>
+                </select>
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">연락처 또는 이메일</label>
+                <Input
+                  value={inquiryContact}
+                  onChange={(e) => setInquiryContact(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">문의 내용</label>
+                <textarea
+                  value={inquiryContent}
+                  onChange={(e) => setInquiryContent(e.target.value)}
+                  rows={4}
+                  placeholder="문의 내용을 상세히 작성해주세요."
+                  className="w-full rounded-xl border border-input bg-background p-3 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-900"
+                />
+              </div>
+            </div>
+            <Button
+              onClick={() => {
+                if (!inquiryContent.trim()) {
+                  toast({ title: '내용 입력', description: '문의 내용을 입력해주세요.', variant: 'destructive' })
+                  return
+                }
+                setIsCustomerInquiryOpen(false)
+                setInquiryContent('')
+                toast({
+                  title: '🎉 고객문의 접수 완료',
+                  description: '운영팀에서 확인 후 신속하게 연락드리겠습니다.',
+                })
+              }}
+              className="w-full bg-[#FF3B6B] hover:bg-[#e0345e] text-white font-bold text-xs h-9 rounded-xl shadow-md"
+            >
+              접수하기
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* (H) 리워드 광고 무료 충전 모달 */}
+      {isRewardAdOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-950 text-white rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4 border border-violet-500/40 text-center">
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <Badge className="bg-violet-600 text-white font-bold text-[10px]">SPONSORED AD</Badge>
+              <span>{rewardAdCountdown}초 후 적립</span>
+            </div>
+            <div className="py-6 space-y-2">
+              <span className="text-5xl animate-bounce block">✨🎁</span>
+              <h4 className="font-black text-lg text-white">모꼬 라이프 프리미엄</h4>
+              <p className="text-xs text-slate-300">
+                광고 시청을 완료하면 모꼬 포인트 +10 ON이 즉시 무료 지급됩니다!
+              </p>
+            </div>
+            <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-violet-500 to-pink-500 transition-all duration-1000"
+                style={{ width: `${((3 - rewardAdCountdown) / 3) * 100}%` }}
+              />
+            </div>
           </div>
         </div>
       )}
