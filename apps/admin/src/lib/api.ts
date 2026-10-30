@@ -76,8 +76,35 @@ api.interceptors.response.use(
     if (status === 401) {
       // eslint-disable-next-line no-console
       console.warn('[TokFriends Admin] 401 from', fullUrl, '| message =', message)
-      // refresh ?�로?��? ?�다�?즉시 ?�로그인
-      logoutToLogin()
+      
+      // 오직 관리자 백오피스 콘솔(/dashboard 등)에 있을 때만 /login으로 리다이렉트
+      // 메인 홈(/), 고객웹(/web), 셀러(/seller), 스트리머(/streamer), 공유(/share) 등에서는 절대 /login으로 튕기지 않음
+      if (typeof window !== 'undefined') {
+        const curPath = window.location.pathname.replace(/^\/(ko|en)(\/|$)/, '/').replace(/\/+$/, '') || '/'
+        const isAdminConsole = [
+          '/dashboard',
+          '/admin-permissions',
+          '/analytics',
+          '/api-manager',
+          '/content',
+          '/reports-safety',
+          '/market-escrow',
+          '/merchants',
+          '/notifications',
+          '/settings',
+          '/settlement',
+          '/store',
+          '/users',
+          '/live',
+          '/chats',
+          '/ads-rewards',
+          '/ai-staff',
+        ].some((p) => curPath === p || curPath.startsWith(p + '/'))
+
+        if (isAdminConsole) {
+          logoutToLogin()
+        }
+      }
     } else {
       if (typeof window !== 'undefined') {
         // eslint-disable-next-line no-console

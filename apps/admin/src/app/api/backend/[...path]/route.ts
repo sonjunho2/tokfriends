@@ -32,8 +32,11 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
   const isPublicEndpoint =
     path === 'health' ||
     path.startsWith('auth/') ||
-    path.startsWith('market') ||
+    path.startsWith('live') ||
     path.startsWith('streaming') ||
+    path.startsWith('market') ||
+    path.startsWith('gifts') ||
+    path.startsWith('store') ||
     path.startsWith('merchants/products') ||
     path.startsWith('affiliate/products') ||
     path.startsWith('users/discover') ||
