@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import {
+  Smartphone,
   Home,
   Store,
   ShoppingBag,
@@ -2007,6 +2008,17 @@ export default function CustomerWebStorefrontPage() {
                   className="pl-8 pr-3 text-xs h-9 bg-slate-100/90 hover:bg-slate-100 focus:bg-white border-slate-200/80 rounded-full transition-all focus:ring-1 focus:ring-[#FF3B6B]/40"
                 />
               </div>
+
+              {/* Mobile APK Download Button */}
+              <a
+                href="/downloads/mocco-release.apk"
+                download="mocco-release.apk"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition shadow-xs shrink-0"
+                title="모꼬 안드로이드 앱 설치 파일 다운로드"
+              >
+                <Smartphone className="h-3.5 w-3.5 text-indigo-600" />
+                <span>앱 다운로드</span>
+              </a>
 
               {!isAuthenticated ? (
                 /* Guest State */
@@ -4682,6 +4694,16 @@ export default function CustomerWebStorefrontPage() {
                       >
                         간편 로그인 / 1초 회원가입
                       </Button>
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="border-white/30 text-white hover:bg-white/10 font-bold text-xs h-10 px-4 rounded-xl"
+                      >
+                        <a href="/downloads/mocco-release.apk" download="mocco-release.apk">
+                          <Download className="w-4 h-4 mr-1.5" />
+                          안드로이드 앱(APK) 다운로드
+                        </a>
+                      </Button>
                     </div>
                   </div>
                 ) : role === 'MERCHANT' ? (
@@ -4812,9 +4834,21 @@ export default function CustomerWebStorefrontPage() {
                           </div>
                         </div>
                       </div>
-                      <Badge className="bg-purple-500/30 text-purple-200 border-none text-[11px] shrink-0 self-start sm:self-auto">
-                        모바일 앱 전용 송출
-                      </Badge>
+                      <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                        <Badge className="bg-purple-500/30 text-purple-200 border-none text-[11px]">
+                          모바일 앱 전용 송출
+                        </Badge>
+                        <Button
+                          asChild
+                          size="sm"
+                          className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs h-8 px-3 rounded-xl shadow-sm"
+                        >
+                          <a href="/downloads/mocco-release.apk" download="mocco-release.apk">
+                            <Download className="w-3.5 h-3.5 mr-1" />
+                            앱(APK) 다운로드
+                          </a>
+                        </Button>
+                      </div>
                     </div>
 
                     {/* 입점사 신청 & 크리에이터 신청 2개 카드 */}

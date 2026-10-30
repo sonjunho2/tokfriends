@@ -179,7 +179,7 @@ export default function DashboardPage() {
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="font-bold text-base text-foreground">
-                  다가온(DAGAON) 모바일 앱 릴리즈 빌드 (APK)
+                  모꼬(MOCCO) 모바일 앱 릴리즈 빌드 (APK)
                 </h3>
                 <Badge className="bg-emerald-600 text-white hover:bg-emerald-700 text-[10px] px-2">
                   <CheckCircle className="h-3 w-3 mr-1 inline" />
@@ -206,7 +206,7 @@ export default function DashboardPage() {
               className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 px-5 text-xs h-10"
               asChild
             >
-              <a href="/downloads/dagaon-release.apk" download="dagaon-release.apk">
+              <a href="/downloads/mocco-release.apk" download="mocco-release.apk">
                 <Download className="h-4 w-4" />
                 <span>APK 파일 다운로드</span>
               </a>

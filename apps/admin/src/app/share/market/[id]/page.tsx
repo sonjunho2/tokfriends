@@ -86,7 +86,7 @@ export default function ShareMarketLandingPage() {
           <Button asChild className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold h-11 text-sm rounded-xl gap-2 shadow-lg">
             <a href={`dagaon://market/${productId}`}>
               <Smartphone className="w-4 h-4" />
-              다가온 앱으로 상품 보기
+              모꼬 앱으로 상품 보기
             </a>
           </Button>
 
@@ -98,9 +98,9 @@ export default function ShareMarketLandingPage() {
           </Button>
 
           <Button asChild variant="ghost" className="w-full text-slate-400 hover:text-white text-xs h-9 gap-1.5">
-            <a href="/downloads/dagaon-release.apk" download="dagaon-release.apk">
+            <a href="/downloads/mocco-release.apk" download="mocco-release.apk">
               <Download className="w-3.5 h-3.5" />
-              최신 다가온 안드로이드 APK 다운로드
+              최신 모꼬 안드로이드 APK 다운로드
             </a>
           </Button>
         </div>
