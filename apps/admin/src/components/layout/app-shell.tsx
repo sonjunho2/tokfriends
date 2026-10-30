@@ -166,18 +166,6 @@ export function AppShell({ items, adminName = '관리자', children }: AppShellP
                   </Link>
                 </Button>
                 <Button
-                  variant="default"
-                  size="sm"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5 shadow-sm"
-                  asChild
-                >
-                  <a href="/downloads/mocco-release.apk" download="mocco-release.apk">
-                    <Smartphone className="h-4 w-4" />
-                    <span className="hidden sm:inline">모꼬 APK 다운로드</span>
-                    <span className="sm:hidden">APK</span>
-                  </a>
-                </Button>
-                <Button
                   variant="outline"
                   size="sm"
                   onClick={() => router.push('/settings')}

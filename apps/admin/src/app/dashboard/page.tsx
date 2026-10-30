@@ -169,52 +169,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* 1. 상단 모바일 앱(APK) 독립 배포 및 실서버 연동 안내 배너 */}
-      <Card className="border-indigo-100 bg-gradient-to-r from-indigo-50/80 via-white to-purple-50/80 shadow-sm">
-        <CardContent className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <div className="p-3 bg-indigo-600 rounded-xl text-white shadow-md shadow-indigo-200">
-              <Smartphone className="h-6 w-6" />
-            </div>
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-bold text-base text-foreground">
-                  모꼬(MOCCO) 모바일 앱 릴리즈 빌드 (APK)
-                </h3>
-                <Badge className="bg-emerald-600 text-white hover:bg-emerald-700 text-[10px] px-2">
-                  <CheckCircle className="h-3 w-3 mr-1 inline" />
-                  실서버 연동 v1.2.0 (LIVE)
-                </Badge>
-                <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700 text-[10px]">
-                  안드로이드 정식 릴리즈
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Render 프로덕션 백엔드 및 Vercel 관리자 콘솔과 100% 실시간 연동되는 안드로이드 릴리즈 설치 파일입니다. 스마트폰에 다운로드하여 즉시 설치 및 테스트하실 수 있습니다.
-              </p>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground pt-1">
-                <span><strong className="text-foreground">백엔드:</strong> Render API (LIVE)</span>
-                <span>•</span>
-                <span><strong className="text-foreground">재화 단위:</strong> 온 (ON) 표준화</span>
-                <span>•</span>
-                <span><strong className="text-foreground">설치 용량:</strong> 약 75.4 MB</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2.5 shrink-0 self-end md:self-center">
-            <Button
-              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center gap-2 px-5 text-xs h-10"
-              asChild
-            >
-              <a href="/downloads/mocco-release.apk" download="mocco-release.apk">
-                <Download className="h-4 w-4" />
-                <span>APK 파일 다운로드</span>
-              </a>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* 2. 핵심 KPI 메트릭 4개 카드 그리드 */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((metric) => (

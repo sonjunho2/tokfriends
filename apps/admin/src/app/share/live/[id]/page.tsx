@@ -97,13 +97,6 @@ export default function ShareLiveLandingPage() {
               PC 웹 플레이어로 바로 시청
             </Link>
           </Button>
-
-          <Button asChild variant="ghost" className="w-full text-slate-400 hover:text-white text-xs h-9 gap-1.5">
-            <a href="/downloads/mocco-release.apk" download="mocco-release.apk">
-              <Download className="w-3.5 h-3.5" />
-              최신 모꼬 안드로이드 APK 다운로드
-            </a>
-          </Button>
         </div>
       </div>
     </div>
