@@ -86,6 +86,7 @@ import {
   MarketProductCreateModal,
   type CreateProductPayload,
 } from '@/components/market/MarketProductCreateModal'
+import { MoccoPointChargeModal } from '@/components/payment/MoccoPointChargeModal'
 
 function RankBadgeImage({ rank, className = 'w-24 h-auto' }: { rank: 1 | 2 | 3; className?: string }) {
   return (
@@ -1215,6 +1216,8 @@ export default function CustomerWebStorefrontPage() {
   // Market Detail & Create Modals (통신판매 규정 준수 및 입점사 등록)
   const [selectedProductDetail, setSelectedProductDetail] = useState<MarketProductDetail | null>(null)
   const [isProductCreateModalOpen, setIsProductCreateModalOpen] = useState(false)
+  // Mocco Point Payment & Charge Modal
+  const [isPointChargeModalOpen, setIsPointChargeModalOpen] = useState(false)
   const [liveChatInput, setLiveChatInput] = useState('')
   const [liveChatMessages, setLiveChatMessages] = useState<LiveChatMessageItem[]>([
     { sender: '시스템', text: '모꼬(MOCCO) 실시간 라이브 방송에 오신 것을 환영합니다!', isSystem: true, time: '12:00' },
@@ -1591,7 +1594,7 @@ export default function CustomerWebStorefrontPage() {
       if (myPoints < gift.pricePoints) {
         toast({
           title: '포인트 부족',
-          description: `보유 온(ON) 포인트가 부족합니다. (필요: ${gift.pricePoints.toLocaleString()} P, 보유: ${myPoints.toLocaleString()} P)`,
+          description: `보유 온(ON) 포인트가 부족합니다. (필요: ${gift.pricePoints.toLocaleString()} P, 보유: ${(user?.pointBalance ?? myPoints).toLocaleString()} P)`,
           variant: 'destructive',
         })
         return
@@ -3915,13 +3918,7 @@ export default function CustomerWebStorefrontPage() {
                       </span>
                     </div>
                     <Button
-                      onClick={() => {
-                        setMyPoints((prev) => prev + 10000)
-                        toast({
-                          title: '🎉 모꼬 포인트 10,000 ON 즉시 충전 완료!',
-                          description: '채팅방에서 모꼬 선물을 자유롭게 보내보세요.',
-                        })
-                      }}
+                      onClick={() => requireAuth(() => setIsPointChargeModalOpen(true))}
                       className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs h-10 px-4 rounded-xl shadow-lg transition-all"
                     >
                       <Coins className="h-4 w-4 mr-1.5" />
@@ -4981,13 +4978,7 @@ export default function CustomerWebStorefrontPage() {
                         </Badge>
                       </div>
                       <Button
-                        onClick={() => {
-                          setMyPoints((prev) => prev + 10000)
-                          toast({
-                            title: '🎉 모꼬 포인트 10,000 ON 무료 충전 완료!',
-                            description: '채팅 및 라이브 3D 선물에 자유롭게 사용하세요.',
-                          })
-                        }}
+                        onClick={() => requireAuth(() => setIsPointChargeModalOpen(true))}
                         size="sm"
                         className="bg-pink-600 hover:bg-pink-700 text-white font-extrabold text-[11px] h-7 px-3 rounded-lg shadow-xs"
                       >
@@ -7532,6 +7523,14 @@ export default function CustomerWebStorefrontPage() {
       {/* 6. 시연/검수용 플로팅 역할 스위처 (헤더 레이아웃 침범 방지)    */}
       {/* 나중에 삭제 시 아래 한 줄만 지우면 깔끔하게 제거됩니다.        */}
       {/* ========================================================= */}
+      <MoccoPointChargeModal
+        isOpen={isPointChargeModalOpen}
+        onClose={() => setIsPointChargeModalOpen(false)}
+        onSuccess={(chargedPoints, newBalance) => {
+          setMyPoints(newBalance);
+        }}
+      />
+
       <RoleSwitcherFloating />
     </div>
   )

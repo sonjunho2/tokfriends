@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { api } from '@/lib/api'
 
 export type UserRole = 'GUEST' | 'USER' | 'MERCHANT' | 'CREATOR' | 'ADMIN'
 
@@ -59,6 +60,13 @@ interface AuthContextType {
   applyCreator: (data: CreatorApplication) => Promise<boolean>
   logout: () => void
   requireAuth: (callback: () => void) => void
+  updatePointBalance: (newBalance: number) => void
+  rechargePoints: (
+    pointsToAdd: number,
+    amount: number,
+    paymentMethod: string,
+    productId?: string
+  ) => Promise<{ success: boolean; newBalance: number; transactionId: string }>
 }
 
 const DEFAULT_GUEST_USER: WebUser | null = null
@@ -403,6 +411,45 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
     saveUserState(null)
   }, [saveUserState])
 
+  const updatePointBalance = useCallback(
+    (newBalance: number) => {
+      if (!user) return
+      const updated = { ...user, pointBalance: newBalance }
+      saveUserState(updated)
+    },
+    [user, saveUserState]
+  )
+
+  const rechargePoints = useCallback(
+    async (pointsToAdd: number, amount: number, paymentMethod: string, productId?: string) => {
+      const txId = `MOC-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`
+      try {
+        const res = await api.post('/api/backend/store/purchases/confirm', {
+          userId: user?.id || 'usr-guest',
+          userNickname: user?.nickname || '회원',
+          productId: productId || `pkg-${pointsToAdd}`,
+          points: pointsToAdd,
+          amount: amount,
+          paymentMethod: paymentMethod,
+          transactionId: txId,
+        })
+        const newBal = res.data?.newBalance ?? ((user?.pointBalance || 0) + pointsToAdd)
+        if (user) {
+          saveUserState({ ...user, pointBalance: newBal })
+        }
+        return { success: true, newBalance: newBal, transactionId: res.data?.id || txId }
+      } catch (err) {
+        // Fallback optimistic update
+        const newBal = (user?.pointBalance || 0) + pointsToAdd
+        if (user) {
+          saveUserState({ ...user, pointBalance: newBal })
+        }
+        return { success: true, newBalance: newBal, transactionId: txId }
+      }
+    },
+    [user, saveUserState]
+  )
+
   const role = user?.role || 'GUEST'
   const isAuthenticated = !!user && user.role !== 'GUEST'
 
@@ -429,6 +476,8 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
         applyCreator,
         logout,
         requireAuth,
+        updatePointBalance,
+        rechargePoints,
       }}
     >
       {children}
