@@ -33,7 +33,26 @@ const notoSansKr = {
   className: 'font-sans',
 }
 
-const PUBLIC_PATHS = ['/login', '/', '/seller', '/streamer']
+// 관리자 전용 보호 경로 (오직 이 경로들만 관리자 세션 체크 및 /login 리다이렉트 대상)
+const ADMIN_PROTECTED_PATHS = [
+  '/dashboard',
+  '/admin-permissions',
+  '/analytics',
+  '/api-manager',
+  '/content',
+  '/reports-safety',
+  '/market-escrow',
+  '/merchants',
+  '/notifications',
+  '/settings',
+  '/settlement',
+  '/store',
+  '/users',
+  '/live',
+  '/chats',
+  '/ads-rewards',
+  '/ai-staff',
+]
 
 const NAV_ITEMS: AppShellNavItem[] = [
   // 1. 본사 총괄 운영
@@ -206,21 +225,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [adminName, setAdminName] = useState('관리자')
   const pathname = usePathname()
   const router = useRouter()
-  const isPublicPage =
-    pathname === '/' ||
-    PUBLIC_PATHS.includes(pathname ?? '/') ||
-    (pathname != null &&
-      (pathname.startsWith('/web') ||
-        pathname.startsWith('/share') ||
-        pathname.startsWith('/seller') ||
-        pathname.startsWith('/streamer')))
+
+  // i18n 언어 prefix(/ko, /en) 및 trailing slash를 정규화
+  const cleanPath = (pathname || '/')
+    .replace(/^\/(ko|en)(\/|$)/, '/')
+    .replace(/\/+$/, '') || '/'
+
+  // 오직 ADMIN_PROTECTED_PATHS에 포함된 페이지만 관리자 인증을 요구함
+  const isAdminPage = ADMIN_PROTECTED_PATHS.some(
+    (p) => cleanPath === p || cleanPath.startsWith(p + '/')
+  )
+  const isPublicPage = !isAdminPage
 
   useEffect(() => {
+    // 공개 페이지(홈페이지, 셀러, 크리에이터, 로그인, 고객웹 등)는 즉시 인증 통과
     if (isPublicPage) {
       setSessionError(false)
       setIsAuthenticated(true)
       return
     }
+
+    // 관리자 전용 페이지(/dashboard 등) 접근 시에만 관리자 세션 검증
     void (async () => {
       try {
         const response = await fetch('/api/auth/session', {
@@ -251,7 +276,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     })()
   }, [isPublicPage, router])
 
-  if (sessionError)
+  // 관리자 페이지에서 에러가 발생한 경우만 에러 화면 노출
+  if (sessionError && isAdminPage)
     return (
       <html lang="ko" suppressHydrationWarning>
         <body className={notoSansKr.className}>
@@ -269,7 +295,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </html>
     )
 
-  if (isAuthenticated === null)
+  // 관리자 페이지 접근 시에만 준비 로딩 노출 (공개 페이지는 즉시 children 렌더)
+  if (isAuthenticated === null && isAdminPage)
     return (
       <html lang="ko" suppressHydrationWarning>
         <body className={notoSansKr.className}>
