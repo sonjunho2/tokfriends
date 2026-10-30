@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
 import Image from 'next/image'
 import {
   Package,
@@ -266,13 +267,14 @@ export default function SellerProductsPage() {
             등록된 일반 상품의 상시 판매가, 재고 현황, 품절 여부를 실시간으로 제어합니다.
           </p>
         </div>
-        <Button
-          onClick={() => setIsModalOpen(true)}
-          className="gap-1.5 shadow-sm bg-primary hover:bg-primary/90"
-        >
-          <Plus className="w-4 h-4" />
-          신규 일반 상품 등록
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link href="/seller/products/new">
+            <Button className="gap-1.5 shadow-sm bg-indigo-600 hover:bg-indigo-500 text-white font-bold">
+              <Plus className="w-4 h-4" />
+              신규 상품 정식 등록 (공정위 고시/상세페이지)
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}

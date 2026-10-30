@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   Smartphone,
   Home,
@@ -1144,6 +1145,7 @@ const LEGAL_DOCUMENTS = {
 type ActiveTab = 'HOME' | 'MARKET' | 'LIVE' | 'CHAT' | 'MY'
 
 export default function CustomerWebStorefrontPage() {
+  const router = useRouter()
   const { toast } = useToast()
   const {
     user,
@@ -2408,7 +2410,7 @@ export default function CustomerWebStorefrontPage() {
                       return (
                         <Card
                           key={item.id}
-                          onClick={() => requireAuth(() => setSelectedProductDetail(mapItemToDetail(item)))}
+                          onClick={() => router.push('/market/' + item.id)}
                           className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80 bg-white flex flex-col justify-between"
                         >
                           <div>
@@ -2663,7 +2665,7 @@ export default function CustomerWebStorefrontPage() {
                   {usedProducts.slice(0, 4).map((item) => (
                     <Card
                       key={item.id}
-                      onClick={() => setSelectedUsedItem(item)}
+                      onClick={() => router.push('/market/' + item.id)}
                       className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-md transition-shadow border border-slate-200/80 bg-white"
                     >
                       <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
@@ -2726,7 +2728,7 @@ export default function CustomerWebStorefrontPage() {
                     .map((item) => (
                       <Card
                         key={item.id}
-                        onClick={() => requireAuth(() => setSelectedProductDetail(mapItemToDetail(item)))}
+                        onClick={() => router.push('/market/' + item.id)}
                         className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-md transition-shadow border border-slate-200/80 bg-white"
                       >
                         <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
@@ -2853,7 +2855,7 @@ export default function CustomerWebStorefrontPage() {
                   {marketSubTab === 'C2C_USED' && (
                     <Button
                       onClick={() => {
-                        requireAuth(() => setIsNewUsedModalOpen(true))
+                        requireAuth(() => router.push('/market/used/new'))
                       }}
                       className="bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm font-bold h-9 sm:h-10 px-4 shadow-sm rounded-xl"
                     >
@@ -2867,7 +2869,7 @@ export default function CustomerWebStorefrontPage() {
                       variant="outline"
                       className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-xs sm:text-sm font-bold h-9 sm:h-10 px-4 rounded-xl"
                     >
-                      <Link href="/seller">
+                      <Link href="/seller/products/new">
                         <Store className="h-4 w-4 mr-1.5" />
                         셀러 센터 상품 등록
                       </Link>
@@ -2942,7 +2944,7 @@ export default function CustomerWebStorefrontPage() {
                         return (
                           <div
                             key={item.id}
-                            onClick={() => requireAuth(() => setSelectedProductDetail(mapItemToDetail(item)))}
+                            onClick={() => router.push('/market/' + item.id)}
                             className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs hover:shadow-md hover:border-purple-300 transition-all cursor-pointer flex flex-col justify-between group"
                           >
                             <div>
@@ -2989,7 +2991,7 @@ export default function CustomerWebStorefrontPage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                requireAuth(() => setSelectedProductDetail(mapItemToDetail(item)))
+                                router.push('/market/' + item.id)
                               }}
                               className="w-full mt-3 py-1.5 rounded-xl border border-slate-200 hover:border-purple-300 hover:bg-purple-50 text-[11px] font-bold text-slate-700 flex items-center justify-center gap-1 transition-all"
                             >
@@ -3047,7 +3049,7 @@ export default function CustomerWebStorefrontPage() {
                         return (
                           <div
                             key={item.id}
-                            onClick={() => requireAuth(() => setSelectedProductDetail(mapItemToDetail(item)))}
+                            onClick={() => router.push('/market/' + item.id)}
                             className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs hover:shadow-md hover:border-rose-300 transition-all cursor-pointer flex flex-col justify-between group"
                           >
                             <div>
@@ -3105,7 +3107,7 @@ export default function CustomerWebStorefrontPage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                requireAuth(() => setSelectedProductDetail(mapItemToDetail(item)))
+                                router.push('/market/' + item.id)
                               }}
                               className="w-full mt-3 py-1.5 rounded-xl bg-rose-50 text-[#FF3B6B] border border-rose-200 hover:bg-gradient-to-r hover:from-[#FF3B6B] hover:to-[#8B5CF6] hover:text-white hover:border-transparent text-[11px] font-bold flex items-center justify-center gap-1 transition-all duration-300 shadow-2xs hover:shadow-md"
                             >
@@ -3132,7 +3134,7 @@ export default function CustomerWebStorefrontPage() {
                     .map((item) => (
                       <Card
                         key={item.id}
-                        onClick={() => setSelectedUsedItem(item)}
+                        onClick={() => router.push('/market/' + item.id)}
                         className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80"
                       >
                         <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
@@ -3190,7 +3192,7 @@ export default function CustomerWebStorefrontPage() {
                       return (
                         <Card
                           key={item.id}
-                          onClick={() => requireAuth(() => setSelectedProductDetail(mapItemToDetail(item)))}
+                          onClick={() => router.push('/market/' + item.id)}
                           className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80 bg-white flex flex-col justify-between"
                         >
                           <div>
@@ -3277,7 +3279,7 @@ export default function CustomerWebStorefrontPage() {
                       return (
                         <Card
                           key={item.id}
-                          onClick={() => requireAuth(() => setSelectedProductDetail(mapItemToDetail(item)))}
+                          onClick={() => router.push('/market/' + item.id)}
                           className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80 bg-white flex flex-col justify-between"
                         >
                           <div>
@@ -4733,7 +4735,7 @@ export default function CustomerWebStorefrontPage() {
                           </Link>
                         </Button>
                         <Button
-                          onClick={() => setIsProductCreateModalOpen(true)}
+                          onClick={() => router.push('/seller/products/new')}
                           className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-3 rounded-xl"
                         >
                           + 상품 등록
@@ -4756,7 +4758,7 @@ export default function CustomerWebStorefrontPage() {
                       </div>
                       <div className="pt-2">
                         <Button
-                          onClick={() => setIsProductCreateModalOpen(true)}
+                          onClick={() => router.push('/seller/products/new')}
                           className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-9 rounded-xl shadow-sm"
                         >
                           <Building2 className="h-4 w-4 mr-1.5" />
@@ -5230,7 +5232,7 @@ export default function CustomerWebStorefrontPage() {
                   <div className="space-y-3">
                     <div className="flex justify-end">
                       <Button
-                        onClick={() => requireAuth(() => setIsNewUsedModalOpen(true))}
+                        onClick={() => requireAuth(() => router.push('/market/used/new'))}
                         size="sm"
                         className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs h-8 px-3 rounded-xl"
                       >
