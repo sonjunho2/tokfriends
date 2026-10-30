@@ -1206,6 +1206,20 @@ export default function CustomerWebStorefrontPage() {
   const [sudaInputText, setSudaInputText] = useState('')
   const [heroIndex, setHeroIndex] = useState(0)
 
+  // URL Query Params (?tab=MARKET&sub=C2C_USED) Navigation Sync
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const tabParam = params.get('tab')
+    const subParam = params.get('sub')
+    if (tabParam && ['HOME', 'MARKET', 'LIVE', 'CHAT', 'MY'].includes(tabParam)) {
+      setActiveTab(tabParam as ActiveTab)
+    }
+    if (subParam && ['C2C_USED', 'B2C_NORMAL', 'B2C_GROUP'].includes(subParam)) {
+      setMarketSubTab(subParam as any)
+    }
+  }, [])
+
   // 5. Legal Policy Modal State
   const [legalModalOpen, setLegalModalOpen] = useState(false)
   const [selectedLegalSlug, setSelectedLegalSlug] = useState<keyof typeof LEGAL_DOCUMENTS>('privacy-policy')

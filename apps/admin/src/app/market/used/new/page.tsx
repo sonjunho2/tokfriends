@@ -9,17 +9,16 @@ import {
   Camera,
   Upload,
   X,
-  CheckCircle2,
-  AlertCircle,
   Sparkles,
   MapPin,
   Truck,
   ShieldCheck,
   Radio,
-  Tag,
   DollarSign,
   FileText,
   Info,
+  Store,
+  ChevronRight,
 } from 'lucide-react'
 import { useWebAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/ui/use-toast'
@@ -199,78 +198,85 @@ export default function UsedItemRegisterPage() {
     // Navigate to the newly created product detail page
     setTimeout(() => {
       router.push(`/market/${newId}`)
-    }, 800)
+    }, 600)
   }
 
   return (
-    <div className="min-h-screen bg-neutral-900 text-neutral-100 pb-24">
-      {/* Top Header */}
-      <header className="sticky top-0 z-40 bg-neutral-900/90 backdrop-blur-md border-b border-neutral-800">
+    <div className="min-h-screen bg-slate-50 text-slate-900 pb-28">
+      {/* 1. 상단 GNB 헤더 (메인 스토어와 100% 동일한 화이트 라이트 테마) */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.back()}
-              className="p-2 rounded-full hover:bg-neutral-800 text-neutral-400 hover:text-white transition"
-              aria-label="뒤로가기"
+              type="button"
+              onClick={() => router.push('/?tab=MARKET&sub=C2C_USED')}
+              className="p-2 rounded-full hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition flex items-center gap-1"
+              aria-label="중고거래 화면으로 뒤로가기"
+              title="중고거래 마켓으로 돌아가기"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-lg font-bold text-white flex items-center gap-2">
-                <span>내 중고물품 판매 등록</span>
-                <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs">
-                  C2C 안심 직거래 & 에스크로
+              <div className="flex items-center gap-2">
+                <h1 className="text-base sm:text-lg font-black text-slate-900">
+                  내 중고물품 판매 등록
+                </h1>
+                <Badge className="bg-orange-50 text-orange-700 border border-orange-200 text-[10px] font-bold">
+                  🥕 C2C 안심 직거래 & 에스크로
                 </Badge>
-              </h1>
-              <p className="text-xs text-neutral-400">
-                일반 회원 누구나 간편하게 등록하고 모바일 라이브 방송 핀으로도 바로 판매하세요
+              </div>
+              <p className="text-[11px] text-slate-500 hidden sm:block">
+                일반 회원 누구나 간편 등록하고 모바일 라이브 방송 핀으로도 바로 판매하세요
               </p>
             </div>
           </div>
+
           <Link
-            href="/market"
-            className="text-xs text-neutral-400 hover:text-white border border-neutral-700 px-3 py-1.5 rounded-lg transition"
+            href="/?tab=MARKET&sub=C2C_USED"
+            className="text-xs text-slate-700 hover:text-slate-900 font-bold bg-slate-100 hover:bg-slate-200 border border-slate-200/80 px-3.5 py-1.5 rounded-xl transition flex items-center gap-1 shadow-2xs"
           >
-            마켓 목록으로
+            <Store className="w-3.5 h-3.5 text-orange-600" />
+            <span>중고거래 목록으로</span>
           </Link>
         </div>
       </header>
 
-      {/* Main Form */}
+      {/* 2. 메인 폼 컨테이너 */}
       <main className="max-w-4xl mx-auto px-4 py-8">
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Section 1: Photos */}
-          <section className="bg-neutral-800/60 border border-neutral-700/60 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
+          <section className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <Camera className="w-5 h-5 text-indigo-400" />
+                <h2 className="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-indigo-600" />
                   <span>상품 실물 사진 등록</span>
-                  <span className="text-xs font-normal text-neutral-400">({images.length}/10)</span>
+                  <span className="text-xs font-semibold text-slate-500">({images.length}/10)</span>
                 </h2>
-                <p className="text-xs text-neutral-400 mt-0.5">
-                  첫 번째 사진이 마켓 목록과 방송 핀의 대표 썸네일로 노출됩니다.
+                <p className="text-xs text-slate-500 mt-0.5">
+                  첫 번째 사진이 중고마켓 목록과 모바일 라이브 핀의 대표 썸네일로 노출됩니다.
                 </p>
               </div>
             </div>
 
             {/* Thumbnail Preview Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               {images.map((img, idx) => (
                 <div
                   key={idx}
-                  className="relative aspect-square rounded-xl overflow-hidden border border-neutral-700 bg-neutral-900 group"
+                  className="relative aspect-square rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 group shadow-2xs"
                 >
                   <img src={img} alt={`사진 ${idx + 1}`} className="w-full h-full object-cover" />
                   {idx === 0 && (
-                    <span className="absolute top-2 left-2 bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
+                    <span className="absolute top-2 left-2 bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow">
                       대표사진
                     </span>
                   )}
                   <button
                     type="button"
                     onClick={() => handleRemoveImage(idx)}
-                    className="absolute top-2 right-2 p-1 bg-black/70 hover:bg-red-600 text-white rounded-full transition opacity-90 group-hover:opacity-100"
+                    className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-rose-600 text-white rounded-full transition opacity-90 group-hover:opacity-100"
+                    title="사진 삭제"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -279,28 +285,28 @@ export default function UsedItemRegisterPage() {
 
               {/* Add Image Slot */}
               {images.length < 10 && (
-                <div className="aspect-square rounded-xl border-2 border-dashed border-neutral-700 hover:border-indigo-500 bg-neutral-900/40 flex flex-col items-center justify-center p-3 text-center transition">
-                  <Upload className="w-6 h-6 text-neutral-400 mb-1" />
-                  <span className="text-xs text-neutral-400 font-medium">사진 추가</span>
-                  <span className="text-[10px] text-neutral-500">최대 10장</span>
+                <div className="aspect-square rounded-2xl border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-slate-50 hover:bg-indigo-50/40 flex flex-col items-center justify-center p-3 text-center transition cursor-pointer">
+                  <Upload className="w-6 h-6 text-slate-400 mb-1" />
+                  <span className="text-xs text-slate-600 font-bold">사진 추가</span>
+                  <span className="text-[10px] text-slate-400">최대 10장</span>
                 </div>
               )}
             </div>
 
-            {/* Quick URL or File Input for Web Test */}
-            <div className="flex items-center gap-2">
+            {/* Quick URL Input */}
+            <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
               <input
                 type="url"
                 value={newImageUrl}
                 onChange={(e) => setNewImageUrl(e.target.value)}
                 placeholder="고화질 이미지 웹 주소(URL)를 입력하여 추가해보세요 (예: https://...)"
-                className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-indigo-500"
+                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500"
               />
               <Button
                 type="button"
                 onClick={handleAddImageUrl}
                 variant="outline"
-                className="border-neutral-700 text-xs px-4"
+                className="border-slate-300 text-slate-700 text-xs px-4 h-9 rounded-xl font-bold hover:bg-slate-100"
               >
                 사진 추가
               </Button>
@@ -308,26 +314,26 @@ export default function UsedItemRegisterPage() {
           </section>
 
           {/* Section 2: Basic Info */}
-          <section className="bg-neutral-800/60 border border-neutral-700/60 rounded-2xl p-6 space-y-6">
+          <section className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-6">
             <div>
-              <label className="block text-sm font-bold text-white mb-2">
-                상품 제목 <span className="text-red-400">*</span>
+              <label className="block text-xs sm:text-sm font-extrabold text-slate-900 mb-2">
+                상품 제목 <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="물품명, 브랜드, 모델명을 명확하게 입력해주세요 (예: 아이폰 15 프로 256GB 블루티타늄)"
-                className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 maxLength={60}
               />
-              <p className="text-right text-[11px] text-neutral-500 mt-1">{title.length}/60자</p>
+              <p className="text-right text-[11px] text-slate-400 mt-1">{title.length}/60자</p>
             </div>
 
             {/* Category Select */}
             <div>
-              <label className="block text-sm font-bold text-white mb-2">
-                카테고리 선택 <span className="text-red-400">*</span>
+              <label className="block text-xs sm:text-sm font-extrabold text-slate-900 mb-2">
+                카테고리 선택 <span className="text-rose-500">*</span>
               </label>
               <div className="flex flex-wrap gap-2">
                 {CATEGORIES.map((cat) => (
@@ -335,10 +341,10 @@ export default function UsedItemRegisterPage() {
                     key={cat}
                     type="button"
                     onClick={() => setCategory(cat)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
                       category === cat
-                        ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30'
-                        : 'bg-neutral-900 border border-neutral-700 text-neutral-300 hover:border-neutral-500'
+                        ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/70'
                     }`}
                   >
                     {cat}
@@ -349,18 +355,18 @@ export default function UsedItemRegisterPage() {
 
             {/* Item Condition */}
             <div>
-              <label className="block text-sm font-bold text-white mb-2">
-                상품 상태 등급 <span className="text-red-400">*</span>
+              <label className="block text-xs sm:text-sm font-extrabold text-slate-900 mb-2">
+                상품 상태 등급 <span className="text-rose-500">*</span>
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {CONDITIONS.map((cond) => (
                   <label
                     key={cond.value}
                     onClick={() => setCondition(cond.value)}
-                    className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition ${
+                    className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition ${
                       condition === cond.value
-                        ? 'bg-indigo-950/40 border-indigo-500 ring-1 ring-indigo-500'
-                        : 'bg-neutral-900/60 border-neutral-700 hover:border-neutral-600'
+                        ? 'bg-indigo-50/70 border-indigo-500 ring-1 ring-indigo-500 shadow-2xs'
+                        : 'bg-slate-50/70 border-slate-200 hover:bg-white hover:border-slate-300'
                     }`}
                   >
                     <input
@@ -371,8 +377,8 @@ export default function UsedItemRegisterPage() {
                       className="mt-1 text-indigo-600 focus:ring-0"
                     />
                     <div>
-                      <div className="text-xs font-bold text-white">{cond.label}</div>
-                      <div className="text-[11px] text-neutral-400 mt-0.5">{cond.desc}</div>
+                      <div className="text-xs font-bold text-slate-900">{cond.label}</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">{cond.desc}</div>
                     </div>
                   </label>
                 ))}
@@ -381,14 +387,14 @@ export default function UsedItemRegisterPage() {
           </section>
 
           {/* Section 3: Pricing */}
-          <section className="bg-neutral-800/60 border border-neutral-700/60 rounded-2xl p-6 space-y-6">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-emerald-400" />
+          <section className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-5">
+            <h2 className="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-emerald-600" />
               <span>판매 가격 설정</span>
             </h2>
 
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 cursor-pointer bg-neutral-900 border border-neutral-700 px-4 py-2.5 rounded-xl">
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-2xl">
                 <input
                   type="checkbox"
                   checked={isFreeShare}
@@ -398,10 +404,10 @@ export default function UsedItemRegisterPage() {
                   }}
                   className="rounded text-emerald-600 focus:ring-0"
                 />
-                <span className="text-xs font-bold text-emerald-400">따뜻한 무료나눔 ❤️</span>
+                <span className="text-xs font-bold text-emerald-600">따뜻한 무료나눔 ❤️</span>
               </label>
 
-              <label className="flex items-center gap-2 cursor-pointer bg-neutral-900 border border-neutral-700 px-4 py-2.5 rounded-xl">
+              <label className="flex items-center gap-2 cursor-pointer bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-2xl">
                 <input
                   type="checkbox"
                   checked={canProposePrice}
@@ -409,13 +415,13 @@ export default function UsedItemRegisterPage() {
                   disabled={isFreeShare}
                   className="rounded text-indigo-600 focus:ring-0"
                 />
-                <span className="text-xs text-neutral-300">구매자 가격 제안(흥정) 받기</span>
+                <span className="text-xs text-slate-700 font-semibold">구매자 가격 제안(흥정) 받기</span>
               </label>
             </div>
 
             {!isFreeShare && (
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-bold text-base">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-base">
                   ₩
                 </span>
                 <input
@@ -423,9 +429,9 @@ export default function UsedItemRegisterPage() {
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                   placeholder="판매 희망 금액을 입력해주세요 (원 단위)"
-                  className="w-full bg-neutral-900 border border-neutral-700 rounded-xl pl-9 pr-14 py-3 text-base font-bold text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-9 pr-14 py-3 text-base font-black text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-emerald-500"
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 text-sm">
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold">
                   원
                 </span>
               </div>
@@ -433,14 +439,14 @@ export default function UsedItemRegisterPage() {
           </section>
 
           {/* Section 4: Trade Methods */}
-          <section className="bg-neutral-800/60 border border-neutral-700/60 rounded-2xl p-6 space-y-6">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-indigo-400" />
+          <section className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-5">
+            <h2 className="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-indigo-600" />
               <span>거래 방식 & 희망 장소</span>
             </h2>
 
             {/* Direct Deal */}
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -448,8 +454,8 @@ export default function UsedItemRegisterPage() {
                   onChange={(e) => setAllowDirect(e.target.checked)}
                   className="rounded text-indigo-600 focus:ring-0"
                 />
-                <span className="text-sm font-bold text-white flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-emerald-400" />
+                <span className="text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4 text-emerald-600" />
                   대면 직거래 가능
                 </span>
               </label>
@@ -460,13 +466,13 @@ export default function UsedItemRegisterPage() {
                   value={directLocation}
                   onChange={(e) => setDirectLocation(e.target.value)}
                   placeholder="예: 서울 강남역 11번 출구 앞, 역삼초등학교 정문 등"
-                  className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500"
                 />
               )}
             </div>
 
             {/* Shipping */}
-            <div className="space-y-3 pt-3 border-t border-neutral-700/60">
+            <div className="space-y-3 pt-3 border-t border-slate-100">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -474,14 +480,14 @@ export default function UsedItemRegisterPage() {
                   onChange={(e) => setAllowShipping(e.target.checked)}
                   className="rounded text-indigo-600 focus:ring-0"
                 />
-                <span className="text-sm font-bold text-white flex items-center gap-1.5">
-                  <Truck className="w-4 h-4 text-indigo-400" />
+                <span className="text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+                  <Truck className="w-4 h-4 text-indigo-600" />
                   택배 거래 가능 (에스크로 안전결제 적용)
                 </span>
               </label>
 
               {allowShipping && (
-                <div className="flex items-center gap-4 pl-6">
+                <div className="flex flex-wrap items-center gap-4 pl-6">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
@@ -489,7 +495,7 @@ export default function UsedItemRegisterPage() {
                       checked={isShippingFree}
                       onChange={() => setIsShippingFree(true)}
                     />
-                    <span className="text-xs text-neutral-300">배송비 포함 (판매자 부담)</span>
+                    <span className="text-xs text-slate-700 font-medium">배송비 포함 (판매자 부담)</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -498,7 +504,7 @@ export default function UsedItemRegisterPage() {
                       checked={!isShippingFree}
                       onChange={() => setIsShippingFree(false)}
                     />
-                    <span className="text-xs text-neutral-300">배송비 별도</span>
+                    <span className="text-xs text-slate-700 font-medium">배송비 별도</span>
                   </label>
                   {!isShippingFree && (
                     <div className="flex items-center gap-1">
@@ -506,9 +512,9 @@ export default function UsedItemRegisterPage() {
                         type="number"
                         value={shippingFee}
                         onChange={(e) => setShippingFee(e.target.value)}
-                        className="w-20 bg-neutral-900 border border-neutral-700 rounded-lg px-2 py-1 text-xs text-right text-white"
+                        className="w-20 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-right text-slate-900 font-bold"
                       />
-                      <span className="text-xs text-neutral-400">원</span>
+                      <span className="text-xs text-slate-500">원</span>
                     </div>
                   )}
                 </div>
@@ -517,10 +523,10 @@ export default function UsedItemRegisterPage() {
           </section>
 
           {/* Section 5: Description */}
-          <section className="bg-neutral-800/60 border border-neutral-700/60 rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <FileText className="w-5 h-5 text-amber-400" />
-              <span>상세 설명</span> <span className="text-red-400">*</span>
+          <section className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-3">
+            <h2 className="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-amber-500" />
+              <span>상세 설명</span> <span className="text-rose-500">*</span>
             </h2>
             <textarea
               rows={6}
@@ -531,28 +537,28 @@ export default function UsedItemRegisterPage() {
 - 눈에 띄는 흠집, 스크래치, 고장 여부
 - 박스, 충전기, 보증서 등 동봉 구성품 유무
 - 판매하는 솔직한 이유`}
-              className="w-full bg-neutral-900 border border-neutral-700 rounded-xl p-4 text-xs leading-relaxed text-white placeholder-neutral-500 focus:outline-none focus:border-indigo-500"
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs leading-relaxed text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500"
             />
           </section>
 
-          {/* Section 6: ★ Mobile Live Streaming Pin Linkage */}
-          <section className="bg-gradient-to-r from-indigo-950/60 to-purple-950/60 border border-indigo-700/50 rounded-2xl p-6">
+          {/* Section 6: ★ Mobile Live Streaming Pin Linkage (밝은 프리미엄 그라데이션) */}
+          <section className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 border border-indigo-200 rounded-3xl p-6 shadow-xs">
             <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="p-3 bg-red-600/20 text-red-400 rounded-xl border border-red-500/30">
+              <div className="flex items-start gap-3.5">
+                <div className="p-3 bg-red-600/10 text-rose-600 rounded-2xl border border-rose-200">
                   <Radio className="w-6 h-6 animate-pulse" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-white">
+                    <h3 className="text-sm font-extrabold text-slate-900">
                       내 모바일 라이브 방송 판매 핀(PIN) 자동 연동
                     </h3>
-                    <Badge className="bg-red-500 text-white text-[10px] font-bold">모꼬 특허 기능</Badge>
+                    <Badge className="bg-rose-600 text-white text-[10px] font-bold">모꼬 특허 기능</Badge>
                   </div>
-                  <p className="text-xs text-neutral-300 mt-1 leading-relaxed">
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                     모꼬에서는 일반 회원도 누구나 모바일 앱으로 실시간 방송을 켤 수 있습니다!
                     <br />이 옵션을 켜두시면 방송 진행 시{' '}
-                    <span className="text-amber-300 font-bold">&apos;내 중고물품&apos;</span> 목록에서 이 상품을 화면에
+                    <span className="text-indigo-700 font-bold">&apos;내 중고물품&apos;</span> 목록에서 이 상품을 화면에
                     핀으로 고정하여 시청자들과 실시간 소통 및 즉석 라이브 판매를 하실 수 있습니다.
                   </p>
                 </div>
@@ -564,14 +570,14 @@ export default function UsedItemRegisterPage() {
                   onChange={(e) => setEnableLivePin(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-neutral-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
               </label>
             </div>
           </section>
 
           {/* Section 7: Safe Deal Notice */}
-          <div className="bg-neutral-800/40 border border-neutral-800 rounded-xl p-4 text-xs text-neutral-400 flex items-start gap-2.5">
-            <Info className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+          <div className="bg-slate-100/80 border border-slate-200 rounded-2xl p-4 text-xs text-slate-600 flex items-start gap-2.5">
+            <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
             <div className="leading-relaxed">
               모꼬는 전자상거래 등에서의 소비자보호에 관한 법률 및 안전거래 가이드를 준수합니다.
               주류, 담배, 의약품, 가품/위조품 등 관련 법령상 거래가 금지된 품목은 등록 시 통보 없이 즉시 삭제 및 계정 제한 조치될 수 있습니다.
@@ -579,18 +585,18 @@ export default function UsedItemRegisterPage() {
           </div>
 
           {/* Submit Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-neutral-800">
+          <div className="flex items-center justify-end gap-3 pt-4">
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.back()}
-              className="border-neutral-700 text-neutral-300 hover:text-white px-6"
+              onClick={() => router.push('/?tab=MARKET&sub=C2C_USED')}
+              className="border-slate-300 text-slate-700 hover:bg-slate-100 px-6 h-11 rounded-2xl font-bold"
             >
               취소
             </Button>
             <Button
               type="submit"
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold px-8 shadow-lg shadow-indigo-600/30"
+              className="bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white font-extrabold px-8 h-11 rounded-2xl shadow-md shadow-orange-500/25"
             >
               중고물품 등록 완료
             </Button>
@@ -600,4 +606,3 @@ export default function UsedItemRegisterPage() {
     </div>
   )
 }
-

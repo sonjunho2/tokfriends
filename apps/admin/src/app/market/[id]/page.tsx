@@ -333,7 +333,13 @@ export default function MarketProductDetailPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.back()}
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.history.length > 1) {
+                  router.back()
+                } else {
+                  router.push(product.type === 'C2C_USED' ? '/?tab=MARKET&sub=C2C_USED' : '/?tab=MARKET')
+                }
+              }}
               className="p-2 -ml-2 text-slate-600 hover:text-slate-900 rounded-full hover:bg-slate-100 transition"
               title="뒤로가기"
             >
@@ -344,7 +350,10 @@ export default function MarketProductDetailPage() {
                 모꼬 홈
               </Link>
               <span>/</span>
-              <Link href="/?tab=MARKET" className="hover:text-indigo-600 font-semibold transition">
+              <Link
+                href={product.type === 'C2C_USED' ? '/?tab=MARKET&sub=C2C_USED' : '/?tab=MARKET'}
+                className="hover:text-indigo-600 font-semibold transition"
+              >
                 모꼬 마켓
               </Link>
               <span>/</span>
@@ -363,7 +372,7 @@ export default function MarketProductDetailPage() {
               <Share2 className="w-4 h-4" />
             </button>
             <Link
-              href="/?tab=MARKET"
+              href={product.type === 'C2C_USED' ? '/?tab=MARKET&sub=C2C_USED' : '/?tab=MARKET'}
               className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-1"
             >
               <Store className="w-3.5 h-3.5" />
