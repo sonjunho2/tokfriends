@@ -45,3 +45,5 @@ apps/mobile/android/app/build/
 
 /dagaon-release.apk
 /mocco-release.apk
+*.apk
+release-apks/
