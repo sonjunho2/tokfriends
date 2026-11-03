@@ -4641,253 +4641,6 @@ export default function CustomerWebStorefrontPage() {
           {/* ======================================================= */}
           {activeTab === 'MY' && (
             <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in duration-200">
-              {/* [🌟 역할(Role) 기반 비즈니스 & 크리에이터 센터] */}
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 p-6 sm:p-7 text-white shadow-xl border border-indigo-900/50 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="flex h-2.5 w-2.5 rounded-full bg-pink-500 animate-ping" />
-                      <Badge className="bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] text-white font-extrabold px-2.5 py-0.5 border-none text-[11px] shadow-sm">
-                        {role === 'GUEST' ? 'GUEST 둘러보기' : role === 'USER' ? '일반 회원' : role === 'MERCHANT' ? '🏢 공식 입점사' : role === 'CREATOR' ? '✨ 공식 크리에이터' : '🛡️ 총괄 관리자'}
-                      </Badge>
-                      <span className="text-xs text-indigo-300 font-semibold">
-                        {role === 'GUEST'
-                          ? '로그인 후 라이브 방송, 중고거래, 마켓 쇼핑의 모든 혜택을 이용해보세요'
-                          : role === 'USER'
-                          ? '일반 회원도 라이브 방송으로 중고물품을 판매하고 선물을 받을 수 있습니다!'
-                          : role === 'MERCHANT'
-                          ? '공식 B2C 마켓 및 공구 상품 등록 / 셀러 주문배송 관리'
-                          : '입점사 마켓 상품 연동 판매 및 라이브 후원금 수수료 수익 센터'}
-                      </span>
-                    </div>
-                    <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
-                      <span>모꼬 파트너스 & 크리에이터 센터</span>
-                      <Sparkles className="h-4 w-4 text-amber-400" />
-                    </h3>
-                  </div>
-
-                  {role === 'ADMIN' && (
-                    <Button
-                      asChild
-                      className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs h-9 px-3.5 rounded-xl shadow-lg shrink-0"
-                    >
-                      <Link href="/dashboard">
-                        <Crown className="h-4 w-4 mr-1.5 text-slate-950" />
-                        👑 회사 총괄 운영진 콘솔
-                        <ExternalLink className="h-3 w-3 ml-1 opacity-80" />
-                      </Link>
-                    </Button>
-                  )}
-                </div>
-
-                {/* Role-Specific Grid Cards */}
-                {role === 'GUEST' ? (
-                  /* GUEST: 로그인 유도 배너 */
-                  <div className="p-6 rounded-2xl bg-white/10 border border-white/20 text-center space-y-4">
-                    <div className="space-y-1">
-                      <div className="text-2xl">🔐</div>
-                      <h4 className="text-base sm:text-lg font-black text-white">로그인이 필요합니다</h4>
-                      <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-                        모꼬 회원이 되시면 라이브 방송 송출 및 선물 수신, C2C 중고거래, 마켓 특가 쇼핑, 실시간 채팅을 모두 무료로 이용하실 수 있습니다!
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                      <Button
-                        onClick={() => openLoginModal()}
-                        className="bg-gradient-to-r from-pink-500 to-indigo-600 hover:opacity-95 text-white font-extrabold text-xs h-10 px-6 rounded-xl shadow-lg"
-                      >
-                        간편 로그인 / 1초 회원가입
-                      </Button>
-
-                    </div>
-                  </div>
-                ) : role === 'MERCHANT' ? (
-                  /* MERCHANT: 입점사 전용 관리자 및 상품 등록 센터 */
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                    <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-950/70 to-slate-900 border border-emerald-500/40 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-3xl">🏢</span>
-                        <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold">
-                          공식 인증 셀러
-                        </Badge>
-                      </div>
-                      <div>
-                        <h4 className="font-extrabold text-base text-white">입점사 관리자 (셀러 콘솔)</h4>
-                        <p className="text-xs text-slate-300 mt-1 leading-snug">
-                          등록된 B2C 마켓 상품 관리, 실시간 주문 접수, 택배 송장 입력 및 정산금 출금
-                        </p>
-                      </div>
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          asChild
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-9 rounded-xl shadow-sm"
-                        >
-                          <Link href="/seller">
-                            <Store className="h-4 w-4 mr-1.5" />
-                            셀러 콘솔 바로가기
-                          </Link>
-                        </Button>
-                        <Button
-                          onClick={() => router.push('/seller/products/new')}
-                          className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-3 rounded-xl"
-                        >
-                          + 상품 등록
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-950/70 to-slate-900 border border-indigo-500/40 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-3xl">📦</span>
-                        <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold">
-                          마켓 / 공구 등록
-                        </Badge>
-                      </div>
-                      <div>
-                        <h4 className="font-extrabold text-base text-white">대한민국 통신판매 규정 상품 등록</h4>
-                        <p className="text-xs text-slate-300 mt-1 leading-snug">
-                          공정위 상품정보제공고시 표기, 상세페이지 이미지 및 무료배송 정책 설정
-                        </p>
-                      </div>
-                      <div className="pt-2">
-                        <Button
-                          onClick={() => router.push('/seller/products/new')}
-                          className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-9 rounded-xl shadow-sm"
-                        >
-                          <Building2 className="h-4 w-4 mr-1.5" />
-                          공식 B2C 마켓 / 공구 상품 등록하기
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ) : role === 'CREATOR' ? (
-                  /* CREATOR: 크리에이터 전용 스튜디오 및 상품 핀 판매 센터 */
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                    <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-950/70 to-slate-900 border border-purple-500/40 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-3xl">🎬</span>
-                        <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold">
-                          공식 크리에이터
-                        </Badge>
-                      </div>
-                      <div>
-                        <h4 className="font-extrabold text-base text-white">크리에이터 스튜디오 콘솔</h4>
-                        <p className="text-xs text-slate-300 mt-1 leading-snug">
-                          라이브 방송 편성, 단독 핀 특가 상품 매칭, 실시간 시청자 및 선물 후원 분석
-                        </p>
-                      </div>
-                      <div className="pt-2">
-                        <Button
-                          asChild
-                          className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs h-9 rounded-xl shadow-sm"
-                        >
-                          <Link href="/streamer">
-                            <Radio className="h-4 w-4 mr-1.5" />
-                            크리에이터 스튜디오 바로가기
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="p-5 rounded-2xl bg-gradient-to-br from-pink-950/70 to-slate-900 border border-pink-500/40 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-3xl">💰</span>
-                        <Badge className="bg-pink-500/20 text-pink-300 border border-pink-500/30 text-xs font-bold">
-                          어필리에이트 수익
-                        </Badge>
-                      </div>
-                      <div>
-                        <h4 className="font-extrabold text-base text-white">입점사 마켓 상품 연동 판매</h4>
-                        <p className="text-xs text-slate-300 mt-1 leading-snug">
-                          입점사의 인기 상품을 내 라이브 방송에 핀으로 걸고 판매 시 건당 수수료 획득!
-                        </p>
-                      </div>
-                      <div className="pt-2">
-                        <Button
-                          onClick={() => setActiveTab('MARKET')}
-                          className="w-full bg-pink-600 hover:bg-pink-500 text-white font-bold text-xs h-9 rounded-xl shadow-sm"
-                        >
-                          <Sparkles className="h-4 w-4 mr-1.5" />
-                          연동 판매할 마켓 상품 둘러보기
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  /* USER (일반회원): 라이브 방송 안내 + 입점사/크리에이터 신청 */
-                  <div className="space-y-4 pt-1">
-                    {/* 일반 회원 라이브 방송 가능 안내 카드 */}
-                    <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-900/40 via-indigo-900/40 to-slate-900 border border-purple-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-3xl">📱✨</span>
-                        <div>
-                          <div className="font-bold text-sm text-purple-200">
-                            일반 회원님도 라이브 방송으로 소통 & 중고물품을 판매할 수 있습니다!
-                          </div>
-                          <div className="text-xs text-slate-300 mt-0.5">
-                            모바일 앱에서 언제든 방송을 켜고 시청자 선물을 받거나, 내가 올린 중고물품을 실시간 판매해보세요.
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
-                        <Badge className="bg-purple-500/30 text-purple-200 border-none text-[11px]">
-                          모바일 앱 전용 송출
-                        </Badge>
-                      </div>
-                    </div>
-
-                    {/* 입점사 신청 & 크리에이터 신청 2개 카드 */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                      {/* (1) 🏪 입점사 신청 */}
-                      <div className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 transition-all flex flex-col justify-between space-y-3">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-2xl">🏪</span>
-                            <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-bold">
-                              사업자 전용
-                            </Badge>
-                          </div>
-                          <h4 className="font-extrabold text-sm text-white">공식 입점사 신청하기</h4>
-                          <p className="text-[11px] text-slate-300 leading-snug">
-                            사업자 등록 후 공식 B2C 마켓 및 특가 공구 상품을 전문 등록하고 에스크로 정산 혜택을 받으세요.
-                          </p>
-                        </div>
-                        <Button
-                          onClick={() => requireAuth(() => openMerchantModal())}
-                          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-8 rounded-xl shadow-sm"
-                        >
-                          <Building2 className="h-3.5 w-3.5 mr-1" />
-                          입점사 신청서 작성
-                        </Button>
-                      </div>
-
-                      {/* (2) 🎙️ 크리에이터 신청 */}
-                      <div className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 transition-all flex flex-col justify-between space-y-3">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-2xl">🎙️</span>
-                            <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[9px] font-bold">
-                              인플루언서 커머스
-                            </Badge>
-                          </div>
-                          <h4 className="font-extrabold text-sm text-white">크리에이터 신청하기</h4>
-                          <p className="text-[11px] text-slate-300 leading-snug">
-                            입점사들의 인기 마켓 상품을 내 방송에 핀으로 걸고 대신 판매하여 건당 수수료 수익을 창출하세요.
-                          </p>
-                        </div>
-                        <Button
-                          onClick={() => requireAuth(() => openCreatorModal())}
-                          className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs h-8 rounded-xl shadow-sm"
-                        >
-                          <Mic className="h-3.5 w-3.5 mr-1" />
-                          크리에이터 신청서 작성
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
               {/* [모바일 앱 100% 동일] (1) 프로필 카드 */}
               <div className="rounded-3xl bg-white p-6 border border-slate-200/80 shadow-xs space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -5245,35 +4998,101 @@ export default function CustomerWebStorefrontPage() {
                 )}
 
                 {myTradeTab === 'ORDERS' && (
-                  <div className="space-y-2.5">
-                    {myOrdersList.map((order) => (
-                      <div
-                        key={order.id}
-                        className="flex items-center justify-between p-3 rounded-2xl border bg-slate-50/50"
-                      >
-                        <div className="flex items-center gap-3">
-                          <img src={order.image} alt="order" className="h-12 w-12 rounded-xl object-cover" />
-                          <div>
-                            <span className="text-[10px] text-emerald-600 font-bold block">{order.statusText}</span>
-                            <h5 className="font-bold text-xs text-slate-900 line-clamp-1">{order.title}</h5>
-                            <span className="font-black text-xs text-slate-900">{order.price.toLocaleString()}원 · {order.date}</span>
+                  <div className="space-y-4">
+                    {/* 쿠팡/알리형 배송 프로세스 바 */}
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 flex items-center justify-around text-center">
+                      <div className="space-y-1">
+                        <span className="text-base font-black text-indigo-600">1</span>
+                        <span className="text-[11px] font-bold text-slate-700 block">결제완료</span>
+                      </div>
+                      <span className="text-slate-300">›</span>
+                      <div className="space-y-1 opacity-60">
+                        <span className="text-base font-bold text-slate-400">0</span>
+                        <span className="text-[11px] text-slate-500 block">배송준비</span>
+                      </div>
+                      <span className="text-slate-300">›</span>
+                      <div className="space-y-1 opacity-60">
+                        <span className="text-base font-bold text-slate-400">0</span>
+                        <span className="text-[11px] text-slate-500 block">배송중</span>
+                      </div>
+                      <span className="text-slate-300">›</span>
+                      <div className="space-y-1 opacity-60">
+                        <span className="text-base font-bold text-slate-400">0</span>
+                        <span className="text-[11px] text-slate-500 block">배송완료</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {myOrdersList.map((order) => (
+                        <div
+                          key={order.id}
+                          className="p-4 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-3"
+                        >
+                          <div className="flex items-center justify-between border-b pb-2.5">
+                            <div className="flex items-center gap-2">
+                              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
+                                {order.statusText}
+                              </Badge>
+                              <span className="text-xs text-slate-400">주문일자: {order.date}</span>
+                            </div>
+                            <span className="text-xs font-semibold text-slate-500">판매자: {order.seller}</span>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <img src={order.image} alt="order" className="h-14 w-14 rounded-xl object-cover border" />
+                              <div>
+                                <h5 className="font-extrabold text-sm text-slate-900">{order.title}</h5>
+                                <span className="font-black text-sm text-slate-900">{order.price.toLocaleString()}원</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 쿠팡/알리형 주문 관리 액션 버튼들 */}
+                          <div className="flex flex-wrap items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                            <Button
+                              onClick={() => {
+                                toast({
+                                  title: '🚚 실시간 배송 조회',
+                                  description: 'CJ대한통운 5892-0192-4411 (현재 집하 완료되어 이동 중입니다).',
+                                })
+                              }}
+                              size="sm"
+                              variant="outline"
+                              className="text-xs h-8 px-3 rounded-xl font-bold border-slate-200"
+                            >
+                              배송조회
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                toast({
+                                  title: '🎉 구매 확정이 완료되었습니다!',
+                                  description: '판매자에게 정산금이 안전 지급되었으며, 고객님께 500 ON 포인트가 적립되었습니다.',
+                                })
+                              }}
+                              size="sm"
+                              className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs h-8 px-3 rounded-xl shadow-xs"
+                            >
+                              구매확정
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                setIsCustomerInquiryOpen(true)
+                                toast({
+                                  title: '🤖 AI 고객센터 Zev-CS 연결',
+                                  description: `주문번호 (${order.id}) 하자/반품 및 배송 문의 창구로 접수됩니다.`,
+                                })
+                              }}
+                              size="sm"
+                              variant="ghost"
+                              className="text-xs h-8 px-2.5 rounded-xl font-bold text-slate-500 hover:text-slate-800"
+                            >
+                              교환/반품·CS문의
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            onClick={() => {
-                              setActiveTab('CHAT')
-                              setChatSubTab('CHATS')
-                            }}
-                            size="sm"
-                            variant="outline"
-                            className="text-xs h-8 px-3 rounded-xl font-bold"
-                          >
-                            판매자와 대화
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -5491,6 +5310,104 @@ export default function CustomerWebStorefrontPage() {
                   >
                     청소년보호정책
                   </button>
+                </div>
+              </div>
+
+              {/* [웹 전용 비즈니스 파트너스 & 크리에이터 센터 - 일반 회원을 방해하지 않도록 맨 하단 배치] */}
+              <div className="rounded-3xl bg-slate-900 text-white p-6 border border-slate-800 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">🏢</span>
+                      <h4 className="font-extrabold text-base text-white">
+                        모꼬 비즈니스 파트너스 & 크리에이터 센터
+                      </h4>
+                      <Badge className="bg-purple-500/30 text-purple-200 border-none text-[10px] font-bold">
+                        파트너스 전용
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">
+                      공식 사업자 B2C 마켓 판매 및 인플루언서 라이브 커머스 제휴 수익 채널입니다.
+                    </p>
+                  </div>
+                  {role === 'ADMIN' && (
+                    <Button
+                      asChild
+                      className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs h-8 px-3 rounded-xl shadow-sm shrink-0"
+                    >
+                      <Link href="/dashboard">
+                        <Crown className="h-3.5 w-3.5 mr-1 text-slate-950" />
+                        총괄 운영 콘솔
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                  {/* (1) 입점사 카드 */}
+                  <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex flex-col justify-between space-y-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm text-emerald-400 flex items-center gap-1.5">
+                          <Store className="h-4 w-4" />
+                          공식 입점사 (B2C 마켓)
+                        </span>
+                        {role === 'MERCHANT' ? (
+                          <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-bold">인증 완료</Badge>
+                        ) : (
+                          <Badge className="bg-slate-700 text-slate-300 text-[9px] font-bold">사업자 전용</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        공식 B2C 마켓 및 공구 상품 등록, 주문 배송 관리 및 에스크로 자동 정산
+                      </p>
+                    </div>
+                    {role === 'MERCHANT' ? (
+                      <div className="flex gap-2">
+                        <Button asChild className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-8 rounded-xl">
+                          <Link href="/seller">셀러 콘솔 바로가기</Link>
+                        </Button>
+                        <Button onClick={() => router.push('/seller/products/new')} className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-3 rounded-xl">
+                          + 상품 등록
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button onClick={() => requireAuth(() => openMerchantModal())} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-8 rounded-xl shadow-xs">
+                        <Building2 className="h-3.5 w-3.5 mr-1" />
+                        입점사 신청서 작성
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* (2) 크리에이터 카드 */}
+                  <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex flex-col justify-between space-y-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm text-purple-400 flex items-center gap-1.5">
+                          <Radio className="h-4 w-4" />
+                          공식 크리에이터 (쇼호스트)
+                        </span>
+                        {role === 'CREATOR' ? (
+                          <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[9px] font-bold">인증 완료</Badge>
+                        ) : (
+                          <Badge className="bg-slate-700 text-slate-300 text-[9px] font-bold">인플루언서 제휴</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        입점사 인기 상품을 내 방송 핀에 걸고 대신 판매하여 건당 커미션 수익 획득
+                      </p>
+                    </div>
+                    {role === 'CREATOR' ? (
+                      <Button asChild className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs h-8 rounded-xl">
+                        <Link href="/streamer">크리에이터 스튜디오 바로가기</Link>
+                      </Button>
+                    ) : (
+                      <Button onClick={() => requireAuth(() => openCreatorModal())} className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs h-8 rounded-xl shadow-xs">
+                        <Mic className="h-3.5 w-3.5 mr-1" />
+                        크리에이터 신청서 작성
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

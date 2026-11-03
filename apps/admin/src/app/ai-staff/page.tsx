@@ -101,10 +101,6 @@ const STAFF_INFO: Record<string, { name: string; title: string; defaultModel: st
   auditor: { name: '감사관 AI (Auditor)', title: '계정 이력 및 이상 거래 교차 감사', defaultModel: 'gemini-1.5-flash', icon: DollarSign, color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40' },
   cs: { name: '고객행복관 AI (CS)', title: '소명 기회 보장 & 유저 억울함 방지 중재', defaultModel: 'gemini-1.5-flash', icon: HeartHandshake, color: 'text-sky-500 bg-sky-50 dark:bg-sky-950/40' },
   growth: { name: '성장 분석관 AI (Growth)', title: '방송 룸 리스크 & 커머스 영향도 분석', defaultModel: 'gemini-1.5-flash', icon: Layers, color: 'text-purple-500 bg-purple-50 dark:bg-purple-950/40' },
-  // Backward compatibility keys
-  settlement: { name: '감사관 AI (Auditor)', title: '포인트/환전 어뷰징 & 결제 이상 징후 추적', defaultModel: 'gemini-1.5-flash', icon: DollarSign, color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40' },
-  happiness: { name: '고객행복관 AI (CS)', title: '소명 기회 보장 & 유저 억울함 방지 중재', defaultModel: 'gemini-1.5-flash', icon: HeartHandshake, color: 'text-sky-500 bg-sky-50 dark:bg-sky-950/40' },
-  curator: { name: '성장 분석관 AI (Growth)', title: '커뮤니티 가이드라인 및 프로필 심의', defaultModel: 'gemini-1.5-flash', icon: Layers, color: 'text-purple-500 bg-purple-50 dark:bg-purple-950/40' },
 };
 
 const DEFAULT_STAFF_METRICS: AiStaffMetric[] = [
