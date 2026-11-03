@@ -4692,6 +4692,10 @@ export default function CustomerWebStorefrontPage() {
                         </span>
                         <span>·</span>
                         <span className="text-rose-600 font-bold">매너온도 36.5℃</span>
+                        <span>·</span>
+                        <span className="font-bold text-slate-700">팔로워 <strong className="text-slate-900 font-black">128</strong></span>
+                        <span>·</span>
+                        <span className="font-bold text-slate-700">팔로잉 <strong className="text-slate-900 font-black">42</strong></span>
                       </div>
 
                       <p className="text-xs text-slate-600 italic">
@@ -4866,17 +4870,7 @@ export default function CustomerWebStorefrontPage() {
                   </Button>
                 </div>
 
-                {/* [모바일 앱 100% 동일] (4) 소셜 팔로워 / 팔로잉 듀얼 카드 */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3.5 rounded-2xl border bg-slate-50/70 text-center hover:bg-slate-100 transition-colors cursor-pointer">
-                    <span className="text-lg font-black text-slate-900 block">128</span>
-                    <span className="text-xs font-semibold text-slate-500">팔로워</span>
-                  </div>
-                  <div className="p-3.5 rounded-2xl border bg-slate-50/70 text-center hover:bg-slate-100 transition-colors cursor-pointer">
-                    <span className="text-lg font-black text-slate-900 block">42</span>
-                    <span className="text-xs font-semibold text-slate-500">팔로잉</span>
-                  </div>
-                </div>
+
               </div>
 
               {/* [모바일 앱 100% 동일] (5) 🛍️ 마켓 & 중고거래 관리 (3대 세그먼트) */}
@@ -4933,7 +4927,10 @@ export default function CustomerWebStorefrontPage() {
                         <div className="flex items-center gap-3">
                           <img src={item.image} alt="wish" className="h-12 w-12 rounded-xl object-cover" />
                           <div>
-                            <span className="text-[10px] text-muted-foreground block">{item.seller}</span>
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className="text-[10px] text-muted-foreground">{item.seller}</span>
+                              <Badge className="bg-orange-50 text-orange-700 border-orange-200 text-[9px] font-bold px-1.5 py-0">🥕 중고거래</Badge>
+                            </div>
                             <h5 className="font-bold text-xs text-slate-900 line-clamp-1">{item.title}</h5>
                             <span className="font-black text-xs text-slate-900">{item.price.toLocaleString()}원</span>
                           </div>
@@ -4977,6 +4974,9 @@ export default function CustomerWebStorefrontPage() {
                         <div className="flex items-center gap-3">
                           <img src={item.image} alt="sale" className="h-12 w-12 rounded-xl object-cover" />
                           <div>
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <Badge className="bg-orange-50 text-orange-700 border-orange-200 text-[9px] font-bold px-1.5 py-0">🥕 중고물품</Badge>
+                            </div>
                             <h5 className="font-bold text-xs text-slate-900">{item.title}</h5>
                             <span className="font-extrabold text-xs text-slate-900">
                               {item.price.toLocaleString()}원
