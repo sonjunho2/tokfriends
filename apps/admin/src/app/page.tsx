@@ -48,6 +48,9 @@ import {
   QrCode,
   ThumbsUp,
   Coins,
+  ShoppingCart,
+  Plus,
+  Minus,
   Wallet,
   Award,
   Filter,
@@ -1206,6 +1209,53 @@ export default function CustomerWebStorefrontPage() {
   const [sudaInputText, setSudaInputText] = useState('')
   const [heroIndex, setHeroIndex] = useState(0)
 
+
+  // 전역 장바구니 Drawer 상태 및 아이템
+  const [isCartOpen, setIsCartOpen] = useState(false)
+  const [cartItems, setCartItems] = useState<Array<{
+    id: string
+    name: string
+    price: number
+    quantity: number
+    image: string
+    shippingFee: number
+  }>>([])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = JSON.parse(localStorage.getItem('mocco_cart') || '[]')
+        setCartItems(stored)
+      } catch (e) {
+        console.warn('Failed to load cart', e)
+      }
+    }
+  }, [])
+
+  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
+
+  const updateCartQuantity = (id: string, delta: number) => {
+    const updated = cartItems
+      .map((item) => {
+        if (item.id === id) {
+          const newQty = item.quantity + delta
+          return newQty > 0 ? { ...item, quantity: newQty } : null
+        }
+        return item
+      })
+      .filter(Boolean) as typeof cartItems
+
+    setCartItems(updated)
+    localStorage.setItem('mocco_cart', JSON.stringify(updated))
+  }
+
+  const removeCartItem = (id: string) => {
+    const updated = cartItems.filter((item) => item.id !== id)
+    setCartItems(updated)
+    localStorage.setItem('mocco_cart', JSON.stringify(updated))
+    toast({ title: '🗑️ 상품이 장바구니에서 삭제되었습니다.' })
+  }
+
   // URL Query Params (?tab=MARKET&sub=C2C_USED) Navigation Sync
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -2027,6 +2077,21 @@ export default function CustomerWebStorefrontPage() {
                   className="pl-8 pr-3 text-xs h-9 bg-slate-100/90 hover:bg-slate-100 focus:bg-white border-slate-200/80 rounded-full transition-all focus:ring-1 focus:ring-[#FF3B6B]/40"
                 />
               </div>
+
+              {/* GNB 카트 버튼 (전역 장바구니 원클릭 조회) */}
+              <button
+                onClick={() => setIsCartOpen(true)}
+                className="relative p-2 text-slate-600 hover:text-slate-900 rounded-full hover:bg-slate-100 transition shrink-0"
+                title="내 장바구니 보기"
+              >
+                <ShoppingCart className="w-5 h-5 text-slate-700" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-[#FF3B6B] text-white text-[10px] font-black h-4 min-w-[16px] px-1 rounded-full flex items-center justify-center shadow-xs animate-in zoom-in">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+
 
 
 
@@ -4822,6 +4887,43 @@ export default function CustomerWebStorefrontPage() {
                   </div>
                 </div>
 
+                
+                {/* 🛒 내 장바구니 바로가기 배너 카드 */}
+                <div
+                  onClick={() => setIsCartOpen(true)}
+                  className="rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/80 via-white to-purple-50/80 p-4 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                      <ShoppingCart className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h5 className="font-extrabold text-sm text-slate-900">내 장바구니</h5>
+                        {cartCount > 0 ? (
+                          <Badge className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0 border-none">
+                            {cartCount}개 담김
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-slate-200 text-slate-600 text-[10px] font-bold px-1.5 py-0 border-none">
+                            비어있음
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        마켓 및 공구에서 담아둔 상품들을 확인하고 한 번에 안전결제하세요
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs h-8 px-3.5 rounded-xl shrink-0 shadow-xs"
+                  >
+                    장바구니 열기 ›
+                  </Button>
+                </div>
+
+
                 {/* [모바일 앱 100% 동일] (3) 🎬 무료 모꼬 포인트 충전소 (리워드 광고) */}
                 <div
                   onClick={() => {
@@ -5450,6 +5552,146 @@ export default function CustomerWebStorefrontPage() {
           </div>
         </footer>
       </div>
+
+      {/* ========================================================= */}
+      {/* 9. 전역 장바구니 우측 슬라이드 패널 (Cart Drawer)             */}
+      {/* ========================================================= */}
+      {isCartOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          <div
+            onClick={() => setIsCartOpen(false)}
+            className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity animate-in fade-in"
+          />
+
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+            <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+              <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShoppingCart className="w-5 h-5 text-indigo-600" />
+                  <h3 className="font-extrabold text-base text-slate-900">
+                    내 장바구니 ({cartCount})
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setIsCartOpen(false)}
+                  className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                {cartItems.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center py-12 space-y-3">
+                    <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                      <ShoppingCart className="w-8 h-8" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-700">장바구니가 비어 있습니다.</p>
+                    <p className="text-xs text-slate-400">마켓 및 공동구매 상품을 담아보세요!</p>
+                  </div>
+                ) : (
+                  cartItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/50 space-y-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-16 h-16 rounded-xl object-cover border shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-xs font-bold text-slate-900 line-clamp-2">
+                            {item.name}
+                          </h4>
+                          <span className="text-xs font-black text-slate-900 block mt-1">
+                            {item.price.toLocaleString()}원
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => removeCartItem(item.id)}
+                          className="text-slate-400 hover:text-rose-500 p-1"
+                          title="삭제"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-xs">
+                        <span className="text-slate-500 font-medium">수량</span>
+                        <div className="flex items-center border border-slate-300 rounded-lg bg-white">
+                          <button
+                            onClick={() => updateCartQuantity(item.id, -1)}
+                            className="p-1 text-slate-600 hover:bg-slate-100 rounded-l-md"
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="px-2.5 font-bold text-slate-800 text-xs">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() => updateCartQuantity(item.id, 1)}
+                            className="p-1 text-slate-600 hover:bg-slate-100 rounded-r-md"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {cartItems.length > 0 && (
+                <div className="p-5 border-t border-slate-200 bg-slate-50/70 space-y-3">
+                  <div className="space-y-1.5 text-xs text-slate-600">
+                    <div className="flex justify-between">
+                      <span>상품 금액</span>
+                      <span className="font-bold text-slate-900">
+                        {cartItems
+                          .reduce((acc, item) => acc + item.price * item.quantity, 0)
+                          .toLocaleString()}원
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>기본 배송비</span>
+                      <span className="font-bold text-slate-900">3,000원</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-black text-slate-900 pt-2 border-t border-slate-200">
+                      <span>총 결제 예정 금액</span>
+                      <span className="text-indigo-600 text-base">
+                        {(
+                          cartItems.reduce(
+                            (acc, item) => acc + item.price * item.quantity,
+                            0
+                          ) + 3000
+                        ).toLocaleString()}원
+                      </span>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => {
+                      setIsCartOpen(false)
+                      requireAuth(() => {
+                        toast({
+                          title: '🛡️ 장바구니 에스크로 주문서 작성',
+                          description: `총 ${cartCount}건의 상품에 대한 통합 에스크로 주문 결제창으로 이동합니다.`,
+                        })
+                      })
+                    }}
+                    className="w-full h-11 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm shadow-md"
+                  >
+                    총 {cartCount}건 주문하기
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* ========================================================= */}
       {/* 4. Mobile Bottom Navigation Bar (md:hidden)               */}
