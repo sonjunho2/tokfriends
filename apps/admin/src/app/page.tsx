@@ -1326,7 +1326,7 @@ export default function CustomerWebStorefrontPage() {
   const [isCustomerInquiryOpen, setIsCustomerInquiryOpen] = useState(false)
   const [isRewardAdOpen, setIsRewardAdOpen] = useState(false)
   const [rewardAdCountdown, setRewardAdCountdown] = useState(3)
-  const [myTradeTab, setMyTradeTab] = useState<'WISHLIST' | 'SALES' | 'ORDERS'>('SALES')
+  const [myTradeTab, setMyTradeTab] = useState<'CART' | 'WISHLIST' | 'SALES' | 'ORDERS'>('CART')
 
   // 1:1 고객문의 폼
   const [inquiryType, setInquiryType] = useState('거래/결제/정산 문의')
@@ -2078,19 +2078,7 @@ export default function CustomerWebStorefrontPage() {
                 />
               </div>
 
-              {/* GNB 카트 버튼 (전역 장바구니 원클릭 조회) */}
-              <button
-                onClick={() => setIsCartOpen(true)}
-                className="relative p-2 text-slate-600 hover:text-slate-900 rounded-full hover:bg-slate-100 transition shrink-0"
-                title="내 장바구니 보기"
-              >
-                <ShoppingCart className="w-5 h-5 text-slate-700" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 bg-[#FF3B6B] text-white text-[10px] font-black h-4 min-w-[16px] px-1 rounded-full flex items-center justify-center shadow-xs animate-in zoom-in">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
+
 
 
 
@@ -4888,40 +4876,7 @@ export default function CustomerWebStorefrontPage() {
                 </div>
 
                 
-                {/* 🛒 내 장바구니 바로가기 배너 카드 */}
-                <div
-                  onClick={() => setIsCartOpen(true)}
-                  className="rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/80 via-white to-purple-50/80 p-4 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
-                      <ShoppingCart className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h5 className="font-extrabold text-sm text-slate-900">내 장바구니</h5>
-                        {cartCount > 0 ? (
-                          <Badge className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0 border-none">
-                            {cartCount}개 담김
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-slate-200 text-slate-600 text-[10px] font-bold px-1.5 py-0 border-none">
-                            비어있음
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        마켓 및 공구에서 담아둔 상품들을 확인하고 한 번에 안전결제하세요
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs h-8 px-3.5 rounded-xl shrink-0 shadow-xs"
-                  >
-                    장바구니 열기 ›
-                  </Button>
-                </div>
+
 
 
                 {/* [모바일 앱 100% 동일] (3) 🎬 무료 모꼬 포인트 충전소 (리워드 광고) */}
@@ -4986,6 +4941,17 @@ export default function CustomerWebStorefrontPage() {
                   {/* 세그먼트 탭 버튼 */}
                   <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
                     <button
+                      onClick={() => setMyTradeTab('CART')}
+                      className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                        myTradeTab === 'CART'
+                          ? 'bg-white text-indigo-600 shadow-2xs font-black'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <ShoppingCart className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>장바구니 ({cartCount})</span>
+                    </button>
+                    <button
                       onClick={() => setMyTradeTab('WISHLIST')}
                       className={`px-3 py-1.5 rounded-lg transition-all ${
                         myTradeTab === 'WISHLIST'
@@ -5019,6 +4985,135 @@ export default function CustomerWebStorefrontPage() {
                 </div>
 
                 {/* 탭별 내용 */}
+                {/* 🛒 장바구니 탭 내용 */}
+                {myTradeTab === 'CART' && (
+                  <div className="space-y-4">
+                    {cartItems.length === 0 ? (
+                      <div className="p-10 rounded-2xl border border-dashed border-slate-200 text-center space-y-3 bg-slate-50/50">
+                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                          <ShoppingCart className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-700">장바구니가 비어 있습니다.</p>
+                          <p className="text-xs text-slate-400 mt-0.5">마켓 및 공동구매 상품을 담아보세요!</p>
+                        </div>
+                        <Button
+                          onClick={() => setActiveTab('MARKET')}
+                          size="sm"
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs h-8 px-4 rounded-xl shadow-xs"
+                        >
+                          마켓 상품 둘러보기
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-xs text-slate-500 pb-1">
+                          <span>담긴 상품 총 <strong className="text-slate-900">{cartCount}</strong>개</span>
+                          <span className="text-[11px] text-slate-400">배송비는 기본 3,000원이 적용됩니다.</span>
+                        </div>
+
+                        {cartItems.map((item) => (
+                          <div
+                            key={item.id}
+                            className="p-4 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-3"
+                          >
+                            <div className="flex items-center justify-between">
+                              <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] font-bold">
+                                🏬 공식 마켓 상품
+                              </Badge>
+                              <button
+                                onClick={() => removeCartItem(item.id)}
+                                className="text-slate-400 hover:text-rose-500 p-1 transition"
+                                title="삭제"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+
+                            <div className="flex items-center gap-3.5">
+                              <img
+                                src={item.image}
+                                alt={item.name}
+                                className="w-16 h-16 rounded-xl object-cover border shrink-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <h5 className="font-extrabold text-xs sm:text-sm text-slate-900 line-clamp-2">
+                                  {item.name}
+                                </h5>
+                                <div className="flex items-baseline gap-1 mt-1">
+                                  <span className="font-black text-sm text-slate-900">
+                                    {(item.price * item.quantity).toLocaleString()}원
+                                  </span>
+                                  <span className="text-[11px] text-slate-400">
+                                    (개당 {item.price.toLocaleString()}원)
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                              <span className="text-slate-500 font-medium">수량 변경</span>
+                              <div className="flex items-center border border-slate-200 rounded-lg bg-slate-50">
+                                <button
+                                  onClick={() => updateCartQuantity(item.id, -1)}
+                                  className="p-1.5 text-slate-600 hover:bg-slate-200 rounded-l-md transition"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="px-3 font-bold text-slate-800 text-xs">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  onClick={() => updateCartQuantity(item.id, 1)}
+                                  className="p-1.5 text-slate-600 hover:bg-slate-200 rounded-r-md transition"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* 장바구니 주문 요약 및 결제 버튼 */}
+                        <div className="p-4 rounded-2xl border border-indigo-100 bg-indigo-50/50 space-y-3">
+                          <div className="space-y-1.5 text-xs text-slate-600">
+                            <div className="flex justify-between">
+                              <span>총 상품 금액</span>
+                              <span className="font-bold text-slate-900">
+                                {cartItems.reduce((acc, i) => acc + i.price * i.quantity, 0).toLocaleString()}원
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>기본 배송비</span>
+                              <span className="font-bold text-slate-900">3,000원</span>
+                            </div>
+                            <div className="flex justify-between text-sm font-black text-slate-900 pt-2 border-t border-indigo-100">
+                              <span>총 결제 예정 금액</span>
+                              <span className="text-indigo-600 text-base">
+                                {(cartItems.reduce((acc, i) => acc + i.price * i.quantity, 0) + 3000).toLocaleString()}원
+                              </span>
+                            </div>
+                          </div>
+
+                          <Button
+                            onClick={() => {
+                              requireAuth(() => {
+                                toast({
+                                  title: '🛡️ 장바구니 에스크로 주문서 작성',
+                                  description: `장바구니 총 ${cartCount}건의 상품에 대한 에스크로 결제창으로 이동합니다.`,
+                                })
+                              })
+                            }}
+                            className="w-full h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm shadow-md shadow-indigo-200"
+                          >
+                            총 {cartCount}건 안전결제 주문하기
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {myTradeTab === 'WISHLIST' && (
                   <div className="space-y-2.5">
                     {myWishlist.map((item) => (
