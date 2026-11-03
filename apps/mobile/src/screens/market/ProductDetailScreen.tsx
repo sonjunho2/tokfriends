@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -10,6 +11,7 @@ import {
   Alert,
   Dimensions,
   Share,
+  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,6 +41,87 @@ export default function ProductDetailScreen({ route, navigation }: any) {
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
   const [showPgBottomSheet, setShowPgBottomSheet] = useState<boolean>(false);
+  const [cartCount, setCartCount] = useState<number>(0);
+  const [cartModalVisible, setCartModalVisible] = useState<boolean>(false);
+  const [cartItems, setCartItems] = useState<any[]>([]);
+
+  const loadCartCount = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('@mocco_cart');
+      if (stored) {
+        const items = JSON.parse(stored);
+        setCartItems(items);
+        setCartCount(items.reduce((acc: number, cur: any) => acc + (cur.quantity || 1), 0));
+      } else {
+        setCartItems([]);
+        setCartCount(0);
+      }
+    } catch (e) {
+      console.warn('Failed to load @mocco_cart', e);
+    }
+  };
+
+  useEffect(() => {
+    loadCartCount();
+  }, []);
+
+  const handleAddToCart = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('@mocco_cart');
+      const items = stored ? JSON.parse(stored) : [];
+      const targetId = isNormal ? normalProduct?.id : product?.id;
+      const targetName = isNormal ? normalProduct?.name : product?.name;
+      const targetPrice = isNormal ? (normalProduct?.salePrice || normalProduct?.price) : product?.price;
+      const targetImg = isNormal ? (normalProduct?.images?.[0] || normalProduct?.thumbnailUrl) : (product?.images?.[0] || product?.imageUrl);
+
+      const idx = items.findIndex((i: any) => i.id === targetId);
+      if (idx > -1) {
+        items[idx].quantity = (items[idx].quantity || 1) + 1;
+      } else {
+        items.push({
+          id: targetId,
+          name: targetName,
+          price: targetPrice,
+          quantity: 1,
+          image: targetImg,
+          shippingFee: 3000,
+        });
+      }
+
+      await AsyncStorage.setItem('@mocco_cart', JSON.stringify(items));
+      setCartItems(items);
+      setCartCount(items.reduce((acc: number, cur: any) => acc + (cur.quantity || 1), 0));
+      Alert.alert('🛒 장바구니 담기 완료', `${targetName} 1개가 장바구니에 담겼습니다.`, [
+        { text: '계속 쇼핑' },
+        { text: '장바구니 보기', onPress: () => setCartModalVisible(true) },
+      ]);
+    } catch (e) {
+      console.warn('Failed to add to cart', e);
+    }
+  };
+
+  const updateCartQuantity = async (id: string, delta: number) => {
+    const updated = cartItems
+      .map((item) => {
+        if (item.id === id) {
+          const newQty = (item.quantity || 1) + delta;
+          return newQty > 0 ? { ...item, quantity: newQty } : null;
+        }
+        return item;
+      })
+      .filter(Boolean);
+    setCartItems(updated);
+    setCartCount(updated.reduce((acc: number, cur: any) => acc + (cur.quantity || 1), 0));
+    await AsyncStorage.setItem('@mocco_cart', JSON.stringify(updated));
+  };
+
+  const removeCartItem = async (id: string) => {
+    const updated = cartItems.filter((item) => item.id !== id);
+    setCartItems(updated);
+    setCartCount(updated.reduce((acc: number, cur: any) => acc + (cur.quantity || 1), 0));
+    await AsyncStorage.setItem('@mocco_cart', JSON.stringify(updated));
+    Alert.alert('알림', '상품이 장바구니에서 삭제되었습니다.');
+  };
 
   // 추천/좋아요(하트) 토글 핸들러
   const handleToggleLike = () => {
@@ -191,6 +274,23 @@ export default function ProductDetailScreen({ route, navigation }: any) {
             <Ionicons name="arrow-back" size={20} color="#0F172A" />
           </TouchableOpacity>
           <View style={styles.headerRightActions}>
+            {/* 🛒 장바구니 카트 버튼 */}
+            <TouchableOpacity
+              style={styles.headerCircleBtn}
+              activeOpacity={0.8}
+              onPress={() => {
+                loadCartCount();
+                setCartModalVisible(true);
+              }}
+            >
+              <Ionicons name="cart-outline" size={20} color="#0F172A" />
+              {cartCount > 0 && (
+                <View style={styles.headerCartBadge}>
+                  <Text style={styles.headerCartBadgeText}>{cartCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.headerCircleBtn} activeOpacity={0.8} onPress={handleShareProduct}>
               <Ionicons name="share-social-outline" size={20} color="#0F172A" />
             </TouchableOpacity>
@@ -344,6 +444,14 @@ export default function ProductDetailScreen({ route, navigation }: any) {
             />
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.bottomCartBtn}
+            onPress={handleAddToCart}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="cart-outline" size={24} color="#4F46E5" />
+          </TouchableOpacity>
+
           <View style={styles.bottomDivider} />
 
           <View style={styles.bottomPriceBox}>
@@ -372,6 +480,80 @@ export default function ProductDetailScreen({ route, navigation }: any) {
             </LinearGradient>
           </TouchableOpacity>
         </View>
+
+        
+        {/* 장바구니 모달 다이얼로그 */}
+        <Modal
+          visible={cartModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setCartModalVisible(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+            <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '80%' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="cart" size={22} color="#4F46E5" />
+                  <Text style={{ fontSize: 17, fontWeight: '800', color: '#0F172A' }}>내 장바구니 ({cartCount})</Text>
+                </View>
+                <TouchableOpacity onPress={() => setCartModalVisible(false)} hitSlop={10}>
+                  <Ionicons name="close" size={22} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+                {cartItems.length === 0 ? (
+                  <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+                    <Ionicons name="cart-outline" size={40} color="#94A3B8" />
+                    <Text style={{ marginTop: 10, color: '#64748B', fontSize: 14, fontWeight: '700' }}>장바구니가 비어 있습니다.</Text>
+                  </View>
+                ) : (
+                  cartItems.map((item) => (
+                    <View key={item.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}>
+                      <Image source={{ uri: item.image }} style={{ width: 56, height: 56, borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0' }} />
+                      <View style={{ flex: 1, marginHorizontal: 12 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }} numberOfLines={2}>{item.name}</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: '#4F46E5', marginTop: 2 }}>{((item.price || 0) * (item.quantity || 1)).toLocaleString()}원</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                          <TouchableOpacity onPress={() => updateCartQuantity(item.id, -1)} style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center' }}>
+                            <Ionicons name="remove" size={14} color="#475569" />
+                          </TouchableOpacity>
+                          <Text style={{ marginHorizontal: 10, fontSize: 12, fontWeight: '800' }}>{item.quantity || 1}</Text>
+                          <TouchableOpacity onPress={() => updateCartQuantity(item.id, 1)} style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center' }}>
+                            <Ionicons name="add" size={14} color="#475569" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                      <TouchableOpacity onPress={() => removeCartItem(item.id)} hitSlop={8}>
+                        <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                      </TouchableOpacity>
+                    </View>
+                  ))
+                )}
+              </ScrollView>
+
+              {cartItems.length > 0 && (
+                <View style={{ marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '800', color: '#0F172A' }}>총 결제금액 (배송비 포함)</Text>
+                    <Text style={{ fontSize: 16, fontWeight: '900', color: '#4F46E5' }}>
+                      {(cartItems.reduce((acc, i) => acc + (i.price || 0) * (i.quantity || 1), 0) + 3000).toLocaleString()}원
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={{ backgroundColor: '#4F46E5', borderRadius: 14, paddingVertical: 14, alignItems: 'center' }}
+                    onPress={() => {
+                      setCartModalVisible(false);
+                      Alert.alert('🛡️ 안전결제 주문', `장바구니 총 ${cartCount}건의 상품을 결제합니다.`);
+                    }}
+                  >
+                    <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '800' }}>총 {cartCount}건 안전결제 주문하기</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </View>
+        </Modal>
 
         {/* PG 에스크로 결제 바텀시트 */}
         <PgPaymentBottomSheet
@@ -1168,5 +1350,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+  headerCartBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#FF3B6B',
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  headerCartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  bottomCartBtn: {
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

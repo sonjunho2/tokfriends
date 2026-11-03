@@ -81,6 +81,47 @@ export default function MyPageScreen({ navigation }) {
     INITIAL_MARKET_PRODUCTS[3], // 논산 설향 딸기
   ]);
   const [wishlistModalVisible, setWishlistModalVisible] = useState(false);
+  const [cartModalVisible, setCartModalVisible] = useState(false);
+  const [cartList, setCartList] = useState([]);
+
+  // 장바구니 로드 함수
+  const loadCartItems = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('@mocco_cart');
+      if (stored) {
+        setCartList(JSON.parse(stored));
+      } else {
+        setCartList([]);
+      }
+    } catch (e) {
+      console.warn('Failed to load @mocco_cart', e);
+    }
+  };
+
+  useEffect(() => {
+    loadCartItems();
+  }, []);
+
+  const updateCartQuantity = async (id, delta) => {
+    const updated = cartList
+      .map((item) => {
+        if (item.id === id) {
+          const newQty = (item.quantity || 1) + delta;
+          return newQty > 0 ? { ...item, quantity: newQty } : null;
+        }
+        return item;
+      })
+      .filter(Boolean);
+    setCartList(updated);
+    await AsyncStorage.setItem('@mocco_cart', JSON.stringify(updated));
+  };
+
+  const removeCartItem = async (id) => {
+    const updated = cartList.filter((item) => item.id !== id);
+    setCartList(updated);
+    await AsyncStorage.setItem('@mocco_cart', JSON.stringify(updated));
+    Alert.alert('알림', '상품이 장바구니에서 삭제되었습니다.');
+  };
 
   // (2) 판매관리 (내 판매 물품: 판매중/예약중/판매완료)
   const [mySalesList, setMySalesList] = useState([
@@ -701,6 +742,22 @@ export default function MyPageScreen({ navigation }) {
           </View>
 
           <View style={styles.tradeItemsRow}>
+            {/* 0) 장바구니 (마켓 담긴 상품) */}
+            <TouchableOpacity
+              style={styles.tradeActionBtn}
+              activeOpacity={0.82}
+              onPress={() => {
+                loadCartItems();
+                setCartModalVisible(true);
+              }}
+            >
+              <View style={[styles.tradeIconWrap, { backgroundColor: '#EEF2FF' }]}>
+                <Ionicons name="cart" size={20} color="#4F46E5" />
+              </View>
+              <Text style={styles.tradeBtnTitle}>장바구니</Text>
+              <Text style={styles.tradeBtnSub}>{cartList.length}개 담김</Text>
+            </TouchableOpacity>
+
             {/* 1) 관심목록 (찜 목록) */}
             <TouchableOpacity
               style={styles.tradeActionBtn}
@@ -879,6 +936,146 @@ export default function MyPageScreen({ navigation }) {
           <Text style={styles.versionText}>MOCCO v1.3.0 • Expo SDK 57</Text>
         </View>
       </ScrollView>
+
+      {/* =================================================================== */}
+      {/* 📌 신규 모달 0: 장바구니 목록 */}
+      {/* =================================================================== */}
+      <Modal
+        visible={cartModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCartModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.dialogCard, { maxHeight: '82%', width: '92%' }]}>
+            <View style={styles.dialogHeader}>
+              <View style={[styles.dialogIconBox, { backgroundColor: '#EEF2FF' }]}>
+                <Ionicons name="cart" size={20} color="#4F46E5" />
+              </View>
+              <Text style={styles.dialogTitle}>내 장바구니 ({cartList.length})</Text>
+              <Text style={styles.dialogSub}>마켓 및 공동구매에서 담아둔 상품 목록입니다.</Text>
+            </View>
+
+            <ScrollView style={{ maxHeight: 350 }} showsVerticalScrollIndicator={false}>
+              {cartList.length === 0 ? (
+                <View style={{ padding: 30, alignItems: 'center' }}>
+                  <Ionicons name="cart-outline" size={40} color="#94A3B8" />
+                  <Text style={{ marginTop: 10, color: '#64748B', fontSize: 14, fontWeight: '700' }}>
+                    장바구니가 비어 있습니다.
+                  </Text>
+                  <Text style={{ marginTop: 4, color: '#94A3B8', fontSize: 12 }}>
+                    마켓 상품을 둘러보고 담아보세요!
+                  </Text>
+                </View>
+              ) : (
+                cartList.map((item) => (
+                  <View key={item.id} style={[styles.modalListItem, { paddingVertical: 12 }]}>
+                    <Image
+                      source={{ uri: item.image || item.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500' }}
+                      style={styles.modalItemThumb}
+                    />
+                    <View style={{ flex: 1, marginHorizontal: 10 }}>
+                      <Text style={styles.modalItemTitle} numberOfLines={2}>
+                        {item.name || item.title}
+                      </Text>
+                      <Text style={styles.modalItemPrice}>
+                        {((item.price || 0) * (item.quantity || 1)).toLocaleString()}원
+                      </Text>
+                      {/* 수량 조절 버튼 */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                        <TouchableOpacity
+                          onPress={() => updateCartQuantity(item.id, -1)}
+                          style={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: 6,
+                            backgroundColor: '#F1F5F9',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Ionicons name="remove" size={14} color="#475569" />
+                        </TouchableOpacity>
+                        <Text style={{ marginHorizontal: 10, fontSize: 13, fontWeight: '800', color: '#1E293B' }}>
+                          {item.quantity || 1}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => updateCartQuantity(item.id, 1)}
+                          style={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: 6,
+                            backgroundColor: '#F1F5F9',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Ionicons name="add" size={14} color="#475569" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.removeWishBtn}
+                      onPress={() => removeCartItem(item.id)}
+                      hitSlop={8}
+                    >
+                      <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+
+            {cartList.length > 0 && (
+              <View style={{ marginTop: 12, padding: 12, backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <Text style={{ fontSize: 12, color: '#64748B' }}>상품 금액</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#0F172A' }}>
+                    {cartList.reduce((acc, i) => acc + (i.price || 0) * (i.quantity || 1), 0).toLocaleString()}원
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <Text style={{ fontSize: 12, color: '#64748B' }}>배송비</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#0F172A' }}>3,000원</Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 6, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: '#0F172A' }}>총 결제금액</Text>
+                  <Text style={{ fontSize: 15, fontWeight: '900', color: '#4F46E5' }}>
+                    {(cartList.reduce((acc, i) => acc + (i.price || 0) * (i.quantity || 1), 0) + 3000).toLocaleString()}원
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#4F46E5',
+                    borderRadius: 12,
+                    paddingVertical: 12,
+                    alignItems: 'center',
+                    marginTop: 10,
+                  }}
+                  onPress={() => {
+                    setCartModalVisible(false);
+                    Alert.alert(
+                      '🛡️ 장바구니 안전결제 주문',
+                      `총 ${cartList.length}개 상품의 통합 에스크로 주문 결제창으로 이동합니다.`
+                    );
+                  }}
+                >
+                  <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '800' }}>
+                    총 {cartList.length}건 안전결제 주문하기
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={[styles.dialogCancelBtn, { marginTop: 12 }]}
+              onPress={() => setCartModalVisible(false)}
+            >
+              <Text style={styles.dialogCancelText}>닫기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* =================================================================== */}
       {/* 📌 신규 모달 A: 관심목록 (찜 목록) */}
