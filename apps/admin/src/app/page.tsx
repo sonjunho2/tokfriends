@@ -1300,7 +1300,9 @@ export default function CustomerWebStorefrontPage() {
               messages: [
                 {
                   id: `trade-msg-init-${Date.now()}`,
-                  sender: roomName,
+                  senderId: 'seller',
+                  senderNickname: roomName,
+                  senderAvatar: tradeInfo.image,
                   text: `안녕하세요! "${tradeInfo.title}" 중고물품 판매자입니다. 직거래 약속 또는 상단의 [안전결제 요청]을 눌러 안전거래를 진행하세요.`,
                   time: '방금 전',
                   isMe: false,
