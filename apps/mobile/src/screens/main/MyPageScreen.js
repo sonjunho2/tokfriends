@@ -47,7 +47,7 @@ export default function MyPageScreen({ navigation }) {
     userProfile?.headline ||
     user?.bio ||
     userProfile?.bio ||
-    '동네 친구들과 따뜻하고 즐거운 소통 나누고 싶어요 ✨';
+    '이웃들과 따뜻하고 즐거운 소통 나누고 싶어요 ✨';
   const avatarUri =
     user?.avatarUrl ||
     user?.avatarUri ||
@@ -1124,7 +1124,7 @@ export default function MyPageScreen({ navigation }) {
                         {item.title}
                       </Text>
                       <Text style={styles.modalItemPrice}>{item.price?.toLocaleString()}원</Text>
-                      <Text style={styles.modalItemLocation}>📍 {item.locationName || '동네 인증'}</Text>
+                      <Text style={styles.modalItemLocation}>📍 {item.locationName || '지역 인증'}</Text>
                     </View>
                     <TouchableOpacity
                       style={styles.removeWishBtn}
@@ -1875,7 +1875,7 @@ export default function MyPageScreen({ navigation }) {
               >
                 <Text style={styles.rewardAdBrand}>✨ 모꼬 프리미엄 라이프</Text>
                 <Text style={styles.rewardAdHeadline}>
-                  새로운 동네 친구와 나누는 따뜻한 소통의 순간
+                  새로운 이웃과 나누는 따뜻한 소통의 순간
                 </Text>
               </LinearGradient>
             </View>

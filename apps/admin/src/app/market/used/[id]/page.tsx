@@ -205,8 +205,7 @@ export default function UsedProductDetailPage() {
         tradeType: '직거래 / 안전택배',
         tradeLocationDetail: '역삼역 부근 협의',
         images: ['https://images.unsplash.com/photo-1511707171634-5f897ff02560?w=800'],
-        description: `동네 이웃과 따뜻하고 안전하게 거래하는 중고물품입니다.
-상태 양호하며 직거래 또는 모꼬 에스크로 안전결제로 거래 가능합니다.
+        description: `상태 양호하며 직거래 또는 모꼬 에스크로 안전결제로 거래 가능합니다.
 궁금하신 점은 거래톡으로 편하게 문의주세요!`,
         likesCount: 12,
         chatsCount: 3,
@@ -601,16 +600,15 @@ export default function UsedProductDetailPage() {
           </div>
         </div>
 
-        {/* (4) 사기 예방 모꼬 안심 에스크로 안내 배너 */}
-        <div className="rounded-3xl bg-gradient-to-r from-emerald-500 to-teal-600 p-5 text-white shadow-xs space-y-2">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-emerald-200" />
-            <h4 className="font-extrabold text-sm">모꼬 안심 에스크로 안전거래 안내</h4>
-          </div>
-          <p className="text-xs text-emerald-50 leading-relaxed">
-            카카오톡, 문자 등 외부 메신저로 대화를 유도하거나 개인 계좌 송금을 요구할 경우 사기 위험이 있습니다.
-            반드시 <strong>모꼬 거래톡</strong>과 <strong>[안전구매]</strong> 버튼을 통해 안전하게 거래하세요. 물품을 수령하고 구매를 확정할 때까지 결제 대금이 안전하게 예치됩니다.
-          </p>
+        {/* (4) 모꼬 안심 에스크로 뱃지 바 (잡다한 설명문 배제, 슬림 & 미니멀) */}
+        <div className="rounded-2xl bg-emerald-50 border border-emerald-200/80 px-4 py-3 flex items-center justify-between text-xs text-emerald-950 font-bold shadow-2xs">
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>모꼬 에스크로 100% 안전결제 보호 매물</span>
+          </span>
+          <span className="text-[11px] text-emerald-700 font-medium hidden sm:inline">
+            구매확정 시까지 결제 대금 안전 예치
+          </span>
         </div>
 
         {/* (5) 이 판매자의 다른 판매 물품 */}

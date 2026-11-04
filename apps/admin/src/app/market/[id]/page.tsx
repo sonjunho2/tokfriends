@@ -1162,7 +1162,7 @@ export default function MarketProductDetailPage() {
                         </div>
                         <div>
                           <div className="font-extrabold text-base text-slate-900">{product.sellerNickname} (이웃 회원)</div>
-                          <div className="text-xs text-slate-500">{product.sellerLocation || '모꼬 동네인증 완료'}</div>
+                          <div className="text-xs text-slate-500">{product.sellerLocation || '모꼬 지역인증 완료'}</div>
                         </div>
                       </div>
                       <Badge className="bg-emerald-100 text-emerald-800 border-none font-bold">

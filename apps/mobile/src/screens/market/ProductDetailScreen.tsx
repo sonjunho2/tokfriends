@@ -672,7 +672,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
                   avatarUrl: product.seller.avatarUrl,
                   avatarUri: product.seller.avatarUrl,
                   location: product.locationName,
-                  headline: `${product.locationName} 동네 이웃`,
+                  headline: `${product.locationName} 이웃 회원`,
                   age: 26,
                   gender: '여',
                 },

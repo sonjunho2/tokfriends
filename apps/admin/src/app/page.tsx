@@ -349,7 +349,7 @@ const INITIAL_FOLLOWERS: FollowUserItem[] = [
     gender: '여',
     age: 25,
     mannerTemp: 41.0,
-    headline: '동네 이웃과 따뜻한 나눔 & 중고거래 소통해요 ✨',
+    headline: '따뜻한 나눔 & 중고거래 소통해요 ✨',
     followersCount: 230,
     followingCount: 120,
     isOnline: false,
@@ -578,7 +578,7 @@ const INITIAL_LIVES: LiveRoomItem[] = [
   {
     id: 'live-04',
     rank: 4,
-    title: '☕ [일반회원 자유방송] 동네 카페 투어 라이브 & 홈카페 감성 소통!',
+    title: '☕ [일반회원 자유방송] 핫플레이스 카페 투어 & 홈카페 감성 소통!',
     category: '일상/토크',
     hostNickname: '카페라떼러버 (모꼬 이웃)',
     hostAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
@@ -602,7 +602,7 @@ const INITIAL_LIVES: LiveRoomItem[] = [
   {
     id: 'live-06',
     rank: 6,
-    title: '🎮 모바일 배틀그라운드 신맵 탐방 & 동네 이웃 스쿼드 대전',
+    title: '🎮 모바일 배틀그라운드 신맵 탐방 & 실시간 스쿼드 대전',
     category: '게임/e스포츠',
     hostNickname: '게이머_준호',
     hostAvatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=500',
@@ -633,7 +633,7 @@ const INITIAL_LIVES: LiveRoomItem[] = [
   {
     id: 'live-08',
     rank: 8,
-    title: '👗 가을 데일리룩 코디 & 동네 직거래 옷장 털기 라이브',
+    title: '👗 가을 데일리룩 코디 & 옷장 털기 중고 라이브',
     category: '패션/뷰티',
     hostNickname: '패션_은지',
     hostAvatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500',
@@ -1271,7 +1271,7 @@ const LEGAL_DOCUMENTS = {
     title: '주식회사 모꼬글로벌 서비스 이용약관',
     category: '전자상거래법 & 약관규제법 준수',
     body: `제1조 (목적)
-본 약관은 주식회사 모꼬글로벌(이하 "회사")이 운영하는 모꼬(MOCCO) 웹사이트 및 모바일 애플리케이션(이하 "몰" 또는 "서비스")에서 제공하는 전자상거래 및 실시간 스트리밍, 동네 커뮤니티 서비스를 이용함에 있어 회사와 이용자의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.
+본 약관은 주식회사 모꼬글로벌(이하 "회사")이 운영하는 모꼬(MOCCO) 웹사이트 및 모바일 애플리케이션(이하 "몰" 또는 "서비스")에서 제공하는 전자상거래 및 실시간 스트리밍, 실시간 1:1 소통 커뮤니티 서비스를 이용함에 있어 회사와 이용자의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.
 
 제2조 (통신판매중개자로서의 지위 및 면책)
 1. 회사는 통신판매중개자로서 이용자 간의 자유로운 재화 또는 용역의 거래 및 라이브 방송 후원을 위한 전자상거래 시스템을 운영 및 관리, 제공할 뿐입니다.
@@ -1280,10 +1280,10 @@ const LEGAL_DOCUMENTS = {
 
 제3조 (서비스의 제공 및 변경)
 1. 회사는 다음과 같은 서비스를 제공합니다:
-  - 동네 기반 실시간 라이브 스트리밍 및 라이브커머스 중개
+  - 전국 및 지역 기반 실시간 라이브 스트리밍 및 라이브커머스 중개
   - 개인 간 중고물품 매매 중개 (에스크로 안전결제)
   - 본사 직영 및 공식 입점사의 상품 판매 및 공동구매 중개
-  - 동네 1줄 수다(SUDA) 및 1:1 대화방 커뮤니티
+  - 실시간 1:1 수다(SUDA) 및 1:1 대화방 커뮤니티
 
 제4조 (청약철회 및 환불)
 1. 회사 및 입점사 상품을 구매한 이용자는 전자상거래법 제17조에 따라 상품 수령 후 7일 이내에 청약철회를 요청할 수 있습니다.
@@ -1297,7 +1297,7 @@ const LEGAL_DOCUMENTS = {
 1. 개인정보의 수집 및 이용 목적
 - 회원 가입 및 본인 확인, 부정이용 방지
 - 상품 주문, 에스크로 결제 이행, 배송 및 정산금 지급
-- 위치기반 동네 이웃 추천 및 지역 라이브 방송 추천
+- 거리 및 위치기반 이웃 추천 및 지역 라이브 방송 추천
 - 고객 불만 처리 및 분쟁 조정을 위한 기록 보존
 
 2. 수집하는 개인정보 항목
@@ -1391,7 +1391,7 @@ export default function CustomerWebStorefrontPage() {
   const [marketCategoryFilter, setMarketCategoryFilter] = useState<string>('전체')
   const [friendRegionFilter, setFriendRegionFilter] = useState<string>('전체')
 
-  // 3. Location State (동네 설정)
+  // 3. Location State (지역 및 거리 설정)
   const [currentLocation, setCurrentLocation] = useState('서울 강남구 역삼1동')
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
 
@@ -1562,7 +1562,7 @@ export default function CustomerWebStorefrontPage() {
   const [sellerRevenue, setSellerRevenue] = useState(185000)
   const [userAge, setUserAge] = useState(26)
   const [userGender, setUserGender] = useState<'여' | '남'>('여')
-  const [userHeadline, setUserHeadline] = useState('동네 친구들과 따뜻하고 즐거운 소통 나누고 싶어요 ✨')
+  const [userHeadline, setUserHeadline] = useState('이웃들과 따뜻하고 즐거운 소통 나누고 싶어요 ✨')
   const [chatRoomRate, setChatRoomRate] = useState(300)
   const [videoCallRate, setVideoCallRate] = useState(1000)
   const [notifyChat, setNotifyChat] = useState(true)
@@ -1612,16 +1612,16 @@ export default function CustomerWebStorefrontPage() {
       gender: user.gender || '여',
       age: user.age || 26,
       mannerTemp: user.mannerTemp || 36.5,
-      headline: user.headline || user.statusMessage || user.intro || '동네 친구들과 따뜻하고 즐거운 소통 나누고 싶어요 ✨',
+      headline: user.headline || user.statusMessage || user.intro || '이웃들과 따뜻하고 즐거운 소통 나누고 싶어요 ✨',
       followersCount: user.followersCount || 128,
       followingCount: user.followingCount || 42,
       isOnline: user.isOnline ?? true,
       isLive: Boolean(user.isLive),
-      liveTitle: user.liveTitle || '실시간 동네 수다 라이브 🎙️',
+      liveTitle: user.liveTitle || '실시간 라이브 소통 🎙️',
       isFollowing: isAlreadyFollowing,
       interests: Array.isArray(user.interests) && user.interests.length > 0
         ? user.interests
-        : ['동네산책', '카페투어', '중고거래', '소통'],
+        : ['가벼운산책', '카페투어', '중고거래', '소통'],
     })
     setIsUserProfileModalOpen(true)
   }
@@ -1871,7 +1871,7 @@ export default function CustomerWebStorefrontPage() {
       isLiveSellLinked: isUsed ? true : undefined,
       sellerNickname: item.sellerNickname || item.sellerName || '모꼬 이웃',
       sellerAvatar: item.sellerAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
-      sellerLocation: item.locationName || item.location || '모꼬 동네인증 완료',
+      sellerLocation: item.locationName || item.location || '모꼬 지역인증 완료',
     }
   }
 
@@ -2271,7 +2271,7 @@ export default function CustomerWebStorefrontPage() {
     setNewUsedDesc('')
     toast({
       title: '🥕 중고물품 등록 완료!',
-      description: '동네 중고거래 목록에 성공적으로 등록되었습니다.',
+      description: '중고거래 마켓 목록에 성공적으로 등록되었습니다.',
     })
   }
 
@@ -4518,55 +4518,34 @@ export default function CustomerWebStorefrontPage() {
           {/* ======================================================= */}
           {activeTab === 'CHAT' && (
             <div className="space-y-6 animate-in fade-in duration-200">
-              {/* 1) 상단 와이드 광고 배너 (첨부 헤더 이미지 삭제 후 실시간 인터랙티브 광고 배너 배치) */}
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-950 via-indigo-950 to-slate-950 p-6 sm:p-7 text-white shadow-xl border border-blue-900/50">
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="space-y-2 max-w-2xl">
-                    <div className="flex items-center gap-2">
-                      <span className="flex h-2.5 w-2.5 rounded-full bg-blue-400 animate-ping" />
-                      <Badge className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold px-2.5 py-0.5 border-none text-[11px] shadow-sm">
-                        MOCCO CHAT EVENT
-                      </Badge>
-                      <span className="text-xs text-blue-300 font-medium">
-                        동네 친구들과 따뜻한 소통 & 3D 선물 페이백 페스티벌
-                      </span>
-                    </div>
-                    <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
-                      <span>친구와 나누는 실시간 1:1 대화 & 3D 모꼬 선물하기</span>
-                      <span className="text-lg">🎁✨</span>
-                    </h1>
-                    <p className="text-xs sm:text-sm text-slate-300">
-                      내 주변 이웃을 찾아 즉시 대화를 시작하세요. 채팅 중에 모꼬 전용 3D 선물을 보내면 화면 가득 축제 이펙트가 펼쳐지며 100% 포인트 페이백 혜택을 드립니다!
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-                    <div className="bg-white/10 backdrop-blur-xs px-3.5 py-2 rounded-2xl border border-white/20 text-right">
-                      <span className="text-[10px] text-blue-200 block font-semibold">내 보유 포인트</span>
-                      <span className="text-sm font-black text-amber-300">
-                        {myPoints.toLocaleString()} ON
-                      </span>
-                    </div>
-                    <Button
-                      onClick={() => requireAuth(() => setIsPointChargeModalOpen(true))}
-                      className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs h-10 px-4 rounded-xl shadow-lg transition-all"
-                    >
-                      <Coins className="h-4 w-4 mr-1.5" />
-                      포인트 무료 충전
-                    </Button>
-                  </div>
+              {/* 상단 미니멀 헤더 바 (군더더기 설명 배너 제거, 직관적인 포인트 & 충전 지원) */}
+              <div className="flex items-center justify-between bg-white px-5 py-3.5 rounded-2xl border border-slate-200/90 shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#FF3B6B] animate-pulse" />
+                  <h2 className="text-base sm:text-lg font-black text-slate-900">
+                    실시간 1:1 모꼬챗
+                  </h2>
                 </div>
-
-                {/* 은은한 배경 글로우 장식 */}
-                <div className="absolute -top-16 -right-16 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 font-bold block">내 보유 포인트</span>
+                    <span className="text-xs sm:text-sm font-black text-rose-600">{myPoints.toLocaleString()} ON</span>
+                  </div>
+                  <Button
+                    onClick={() => requireAuth(() => setIsPointChargeModalOpen(true))}
+                    className="bg-[#FF3B6B] hover:bg-[#E02958] text-white font-black text-xs h-8 px-3.5 rounded-xl shadow-xs flex items-center"
+                  >
+                    <Coins className="h-3.5 w-3.5 mr-1" />
+                    충전
+                  </Button>
+                </div>
               </div>
 
               {/* 2) 2-Column Integrated Layout (좌측: 앱과 동일한 친구들/전체수다/대화함 / 우측: 스마트폰 목업 채팅방) */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 {/* [좌측 영역: lg:col-span-7 xl:col-span-7] 앱과 똑같은 3대 탭 & 리스트 */}
                 <div className="lg:col-span-7 xl:col-span-7 space-y-4 flex flex-col">
-                  {/* 상단 3대 서브탭 버튼 (동네친구들이 아니라 앱과 똑같이 "친구들" / "전체수다" / "대화함") */}
+                  {/* 상단 3대 서브탭 버튼 ("친구들" / "전체수다" / "대화함") */}
                   <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl text-xs font-bold border border-slate-200/80 shadow-xs">
                     <button
                       onClick={() => setChatSubTab('FRIENDS')}
@@ -6596,7 +6575,7 @@ export default function CustomerWebStorefrontPage() {
       {/* 5. Global Modals Section                                  */}
       {/* ========================================================= */}
 
-      {/* 0) Location Selector Modal (동네 변경) */}
+      {/* 0) Location Selector Modal (지역 및 거리 설정) */}
       {isLocationModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
           <div className="relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl border space-y-4">
@@ -6610,10 +6589,10 @@ export default function CustomerWebStorefrontPage() {
             <div className="space-y-1">
               <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-1.5">
                 <MapPin className="h-5 w-5 text-pink-600" />
-                동네 위치 설정
+                지역 및 거리 설정
               </h3>
               <p className="text-xs text-muted-foreground">
-                이웃을 검색하고 소통할 기준 동네를 선택해주세요.
+                이웃을 검색하고 소통할 기준 지역(시·도·구)을 선택해주세요.
               </p>
             </div>
 
@@ -6637,8 +6616,8 @@ export default function CustomerWebStorefrontPage() {
                       setCurrentLocation(cleanName)
                       setIsLocationModalOpen(false)
                       toast({
-                        title: '📍 동네 설정 완료',
-                        description: `${cleanName}(으)로 동네가 성공적으로 변경되었습니다.`,
+                        title: '📍 활동 지역 설정 완료',
+                        description: `${cleanName}(으)로 활동 지역이 변경되었습니다.`,
                       })
                     }}
                     className={`w-full p-2.5 rounded-xl text-left text-xs font-semibold flex items-center justify-between transition-colors ${
@@ -7254,7 +7233,7 @@ export default function CustomerWebStorefrontPage() {
                 </div>
                 <div>
                   <h4 className="font-extrabold text-base text-slate-900">소셜 인맥 관리</h4>
-                  <p className="text-xs text-slate-500">동네 이웃들과 팔로우를 맺고 소통해보세요</p>
+                  <p className="text-xs text-slate-500">관심 있는 회원들과 팔로우를 맺고 소통해보세요</p>
                 </div>
               </div>
               <button
@@ -7305,7 +7284,7 @@ export default function CustomerWebStorefrontPage() {
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="이웃 닉네임 또는 동네 검색..."
+                  placeholder="회원 닉네임 또는 지역 검색..."
                   value={followsSearchQuery}
                   onChange={(e) => setFollowsSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 bg-slate-100/80 hover:bg-slate-100 focus:bg-white rounded-xl text-xs border border-transparent focus:border-pink-300 focus:outline-none transition"
@@ -7331,7 +7310,7 @@ export default function CustomerWebStorefrontPage() {
                         {followsSearchQuery
                           ? '검색 결과와 일치하는 이웃이 없습니다.'
                           : followsActiveTab === 'followers'
-                          ? '아직 팔로워가 없습니다. 동네 친구들과 소통해보세요!'
+                          ? '아직 팔로워가 없습니다. 새로운 이웃과 소통해보세요!'
                           : '아직 팔로잉 중인 이웃이 없습니다.'}
                       </p>
                     </div>
@@ -8564,9 +8543,9 @@ export default function CustomerWebStorefrontPage() {
             <div className="rounded-xl bg-orange-50/70 p-3 border border-orange-200/60 text-[11px] text-orange-950 space-y-1">
               <div className="font-bold text-orange-800 flex items-center gap-1">
                 <ShieldCheck className="h-3.5 w-3.5 text-orange-600" />
-                동네 중고 에스크로 안심거래 안내
+                에스크로 100% 안심 안전거래
               </div>
-              <p>• 직거래 시 유동인구가 많은 안전한 장소에서 거래하시고, 택배 거래 시에는 에스크로 안전결제를 이용해주세요.</p>
+              <p>• 직거래 및 택배 거래 시 모꼬 에스크로 안전결제를 이용하시면 구매확정 시까지 대금이 안전하게 보관됩니다.</p>
               <p>• 에스크로 안전결제 이용 시 구매자가 최종 물품을 확인하고 [구매확정]을 완료해야 판매자에게 정산금이 전달됩니다.</p>
             </div>
 
@@ -8918,7 +8897,7 @@ export default function CustomerWebStorefrontPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-700">희망 거래 동네</label>
+                <label className="font-semibold text-slate-700">희망 거래 장소/지역</label>
                 <Input
                   value={newUsedLocation}
                   onChange={(e) => setNewUsedLocation(e.target.value)}

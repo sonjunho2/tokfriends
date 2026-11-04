@@ -56,7 +56,7 @@ const DEFAULT_LIVES = [
     hostName: '지수',
     hostAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
     coverUri: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600',
-    tag: '동네·일상',
+    tag: '일상·소통',
   },
   {
     id: 'live-def-3',
@@ -826,9 +826,9 @@ export default function HomeScreen({ navigation }) {
                 />
                 <View style={styles.homeSudaMeta}>
                   <View style={styles.homeSudaNameRow}>
-                    <Text style={styles.homeSudaAuthor}>{post.author?.nickname || '동네이웃'}</Text>
+                    <Text style={styles.homeSudaAuthor}>{post.author?.nickname || '모꼬이웃'}</Text>
                     <View style={styles.homeSudaBadge}>
-                      <Text style={styles.homeSudaBadgeText}>{post.neighborhood || '우리동네'}</Text>
+                      <Text style={styles.homeSudaBadgeText}>{post.neighborhood || '내 주변'}</Text>
                     </View>
                     <Text style={styles.homeSudaDistance}>{post.distanceKm || '0.5'}km</Text>
                   </View>
@@ -911,7 +911,7 @@ export default function HomeScreen({ navigation }) {
 
               <View style={styles.dualUsedInfo}>
                 <View style={styles.dualUsedMetaRow}>
-                  <Text style={styles.dualUsedRegion}>{item.region || '동네 인증'}</Text>
+                  <Text style={styles.dualUsedRegion}>{item.region || '지역 인증'}</Text>
                 </View>
                 <Text style={styles.dualUsedTitle} numberOfLines={1}>
                   {item.title}
