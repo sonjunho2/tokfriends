@@ -52,31 +52,12 @@ const SAMPLE_USED_ITEMS: Record<string, any> = {
       'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800',
       'https://images.unsplash.com/photo-1565849904461-04a58ad377e0?w=800',
     ],
-    description: `작년 11월 애플스토어 여의도에서 정품 자급제로 구매한 아이폰 15 프로 256GB 내추럴 티타늄 모델입니다.
-항상 케이스와 강화유리를 장착하여 실사용해서 찍힘, 기스 전혀 없는 특S급 컨디션입니다.
-
-■ 기기 상세 정보
-- 모델명: iPhone 15 Pro 256GB Natural Titanium (자급제)
-- 배터리 성능: 99% (사이클 73회)
-- 구성품: 본체, 정품 C to C 케이블(미사용), 박스 풀세트
-- 추가 증정: 정품 실리콘 케이스 1개 + 미사용 강화유리 2매
-
-■ 거래 안내
-- 평일 저녁이나 주말에는 역삼역 3번 출구 부근에서 직거래 가능합니다.
-- 타지역이실 경우 모꼬 안심 에스크로 안전결제로 결제해주시면 당일 우체국 안심택배로 꼼꼼하게 포장해서 접수해 드립니다!
-- 네고(가격제안) 문의는 정중히 사양합니다. 거래톡으로 문의주세요 :)`,
+    description: '작년 11월 애플스토어 여의도에서 정품 자급제로 구매한 아이폰 15 프로 256GB 내추럴 티타늄 모델입니다. 찍힘이나 기스 전혀 없는 특S급 상태입니다.',
     likesCount: 28,
     chatsCount: 9,
     viewsCount: 384,
     createdAt: '15분 전',
-    otherItems: [
-      {
-        id: 'c2c-2',
-        title: '미개봉 소니 WH-1000XM5 헤드폰 실버',
-        price: 320000,
-        image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400',
-      },
-    ],
+    otherItems: [],
   },
   'c2c-2': {
     id: 'c2c-2',
@@ -99,14 +80,61 @@ const SAMPLE_USED_ITEMS: Record<string, any> = {
       'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800',
       'https://images.unsplash.com/photo-1484704849700-f032a568e944?w=800',
     ],
-    description: `이벤트 경품으로 수령한 소니 정품 헤드폰 미개봉 새상품입니다.
-박스 겉면 비닐 씰 그대로 보관 중입니다.
-국내 정품 KC인증 스티커 부착되어 있어 소니코리아 정품 A/S 가능합니다.
-서초/교대 부근 직거래 또는 모꼬 안전결제 환영합니다.`,
+    description: '이벤트 경품으로 수령한 소니 정품 헤드폰 미개봉 새상품입니다.',
     likesCount: 19,
     chatsCount: 5,
     viewsCount: 210,
     createdAt: '1시간 전',
+    otherItems: [],
+  },
+  'c2c-3': {
+    id: 'c2c-3',
+    title: '캠핑용 롤 우드 테이블 120cm + 가방 포함',
+    category: '스포츠/레저',
+    price: 45000,
+    originalPrice: 89000,
+    locationName: '서울 송파구 잠실새내',
+    mannerTemp: 41.0,
+    sellerId: 'user-c2c-3',
+    sellerNickname: '캠퍼정',
+    sellerAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
+    verifiedNeighborhood: '서울 송파구 잠실본동 (인증 15회)',
+    responseRate: '5분 이내 응답 (99%)',
+    usedCondition: 'A급 (실사용 2회)',
+    canProposePrice: false,
+    tradeType: '직거래 우선',
+    tradeLocationDetail: '잠실새내역 4번 출구 앞',
+    images: ['https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800'],
+    description: '실사용 2회로 상판 스크래치 전혀 없습니다. 부피가 있어 직거래 선호합니다.',
+    likesCount: 15,
+    chatsCount: 7,
+    viewsCount: 280,
+    createdAt: '35분 전',
+    otherItems: [],
+  },
+  'c2c-4': {
+    id: 'c2c-4',
+    title: '아크테릭스 아톰LT 후디 블랙 남성용 (M사이즈)',
+    category: '패션/의류',
+    price: 135000,
+    originalPrice: 280000,
+    locationName: '서울 마포구 연남동',
+    mannerTemp: 38.5,
+    sellerId: 'user-c2c-4',
+    sellerNickname: '고프코어룩',
+    sellerAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500',
+    verifiedNeighborhood: '서울 마포구 연남동 (인증 9회)',
+    responseRate: '20분 이내 응답 (96%)',
+    usedCondition: 'A급 (드라이클리닝 완료)',
+    canProposePrice: true,
+    tradeType: '직거래 / 편의점 택배',
+    tradeLocationDetail: '홍대입구역 3번 출구 연트럴파크',
+    images: ['https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800'],
+    description: '작년 겨울 백화점 매장에서 구매 후 4~5회 착용 후 드라이클리닝 완료하여 보관 중입니다.',
+    likesCount: 42,
+    chatsCount: 14,
+    viewsCount: 620,
+    createdAt: '2시간 전',
     otherItems: [],
   },
   'used-001': {
@@ -130,21 +158,14 @@ const SAMPLE_USED_ITEMS: Record<string, any> = {
       'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=1000',
       'https://images.unsplash.com/photo-1561154464-82e9adf32764?w=1000',
     ],
-    description: `작년 가을에 구매해서 영상 시청용으로만 가끔 실내에서 사용한 아이패드 프로 11인치 M2 모델입니다.
-구매 직후 종이질감 필름과 마그네틱 케이스를 장착하여 본체에 기스나 찍힘 전혀 없는 S급 새상품 상태입니다.
-
-- 배터리 성능 98% (사이클 42회)
-- 정품 충전기 및 케이블 미사용 풀박스 보관 중
-- 신지모루 마그네틱 케이스 함께 드립니다.
-
-강남역 또는 역삼역 부근에서 직거래 가능하며, 모꼬 에스크로 안전결제 택배거래도 환영합니다!`,
+    description: '작년 가을에 구매해서 영상 시청용으로만 가끔 실내에서 사용한 아이패드 프로 11인치 M2 모델입니다.',
     likesCount: 34,
     chatsCount: 12,
     viewsCount: 450,
     createdAt: '3시간 전',
     otherItems: [],
   },
-}
+};
 
 export default function UsedProductDetailPage() {
   const params = useParams()
