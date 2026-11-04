@@ -1390,7 +1390,7 @@ export default function CustomerWebStorefrontPage() {
   const [withdrawAmount, setWithdrawAmount] = useState('100000')
 
   // 관심목록 & 구매내역
-  const [myWishlist, setMyWishlist] = useState([
+  const [myWishlist, setMyWishlist] = useState<Array<any>>([
     {
       id: 'w-1',
       title: '소니 WH-1000XM5 노이즈캔슬링 무선 헤드폰',
@@ -1408,6 +1408,24 @@ export default function CustomerWebStorefrontPage() {
       seller: '제주푸드 본사 직영',
     },
   ])
+
+    // localStorage의 mocco_wishlist 실시간 연동
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = JSON.parse(localStorage.getItem('mocco_wishlist') || '[]')
+        if (Array.isArray(stored) && stored.length > 0) {
+          setMyWishlist((prev) => {
+            const ids = new Set(stored.map((s: any) => s.id))
+            const filteredPrev = prev.filter((p) => !ids.has(p.id))
+            return [...stored, ...filteredPrev]
+          })
+        }
+      } catch (e) {
+        console.warn('Failed to load mocco_wishlist', e)
+      }
+    }
+  }, [])
 
   const [myOrdersList, setMyOrdersList] = useState([
     {
@@ -2775,7 +2793,7 @@ export default function CustomerWebStorefrontPage() {
                   {usedProducts.slice(0, 4).map((item) => (
                     <Card
                       key={item.id}
-                      onClick={() => router.push('/market/' + item.id)}
+                      onClick={() => router.push('/market/used/' + item.id)}
                       className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-md transition-shadow border border-slate-200/80 bg-white"
                     >
                       <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
@@ -3244,7 +3262,7 @@ export default function CustomerWebStorefrontPage() {
                     .map((item) => (
                       <Card
                         key={item.id}
-                        onClick={() => router.push('/market/' + item.id)}
+                        onClick={() => router.push('/market/used/' + item.id)}
                         className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80"
                       >
                         <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
@@ -5165,39 +5183,67 @@ export default function CustomerWebStorefrontPage() {
 
                 {myTradeTab === 'WISHLIST' && (
                   <div className="space-y-2.5">
-                    {myWishlist.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between p-3 rounded-2xl border bg-slate-50/50 hover:bg-slate-50 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <img src={item.image} alt="wish" className="h-12 w-12 rounded-xl object-cover" />
-                          <div>
-                            <div className="flex items-center gap-1.5 mb-0.5">
-                              <span className="text-[10px] text-muted-foreground">{item.seller}</span>
-                              <Badge className="bg-orange-50 text-orange-700 border-orange-200 text-[9px] font-bold px-1.5 py-0">🥕 중고거래</Badge>
-                            </div>
-                            <h5 className="font-bold text-xs text-slate-900 line-clamp-1">{item.title}</h5>
-                            <span className="font-black text-xs text-slate-900">{item.price.toLocaleString()}원</span>
-                          </div>
-                        </div>
-                        <Button
-                          onClick={() => {
-                            setCheckoutTarget({
-                              title: item.title,
-                              price: item.price,
-                              shippingFee: 3000,
-                              image: item.image,
-                            })
-                            setIsCheckoutOpen(true)
-                          }}
-                          size="sm"
-                          className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs h-8 px-3 rounded-xl"
-                        >
-                          바로구매
-                        </Button>
+                    {myWishlist.length === 0 ? (
+                      <div className="p-8 text-center border border-dashed rounded-2xl bg-slate-50 text-slate-400 text-xs">
+                        관심목록에 담긴 상품이 없습니다. 마음에 드는 상품을 찜해보세요!
                       </div>
-                    ))}
+                    ) : (
+                      myWishlist.map((item) => {
+                        const isUsedItem = item.type === 'C2C_USED' || String(item.id).startsWith('c2c') || String(item.id).startsWith('used') || String(item.id).startsWith('w-1')
+                        return (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between p-3 rounded-2xl border bg-slate-50/50 hover:bg-slate-50 transition-colors"
+                          >
+                            <div
+                              onClick={() => router.push(isUsedItem ? '/market/used/' + item.id : '/market/' + item.id)}
+                              className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
+                            >
+                              <img src={item.image} alt="wish" className="h-12 w-12 rounded-xl object-cover shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <span className="text-[10px] text-muted-foreground truncate">{item.seller}</span>
+                                  <Badge className={isUsedItem ? 'bg-orange-50 text-orange-700 border-orange-200 text-[9px] font-bold px-1.5 py-0' : 'bg-indigo-50 text-indigo-700 border-indigo-200 text-[9px] font-bold px-1.5 py-0'}>
+                                    {isUsedItem ? '🥕 중고거래' : '🏬 공식 마켓'}
+                                  </Badge>
+                                </div>
+                                <h5 className="font-bold text-xs text-slate-900 line-clamp-1 hover:underline">{item.title}</h5>
+                                <span className="font-black text-xs text-slate-900">{item.price.toLocaleString()}원</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0 ml-3">
+                              <Button
+                                onClick={() => router.push(isUsedItem ? '/market/used/' + item.id : '/market/' + item.id)}
+                                size="sm"
+                                variant="outline"
+                                className="text-xs h-8 px-2.5 rounded-xl border-slate-300 font-bold"
+                              >
+                                상세보기
+                              </Button>
+                              <Button
+                                onClick={() => {
+                                  if (isUsedItem) {
+                                    router.push('/market/used/' + item.id)
+                                  } else {
+                                    setCheckoutTarget({
+                                      title: item.title,
+                                      price: item.price,
+                                      shippingFee: 3000,
+                                      image: item.image,
+                                    })
+                                    setIsCheckoutOpen(true)
+                                  }
+                                }}
+                                size="sm"
+                                className={isUsedItem ? 'bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs h-8 px-3 rounded-xl' : 'bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs h-8 px-3 rounded-xl'}
+                              >
+                                {isUsedItem ? '안전구매' : '바로구매'}
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
                   </div>
                 )}
 

@@ -235,6 +235,62 @@ export default function MarketProductDetailPage() {
 
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
 
+  // 중고거래 매물인 경우 C2C 중고거래 전용 상세페이지로 즉시 리다이렉트
+  useEffect(() => {
+    if (productId && (productId.startsWith('c2c') || productId.startsWith('used') || productId.startsWith('u-'))) {
+      router.replace('/market/used/' + productId)
+    }
+  }, [productId, router])
+
+  // 관심목록(찜) 상태 체크
+  useEffect(() => {
+    if (typeof window !== 'undefined' && product) {
+      try {
+        const stored = JSON.parse(localStorage.getItem('mocco_wishlist') || '[]')
+        const exists = stored.some((item: any) => item.id === product.id)
+        setIsLiked(exists)
+      } catch (e) {
+        console.warn('Failed to read wishlist', e)
+      }
+    }
+  }, [product])
+
+  // 관심목록(찜) 토글 함수 (마이모꼬 관심목록 저장 및 해제)
+  const handleToggleWishlist = () => {
+    if (!product) return
+    try {
+      const stored = JSON.parse(localStorage.getItem('mocco_wishlist') || '[]')
+      let updated = []
+      if (isLiked) {
+        updated = stored.filter((i: any) => i.id !== product.id)
+        setIsLiked(false)
+        toast({
+          title: '💔 관심목록에서 제거되었습니다.',
+          description: `"${product.name}" 상품이 마이모꼬 관심목록에서 삭제되었습니다.`,
+        })
+      } else {
+        const newItem = {
+          id: product.id,
+          title: product.name,
+          price: product.price,
+          image: product.images[0],
+          category: product.category,
+          seller: product.merchantInfo?.businessName || '공식 마켓',
+          type: product.type || 'B2C_NORMAL',
+        }
+        updated = [newItem, ...stored.filter((i: any) => i.id !== product.id)]
+        setIsLiked(true)
+        toast({
+          title: '❤️ 관심목록에 추가되었습니다!',
+          description: '마이모꼬 > 마켓 & 중고거래 관리 > [관심목록] 탭에서 확인하실 수 있습니다.',
+        })
+      }
+      localStorage.setItem('mocco_wishlist', JSON.stringify(updated))
+    } catch (e) {
+      console.warn('Failed to update wishlist', e)
+    }
+  }
+
   useEffect(() => {
     // 1. Check local samples
     const found = SAMPLE_MARKET_PRODUCTS[productId]
@@ -247,7 +303,7 @@ export default function MarketProductDetailPage() {
         id: productId,
         name: `[모꼬 엄선] 마켓 프리미엄 상품 (${productId})`,
         category: '일반/생활',
-        type: productId.startsWith('used') ? 'C2C_USED' : 'B2C_NORMAL',
+        type: 'B2C_NORMAL',
         price: 49000,
         originalPrice: 65000,
         stock: 50,
@@ -679,7 +735,7 @@ export default function MarketProductDetailPage() {
             <div className="space-y-2.5 pt-2">
               <div className="flex gap-2">
                 <button
-                  onClick={() => setIsLiked(!isLiked)}
+                  onClick={handleToggleWishlist}
                   className={`p-3 rounded-2xl border transition shrink-0 ${
                     isLiked
                       ? 'bg-rose-50 border-rose-300 text-rose-500'
@@ -1074,32 +1130,35 @@ export default function MarketProductDetailPage() {
       </main>
 
       {/* 3. 모바일 하단 고정 바로구매 바 (스마트폰 접속 시 화면 최하단에 구매 바 고정) */}
-      <div className="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200/90 p-3 sm:hidden z-30 shadow-lg flex items-center justify-between gap-3">
+      <div className="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200/90 p-3 sm:hidden z-30 shadow-lg flex items-center justify-between gap-2.5">
         <div>
           <span className="text-[10px] text-slate-400 block">총 결제금액</span>
-          <span className="text-lg font-black text-slate-900">{grandTotal.toLocaleString()}원</span>
+          <span className="text-base font-black text-slate-900">{grandTotal.toLocaleString()}원</span>
         </div>
-        <div className="flex items-center gap-2 flex-1 max-w-[240px]">
-          <Button
-            onClick={isUsed ? handleChatWithSeller : handleAddToCart}
-            variant="outline"
-            className={`flex-1 h-10 rounded-xl text-xs font-extrabold ${
-              isUsed
-                ? 'border-orange-300 text-orange-700 bg-orange-50/60 hover:bg-orange-100'
-                : 'border-indigo-200 text-indigo-700 bg-indigo-50/60 hover:bg-indigo-100'
+        <div className="flex items-center gap-1.5 flex-1 max-w-[270px] justify-end">
+          <button
+            onClick={handleToggleWishlist}
+            className={`p-2.5 rounded-xl border transition shrink-0 ${
+              isLiked
+                ? 'bg-rose-50 border-rose-300 text-rose-500'
+                : 'bg-slate-100 border-slate-200 text-slate-600'
             }`}
+            title="관심상품 등록"
           >
-            {isUsed ? '거래톡' : '장바구니 담기'}
+            <Heart className={`w-4 h-4 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
+          </button>
+          <Button
+            onClick={handleAddToCart}
+            variant="outline"
+            className="flex-1 h-10 rounded-xl text-xs font-extrabold border-indigo-200 text-indigo-700 bg-indigo-50/60 hover:bg-indigo-100 px-2"
+          >
+            장바구니 담기
           </Button>
           <Button
             onClick={handleBuyNow}
-            className={`flex-1 h-10 rounded-xl text-white font-extrabold text-xs shadow-xs ${
-              isUsed
-                ? 'bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600'
-                : 'bg-indigo-600 hover:bg-indigo-700'
-            }`}
+            className="flex-1 h-10 rounded-xl text-white font-extrabold text-xs shadow-xs bg-indigo-600 hover:bg-indigo-700 px-2"
           >
-            {isUsed ? '안전구매' : '바로구매'}
+            바로구매
           </Button>
         </div>
       </div>
