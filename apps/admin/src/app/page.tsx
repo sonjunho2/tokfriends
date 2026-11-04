@@ -4725,81 +4725,92 @@ export default function CustomerWebStorefrontPage() {
                   {/* ------------------------------------------------------------- */}
                   {chatSubTab === 'SUDA' && (
                     <div className="space-y-4">
-                      {/* 1) 상단: 1:1 수다방 만들기 헤더 바 (단가 설정 300/500/1000 ON 지원) */}
-                      <div className="bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900 p-4 sm:p-5 rounded-3xl text-white shadow-lg space-y-3">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-                              <Badge className="bg-indigo-500/40 text-indigo-200 border border-indigo-400/30 text-[10px] font-black">
-                                1:1 실시간 수다 대기방
-                              </Badge>
-                              <span className="text-[11px] text-indigo-300">
-                                나랑 1:1로 수다 떨 이웃을 구하는 방입니다
-                              </span>
-                            </div>
-                            <h3 className="font-black text-base sm:text-lg text-white">
-                              술 한잔, 커피, 산책 등 나랑 1:1로 만날 이웃을 구해보세요 🍺☕
-                            </h3>
-                          </div>
-
-                          <Button
-                            onClick={() => requireAuth(() => setIsCreateSudaRoomOpen(true))}
-                            className="bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white font-black text-xs h-10 px-4 rounded-2xl shadow-md shrink-0 flex items-center gap-1.5"
-                          >
-                            <PlusCircle className="w-4 h-4" />
-                            <span>1:1 수다방 만들기</span>
-                          </Button>
-                        </div>
-
-                        {/* 방 만들기 인라인 퀵 폼 (모달 없이도 바로 생성 가능) */}
-                        <div className="pt-2 border-t border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                      {/* 1) 1:1 수다방 개설 바 (불필요한 장황한 문구 제거, 입장 비용 직접 입력 인풋, 깔끔한 모꼬 테마 색상) */}
+                      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          {/* 방 제목 입력 인풋 */}
                           <div className="relative flex-1">
                             <input
                               type="text"
                               value={sudaInputText}
                               onChange={(e) => setSudaInputText(e.target.value)}
-                              placeholder="방 제목을 적어보세요 (예: 오늘 퇴근 후 강남역에서 맥주 한잔 마실 사람 🍻)"
-                              className="w-full bg-white/10 hover:bg-white/15 focus:bg-white text-slate-900 placeholder:text-slate-300 focus:placeholder:text-slate-400 rounded-xl px-3.5 py-2 text-xs border border-white/20 focus:border-pink-500 focus:outline-none transition"
+                              placeholder="1:1 수다방 제목을 입력하세요 (예: 강남역에서 맥주 한잔 마실 분 🍺)"
+                              className="w-full bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-slate-900 placeholder:text-slate-400 rounded-xl px-3.5 py-2.5 text-xs font-medium border border-slate-200 focus:border-[#FF3B6B] focus:ring-1 focus:ring-rose-200 focus:outline-none transition"
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleCreateSudaRoom()
                               }}
                             />
                           </div>
                           
-                          {/* 입장 단가 선택 셀렉트 */}
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <select
-                              value={newRoomEntryFee}
-                              onChange={(e) => setNewRoomEntryFee(Number(e.target.value))}
-                              className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl px-3 py-2 border border-white/20 focus:outline-none cursor-pointer"
-                            >
-                              <option value={0} className="text-slate-900">✨ 무료 입장</option>
-                              <option value={300} className="text-slate-900">💰 입장 300 ON</option>
-                              <option value={500} className="text-slate-900">💰 입장 500 ON</option>
-                              <option value={1000} className="text-slate-900">💰 입장 1,000 ON</option>
-                            </select>
+                          {/* 입장 비용 직접 입력 필드 */}
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                              <span className="text-[11px] font-bold text-slate-500 shrink-0">입장료</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="100"
+                                value={newRoomEntryFee === 0 ? '' : newRoomEntryFee}
+                                onChange={(e) => {
+                                  const val = e.target.value
+                                  setNewRoomEntryFee(val === '' ? 0 : Math.max(0, parseInt(val, 10) || 0))
+                                }}
+                                placeholder="0 (무료)"
+                                className="w-16 sm:w-20 bg-white text-right font-black text-xs px-2 py-1 rounded-lg border border-slate-200 focus:border-[#FF3B6B] focus:outline-none"
+                              />
+                              <span className="text-[11px] font-black text-[#FF3B6B] shrink-0">ON</span>
+                            </div>
 
                             <Button
                               onClick={handleCreateSudaRoom}
-                              className="bg-white text-slate-900 hover:bg-slate-100 font-black text-xs h-8 px-4 rounded-xl shrink-0"
+                              className="bg-[#FF3B6B] hover:bg-[#E02958] text-white font-black text-xs h-9 px-4 rounded-xl shadow-xs shrink-0 flex items-center gap-1"
                             >
-                              방 개설
+                              <PlusCircle className="w-3.5 h-3.5" />
+                              <span>방 만들기</span>
                             </Button>
+                          </div>
+                        </div>
+
+                        {/* 빠른 단가 선택 & 안내 */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100 text-[11px]">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-slate-400">단가 퀵선택:</span>
+                            {[
+                              { label: '무료', value: 0 },
+                              { label: '300 ON', value: 300 },
+                              { label: '500 ON', value: 500 },
+                              { label: '1,000 ON', value: 1000 },
+                            ].map((chip) => (
+                              <button
+                                key={chip.value}
+                                onClick={() => setNewRoomEntryFee(chip.value)}
+                                className={`px-2 py-0.5 rounded-lg font-bold transition text-[11px] ${
+                                  newRoomEntryFee === chip.value
+                                    ? 'bg-rose-50 text-[#FF3B6B] border border-rose-200'
+                                    : 'bg-slate-100 hover:bg-slate-200/80 text-slate-600'
+                                }`}
+                              >
+                                {chip.label}
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center gap-1 text-slate-400">
+                            <span>* 0원 입력 시 누구나 무료로 대화방에 입장합니다</span>
                           </div>
                         </div>
                       </div>
 
                       {/* 2) 테마 필터 바 (술한잔, 카페, 산책, 일상) */}
                       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-                        <span className="text-[11px] font-bold text-slate-500 mr-1 shrink-0">테마:</span>
+                        <span className="text-[11px] font-bold text-slate-400 mr-1 shrink-0">테마:</span>
                         {['전체', '술 한잔/맛집', '카페/디저트', '산책/운동', '일상수다'].map((cat) => (
                           <button
                             key={cat}
                             onClick={() => setSudaCategoryFilter(cat)}
                             className={`px-3 py-1.5 rounded-xl font-bold text-xs shrink-0 transition-colors ${
                               sudaCategoryFilter === cat
-                                ? 'bg-indigo-600 text-white shadow-xs'
+                                ? 'bg-[#FF3B6B] text-white shadow-2xs'
                                 : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
                             }`}
                           >
@@ -4815,7 +4826,7 @@ export default function CustomerWebStorefrontPage() {
                           .map((room) => (
                             <div
                               key={room.id}
-                              className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-indigo-300 hover:shadow-md transition-all space-y-3"
+                              className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-rose-200 hover:shadow-md transition-all space-y-3"
                             >
                               {/* 상단: 방장 프로필 & 우측 [1:1 수다방 입장] 버튼 */}
                               <div className="flex items-center justify-between gap-3">
@@ -4839,7 +4850,7 @@ export default function CustomerWebStorefrontPage() {
                                     <img
                                       src={room.avatar}
                                       alt="avatar"
-                                      className="h-11 w-11 rounded-full object-cover border-2 border-indigo-100 group-hover/roomauthor:ring-2 group-hover/roomauthor:ring-pink-400 transition"
+                                      className="h-11 w-11 rounded-full object-cover border-2 border-slate-100 group-hover/roomauthor:ring-2 group-hover/roomauthor:ring-rose-300 transition"
                                     />
                                     <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 border border-white" />
                                   </div>
@@ -4848,7 +4859,7 @@ export default function CustomerWebStorefrontPage() {
                                       <span className="font-extrabold text-sm text-slate-900 group-hover/roomauthor:text-indigo-600 transition truncate">
                                         {room.nickname}
                                       </span>
-                                      <Badge className="bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-200 py-0">
+                                      <Badge className="bg-rose-50 text-[#FF3B6B] text-[10px] font-bold border border-rose-200 py-0">
                                         {room.category || '1:1 수다'}
                                       </Badge>
                                     </div>
@@ -4863,8 +4874,8 @@ export default function CustomerWebStorefrontPage() {
                                   {/* 입장 포인트 뱃지 */}
                                   <span className={`text-xs font-black px-2.5 py-1 rounded-xl shrink-0 ${
                                     room.entryFee && room.entryFee > 0
-                                      ? 'bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs'
-                                      : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                      ? 'bg-amber-50 text-amber-900 border border-amber-200 shadow-2xs'
+                                      : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                                   }`}>
                                     {room.entryFee && room.entryFee > 0 ? `💰 ${room.entryFee} ON` : '✨ 무료'}
                                   </span>
@@ -4873,7 +4884,7 @@ export default function CustomerWebStorefrontPage() {
                                   <Button
                                     size="sm"
                                     onClick={() => handleEnterSudaRoom(room)}
-                                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold text-xs h-8 px-3 rounded-xl shadow-xs"
+                                    className="bg-[#FF3B6B] hover:bg-[#E02958] text-white font-extrabold text-xs h-8 px-3 rounded-xl shadow-xs"
                                   >
                                     <MessageCircle className="h-3.5 w-3.5 mr-1" />
                                     <span>입장하기</span>

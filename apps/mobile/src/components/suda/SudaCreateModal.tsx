@@ -114,11 +114,54 @@ export default function SudaCreateModal({
             onChangeText={setContent}
           />
 
-          {/* 입장 단가 설정 선택 바 */}
+          {/* 입장 비용 직접 입력 & 퀵 선택 */}
           <View style={{ marginBottom: 14 }}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 6 }}>
-              💰 1:1 수다방 입장 단가 (포인트)
-            </Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569' }}>
+                💰 1:1 수다방 입장 비용
+              </Text>
+              <Text style={{ fontSize: 10, color: '#94A3B8' }}>
+                0원 입력 시 무료 입장
+              </Text>
+            </View>
+
+            {/* 직접 입력 인풋 박스 */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: '#F8FAFC',
+                borderWidth: 1,
+                borderColor: '#E2E8F0',
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                height: 44,
+                marginBottom: 8,
+              }}
+            >
+              <TextInput
+                style={{
+                  flex: 1,
+                  fontSize: 14,
+                  fontWeight: '800',
+                  color: '#0F172A',
+                  paddingVertical: 0,
+                }}
+                keyboardType="numeric"
+                placeholder="입장 비용 직접 입력 (예: 500)"
+                placeholderTextColor="#94A3B8"
+                value={entryFee === 0 ? '' : String(entryFee)}
+                onChangeText={(text) => {
+                  const num = parseInt(text.replace(/[^0-9]/g, ''), 10);
+                  setEntryFee(isNaN(num) ? 0 : num);
+                }}
+              />
+              <Text style={{ fontSize: 13, fontWeight: '900', color: '#FF3B6B', marginLeft: 6 }}>
+                ON
+              </Text>
+            </View>
+
+            {/* 빠른 선택 칩 버튼 */}
             <View style={{ flexDirection: 'row', gap: 6 }}>
               {FEE_OPTIONS.map((opt) => (
                 <TouchableOpacity
@@ -126,11 +169,11 @@ export default function SudaCreateModal({
                   onPress={() => setEntryFee(opt.value)}
                   style={{
                     flex: 1,
-                    paddingVertical: 7,
-                    borderRadius: 10,
+                    paddingVertical: 6,
+                    borderRadius: 8,
                     alignItems: 'center',
                     backgroundColor: entryFee === opt.value ? '#FFF0F3' : '#F1F5F9',
-                    borderWidth: 1.5,
+                    borderWidth: 1,
                     borderColor: entryFee === opt.value ? '#FF3B6B' : 'transparent',
                   }}
                 >
