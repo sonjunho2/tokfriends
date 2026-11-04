@@ -59,6 +59,7 @@ import {
   PhoneCall,
   Info,
   Users,
+  UserPlus,
   Trophy,
   Gift,
   MoreVertical,
@@ -284,6 +285,187 @@ export interface SudaPostItem {
   comments: number
   isLiked?: boolean
 }
+
+export interface FollowUserItem {
+  id: string
+  nickname: string
+  avatar: string
+  region: string
+  gender: string
+  age: number
+  mannerTemp: number
+  headline: string
+  followersCount: number
+  followingCount: number
+  isOnline: boolean
+  isLive?: boolean
+  liveTitle?: string
+  isFollowing: boolean
+  interests: string[]
+}
+
+const INITIAL_FOLLOWERS: FollowUserItem[] = [
+  {
+    id: 'f-1',
+    nickname: '민지',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+    region: '서울 강남구 역삼동',
+    gender: '여',
+    age: 24,
+    mannerTemp: 38.2,
+    headline: '역삼동 카페 투어 좋아하는 직장인이에요 ☕',
+    followersCount: 142,
+    followingCount: 89,
+    isOnline: true,
+    isFollowing: true,
+    interests: ['카페투어', '베이킹', '소통', '일상'],
+  },
+  {
+    id: 'f-2',
+    nickname: '지훈',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
+    region: '서울 강남구 논현동',
+    gender: '남',
+    age: 27,
+    mannerTemp: 36.5,
+    headline: '퇴근 후 양재천 러닝 크루 모집합니다 🏃‍♂️',
+    followersCount: 95,
+    followingCount: 64,
+    isOnline: true,
+    isFollowing: false,
+    interests: ['러닝', '헬스', '반려견', '등산'],
+  },
+  {
+    id: 'f-3',
+    nickname: '유진',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500',
+    region: '서울 강남구 대치동',
+    gender: '여',
+    age: 25,
+    mannerTemp: 41.0,
+    headline: '동네 이웃과 따뜻한 나눔 & 중고거래 소통해요 ✨',
+    followersCount: 230,
+    followingCount: 120,
+    isOnline: false,
+    isFollowing: true,
+    interests: ['소통', '중고거래', '식물가꾸기', '영화'],
+  },
+  {
+    id: 'f-4',
+    nickname: '서준',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500',
+    region: '서울 강남구 삼성동',
+    gender: '남',
+    age: 28,
+    mannerTemp: 37.0,
+    headline: '모꼬 LIVE 스트리머! 음악과 일상 소통 라이브 방송 🎙️',
+    followersCount: 512,
+    followingCount: 180,
+    isOnline: true,
+    isLive: true,
+    liveTitle: '강남역 루프탑 어쿠스틱 감성 라이브 🎸',
+    isFollowing: false,
+    interests: ['라이브방송', '음악', '기타연주', '맛집탐방'],
+  },
+  {
+    id: 'f-5',
+    nickname: '하은',
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500',
+    region: '서울 강남구 청담동',
+    gender: '여',
+    age: 26,
+    mannerTemp: 39.5,
+    headline: '골든리트리버 뭉치 견주입니다 🐶 함께 산책해요!',
+    followersCount: 310,
+    followingCount: 145,
+    isOnline: true,
+    isFollowing: true,
+    interests: ['반려견', '한강산책', '캠핑', '사진'],
+  },
+  {
+    id: 'f-6',
+    nickname: '수빈',
+    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500',
+    region: '서울 강남구 도곡동',
+    gender: '여',
+    age: 23,
+    mannerTemp: 36.8,
+    headline: '베이킹과 디저트 맛집 탐방이 취미예요 🍰',
+    followersCount: 88,
+    followingCount: 52,
+    isOnline: false,
+    isFollowing: false,
+    interests: ['디저트', '베이킹', '인테리어', '소통'],
+  },
+  {
+    id: 'f-7',
+    nickname: '태호',
+    avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=500',
+    region: '서울 강남구 역삼2동',
+    gender: '남',
+    age: 29,
+    mannerTemp: 36.5,
+    headline: '자전거 라이딩 & 테니스 치실 분 편하게 연락주세요 🎾',
+    followersCount: 120,
+    followingCount: 90,
+    isOnline: true,
+    isFollowing: false,
+    interests: ['테니스', '자전거', '피트니스', '테크'],
+  },
+  {
+    id: 'f-8',
+    nickname: '소율',
+    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500',
+    region: '서울 강남구 개포동',
+    gender: '여',
+    age: 24,
+    mannerTemp: 40.2,
+    headline: '양재천 벚꽃 산책과 독서를 즐깁니다 📚',
+    followersCount: 185,
+    followingCount: 110,
+    isOnline: true,
+    isFollowing: true,
+    interests: ['독서', '산책', '전시회', '힐링'],
+  },
+]
+
+const INITIAL_FOLLOWING: FollowUserItem[] = [
+  INITIAL_FOLLOWERS[0],
+  INITIAL_FOLLOWERS[2],
+  INITIAL_FOLLOWERS[4],
+  INITIAL_FOLLOWERS[7],
+  {
+    id: 'ing-1',
+    nickname: '제주푸드마켓',
+    avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500',
+    region: '제주 제주시 (공식입점)',
+    gender: '여',
+    age: 32,
+    mannerTemp: 45.0,
+    headline: '산지직송 제철 농수산물 전문 모꼬 공식 파트너 스토어 🍊',
+    followersCount: 1240,
+    followingCount: 25,
+    isOnline: true,
+    isFollowing: true,
+    interests: ['산지직송', '특가공구', '제주특산물', '신선식품'],
+  },
+  {
+    id: 'ing-2',
+    nickname: '재즈피아노_현우',
+    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=500',
+    region: '서울 서초구 서초동',
+    gender: '남',
+    age: 27,
+    mannerTemp: 37.8,
+    headline: '매주 주말 밤 재즈 연주 라이브 방송을 진행합니다 🎹',
+    followersCount: 890,
+    followingCount: 112,
+    isOnline: true,
+    isLive: false,
+    isFollowing: true,
+    interests: ['재즈', '피아노', '라이브방송', '음악'],
+  },
+]
 
 export interface NeighborFriendItem {
   id: string
@@ -1367,6 +1549,125 @@ export default function CustomerWebStorefrontPage() {
   const [blockedUsers, setBlockedUsers] = useState(['광고스팸러99', '불량유저01'])
 
   // 마이모꼬 모달 상태
+  // 팔로워 / 팔로잉 모달 상태
+  const [isFollowsModalOpen, setIsFollowsModalOpen] = useState(false)
+  const [followsActiveTab, setFollowsActiveTab] = useState<'followers' | 'following'>('followers')
+  const [followsSearchQuery, setFollowsSearchQuery] = useState('')
+  const [followersList, setFollowersList] = useState<FollowUserItem[]>(INITIAL_FOLLOWERS)
+  const [followingList, setFollowingList] = useState<FollowUserItem[]>(INITIAL_FOLLOWING)
+
+  // 상대방 프로필 팝업 모달 상태
+  const [isUserProfileModalOpen, setIsUserProfileModalOpen] = useState(false)
+  const [selectedUserProfile, setSelectedUserProfile] = useState<FollowUserItem | null>(null)
+
+  // 상대방 프로필 팝업 열기 헬퍼 함수
+  const openUserProfileModal = (user: any) => {
+    const isAlreadyFollowing = followingList.some(
+      (f) => f.nickname === user.nickname || (user.id && f.id === user.id)
+    )
+    setSelectedUserProfile({
+      id: user.id || 'u-' + Date.now(),
+      nickname: user.nickname || user.name || '모꼬이웃',
+      avatar: user.avatar || user.avatarUrl || user.image || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+      region: user.region || user.location || user.locationName || '서울 강남구 역삼동',
+      gender: user.gender || '여',
+      age: user.age || 26,
+      mannerTemp: user.mannerTemp || 36.5,
+      headline: user.headline || user.statusMessage || user.intro || '동네 친구들과 따뜻하고 즐거운 소통 나누고 싶어요 ✨',
+      followersCount: user.followersCount || 128,
+      followingCount: user.followingCount || 42,
+      isOnline: user.isOnline ?? true,
+      isLive: Boolean(user.isLive),
+      liveTitle: user.liveTitle || '실시간 동네 수다 라이브 🎙️',
+      isFollowing: isAlreadyFollowing,
+      interests: Array.isArray(user.interests) && user.interests.length > 0
+        ? user.interests
+        : ['동네산책', '카페투어', '중고거래', '소통'],
+    })
+    setIsUserProfileModalOpen(true)
+  }
+
+  // 1:1 대화 시작 범용 헬퍼 (채팅방 자동 생성 및 CHAT 탭 연결)
+  const handleStartDirectChat = (target: {
+    id?: string
+    nickname: string
+    avatar: string
+    region?: string
+    intro?: string
+  }) => {
+    requireAuth(() => {
+      const existing = chatRooms.find((r) => r.targetNickname === target.nickname)
+      if (existing) {
+        setActiveChatRoom(existing)
+      } else {
+        const newRoom: ChatRoomItem = {
+          id: 'chat-u-' + (target.id || Date.now()),
+          type: 'SUDA',
+          targetNickname: target.nickname,
+          targetAvatar: target.avatar,
+          lastMessage: target.intro || `안녕하세요! ${target.nickname}님 반가워요 ✨`,
+          lastTime: '방금',
+          unreadCount: 0,
+          messages: [
+            {
+              id: 'init-msg-1',
+              senderId: 'target',
+              senderNickname: target.nickname,
+              text: `안녕하세요! ${target.region ? target.region + '에 사는 ' : ''}${target.nickname}입니다. 반가워요! ✨`,
+              time: '방금',
+            },
+          ],
+        }
+        setChatRooms([newRoom, ...chatRooms])
+        setActiveChatRoom(newRoom)
+      }
+      setIsUserProfileModalOpen(false)
+      setIsFollowsModalOpen(false)
+      setActiveTab('CHAT')
+      setChatSubTab('CHATS')
+      toast({
+        title: '💬 1:1 대화방 연결',
+        description: `${target.nickname} 님과의 대화방으로 이동했습니다.`,
+      })
+    })
+  }
+
+  // 팔로우 토글 핸들러
+  const handleToggleFollow = (targetUser: FollowUserItem) => {
+    requireAuth(() => {
+      const isAlreadyFollowing = followingList.some((f) => f.nickname === targetUser.nickname)
+      if (isAlreadyFollowing) {
+        // 언팔로우
+        setFollowingList((prev) => prev.filter((f) => f.nickname !== targetUser.nickname))
+        // 팔로워 목록 내의 isFollowing 플래그도 갱신
+        setFollowersList((prev) =>
+          prev.map((f) => (f.nickname === targetUser.nickname ? { ...f, isFollowing: false } : f))
+        )
+        if (selectedUserProfile && selectedUserProfile.nickname === targetUser.nickname) {
+          setSelectedUserProfile({ ...selectedUserProfile, isFollowing: false })
+        }
+        toast({
+          title: '팔로우 취소',
+          description: `${targetUser.nickname} 님의 팔로우를 취소했습니다.`,
+        })
+      } else {
+        // 팔로우 추가
+        const updatedTarget = { ...targetUser, isFollowing: true }
+        setFollowingList((prev) => [updatedTarget, ...prev])
+        setFollowersList((prev) =>
+          prev.map((f) => (f.nickname === targetUser.nickname ? { ...f, isFollowing: true } : f))
+        )
+        if (selectedUserProfile && selectedUserProfile.nickname === targetUser.nickname) {
+          setSelectedUserProfile({ ...selectedUserProfile, isFollowing: true })
+        }
+        toast({
+          title: '✨ 팔로우 완료',
+          description: `${targetUser.nickname} 님을 팔로우했습니다!`,
+        })
+      }
+    })
+  }
+
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false)
   const [isRateSettingOpen, setIsRateSettingOpen] = useState(false)
   const [isNotifySettingOpen, setIsNotifySettingOpen] = useState(false)
@@ -2643,7 +2944,7 @@ export default function CustomerWebStorefrontPage() {
                         key={friend.id}
                         className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3 group"
                       >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div onClick={() => openUserProfileModal(friend)} className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer group/avatar">
                           {/* Round Avatar with Online Status */}
                           <div className="relative shrink-0">
                             <img
@@ -2722,7 +3023,7 @@ export default function CustomerWebStorefrontPage() {
                         className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-2xs hover:border-rose-200 transition-colors space-y-2 flex-1 flex flex-col justify-center"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
+                          <div onClick={() => openUserProfileModal(post)} className="flex items-center gap-2.5 min-w-0 cursor-pointer group/postuser">
                             <img
                               src={post.avatar}
                               alt="avatar"
@@ -4813,9 +5114,27 @@ export default function CustomerWebStorefrontPage() {
                         <span>·</span>
                         <span className="text-rose-600 font-bold">매너온도 36.5℃</span>
                         <span>·</span>
-                        <span className="font-bold text-slate-700">팔로워 <strong className="text-slate-900 font-black">128</strong></span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFollowsActiveTab('followers')
+                            setIsFollowsModalOpen(true)
+                          }}
+                          className="font-bold text-slate-700 hover:text-rose-600 transition flex items-center gap-1 px-2 py-0.5 rounded-lg hover:bg-rose-50 border border-transparent hover:border-rose-200 cursor-pointer"
+                        >
+                          팔로워 <strong className="text-slate-900 font-black">{followersList.length}</strong>
+                        </button>
                         <span>·</span>
-                        <span className="font-bold text-slate-700">팔로잉 <strong className="text-slate-900 font-black">42</strong></span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFollowsActiveTab('following')
+                            setIsFollowsModalOpen(true)
+                          }}
+                          className="font-bold text-slate-700 hover:text-rose-600 transition flex items-center gap-1 px-2 py-0.5 rounded-lg hover:bg-rose-50 border border-transparent hover:border-rose-200 cursor-pointer"
+                        >
+                          팔로잉 <strong className="text-slate-900 font-black">{followingList.length}</strong>
+                        </button>
                       </div>
 
                       <p className="text-xs text-slate-600 italic">
@@ -6596,6 +6915,361 @@ export default function CustomerWebStorefrontPage() {
       )}
 
       {/* (A) 프로필 수정 모달 */}
+      {/* (X) 팔로워 / 팔로잉 통합 팝업 모달 */}
+      {isFollowsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[85vh]">
+            {/* 상단 헤더 */}
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-base text-slate-900">소셜 인맥 관리</h4>
+                  <p className="text-xs text-slate-500">동네 이웃들과 팔로우를 맺고 소통해보세요</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsFollowsModalOpen(false)}
+                className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* 탭 전환 바 */}
+            <div className="flex border-b border-slate-100 bg-slate-50/60 p-1.5 gap-1.5">
+              <button
+                onClick={() => setFollowsActiveTab('followers')}
+                className={`flex-1 py-2.5 text-xs font-bold rounded-2xl transition flex items-center justify-center gap-1.5 ${
+                  followsActiveTab === 'followers'
+                    ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80 font-black'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <span>팔로워</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  followsActiveTab === 'followers' ? 'bg-pink-100 text-pink-600' : 'bg-slate-200/70 text-slate-600'
+                }`}>
+                  {followersList.length}
+                </span>
+              </button>
+              <button
+                onClick={() => setFollowsActiveTab('following')}
+                className={`flex-1 py-2.5 text-xs font-bold rounded-2xl transition flex items-center justify-center gap-1.5 ${
+                  followsActiveTab === 'following'
+                    ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80 font-black'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <span>팔로잉</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  followsActiveTab === 'following' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200/70 text-slate-600'
+                }`}>
+                  {followingList.length}
+                </span>
+              </button>
+            </div>
+
+            {/* 검색 인풋 */}
+            <div className="p-3 border-b border-slate-100 bg-white">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="이웃 닉네임 또는 동네 검색..."
+                  value={followsSearchQuery}
+                  onChange={(e) => setFollowsSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-slate-100/80 hover:bg-slate-100 focus:bg-white rounded-xl text-xs border border-transparent focus:border-pink-300 focus:outline-none transition"
+                />
+              </div>
+            </div>
+
+            {/* 유저 리스트 영역 */}
+            <div className="flex-1 overflow-y-auto p-3 divide-y divide-slate-100 space-y-1">
+              {(() => {
+                const currentList = followsActiveTab === 'followers' ? followersList : followingList
+                const filtered = currentList.filter(
+                  (u) =>
+                    u.nickname.toLowerCase().includes(followsSearchQuery.toLowerCase()) ||
+                    u.region.toLowerCase().includes(followsSearchQuery.toLowerCase())
+                )
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="py-12 text-center text-slate-400 space-y-2">
+                      <Users className="w-10 h-10 mx-auto opacity-30" />
+                      <p className="text-xs">
+                        {followsSearchQuery
+                          ? '검색 결과와 일치하는 이웃이 없습니다.'
+                          : followsActiveTab === 'followers'
+                          ? '아직 팔로워가 없습니다. 동네 친구들과 소통해보세요!'
+                          : '아직 팔로잉 중인 이웃이 없습니다.'}
+                      </p>
+                    </div>
+                  )
+                }
+
+                return filtered.map((u) => {
+                  const isFollowingThis = followingList.some((f) => f.nickname === u.nickname)
+                  return (
+                    <div
+                      key={u.id}
+                      className="py-2.5 px-2 flex items-center justify-between gap-3 rounded-2xl hover:bg-slate-50 transition group"
+                    >
+                      {/* 아바타 & 정보 (클릭 시 상세 프로필 팝업) */}
+                      <div
+                        onClick={() => openUserProfileModal(u)}
+                        className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
+                      >
+                        <div
+                          className="relative shrink-0 rounded-full overflow-hidden border border-slate-200 bg-slate-100"
+                          style={{ width: 44, height: 44, minWidth: 44, minHeight: 44 }}
+                        >
+                          <img
+                            src={u.avatar}
+                            alt={u.nickname}
+                            className="w-full h-full object-cover"
+                            style={{ width: 44, height: 44, objectFit: 'cover' }}
+                          />
+                          {u.isOnline && (
+                            <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-extrabold text-sm text-slate-900 group-hover:text-pink-600 transition truncate">
+                              {u.nickname}
+                            </span>
+                            <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md font-semibold">
+                              {u.gender}·{u.age}세
+                            </span>
+                            <span className="text-[10px] text-orange-600 font-bold bg-orange-50 px-1.5 py-0.5 rounded-md">
+                              {u.mannerTemp}℃
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 truncate mt-0.5">{u.region}</p>
+                          <p className="text-[11px] text-slate-400 truncate">{u.headline}</p>
+                        </div>
+                      </div>
+
+                      {/* 액션 버튼들 */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {/* 1:1 대화신청 */}
+                        <button
+                          onClick={() => handleStartDirectChat(u)}
+                          className="p-2 rounded-xl bg-slate-100 hover:bg-pink-50 text-slate-600 hover:text-pink-600 transition"
+                          title="1:1 대화하기"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                        </button>
+
+                        {/* 팔로우 / 언팔로우 토글 버튼 */}
+                        <button
+                          onClick={() => handleToggleFollow(u)}
+                          className={`text-xs font-bold px-3 py-1.5 rounded-xl transition ${
+                            isFollowingThis
+                              ? 'bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-600 border border-slate-200'
+                              : 'bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-xs hover:opacity-90'
+                          }`}
+                        >
+                          {isFollowingThis ? '팔로잉' : '+ 맞팔로우'}
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })
+              })()}
+            </div>
+
+            {/* 하단 안내 문구 */}
+            <div className="p-3 bg-slate-50 border-t border-slate-100 text-center">
+              <span className="text-[11px] text-slate-400">
+                💡 이웃의 프로필 사진이나 닉네임을 누르면 상세 프로필 팝업이 열립니다.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* (Y) 상대방 프로필 상세 팝업 모달 (프로필 확인, 팔로우, 1:1 톡, 라이브 시청) */}
+      {isUserProfileModalOpen && selectedUserProfile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-200 overflow-hidden relative animate-in zoom-in-95 duration-150">
+            {/* 상단 커버 그라데이션 */}
+            <div className="h-28 bg-gradient-to-r from-pink-500 via-rose-400 to-amber-300 relative">
+              {/* 닫기 버튼 */}
+              <button
+                onClick={() => setIsUserProfileModalOpen(false)}
+                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-sm transition z-20"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              {/* 라이브 방송 중 표시 뱃지 */}
+              {selectedUserProfile.isLive && (
+                <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600/90 text-white text-[11px] font-black shadow-lg backdrop-blur-sm animate-pulse z-20">
+                  <span className="w-2 h-2 rounded-full bg-white" />
+                  <span>LIVE 방송 중</span>
+                </div>
+              )}
+            </div>
+
+            {/* 프로필 정보 본문 */}
+            <div className="px-6 pb-6 pt-0 space-y-4">
+              {/* 아바타 & 매너온도 뱃지 행 */}
+              <div className="flex items-end justify-between -mt-12 relative z-10">
+                {/* 84px 정원형 아바타 */}
+                <div
+                  className="relative rounded-full border-4 border-white shadow-md overflow-hidden bg-slate-100 shrink-0"
+                  style={{ width: 84, height: 84, minWidth: 84, minHeight: 84 }}
+                >
+                  <img
+                    src={selectedUserProfile.avatar}
+                    alt={selectedUserProfile.nickname}
+                    className="w-full h-full object-cover"
+                    style={{ width: 84, height: 84, objectFit: 'cover' }}
+                  />
+                  {selectedUserProfile.isOnline && (
+                    <span className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-xs" />
+                  )}
+                </div>
+
+                {/* 매너온도 게이지 뱃지 */}
+                <div className="text-right">
+                  <div className="flex items-baseline justify-end gap-1">
+                    <span className="text-lg font-black text-rose-600">
+                      {selectedUserProfile.mannerTemp}℃
+                    </span>
+                    <span className="text-sm">😄</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-bold block">매너온도</span>
+                </div>
+              </div>
+
+              {/* 닉네임, 지역, 성별/나이 */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-black text-xl text-slate-900">
+                    {selectedUserProfile.nickname}
+                  </h3>
+                  <Badge className="bg-pink-50 text-pink-700 text-xs font-bold border border-pink-200">
+                    {selectedUserProfile.gender} · {selectedUserProfile.age}세
+                  </Badge>
+                  <Badge className="bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
+                    동네인증 완료
+                  </Badge>
+                </div>
+                <p className="text-xs text-slate-500 flex items-center gap-1 font-medium">
+                  <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                  <span>{selectedUserProfile.region}</span>
+                </p>
+              </div>
+
+              {/* 소셜 통계 (팔로워 / 팔로잉) */}
+              <div className="bg-slate-50/80 rounded-2xl p-3 border border-slate-100 flex items-center justify-around text-center">
+                <div>
+                  <div className="text-sm font-black text-slate-900">
+                    {selectedUserProfile.followersCount}
+                  </div>
+                  <div className="text-[11px] text-slate-400 font-semibold">팔로워</div>
+                </div>
+                <div className="w-px h-6 bg-slate-200" />
+                <div>
+                  <div className="text-sm font-black text-slate-900">
+                    {selectedUserProfile.followingCount}
+                  </div>
+                  <div className="text-[11px] text-slate-400 font-semibold">팔로잉</div>
+                </div>
+                <div className="w-px h-6 bg-slate-200" />
+                <div>
+                  <div className="text-sm font-black text-emerald-600">
+                    99%
+                  </div>
+                  <div className="text-[11px] text-slate-400 font-semibold">응답률</div>
+                </div>
+              </div>
+
+              {/* 자기소개 말풍선 */}
+              <div className="bg-rose-50/40 rounded-2xl p-3.5 border border-rose-100/70 text-xs text-slate-700 leading-relaxed italic">
+                &quot;{selectedUserProfile.headline}&quot;
+              </div>
+
+              {/* 관심사 태그 */}
+              {selectedUserProfile.interests && selectedUserProfile.interests.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="text-[11px] font-bold text-slate-400">관심 태그</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedUserProfile.interests.map((tag: string, idx: number) => (
+                      <span
+                        key={idx}
+                        className="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 실시간 라이브 중일 때 바로보기 배너 버튼 */}
+              {selectedUserProfile.isLive && (
+                <button
+                  onClick={() => {
+                    setIsUserProfileModalOpen(false)
+                    setActiveTab('LIVE')
+                    toast({
+                      title: '🎙️ 라이브 방송 입장',
+                      description: `${selectedUserProfile.nickname} 님의 라이브 방송으로 이동했습니다.`,
+                    })
+                  }}
+                  className="w-full py-2.5 px-4 rounded-2xl bg-gradient-to-r from-red-500 via-rose-500 to-pink-600 text-white font-black text-xs shadow-md flex items-center justify-center gap-2 hover:opacity-95 transition"
+                >
+                  <Radio className="w-4 h-4 animate-pulse" />
+                  <span>{selectedUserProfile.liveTitle || '실시간 방송 시청하러 가기'}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+
+              {/* 하단 3대 핵심 액션 버튼 바 */}
+              <div className="pt-2 flex items-center gap-2">
+                {/* 1. 팔로우 / 언팔로우 버튼 */}
+                <button
+                  onClick={() => handleToggleFollow(selectedUserProfile)}
+                  className={`flex-1 h-11 rounded-2xl text-xs font-extrabold transition flex items-center justify-center gap-1.5 ${
+                    selectedUserProfile.isFollowing
+                      ? 'bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-600 border border-slate-200'
+                      : 'bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-md hover:opacity-95'
+                  }`}
+                >
+                  {selectedUserProfile.isFollowing ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>팔로잉 중</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4" />
+                      <span>+ 팔로우</span>
+                    </>
+                  )}
+                </button>
+
+                {/* 2. 1:1 대화신청 버튼 */}
+                <button
+                  onClick={() => handleStartDirectChat(selectedUserProfile)}
+                  className="flex-1 h-11 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold shadow-md transition flex items-center justify-center gap-1.5"
+                >
+                  <MessageCircle className="w-4 h-4 text-pink-400" />
+                  <span>1:1 대화신청</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isProfileEditOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 border border-slate-200">
