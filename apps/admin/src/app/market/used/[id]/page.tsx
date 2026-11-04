@@ -353,12 +353,21 @@ export default function UsedProductDetailPage() {
       {/* 2. 메인 컨텐츠 영역 (당근마켓형 1컬럼 집중 뷰 + 모바일/PC 반응형 패널) */}
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         
-        {/* (1) 대형 실물 사진 슬라이더 */}
-        <div className="relative w-full aspect-4/3 sm:aspect-16/10 rounded-3xl overflow-hidden bg-slate-900 shadow-sm border border-slate-200 group">
+        {/* (1) 실물 사진 슬라이더 (사진 크기와 무관하게 일정한 크기의 고정 뷰포트 유지) */}
+        <div className="relative w-full h-[340px] sm:h-[460px] rounded-3xl overflow-hidden bg-slate-950 shadow-sm border border-slate-200 group flex items-center justify-center">
+          {/* 배경 은은한 블러 레이어 (다양한 사진 비율에서도 빈 공간 없이 미려함) */}
+          <img
+            src={product.images[activeImageIdx]}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover blur-xl opacity-25 scale-110 pointer-events-none"
+          />
+
+          {/* 메인 실물 사진 (고정 프레임 안에서 왜곡/짤림 없이 정비율 핏) */}
           <img
             src={product.images[activeImageIdx]}
             alt={product.title}
-            className="w-full h-full object-cover transition-transform duration-300"
+            className="relative z-10 max-w-full max-h-full object-contain transition-transform duration-300"
           />
 
           {/* 좌우 이미지 넘김 버튼 */}
@@ -366,24 +375,24 @@ export default function UsedProductDetailPage() {
             <>
               <button
                 onClick={() => setActiveImageIdx((p) => (p > 0 ? p - 1 : product.images.length - 1))}
-                className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-sm transition"
+                className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/50 hover:bg-black/75 text-white backdrop-blur-sm transition"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button
                 onClick={() => setActiveImageIdx((p) => (p < product.images.length - 1 ? p + 1 : 0))}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-sm transition"
+                className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/50 hover:bg-black/75 text-white backdrop-blur-sm transition"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
-              <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-black/60 text-white text-[11px] font-bold backdrop-blur-sm">
+              <div className="absolute bottom-3 right-3 z-20 px-2.5 py-1 rounded-full bg-black/60 text-white text-[11px] font-bold backdrop-blur-sm">
                 {activeImageIdx + 1} / {product.images.length}
               </div>
             </>
           )}
 
           {/* 에스크로 안전거래 안내 뱃지 */}
-          <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-600/90 text-white text-xs font-bold shadow-md backdrop-blur-sm">
+          <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-600/90 text-white text-xs font-bold shadow-md backdrop-blur-sm">
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>모꼬 안심 에스크로 100% 보호</span>
           </div>
@@ -408,29 +417,29 @@ export default function UsedProductDetailPage() {
           </div>
         )}
 
-        {/* (2) 판매자 프로필 & 매너온도 카드 (당근마켓 핵심 UX) */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-2xs flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="relative">
+        {/* (2) 판매자 프로필 & 매너온도 카드 (당근마켓 핵심 UX: 단정한 프로필 규격) */}
+        <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="relative shrink-0 w-12 h-12">
               <img
                 src={product.sellerAvatar}
                 alt={product.sellerNickname}
-                className="w-13 h-13 rounded-full object-cover border-2 border-slate-100 shadow-2xs"
+                className="w-12 h-12 rounded-full object-cover border-2 border-slate-100 shadow-2xs"
               />
-              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
+                <h3 className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
                   {product.sellerNickname}
                 </h3>
-                <Badge className="bg-slate-100 text-slate-700 text-[10px] font-semibold px-1.5 py-0 border-none">
+                <Badge className="bg-slate-100 text-slate-700 text-[10px] font-semibold px-1.5 py-0 border-none shrink-0">
                   개인판매자
                 </Badge>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                <MapPin className="w-3 h-3 text-orange-500" />
-                <span>{product.verifiedNeighborhood}</span>
+              <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1 truncate">
+                <MapPin className="w-3 h-3 text-orange-500 shrink-0" />
+                <span className="truncate">{product.verifiedNeighborhood}</span>
               </p>
               <p className="text-[11px] text-slate-400 mt-0.5">
                 ⚡ {product.responseRate}
