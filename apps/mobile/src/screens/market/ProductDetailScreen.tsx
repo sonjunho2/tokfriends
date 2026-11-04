@@ -262,6 +262,8 @@ export default function ProductDetailScreen({ route, navigation }: any) {
       createdAt: normalProduct.createdAt || '방금 전',
     };
 
+    const isGroupDeal = normalProduct.type === 'B2C_GROUP' || Boolean(normalProduct.targetQuantity);
+
     return (
       <View style={styles.container}>
         {/* 상단 플로팅 헤더 */}
@@ -274,22 +276,24 @@ export default function ProductDetailScreen({ route, navigation }: any) {
             <Ionicons name="arrow-back" size={20} color="#0F172A" />
           </TouchableOpacity>
           <View style={styles.headerRightActions}>
-            {/* 🛒 장바구니 카트 버튼 */}
-            <TouchableOpacity
-              style={styles.headerCircleBtn}
-              activeOpacity={0.8}
-              onPress={() => {
-                loadCartCount();
-                setCartModalVisible(true);
-              }}
-            >
-              <Ionicons name="cart-outline" size={20} color="#0F172A" />
-              {cartCount > 0 && (
-                <View style={styles.headerCartBadge}>
-                  <Text style={styles.headerCartBadgeText}>{cartCount}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+            {/* 🛒 장바구니 카트 버튼 (일반 마켓 상품일 때만 노출: 공구는 장바구니 없음) */}
+            {!isGroupDeal && (
+              <TouchableOpacity
+                style={styles.headerCircleBtn}
+                activeOpacity={0.8}
+                onPress={() => {
+                  loadCartCount();
+                  setCartModalVisible(true);
+                }}
+              >
+                <Ionicons name="cart-outline" size={20} color="#0F172A" />
+                {cartCount > 0 && (
+                  <View style={styles.headerCartBadge}>
+                    <Text style={styles.headerCartBadgeText}>{cartCount}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity style={styles.headerCircleBtn} activeOpacity={0.8} onPress={handleShareProduct}>
               <Ionicons name="share-social-outline" size={20} color="#0F172A" />
@@ -454,14 +458,16 @@ export default function ProductDetailScreen({ route, navigation }: any) {
           </View>
 
           <View style={styles.bottomBtnGroup}>
-            <TouchableOpacity
-              style={styles.cartActionBtn}
-              onPress={handleAddToCart}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="cart-outline" size={15} color="#4F46E5" />
-              <Text style={styles.cartActionBtnText}>장바구니 담기</Text>
-            </TouchableOpacity>
+            {!isGroupDeal && (
+              <TouchableOpacity
+                style={styles.cartActionBtn}
+                onPress={handleAddToCart}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="cart-outline" size={15} color="#4F46E5" />
+                <Text style={styles.cartActionBtnText}>장바구니 담기</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={[styles.b2cBuyBtn, isOutOfStock && styles.b2cBuyBtnDisabled]}
@@ -470,14 +476,25 @@ export default function ProductDetailScreen({ route, navigation }: any) {
               activeOpacity={0.85}
             >
               <LinearGradient
-                colors={isOutOfStock ? ['#94A3B8', '#64748B'] : ['#4F46E5', '#6366F1']}
+                colors={
+                  isOutOfStock
+                    ? ['#94A3B8', '#64748B']
+                    : isGroupDeal
+                    ? ['#FF3B6B', '#FF758C']
+                    : ['#4F46E5', '#6366F1']
+                }
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.b2cBuyBtnGradient}
               >
-                <Ionicons name="flash" size={15} color="#FFFFFF" style={{ marginRight: 3 }} />
+                <Ionicons
+                  name={isGroupDeal ? 'sparkles' : 'flash'}
+                  size={15}
+                  color="#FFFFFF"
+                  style={{ marginRight: 3 }}
+                />
                 <Text style={styles.b2cBuyBtnText}>
-                  {isOutOfStock ? '품절' : '바로구매'}
+                  {isOutOfStock ? '품절' : isGroupDeal ? '특가 공구 참여' : '바로구매'}
                 </Text>
               </LinearGradient>
             </TouchableOpacity>

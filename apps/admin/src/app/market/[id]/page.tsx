@@ -210,6 +210,7 @@ export default function MarketProductDetailPage() {
   const [quantity, setQuantity] = useState(1)
   const [isLiked, setIsLiked] = useState(false)
   const [activeTab, setActiveTab] = useState<'DETAIL' | 'NOTICE' | 'SHIPPING' | 'MERCHANT' | 'REVIEW'>('DETAIL')
+  const [isGroupJoinedModalOpen, setIsGroupJoinedModalOpen] = useState(false)
 
   // 장바구니 Drawer 상태 및 아이템 목록
   const [isCartOpen, setIsCartOpen] = useState(false)
@@ -371,10 +372,18 @@ export default function MarketProductDetailPage() {
   // 구매 버튼 클릭 (게스트는 즉시 로그인 유도)
   const handleBuyNow = () => {
     requireAuth(() => {
-      toast({
-        title: '🛡️ 토스페이먼츠 PG 에스크로 안전결제 주문 생성',
-        description: `${product.name} (${quantity}개) 총 ${grandTotal.toLocaleString()}원이 에스크로 안전 금고에 예치되었습니다. 수령 후 [구매확정]을 누르면 판매자에게 정산됩니다.`,
-      })
+      if (isGroup) {
+        setIsGroupJoinedModalOpen(true)
+        toast({
+          title: '🎉 특가 공동구매 참여(선결제) 완료!',
+          description: `총 ${grandTotal.toLocaleString()}원이 모꼬 안심 에스크로에 예치되었습니다. 목표 달성 시 즉시 출고됩니다.`,
+        })
+      } else {
+        toast({
+          title: '🛡️ 토스페이먼츠 PG 에스크로 안전결제 주문 생성',
+          description: `${product.name} (${quantity}개) 총 ${grandTotal.toLocaleString()}원이 에스크로 안전 금고에 예치되었습니다. 수령 후 [구매확정]을 누르면 판매자에게 정산됩니다.`,
+        })
+      }
     })
   }
 
@@ -508,7 +517,7 @@ export default function MarketProductDetailPage() {
 
           <div className="flex items-center gap-2">
             {/* 장바구니 버튼 (마켓/공구 상품일 때만 노출) */}
-            {!isUsed && (
+            {!isUsed && !isGroup && (
               <button
                 onClick={() => setIsCartOpen(true)}
                 className="relative p-2 text-slate-600 hover:text-slate-900 rounded-full hover:bg-slate-100 transition"
@@ -649,6 +658,39 @@ export default function MarketProductDetailPage() {
               )}
             </div>
 
+            {/* 🔥 특가 공동구매 전용 타임어택 & 달성률 위젯 */}
+            {isGroup && (
+              <div className="rounded-3xl bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 p-5 text-white shadow-md space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 font-black text-xs uppercase tracking-wider bg-white/20 px-2.5 py-1 rounded-full backdrop-blur-sm">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                    타임어택 공동구매
+                  </span>
+                  <span className="font-extrabold text-xs bg-black/30 px-3 py-1 rounded-full backdrop-blur-sm">
+                    ⏰ 마감까지 18시간 24분 남음
+                  </span>
+                </div>
+                <div>
+                  <div className="flex items-baseline justify-between text-xs mb-1.5">
+                    <span className="font-extrabold text-sm">
+                      목표 50명 중 <strong className="text-amber-300 font-black text-base">38명</strong> 참여 완료
+                    </span>
+                    <span className="font-black text-amber-300 text-sm">76% 달성</span>
+                  </div>
+                  <div className="w-full bg-black/25 rounded-full h-3 overflow-hidden p-0.5">
+                    <div
+                      className="bg-gradient-to-r from-amber-300 to-yellow-400 h-full rounded-full transition-all duration-500"
+                      style={{ width: '76%' }}
+                    />
+                  </div>
+                  <p className="text-[11px] text-rose-100 mt-2 flex items-center justify-between">
+                    <span>⚡ <strong>12명</strong> 더 모이면 공구 성공 & 일괄 즉시 출고!</span>
+                    <span className="underline opacity-90">미달성 시 100% 자동 전액 환불</span>
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* 가격 섹션 */}
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
               <div className="flex items-baseline gap-2.5">
@@ -700,7 +742,7 @@ export default function MarketProductDetailPage() {
             </div>
 
             {/* 수량 선택기 (C2C 중고는 수량 1개 고정) */}
-            {!isUsed && (
+            {!isUsed && !isGroup && (
               <div className="flex items-center justify-between py-2">
                 <span className="text-xs font-bold text-slate-700">구매 수량</span>
                 <div className="flex items-center bg-slate-100 rounded-xl border border-slate-200 overflow-hidden">
@@ -731,22 +773,45 @@ export default function MarketProductDetailPage() {
               </span>
             </div>
 
-            {/* 구매 액션 버튼 그리드 */}
+            {/* 구매 액션 버튼 그리드 (타입별 이원화: 공구 vs 일반마켓 vs 중고) */}
             <div className="space-y-2.5 pt-2">
-              <div className="flex gap-2">
-                <button
-                  onClick={handleToggleWishlist}
-                  className={`p-3 rounded-2xl border transition shrink-0 ${
-                    isLiked
-                      ? 'bg-rose-50 border-rose-300 text-rose-500'
-                      : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                  }`}
-                  title="관심상품 등록"
-                >
-                  <Heart className={`w-5 h-5 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
-                </button>
+              {isGroup ? (
+                /* 🔥 특가 공동구매: [❤️ 찜] + [🔥 특가 공구 참여하기] (장바구니 없음) */
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleToggleWishlist}
+                    className={`p-3 rounded-2xl border transition shrink-0 ${
+                      isLiked
+                        ? 'bg-rose-50 border-rose-300 text-rose-500'
+                        : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                    }`}
+                    title="관심상품 등록"
+                  >
+                    <Heart className={`w-5 h-5 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
+                  </button>
 
-                {isUsed ? (
+                  <Button
+                    onClick={handleBuyNow}
+                    className="flex-1 h-12 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-600 to-purple-600 hover:opacity-90 text-white font-black text-base shadow-lg shadow-rose-500/25 active:scale-98 transition flex items-center justify-center gap-2"
+                  >
+                    <Sparkles className="w-5 h-5 text-amber-300 fill-amber-300" />
+                    <span>특가 공구 참여하기</span>
+                  </Button>
+                </div>
+              ) : isUsed ? (
+                /* 🥕 C2C 중고거래: [❤️ 찜] + [거래톡] + [안전구매] */
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleToggleWishlist}
+                    className={`p-3 rounded-2xl border transition shrink-0 ${
+                      isLiked
+                        ? 'bg-rose-50 border-rose-300 text-rose-500'
+                        : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                    }`}
+                    title="관심상품 등록"
+                  >
+                    <Heart className={`w-5 h-5 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
+                  </button>
                   <Button
                     onClick={handleChatWithSeller}
                     variant="outline"
@@ -755,30 +820,49 @@ export default function MarketProductDetailPage() {
                     <MessageCircle className="w-4 h-4" />
                     거래톡
                   </Button>
-                ) : (
                   <Button
-                    onClick={handleAddToCart}
-                    variant="outline"
-                    className="flex-1 h-12 rounded-2xl border-indigo-200 bg-indigo-50/60 hover:bg-indigo-100/70 text-indigo-700 font-extrabold text-sm shadow-xs transition flex items-center justify-center gap-1.5"
+                    onClick={handleBuyNow}
+                    className="flex-1 h-12 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white font-extrabold text-sm shadow-md"
                   >
-                    <ShoppingCart className="w-4 h-4" />
-                    장바구니 담기
+                    <ShieldCheck className="w-4 h-4" />
+                    안전구매
                   </Button>
-                )}
-              </div>
+                </div>
+              ) : (
+                /* 🛒 일반 B2C 마켓: [❤️ 찜] + [장바구니 담기] + [바로구매] */
+                <div className="space-y-2.5">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleToggleWishlist}
+                      className={`p-3 rounded-2xl border transition shrink-0 ${
+                        isLiked
+                          ? 'bg-rose-50 border-rose-300 text-rose-500'
+                          : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                      }`}
+                      title="관심상품 등록"
+                    >
+                      <Heart className={`w-5 h-5 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
+                    </button>
 
-              {/* 메인 구매 버튼: 중고는 '안전구매', 마켓은 '바로구매' */}
-              <Button
-                onClick={handleBuyNow}
-                className={`w-full h-12 rounded-2xl text-white font-extrabold text-base shadow-md active:scale-98 transition flex items-center justify-center gap-2 ${
-                  isUsed
-                    ? 'bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 shadow-orange-500/25'
-                    : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-indigo-500/25'
-                }`}
-              >
-                <ShieldCheck className="w-5 h-5 text-emerald-300" />
-                <span>{isUsed ? '안전구매' : '바로구매'}</span>
-              </Button>
+                    <Button
+                      onClick={handleAddToCart}
+                      variant="outline"
+                      className="flex-1 h-12 rounded-2xl border-indigo-200 bg-indigo-50/60 hover:bg-indigo-100/70 text-indigo-700 font-extrabold text-sm shadow-xs transition flex items-center justify-center gap-1.5"
+                    >
+                      <ShoppingCart className="w-4 h-4" />
+                      장바구니 담기
+                    </Button>
+                  </div>
+
+                  <Button
+                    onClick={handleBuyNow}
+                    className="w-full h-12 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold text-base shadow-md active:scale-98 transition flex items-center justify-center gap-2"
+                  >
+                    <ShieldCheck className="w-5 h-5 text-emerald-300" />
+                    <span>바로구매</span>
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* 라이브 판매 연동 뱃지 */}
@@ -1135,7 +1219,7 @@ export default function MarketProductDetailPage() {
           <span className="text-[10px] text-slate-400 block">총 결제금액</span>
           <span className="text-base font-black text-slate-900">{grandTotal.toLocaleString()}원</span>
         </div>
-        <div className="flex items-center gap-1.5 flex-1 max-w-[270px] justify-end">
+        <div className="flex items-center gap-1.5 flex-1 max-w-[280px] justify-end">
           <button
             onClick={handleToggleWishlist}
             className={`p-2.5 rounded-xl border transition shrink-0 ${
@@ -1147,19 +1231,47 @@ export default function MarketProductDetailPage() {
           >
             <Heart className={`w-4 h-4 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
           </button>
-          <Button
-            onClick={handleAddToCart}
-            variant="outline"
-            className="flex-1 h-10 rounded-xl text-xs font-extrabold border-indigo-200 text-indigo-700 bg-indigo-50/60 hover:bg-indigo-100 px-2"
-          >
-            장바구니 담기
-          </Button>
-          <Button
-            onClick={handleBuyNow}
-            className="flex-1 h-10 rounded-xl text-white font-extrabold text-xs shadow-xs bg-indigo-600 hover:bg-indigo-700 px-2"
-          >
-            바로구매
-          </Button>
+          {isGroup ? (
+            <Button
+              onClick={handleBuyNow}
+              className="flex-1 h-10 rounded-xl text-white font-black text-xs shadow-md bg-gradient-to-r from-rose-500 via-pink-600 to-purple-600 px-2 flex items-center justify-center gap-1"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>특가 공구 참여</span>
+            </Button>
+          ) : isUsed ? (
+            <>
+              <Button
+                onClick={handleChatWithSeller}
+                variant="outline"
+                className="flex-1 h-10 rounded-xl text-xs font-extrabold border-orange-300 text-orange-700 bg-orange-50/60 px-2"
+              >
+                거래톡
+              </Button>
+              <Button
+                onClick={handleBuyNow}
+                className="flex-1 h-10 rounded-xl text-white font-extrabold text-xs bg-orange-600 px-2"
+              >
+                안전구매
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                onClick={handleAddToCart}
+                variant="outline"
+                className="flex-1 h-10 rounded-xl text-xs font-extrabold border-indigo-200 text-indigo-700 bg-indigo-50/60 hover:bg-indigo-100 px-2"
+              >
+                장바구니 담기
+              </Button>
+              <Button
+                onClick={handleBuyNow}
+                className="flex-1 h-10 rounded-xl text-white font-extrabold text-xs shadow-xs bg-indigo-600 hover:bg-indigo-700 px-2"
+              >
+                바로구매
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -1304,6 +1416,75 @@ export default function MarketProductDetailPage() {
         </div>
       )}
 
+      {/* 5. 특가 공동구매 참여 완료 & 바이럴 공유 모달 */}
+      {isGroupJoinedModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 text-center">
+            <button
+              onClick={() => setIsGroupJoinedModalOpen(false)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 p-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-2xl mx-auto shadow-inner">
+              🎉
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-slate-900">
+                특가 공동구매 참여(선결제) 완료!
+              </h3>
+              <p className="text-xs text-slate-500">
+                결제 대금은 모꼬 안심 에스크로에 안전하게 예치되었습니다.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-rose-50/60 border border-rose-100 text-left space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-600 font-bold">현재 공구 달성률</span>
+                <span className="font-black text-rose-600 text-sm">76% (38/50명)</span>
+              </div>
+              <div className="w-full bg-rose-200/80 rounded-full h-2 overflow-hidden">
+                <div className="bg-gradient-to-r from-rose-500 to-pink-600 h-full rounded-full" style={{ width: '76%' }} />
+              </div>
+              <p className="text-[11px] text-rose-700 font-medium pt-1">
+                앞으로 <strong>12명</strong>만 더 모이면 공구가 최종 성사되어 일괄 배송됩니다!
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <Button
+                onClick={() => {
+                  setIsGroupJoinedModalOpen(false)
+                  router.push('/?tab=CHAT&sub=SUDA')
+                  toast({
+                    title: '💬 동네 수다방으로 이동합니다!',
+                    description: '이웃들에게 공구 소식을 알리고 링크를 공유해보세요.',
+                  })
+                }}
+                className="w-full h-11 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 hover:opacity-90 text-white font-extrabold text-sm shadow-md shadow-rose-500/20"
+              >
+                동네 수다방에 공구 링크 공유하기
+              </Button>
+              <Button
+                onClick={() => {
+                  handleShare()
+                  setIsGroupJoinedModalOpen(false)
+                }}
+                variant="outline"
+                className="w-full h-10 rounded-2xl border-slate-300 font-bold text-xs text-slate-700"
+              >
+                친구 초대 링크 복사하기
+              </Button>
+            </div>
+
+            <p className="text-[10px] text-slate-400 pt-1">
+              * 24시간 내 목표 미달성 시 결제 금액은 100% 전액 자동 환불됩니다.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
