@@ -374,17 +374,20 @@ export default function UsedProductDetailPage() {
       {/* 2. 메인 컨텐츠 영역 (당근마켓형 1컬럼 집중 뷰 + 모바일/PC 반응형 패널) */}
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         
-        {/* (1) 실물 사진 슬라이더 (사진 크기와 무관하게 일정한 크기의 고정 뷰포트 유지) */}
-        <div className="relative w-full h-[340px] sm:h-[460px] rounded-3xl overflow-hidden bg-slate-950 shadow-sm border border-slate-200 group flex items-center justify-center">
-          {/* 배경 은은한 블러 레이어 (다양한 사진 비율에서도 빈 공간 없이 미려함) */}
+        {/* (1) 실물 사진 슬라이더 (어떤 비율/해상도의 사진이 와도 뷰포트 창 크기가 100% 고정됨) */}
+        <div 
+          className="relative w-full h-[360px] sm:h-[460px] rounded-3xl overflow-hidden bg-slate-950 shadow-sm border border-slate-200 group flex items-center justify-center"
+          style={{ height: '460px', maxHeight: '460px', minHeight: '360px' }}
+        >
+          {/* 배경 은은한 블러 레이어 (여백이 생겨도 미려하고 어색하지 않음) */}
           <img
             src={product.images[activeImageIdx]}
             alt=""
             aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover blur-xl opacity-25 scale-110 pointer-events-none"
+            className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-20 scale-110 pointer-events-none"
           />
 
-          {/* 메인 실물 사진 (고정 프레임 안에서 왜곡/짤림 없이 정비율 핏) */}
+          {/* 메인 실물 사진 (고정 프레임 안에서 왜곡/비율 깨짐 없이 항상 정비율 핏) */}
           <img
             src={product.images[activeImageIdx]}
             alt={product.title}
@@ -431,6 +434,7 @@ export default function UsedProductDetailPage() {
                     ? 'border-orange-500 ring-2 ring-orange-200'
                     : 'border-slate-200 opacity-70 hover:opacity-100'
                 }`}
+                style={{ width: '64px', height: '64px', minWidth: '64px', minHeight: '64px' }}
               >
                 <img src={img} alt={`thumb-${idx}`} className="w-full h-full object-cover" />
               </button>
@@ -438,17 +442,29 @@ export default function UsedProductDetailPage() {
           </div>
         )}
 
-        {/* (2) 판매자 프로필 & 매너온도 카드 (당근마켓 핵심 UX: 단정한 프로필 규격) */}
+        {/* (2) 판매자 프로필 & 매너온도 카드 (아바타 48px 엄격 고정 및 비율 보정) */}
         <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs flex items-center justify-between gap-4">
           <div className="flex items-center gap-3.5 min-w-0">
-            <div className="relative shrink-0 w-12 h-12">
-              <img
-                src={product.sellerAvatar}
-                alt={product.sellerNickname}
-                className="w-12 h-12 rounded-full object-cover border-2 border-slate-100 shadow-2xs"
-              />
-              <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white" />
+            {/* 48px 정원형 아바타 컨테이너 (어떤 원본 사진이라도 48px를 1픽셀도 벗어날 수 없도록 락킹) */}
+            <div 
+              className="relative shrink-0" 
+              style={{ width: '48px', height: '48px', minWidth: '48px', minHeight: '48px', maxWidth: '48px', maxHeight: '48px' }}
+            >
+              <div 
+                className="w-12 h-12 rounded-full overflow-hidden border-2 border-slate-100 shadow-2xs bg-slate-100"
+                style={{ width: '48px', height: '48px' }}
+              >
+                <img
+                  src={product.sellerAvatar}
+                  alt={product.sellerNickname}
+                  className="w-full h-full object-cover block"
+                  style={{ width: '48px', height: '48px', minWidth: '48px', minHeight: '48px', objectFit: 'cover' }}
+                />
+              </div>
+              {/* 온라인 상태 표시 녹색 인디케이터 (아바타 우측 하단에 정위치) */}
+              <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-xs z-10" />
             </div>
+
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <h3 className="font-extrabold text-sm sm:text-base text-slate-900 truncate">

@@ -7425,7 +7425,7 @@ export default function CustomerWebStorefrontPage() {
                 <img
                   src={selectedUsedItem.sellerAvatar}
                   alt="avatar"
-                  className="h-10 w-10 rounded-full object-cover"
+                  className="w-10 h-10 rounded-full object-cover shrink-0" style={{ width: 40, height: 40, minWidth: 40, minHeight: 40, objectFit: "cover" }}
                 />
                 <div>
                   <h4 className="font-bold text-xs text-slate-900">

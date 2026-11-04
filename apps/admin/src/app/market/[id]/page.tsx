@@ -1149,11 +1149,17 @@ export default function MarketProductDetailPage() {
                   <div className="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-4">
                     <div className="flex items-center justify-between border-b border-slate-200 pb-4">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={product.sellerAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500'}
-                          alt={product.sellerNickname}
-                          className="w-12 h-12 rounded-full object-cover border border-slate-200 shadow-xs"
-                        />
+                        <div 
+                          className="w-12 h-12 rounded-full overflow-hidden border border-slate-200 shadow-xs shrink-0 bg-slate-100"
+                          style={{ width: '48px', height: '48px', minWidth: '48px', minHeight: '48px', maxWidth: '48px', maxHeight: '48px' }}
+                        >
+                          <img
+                            src={product.sellerAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500'}
+                            alt={product.sellerNickname}
+                            className="w-full h-full object-cover block"
+                            style={{ width: '48px', height: '48px', minWidth: '48px', minHeight: '48px', objectFit: 'cover' }}
+                          />
+                        </div>
                         <div>
                           <div className="font-extrabold text-base text-slate-900">{product.sellerNickname} (이웃 회원)</div>
                           <div className="text-xs text-slate-500">{product.sellerLocation || '모꼬 동네인증 완료'}</div>
@@ -1520,26 +1526,22 @@ export default function MarketProductDetailPage() {
             <div className="space-y-2 pt-2">
               <Button
                 onClick={() => {
-                  setIsGroupJoinedModalOpen(false)
-                  router.push('/?tab=CHAT&sub=SUDA')
-                  toast({
-                    title: '💬 동네 수다방으로 이동합니다!',
-                    description: '이웃들에게 공구 소식을 알리고 링크를 공유해보세요.',
-                  })
-                }}
-                className="w-full h-11 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 hover:opacity-90 text-white font-extrabold text-sm shadow-md shadow-rose-500/20"
-              >
-                동네 수다방에 공구 링크 공유하기
-              </Button>
-              <Button
-                onClick={() => {
                   handleShare()
                   setIsGroupJoinedModalOpen(false)
                 }}
-                variant="outline"
-                className="w-full h-10 rounded-2xl border-slate-300 font-bold text-xs text-slate-700"
+                className="w-full h-11 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 hover:opacity-90 text-white font-extrabold text-sm shadow-md shadow-rose-500/20"
               >
                 친구 초대 링크 복사하기
+              </Button>
+              <Button
+                onClick={() => {
+                  setIsGroupJoinedModalOpen(false)
+                  router.push('/?tab=MY')
+                }}
+                variant="outline"
+                className="w-full h-10 rounded-2xl border-slate-300 font-bold text-xs text-slate-700 hover:bg-slate-50"
+              >
+                마이모꼬 참여 내역 확인
               </Button>
             </div>
 
