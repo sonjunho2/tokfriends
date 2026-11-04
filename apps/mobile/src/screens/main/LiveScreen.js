@@ -53,6 +53,7 @@ export default function LiveScreen({ navigation }) {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('talk');
   const [entryFee, setEntryFee] = useState(0);
+  const [broadcastType, setBroadcastType] = useState('PUBLIC');
   const [starting, setStarting] = useState(false);
   // 상품 연결 사전 세팅 상태
   const [marketProducts, setMarketProducts] = useState(INITIAL_MARKET_PRODUCTS);
@@ -245,6 +246,7 @@ export default function LiveScreen({ navigation }) {
             title: trimmedTitle,
             category,
             entryFee: fee,
+            broadcastType,
             hostId: user?.id,
             hostName,
             hostAvatar,
@@ -716,6 +718,67 @@ export default function LiveScreen({ navigation }) {
               maxLength={80}
               autoFocus
             />
+
+            <Text style={[styles.inputLabel, { marginTop: 20 }]}>방송 형태</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, marginBottom: 4 }}>
+              <TouchableOpacity
+                onPress={() => setBroadcastType('PUBLIC')}
+                style={{
+                  flex: 1,
+                  padding: 12,
+                  borderRadius: 14,
+                  borderWidth: 1.5,
+                  borderColor: broadcastType === 'PUBLIC' ? '#FF3B6B' : '#E2E8F0',
+                  backgroundColor: broadcastType === 'PUBLIC' ? '#FFF0F3' : '#F8FAFC',
+                }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '800', color: broadcastType === 'PUBLIC' ? '#E11D48' : '#0F172A' }}>
+                  🌐 1:N 대중 방송
+                </Text>
+                <Text style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>
+                  전국 누구나 시청 가능한 오픈 라이브
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setBroadcastType('PRIVATE')}
+                style={{
+                  flex: 1,
+                  padding: 12,
+                  borderRadius: 14,
+                  borderWidth: 1.5,
+                  borderColor: broadcastType === 'PRIVATE' ? '#FF3B6B' : '#E2E8F0',
+                  backgroundColor: broadcastType === 'PRIVATE' ? '#FFF0F3' : '#F8FAFC',
+                }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '800', color: broadcastType === 'PRIVATE' ? '#E11D48' : '#0F172A' }}>
+                  🔒 1:1 프라이빗
+                </Text>
+                <Text style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>
+                  1:1 전용 프라이빗 영상 대화
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {broadcastType === 'PRIVATE' && (
+              <View style={{ marginTop: 8, marginBottom: 4, padding: 12, backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569' }}>프라이빗 입장 단가 (0이면 무료)</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: '#CBD5E1' }}>
+                  <TextInput
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor="#94A3B8"
+                    value={entryFee === 0 ? '' : String(entryFee)}
+                    onChangeText={(t) => {
+                      const num = parseInt(t.replace(/[^0-9]/g, ''), 10);
+                      setEntryFee(isNaN(num) ? 0 : num);
+                    }}
+                    style={{ width: 60, fontSize: 13, fontWeight: '800', textAlign: 'right', paddingVertical: 0 }}
+                  />
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#FF3B6B', marginLeft: 4 }}>ON</Text>
+                </View>
+              </View>
+            )}
 
             <Text style={[styles.inputLabel, { marginTop: 24 }]}>카테고리</Text>
             <View style={styles.modalCategoryRow}>
