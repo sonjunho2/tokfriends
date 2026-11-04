@@ -3949,45 +3949,49 @@ export default function CustomerWebStorefrontPage() {
           {/* ======================================================= */}
           {activeTab === 'LIVE' && (
             <div className="space-y-6 animate-in fade-in duration-200">
-              {/* 1) Live Top Smart Header Bar (군더더기 배너 제거, 라이브 시작 & 크리에이터 신청) */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white px-5 py-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-3 w-3 rounded-full bg-rose-500 animate-ping shrink-0" />
-                  <div>
+              {/* 1) Live Top Smart Premium Banner (잡다한 설명 배제, 감각적인 프리미엄 비주얼 배너) */}
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-rose-950 via-purple-950 to-slate-950 p-6 sm:p-7 text-white shadow-xl border border-rose-900/40">
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <h2 className="text-base sm:text-lg font-black text-slate-900">
-                        실시간 모꼬 라이브
-                      </h2>
-                      <Badge className="bg-rose-50 text-[#FF3B6B] border border-rose-200 text-[10px] font-black">
-                        ON-AIR
+                      <span className="flex h-2.5 w-2.5 rounded-full bg-rose-500 animate-ping" />
+                      <Badge className="bg-rose-600 text-white font-black px-2.5 py-0.5 border-none text-[11px] shadow-sm">
+                        MOCCO LIVE ON-AIR
                       </Badge>
+                      <span className="text-xs text-rose-300 font-bold">
+                        1:N 대중 방송부터 1:1 프라이빗 라이브까지
+                      </span>
                     </div>
-                    <span className="text-xs text-slate-400 font-medium">
-                      1:N 대중 방송부터 1:1 프라이빗 라이브까지 실시간 방송 & 쇼핑
-                    </span>
+                    <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                      <span>실시간 라이브 & 핀 상품 쇼핑</span>
+                      <span className="text-lg">🔴🛍️</span>
+                    </h1>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                    <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/20 text-xs">
+                      <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-slate-200 font-bold">📱 방송 송출은 모바일 앱 전용입니다</span>
+                    </div>
+
+                    {role !== 'CREATOR' && role !== 'ADMIN' && (
+                      <Button
+                        onClick={() => {
+                          requireAuth(() => openCreatorModal())
+                        }}
+                        variant="outline"
+                        className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-bold h-9 px-3.5 rounded-xl transition-all"
+                      >
+                        <Mic className="h-4 w-4 mr-1 text-purple-300" />
+                        크리에이터 신청
+                      </Button>
+                    )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <Button
-                    onClick={() => requireAuth(() => setIsStartLiveModalOpen(true))}
-                    className="bg-[#FF3B6B] hover:bg-[#E02958] text-white font-black text-xs h-9 px-4 rounded-xl shadow-xs flex items-center gap-1.5"
-                  >
-                    <Video className="w-4 h-4" />
-                    <span>+ 라이브 시작</span>
-                  </Button>
-
-                  {role !== 'CREATOR' && role !== 'ADMIN' && (
-                    <Button
-                      onClick={() => requireAuth(() => openCreatorModal())}
-                      variant="outline"
-                      className="border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold h-9 px-3 rounded-xl"
-                    >
-                      <Mic className="w-3.5 h-3.5 mr-1 text-purple-600" />
-                      크리에이터 신청
-                    </Button>
-                  )}
-                </div>
+                {/* 은은한 배경 글로우 장식 */}
+                <div className="absolute -top-16 -right-16 w-64 h-64 bg-rose-500/20 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
               </div>
 
               {/* 2) Main Integrated Grid (좌측 3열: 베스트 123위 + 라이브목록 / 우측 1열: 랭킹) */}
@@ -4566,27 +4570,46 @@ export default function CustomerWebStorefrontPage() {
           {/* ======================================================= */}
           {activeTab === 'CHAT' && (
             <div className="space-y-6 animate-in fade-in duration-200">
-              {/* 상단 미니멀 헤더 바 (군더더기 설명 배너 제거, 직관적인 포인트 & 충전 지원) */}
-              <div className="flex items-center justify-between bg-white px-5 py-3.5 rounded-2xl border border-slate-200/90 shadow-2xs">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#FF3B6B] animate-pulse" />
-                  <h2 className="text-base sm:text-lg font-black text-slate-900">
-                    실시간 1:1 모꼬챗
-                  </h2>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <span className="text-[10px] text-slate-400 font-bold block">내 보유 포인트</span>
-                    <span className="text-xs sm:text-sm font-black text-rose-600">{myPoints.toLocaleString()} ON</span>
+              {/* 1) Chat Top Smart Premium Banner (잡다한 설명 배제, 풍성하고 세련된 비주얼 배너) */}
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-950 via-indigo-950 to-slate-950 p-6 sm:p-7 text-white shadow-xl border border-blue-900/50">
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-2.5 w-2.5 rounded-full bg-blue-400 animate-ping" />
+                      <Badge className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black px-2.5 py-0.5 border-none text-[11px] shadow-sm">
+                        MOCCO CHAT
+                      </Badge>
+                      <span className="text-xs text-blue-300 font-bold">
+                        이웃과 나누는 프라이빗 1:1 소통
+                      </span>
+                    </div>
+                    <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                      <span>실시간 1:1 대화 & 3D 선물 페스티벌</span>
+                      <span className="text-lg">🎁✨</span>
+                    </h1>
                   </div>
-                  <Button
-                    onClick={() => requireAuth(() => setIsPointChargeModalOpen(true))}
-                    className="bg-[#FF3B6B] hover:bg-[#E02958] text-white font-black text-xs h-8 px-3.5 rounded-xl shadow-xs flex items-center"
-                  >
-                    <Coins className="h-3.5 w-3.5 mr-1" />
-                    충전
-                  </Button>
+
+                  <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                    <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20 text-right">
+                      <span className="text-[10px] text-blue-200 block font-bold">내 보유 포인트</span>
+                      <span className="text-sm sm:text-base font-black text-amber-300">
+                        {myPoints.toLocaleString()} ON
+                      </span>
+                    </div>
+
+                    <Button
+                      onClick={() => requireAuth(() => setIsPointChargeModalOpen(true))}
+                      className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs h-10 px-4 rounded-xl shadow-lg transition-all flex items-center"
+                    >
+                      <Coins className="h-4 w-4 mr-1.5" />
+                      포인트 무료 충전
+                    </Button>
+                  </div>
                 </div>
+
+                {/* 은은한 배경 글로우 장식 */}
+                <div className="absolute -top-16 -right-16 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
               </div>
 
               {/* 2) 2-Column Integrated Layout (좌측: 앱과 동일한 친구들/전체수다/대화함 / 우측: 스마트폰 목업 채팅방) */}
@@ -8177,261 +8200,6 @@ export default function CustomerWebStorefrontPage() {
         userRole={role}
         onSubmit={handleCreateProductSubmit}
       />
-
-      {/* 0-1) Live Broadcast Create Modal (1:N 대중 방송 / 1:1 프라이빗 방송 & 판매 상품 연동) */}
-      {isStartLiveModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border space-y-5 max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setIsStartLiveModalOpen(false)}
-              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 p-1"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            {/* 모달 헤더 */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
-                <h3 className="text-lg font-black text-slate-900">라이브 방송 시작</h3>
-              </div>
-              <p className="text-xs text-slate-400 font-medium">
-                누구나 자유롭게 실시간 라이브를 열고 내 중고 물품을 판매할 수 있습니다.
-              </p>
-            </div>
-
-            {/* (1) 방송 제목 입력 */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-slate-700">방송 제목</label>
-              <input
-                type="text"
-                value={newLiveTitle}
-                onChange={(e) => setNewLiveTitle(e.target.value)}
-                placeholder="예: 불금 소통 라이브 & 소니 헤드폰 특가 판매!"
-                className="w-full bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400 rounded-xl px-3.5 py-2.5 text-xs font-medium border border-slate-200 focus:border-[#FF3B6B] focus:ring-1 focus:ring-rose-200 focus:outline-none transition"
-              />
-            </div>
-
-            {/* (2) 방송 형태 선택 (1:N 대중 방송 vs 1:1 프라이빗 방송) */}
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-700">방송 형태</label>
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setNewLiveBroadcastType('PUBLIC')}
-                  className={`p-3 rounded-2xl border-2 text-left transition-all ${
-                    newLiveBroadcastType === 'PUBLIC'
-                      ? 'border-[#FF3B6B] bg-rose-50/60 ring-1 ring-rose-200'
-                      : 'border-slate-200 bg-white hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 font-black text-xs text-slate-900">
-                    <span>🌐 1:N 대중 방송</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    전국 누구나 시청 가능한 오픈 라이브
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setNewLiveBroadcastType('PRIVATE')}
-                  className={`p-3 rounded-2xl border-2 text-left transition-all ${
-                    newLiveBroadcastType === 'PRIVATE'
-                      ? 'border-[#FF3B6B] bg-rose-50/60 ring-1 ring-rose-200'
-                      : 'border-slate-200 bg-white hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 font-black text-xs text-slate-900">
-                    <span>🔒 1:1 프라이빗 방송</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    1:1 전용 프라이빗 영상 대화
-                  </p>
-                </button>
-              </div>
-
-              {/* 1:1 프라이빗 방송 선택 시: 입장/분당 단가 설정 */}
-              {newLiveBroadcastType === 'PRIVATE' && (
-                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between gap-3 animate-in fade-in duration-150">
-                  <span className="text-xs font-bold text-slate-700">프라이빗 입장 단가 (0이면 무료)</span>
-                  <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-slate-200">
-                    <input
-                      type="number"
-                      min="0"
-                      step="100"
-                      value={newLiveEntryFee === 0 ? '' : newLiveEntryFee}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        setNewLiveEntryFee(val === '' ? 0 : Math.max(0, parseInt(val, 10) || 0))
-                      }}
-                      placeholder="0"
-                      className="w-16 text-right font-black text-xs border-none focus:outline-none"
-                    />
-                    <span className="text-xs font-black text-[#FF3B6B]">ON</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* (3) 카테고리 선택 */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-slate-700">카테고리</label>
-              <div className="flex flex-wrap gap-1.5">
-                {['일상/토크', '음악/소통', '게임/e스포츠', '패션/뷰티', '특가/중고'].map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setNewLiveCategory(cat)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
-                      newLiveCategory === cat
-                        ? 'bg-[#FF3B6B] text-white shadow-xs'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* (4) 방송 중 실시간 판매할 상품 연동 (Live Commerce Pin) */}
-            <div className="space-y-2 pt-2 border-t border-slate-100">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-black text-slate-700 flex items-center gap-1">
-                  <span>🛍️ 방송 중 판매할 상품 연동</span>
-                  <span className="text-[10px] text-slate-400 font-normal">(선택사항)</span>
-                </label>
-                {newLivePinnedProduct && (
-                  <button
-                    type="button"
-                    onClick={() => setNewLivePinnedProduct(null)}
-                    className="text-[11px] text-rose-500 hover:underline font-bold"
-                  >
-                    연동 취소
-                  </button>
-                )}
-              </div>
-
-              {/* 탭: 내 중고 물품 vs 입점사 제휴 상품 */}
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setLiveProductPickerTab('USED')}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition ${
-                    liveProductPickerTab === 'USED'
-                      ? 'bg-slate-900 text-white'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-                  }`}
-                >
-                  🏷️ 내 중고 물품
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLiveProductPickerTab('MERCHANT')}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition ${
-                    liveProductPickerTab === 'MERCHANT'
-                      ? 'bg-slate-900 text-white'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-                  }`}
-                >
-                  🛍️ 입점사 상품
-                </button>
-              </div>
-
-              {/* 상품 선택 리스트 */}
-              <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
-                {liveProductPickerTab === 'USED' ? (
-                  usedProducts.slice(0, 6).map((item: UsedProductItem) => {
-                    const isSelected = newLivePinnedProduct?.id === item.id
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={() =>
-                          setNewLivePinnedProduct({
-                            id: item.id,
-                            title: item.title,
-                            price: item.price,
-                            image: item.images[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600',
-                            type: 'USED',
-                          })
-                        }
-                        className={`p-2.5 rounded-xl border flex items-center gap-2.5 cursor-pointer transition ${
-                          isSelected
-                            ? 'border-[#FF3B6B] bg-rose-50/70 ring-1 ring-[#FF3B6B]'
-                            : 'border-slate-200 hover:bg-slate-50'
-                        }`}
-                      >
-                        <img
-                          src={item.images[0]}
-                          alt={item.title}
-                          className="w-10 h-10 rounded-lg object-cover shrink-0"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <h5 className="font-bold text-xs text-slate-900 truncate">{item.title}</h5>
-                          <span className="text-xs font-black text-[#FF3B6B]">
-                            {item.price.toLocaleString()}원
-                          </span>
-                        </div>
-                        {isSelected && (
-                          <Badge className="bg-[#FF3B6B] text-white text-[10px] py-0">핀 고정됨</Badge>
-                        )}
-                      </div>
-                    )
-                  })
-                ) : (
-                  marketProducts.slice(0, 6).map((item: MarketProductItem) => {
-                    const isSelected = newLivePinnedProduct?.id === item.id
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={() =>
-                          setNewLivePinnedProduct({
-                            id: item.id,
-                            title: item.title,
-                            price: item.price,
-                            originalPrice: item.originalPrice,
-                            image: item.images[0] || 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600',
-                            type: 'NORMAL',
-                          })
-                        }
-                        className={`p-2.5 rounded-xl border flex items-center gap-2.5 cursor-pointer transition ${
-                          isSelected
-                            ? 'border-[#FF3B6B] bg-rose-50/70 ring-1 ring-[#FF3B6B]'
-                            : 'border-slate-200 hover:bg-slate-50'
-                        }`}
-                      >
-                        <img
-                          src={item.images[0]}
-                          alt={item.title}
-                          className="w-10 h-10 rounded-lg object-cover shrink-0"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <h5 className="font-bold text-xs text-slate-900 truncate">{item.title}</h5>
-                          <span className="text-xs font-black text-rose-600">
-                            {item.price.toLocaleString()}원
-                          </span>
-                        </div>
-                        {isSelected && (
-                          <Badge className="bg-[#FF3B6B] text-white text-[10px] py-0">핀 고정됨</Badge>
-                        )}
-                      </div>
-                    )
-                  })
-                )}
-              </div>
-            </div>
-
-            {/* 시작 버튼 */}
-            <Button
-              onClick={handleStartLiveStream}
-              className="w-full bg-[#FF3B6B] hover:bg-[#E02958] text-white font-black text-sm h-11 rounded-2xl shadow-md"
-            >
-              라이브 방송 시작하기
-            </Button>
-          </div>
-        </div>
-      )}
 
       {activeLiveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 lg:p-6 animate-in fade-in duration-200">
