@@ -66,6 +66,8 @@ import {
   Battery,
   Wifi,
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   Phone,
   Camera,
   Ban,
@@ -302,6 +304,7 @@ export interface FollowUserItem {
   liveTitle?: string
   isFollowing: boolean
   interests: string[]
+  photos?: string[]
 }
 
 const INITIAL_FOLLOWERS: FollowUserItem[] = [
@@ -1558,7 +1561,23 @@ export default function CustomerWebStorefrontPage() {
 
   // 상대방 프로필 팝업 모달 상태
   const [isUserProfileModalOpen, setIsUserProfileModalOpen] = useState(false)
+  const [profileActivePhotoIdx, setProfileActivePhotoIdx] = useState(0)
   const [selectedUserProfile, setSelectedUserProfile] = useState<FollowUserItem | null>(null)
+
+
+  // 프로필 사진 9장 자동 롤링 (사진이 2장 이상일 때 3.5초마다 전환)
+  useEffect(() => {
+    if (!isUserProfileModalOpen || !selectedUserProfile?.photos || selectedUserProfile.photos.length <= 1) {
+      return
+    }
+    const timer = setInterval(() => {
+      setProfileActivePhotoIdx((prev) =>
+        prev < (selectedUserProfile.photos?.length || 1) - 1 ? prev + 1 : 0
+      )
+    }, 3500)
+    return () => clearInterval(timer)
+  }, [isUserProfileModalOpen, selectedUserProfile?.photos])
+  
 
   // 상대방 프로필 팝업 열기 헬퍼 함수
   const openUserProfileModal = (user: any) => {
@@ -2665,16 +2684,34 @@ export default function CustomerWebStorefrontPage() {
 
                           {/* Live Info Underneath */}
                           <div className="p-2.5 space-y-1">
-                            <div className="flex items-center gap-1.5">
-                              <img
-                                src={live.hostAvatar}
-                                alt="avatar"
-                                className="h-4 w-4 rounded-full object-cover shrink-0 border border-slate-200"
-                              />
-                              <span className="text-[11px] font-bold text-slate-700 truncate">
-                                {live.hostNickname}
-                              </span>
-                            </div>
+                            <div 
+    onClick={(e) => {
+      e.stopPropagation()
+      openUserProfileModal({
+        id: live.id,
+        nickname: live.hostNickname,
+        avatar: live.hostAvatar,
+        region: '서울 강남구 역삼동',
+        isLive: true,
+        liveTitle: live.title,
+        headline: `모꼬 LIVE에서 "${live.title}" 방송 중입니다 🎙️`,
+      })
+    }}
+    className="flex items-center gap-2 cursor-pointer group/host hover:opacity-90"
+  >
+    <div className="relative shrink-0 w-8 h-8 rounded-full overflow-hidden border-2 border-pink-400 bg-slate-100 shadow-2xs">
+      <img
+        src={live.hostAvatar}
+        alt={live.hostNickname}
+        className="w-full h-full object-cover block"
+        style={{ width: 32, height: 32, objectFit: 'cover' }}
+      />
+      <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 border border-white" />
+    </div>
+    <span className="text-xs font-bold text-slate-800 group-hover/host:text-pink-600 transition truncate">
+      {live.hostNickname}
+    </span>
+  </div>
                             <h4 className="font-bold text-xs text-slate-900 line-clamp-1 group-hover:text-[#FF3B6B] transition-colors leading-tight">
                               {live.title}
                             </h4>
@@ -3889,16 +3926,34 @@ export default function CustomerWebStorefrontPage() {
 
                             {/* 호스트 & 정보 패널 */}
                             <div className="p-3.5 space-y-1.5">
-                              <div className="flex items-center gap-1.5">
-                                <img
-                                  src={item.hostAvatar}
-                                  alt={item.hostNickname}
-                                  className="h-5 w-5 rounded-full object-cover border border-sky-200"
-                                />
-                                <span className="text-xs font-bold text-slate-800 truncate">
-                                  {item.hostNickname}
-                                </span>
-                              </div>
+                              <div 
+    onClick={(e) => {
+      e.stopPropagation()
+      openUserProfileModal({
+        id: item.id,
+        nickname: item.hostNickname,
+        avatar: item.hostAvatar,
+        region: '서울 강남구 역삼동',
+        isLive: true,
+        liveTitle: item.title,
+        headline: `모꼬 LIVE에서 "${item.title}" 방송 중입니다 🎙️`,
+      })
+    }}
+    className="flex items-center gap-2.5 cursor-pointer group/host hover:opacity-90"
+  >
+    <div className="relative shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 border-sky-400 bg-slate-100 shadow-xs">
+      <img
+        src={item.hostAvatar}
+        alt={item.hostNickname}
+        className="w-full h-full object-cover block"
+        style={{ width: 40, height: 40, objectFit: 'cover' }}
+      />
+      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white" />
+    </div>
+    <span className="text-sm font-black text-slate-900 group-hover/host:text-sky-600 transition truncate">
+      {item.hostNickname}
+    </span>
+  </div>
                               <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-sky-600 transition-colors leading-tight">
                                 {item.title}
                               </h4>
@@ -3984,19 +4039,36 @@ export default function CustomerWebStorefrontPage() {
 
                             {/* 호스트 & 정보 패널 */}
                             <div className="p-3.5 space-y-2">
-                              <div className="flex items-center gap-2">
-                                <div className="relative">
-                                  <img
-                                    src={item.hostAvatar}
-                                    alt={item.hostNickname}
-                                    className="h-6 w-6 rounded-full object-cover border-2 border-amber-400 shadow-xs"
-                                  />
-                                  <Crown className="h-3 w-3 absolute -top-1 -right-1 text-amber-500 fill-amber-400" />
-                                </div>
-                                <span className="text-xs font-extrabold text-slate-900 truncate">
-                                  {item.hostNickname}
-                                </span>
-                              </div>
+                              <div 
+    onClick={(e) => {
+      e.stopPropagation()
+      openUserProfileModal({
+        id: item.id,
+        nickname: item.hostNickname,
+        avatar: item.hostAvatar,
+        region: '서울 강남구 삼성동',
+        isLive: true,
+        liveTitle: item.title,
+        headline: `모꼬 LIVE 1위 크리에이터 "${item.hostNickname}" 입니다! 🏆`,
+      })
+    }}
+    className="flex items-center gap-2.5 cursor-pointer group/host hover:opacity-90"
+  >
+    <div className="relative shrink-0">
+      <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-amber-400 bg-slate-100 shadow-md">
+        <img
+          src={item.hostAvatar}
+          alt={item.hostNickname}
+          className="w-full h-full object-cover block"
+          style={{ width: 44, height: 44, objectFit: 'cover' }}
+        />
+      </div>
+      <Crown className="h-4 w-4 absolute -top-1.5 -right-1.5 text-amber-500 fill-amber-400 drop-shadow-sm" />
+    </div>
+    <span className="text-sm font-black text-slate-900 group-hover/host:text-rose-600 transition truncate">
+      {item.hostNickname}
+    </span>
+  </div>
                               <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-rose-600 transition-colors leading-tight">
                                 {item.title}
                               </h4>
@@ -4064,16 +4136,34 @@ export default function CustomerWebStorefrontPage() {
 
                             {/* 호스트 & 정보 패널 */}
                             <div className="p-3.5 space-y-1.5">
-                              <div className="flex items-center gap-1.5">
-                                <img
-                                  src={item.hostAvatar}
-                                  alt={item.hostNickname}
-                                  className="h-5 w-5 rounded-full object-cover border border-orange-200"
-                                />
-                                <span className="text-xs font-bold text-slate-800 truncate">
-                                  {item.hostNickname}
-                                </span>
-                              </div>
+                              <div 
+    onClick={(e) => {
+      e.stopPropagation()
+      openUserProfileModal({
+        id: item.id,
+        nickname: item.hostNickname,
+        avatar: item.hostAvatar,
+        region: '서울 강남구 논현동',
+        isLive: true,
+        liveTitle: item.title,
+        headline: `모꼬 LIVE에서 "${item.title}" 방송 중입니다 🎙️`,
+      })
+    }}
+    className="flex items-center gap-2.5 cursor-pointer group/host hover:opacity-90"
+  >
+    <div className="relative shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 border-orange-400 bg-slate-100 shadow-xs">
+      <img
+        src={item.hostAvatar}
+        alt={item.hostNickname}
+        className="w-full h-full object-cover block"
+        style={{ width: 40, height: 40, objectFit: 'cover' }}
+      />
+      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white" />
+    </div>
+    <span className="text-sm font-black text-slate-900 group-hover/host:text-orange-600 transition truncate">
+      {item.hostNickname}
+    </span>
+  </div>
                               <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-orange-600 transition-colors leading-tight">
                                 {item.title}
                               </h4>
@@ -4176,16 +4266,34 @@ export default function CustomerWebStorefrontPage() {
 
                             {/* 하단 정보 패널 */}
                             <div className="p-2.5 space-y-1">
-                              <div className="flex items-center gap-1.5">
-                                <img
-                                  src={live.hostAvatar}
-                                  alt={live.hostNickname}
-                                  className="h-4 w-4 rounded-full object-cover shrink-0 border border-slate-200"
-                                />
-                                <span className="text-[11px] font-bold text-slate-700 truncate">
-                                  {live.hostNickname}
-                                </span>
-                              </div>
+                              <div 
+    onClick={(e) => {
+      e.stopPropagation()
+      openUserProfileModal({
+        id: live.id,
+        nickname: live.hostNickname,
+        avatar: live.hostAvatar,
+        region: '서울 강남구',
+        isLive: true,
+        liveTitle: live.title,
+        headline: `모꼬 LIVE에서 "${live.title}" 방송 중입니다 🎙️`,
+      })
+    }}
+    className="flex items-center gap-2 cursor-pointer group/host hover:opacity-90"
+  >
+    <div className="relative shrink-0 w-9 h-9 rounded-full overflow-hidden border border-slate-200 bg-slate-100 shadow-2xs">
+      <img
+        src={live.hostAvatar}
+        alt={live.hostNickname}
+        className="w-full h-full object-cover block"
+        style={{ width: 36, height: 36, objectFit: 'cover' }}
+      />
+      <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 border border-white" />
+    </div>
+    <span className="text-xs font-bold text-slate-800 group-hover/host:text-[#FF3B6B] transition truncate">
+      {live.hostNickname}
+    </span>
+  </div>
                               <h4 className="font-bold text-xs text-slate-900 line-clamp-1 group-hover:text-[#FF3B6B] transition-colors leading-tight">
                                 {live.title}
                               </h4>
@@ -4736,16 +4844,34 @@ export default function CustomerWebStorefrontPage() {
                               >
                                 <ArrowLeft className="h-4 w-4" />
                               </button>
-                              <div className="relative">
+                              <div 
+                                onClick={() => openUserProfileModal({
+                                  id: activeChatRoom.id,
+                                  nickname: activeChatRoom.targetNickname,
+                                  avatar: activeChatRoom.targetAvatar,
+                                  region: '서울 강남구 역삼동',
+                                  headline: activeChatRoom.lastMessage || '모꼬 1:1 대화 상대입니다 ✨',
+                                })}
+                                className="relative cursor-pointer group/phoneavatar"
+                              >
                                 <img
                                   src={activeChatRoom.targetAvatar}
                                   alt={activeChatRoom.targetNickname}
-                                  className="h-8 w-8 rounded-full object-cover border border-slate-200"
+                                  className="h-8 w-8 rounded-full object-cover border border-slate-200 group-hover/phoneavatar:ring-2 group-hover/phoneavatar:ring-blue-400 transition"
                                 />
                                 <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 border border-white" />
                               </div>
                               <div className="min-w-0">
-                                <h4 className="font-bold text-xs text-slate-900 truncate max-w-[130px]">
+                                <h4 
+                                  onClick={() => openUserProfileModal({
+                                    id: activeChatRoom.id,
+                                    nickname: activeChatRoom.targetNickname,
+                                    avatar: activeChatRoom.targetAvatar,
+                                    region: '서울 강남구 역삼동',
+                                    headline: activeChatRoom.lastMessage || '모꼬 1:1 대화 상대입니다 ✨',
+                                  })}
+                                  className="font-bold text-xs text-slate-900 truncate max-w-[130px] cursor-pointer hover:text-blue-600 transition"
+                                >
                                   {activeChatRoom.targetNickname}
                                 </h4>
                                 <span className="text-[9px] text-emerald-600 flex items-center gap-1 leading-tight">
@@ -7093,113 +7219,206 @@ export default function CustomerWebStorefrontPage() {
         </div>
       )}
 
-      {/* (Y) 상대방 프로필 상세 팝업 모달 (프로필 확인, 팔로우, 1:1 톡, 라이브 시청) */}
+      {/* (Y) 상대방 프로필 상세 팝업 모달 (9장 사진 슬라이더, 프로필 확인, 팔로우, 1:1 톡, 라이브 시청) */}
       {isUserProfileModalOpen && selectedUserProfile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-200 overflow-hidden relative animate-in zoom-in-95 duration-150">
-            {/* 상단 커버 그라데이션 */}
-            <div className="h-28 bg-gradient-to-r from-pink-500 via-rose-400 to-amber-300 relative">
-              {/* 닫기 버튼 */}
-              <button
-                onClick={() => setIsUserProfileModalOpen(false)}
-                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-sm transition z-20"
-              >
-                <X className="w-4 h-4" />
-              </button>
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-200 overflow-hidden relative animate-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]">
+            
+            {/* 1. 상단 프로필 영역: [사진 9장 슬라이더] OR [사진 없을 때 이름/이니셜 기본 헤더] */}
+            {selectedUserProfile.photos && selectedUserProfile.photos.length > 0 ? (
+              /* (CASE A) 프로필 사진 슬라이더 (자동 롤링 + 수동 좌우 넘김 + 인디케이터 점) */
+              <div className="relative w-full h-64 sm:h-72 bg-slate-950 overflow-hidden group shrink-0">
+                {/* 배경 은은한 블러 */}
+                <img
+                  src={selectedUserProfile.photos[profileActivePhotoIdx] || selectedUserProfile.photos[0]}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 w-full h-full object-cover blur-xl opacity-30 scale-110 pointer-events-none"
+                />
 
-              {/* 라이브 방송 중 표시 뱃지 */}
-              {selectedUserProfile.isLive && (
-                <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600/90 text-white text-[11px] font-black shadow-lg backdrop-blur-sm animate-pulse z-20">
-                  <span className="w-2 h-2 rounded-full bg-white" />
-                  <span>LIVE 방송 중</span>
-                </div>
-              )}
-            </div>
+                {/* 메인 프로필 실물 사진 (왜곡 없이 정비율 핏) */}
+                <img
+                  src={selectedUserProfile.photos[profileActivePhotoIdx] || selectedUserProfile.photos[0]}
+                  alt={`${selectedUserProfile.nickname}-photo-${profileActivePhotoIdx + 1}`}
+                  className="relative z-10 w-full h-full object-cover transition-all duration-500"
+                />
 
-            {/* 프로필 정보 본문 */}
-            <div className="px-6 pb-6 pt-0 space-y-4">
-              {/* 아바타 & 매너온도 뱃지 행 */}
-              <div className="flex items-end justify-between -mt-12 relative z-10">
-                {/* 84px 정원형 아바타 */}
-                <div
-                  className="relative rounded-full border-4 border-white shadow-md overflow-hidden bg-slate-100 shrink-0"
-                  style={{ width: 84, height: 84, minWidth: 84, minHeight: 84 }}
+                {/* 그라데이션 오버레이 (텍스트 및 버튼 가독성) */}
+                <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none" />
+
+                {/* 닫기 버튼 */}
+                <button
+                  onClick={() => setIsUserProfileModalOpen(false)}
+                  className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-sm transition z-20"
                 >
-                  <img
-                    src={selectedUserProfile.avatar}
-                    alt={selectedUserProfile.nickname}
-                    className="w-full h-full object-cover"
-                    style={{ width: 84, height: 84, objectFit: 'cover' }}
-                  />
-                  {selectedUserProfile.isOnline && (
-                    <span className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-xs" />
-                  )}
+                  <X className="w-4 h-4" />
+                </button>
+
+                {/* 라이브 방송 중 표시 뱃지 */}
+                {selectedUserProfile.isLive && (
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600/90 text-white text-[11px] font-black shadow-lg backdrop-blur-sm animate-pulse z-20">
+                    <span className="w-2 h-2 rounded-full bg-white" />
+                    <span>LIVE 방송 중</span>
+                  </div>
+                )}
+
+                {/* 좌/우 수동 넘김 버튼 (사진이 2장 이상일 때 노출) */}
+                {selectedUserProfile.photos.length > 1 && (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setProfileActivePhotoIdx((prev) =>
+                          prev > 0 ? prev - 1 : selectedUserProfile.photos!.length - 1
+                        )
+                      }}
+                      className="absolute left-2.5 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-sm transition opacity-80 hover:opacity-100"
+                      title="이전 사진"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setProfileActivePhotoIdx((prev) =>
+                          prev < selectedUserProfile.photos!.length - 1 ? prev + 1 : 0
+                        )
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-sm transition opacity-80 hover:opacity-100"
+                      title="다음 사진"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+
+                {/* 하단 점(Dots) 인디케이터 (최대 9장) & 사진 카운터 */}
+                <div className="absolute bottom-3 left-3 right-3 z-20 flex items-center justify-between">
+                  {selectedUserProfile.photos.length > 1 ? (
+                    <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-full backdrop-blur-sm">
+                      {selectedUserProfile.photos.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setProfileActivePhotoIdx(idx)
+                          }}
+                          className={`transition-all rounded-full ${
+                            profileActivePhotoIdx === idx
+                              ? 'w-4 h-1.5 bg-white'
+                              : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  ) : <div />}
+
+                  <div className="px-2 py-0.5 rounded-full bg-black/60 text-white text-[10px] font-bold backdrop-blur-sm">
+                    📸 {profileActivePhotoIdx + 1} / {selectedUserProfile.photos.length}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* (CASE B) 등록 사진이 없을 때: 이름 중심의 미니멀 산뜻 프로필 헤더 */
+              <div className="h-32 bg-gradient-to-r from-pink-400 via-rose-400 to-indigo-400 relative flex items-center justify-between px-6 text-white shrink-0">
+                <div className="space-y-0.5">
+                  <span className="text-[11px] font-bold text-white/80 uppercase tracking-wider block">MOCCO MEMBER</span>
+                  <h2 className="text-xl font-black text-white flex items-center gap-2">
+                    <span>{selectedUserProfile.nickname}</span>
+                    <span className="text-sm font-semibold opacity-90">({selectedUserProfile.region.split(' ')[1] || selectedUserProfile.region})</span>
+                  </h2>
+                </div>
+
+                {/* 닫기 버튼 */}
+                <button
+                  onClick={() => setIsUserProfileModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-black/25 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-sm transition z-20"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* 2. 프로필 본문 영역 (스크롤 지원) */}
+            <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4 space-y-4">
+              {/* 아바타 & 매너온도 행 */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="relative rounded-full border-2 border-slate-100 shadow-sm overflow-hidden bg-slate-100 shrink-0"
+                    style={{ width: 56, height: 56, minWidth: 56, minHeight: 56 }}
+                  >
+                    <img
+                      src={selectedUserProfile.avatar}
+                      alt={selectedUserProfile.nickname}
+                      className="w-full h-full object-cover"
+                      style={{ width: 56, height: 56, objectFit: 'cover' }}
+                    />
+                    {selectedUserProfile.isOnline && (
+                      <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-xs" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h3 className="font-black text-lg text-slate-900 leading-tight">
+                        {selectedUserProfile.nickname}
+                      </h3>
+                      <Badge className="bg-pink-50 text-pink-700 text-[10px] font-bold border border-pink-200 py-0">
+                        {selectedUserProfile.gender} · {selectedUserProfile.age}세
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-slate-500 flex items-center gap-1 font-medium mt-0.5">
+                      <MapPin className="w-3 h-3 text-rose-500 shrink-0" />
+                      <span>{selectedUserProfile.region}</span>
+                    </p>
+                  </div>
                 </div>
 
                 {/* 매너온도 게이지 뱃지 */}
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <div className="flex items-baseline justify-end gap-1">
-                    <span className="text-lg font-black text-rose-600">
+                    <span className="text-base font-black text-rose-600">
                       {selectedUserProfile.mannerTemp}℃
                     </span>
-                    <span className="text-sm">😄</span>
+                    <span className="text-xs">😄</span>
                   </div>
                   <span className="text-[10px] text-slate-400 font-bold block">매너온도</span>
                 </div>
               </div>
 
-              {/* 닉네임, 지역, 성별/나이 */}
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-black text-xl text-slate-900">
-                    {selectedUserProfile.nickname}
-                  </h3>
-                  <Badge className="bg-pink-50 text-pink-700 text-xs font-bold border border-pink-200">
-                    {selectedUserProfile.gender} · {selectedUserProfile.age}세
-                  </Badge>
-                  <Badge className="bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
-                    동네인증 완료
-                  </Badge>
-                </div>
-                <p className="text-xs text-slate-500 flex items-center gap-1 font-medium">
-                  <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                  <span>{selectedUserProfile.region}</span>
-                </p>
-              </div>
-
-              {/* 소셜 통계 (팔로워 / 팔로잉) */}
-              <div className="bg-slate-50/80 rounded-2xl p-3 border border-slate-100 flex items-center justify-around text-center">
+              {/* 소셜 통계 (팔로워 / 팔로잉 / 응답률) */}
+              <div className="bg-slate-50/90 rounded-2xl p-3 border border-slate-100 flex items-center justify-around text-center">
                 <div>
                   <div className="text-sm font-black text-slate-900">
                     {selectedUserProfile.followersCount}
                   </div>
-                  <div className="text-[11px] text-slate-400 font-semibold">팔로워</div>
+                  <div className="text-[10px] text-slate-400 font-semibold">팔로워</div>
                 </div>
-                <div className="w-px h-6 bg-slate-200" />
+                <div className="w-px h-5 bg-slate-200" />
                 <div>
                   <div className="text-sm font-black text-slate-900">
                     {selectedUserProfile.followingCount}
                   </div>
-                  <div className="text-[11px] text-slate-400 font-semibold">팔로잉</div>
+                  <div className="text-[10px] text-slate-400 font-semibold">팔로잉</div>
                 </div>
-                <div className="w-px h-6 bg-slate-200" />
+                <div className="w-px h-5 bg-slate-200" />
                 <div>
                   <div className="text-sm font-black text-emerald-600">
                     99%
                   </div>
-                  <div className="text-[11px] text-slate-400 font-semibold">응답률</div>
+                  <div className="text-[10px] text-slate-400 font-semibold">응답률</div>
                 </div>
               </div>
 
               {/* 자기소개 말풍선 */}
-              <div className="bg-rose-50/40 rounded-2xl p-3.5 border border-rose-100/70 text-xs text-slate-700 leading-relaxed italic">
+              <div className="bg-rose-50/40 rounded-2xl p-3 border border-rose-100/70 text-xs text-slate-700 leading-relaxed italic">
                 &quot;{selectedUserProfile.headline}&quot;
               </div>
 
               {/* 관심사 태그 */}
               {selectedUserProfile.interests && selectedUserProfile.interests.length > 0 && (
-                <div className="space-y-1.5">
-                  <div className="text-[11px] font-bold text-slate-400">관심 태그</div>
+                <div className="space-y-1">
+                  <div className="text-[11px] font-bold text-slate-400">관심사</div>
                   <div className="flex flex-wrap gap-1.5">
                     {selectedUserProfile.interests.map((tag: string, idx: number) => (
                       <span
@@ -7227,13 +7446,13 @@ export default function CustomerWebStorefrontPage() {
                   className="w-full py-2.5 px-4 rounded-2xl bg-gradient-to-r from-red-500 via-rose-500 to-pink-600 text-white font-black text-xs shadow-md flex items-center justify-center gap-2 hover:opacity-95 transition"
                 >
                   <Radio className="w-4 h-4 animate-pulse" />
-                  <span>{selectedUserProfile.liveTitle || '실시간 방송 시청하러 가기'}</span>
+                  <span>{selectedUserProfile.liveTitle || '실시간 라이브 방송 보러가기'}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               )}
 
               {/* 하단 3대 핵심 액션 버튼 바 */}
-              <div className="pt-2 flex items-center gap-2">
+              <div className="pt-1 flex items-center gap-2">
                 {/* 1. 팔로우 / 언팔로우 버튼 */}
                 <button
                   onClick={() => handleToggleFollow(selectedUserProfile)}
@@ -7867,20 +8086,31 @@ export default function CustomerWebStorefrontPage() {
             <div className="w-full md:w-[380px] lg:w-[420px] flex flex-col bg-slate-900/98 border-l border-slate-800 shrink-0 h-full relative">
               {/* (1) 채팅 헤더: 호스트 정보 & 내 보유 포인트 & 닫기(X) 버튼 (충돌 없이 깔끔 분리) */}
               <div className="p-3.5 px-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 shrink-0">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="relative">
-                    <img
-                      src={activeLiveModal.hostAvatar}
-                      alt="host"
-                      className="h-9 w-9 rounded-full object-cover border-2 border-pink-500/60"
-                    />
-                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 border border-slate-900" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-extrabold text-xs text-white truncate max-w-[140px]">
-                        {activeLiveModal.hostNickname}
-                      </span>
+                <div 
+    onClick={() => openUserProfileModal({
+      id: activeLiveModal.id,
+      nickname: activeLiveModal.hostNickname,
+      avatar: activeLiveModal.hostAvatar,
+      region: '서울 강남구',
+      isLive: true,
+      liveTitle: activeLiveModal.title,
+      headline: `모꼬 LIVE에서 "${activeLiveModal.title}" 방송 중입니다 🎙️`,
+    })}
+    className="flex items-center gap-2.5 min-w-0 cursor-pointer group/modalhost hover:opacity-90"
+  >
+  <div className="relative">
+    <img
+      src={activeLiveModal.hostAvatar}
+      alt="host"
+      className="h-9 w-9 rounded-full object-cover border-2 border-pink-500/60 group-hover/modalhost:ring-2 group-hover/modalhost:ring-pink-400"
+    />
+    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 border border-slate-900" />
+  </div>
+  <div className="min-w-0">
+    <div className="flex items-center gap-1.5">
+      <span className="font-extrabold text-xs text-white group-hover/modalhost:text-pink-400 transition truncate max-w-[140px]">
+        {activeLiveModal.hostNickname}
+      </span>
                       <Badge className="bg-purple-900/60 text-purple-300 border border-purple-500/40 text-[9px] px-1.5 py-0 font-bold">
                         크리에이터
                       </Badge>
