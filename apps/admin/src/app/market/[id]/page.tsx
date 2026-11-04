@@ -378,14 +378,26 @@ export default function MarketProductDetailPage() {
     })
   }
 
-  // 판매자와 1:1 채팅하기 (중고/마켓 공통)
+  // 중고거래 판매자와 1:1 거래톡 연결
   const handleChatWithSeller = () => {
     requireAuth(() => {
+      const sellerName = product.seller?.nickname || product.sellerNickname || product.merchantInfo?.businessName || '판매자'
+      const tradeInfo = {
+        id: product.id,
+        title: product.name,
+        price: product.price,
+        image: product.images?.[0] || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
+        seller: sellerName,
+        condition: product.conditionText || '중고 A급',
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('mocco_active_trade_chat', JSON.stringify(tradeInfo))
+      }
       toast({
-        title: '💬 판매자와의 1:1 안심 대화방 연결',
-        description: `${product.sellerNickname || product.merchantInfo?.businessName || '판매자'}님과의 대화방이 열렸습니다.`,
+        title: '💬 거래톡으로 연결됩니다',
+        description: `${sellerName}님과의 1:1 거래톡 방으로 이동합니다.`,
       })
-      router.push('/?tab=CHAT')
+      router.push(`/?tab=CHAT&sub=CHATS&tradeId=${product.id}`)
     })
   }
 
@@ -682,29 +694,34 @@ export default function MarketProductDetailPage() {
                   <Button
                     onClick={handleChatWithSeller}
                     variant="outline"
-                    className="flex-1 h-12 rounded-2xl border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold text-sm shadow-xs"
+                    className="flex-1 h-12 rounded-2xl border-orange-300 bg-orange-50/70 hover:bg-orange-100/80 text-orange-700 font-extrabold text-sm shadow-xs transition flex items-center justify-center gap-1.5"
                   >
-                    <MessageCircle className="w-4 h-4 mr-1.5" />
-                    판매자와 1:1 채팅
+                    <MessageCircle className="w-4 h-4" />
+                    거래톡
                   </Button>
                 ) : (
                   <Button
                     onClick={handleAddToCart}
                     variant="outline"
-                    className="flex-1 h-12 rounded-2xl border-slate-200 hover:bg-slate-50 font-bold text-sm text-slate-700 shadow-xs"
+                    className="flex-1 h-12 rounded-2xl border-indigo-200 bg-indigo-50/60 hover:bg-indigo-100/70 text-indigo-700 font-extrabold text-sm shadow-xs transition flex items-center justify-center gap-1.5"
                   >
+                    <ShoppingCart className="w-4 h-4" />
                     장바구니 담기
                   </Button>
                 )}
               </div>
 
-              {/* 메인 에스크로 즉시구매 버튼 */}
+              {/* 메인 구매 버튼: 중고는 '안전구매', 마켓은 '바로구매' */}
               <Button
                 onClick={handleBuyNow}
-                className="w-full h-12 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold text-base shadow-md shadow-indigo-200 active:scale-98 transition flex items-center justify-center gap-2"
+                className={`w-full h-12 rounded-2xl text-white font-extrabold text-base shadow-md active:scale-98 transition flex items-center justify-center gap-2 ${
+                  isUsed
+                    ? 'bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 shadow-orange-500/25'
+                    : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-indigo-500/25'
+                }`}
               >
                 <ShieldCheck className="w-5 h-5 text-emerald-300" />
-                <span>토스페이먼츠 에스크로 바로구매</span>
+                <span>{isUsed ? '안전구매' : '바로구매'}</span>
               </Button>
             </div>
 
@@ -1066,15 +1083,23 @@ export default function MarketProductDetailPage() {
           <Button
             onClick={isUsed ? handleChatWithSeller : handleAddToCart}
             variant="outline"
-            className="flex-1 h-10 rounded-xl text-xs font-bold"
+            className={`flex-1 h-10 rounded-xl text-xs font-extrabold ${
+              isUsed
+                ? 'border-orange-300 text-orange-700 bg-orange-50/60 hover:bg-orange-100'
+                : 'border-indigo-200 text-indigo-700 bg-indigo-50/60 hover:bg-indigo-100'
+            }`}
           >
-            {isUsed ? '채팅' : '장바구니'}
+            {isUsed ? '거래톡' : '장바구니 담기'}
           </Button>
           <Button
             onClick={handleBuyNow}
-            className="flex-1 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs"
+            className={`flex-1 h-10 rounded-xl text-white font-extrabold text-xs shadow-xs ${
+              isUsed
+                ? 'bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600'
+                : 'bg-indigo-600 hover:bg-indigo-700'
+            }`}
           >
-            안전구매
+            {isUsed ? '안전구매' : '바로구매'}
           </Button>
         </div>
       </div>

@@ -1256,17 +1256,64 @@ export default function CustomerWebStorefrontPage() {
     toast({ title: '🗑️ 상품이 장바구니에서 삭제되었습니다.' })
   }
 
-  // URL Query Params (?tab=MARKET&sub=C2C_USED) Navigation Sync
+  // URL Query Params (?tab=MARKET&sub=C2C_USED, ?tab=CHAT&tradeId=...) Navigation Sync
   useEffect(() => {
     if (typeof window === 'undefined') return
     const params = new URLSearchParams(window.location.search)
     const tabParam = params.get('tab')
     const subParam = params.get('sub')
+    const tradeIdParam = params.get('tradeId')
+
     if (tabParam && ['HOME', 'MARKET', 'LIVE', 'CHAT', 'MY'].includes(tabParam)) {
       setActiveTab(tabParam as ActiveTab)
     }
     if (subParam && ['C2C_USED', 'B2C_NORMAL', 'B2C_GROUP'].includes(subParam)) {
       setMarketSubTab(subParam as any)
+    }
+
+    // 중고물품 상세에서 [거래톡] 클릭하여 넘어온 경우
+    if (tabParam === 'CHAT' && tradeIdParam) {
+      setChatSubTab('CHATS')
+      try {
+        const stored = localStorage.getItem('mocco_active_trade_chat')
+        if (stored) {
+          const tradeInfo = JSON.parse(stored)
+          const roomName = tradeInfo.seller || '판매자'
+          const existing = chatRooms.find((r) => r.id === `trade-${tradeIdParam}` || r.productInfo?.id === tradeIdParam)
+          if (existing) {
+            setActiveChatRoom(existing)
+          } else {
+            const newTradeRoom: ChatRoomItem = {
+              id: `trade-${tradeIdParam}`,
+              type: 'MARKET',
+              targetNickname: roomName,
+              targetAvatar: tradeInfo.image || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+              lastMessage: `[거래톡] "${tradeInfo.title}" 중고물품 문의 및 안심거래 상담`,
+              lastTime: '방금 전',
+              unreadCount: 0,
+              productInfo: {
+                id: tradeInfo.id,
+                title: tradeInfo.title,
+                price: Number(tradeInfo.price) || 0,
+                image: tradeInfo.image,
+              },
+              messages: [
+                {
+                  id: `trade-msg-init-${Date.now()}`,
+                  sender: roomName,
+                  text: `안녕하세요! "${tradeInfo.title}" 중고물품 판매자입니다. 직거래 약속 또는 상단의 [안전결제 요청]을 눌러 안전거래를 진행하세요.`,
+                  time: '방금 전',
+                  isMe: false,
+                },
+              ],
+            }
+            setChatRooms((prev) => [newTradeRoom, ...prev])
+            setActiveChatRoom(newTradeRoom)
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to setup active trade chat', err)
+      }
     }
   }, [])
 

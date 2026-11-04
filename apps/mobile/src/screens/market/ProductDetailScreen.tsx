@@ -430,7 +430,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
           </View>
         </ScrollView>
 
-        {/* 5. 하단 고정 바: [안전구매 하기] */}
+        {/* 5. 하단 고정 바: [장바구니 담기] + [바로구매] */}
         <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 14) }]}>
           <TouchableOpacity
             style={styles.likeBtn}
@@ -444,14 +444,6 @@ export default function ProductDetailScreen({ route, navigation }: any) {
             />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.bottomCartBtn}
-            onPress={handleAddToCart}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="cart-outline" size={24} color="#4F46E5" />
-          </TouchableOpacity>
-
           <View style={styles.bottomDivider} />
 
           <View style={styles.bottomPriceBox}>
@@ -461,24 +453,35 @@ export default function ProductDetailScreen({ route, navigation }: any) {
             <Text style={styles.bottomPriceSub}>(에스크로 안전결제)</Text>
           </View>
 
-          <TouchableOpacity
-            style={[styles.b2cBuyBtn, isOutOfStock && styles.b2cBuyBtnDisabled]}
-            disabled={isOutOfStock}
-            onPress={() => setShowPgBottomSheet(true)}
-            activeOpacity={0.85}
-          >
-            <LinearGradient
-              colors={isOutOfStock ? ['#94A3B8', '#64748B'] : ['#4F46E5', '#6366F1']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.b2cBuyBtnGradient}
+          <View style={styles.bottomBtnGroup}>
+            <TouchableOpacity
+              style={styles.cartActionBtn}
+              onPress={handleAddToCart}
+              activeOpacity={0.8}
             >
-              <Ionicons name="shield-checkmark" size={17} color="#FFFFFF" style={{ marginRight: 4 }} />
-              <Text style={styles.b2cBuyBtnText}>
-                {isOutOfStock ? '품절된 상품' : '안전구매 하기'}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              <Ionicons name="cart-outline" size={15} color="#4F46E5" />
+              <Text style={styles.cartActionBtnText}>장바구니 담기</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.b2cBuyBtn, isOutOfStock && styles.b2cBuyBtnDisabled]}
+              disabled={isOutOfStock}
+              onPress={() => setShowPgBottomSheet(true)}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={isOutOfStock ? ['#94A3B8', '#64748B'] : ['#4F46E5', '#6366F1']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.b2cBuyBtnGradient}
+              >
+                <Ionicons name="flash" size={15} color="#FFFFFF" style={{ marginRight: 3 }} />
+                <Text style={styles.b2cBuyBtnText}>
+                  {isOutOfStock ? '품절' : '바로구매'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
         </View>
 
         
@@ -780,7 +783,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
             activeOpacity={0.8}
           >
             <Ionicons name="chatbubble-outline" size={16} color="#0F172A" />
-            <Text style={styles.chatBtnText}>거래 톡</Text>
+            <Text style={styles.chatBtnText}>거래톡</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -789,7 +792,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
             activeOpacity={0.85}
           >
             <Ionicons name="shield-checkmark" size={16} color="#FFFFFF" />
-            <Text style={styles.buyBtnText}>안전구매 하기</Text>
+            <Text style={styles.buyBtnText}>안전구매</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -1332,6 +1335,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+  cartActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  cartActionBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#4F46E5',
   },
   b2cBuyBtn: {
     borderRadius: 10,
