@@ -460,26 +460,60 @@ export default function ChatsScreen({ navigation }: any) {
           </View>
         </TouchableOpacity>
 
-        {/* 우측 슬림 [대화신청] 버튼 */}
-        <TouchableOpacity
-          style={styles.applyChatBtn}
-          activeOpacity={0.8}
-          onPress={() =>
-            handleStartDirectChat({
-              id: item.author.id,
-              nickname: item.author.nickname,
-              avatarUrl: item.author.avatarUrl,
-              region: item.neighborhood,
-            })
-          }
-        >
-          <Ionicons name="chatbubble-outline" size={12} color="#E11D48" />
-          <Text style={styles.applyChatBtnText}>대화신청</Text>
-        </TouchableOpacity>
+        {/* 우측 입장 단가 & [입장하기] 버튼 */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View
+            style={{
+              backgroundColor: item.entryFee ? '#FEF3C7' : '#DCFCE7',
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: item.entryFee ? '#FDE68A' : '#BBF7D0',
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: '900',
+                color: item.entryFee ? '#92400E' : '#166534',
+              }}
+            >
+              {item.entryFee ? `💰 ${item.entryFee} ON` : '✨ 무료'}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.applyChatBtn}
+            activeOpacity={0.8}
+            onPress={() =>
+              handleStartDirectChat({
+                id: item.author.id,
+                nickname: item.author.nickname,
+                avatarUrl: item.author.avatarUrl,
+                region: item.neighborhood,
+              })
+            }
+          >
+            <Ionicons name="chatbubble-ellipses" size={12} color="#E11D48" />
+            <Text style={styles.applyChatBtnText}>입장하기</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* 1줄 본문 */}
-      <Text style={styles.sudaContent}>{item.content}</Text>
+      {/* 1:1 수다 대기방 제목 & 본문 */}
+      {item.title ? (
+        <View style={{ marginTop: 6, gap: 2 }}>
+          <Text style={{ fontSize: 14, fontWeight: '800', color: '#0F172A' }}>
+            {item.title}
+          </Text>
+          {item.content ? (
+            <Text style={styles.sudaContent}>{item.content}</Text>
+          ) : null}
+        </View>
+      ) : (
+        <Text style={styles.sudaContent}>{item.content}</Text>
+      )}
     </View>
   );
 

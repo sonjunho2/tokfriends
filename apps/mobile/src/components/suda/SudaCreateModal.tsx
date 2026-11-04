@@ -26,22 +26,37 @@ export default function SudaCreateModal({
   onClose,
   onCreated,
 }: SudaCreateModalProps) {
+  const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [entryFee, setEntryFee] = useState<number>(500);
   const [submitting, setSubmitting] = useState(false);
 
+  const FEE_OPTIONS = [
+    { label: '✨ 무료', value: 0 },
+    { label: '💰 300 ON', value: 300 },
+    { label: '💰 500 ON', value: 500 },
+    { label: '💰 1,000 ON', value: 1000 },
+  ];
+
   const handleSubmit = async () => {
-    if (!content.trim()) {
-      Alert.alert('알림', '한 줄 수다 내용을 입력해주세요.');
+    if (!title.trim() && !content.trim()) {
+      Alert.alert('알림', '수다방 제목 또는 내용을 입력해주세요.');
       return;
     }
     setSubmitting(true);
     try {
-      await createSudaPost(content);
+      const roomPayload = {
+        title: title.trim() || content.trim(),
+        content: content.trim() || '나랑 1:1로 즐겁게 수다떨 이웃 편하게 입장해주세요!',
+        entryFee,
+      };
+      await createSudaPost(roomPayload.content, roomPayload.title, roomPayload.entryFee);
+      setTitle('');
       setContent('');
       onCreated();
       onClose();
     } catch (err) {
-      Alert.alert('오류', '글 등록에 실패했습니다.');
+      Alert.alert('오류', '수다방 개설에 실패했습니다.');
     } finally {
       setSubmitting(false);
     }
@@ -66,8 +81,8 @@ export default function SudaCreateModal({
         <View style={styles.sheetCard}>
           <View style={styles.headerRow}>
             <View style={styles.badgeRow}>
-              <Ionicons name="chatbubble-ellipses" size={18} color="#FF3B6B" />
-              <Text style={styles.sheetTitle}>실시간 1줄 동네 수다</Text>
+              <Ionicons name="chatbubbles" size={18} color="#FF3B6B" />
+              <Text style={styles.sheetTitle}>1:1 실시간 수다방 만들기</Text>
               <View style={styles.townBadge}>
                 <Text style={styles.townBadgeText}>역삼1동</Text>
               </View>
@@ -77,26 +92,71 @@ export default function SudaCreateModal({
             </TouchableOpacity>
           </View>
 
+          {/* 방 제목 인풋 */}
           <TextInput
-            style={styles.textInput}
-            placeholder="가벼운 일상, 야식 추천, 산책 동행 등 이웃과 지금 나누고 싶은 한 줄을 남겨보세요! (최대 150자)"
+            style={[styles.textInput, { minHeight: 46, maxHeight: 52, marginBottom: 10, fontWeight: '700' }]}
+            placeholder="방 제목 (예: 오늘 퇴근 후 강남역 맥주 한잔 🍺)"
+            placeholderTextColor="#94A3B8"
+            maxLength={60}
+            value={title}
+            onChangeText={setTitle}
+            autoFocus
+          />
+
+          {/* 소개 내용 인풋 */}
+          <TextInput
+            style={[styles.textInput, { minHeight: 64, maxHeight: 90, marginBottom: 12 }]}
+            placeholder="상세 내용 (예: 역삼/강남 근처 이웃 환영! 가볍게 치맥해요~)"
             placeholderTextColor="#94A3B8"
             multiline
             maxLength={150}
             value={content}
             onChangeText={setContent}
-            autoFocus
           />
+
+          {/* 입장 단가 설정 선택 바 */}
+          <View style={{ marginBottom: 14 }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 6 }}>
+              💰 1:1 수다방 입장 단가 (포인트)
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              {FEE_OPTIONS.map((opt) => (
+                <TouchableOpacity
+                  key={opt.value}
+                  onPress={() => setEntryFee(opt.value)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 7,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    backgroundColor: entryFee === opt.value ? '#FFF0F3' : '#F1F5F9',
+                    borderWidth: 1.5,
+                    borderColor: entryFee === opt.value ? '#FF3B6B' : 'transparent',
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: '800',
+                      color: entryFee === opt.value ? '#E11D48' : '#64748B',
+                    }}
+                  >
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
 
           <View style={styles.footerRow}>
             <Text style={styles.charCount}>{content.length} / 150자</Text>
             <TouchableOpacity
               style={[
                 styles.submitBtn,
-                !content.trim() && styles.submitBtnDisabled,
+                !title.trim() && !content.trim() && styles.submitBtnDisabled,
               ]}
               onPress={handleSubmit}
-              disabled={!content.trim() || submitting}
+              disabled={(!title.trim() && !content.trim()) || submitting}
               activeOpacity={0.85}
             >
               {submitting ? (

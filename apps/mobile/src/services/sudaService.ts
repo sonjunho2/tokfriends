@@ -11,7 +11,9 @@ export interface SudaPostItem {
     avatarUrl: string;
     trustScore: number;
   };
+  title?: string;
   content: string;
+  entryFee?: number;
   neighborhood: string;
   distanceKm: number;
   likesCount: number;
@@ -197,6 +199,8 @@ export async function fetchSudaPosts(neighborhood?: string): Promise<SudaPostIte
 
 export async function createSudaPost(
   content: string,
+  title?: string,
+  entryFee: number = 0,
   neighborhood: string = '역삼1동'
 ): Promise<SudaPostItem> {
   const newPost: SudaPostItem = {
@@ -207,7 +211,9 @@ export async function createSudaPost(
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
       trustScore: 99.0,
     },
+    title,
     content: content.trim(),
+    entryFee,
     neighborhood,
     distanceKm: 0.1,
     likesCount: 0,

@@ -281,7 +281,10 @@ export interface SudaPostItem {
   avatar: string
   region: string
   distance?: string
-  content: string
+  title?: string // 1:1 수다 대기방 제목 (예: 나랑 술 마실 사람 구해요 🍺)
+  content: string // 한 줄 소개 / 만남 내용
+  entryFee?: number // 입장 포인트 / 단가 설정 (예: 500 ON, 300 ON, 0)
+  category?: string // 테마 (술한잔/맛집, 카페, 산책, 일상)
   time: string
   likes: number
   comments: number
@@ -1058,9 +1061,12 @@ const INITIAL_SUDA_POSTS: SudaPostItem[] = [
     region: '역삼1동',
     distance: '0.6km',
     time: '5분 전',
-    content: '선선해서 양재천 산책하기 딱 좋은 날씨네요! 같이 가벼운 커피 한잔 하실 이웃 계실까요? ☕🌿',
-    likes: 8,
-    comments: 2,
+    title: '오늘 퇴근하고 강남역에서 시원하게 맥주 한잔 하실 분 🍺',
+    content: '역삼/강남 근처 직장인 이웃 환영합니다! 가볍게 치맥 하면서 오늘 하루 털어내요~',
+    entryFee: 500,
+    category: '술 한잔/맛집',
+    likes: 0,
+    comments: 0,
   },
   {
     id: 'suda-dohyun',
@@ -1069,9 +1075,12 @@ const INITIAL_SUDA_POSTS: SudaPostItem[] = [
     region: '역삼2동',
     distance: '1.1km',
     time: '12분 전',
-    content: '오늘 야식 메뉴 고민인데 치킨 vs 매운 떡볶이 골라주세요! 추천해주시면 감사해요 🍗🔥',
-    likes: 14,
-    comments: 5,
+    title: '역삼역 스타벅스에서 커피 마시며 가볍게 수다 떨 이웃 ☕',
+    content: '저녁 7시쯤 책 읽거나 일상 대화 나누실 분 편하게 입장해주세요!',
+    entryFee: 300,
+    category: '카페/디저트',
+    likes: 0,
+    comments: 0,
   },
   {
     id: 'suda-yujin',
@@ -1080,9 +1089,12 @@ const INITIAL_SUDA_POSTS: SudaPostItem[] = [
     region: '도곡동',
     distance: '1.8km',
     time: '25분 전',
-    content: '강아지랑 매봉산 둘레길 가려고 하는데 오늘 산책로 상태 괜찮은가요? 댕댕이 친구 환영! 🐶',
-    likes: 19,
-    comments: 7,
+    title: '양재천 반려견 저녁 산책 같이 하실 견주님 찾아요 🐶',
+    content: '소형견/중형견 견주님 환영! 매너 산책 코스 같이 돌아요 ✨',
+    entryFee: 0,
+    category: '산책/운동',
+    likes: 0,
+    comments: 0,
   },
   {
     id: 'suda-jiwoo',
@@ -1091,9 +1103,12 @@ const INITIAL_SUDA_POSTS: SudaPostItem[] = [
     region: '논현1동',
     distance: '2.2km',
     time: '42분 전',
-    content: '퇴근길에 예쁜 노을 사진 찍었어요 🌇 다들 오늘 하루도 고생 많으셨습니다 화이팅!',
-    likes: 23,
-    comments: 3,
+    title: '금요일 저녁 신사 가로수길 와인바 같이 가실 분 🍷',
+    content: '분위기 좋은 곳 예약해뒀어요. 맛있는 안주에 수다 떨어봐요!',
+    entryFee: 1000,
+    category: '술 한잔/맛집',
+    likes: 0,
+    comments: 0,
   },
 ]
 
@@ -1392,6 +1407,11 @@ export default function CustomerWebStorefrontPage() {
   const [activeChatRoom, setActiveChatRoom] = useState<ChatRoomItem | null>(INITIAL_CHAT_ROOMS[0])
   const [chatInputText, setChatInputText] = useState('')
   const [sudaInputText, setSudaInputText] = useState('')
+  const [isCreateSudaRoomOpen, setIsCreateSudaRoomOpen] = useState(false)
+  const [newRoomTitle, setNewRoomTitle] = useState('')
+  const [newRoomCategory, setNewRoomCategory] = useState('술 한잔/맛집')
+  const [newRoomEntryFee, setNewRoomEntryFee] = useState(500)
+  const [sudaCategoryFilter, setSudaCategoryFilter] = useState('전체')
   const [heroIndex, setHeroIndex] = useState(0)
 
 
@@ -2110,26 +2130,93 @@ export default function CustomerWebStorefrontPage() {
     handleSendLiveGiftItem(defaultGift)
   }
 
-  // Post Suda (한 줄 수다)
-  const handlePostSuda = () => {
+    // 1:1 수다 대기방 개설 (방 만들기 & 단가 설정)
+  const handleCreateSudaRoom = () => {
     requireAuth(() => {
-      if (!sudaInputText.trim()) return
-      const newSuda: SudaPostItem = {
-        id: 'suda-' + Date.now(),
+      const title = newRoomTitle.trim() || sudaInputText.trim()
+      if (!title) {
+        toast({
+          title: '방 제목을 입력해 주세요',
+          description: '어떤 이야기를 나누고 싶은지 방 제목을 적어주세요. (예: 오늘 강남역에서 맥주 한잔 🍺)',
+          variant: 'destructive',
+        })
+        return
+      }
+      const newRoom: SudaPostItem = {
+        id: 'suda-room-' + Date.now(),
         nickname: user?.nickname || '모꼬이웃',
         avatar: user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
         region: '역삼1동',
-        content: sudaInputText.trim(),
+        title: title,
+        content: sudaInputText.trim() || '나랑 즐겁게 수다떨 이웃 편하게 입장해주세요!',
+        entryFee: newRoomEntryFee,
+        category: newRoomCategory,
         time: '방금 전',
         likes: 0,
         comments: 0,
       }
-      setSudaPosts([newSuda, ...sudaPosts])
+      setSudaPosts([newRoom, ...sudaPosts])
+      setNewRoomTitle('')
       setSudaInputText('')
+      setIsCreateSudaRoomOpen(false)
       toast({
-        title: '💬 동네 1줄 수다 등록 완료',
-        description: '동네 타임라인에 한 줄 이야기가 등록되었습니다.',
+        title: '🎉 1:1 수다방 개설 완료!',
+        description: `"${newRoom.title}" 방이 열렸습니다. (입장단가: ${newRoom.entryFee ? newRoom.entryFee + ' ON' : '무료'})`,
       })
+    })
+  }
+
+  // 1:1 수다 대기방 입장 핸들러 (단가 적용 및 1:1 톡 자동 연결)
+  const handleEnterSudaRoom = (room: SudaPostItem) => {
+    requireAuth(() => {
+      if (room.entryFee && room.entryFee > 0) {
+        if (myPoints < room.entryFee) {
+          toast({
+            title: '포인트가 부족합니다',
+            description: `수다방 입장료는 ${room.entryFee} ON입니다. 포인트를 무료 충전해 주세요.`,
+            variant: 'destructive',
+          })
+          setIsPointChargeModalOpen(true)
+          return
+        }
+        setMyPoints((prev) => Math.max(0, prev - room.entryFee!))
+        toast({
+          title: `💰 ${room.entryFee} ON 차감 & 수다방 입장`,
+          description: `${room.nickname} 님의 1:1 수다방에 입장했습니다. 대화를 시작하세요!`,
+        })
+      } else {
+        toast({
+          title: '✨ 1:1 수다방 무료 입장',
+          description: `${room.nickname} 님과의 대화방으로 연결되었습니다.`,
+        })
+      }
+
+      // 1:1 대화방 개설 및 연결
+      const existing = chatRooms.find((r) => r.targetNickname === room.nickname)
+      if (existing) {
+        setActiveChatRoom(existing)
+      } else {
+        const newRoomItem: ChatRoomItem = {
+          id: 'chat-suda-' + room.id,
+          type: 'SUDA',
+          targetNickname: room.nickname,
+          targetAvatar: room.avatar,
+          lastMessage: room.title || room.content,
+          lastTime: '방금',
+          unreadCount: 0,
+          messages: [
+            {
+              id: 'init-msg-' + Date.now(),
+              senderId: 'target',
+              senderNickname: room.nickname,
+              text: `안녕하세요! "${room.title || room.content}" 수다방 보고 입장했습니다 😊 반가워요!`,
+              time: '방금',
+            },
+          ],
+        }
+        setChatRooms([newRoomItem, ...chatRooms])
+        setActiveChatRoom(newRoomItem)
+      }
     })
   }
 
@@ -2143,7 +2230,7 @@ export default function CustomerWebStorefrontPage() {
             return {
               ...p,
               isLiked: nextLiked,
-              likes: nextLiked ? p.likes + 1 : p.likes - 1,
+              likes: nextLiked ? (p.likes || 0) + 1 : Math.max(0, (p.likes || 0) - 1),
             }
           }
           return p
@@ -4577,7 +4664,14 @@ export default function CustomerWebStorefrontPage() {
                               className="group flex items-center justify-between p-3.5 rounded-2xl bg-white border border-slate-200/80 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer gap-3"
                             >
                               {/* 좌측 아바타 + 접속상태 */}
-                              <div className="relative shrink-0">
+                              <div 
+      onClick={(e) => {
+        e.stopPropagation()
+        openUserProfileModal(friend)
+      }} 
+      className="relative shrink-0 cursor-pointer group/favatar"
+      title="프로필 보기"
+    >
                                 <img
                                   src={friend.avatar}
                                   alt={friend.nickname}
@@ -4631,92 +4725,175 @@ export default function CustomerWebStorefrontPage() {
                   {/* ------------------------------------------------------------- */}
                   {chatSubTab === 'SUDA' && (
                     <div className="space-y-4">
-                      {/* 수다 입력창 */}
-                      <div className="flex items-center gap-2 bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs">
-                        <Input
-                          value={sudaInputText}
-                          onChange={(e) => setSudaInputText(e.target.value)}
-                          placeholder="이웃들에게 따뜻한 이야기를 전해보세요! (Enter로 등록)"
-                          className="text-xs border-none shadow-none focus-visible:ring-0"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handlePostSuda()
-                          }}
-                        />
-                        <Button
-                          onClick={handlePostSuda}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs h-8 px-4 shrink-0 rounded-xl"
-                        >
-                          <Send className="h-3.5 w-3.5 mr-1" />
-                          등록
-                        </Button>
-                      </div>
-
-                      {/* 수다 타임라인 스트림 */}
-                      <div className="space-y-3 max-h-[580px] overflow-y-auto pr-1">
-                        {sudaPosts.map((post) => (
-                          <div
-                            key={post.id}
-                            className="bg-white p-4 rounded-2xl border border-slate-200/70 shadow-2xs space-y-2 hover:border-indigo-200 transition-colors"
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2.5">
-                                <img
-                                  src={post.avatar}
-                                  alt="avatar"
-                                  className="h-9 w-9 rounded-full object-cover border border-slate-200"
-                                />
-                                <div>
-                                  <span className="font-bold text-xs text-slate-900 block">
-                                    {post.nickname}
-                                  </span>
-                                  <span className="text-[10px] text-muted-foreground">
-                                    {post.region} · {post.time}
-                                  </span>
-                                </div>
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  const authorFriend: NeighborFriendItem = {
-                                    id: 'friend-' + post.id,
-                                    nickname: post.nickname,
-                                    avatar: post.avatar,
-                                    region: post.region,
-                                    distance: '이웃',
-                                    mannerTemp: 36.5,
-                                    statusMessage: post.content,
-                                    isOnline: true,
-                                    gender: '회원',
-                                    age: 26,
-                                  }
-                                  handleStartNeighborChat(authorFriend)
-                                }}
-                                className="h-7 text-xs px-2.5 rounded-lg border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold"
-                              >
-                                대화하기
-                              </Button>
-                            </div>
-                            <p className="text-xs sm:text-sm text-slate-800 leading-relaxed pl-11">
-                              {post.content}
-                            </p>
-                            <div className="flex items-center gap-4 pt-1 pl-11 text-xs text-muted-foreground border-t">
-                              <button
-                                onClick={() => handleLikeSuda(post.id)}
-                                className={`flex items-center gap-1 hover:text-rose-600 transition-colors ${
-                                  post.isLiked ? 'text-rose-600 font-bold' : ''
-                                }`}
-                              >
-                                <Heart className={`h-3.5 w-3.5 ${post.isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
-                                <span>공감 {post.likes}</span>
-                              </button>
-                              <span className="flex items-center gap-1">
-                                <MessageCircle className="h-3.5 w-3.5" />
-                                <span>댓글 {post.comments}</span>
+                      {/* 1) 상단: 1:1 수다방 만들기 헤더 바 (단가 설정 300/500/1000 ON 지원) */}
+                      <div className="bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900 p-4 sm:p-5 rounded-3xl text-white shadow-lg space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+                              <Badge className="bg-indigo-500/40 text-indigo-200 border border-indigo-400/30 text-[10px] font-black">
+                                1:1 실시간 수다 대기방
+                              </Badge>
+                              <span className="text-[11px] text-indigo-300">
+                                나랑 1:1로 수다 떨 이웃을 구하는 방입니다
                               </span>
                             </div>
+                            <h3 className="font-black text-base sm:text-lg text-white">
+                              술 한잔, 커피, 산책 등 나랑 1:1로 만날 이웃을 구해보세요 🍺☕
+                            </h3>
                           </div>
+
+                          <Button
+                            onClick={() => requireAuth(() => setIsCreateSudaRoomOpen(true))}
+                            className="bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white font-black text-xs h-10 px-4 rounded-2xl shadow-md shrink-0 flex items-center gap-1.5"
+                          >
+                            <PlusCircle className="w-4 h-4" />
+                            <span>1:1 수다방 만들기</span>
+                          </Button>
+                        </div>
+
+                        {/* 방 만들기 인라인 퀵 폼 (모달 없이도 바로 생성 가능) */}
+                        <div className="pt-2 border-t border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          <div className="relative flex-1">
+                            <input
+                              type="text"
+                              value={sudaInputText}
+                              onChange={(e) => setSudaInputText(e.target.value)}
+                              placeholder="방 제목을 적어보세요 (예: 오늘 퇴근 후 강남역에서 맥주 한잔 마실 사람 🍻)"
+                              className="w-full bg-white/10 hover:bg-white/15 focus:bg-white text-slate-900 placeholder:text-slate-300 focus:placeholder:text-slate-400 rounded-xl px-3.5 py-2 text-xs border border-white/20 focus:border-pink-500 focus:outline-none transition"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleCreateSudaRoom()
+                              }}
+                            />
+                          </div>
+                          
+                          {/* 입장 단가 선택 셀렉트 */}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <select
+                              value={newRoomEntryFee}
+                              onChange={(e) => setNewRoomEntryFee(Number(e.target.value))}
+                              className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl px-3 py-2 border border-white/20 focus:outline-none cursor-pointer"
+                            >
+                              <option value={0} className="text-slate-900">✨ 무료 입장</option>
+                              <option value={300} className="text-slate-900">💰 입장 300 ON</option>
+                              <option value={500} className="text-slate-900">💰 입장 500 ON</option>
+                              <option value={1000} className="text-slate-900">💰 입장 1,000 ON</option>
+                            </select>
+
+                            <Button
+                              onClick={handleCreateSudaRoom}
+                              className="bg-white text-slate-900 hover:bg-slate-100 font-black text-xs h-8 px-4 rounded-xl shrink-0"
+                            >
+                              방 개설
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 2) 테마 필터 바 (술한잔, 카페, 산책, 일상) */}
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                        <span className="text-[11px] font-bold text-slate-500 mr-1 shrink-0">테마:</span>
+                        {['전체', '술 한잔/맛집', '카페/디저트', '산책/운동', '일상수다'].map((cat) => (
+                          <button
+                            key={cat}
+                            onClick={() => setSudaCategoryFilter(cat)}
+                            className={`px-3 py-1.5 rounded-xl font-bold text-xs shrink-0 transition-colors ${
+                              sudaCategoryFilter === cat
+                                ? 'bg-indigo-600 text-white shadow-xs'
+                                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+                            }`}
+                          >
+                            {cat}
+                          </button>
                         ))}
+                      </div>
+
+                      {/* 3) 1:1 수다 대기방 카드 리스트 (공감/댓글 완전 제거, 입장단가 & 입장하기 중심) */}
+                      <div className="space-y-3 max-h-[580px] overflow-y-auto pr-1">
+                        {sudaPosts
+                          .filter((p) => (sudaCategoryFilter === '전체' ? true : p.category === sudaCategoryFilter))
+                          .map((room) => (
+                            <div
+                              key={room.id}
+                              className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-indigo-300 hover:shadow-md transition-all space-y-3"
+                            >
+                              {/* 상단: 방장 프로필 & 우측 [1:1 수다방 입장] 버튼 */}
+                              <div className="flex items-center justify-between gap-3">
+                                {/* 방장 정보 (클릭 시 무조건 프로필 팝업 오픈!) */}
+                                <div
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    openUserProfileModal({
+                                      id: room.id,
+                                      nickname: room.nickname,
+                                      avatar: room.avatar,
+                                      region: room.region,
+                                      headline: room.title || room.content,
+                                      mannerTemp: 36.5,
+                                    })
+                                  }}
+                                  className="flex items-center gap-3 cursor-pointer group/roomauthor min-w-0"
+                                  title="프로필 확인하기"
+                                >
+                                  <div className="relative shrink-0">
+                                    <img
+                                      src={room.avatar}
+                                      alt="avatar"
+                                      className="h-11 w-11 rounded-full object-cover border-2 border-indigo-100 group-hover/roomauthor:ring-2 group-hover/roomauthor:ring-pink-400 transition"
+                                    />
+                                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 border border-white" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="font-extrabold text-sm text-slate-900 group-hover/roomauthor:text-indigo-600 transition truncate">
+                                        {room.nickname}
+                                      </span>
+                                      <Badge className="bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-200 py-0">
+                                        {room.category || '1:1 수다'}
+                                      </Badge>
+                                    </div>
+                                    <p className="text-[11px] text-slate-400 mt-0.5">
+                                      {room.region} · {room.time}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* 우측 입장 단가 & 입장하기 버튼 */}
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {/* 입장 포인트 뱃지 */}
+                                  <span className={`text-xs font-black px-2.5 py-1 rounded-xl shrink-0 ${
+                                    room.entryFee && room.entryFee > 0
+                                      ? 'bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs'
+                                      : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                  }`}>
+                                    {room.entryFee && room.entryFee > 0 ? `💰 ${room.entryFee} ON` : '✨ 무료'}
+                                  </span>
+
+                                  {/* 1:1 수다 입장 버튼 */}
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleEnterSudaRoom(room)}
+                                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold text-xs h-8 px-3 rounded-xl shadow-xs"
+                                  >
+                                    <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                                    <span>입장하기</span>
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {/* 방 제목 (강조된 볼드 텍스트) */}
+                              <div className="bg-slate-50/80 p-3 rounded-xl border border-slate-100 space-y-1">
+                                <h4 className="font-black text-sm text-slate-900 leading-snug">
+                                  {room.title || room.content}
+                                </h4>
+                                {room.title && room.content && (
+                                  <p className="text-xs text-slate-600 leading-relaxed">
+                                    {room.content}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
                       </div>
                     </div>
                   )}
@@ -4781,12 +4958,25 @@ export default function CustomerWebStorefrontPage() {
                                     : 'hover:bg-slate-50'
                                 }`}
                               >
-                                <div className="relative shrink-0">
-                                  <img
-                                    src={room.targetAvatar}
-                                    alt={room.targetNickname}
-                                    className="h-11 w-11 rounded-full object-cover border border-slate-200"
-                                  />
+                                <div 
+      onClick={(e) => {
+        e.stopPropagation()
+        openUserProfileModal({
+          id: room.id,
+          nickname: room.targetNickname,
+          avatar: room.targetAvatar,
+          region: '서울 강남구 역삼동',
+          headline: room.lastMessage || '모꼬 1:1 대화 상대입니다 ✨',
+        })
+      }}
+      className="relative shrink-0 cursor-pointer group/roomavatar"
+      title="프로필 보기"
+    >
+      <img
+        src={room.targetAvatar}
+        alt={room.targetNickname}
+        className="h-11 w-11 rounded-full object-cover border border-slate-200 group-hover/roomavatar:ring-2 group-hover/roomavatar:ring-blue-400 transition"
+      />
                                   <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white" />
                                 </div>
                                 <div className="flex-1 min-w-0">
