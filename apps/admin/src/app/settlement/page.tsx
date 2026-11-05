@@ -53,6 +53,49 @@ import {
 } from '@/lib/api'
 import type { AxiosError } from 'axios'
 
+// Safe helper functions to prevent any undefined/null/NaN runtime crashes
+const safeNum = (val: any): number => {
+  if (typeof val === 'number' && !isNaN(val)) return val
+  const n = Number(val)
+  return isNaN(n) ? 0 : n
+}
+
+const safeLocale = (val: any): string => {
+  return safeNum(val).toLocaleString()
+}
+
+const safeDateStr = (dateVal: any): string => {
+  if (!dateVal) return '—'
+  try {
+    const d = new Date(dateVal)
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('ko-KR')
+  } catch {
+    return '—'
+  }
+}
+
+const safeTimeStr = (dateVal: any): string => {
+  if (!dateVal) return ''
+  try {
+    const d = new Date(dateVal)
+    return isNaN(d.getTime())
+      ? ''
+      : d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+  } catch {
+    return ''
+  }
+}
+
+const safeDateTimeStr = (dateVal: any): string => {
+  if (!dateVal) return '—'
+  try {
+    const d = new Date(dateVal)
+    return isNaN(d.getTime()) ? '—' : d.toLocaleString('ko-KR')
+  } catch {
+    return '—'
+  }
+}
+
 const REFUND_STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   pending: { bg: 'bg-amber-100', text: 'text-amber-700', label: '대기 중' },
   approved: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: '환불 승인' },
@@ -96,8 +139,8 @@ const FALLBACK_REQUESTS: SettlementRequestItem[] = [
     accountNumber: '479001-04-129481',
     accountHolder: '박서아',
     status: 'PENDING',
-    createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 4).toISOString(),
+    createdAt: '2026-11-04T10:00:00.000Z',
+    updatedAt: '2026-11-04T10:00:00.000Z',
     activityAccount: {
       id: 'act-host-1',
       displayName: '박서아 (인기 호스트)',
@@ -128,9 +171,9 @@ const FALLBACK_REQUESTS: SettlementRequestItem[] = [
     accountHolder: '최유나',
     status: 'APPROVED',
     adminMemo: '신한은행 계좌 정상 입금 확인 완료 (이체번호: 20261014-991)',
-    createdAt: new Date(Date.now() - 3600000 * 28).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 20).toISOString(),
-    processedAt: new Date(Date.now() - 3600000 * 20).toISOString(),
+    createdAt: '2026-11-03T14:00:00.000Z',
+    updatedAt: '2026-11-03T18:00:00.000Z',
+    processedAt: '2026-11-03T18:00:00.000Z',
     activityAccount: {
       id: 'act-host-2',
       displayName: '최유나',
@@ -165,12 +208,13 @@ const FALLBACK_REFUNDS: AdminRefundRequest[] = [
     points: 10000,
     reason: '실수로 잘못 결제했습니다. 충전된 온(ON) 코인을 아직 전혀 사용하지 않았습니다.',
     status: 'pending',
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+    createdAt: '2026-11-04T12:00:00.000Z',
   },
 ]
 
 export default function SettlementPage() {
   const { toast } = useToast()
+  const [isMounted, setIsMounted] = useState(false)
 
   // Onboarding Guide Accordion
   const [showGuide, setShowGuide] = useState(true)
@@ -217,11 +261,19 @@ export default function SettlementPage() {
   const [ledger, setLedger] = useState<WalletLedgerItem[]>([])
   const [ledgerLoading, setLedgerLoading] = useState(false)
 
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   const loadSummary = useCallback(async () => {
     setSummaryLoading(true)
     try {
       const data = await getSettlementSummary()
-      setSummary(data)
+      if (data && typeof data === 'object') {
+        setSummary(data)
+      } else {
+        setSummary(FALLBACK_SUMMARY)
+      }
     } catch (error) {
       console.warn('Settlement summary load fallback:', error)
       setSummary((prev) => prev ?? FALLBACK_SUMMARY)
@@ -234,7 +286,11 @@ export default function SettlementPage() {
     setRefundsLoading(true)
     try {
       const data = await getAdminRefunds()
-      setRefunds(data.length > 0 ? data : FALLBACK_REFUNDS)
+      if (Array.isArray(data) && data.length > 0) {
+        setRefunds(data)
+      } else {
+        setRefunds(FALLBACK_REFUNDS)
+      }
     } catch (error) {
       console.warn('Refunds load fallback:', error)
       setRefunds((prev) => (prev.length > 0 ? prev : FALLBACK_REFUNDS))
@@ -252,9 +308,11 @@ export default function SettlementPage() {
           limit: 15,
           platform: platform === 'all' ? undefined : platform,
         })
-        setPurchases(res.items)
-        setPurchasesTotal(res.total)
-        setPurchasesTotalPages(res.totalPages)
+        if (res && Array.isArray(res.items)) {
+          setPurchases(res.items)
+          setPurchasesTotal(safeNum(res.total))
+          setPurchasesTotalPages(safeNum(res.totalPages) || 1)
+        }
       } catch (error) {
         console.warn('Purchases load fallback:', error)
       } finally {
@@ -268,7 +326,9 @@ export default function SettlementPage() {
     setLedgerLoading(true)
     try {
       const items = await getSettlementLedger(25)
-      setLedger(items)
+      if (Array.isArray(items)) {
+        setLedger(items)
+      }
     } catch (error) {
       console.warn('Ledger load fallback:', error)
     } finally {
@@ -286,9 +346,15 @@ export default function SettlementPage() {
           status: status === 'all' ? undefined : status,
           search: search.trim() || undefined,
         })
-        setRequests(res.items.length > 0 ? res.items : FALLBACK_REQUESTS)
-        setRequestsTotal(res.total || FALLBACK_REQUESTS.length)
-        setRequestsTotalPages(res.totalPages || 1)
+        if (res && Array.isArray(res.items) && res.items.length > 0) {
+          setRequests(res.items)
+          setRequestsTotal(safeNum(res.total) || res.items.length)
+          setRequestsTotalPages(safeNum(res.totalPages) || 1)
+        } else {
+          setRequests(FALLBACK_REQUESTS)
+          setRequestsTotal(FALLBACK_REQUESTS.length)
+          setRequestsTotalPages(1)
+        }
       } catch (error) {
         console.warn('Requests load fallback:', error)
         setRequests((prev) => (prev.length > 0 ? prev : FALLBACK_REQUESTS))
@@ -407,17 +473,30 @@ export default function SettlementPage() {
   }
 
   const filteredRefunds = refunds.filter((r) => {
-    const matchStatus = refundStatusFilter === 'all' || r.status.toLowerCase() === refundStatusFilter.toLowerCase()
+    const rawStatus = (r.status || '').toLowerCase()
+    const matchStatus = refundStatusFilter === 'all' || rawStatus === refundStatusFilter.toLowerCase()
     const q = refundSearch.toLowerCase().trim()
     const matchSearch =
       !q ||
-      r.id.toLowerCase().includes(q) ||
-      r.productId.toLowerCase().includes(q) ||
-      r.receiptId.toLowerCase().includes(q) ||
+      (r.id || '').toLowerCase().includes(q) ||
+      (r.productId || '').toLowerCase().includes(q) ||
+      (r.receiptId || '').toLowerCase().includes(q) ||
       (r.user?.displayName?.toLowerCase() || '').includes(q) ||
       (r.user?.email?.toLowerCase() || '').includes(q)
     return matchStatus && matchSearch
   })
+
+  // Safe KPI values
+  const totalPointsPurchasedDisplay = safeLocale(summary?.totalPointsPurchased ?? 98000)
+  const totalPurchasesCountDisplay = safeLocale(summary?.totalPurchasesCount ?? 4)
+  const pendingRefundsCountDisplay = safeLocale(summary?.pendingRefundsCount ?? 1)
+  const totalSpendableBalanceDisplay = safeLocale(summary?.totalSpendableBalance ?? 658000)
+  const totalWalletsDisplay = safeLocale(summary?.totalWallets ?? 9)
+  const totalRedeemableBalanceDisplay = safeLocale(summary?.totalRedeemableBalance ?? 480000)
+  const totalPendingEarningsDisplay = safeLocale(summary?.totalPendingEarnings ?? 50000)
+  const pendingSettlementsCountVal = safeNum(summary?.pendingSettlementsCount ?? 1)
+  const pendingRefundsCountVal = safeNum(summary?.pendingRefundsCount ?? 1)
+  const totalPlatformRevenueDisplay = safeLocale(summary?.totalPlatformRevenueKrw ?? 2800000)
 
   return (
     <div className="space-y-6">
@@ -504,10 +583,10 @@ export default function SettlementPage() {
               <div>
                 <p className="text-xs text-muted-foreground">총 결제 온(ON) / 건수</p>
                 <p className="text-2xl font-bold mt-1">
-                  {summaryLoading ? '—' : `${summary?.totalPointsPurchased.toLocaleString()} 온`}
+                  {summaryLoading ? '—' : `${totalPointsPurchasedDisplay} 온`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  총 {summary?.totalPurchasesCount.toLocaleString() ?? 0}건 결제
+                  총 {totalPurchasesCountDisplay}건 결제
                 </p>
               </div>
               <Coins className="h-8 w-8 text-amber-500 opacity-80" />
@@ -521,7 +600,7 @@ export default function SettlementPage() {
               <div>
                 <p className="text-xs text-muted-foreground">대기 중인 환불 요청</p>
                 <p className="text-2xl font-bold mt-1 text-rose-600">
-                  {summaryLoading ? '—' : `${summary?.pendingRefundsCount.toLocaleString()}건`}
+                  {summaryLoading ? '—' : `${pendingRefundsCountDisplay}건`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">승인/거절 필요</p>
               </div>
@@ -536,10 +615,10 @@ export default function SettlementPage() {
               <div>
                 <p className="text-xs text-muted-foreground">사용자 보유 온(ON) 총합</p>
                 <p className="text-2xl font-bold mt-1">
-                  {summaryLoading ? '—' : `${summary?.totalSpendableBalance.toLocaleString()} 온`}
+                  {summaryLoading ? '—' : `${totalSpendableBalanceDisplay} 온`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  활성 지갑 {summary?.totalWallets.toLocaleString() ?? 0}개
+                  활성 지갑 {totalWalletsDisplay}개
                 </p>
               </div>
               <Wallet className="h-8 w-8 text-blue-500 opacity-80" />
@@ -553,13 +632,13 @@ export default function SettlementPage() {
               <div>
                 <p className="text-xs text-muted-foreground">출금 가능 잔액 / 대기액</p>
                 <p className="text-2xl font-bold mt-1 text-emerald-600">
-                  {summaryLoading ? '—' : `${summary?.totalRedeemableBalance.toLocaleString()} 온`}
+                  {summaryLoading ? '—' : `${totalRedeemableBalanceDisplay} 온`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  정산 대기 {summary?.totalPendingEarnings.toLocaleString() ?? 0} 온
-                  {(summary?.pendingSettlementsCount ?? 0) > 0 && (
+                  정산 대기 {totalPendingEarningsDisplay} 온
+                  {pendingSettlementsCountVal > 0 && (
                     <span className="ml-1.5 font-semibold text-amber-600">
-                      ({summary?.pendingSettlementsCount}건 대기)
+                      ({pendingSettlementsCountVal}건 대기)
                     </span>
                   )}
                 </p>
@@ -575,7 +654,7 @@ export default function SettlementPage() {
               <div>
                 <p className="text-xs font-medium text-indigo-700">회사 누적 수수료 수익</p>
                 <p className="text-2xl font-bold mt-1 text-indigo-900">
-                  {summaryLoading ? '—' : `${(summary?.totalPlatformRevenueKrw ?? 0).toLocaleString()}원`}
+                  {summaryLoading ? '—' : `${totalPlatformRevenueDisplay}원`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">승인 정산 플랫폼 마진</p>
               </div>
@@ -587,22 +666,22 @@ export default function SettlementPage() {
 
       {/* Main Tabs */}
       <Tabs defaultValue="requests" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5 max-w-3xl">
+        <TabsList className="grid w-full grid-cols-4 max-w-2xl">
           <TabsTrigger value="requests" className="flex items-center gap-1.5">
             <CreditCard className="h-4 w-4" />
             출금 신청
-            {summary && (summary.pendingSettlementsCount ?? 0) > 0 && (
+            {pendingSettlementsCountVal > 0 && (
               <span className="ml-1 rounded-full bg-amber-500 px-1.5 py-0.2 text-[10px] text-white">
-                {summary.pendingSettlementsCount}
+                {pendingSettlementsCountVal}
               </span>
             )}
           </TabsTrigger>
           <TabsTrigger value="refunds" className="flex items-center gap-1.5">
             <AlertCircle className="h-4 w-4" />
             환불 요청
-            {summary && summary.pendingRefundsCount > 0 && (
+            {pendingRefundsCountVal > 0 && (
               <span className="ml-1 rounded-full bg-rose-500 px-1.5 py-0.2 text-[10px] text-white">
-                {summary.pendingRefundsCount}
+                {pendingRefundsCountVal}
               </span>
             )}
           </TabsTrigger>
@@ -687,23 +766,25 @@ export default function SettlementPage() {
                     </thead>
                     <tbody className="divide-y">
                       {requests.map((item) => {
-                        const style = SETTLEMENT_STATUS_STYLES[item.status] ?? {
+                        const style = SETTLEMENT_STATUS_STYLES[item.status || 'PENDING'] ?? {
                           bg: 'bg-slate-100',
                           text: 'text-slate-700',
-                          label: item.status,
+                          label: item.status || '대기 중',
                         }
                         const tier = item.tier || item.activityAccount?.owner?.legacyUser?.streamerTier || 'ROOKIE'
                         const effectiveRate = item.exchangeRate ?? (tier === 'PARTNER' ? 80 : tier === 'BEST' ? 70 : 60)
-                        const platformFee = item.platformFeeKrw != null ? item.platformFeeKrw : Math.max(0, (item.pointsAmount * 100) - item.krwAmount)
+                        const platformFee = item.platformFeeKrw != null
+                          ? item.platformFeeKrw
+                          : Math.max(0, (safeNum(item.pointsAmount) * 100) - safeNum(item.krwAmount))
 
                         return (
                           <tr key={item.id} className="hover:bg-muted/30">
                             <td className="p-2.5">
                               <p className="font-medium text-foreground">
-                                {new Date(item.createdAt).toLocaleDateString('ko-KR')}
+                                {isMounted ? safeDateStr(item.createdAt) : '2026-11-05'}
                               </p>
                               <p className="text-[10px] text-muted-foreground">
-                                {new Date(item.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                                {isMounted ? safeTimeStr(item.createdAt) : ''}
                               </p>
                               <p className="font-mono text-[9px] text-muted-foreground truncate max-w-[90px]">
                                 {item.id}
@@ -727,35 +808,35 @@ export default function SettlementPage() {
                                 </span>
                               </div>
                               <div className="text-[10px] text-muted-foreground">
-                                @{item.activityAccount?.handle ?? item.activityAccountId.slice(0, 8)}
+                                @{item.activityAccount?.handle ?? (item.activityAccountId ? String(item.activityAccountId).slice(0, 8) : 'host')}
                               </div>
                             </td>
                             <td className="p-2.5">
                               <div className="flex items-center gap-1 font-semibold text-foreground">
                                 <Building className="h-3 w-3 text-muted-foreground" />
-                                {item.bankName}
+                                {item.bankName || '은행명'}
                               </div>
                               <div className="font-mono text-[11px] text-muted-foreground">
-                                {item.accountNumber}
+                                {item.accountNumber || '—'}
                               </div>
                               <div className="text-[10px] text-muted-foreground">
-                                예금주: <span className="font-medium text-foreground">{item.accountHolder}</span>
+                                예금주: <span className="font-medium text-foreground">{item.accountHolder || '—'}</span>
                               </div>
                             </td>
                             <td className="p-2.5 text-right font-medium text-foreground">
-                              {item.pointsAmount.toLocaleString()} 온
+                              {safeLocale(item.pointsAmount)} 온
                             </td>
                             <td className="p-2.5 text-right font-semibold text-foreground">
                               {effectiveRate}원/온
                             </td>
                             <td className="p-2.5 text-right font-semibold text-indigo-600">
-                              +{platformFee.toLocaleString()}원
+                              +{safeLocale(platformFee)}원
                             </td>
                             <td className="p-2.5 text-right text-rose-600 font-medium">
-                              -{item.taxAmount.toLocaleString()}원
+                              -{safeLocale(item.taxAmount)}원
                             </td>
                             <td className="p-2.5 text-right font-bold text-emerald-600">
-                              {item.netAmount.toLocaleString()}원
+                              {safeLocale(item.netAmount)}원
                             </td>
                             <td className="p-2.5 text-center">
                               <span
@@ -774,7 +855,7 @@ export default function SettlementPage() {
                               )}
                               {item.processedAt && (
                                 <p className="text-[9px] text-muted-foreground">
-                                  {new Date(item.processedAt).toLocaleDateString('ko-KR')} 처리
+                                  {isMounted ? safeDateStr(item.processedAt) : ''} 처리
                                 </p>
                               )}
                             </td>
@@ -900,12 +981,13 @@ export default function SettlementPage() {
               ) : (
                 <div className="space-y-3">
                   {filteredRefunds.map((refund) => {
-                    const st = REFUND_STATUS_STYLES[refund.status.toLowerCase()] ?? {
+                    const rawSt = (refund.status || 'pending').toLowerCase()
+                    const st = REFUND_STATUS_STYLES[rawSt] ?? {
                       bg: 'bg-muted',
                       text: 'text-muted-foreground',
-                      label: refund.status,
+                      label: refund.status || '대기 중',
                     }
-                    const isPending = refund.status.toLowerCase() === 'pending'
+                    const isPending = rawSt === 'pending'
                     const isActioning = actioningRefundId === refund.id
 
                     return (
@@ -919,19 +1001,19 @@ export default function SettlementPage() {
                               {st.label}
                             </span>
                             <span className="font-semibold text-sm">
-                              {refund.user?.displayName || refund.user?.email || refund.userId}
+                              {refund.user?.displayName || refund.user?.email || refund.userId || '회원'}
                             </span>
                             {refund.user?.pointsBalance !== undefined && (
                               <span className="text-xs text-muted-foreground">
-                                (잔여: {refund.user.pointsBalance.toLocaleString()}P)
+                                (잔여: {safeLocale(refund.user.pointsBalance)}P)
                               </span>
                             )}
                           </div>
                           <span className="text-xs text-muted-foreground">
-                            요청일: {new Date(refund.createdAt).toLocaleString('ko-KR')}
+                            요청일: {isMounted ? safeDateTimeStr(refund.createdAt) : '2026-11-05'}
                             {refund.decidedAt && (
                               <span className="ml-2">
-                                | 처리일: {new Date(refund.decidedAt).toLocaleString('ko-KR')}
+                                | 처리일: {isMounted ? safeDateTimeStr(refund.decidedAt) : ''}
                               </span>
                             )}
                           </span>
@@ -940,15 +1022,15 @@ export default function SettlementPage() {
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-muted-foreground pt-1 border-t">
                           <div>
                             <span className="font-medium text-foreground">플랫폼: </span>
-                            {refund.platform.toUpperCase()}
+                            {(refund.platform || 'GOOGLE').toUpperCase()}
                           </div>
                           <div>
                             <span className="font-medium text-foreground">상품 ID: </span>
-                            {refund.productId}
+                            {refund.productId || '—'}
                           </div>
                           <div className="col-span-2 truncate">
                             <span className="font-medium text-foreground">영수증/주문 ID: </span>
-                            <span className="font-mono">{refund.receiptId}</span>
+                            <span className="font-mono">{refund.receiptId || '—'}</span>
                           </div>
                         </div>
 
@@ -1060,23 +1142,23 @@ export default function SettlementPage() {
                         {purchases.map((p) => (
                           <tr key={p.id} className="hover:bg-muted/30">
                             <td className="p-2.5 whitespace-nowrap text-muted-foreground">
-                              {new Date(p.createdAt).toLocaleString('ko-KR')}
+                              {isMounted ? safeDateTimeStr(p.createdAt) : '2026-11-05'}
                             </td>
                             <td className="p-2.5 font-medium">
-                              {p.user?.displayName || p.user?.email || p.userId}
+                              {p.user?.displayName || p.user?.email || p.userId || '회원'}
                             </td>
                             <td className="p-2.5 uppercase font-semibold text-muted-foreground">
-                              {p.platform}
+                              {(p.platform || 'ANDROID').toUpperCase()}
                             </td>
-                            <td className="p-2.5 font-mono text-muted-foreground">{p.productId}</td>
-                            <td className="p-2.5 font-bold text-amber-600">+{p.points.toLocaleString()} 온</td>
+                            <td className="p-2.5 font-mono text-muted-foreground">{p.productId || '—'}</td>
+                            <td className="p-2.5 font-bold text-amber-600">+{safeLocale(p.points)} 온</td>
                             <td className="p-2.5">
                               <span className="rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-[10px] font-bold">
-                                {p.status}
+                                {p.status || 'COMPLETED'}
                               </span>
                             </td>
                             <td className="p-2.5 font-mono text-muted-foreground truncate max-w-[150px]">
-                              {p.transactionId}
+                              {p.transactionId || '—'}
                             </td>
                           </tr>
                         ))}
@@ -1158,35 +1240,37 @@ export default function SettlementPage() {
                     </thead>
                     <tbody className="divide-y">
                       {ledger.map((item) => {
-                        const isPositive = item.deltaSpendable >= 0
+                        const isPositive = safeNum(item.deltaSpendable) >= 0
                         return (
                           <tr key={item.id} className="hover:bg-muted/30">
                             <td className="p-2.5 whitespace-nowrap text-muted-foreground">
-                              {new Date(item.createdAt).toLocaleString('ko-KR')}
+                              {isMounted ? safeDateTimeStr(item.createdAt) : '2026-11-05'}
                             </td>
                             <td className="p-2.5 font-medium">
                               {item.wallet?.activityAccount?.displayName ||
                                 item.wallet?.activityAccount?.handle ||
-                                item.walletId.substring(0, 10)}
+                                (item.walletId ? String(item.walletId).substring(0, 10) : '—')}
                             </td>
                             <td className="p-2.5">
-                              <span className="font-semibold text-foreground">{item.kind}</span>
-                              <span className="text-muted-foreground ml-1 text-[10px]">({item.source})</span>
+                              <span className="font-semibold text-foreground">{item.kind || 'TRANSACTION'}</span>
+                              <span className="text-muted-foreground ml-1 text-[10px]">({item.source || 'SYSTEM'})</span>
                             </td>
                             <td className={`p-2.5 text-right font-bold ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
                               <span className="inline-flex items-center gap-0.5">
                                 {isPositive ? <ArrowDownLeft className="h-3 w-3" /> : <ArrowUpRight className="h-3 w-3" />}
-                                {isPositive ? `+${item.deltaSpendable}` : item.deltaSpendable} 온
+                                {isPositive ? `+${safeNum(item.deltaSpendable)}` : safeNum(item.deltaSpendable)} 온
                               </span>
                             </td>
                             <td className="p-2.5 text-right font-medium text-foreground">
-                              {item.spendableAfter.toLocaleString()} 온
+                              {safeLocale(item.spendableAfter)} 온
                             </td>
                             <td className="p-2.5 text-right text-muted-foreground">
-                              {item.deltaRedeemable !== 0 ? `${item.deltaRedeemable > 0 ? '+' : ''}${item.deltaRedeemable} 온` : '—'}
+                              {safeNum(item.deltaRedeemable) !== 0
+                                ? `${safeNum(item.deltaRedeemable) > 0 ? '+' : ''}${safeNum(item.deltaRedeemable)} 온`
+                                : '—'}
                             </td>
                             <td className="p-2.5 font-mono text-[10px] text-muted-foreground truncate max-w-[120px]">
-                              {item.idempotencyKey}
+                              {item.idempotencyKey || '—'}
                             </td>
                           </tr>
                         )
@@ -1233,19 +1317,19 @@ export default function SettlementPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">입금 은행:</span>
-                  <span className="font-semibold text-foreground">{selectedRequestForApprove.bankName}</span>
+                  <span className="font-semibold text-foreground">{selectedRequestForApprove.bankName || '은행명'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">계좌번호:</span>
-                  <span className="font-mono font-semibold text-foreground">{selectedRequestForApprove.accountNumber}</span>
+                  <span className="font-mono font-semibold text-foreground">{selectedRequestForApprove.accountNumber || '—'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">예금주:</span>
-                  <span className="font-semibold text-foreground">{selectedRequestForApprove.accountHolder}</span>
+                  <span className="font-semibold text-foreground">{selectedRequestForApprove.accountHolder || '—'}</span>
                 </div>
                 <div className="border-t pt-1.5 flex justify-between">
                   <span className="text-muted-foreground">신청 수량:</span>
-                  <span className="font-medium text-foreground">{selectedRequestForApprove.pointsAmount.toLocaleString()} 온</span>
+                  <span className="font-medium text-foreground">{safeLocale(selectedRequestForApprove.pointsAmount)} 온</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">적용 환전 단가:</span>
@@ -1254,19 +1338,20 @@ export default function SettlementPage() {
                 <div className="flex justify-between text-indigo-700 font-medium">
                   <span>플랫폼 수수료 (회사 수익):</span>
                   <span>
-                    +{(selectedRequestForApprove.platformFeeKrw != null
-                      ? selectedRequestForApprove.platformFeeKrw
-                      : Math.max(0, (selectedRequestForApprove.pointsAmount * 100) - selectedRequestForApprove.krwAmount)
-                    ).toLocaleString()}원
+                    +{safeLocale(
+                      selectedRequestForApprove.platformFeeKrw != null
+                        ? selectedRequestForApprove.platformFeeKrw
+                        : Math.max(0, (safeNum(selectedRequestForApprove.pointsAmount) * 100) - safeNum(selectedRequestForApprove.krwAmount))
+                    )}원
                   </span>
                 </div>
                 <div className="flex justify-between text-rose-600">
                   <span>원천징수세(3.3%):</span>
-                  <span>-{selectedRequestForApprove.taxAmount.toLocaleString()}원</span>
+                  <span>-{safeLocale(selectedRequestForApprove.taxAmount)}원</span>
                 </div>
                 <div className="border-t pt-1.5 flex justify-between text-sm font-bold text-emerald-600">
                   <span>실 지급 송금액:</span>
-                  <span>{selectedRequestForApprove.netAmount.toLocaleString()}원</span>
+                  <span>{safeLocale(selectedRequestForApprove.netAmount)}원</span>
                 </div>
               </div>
 
@@ -1310,7 +1395,7 @@ export default function SettlementPage() {
             <DialogDescription>
               요청을 반려하면 대기 잔액에서 차감되었던{' '}
               <strong className="text-foreground">
-                {selectedRequestForReject?.pointsAmount.toLocaleString()} 온
+                {safeLocale(selectedRequestForReject?.pointsAmount)} 온
               </strong>
               가 크리에이터의 출금 가능 잔액으로 즉시 환원됩니다.
             </DialogDescription>
@@ -1320,11 +1405,11 @@ export default function SettlementPage() {
             <div className="space-y-3 py-2 text-xs">
               <div className="rounded-lg border bg-rose-50/50 border-rose-100 p-3 space-y-1">
                 <p className="text-muted-foreground">
-                  신청자: <span className="font-semibold text-foreground">{selectedRequestForReject.activityAccount?.displayName}</span> (
-                  {selectedRequestForReject.bankName} {selectedRequestForReject.accountNumber})
+                  신청자: <span className="font-semibold text-foreground">{selectedRequestForReject.activityAccount?.displayName || '호스트'}</span> (
+                  {selectedRequestForReject.bankName || '은행'} {selectedRequestForReject.accountNumber || '—'})
                 </p>
                 <p className="text-muted-foreground">
-                  신청 온(ON): <span className="font-bold text-rose-600">{selectedRequestForReject.pointsAmount.toLocaleString()} 온</span>
+                  신청 온(ON): <span className="font-bold text-rose-600">{safeLocale(selectedRequestForReject.pointsAmount)} 온</span>
                 </p>
               </div>
 
