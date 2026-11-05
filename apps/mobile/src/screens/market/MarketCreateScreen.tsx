@@ -35,6 +35,7 @@ export default function MarketCreateScreen({ navigation }: any) {
   const [description, setDescription] = useState('');
   const [locationName, setLocationName] = useState('전국 (택배/직거래)');
   const [images, setImages] = useState<string[]>([SAMPLE_IMAGES[0]]);
+  const [allowLiveSale, setAllowLiveSale] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const handleAddSampleImage = () => {
@@ -81,6 +82,7 @@ export default function MarketCreateScreen({ navigation }: any) {
         status: 'ACTIVE',
         locationName: locationName.trim() || '전국 (택배/직거래)',
         distanceKm: 0.5,
+        allowLiveSale,
         seller: {
           id: 'my-user-id',
           nickname: '나 (판매자)',
@@ -89,12 +91,28 @@ export default function MarketCreateScreen({ navigation }: any) {
         },
       });
 
-      Alert.alert('등록 완료', '상품이 성공적으로 등록되었습니다.', [
-        {
-          text: '확인',
-          onPress: () => navigation.goBack(),
-        },
-      ]);
+      Alert.alert(
+        '중고물품 등록 완료',
+        allowLiveSale
+          ? '상품이 등록되었습니다!\n지금 바로 라이브 방송을 켜서 시청자들에게 이 상품을 소개·판매하시겠습니까?'
+          : '상품이 성공적으로 등록되었습니다.',
+        [
+          ...(allowLiveSale
+            ? [
+                {
+                  text: '🎙️ 지금 방송 켜기',
+                  onPress: () => {
+                    navigation.replace('Live');
+                  },
+                },
+              ]
+            : []),
+          {
+            text: '마켓 목록 보기',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
     } catch (err) {
       Alert.alert('오류', '물품 등록에 실패했습니다.');
     } finally {
@@ -240,6 +258,35 @@ export default function MarketCreateScreen({ navigation }: any) {
           value={description}
           onChangeText={setDescription}
         />
+
+        {/* 7-1. 라이브 방송 중 판매 연동 옵션 */}
+        <TouchableOpacity
+          style={[styles.liveOptionBox, allowLiveSale && styles.liveOptionBoxActive]}
+          activeOpacity={0.8}
+          onPress={() => setAllowLiveSale(!allowLiveSale)}
+        >
+          <View style={styles.liveOptionLeft}>
+            <View style={[styles.liveIconCircle, allowLiveSale && styles.liveIconCircleActive]}>
+              <Ionicons name="radio" size={18} color={allowLiveSale ? '#FFFFFF' : '#FF3B6B'} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.liveOptionTitle}>라이브 방송 판매 연동</Text>
+                <View style={styles.liveBadge}>
+                  <Text style={styles.liveBadgeText}>ON-AIR 핀</Text>
+                </View>
+              </View>
+              <Text style={styles.liveOptionSub}>
+                내가 라이브 방송을 켤 때 이 물품을 화면 핀(PIN)으로 즉시 소개·판매합니다.
+              </Text>
+            </View>
+          </View>
+          <Ionicons
+            name={allowLiveSale ? 'checkbox' : 'square-outline'}
+            size={22}
+            color={allowLiveSale ? '#FF3B6B' : '#94A3B8'}
+          />
+        </TouchableOpacity>
 
         {/* 8. 하단 등록 버튼 */}
         <TouchableOpacity
@@ -433,6 +480,61 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#FFEDD5',
+  },
+  liveOptionBox: {
+    marginTop: 18,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1.5,
+    borderColor: '#FFE4E6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'between',
+  },
+  liveOptionBoxActive: {
+    borderColor: '#FF3B6B',
+    backgroundColor: '#FFF5F7',
+  },
+  liveOptionLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginRight: 10,
+  },
+  liveIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFE4E6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  liveIconCircleActive: {
+    backgroundColor: '#FF3B6B',
+  },
+  liveOptionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  liveBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    backgroundColor: '#FF3B6B',
+  },
+  liveBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  liveOptionSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+    lineHeight: 15,
   },
   submitBottomBtn: {
     height: 50,

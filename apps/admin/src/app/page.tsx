@@ -250,6 +250,7 @@ export interface UsedProductItem {
   chatsCount: number
   createdAt: string
   status: 'ACTIVE' | 'RESERVED' | 'COMPLETED'
+  allowLiveSale?: boolean
 }
 
 export interface MarketProductItem {
@@ -1854,6 +1855,7 @@ export default function CustomerWebStorefrontPage() {
   const [newUsedCategory, setNewUsedCategory] = useState('디지털/가전')
   const [newUsedLocation, setNewUsedLocation] = useState('서울 강남구 역삼역')
   const [newUsedDesc, setNewUsedDesc] = useState('')
+  const [newUsedAllowLive, setNewUsedAllowLive] = useState(true)
 
   // Product Detail Modal
   const [selectedProduct, setSelectedProduct] = useState<MarketProductItem | null>(null)
@@ -2362,6 +2364,7 @@ export default function CustomerWebStorefrontPage() {
       chatsCount: 0,
       createdAt: '방금 전',
       status: 'ACTIVE',
+      allowLiveSale: newUsedAllowLive,
     }
     setUsedProducts([newItem, ...usedProducts])
     setIsNewUsedModalOpen(false)
@@ -9044,6 +9047,22 @@ export default function CustomerWebStorefrontPage() {
                   className="text-xs rounded-xl"
                 />
               </div>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+                <div>
+                  <span className="font-bold text-rose-700">라이브 방송 중 판매 연동</span>
+                  <p className="text-[10px] text-rose-600">내 방송 진행 시 화면에 핀(PIN)으로 띄워 실시간 판매합니다.</p>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={newUsedAllowLive}
+                onChange={(e) => setNewUsedAllowLive(e.target.checked)}
+                className="rounded border-rose-400 text-rose-600 w-4 h-4 cursor-pointer"
+              />
             </div>
 
             <Button

@@ -34,6 +34,7 @@ export interface MarketProduct {
   ownerType?: string;
   allowAffiliate?: boolean;
   affiliateCommissionRate?: number;
+  allowLiveSale?: boolean;
 }
 
 export const MARKET_CATEGORIES = [
