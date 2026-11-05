@@ -24,6 +24,7 @@ import {
   Percent,
   HelpCircle,
   Eye,
+  Plus,
 } from 'lucide-react'
 import { useWebAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/ui/use-toast'
@@ -76,6 +77,13 @@ const NOTICE_TEMPLATES: Record<string, { [key: string]: string }> = {
   },
 }
 
+export interface ProductOption {
+  id: string
+  name: string
+  additionalPrice: number
+  stock: number
+}
+
 export default function SellerProductRegisterPage() {
   const router = useRouter()
   const { user } = useWebAuth()
@@ -88,6 +96,43 @@ export default function SellerProductRegisterPage() {
   const [regularPrice, setRegularPrice] = useState('45000')
   const [price, setPrice] = useState('32900')
   const [stock, setStock] = useState('150')
+
+  // Option Matrix States
+  const [hasOptions, setHasOptions] = useState(false)
+  const [options, setOptions] = useState<ProductOption[]>([
+    { id: 'opt-1', name: '기본단량 500g', additionalPrice: 0, stock: 100 },
+    { id: 'opt-2', name: '대용량 1kg (+12,000원)', additionalPrice: 12000, stock: 50 },
+  ])
+
+  const handleAddOption = () => {
+    setOptions((prev) => [
+      ...prev,
+      {
+        id: `opt-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        name: '',
+        additionalPrice: 0,
+        stock: 50,
+      },
+    ])
+  }
+
+  const handleRemoveOption = (id: string) => {
+    if (options.length <= 1) {
+      toast({
+        title: '옵션 삭제 불가',
+        description: '최소 1개 이상의 옵션 행이 유지되어야 합니다.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setOptions((prev) => prev.filter((o) => o.id !== id))
+  }
+
+  const handleOptionChange = (id: string, field: keyof ProductOption, value: any) => {
+    setOptions((prev) =>
+      prev.map((o) => (o.id === id ? { ...o, [field]: value } : o))
+    )
+  }
 
   // Group Buy Settings
   const [groupTargetCount, setGroupTargetCount] = useState('50')
@@ -179,9 +224,24 @@ export default function SellerProductRegisterPage() {
       return
     }
 
+    if (hasOptions) {
+      const emptyOption = options.find((o) => !o.name.trim())
+      if (emptyOption) {
+        toast({
+          title: '옵션명을 모두 입력해주세요',
+          description: '옵션 항목 중 이름이 비어있는 항목이 있습니다.',
+          variant: 'destructive',
+        })
+        return
+      }
+    }
+
     const newId = `prod-${Date.now()}`
     const finalPrice = parseInt(price.replace(/,/g, ''), 10)
     const original = parseInt(regularPrice.replace(/,/g, ''), 10) || finalPrice
+    const calculatedStock = hasOptions
+      ? options.reduce((sum, o) => sum + (Number(o.stock) || 0), 0)
+      : parseInt(stock, 10) || 50
 
     const newProduct = {
       id: newId,
@@ -190,7 +250,16 @@ export default function SellerProductRegisterPage() {
       type: saleType,
       price: finalPrice,
       originalPrice: original,
-      stock: parseInt(stock, 10) || 50,
+      stock: calculatedStock,
+      hasOptions,
+      options: hasOptions
+        ? options.map((opt) => ({
+            id: opt.id,
+            name: opt.name.trim(),
+            additionalPrice: Number(opt.additionalPrice) || 0,
+            stock: Number(opt.stock) || 0,
+          }))
+        : [],
       shippingFee: shippingFeeType === 'FREE' ? 0 : parseInt(baseShippingFee, 10) || 3000,
       isFreeShipping: shippingFeeType === 'FREE',
       freeShippingThreshold:
@@ -479,15 +548,143 @@ export default function SellerProductRegisterPage() {
                 <div className="relative">
                   <input
                     type="number"
-                    value={stock}
+                    value={hasOptions ? options.reduce((sum, o) => sum + (Number(o.stock) || 0), 0) : stock}
                     onChange={(e) => setStock(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-bold pr-8 focus:bg-white"
+                    disabled={hasOptions}
+                    className={`w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-bold pr-8 focus:bg-white ${
+                      hasOptions ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''
+                    }`}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
                     개
                   </span>
                 </div>
+                {hasOptions && (
+                  <p className="text-[10px] text-indigo-600 mt-1 font-semibold">
+                    * 옵션 매트릭스 사용 시 개별 옵션 재고의 합으로 자동 산출됩니다.
+                  </p>
+                )}
               </div>
+            </div>
+
+            {/* Option Matrix Section */}
+            <div className="pt-5 border-t border-slate-200">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <div className="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                    <span>규격 / 사이즈 / 단량별 옵션 설정</span>
+                    <Badge variant={hasOptions ? 'default' : 'outline'} className="text-[10px]">
+                      {hasOptions ? '옵션 매트릭스 사용' : '단일 상품 (옵션 미사용)'}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    사이즈, 용량, 색상별 추가 가격(+/-)과 개별 재고를 분리 관리할 수 있습니다.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hasOptions}
+                    onChange={(e) => setHasOptions(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+              </div>
+
+              {hasOptions && (
+                <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-700">
+                      등록된 옵션 목록 ({options.length}개)
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={handleAddOption}
+                      className="text-xs h-8 gap-1 bg-white hover:bg-slate-100"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      옵션 행 추가
+                    </Button>
+                  </div>
+
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-slate-100/80 border-b border-slate-200 text-slate-600 font-semibold">
+                        <tr>
+                          <th className="py-2.5 px-3">옵션명 (규격/사이즈/단량)</th>
+                          <th className="py-2.5 px-3 w-40">추가금 (+/- 원)</th>
+                          <th className="py-2.5 px-3 w-32">개별 재고(개)</th>
+                          <th className="py-2.5 px-2 text-center w-12">삭제</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {options.map((opt, idx) => (
+                          <tr key={opt.id} className="hover:bg-slate-50/60">
+                            <td className="py-2 px-3">
+                              <input
+                                type="text"
+                                value={opt.name}
+                                onChange={(e) => handleOptionChange(opt.id, 'name', e.target.value)}
+                                placeholder={`예: 단량 1kg (+12,000원), L 사이즈 (옵션 ${idx + 1})`}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:bg-white focus:border-indigo-500"
+                              />
+                            </td>
+                            <td className="py-2 px-3">
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  value={opt.additionalPrice}
+                                  onChange={(e) =>
+                                    handleOptionChange(opt.id, 'additionalPrice', Number(e.target.value) || 0)
+                                  }
+                                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-900 pr-6 focus:bg-white focus:border-indigo-500"
+                                />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">
+                                  원
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-2 px-3">
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  value={opt.stock}
+                                  onChange={(e) =>
+                                    handleOptionChange(opt.id, 'stock', Number(e.target.value) || 0)
+                                  }
+                                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-900 pr-6 focus:bg-white focus:border-indigo-500"
+                                />
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">
+                                  개
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveOption(opt.id)}
+                                className="p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition"
+                                title="옵션 삭제"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="text-[11px] text-slate-500 flex items-center justify-between px-1">
+                    <span>* 옵션 추가금은 기본 판매가에 합산되어 구매자 결제창에 표기됩니다.</span>
+                    <span className="font-semibold text-indigo-600">
+                      총 재고 합계: {options.reduce((sum, o) => sum + (Number(o.stock) || 0), 0)}개
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 

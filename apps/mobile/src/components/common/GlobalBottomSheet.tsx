@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.55)',
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...(StyleSheet.absoluteFill as any),
   },
   sheetContainer: {
     backgroundColor: tokens.colors.surface,

@@ -270,6 +270,7 @@ export default function MarketProductDetailPage() {
   const [isLiked, setIsLiked] = useState(false)
   const [activeTab, setActiveTab] = useState<'DETAIL' | 'NOTICE' | 'SHIPPING' | 'MERCHANT' | 'REVIEW'>('DETAIL')
   const [isGroupJoinedModalOpen, setIsGroupJoinedModalOpen] = useState(false)
+  const [selectedOptionId, setSelectedOptionId] = useState<string>('')
 
   // 장바구니 Drawer 상태 및 아이템 목록
   const [isCartOpen, setIsCartOpen] = useState(false)
@@ -353,9 +354,34 @@ export default function MarketProductDetailPage() {
 
   useEffect(() => {
     // 1. Check local samples
-    const found = SAMPLE_MARKET_PRODUCTS[productId]
+    let found = SAMPLE_MARKET_PRODUCTS[productId]
+
+    // 2. Check localStorage for custom products (merchant registered & HQ PB)
+    if (!found && typeof window !== 'undefined') {
+      try {
+        const customProds = JSON.parse(localStorage.getItem('mocco_custom_products') || '[]')
+        const matchCustom = Array.isArray(customProds)
+          ? customProds.find((p: any) => p.id === productId)
+          : null
+        if (matchCustom) found = matchCustom
+
+        if (!found) {
+          const hqProds = JSON.parse(localStorage.getItem('mocco_hq_direct_products') || '[]')
+          const matchHq = Array.isArray(hqProds)
+            ? hqProds.find((p: any) => p.id === productId)
+            : null
+          if (matchHq) found = matchHq
+        }
+      } catch (e) {
+        console.warn('Failed to parse custom products', e)
+      }
+    }
+
     if (found) {
       setProduct(found)
+      if (found.hasOptions && Array.isArray(found.options) && found.options.length > 0) {
+        setSelectedOptionId(found.options[0].id)
+      }
       setLoading(false)
     } else {
       // Fallback default item
@@ -429,13 +455,25 @@ export default function MarketProductDetailPage() {
       ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
       : 0
 
-  const totalPrice = product.price * quantity
-  const shippingFee = product.isFreeShipping || (product.freeShippingThreshold && totalPrice >= product.freeShippingThreshold) ? 0 : (product.shippingFee || 3000)
+  const selectedOption =
+    product.hasOptions && Array.isArray(product.options)
+      ? product.options.find((o: any) => o.id === selectedOptionId) || product.options[0]
+      : null
+
+  const unitPrice =
+    (product.price || 0) + (selectedOption ? Number(selectedOption.additionalPrice) || 0 : 0)
+
+  const totalPrice = unitPrice * quantity
+  const shippingFee =
+    product.isFreeShipping || (product.freeShippingThreshold && totalPrice >= product.freeShippingThreshold)
+      ? 0
+      : product.shippingFee || 3000
   const grandTotal = totalPrice + shippingFee
 
   // 구매 버튼 클릭 (게스트는 즉시 로그인 유도)
   const handleBuyNow = () => {
     requireAuth(() => {
+      const optionLabel = selectedOption ? ` [옵션: ${selectedOption.name}]` : ''
       if (isGroup) {
         setIsGroupJoinedModalOpen(true)
         toast({
@@ -445,7 +483,7 @@ export default function MarketProductDetailPage() {
       } else {
         toast({
           title: '🛡️ 토스페이먼츠 PG 에스크로 안전결제 주문 생성',
-          description: `${product.name} (${quantity}개) 총 ${grandTotal.toLocaleString()}원이 에스크로 안전 금고에 예치되었습니다. 수령 후 [구매확정]을 누르면 판매자에게 정산됩니다.`,
+          description: `${product.name}${optionLabel} (${quantity}개) 총 ${grandTotal.toLocaleString()}원이 에스크로 안전 금고에 예치되었습니다. 수령 후 [구매확정]을 누르면 판매자에게 정산됩니다.`,
         })
       }
     })
@@ -478,7 +516,9 @@ export default function MarketProductDetailPage() {
   // 장바구니 담기
   const handleAddToCart = () => {
     requireAuth(() => {
-      const idx = cartItems.findIndex((item) => item.id === product.id)
+      const optionLabel = selectedOption ? ` [옵션: ${selectedOption.name}]` : ''
+      const cartItemId = selectedOption ? `${product.id}_${selectedOption.id}` : product.id
+      const idx = cartItems.findIndex((item) => item.id === cartItemId)
       let updated: typeof cartItems = []
       if (idx > -1) {
         updated = cartItems.map((item, i) =>
@@ -488,9 +528,9 @@ export default function MarketProductDetailPage() {
         updated = [
           ...cartItems,
           {
-            id: product.id,
-            name: product.name,
-            price: product.price,
+            id: cartItemId,
+            name: `${product.name}${optionLabel}`,
+            price: unitPrice,
             quantity: quantity,
             image: product.images[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500',
             shippingFee: product.shippingFee || 3000,
@@ -501,7 +541,7 @@ export default function MarketProductDetailPage() {
       localStorage.setItem('mocco_cart', JSON.stringify(updated))
       toast({
         title: '🛒 장바구니에 담겼습니다!',
-        description: `${product.name} (${quantity}개)가 추가되었습니다. 장바구니를 확인해보세요.`,
+        description: `${product.name}${optionLabel} (${quantity}개)가 추가되었습니다. 장바구니를 확인해보세요.`,
       })
       setIsCartOpen(true)
     })
@@ -804,6 +844,35 @@ export default function MarketProductDetailPage() {
                 <span className="font-semibold text-indigo-600">{product.shippingInfo?.deliveryDays || '당일 발송'}</span>
               </div>
             </div>
+
+            {/* 옵션 선택 드롭다운 (옵션 매트릭스 활성화 상품) */}
+            {product.hasOptions && Array.isArray(product.options) && product.options.length > 0 && (
+              <div className="space-y-1.5 py-2.5 bg-slate-50/80 p-3 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                  <span>상품 옵션 선택 <strong className="text-rose-500">*</strong></span>
+                  <Badge variant="outline" className="text-[10px] bg-white text-indigo-700 border-indigo-200">
+                    {product.options.length}개 규격
+                  </Badge>
+                </div>
+                <select
+                  value={selectedOptionId}
+                  onChange={(e) => setSelectedOptionId(e.target.value)}
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {product.options.map((opt: any) => (
+                    <option key={opt.id} value={opt.id} disabled={opt.stock <= 0}>
+                      {opt.name} {opt.additionalPrice > 0 ? `(+${opt.additionalPrice.toLocaleString()}원)` : opt.additionalPrice < 0 ? `(-${Math.abs(opt.additionalPrice).toLocaleString()}원)` : '(추가금 없음)'} {opt.stock <= 0 ? '[품절]' : `[재고 ${opt.stock}개]`}
+                    </option>
+                  ))}
+                </select>
+                {selectedOption && (
+                  <div className="text-[11px] text-slate-600 flex justify-between items-center pt-1 px-1">
+                    <span>선택: <strong className="text-slate-900">{selectedOption.name}</strong></span>
+                    <span className="font-bold text-indigo-600">단가 {unitPrice.toLocaleString()}원</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* 수량 선택기 (C2C 중고는 수량 1개 고정) */}
             {!isUsed && !isGroup && (

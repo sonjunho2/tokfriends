@@ -80,7 +80,7 @@ export default function MarketScreen({ navigation }: any) {
           setAds(items);
           if (items[0]?.id && !seenImpressionRef.current.has(items[0].id)) {
             seenImpressionRef.current.add(items[0].id);
-            recordAdImpression(items[0].id).catch(() => {});
+            try { recordAdImpression(items[0].id); } catch {}
           }
         }
       })
@@ -103,7 +103,7 @@ export default function MarketScreen({ navigation }: any) {
         const currentAd = ads[nextIndex];
         if (currentAd?.id && !seenImpressionRef.current.has(currentAd.id)) {
           seenImpressionRef.current.add(currentAd.id);
-          recordAdImpression(currentAd.id).catch(() => {});
+          try { recordAdImpression(currentAd.id); } catch {}
         }
         return nextIndex;
       });
@@ -148,7 +148,7 @@ export default function MarketScreen({ navigation }: any) {
 
   // 배너 클릭 핸들러
   const handleBannerPress = (ad: AdvertisementItem) => {
-    recordAdClick(ad.id).catch(() => {});
+    try { recordAdClick(ad.id); } catch {}
     if (ad.targetUrl) {
       Linking.openURL(ad.targetUrl).catch((err) => {
         console.warn('Cannot open ad url:', err);
@@ -489,7 +489,7 @@ export default function MarketScreen({ navigation }: any) {
               const cur = ads[index];
               if (cur?.id && !seenImpressionRef.current.has(cur.id)) {
                 seenImpressionRef.current.add(cur.id);
-                recordAdImpression(cur.id).catch(() => {});
+                try { recordAdImpression(cur.id); } catch {}
               }
             }
           }}

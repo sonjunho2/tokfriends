@@ -258,7 +258,7 @@ const GiftAnimationInner = memo(({ gift, onAnimationFinish }: GiftAnimationInner
       {tier === 3 && (
         <Animated.View
           style={[
-            StyleSheet.absoluteFillObject,
+            StyleSheet.absoluteFill as any,
             styles.darkBackdrop,
             { opacity: darkBackdropAnim },
           ]}
@@ -346,7 +346,7 @@ export default GiftOverlay;
 
 const styles = StyleSheet.create({
   absoluteContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...(StyleSheet.absoluteFill as any),
     zIndex: 9999,
     justifyContent: 'center',
     alignItems: 'center',

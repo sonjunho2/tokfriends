@@ -182,6 +182,43 @@ export default function StreamerStudioPage() {
           setCompletedOrdersCount(json.completedOrdersCount)
         }
       }
+
+      // Sync newly planned HQ Direct products if affiliate is allowed
+      if (typeof window !== 'undefined') {
+        const storedHq = localStorage.getItem('mocco_hq_direct_products')
+        if (storedHq) {
+          const parsedHq = JSON.parse(storedHq)
+          if (Array.isArray(parsedHq)) {
+            const hqAffiliates: AffiliateProductItem[] = parsedHq
+              .filter((p: any) => p.allowAffiliate && p.status === 'ACTIVE')
+              .map((p: any) => ({
+                id: p.id,
+                name: p.name,
+                description: p.description || p.subTitle || '',
+                priceKrw: Number(p.priceKrw || p.salePriceKrw),
+                salePriceKrw: Number(p.salePriceKrw),
+                effectivePrice: Number(p.salePriceKrw),
+                stock: Number(p.stock || 100),
+                images: Array.isArray(p.images) && p.images.length > 0 ? p.images : ['https://images.unsplash.com/photo-1544025162-d76694265947?w=800'],
+                category: p.category || 'FOOD',
+                shippingFee: Number(p.shippingFee || 0),
+                ownerType: 'HEADQUARTERS',
+                isHqDirect: true,
+                commissionRate: Number(p.affiliateCommissionRate || 10.0),
+                estimatedCommissionKrw: Math.floor((Number(p.salePriceKrw) * Number(p.affiliateCommissionRate || 10.0)) / 100),
+                merchantName: '모꼬(MOCCO) 본사 직영관',
+              }))
+
+            if (hqAffiliates.length > 0) {
+              setAvailableProducts((prev) => {
+                const hqIds = new Set(hqAffiliates.map((item) => item.id))
+                const remaining = prev.filter((item) => !hqIds.has(item.id))
+                return [...hqAffiliates, ...remaining]
+              })
+            }
+          }
+        }
+      }
     } catch {}
     setIsLoading(false)
   }

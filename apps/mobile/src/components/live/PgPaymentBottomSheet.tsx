@@ -117,7 +117,7 @@ export default function PgPaymentBottomSheet({
     }
   };
 
-  const handlePgComplete = (paymentKey: string) => {
+  const handlePgComplete = (result: any) => {
     setPgModalVisible(false);
     if (pgOrderData) {
       onSuccess(pgOrderData.orderId, pgOrderData.orderNumber);

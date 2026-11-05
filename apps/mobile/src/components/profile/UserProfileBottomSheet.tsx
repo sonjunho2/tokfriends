@@ -12,6 +12,7 @@ import {
   PanResponder,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ActiveCallModal, { CallSessionData } from '../calls/ActiveCallModal';
@@ -145,6 +146,7 @@ export const UserProfileBottomSheet = memo(({
       // 2. POST /api/calls/start 세션 개설
       const res = await apiClient.startCall({
         hostUserId: user.id,
+        channelName: `call-${user.id}-${Date.now()}`,
       });
 
       const sessionData: CallSessionData = {
@@ -217,7 +219,7 @@ export const UserProfileBottomSheet = memo(({
     >
       <View style={styles.modalBackdrop}>
         <TouchableOpacity
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill as any}
           activeOpacity={1}
           onPress={onClose}
         />

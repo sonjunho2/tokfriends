@@ -70,9 +70,9 @@ export default function ProductDetailScreen({ route, navigation }: any) {
       const stored = await AsyncStorage.getItem('@mocco_cart');
       const items = stored ? JSON.parse(stored) : [];
       const targetId = isNormal ? normalProduct?.id : product?.id;
-      const targetName = isNormal ? normalProduct?.name : product?.name;
-      const targetPrice = isNormal ? (normalProduct?.salePrice || normalProduct?.price) : product?.price;
-      const targetImg = isNormal ? (normalProduct?.images?.[0] || normalProduct?.thumbnailUrl) : (product?.images?.[0] || product?.imageUrl);
+      const targetName = isNormal ? normalProduct?.name : ((product as any)?.name || (product as any)?.title);
+      const targetPrice = isNormal ? ((normalProduct as any)?.salePriceKrw || (normalProduct as any)?.salePrice || (normalProduct as any)?.priceKrw || (normalProduct as any)?.price) : product?.price;
+      const targetImg = isNormal ? (normalProduct?.images?.[0] || (normalProduct as any)?.thumbnailUrl) : (product?.images?.[0] || (product as any)?.imageUrl);
 
       const idx = items.findIndex((i: any) => i.id === targetId);
       if (idx > -1) {
@@ -150,7 +150,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
   const handleShareProduct = async () => {
     try {
       const pId = productId || (isNormal ? normalProduct?.id : product?.id);
-      const name = isNormal ? normalProduct?.name : product?.name;
+      const name = isNormal ? normalProduct?.name : ((product as any)?.name || (product as any)?.title);
       const shareUrl = `https://dagaon.app/share/market/${pId}`;
       let discountRate = 0;
       if (isNormal && normalProduct) {
@@ -248,7 +248,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
       price: finalPrice,
       originalPrice: originalPrice,
       images: images,
-      status: isOutOfStock ? 'SOLD_OUT' : 'ACTIVE',
+      status: isOutOfStock ? 'COMPLETED' : 'ACTIVE',
       locationName: '전국 무료배송',
       distanceKm: 0,
       seller: {
@@ -262,7 +262,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
       createdAt: normalProduct.createdAt || '방금 전',
     };
 
-    const isGroupDeal = normalProduct.type === 'B2C_GROUP' || Boolean(normalProduct.targetQuantity);
+    const isGroupDeal = (normalProduct as any).type === 'B2C_GROUP' || Boolean((normalProduct as any).targetQuantity);
 
     return (
       <View style={styles.container}>

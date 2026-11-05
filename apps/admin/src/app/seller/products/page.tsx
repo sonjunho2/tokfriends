@@ -40,6 +40,8 @@ interface ProductItem {
   status: 'ACTIVE' | 'OUT_OF_STOCK' | 'HIDDEN'
   shippingFee: number
   createdAt: string
+  hasOptions?: boolean
+  options?: { id: string; name: string; additionalPrice: number; stock: number }[]
 }
 
 export default function SellerProductsPage() {
@@ -70,12 +72,13 @@ export default function SellerProductsPage() {
   const fetchProducts = async () => {
     setLoading(true)
     try {
+      let baseList: ProductItem[] = []
       const res = await api.get('/api/merchants/my?userId=u-merchant-1')
       if (res.data?.products && res.data.products.length > 0) {
-        setProducts(res.data.products)
+        baseList = res.data.products
       } else {
         // Fallback default merchant products
-        setProducts([
+        baseList = [
           {
             id: 'np-001',
             merchantId: 'mer-001',
@@ -89,6 +92,11 @@ export default function SellerProductsPage() {
             status: 'ACTIVE',
             shippingFee: 3000,
             createdAt: '2026-10-15',
+            hasOptions: true,
+            options: [
+              { id: 'opt-1', name: '오겹살 500g', additionalPrice: 0, stock: 90 },
+              { id: 'opt-2', name: '오겹살 1kg (+14,000원)', additionalPrice: 14000, stock: 60 },
+            ],
           },
           {
             id: 'np-002',
@@ -104,8 +112,38 @@ export default function SellerProductsPage() {
             shippingFee: 0,
             createdAt: '2026-10-17',
           },
-        ])
+        ]
       }
+
+      if (typeof window !== 'undefined') {
+        try {
+          const custom = JSON.parse(localStorage.getItem('mocco_custom_products') || '[]')
+          if (Array.isArray(custom) && custom.length > 0) {
+            const mapped: ProductItem[] = custom.map((c: any) => ({
+              id: c.id,
+              merchantId: 'mer-001',
+              name: c.name,
+              description: c.description || c.name,
+              priceKrw: c.originalPrice || c.price,
+              salePriceKrw: c.price,
+              stock: c.stock || 50,
+              images: c.images || [],
+              category: c.category || 'FOOD',
+              status: 'ACTIVE',
+              shippingFee: c.shippingFee || 0,
+              createdAt: (c.createdAt || new Date().toISOString()).split('T')[0],
+              hasOptions: c.hasOptions,
+              options: c.options,
+            }))
+            const existingIds = new Set(mapped.map((m) => m.id))
+            baseList = [...mapped, ...baseList.filter((b) => !existingIds.has(b.id))]
+          }
+        } catch (storageErr) {
+          console.warn('Failed to parse mocco_custom_products', storageErr)
+        }
+      }
+
+      setProducts(baseList)
     } catch (err: any) {
       console.warn('Fallback products:', err?.message)
     } finally {
@@ -332,7 +370,17 @@ export default function SellerProductsPage() {
                             className="w-12 h-12 rounded-lg object-cover border border-border bg-muted shrink-0"
                           />
                           <div className="min-w-0">
-                            <div className="font-semibold text-foreground line-clamp-1">{p.name}</div>
+                            <div className="font-semibold text-foreground line-clamp-1 flex items-center gap-2">
+                              <span>{p.name}</span>
+                              {p.hasOptions && p.options && p.options.length > 0 && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] bg-indigo-50 text-indigo-700 border-indigo-200 shrink-0 font-bold px-1.5 py-0"
+                                >
+                                  옵션 {p.options.length}종
+                                </Badge>
+                              )}
+                            </div>
                             <div className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                               {p.description}
                             </div>

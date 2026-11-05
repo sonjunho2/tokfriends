@@ -167,7 +167,7 @@ export default function MarketCreateScreen({ navigation }: any) {
 
           {images.map((img, idx) => (
             <View key={idx} style={styles.photoThumbBox}>
-              <Image source={{ uri: img }} style={styles.photoThumb} />
+              <Image source={{ uri: img }} style={styles.photoThumb as any} />
               {idx === 0 && (
                 <View style={styles.primaryBadge}>
                   <Text style={styles.primaryBadgeText}>대표</Text>
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFE4E6',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'between',
+    justifyContent: 'space-between',
   },
   liveOptionBoxActive: {
     borderColor: '#FF3B6B',

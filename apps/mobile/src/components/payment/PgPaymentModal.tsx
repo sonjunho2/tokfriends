@@ -26,10 +26,13 @@ export interface PgPaymentResult {
 
 interface PgPaymentModalProps {
   visible: boolean;
-  product: MarketProduct | null;
+  product?: MarketProduct | null;
   liveId?: string;
   onClose: () => void;
   onSuccess: (result: PgPaymentResult) => void;
+  orderId?: string;
+  amount?: number;
+  productTitle?: string;
 }
 
 type PaymentMethodType = 'CARD' | 'KAKAOPAY' | 'TOSSPAY' | 'NAVERPAY';
