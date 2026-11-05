@@ -6,6 +6,7 @@ import * as path from 'path';
 import { Public } from '../auth/public.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { decryptAdminSettingValue, encryptAdminSettingValue } from '../admin/admin-settings.crypto';
+const { RtcTokenBuilder, RtcRole } = require('agora-access-token');
 
 const MOCK_LIVE_ROOMS = [
   {
@@ -970,8 +971,9 @@ export class LiveController {
   async getAgoraToken(
     @Param('roomId') roomId: string,
     @Query('role') role = 'subscriber',
+    @Query('uid') reqUid?: string,
   ) {
-    let appId = process.env.AGORA_APP_ID || 'dagaon_agora_live';
+    let appId = process.env.AGORA_APP_ID || '';
     let appCertificate = process.env.AGORA_APP_CERTIFICATE || '';
     let streamMode = 'AGORA_RTC';
 
@@ -1001,7 +1003,35 @@ export class LiveController {
       }
     } catch {}
 
-    const token = `tok_agora_${roomId}_${Date.now()}`;
+    const numericUid = reqUid && !isNaN(Number(reqUid)) && Number(reqUid) > 0
+      ? Number(reqUid)
+      : Math.floor(Math.random() * 899999) + 100000;
+
+    let token = '';
+    const rtcRole = role === 'publisher' ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
+    // 24시간 유효 토큰 (86,400초)
+    const privilegeExpiredTs = Math.floor(Date.now() / 1000) + 86400;
+
+    if (appId && appCertificate && appCertificate.length >= 10) {
+      try {
+        token = RtcTokenBuilder.buildTokenWithUid(
+          appId,
+          appCertificate,
+          roomId,
+          numericUid,
+          rtcRole,
+          privilegeExpiredTs,
+        );
+      } catch (err) {
+        console.error('[Agora Token] Generation error:', err);
+        token = `tok_agora_${roomId}_${Date.now()}`;
+      }
+    } else if (appId) {
+      // 인증서 없는 프로젝트의 경우 App ID 자체 또는 채널 식별자 사용
+      token = appId;
+    } else {
+      token = `tok_agora_${roomId}_${Date.now()}`;
+    }
 
     return {
       ok: true,
@@ -1009,7 +1039,8 @@ export class LiveController {
       token,
       channelName: roomId,
       role,
-      uid: Math.floor(Math.random() * 100000) + 1,
+      uid: numericUid,
+      privilegeExpiredTs,
       streamDeliveryMode: streamMode,
       mode: streamMode,
     };

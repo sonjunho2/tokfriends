@@ -40,6 +40,7 @@ import LiveProductPinCard from '../../components/live/LiveProductPinCard';
 import LiveEscrowBuyModal from '../../components/live/LiveEscrowBuyModal';
 import HostLiveControlSheet from '../../components/live/HostLiveControlSheet';
 import PgPaymentBottomSheet from '../../components/live/PgPaymentBottomSheet';
+import AgoraLivePlayer from '../../components/streaming/AgoraLivePlayer';
 import { fetchMarketProducts } from '../../services/marketService';
 
 const LIVE_ACCENT = '#FF3B6B';
@@ -1413,22 +1414,25 @@ export default function LiveRoomScreen({ navigation, route }) {
                 </TouchableOpacity>
               )
             ) : (
-              /* 시청자 화면: 호스트의 실시간 영상 방송 센터 워터마크 */
-              <View style={styles.videoCenterBadge}>
-                <Avatar
-                  size={96}
-                  name={room?.host?.name}
-                  uri={room?.host?.avatar}
-                  showBorder
-                  style={styles.hostAvatarVisual}
-                />
-                <Text style={styles.videoHostCaption}>
-                  {room?.host?.name || '호스트'}님의 실시간 영상 방송
-                </Text>
-                <Text style={styles.viewerRoleSubtitle}>
-                  시청자 모드로 참여 중입니다
-                </Text>
-              </View>
+              /* 시청자 화면: Agora WebRTC 실시간 영상 스트림 */
+              <AgoraLivePlayer
+                appId={agoraTokenData?.appId}
+                token={agoraTokenData?.token}
+                channelName={agoraTokenData?.channelName || roomId}
+                uid={agoraTokenData?.uid}
+                isHost={false}
+                isVideoSubscribed={isVideoSubscribed}
+                isSpeakerMuted={isSpeakerMuted}
+                hostInfo={{
+                  name: room?.host?.name || '호스트',
+                  avatar: room?.host?.avatar,
+                }}
+                onStreamStatusChange={(status) => {
+                  if (status === 'connected' || status === 'playing') {
+                    setStreamConnecting(false);
+                  }
+                }}
+              />
             )}
           </View>
         ) : (

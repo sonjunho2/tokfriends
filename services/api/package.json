@@ -60,7 +60,8 @@
     "rxjs": "7.8.2",
     "socket.io": "4.8.1",
     "swagger-ui-express": "5.0.1",
-    "ws": "^8.22.0"
+    "ws": "^8.22.0",
+    "agora-access-token": "^2.0.4"
   },
   "devDependencies": {
     "@nestjs/cli": "10.4.9",

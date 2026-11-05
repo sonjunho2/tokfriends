@@ -46,8 +46,124 @@ export default function WebLivePlayerPage() {
 
   // Video & Stream State
   const [isMuted, setIsMuted] = useState(true)
+  const isMutedRef = useRef(isMuted)
+  isMutedRef.current = isMuted
   const [likesCount, setLikesCount] = useState(3840)
   const [viewerCount, setViewerCount] = useState(1420)
+  const [streamConnecting, setStreamConnecting] = useState(true)
+  const [streamPlaying, setStreamPlaying] = useState(false)
+  const videoContainerRef = useRef<HTMLDivElement>(null)
+  const agoraClientRef = useRef<any>(null)
+  const remoteAudioTrackRef = useRef<any>(null)
+  const remoteVideoTrackRef = useRef<any>(null)
+
+  // Agora WebRTC Realtime Stream Integration
+  useEffect(() => {
+    let unmounted = false
+
+    const initStream = async () => {
+      try {
+        setStreamConnecting(true)
+
+        if (!(window as any).AgoraRTC) {
+          await new Promise<void>((resolve, reject) => {
+            const script = document.createElement('script')
+            script.src = 'https://download.agora.io/sdk/release/AgoraRTC_N-4.22.0.js'
+            script.async = true
+            script.onload = () => resolve()
+            script.onerror = () => reject(new Error('Agora SDK 로드 실패'))
+            document.head.appendChild(script)
+          })
+        }
+
+        if (unmounted) return
+
+        let tokenData: any = null
+        try {
+          const res: any = await api.get(`/v1/live/rooms/${liveId}/agora-token?role=subscriber`)
+          tokenData = res?.data ?? res
+        } catch {
+          tokenData = {
+            appId: 'dagaon_agora_live',
+            token: '',
+            channelName: liveId,
+            uid: Math.floor(Math.random() * 900000) + 100000,
+          }
+        }
+
+        if (!tokenData?.appId || unmounted) return
+
+        const AgoraRTC = (window as any).AgoraRTC
+        AgoraRTC.setLogLevel(2)
+        const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' })
+        agoraClientRef.current = client
+
+        await client.setClientRole('audience', { level: 1 })
+
+        client.on('user-published', async (user: any, mediaType: string) => {
+          try {
+            await client.subscribe(user, mediaType)
+            if (mediaType === 'video') {
+              remoteVideoTrackRef.current = user.videoTrack
+              if (videoContainerRef.current) {
+                videoContainerRef.current.innerHTML = ''
+                user.videoTrack.play(videoContainerRef.current, { fit: 'cover' })
+              }
+              setStreamPlaying(true)
+              setStreamConnecting(false)
+            }
+            if (mediaType === 'audio') {
+              remoteAudioTrackRef.current = user.audioTrack
+              if (!isMutedRef.current) {
+                user.audioTrack.play()
+              }
+            }
+          } catch (subErr) {
+            console.error('Web Agora subscribe error:', subErr)
+          }
+        })
+
+        client.on('user-unpublished', (user: any, mediaType: string) => {
+          if (mediaType === 'video') {
+            setStreamPlaying(false)
+          }
+        })
+
+        await client.join(
+          tokenData.appId,
+          tokenData.channelName || liveId,
+          tokenData.token && tokenData.token.length > 5 ? tokenData.token : null,
+          tokenData.uid || null
+        )
+
+        setStreamConnecting(false)
+      } catch (err: any) {
+        console.warn('Agora WebRTC init notice:', err?.message || err)
+        setStreamConnecting(false)
+      }
+    }
+
+    initStream()
+
+    return () => {
+      unmounted = true
+      if (agoraClientRef.current) {
+        try {
+          agoraClientRef.current.leave()
+        } catch {}
+      }
+    }
+  }, [liveId])
+
+  useEffect(() => {
+    if (remoteAudioTrackRef.current) {
+      if (isMuted) {
+        remoteAudioTrackRef.current.stop()
+      } else {
+        remoteAudioTrackRef.current.play()
+      }
+    }
+  }, [isMuted])
 
   // Floating Pinned Product
   const pinnedProduct = {
@@ -240,23 +356,35 @@ export default function WebLivePlayerPage() {
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Left: Video Player Area */}
         <div className="flex-1 relative bg-black flex flex-col justify-between overflow-hidden min-h-[420px] lg:min-h-0">
+          {/* Agora Remote WebRTC Video Layer */}
+          <div
+            ref={videoContainerRef}
+            className={`absolute inset-0 z-10 w-full h-full overflow-hidden [&_video]:w-full [&_video]:h-full [&_video]:object-cover ${
+              streamPlaying ? 'opacity-100' : 'opacity-0'
+            } transition-opacity duration-300`}
+          />
+
           {/* Animated Video Background Mockup */}
           <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-rose-950 to-indigo-950 opacity-90">
             <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#ff3b6b_1px,transparent_1px)] [background-size:16px_16px]" />
           </div>
 
           {/* Center Live Ambient Graphic */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-10 pointer-events-none">
-            <div className="w-20 h-20 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 mb-4 animate-pulse">
-              <Radio className="w-10 h-10" />
+          {!streamPlaying && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-10 pointer-events-none">
+              <div className="w-20 h-20 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 mb-4 animate-pulse">
+                <Radio className="w-10 h-10" />
+              </div>
+              <h1 className="text-xl md:text-2xl font-black tracking-tight text-white max-w-lg">
+                [산지직송] 제주도 특급 흑돼지 & 한라봉 실시간 특별 할인전
+              </h1>
+              <p className="text-xs text-slate-400 mt-1">
+                {streamConnecting
+                  ? 'Agora 실시간 고화질 스트림 연결 중...'
+                  : '호스트: 제주푸드 본사 직영 | 실시간 에스크로 결제 가동 중'}
+              </p>
             </div>
-            <h1 className="text-xl md:text-2xl font-black tracking-tight text-white max-w-lg">
-              [산지직송] 제주도 특급 흑돼지 & 한라봉 실시간 특별 할인전
-            </h1>
-            <p className="text-xs text-slate-400 mt-1">
-              호스트: 제주푸드 본사 직영 | 실시간 에스크로 결제 가동 중
-            </p>
-          </div>
+          )}
 
           {/* Top Overlay Controls */}
           <div className="relative z-20 p-4 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent">
