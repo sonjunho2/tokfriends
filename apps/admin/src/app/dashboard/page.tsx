@@ -41,6 +41,8 @@ import {
   ArrowRight,
   Flame,
   Radio,
+  TrendingUp,
+  Store,
 } from 'lucide-react'
 
 type KpiMetric = {
@@ -272,6 +274,118 @@ export default function DashboardPage() {
               </div>
               <div className="text-lg font-bold text-rose-700">10개 상품 핀</div>
               <p className="text-[11px] text-rose-600 font-medium">스트리머 위탁 판매 중</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 💼 전국 통합 커머스 손익 분석 & 4대 참여자 정산 관제 (Consolidated Commerce P&L) */}
+      <Card className="border-indigo-200/80 bg-gradient-to-br from-white via-indigo-50/15 to-purple-50/20 shadow-sm">
+        <CardHeader className="pb-3 border-b border-indigo-100/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-xs">
+              <TrendingUp className="w-5 h-5 font-black" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base font-bold text-foreground">
+                  전국 통합 커머스 손익 분석 & 4대 참여자 정산 관제
+                </CardTitle>
+                <Badge className="bg-indigo-600 text-white font-extrabold text-[10px]">
+                  실시간 통합 회계
+                </Badge>
+              </div>
+              <CardDescription className="text-xs">
+                본사 직영 PB 순익, 입점사 10% 중개 수수료, 크리에이터 라이브 커미션 및 에스크로 안전 금고 잔액을 통합 집계합니다.
+              </CardDescription>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="text-xs font-bold text-indigo-700 border-indigo-300 bg-indigo-50/50 hover:bg-indigo-100 gap-1 h-8"
+            >
+              <Link href="/market-escrow">
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                <span>에스크로 금고 & 분쟁 심사</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="text-xs font-bold text-emerald-700 border-emerald-300 bg-emerald-50/50 hover:bg-emerald-100 gap-1 h-8"
+            >
+              <Link href="/merchants">
+                <Store className="w-3.5 h-3.5 text-emerald-600" />
+                <span>입점사·크리에이터 심사</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-4 space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+            {/* 1. GMV */}
+            <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
+              <div className="text-muted-foreground text-[11px] font-semibold mb-1">
+                플랫폼 총 거래액 (GMV)
+              </div>
+              <div className="text-lg font-black text-slate-900 font-mono">
+                ₩148,250,000
+              </div>
+              <p className="text-[10px] text-slate-500 font-medium">전국 B2C/공구/C2C 합산</p>
+            </div>
+
+            {/* 2. 본사 PB 순이익 */}
+            <div className="p-3 bg-white rounded-xl border border-amber-200/80 shadow-2xs">
+              <div className="text-amber-800 text-[11px] font-semibold mb-1 flex items-center justify-between">
+                <span>본사 직영 PB 순이익</span>
+                <Crown className="w-3 h-3 text-amber-600" />
+              </div>
+              <div className="text-lg font-black text-amber-600 font-mono">
+                +₩24,760,000
+              </div>
+              <p className="text-[10px] text-amber-700 font-medium">매출 58.4M (마진율 42.4%)</p>
+            </div>
+
+            {/* 3. 입점사 중개 수수료 */}
+            <div className="p-3 bg-white rounded-xl border border-emerald-200/80 shadow-2xs">
+              <div className="text-emerald-800 text-[11px] font-semibold mb-1 flex items-center justify-between">
+                <span>입점사 수수료 매출</span>
+                <Store className="w-3 h-3 text-emerald-600" />
+              </div>
+              <div className="text-lg font-black text-emerald-600 font-mono">
+                +₩6,820,000
+              </div>
+              <p className="text-[10px] text-emerald-700 font-medium">입점사 매출 71.8M (평균 9.5%)</p>
+            </div>
+
+            {/* 4. 크리에이터 지급 커미션 */}
+            <div className="p-3 bg-white rounded-xl border border-rose-200/80 shadow-2xs">
+              <div className="text-rose-800 text-[11px] font-semibold mb-1 flex items-center justify-between">
+                <span>크리에이터 지급액</span>
+                <Radio className="w-3 h-3 text-rose-600" />
+              </div>
+              <div className="text-lg font-black text-rose-600 font-mono">
+                -₩2,450,000
+              </div>
+              <p className="text-[10px] text-rose-700 font-medium">라이브 판매 파트너십 정산</p>
+            </div>
+
+            {/* 5. 본사 커머스 총 영업이익 */}
+            <div className="p-3 bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-xl shadow-2xs col-span-2 sm:col-span-1">
+              <div className="text-indigo-100 text-[11px] font-semibold mb-1 flex items-center justify-between">
+                <span>본사 커머스 순영업익</span>
+                <Sparkles className="w-3 h-3 text-amber-300" />
+              </div>
+              <div className="text-lg font-black text-white font-mono">
+                ₩29,130,000
+              </div>
+              <p className="text-[10px] text-indigo-200 font-medium">직영익 + 수수료 - 지급액</p>
             </div>
           </div>
         </CardContent>

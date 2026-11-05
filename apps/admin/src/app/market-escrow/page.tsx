@@ -388,6 +388,25 @@ export default function MarketEscrowAdminPage() {
       )
     )
 
+    if (typeof window !== 'undefined') {
+      try {
+        const localOrdersRaw = localStorage.getItem('mocco_orders')
+        if (localOrdersRaw) {
+          const list = JSON.parse(localOrdersRaw)
+          const nextList = list.map((o: any) =>
+            o.id === arbitrationModalOrder.id || o.orderNumber === arbitrationModalOrder.orderNumber
+              ? {
+                  ...o,
+                  status: nextStatus,
+                  disputeReason: `[본사 중재 완료: ${arbitrationDecision === 'REFUND' ? '구매자 전액 환불' : '판매자 강제 정산'}] ${arbitrationReason.trim()}`,
+                }
+              : o
+          )
+          localStorage.setItem('mocco_orders', JSON.stringify(nextList))
+        }
+      } catch {}
+    }
+
     toast({
       title: arbitrationDecision === 'REFUND' ? '구매자 전액 환불 판정 집행' : '판매자 강제 정산 판정 집행',
       description: arbitrationDecision === 'REFUND'
@@ -459,6 +478,13 @@ export default function MarketEscrowAdminPage() {
         affiliateCommissionRate: payload.affiliateCommissionRate,
       }
 
+      if (typeof window !== 'undefined') {
+        try {
+          const existingHq = JSON.parse(localStorage.getItem('mocco_hq_direct_products') || '[]')
+          localStorage.setItem('mocco_hq_direct_products', JSON.stringify([newProduct, ...existingHq]))
+        } catch {}
+      }
+
       setNormalProducts([newProduct, ...normalProducts])
       setIsHqModalOpen(false)
       setHqForm({
@@ -509,7 +535,7 @@ export default function MarketEscrowAdminPage() {
               sellerName: p.seller?.nickname || p.seller?.displayName || '판매자',
               price: p.price,
               category: p.category,
-              locationName: p.locationName || '동네 인증',
+              locationName: p.locationName || '전국 배송',
               status: p.status,
               createdAt: p.createdAt?.slice(0, 16) || '',
             }))
@@ -532,6 +558,99 @@ export default function MarketEscrowAdminPage() {
         }
       }
     } catch {}
+
+    if (typeof window !== 'undefined') {
+      try {
+        const localOrdersRaw = localStorage.getItem('mocco_orders')
+        if (localOrdersRaw) {
+          const localOrders = JSON.parse(localOrdersRaw)
+          if (Array.isArray(localOrders) && localOrders.length > 0) {
+            const mappedOrders: MockEscrowOrder[] = localOrders.map((o: any) => ({
+              id: o.id,
+              orderNumber: o.orderNumber || o.id,
+              productTitle: o.productTitle || o.productName || '주문 상품',
+              productType: o.productType || 'B2C_NORMAL',
+              buyerName: o.buyerName || '일반 구매자',
+              sellerName: o.sellerName || o.merchantName || '공식 입점사',
+              amount: Number(o.amount || o.totalPrice || 0),
+              platformFee: Math.round(Number(o.amount || o.totalPrice || 0) * 0.1),
+              sellerPayout: Math.round(Number(o.amount || o.totalPrice || 0) * 0.9),
+              status: o.status === 'DELIVERED' || o.status === 'CONFIRMED'
+                ? 'CONFIRMED'
+                : o.status === 'DISPUTED'
+                ? 'DISPUTED'
+                : o.status === 'CANCELLED' || o.status === 'REFUNDED'
+                ? 'REFUNDED'
+                : o.status === 'SHIPPED'
+                ? 'SHIPPED'
+                : 'ESCROW_HOLD',
+              createdAt: o.createdAt || new Date().toISOString().slice(0, 16).replace('T', ' '),
+              disputeReason: o.disputeReason,
+              makerCheckerPending: o.makerCheckerPending,
+              makerCheckerApproved: o.makerCheckerApproved,
+            }))
+            const orderIds = new Set(mappedOrders.map((m) => m.id))
+            setOrders(prev => [...mappedOrders, ...prev.filter(p => !orderIds.has(p.id))])
+          }
+        }
+      } catch {}
+
+      try {
+        const customProdRaw = localStorage.getItem('mocco_custom_products')
+        const hqProdRaw = localStorage.getItem('mocco_hq_direct_products')
+        let extraProducts: NormalProductItem[] = []
+        if (customProdRaw) {
+          const list = JSON.parse(customProdRaw)
+          if (Array.isArray(list)) {
+            extraProducts.push(...list.map((p: any): NormalProductItem => ({
+              id: p.id,
+              merchantId: p.merchantId || 'mer-custom',
+              merchantName: p.merchantName || '공식 파트너사',
+              name: p.name || p.title,
+              priceKrw: Number(p.priceKrw || p.price || 0),
+              salePriceKrw: Number(p.salePriceKrw || p.priceKrw || p.price || 0),
+              stock: Number(p.stock || 100),
+              shippingFee: Number(p.shippingFee || 3000),
+              category: p.category || 'FOOD',
+              status: (p.status || 'ACTIVE') as 'ACTIVE' | 'HIDDEN' | 'OUT_OF_STOCK',
+              createdAt: p.createdAt || '2026-11-05 10:00',
+              isHqDirect: Boolean(p.isHqDirect),
+              ownerType: (p.ownerType || 'MERCHANT') as 'MERCHANT' | 'HEADQUARTERS' | 'USER_C2C',
+              allowAffiliate: p.allowAffiliate ?? true,
+              affiliateCommissionRate: Number(p.affiliateCommissionRate || 10.0),
+            })))
+          }
+        }
+        if (hqProdRaw) {
+          const list = JSON.parse(hqProdRaw)
+          if (Array.isArray(list)) {
+            extraProducts.push(...list.map((p: any): NormalProductItem => ({
+              id: p.id,
+              merchantId: 'mer-hq',
+              merchantName: '모꼬(MOCCO) 본사 공식 직영관',
+              name: p.name || p.title,
+              priceKrw: Number(p.priceKrw || p.price || 0),
+              salePriceKrw: Number(p.salePriceKrw || p.priceKrw || p.price || 0),
+              stock: Number(p.stock || 100),
+              shippingFee: Number(p.shippingFee || 0),
+              category: p.category || 'FOOD',
+              status: (p.status || 'ACTIVE') as 'ACTIVE' | 'HIDDEN' | 'OUT_OF_STOCK',
+              createdAt: p.createdAt || '2026-11-05 10:00',
+              isHqDirect: true,
+              ownerType: 'HEADQUARTERS',
+              allowAffiliate: p.allowAffiliate ?? true,
+              affiliateCommissionRate: Number(p.affiliateCommissionRate || 10.0),
+            })))
+          }
+        }
+        if (extraProducts.length > 0) {
+          setNormalProducts(prev => {
+            const extraIds = new Set(extraProducts.map(e => e.id))
+            return [...extraProducts, ...prev.filter(p => !extraIds.has(p.id))]
+          })
+        }
+      } catch {}
+    }
   }
 
   useEffect(() => {

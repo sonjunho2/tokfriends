@@ -502,7 +502,7 @@ export function MarketProductDetailModal({
                     />
                     <div>
                       <div className="font-bold text-white text-sm">{product.sellerNickname} (이웃)</div>
-                      <div className="text-slate-400">지역: {product.sellerLocation || '모꼬 동네인증 완료'}</div>
+                      <div className="text-slate-400">지역: {product.sellerLocation || '모꼬 전국인증 완료'}</div>
                     </div>
                   </div>
                   {product.isLiveSellLinked && onLiveLinkedSell && (
