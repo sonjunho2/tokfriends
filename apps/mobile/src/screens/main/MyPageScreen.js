@@ -169,31 +169,65 @@ export default function MyPageScreen({ navigation }) {
   const [myOrdersList, setMyOrdersList] = useState([
     {
       id: 'ord-safe-01',
-      orderNumber: 'ORD-20261027-891',
-      title: '아이폰 15 프로 256GB 내추럴 티타늄',
-      sellerName: '테크러버',
-      price: 980000,
-      status: 'RESERVED',
-      statusText: '직거래 예약중',
+      orderNumber: 'ORD-20261104-5892',
+      title: '소니 WH-1000XM5 노이즈캔슬링 무선 헤드폰',
+      sellerName: '(주)사운드코리아 공식수입원',
+      price: 320000,
+      status: 'SHIPPED',
+      statusText: '배송중 (내일 도착 예정)',
       paymentType: '에스크로 안전결제',
-      image: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400',
-      date: '2026.10.27',
-      location: '역삼역 3번출구',
+      image: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=400',
+      date: '2026.11.04',
+      location: '택배 이동중',
+      courier: 'CJ대한통운',
+      trackingNumber: '5892-0192-4411',
+      selectedOption: '실버 / 무상보증 1년',
+      autoConfirmDays: 5,
     },
     {
       id: 'ord-safe-02',
-      orderNumber: 'ORD-20261025-420',
-      title: '[입점사특가] 제주 산지직송 프리미엄 흑돼지 오겹살 1kg',
+      orderNumber: 'ORD-20261103-1024',
+      title: '[입점사특가] 제주 산지직송 프리미엄 1등급 흑돼지 오겹살 1kg',
       sellerName: '제주푸드 본사 직영',
       price: 32900,
-      status: 'COMPLETED',
-      statusText: '구매확정 완료',
+      status: 'DELIVERED',
+      statusText: '배송완료 (구매확정 대기)',
       paymentType: '안전결제 택배배송',
       image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=400',
-      date: '2026.10.25',
-      location: '택배 배송 완료',
+      date: '2026.11.03',
+      location: '문 앞 배송완료',
+      courier: '우체국택배',
+      trackingNumber: '6891-2200-9182',
+      selectedOption: '오겹살 1kg (+14,000원)',
+      autoConfirmDays: 3,
+    },
+    {
+      id: 'ord-safe-03',
+      orderNumber: 'ORD-20261028-7712',
+      title: '아이폰 15 프로 256GB 내추럴 티타늄',
+      sellerName: '테크러버',
+      price: 980000,
+      status: 'COMPLETED',
+      statusText: '구매확정 완료 (정산지급)',
+      paymentType: '에스크로 안전직거래',
+      image: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400',
+      date: '2026.10.28',
+      location: '직거래 완료',
+      courier: '',
+      trackingNumber: '',
+      selectedOption: '단말기 본체 풀박스',
+      autoConfirmDays: 0,
     },
   ]);
+
+  // Phase 2 모바일: 실시간 배송조회, 리뷰, 반품 CS 상태
+  const [trackingOrder, setTrackingOrder] = useState(null);
+  const [reviewOrder, setReviewOrder] = useState(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [csClaimOrder, setCsClaimOrder] = useState(null);
+  const [csClaimReason, setCsClaimReason] = useState('DEFECT');
+  const [csClaimText, setCsClaimText] = useState('');
   const [ordersModalVisible, setOrdersModalVisible] = useState(false);
   const [ordersFilterTab, setOrdersFilterTab] = useState('ALL'); // 'ALL' | 'ACTIVE' | 'COMPLETED'
 
@@ -1296,54 +1330,161 @@ export default function MyPageScreen({ navigation }) {
               <Text style={styles.dialogSub}>에스크로 안심 결제 및 거래 예약 진행 상태입니다.</Text>
             </View>
 
-            <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
-              {myOrdersList.map((order) => (
-                <View key={order.id} style={styles.orderCard}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748B' }}>
-                      {order.orderNumber}
-                    </Text>
-                    <View style={styles.orderStatusBadge}>
-                      <Text style={styles.orderStatusText}>{order.statusText}</Text>
+            <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
+              {myOrdersList.map((order) => {
+                const isShippedOrDelivered = order.status === 'SHIPPED' || order.status === 'DELIVERED';
+                const isCompleted = order.status === 'COMPLETED';
+                const isDisputed = order.status === 'DISPUTED';
+
+                return (
+                  <View key={order.id} style={styles.orderCard}>
+                    {/* 상단: 주문번호 & 상태 뱃지 */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748B' }}>
+                        {order.orderNumber}
+                      </Text>
+                      <View style={[
+                        styles.orderStatusBadge,
+                        isCompleted && { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' },
+                        order.status === 'SHIPPED' && { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' },
+                        isDisputed && { backgroundColor: '#FFF1F2', borderColor: '#FECDD3' },
+                      ]}>
+                        <Text style={[
+                          styles.orderStatusText,
+                          isCompleted && { color: '#059669' },
+                          order.status === 'SHIPPED' && { color: '#2563EB' },
+                          isDisputed && { color: '#E11D48' },
+                        ]}>
+                          {order.statusText}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* 중간: 상품 이미지 및 상세 */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Image source={{ uri: order.image }} style={styles.modalItemThumb} />
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={styles.modalItemTitle} numberOfLines={1}>
+                          {order.title}
+                        </Text>
+                        {order.selectedOption && (
+                          <Text style={{ fontSize: 10, color: '#64748B', backgroundColor: '#F1F5F9', alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4, marginTop: 2 }}>
+                            {order.selectedOption}
+                          </Text>
+                        )}
+                        <Text style={[styles.modalItemPrice, { marginTop: 2 }]}>{order.price?.toLocaleString()}원</Text>
+                        <Text style={{ fontSize: 10, color: '#94A3B8', marginTop: 1 }}>
+                          {order.sellerName} · {order.courier ? `${order.courier} ${order.trackingNumber}` : order.location}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* 7일 자동 구매확정 안내 */}
+                    {isShippedOrDelivered && (
+                      <View style={styles.autoConfirmBox}>
+                        <Ionicons name="time-outline" size={13} color="#B45309" />
+                        <Text style={styles.autoConfirmText}>
+                          배송완료 7일 후 판매자 자동 정산 (D-{order.autoConfirmDays || 5})
+                        </Text>
+                      </View>
+                    )}
+
+                    {isDisputed && (
+                      <View style={[styles.autoConfirmBox, { backgroundColor: '#FFF1F2', borderColor: '#FFE4E6' }]}>
+                        <Ionicons name="alert-circle-outline" size={13} color="#E11D48" />
+                        <Text style={[styles.autoConfirmText, { color: '#BE123C' }]}>
+                          반품/교환 CS 심사 진행 중입니다.
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* 하단 액션 버튼 그룹 */}
+                    <View style={styles.orderFooterActions}>
+                      {order.trackingNumber ? (
+                        <TouchableOpacity
+                          style={styles.orderTrackBtn}
+                          onPress={() => setTrackingOrder(order)}
+                        >
+                          <Ionicons name="bus-outline" size={13} color="#334155" />
+                          <Text style={styles.orderTrackBtnText}>배송조회</Text>
+                        </TouchableOpacity>
+                      ) : null}
+
+                      {isShippedOrDelivered && (
+                        <>
+                          <TouchableOpacity
+                            style={styles.orderConfirmBtn}
+                            onPress={() => {
+                              Alert.alert(
+                                '에스크로 구매확정',
+                                `정산금을 판매자에게 즉시 지급하고 500 ON 포인트를 적립하시겠습니까?\n(확정 후 교환/반품이 제한될 수 있습니다)`,
+                                [
+                                  { text: '취소', style: 'cancel' },
+                                  {
+                                    text: '구매확정 (+500P)',
+                                    onPress: () => {
+                                      setMyOrdersList((prev) =>
+                                        prev.map((o) =>
+                                          o.id === order.id
+                                            ? { ...o, status: 'COMPLETED', statusText: '구매확정 완료 (정산지급)' }
+                                            : o
+                                        )
+                                      );
+                                      setReviewOrder(order);
+                                      setReviewRating(5);
+                                      setReviewComment('');
+                                      Alert.alert('🎉 구매확정 완료', '판매자 정산이 승인되었으며 500 ON 포인트가 적립되었습니다!');
+                                    },
+                                  },
+                                ]
+                              );
+                            }}
+                          >
+                            <Ionicons name="checkmark-circle" size={13} color="#FFFFFF" />
+                            <Text style={styles.orderConfirmBtnText}>구매확정</Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={styles.orderCsBtn}
+                            onPress={() => {
+                              setCsClaimOrder(order);
+                              setCsClaimReason('DEFECT');
+                              setCsClaimText('');
+                            }}
+                          >
+                            <Text style={styles.orderCsBtnText}>반품/교환</Text>
+                          </TouchableOpacity>
+                        </>
+                      )}
+
+                      {isCompleted && (
+                        <TouchableOpacity
+                          style={styles.orderReviewBtn}
+                          onPress={() => {
+                            setReviewOrder(order);
+                            setReviewRating(5);
+                            setReviewComment('');
+                          }}
+                        >
+                          <Ionicons name="star" size={12} color="#D97706" />
+                          <Text style={styles.orderReviewBtnText}>리뷰작성 (+500P)</Text>
+                        </TouchableOpacity>
+                      )}
+
+                      <TouchableOpacity
+                        style={styles.orderChatBtn}
+                        onPress={() => {
+                          setOrdersModalVisible(false);
+                          navigation.navigate('Chat', { screen: 'ChatsMain' });
+                        }}
+                      >
+                        <Ionicons name="chatbubble-ellipses" size={13} color="#4F46E5" />
+                        <Text style={styles.orderChatBtnText}>대화</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
-
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Image source={{ uri: order.image }} style={styles.modalItemThumb} />
-                    <View style={{ flex: 1, marginLeft: 10 }}>
-                      <Text style={styles.modalItemTitle} numberOfLines={1}>
-                        {order.title}
-                      </Text>
-                      <Text style={styles.modalItemPrice}>{order.price?.toLocaleString()}원</Text>
-                      <Text style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
-                        판매자: {order.sellerName} · {order.location}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.orderFooterActions}>
-                    <TouchableOpacity
-                      style={styles.orderChatBtn}
-                      onPress={() => {
-                        setOrdersModalVisible(false);
-                        navigation.navigate('Chat', { screen: 'ChatsMain' });
-                      }}
-                    >
-                      <Ionicons name="chatbubble-ellipses" size={13} color="#4F46E5" />
-                      <Text style={styles.orderChatBtnText}>판매자와 대화</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.orderReceiptBtn}
-                      onPress={() => {
-                        Alert.alert('안전결제 보증', `주문번호: ${order.orderNumber}\n결제수단: ${order.paymentType}\n모꼬 에스크로 시스템에 의해 구매 확정 시까지 결제 대금이 안전하게 보관됩니다.`);
-                      }}
-                    >
-                      <Text style={styles.orderReceiptBtnText}>안전보증서</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
+                );
+              })}
             </ScrollView>
 
             <TouchableOpacity
@@ -1352,6 +1493,250 @@ export default function MyPageScreen({ navigation }) {
             >
               <Text style={styles.dialogCancelText}>닫기</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* =================================================================== */}
+      {/* Phase 2 모바일: 실시간 배송조회 팝업 모달                             */}
+      {/* =================================================================== */}
+      <Modal
+        visible={Boolean(trackingOrder)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setTrackingOrder(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.dialogCard, { width: '90%', padding: 20 }]}>
+            <View style={styles.dialogHeader}>
+              <View style={[styles.dialogIconBox, { backgroundColor: '#EEF2FF' }]}>
+                <Ionicons name="bus" size={20} color="#4F46E5" />
+              </View>
+              <Text style={styles.dialogTitle}>실시간 택배 배송조회</Text>
+              <Text style={styles.dialogSub}>
+                {trackingOrder?.courier || 'CJ대한통운'} {trackingOrder?.trackingNumber}
+              </Text>
+            </View>
+
+            {/* 4단계 스테퍼 */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 14, paddingHorizontal: 10 }}>
+              {[
+                { title: '결제완료', done: true },
+                { title: '상품준비', done: true },
+                { title: '배송이동', done: trackingOrder?.status === 'SHIPPED' || trackingOrder?.status === 'DELIVERED' || trackingOrder?.status === 'COMPLETED' },
+                { title: '배송완료', done: trackingOrder?.status === 'DELIVERED' || trackingOrder?.status === 'COMPLETED' },
+              ].map((step, idx) => (
+                <View key={idx} style={{ alignItems: 'center' }}>
+                  <View style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
+                    backgroundColor: step.done ? '#4F46E5' : '#E2E8F0',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginBottom: 4,
+                  }}>
+                    <Ionicons name={step.done ? 'checkmark' : 'ellipse'} size={14} color="#FFFFFF" />
+                  </View>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: step.done ? '#4F46E5' : '#94A3B8' }}>
+                    {step.title}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            {/* 이동 타임라인 로그 */}
+            <View style={{ backgroundColor: '#F8FAFC', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', marginBottom: 8 }}>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: '#4F46E5', width: 45 }}>13:10</Text>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: '#1E293B', flex: 1 }}>[배송완료] 고객님께 전달 완료</Text>
+              </View>
+              <View style={{ flexDirection: 'row', marginBottom: 8 }}>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#64748B', width: 45 }}>08:30</Text>
+                <Text style={{ fontSize: 11, color: '#334155', flex: 1 }}>[배달출발] 서울강남지점 배달기사 출발</Text>
+              </View>
+              <View style={{ flexDirection: 'row' }}>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#94A3B8', width: 45 }}>전일</Text>
+                <Text style={{ fontSize: 11, color: '#64748B', flex: 1 }}>[집하완료] 입점사 물류센터 상품 인수</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.dialogCancelBtn, { backgroundColor: '#4F46E5' }]}
+              onPress={() => setTrackingOrder(null)}
+            >
+              <Text style={[styles.dialogCancelText, { color: '#FFFFFF' }]}>확인 닫기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* =================================================================== */}
+      {/* Phase 2 모바일: 구매후기 & 리뷰 작성 모달                            */}
+      {/* =================================================================== */}
+      <Modal
+        visible={Boolean(reviewOrder)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setReviewOrder(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.dialogCard, { width: '90%', padding: 20 }]}>
+            <View style={styles.dialogHeader}>
+              <View style={[styles.dialogIconBox, { backgroundColor: '#FEF3C7' }]}>
+                <Ionicons name="star" size={20} color="#D97706" />
+              </View>
+              <Text style={styles.dialogTitle}>구매후기 작성 (+500P)</Text>
+              <Text style={styles.dialogSub}>{reviewOrder?.title}</Text>
+            </View>
+
+            {/* 별점 선택기 */}
+            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, marginVertical: 12 }}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity key={star} onPress={() => setReviewRating(star)}>
+                  <Ionicons
+                    name={star <= reviewRating ? 'star' : 'star-outline'}
+                    size={30}
+                    color="#F59E0B"
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              style={{
+                backgroundColor: '#F8FAFC',
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#CBD5E1',
+                padding: 12,
+                fontSize: 12,
+                color: '#1E293B',
+                height: 80,
+                textAlignVertical: 'top',
+                marginBottom: 12,
+              }}
+              multiline
+              placeholder="상품에 대한 솔직한 후기를 남겨주시면 다른 이웃들에게 큰 도움이 됩니다."
+              value={reviewComment}
+              onChangeText={setReviewComment}
+            />
+
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={[styles.dialogCancelBtn, { flex: 1 }]}
+                onPress={() => setReviewOrder(null)}
+              >
+                <Text style={styles.dialogCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.dialogCancelBtn, { flex: 1.5, backgroundColor: '#4F46E5' }]}
+                onPress={() => {
+                  setReviewOrder(null);
+                  Alert.alert('⭐ 리뷰 등록 완료', '소중한 구매후기가 등록되었으며 500 ON 포인트가 적립되었습니다!');
+                }}
+              >
+                <Text style={[styles.dialogCancelText, { color: '#FFFFFF' }]}>등록하기</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* =================================================================== */}
+      {/* Phase 2 모바일: 반품/교환 CS 클레임 모달                             */}
+      {/* =================================================================== */}
+      <Modal
+        visible={Boolean(csClaimOrder)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCsClaimOrder(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.dialogCard, { width: '90%', padding: 20 }]}>
+            <View style={styles.dialogHeader}>
+              <View style={[styles.dialogIconBox, { backgroundColor: '#FFE4E6' }]}>
+                <Ionicons name="refresh-circle" size={22} color="#E11D48" />
+              </View>
+              <Text style={styles.dialogTitle}>교환 / 반품 접수</Text>
+              <Text style={styles.dialogSub}>{csClaimOrder?.title}</Text>
+            </View>
+
+            <View style={{ marginVertical: 10, gap: 6 }}>
+              {[
+                { id: 'DEFECT', label: '상품 파손 / 하자 / 변질 (무료 반품)' },
+                { id: 'WRONG_DELIVERY', label: '오배송 / 상품 누락 (무료 재발송)' },
+                { id: 'CHANGE_MIND', label: '단순 변심 (왕복배송비 7,000원 부담)' },
+              ].map((r) => (
+                <TouchableOpacity
+                  key={r.id}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    padding: 8,
+                    borderRadius: 8,
+                    backgroundColor: csClaimReason === r.id ? '#EFF6FF' : '#F8FAFC',
+                    borderWidth: 1,
+                    borderColor: csClaimReason === r.id ? '#3B82F6' : '#E2E8F0',
+                  }}
+                  onPress={() => setCsClaimReason(r.id)}
+                >
+                  <Ionicons
+                    name={csClaimReason === r.id ? 'radio-button-on' : 'radio-button-off'}
+                    size={16}
+                    color={csClaimReason === r.id ? '#3B82F6' : '#94A3B8'}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: csClaimReason === r.id ? '#1E40AF' : '#475569' }}>
+                    {r.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              style={{
+                backgroundColor: '#F8FAFC',
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#CBD5E1',
+                padding: 10,
+                fontSize: 12,
+                color: '#1E293B',
+                height: 65,
+                textAlignVertical: 'top',
+                marginBottom: 12,
+              }}
+              multiline
+              placeholder="상세 사유를 입력해 주시면 신속히 처리해 드립니다."
+              value={csClaimText}
+              onChangeText={setCsClaimText}
+            />
+
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={[styles.dialogCancelBtn, { flex: 1 }]}
+                onPress={() => setCsClaimOrder(null)}
+              >
+                <Text style={styles.dialogCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.dialogCancelBtn, { flex: 1.5, backgroundColor: '#E11D48' }]}
+                onPress={() => {
+                  setMyOrdersList((prev) =>
+                    prev.map((o) =>
+                      o.id === csClaimOrder.id
+                        ? { ...o, status: 'DISPUTED', statusText: '반품/교환 심사중' }
+                        : o
+                    )
+                  );
+                  setCsClaimOrder(null);
+                  Alert.alert('접수 완료', '반품/교환 요청이 접수되었습니다. 판매자 확인 후 기사님이 회수 방문합니다.');
+                }}
+              >
+                <Text style={[styles.dialogCancelText, { color: '#FFFFFF' }]}>접수 신청</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -2679,6 +3064,82 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#475569',
+  },
+  autoConfirmBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    marginTop: 6,
+  },
+  autoConfirmText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  orderTrackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  orderTrackBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  orderConfirmBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  orderConfirmBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  orderCsBtn: {
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FFE4E6',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  orderCsBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#E11D48',
+  },
+  orderReviewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  orderReviewBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#D97706',
   },
 
   // 단가 설정 관련

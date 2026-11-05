@@ -75,6 +75,10 @@ import {
   Trash2,
   Sliders,
   Bell,
+  Star,
+  Copy,
+  RotateCcw,
+  AlertTriangle,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -1832,14 +1836,61 @@ export default function CustomerWebStorefrontPage() {
   const [myOrdersList, setMyOrdersList] = useState([
     {
       id: 'ord-101',
+      orderNumber: 'ORD-20261104-5892',
       title: '소니 WH-1000XM5 노이즈캔슬링 무선 헤드폰',
       price: 320000,
       image: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=400',
-      statusText: '에스크로 결제완료 (배송준비중)',
-      date: '2026-10-29',
-      seller: '헤드폰마니아',
+      status: 'SHIPPED',
+      statusText: '배송중 (익일 도착 예정)',
+      date: '2026-11-04',
+      seller: '(주)사운드코리아 공식수입원',
+      courier: 'CJ대한통운',
+      trackingNumber: '5892-0192-4411',
+      selectedOption: '실버 / 무상보증 1년',
+      autoConfirmDays: 5,
+    },
+    {
+      id: 'ord-102',
+      orderNumber: 'ORD-20261103-1024',
+      title: '[입점사특가] 제주 산지직송 프리미엄 1등급 흑돼지 오겹살 1kg',
+      price: 32900,
+      image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=400',
+      status: 'DELIVERED',
+      statusText: '배송완료 (구매확정 대기)',
+      date: '2026-11-03',
+      seller: '제주푸드 본사 직영',
+      courier: '우체국택배',
+      trackingNumber: '6891-2200-9182',
+      selectedOption: '오겹살 1kg (+14,000원)',
+      autoConfirmDays: 3,
+    },
+    {
+      id: 'ord-103',
+      orderNumber: 'ORD-20261028-7712',
+      title: '고순도 프리미엄 알티지 오메가3 120캡슐 (4개월분)',
+      price: 42000,
+      image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
+      status: 'COMPLETED',
+      statusText: '구매확정 완료 (정산지급)',
+      date: '2026-10-28',
+      seller: '메디컬 헬스케어랩',
+      courier: '한진택배',
+      trackingNumber: '4012-9812-3341',
+      selectedOption: '단일 규격',
+      autoConfirmDays: 0,
     },
   ])
+
+  // Phase 2: 실시간 배송조회 & 구매확정 & 리뷰 & 반품 CS 모달 상태
+  const [trackingModalOrder, setTrackingModalOrder] = useState<any | null>(null)
+  const [confirmModalOrder, setConfirmModalOrder] = useState<any | null>(null)
+  const [reviewModalOrder, setReviewModalOrder] = useState<any | null>(null)
+  const [reviewRating, setReviewRating] = useState<number>(5)
+  const [reviewComment, setReviewComment] = useState<string>('')
+  const [selectedReviewTags, setSelectedReviewTags] = useState<string[]>(['배송이 빨라요 ⚡', '상품이 신선해요 🥗'])
+  const [returnModalOrder, setReturnModalOrder] = useState<any | null>(null)
+  const [returnReason, setReturnReason] = useState<string>('DEFECT')
+  const [returnDetailText, setReturnDetailText] = useState<string>('')
 
   // 대표 갤러리 슬롯 (최대 9장)
   const [galleryPhotos, setGalleryPhotos] = useState<string[]>([
@@ -6039,99 +6090,195 @@ export default function CustomerWebStorefrontPage() {
 
                 {myTradeTab === 'ORDERS' && (
                   <div className="space-y-4">
-                    {/* 쿠팡/알리형 배송 프로세스 바 */}
-                    <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 flex items-center justify-around text-center">
+                    {/* 실시간 배송 단계 요약 위젯 */}
+                    <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4 flex items-center justify-around text-center shadow-2xs">
                       <div className="space-y-1">
-                        <span className="text-base font-black text-indigo-600">1</span>
-                        <span className="text-[11px] font-bold text-slate-700 block">결제완료</span>
+                        <span className="text-base font-black text-slate-800">
+                          {myOrdersList.filter((o: any) => o.status === 'PAID_ESCROW').length}
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-600 block">결제완료</span>
                       </div>
-                      <span className="text-slate-300">›</span>
-                      <div className="space-y-1 opacity-60">
-                        <span className="text-base font-bold text-slate-400">0</span>
-                        <span className="text-[11px] text-slate-500 block">배송준비</span>
+                      <span className="text-slate-300 font-bold">›</span>
+                      <div className="space-y-1">
+                        <span className="text-base font-black text-blue-600">
+                          {myOrdersList.filter((o: any) => o.status === 'SHIPPED').length}
+                        </span>
+                        <span className="text-[11px] font-bold text-blue-600 block">배송중</span>
                       </div>
-                      <span className="text-slate-300">›</span>
-                      <div className="space-y-1 opacity-60">
-                        <span className="text-base font-bold text-slate-400">0</span>
-                        <span className="text-[11px] text-slate-500 block">배송중</span>
+                      <span className="text-slate-300 font-bold">›</span>
+                      <div className="space-y-1">
+                        <span className="text-base font-black text-emerald-600">
+                          {myOrdersList.filter((o: any) => o.status === 'DELIVERED').length}
+                        </span>
+                        <span className="text-[11px] font-bold text-emerald-600 block">배송완료</span>
                       </div>
-                      <span className="text-slate-300">›</span>
-                      <div className="space-y-1 opacity-60">
-                        <span className="text-base font-bold text-slate-400">0</span>
-                        <span className="text-[11px] text-slate-500 block">배송완료</span>
+                      <span className="text-slate-300 font-bold">›</span>
+                      <div className="space-y-1">
+                        <span className="text-base font-black text-indigo-600">
+                          {myOrdersList.filter((o: any) => o.status === 'COMPLETED').length}
+                        </span>
+                        <span className="text-[11px] font-bold text-indigo-600 block">구매확정</span>
                       </div>
                     </div>
 
                     <div className="space-y-3">
-                      {myOrdersList.map((order) => (
-                        <div
-                          key={order.id}
-                          className="p-4 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-3"
-                        >
-                          <div className="flex items-center justify-between border-b pb-2.5">
-                            <div className="flex items-center gap-2">
-                              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
-                                {order.statusText}
-                              </Badge>
-                              <span className="text-xs text-slate-400">주문일자: {order.date}</span>
-                            </div>
-                            <span className="text-xs font-semibold text-slate-500">판매자: {order.seller}</span>
-                          </div>
-
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                              <img src={order.image} alt="order" className="h-14 w-14 rounded-xl object-cover border" />
-                              <div>
-                                <h5 className="font-extrabold text-sm text-slate-900">{order.title}</h5>
-                                <span className="font-black text-sm text-slate-900">{order.price.toLocaleString()}원</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* 쿠팡/알리형 주문 관리 액션 버튼들 */}
-                          <div className="flex flex-wrap items-center justify-end gap-2 pt-1 border-t border-slate-100">
-                            <Button
-                              onClick={() => {
-                                toast({
-                                  title: '🚚 실시간 배송 조회',
-                                  description: 'CJ대한통운 5892-0192-4411 (현재 집하 완료되어 이동 중입니다).',
-                                })
-                              }}
-                              size="sm"
-                              variant="outline"
-                              className="text-xs h-8 px-3 rounded-xl font-bold border-slate-200"
-                            >
-                              배송조회
-                            </Button>
-                            <Button
-                              onClick={() => {
-                                toast({
-                                  title: '🎉 구매 확정이 완료되었습니다!',
-                                  description: '판매자에게 정산금이 안전 지급되었으며, 고객님께 500 ON 포인트가 적립되었습니다.',
-                                })
-                              }}
-                              size="sm"
-                              className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs h-8 px-3 rounded-xl shadow-xs"
-                            >
-                              구매확정
-                            </Button>
-                            <Button
-                              onClick={() => {
-                                setIsCustomerInquiryOpen(true)
-                                toast({
-                                  title: '🤖 AI 고객센터 Zev-CS 연결',
-                                  description: `주문번호 (${order.id}) 하자/반품 및 배송 문의 창구로 접수됩니다.`,
-                                })
-                              }}
-                              size="sm"
-                              variant="ghost"
-                              className="text-xs h-8 px-2.5 rounded-xl font-bold text-slate-500 hover:text-slate-800"
-                            >
-                              교환/반품·CS문의
-                            </Button>
-                          </div>
+                      {myOrdersList.length === 0 ? (
+                        <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 text-xs">
+                          주문 내역이 없습니다.
                         </div>
-                      ))}
+                      ) : (
+                        myOrdersList.map((order: any) => (
+                          <div
+                            key={order.id}
+                            className="p-4 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-3 hover:border-slate-300 transition"
+                          >
+                            {/* 헤더: 주문번호 / 상태뱃지 / 판매자 */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  className={`text-[10px] font-bold px-2 py-0.5 ${
+                                    order.status === 'COMPLETED'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : order.status === 'SHIPPED'
+                                      ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                      : order.status === 'DELIVERED'
+                                      ? 'bg-teal-50 text-teal-700 border-teal-200'
+                                      : order.status === 'DISPUTED'
+                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                                  }`}
+                                >
+                                  {order.statusText}
+                                </Badge>
+                                <span className="font-mono text-xs text-slate-600 font-semibold flex items-center gap-1">
+                                  <span>{order.orderNumber}</span>
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(order.orderNumber)
+                                      toast({ title: '주문번호가 복사되었습니다.' })
+                                    }}
+                                    className="p-0.5 text-slate-400 hover:text-slate-700"
+                                    title="주문번호 복사"
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </button>
+                                </span>
+                              </div>
+                              <span className="text-xs font-medium text-slate-500">
+                                판매자: <strong className="text-slate-700">{order.seller}</strong>
+                              </span>
+                            </div>
+
+                            {/* 바디: 이미지 + 상품명 + 옵션 + 가격 */}
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <img
+                                  src={order.image}
+                                  alt={order.title}
+                                  className="h-14 w-14 rounded-xl object-cover border border-slate-200 shrink-0"
+                                />
+                                <div className="min-w-0 space-y-0.5">
+                                  <h5 className="font-extrabold text-sm text-slate-900 truncate">
+                                    {order.title}
+                                  </h5>
+                                  {order.selectedOption && (
+                                    <div className="inline-block bg-slate-100 text-slate-600 text-[10px] font-semibold px-2 py-0.5 rounded-md">
+                                      선택옵션: {order.selectedOption}
+                                    </div>
+                                  )}
+                                  <div className="font-black text-sm text-slate-900">
+                                    {order.price.toLocaleString()}원
+                                  </div>
+                                </div>
+                              </div>
+
+                              {order.courier && order.trackingNumber && (
+                                <div className="text-right text-xs shrink-0 hidden sm:block">
+                                  <span className="text-slate-400 block text-[11px]">{order.courier}</span>
+                                  <span className="font-mono font-semibold text-slate-700">{order.trackingNumber}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* 7일 자동 구매확정 안내 배너 */}
+                            {(order.status === 'SHIPPED' || order.status === 'DELIVERED') && (
+                              <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl px-3 py-1.5 text-[11px] text-amber-800 flex items-center justify-between">
+                                <span className="flex items-center gap-1 font-medium">
+                                  <Clock className="w-3 h-3 text-amber-600" />
+                                  배송완료 후 7일 경과 시 판매자에게 대금이 자동 지급됩니다.
+                                </span>
+                                <span className="font-bold text-amber-900 font-mono">
+                                  (자동확정 D-{order.autoConfirmDays || 5})
+                                </span>
+                              </div>
+                            )}
+
+                            {order.status === 'DISPUTED' && (
+                              <div className="bg-rose-50 border border-rose-200 rounded-xl px-3 py-1.5 text-[11px] text-rose-800 flex items-center gap-1.5 font-medium">
+                                <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                <span>반품/교환 클레임 심사 중입니다. 판매자 확인 후 신속히 처리됩니다.</span>
+                              </div>
+                            )}
+
+                            {/* 액션 버튼 그룹 */}
+                            <div className="flex flex-wrap items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                              {order.trackingNumber && (
+                                <Button
+                                  onClick={() => setTrackingModalOrder(order)}
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs h-8 px-3 rounded-xl font-bold border-slate-200 text-slate-700 hover:bg-slate-100 gap-1"
+                                >
+                                  <Truck className="w-3.5 h-3.5 text-indigo-600" />
+                                  실시간 배송조회
+                                </Button>
+                              )}
+
+                              {(order.status === 'SHIPPED' || order.status === 'DELIVERED') && (
+                                <>
+                                  <Button
+                                    onClick={() => setConfirmModalOrder(order)}
+                                    size="sm"
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs h-8 px-3.5 rounded-xl shadow-xs gap-1"
+                                  >
+                                    <ShieldCheck className="w-3.5 h-3.5" />
+                                    구매확정 (+500P)
+                                  </Button>
+                                  <Button
+                                    onClick={() => {
+                                      setReturnModalOrder(order)
+                                      setReturnReason('DEFECT')
+                                      setReturnDetailText('')
+                                    }}
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-xs h-8 px-2.5 rounded-xl font-bold text-slate-500 hover:text-rose-600 gap-1"
+                                  >
+                                    <RotateCcw className="w-3 h-3" />
+                                    교환/반품 CS신청
+                                  </Button>
+                                </>
+                              )}
+
+                              {order.status === 'COMPLETED' && (
+                                <Button
+                                  onClick={() => {
+                                    setReviewModalOrder(order)
+                                    setReviewRating(5)
+                                    setReviewComment('')
+                                  }}
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs h-8 px-3 rounded-xl font-bold text-amber-600 border-amber-200 bg-amber-50/50 hover:bg-amber-100 gap-1"
+                                >
+                                  <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                                  리뷰 작성 (+500P)
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}
@@ -9118,6 +9265,485 @@ export default function CustomerWebStorefrontPage() {
       {/* 6. 시연/검수용 플로팅 역할 스위처 (헤더 레이아웃 침범 방지)    */}
       {/* 나중에 삭제 시 아래 한 줄만 지우면 깔끔하게 제거됩니다.        */}
       {/* ========================================================= */}
+      
+      {/* ========================================================= */}
+      {/* Phase 2: 실시간 배송조회 모달                               */}
+      {/* ========================================================= */}
+      {trackingModalOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white text-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Truck className="w-5 h-5 text-indigo-600" />
+                <h3 className="font-black text-base">실시간 택배 배송조회</h3>
+              </div>
+              <button
+                onClick={() => setTrackingModalOrder(null)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 운송장 기본정보 */}
+            <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">택배사 / 송장번호</span>
+                <span className="font-mono font-bold text-slate-900 flex items-center gap-1.5">
+                  <span>{trackingModalOrder.courier || 'CJ대한통운'}</span>
+                  <span className="text-indigo-600 font-extrabold">{trackingModalOrder.trackingNumber || '5892-0192-4411'}</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(trackingModalOrder.trackingNumber || '')
+                      toast({ title: '운송장번호가 복사되었습니다.' })
+                    }}
+                    className="p-0.5 text-slate-400 hover:text-slate-700"
+                    title="복사"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">배송 상품명</span>
+                <span className="font-bold text-slate-800 max-w-[240px] truncate">{trackingModalOrder.title}</span>
+              </div>
+            </div>
+
+            {/* 4단계 배송 스테퍼 */}
+            <div className="py-2">
+              <div className="flex items-center justify-between text-center relative">
+                <div className="absolute top-1/2 left-6 right-6 h-0.5 bg-slate-200 -translate-y-1/2 -z-0" />
+                {[
+                  { step: 1, label: '결제완료' },
+                  { step: 2, label: '포장/집하' },
+                  { step: 3, label: '간선이동' },
+                  { step: 4, label: '배송완료' },
+                ].map((s) => {
+                  const isCurrent =
+                    trackingModalOrder.status === 'DELIVERED' || trackingModalOrder.status === 'COMPLETED'
+                      ? s.step <= 4
+                      : s.step <= 3
+                  return (
+                    <div key={s.step} className="z-10 bg-white px-2 space-y-1">
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs mx-auto shadow-xs ${
+                          isCurrent ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400 border border-slate-200'
+                        }`}
+                      >
+                        {isCurrent ? <Check className="w-4 h-4" /> : s.step}
+                      </div>
+                      <span className={`text-[11px] block font-bold ${isCurrent ? 'text-indigo-600' : 'text-slate-400'}`}>
+                        {s.label}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* 타임라인 추적 로그 */}
+            <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50/60 max-h-48 overflow-y-auto space-y-3 text-xs">
+              <div className="flex items-start gap-3">
+                <span className="font-mono text-indigo-600 font-bold shrink-0">13:10</span>
+                <div>
+                  <span className="font-extrabold text-slate-900 block">[배송완료] 고객님 수령 완료</span>
+                  <span className="text-[11px] text-slate-500">배송장소: 문 앞 안심 전달 (담당기사: 김철수 010-8888-9999)</span>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="font-mono text-slate-500 shrink-0">08:30</span>
+                <div>
+                  <span className="font-bold text-slate-800 block">[배달출발] 서울강남영업소 배달 출발</span>
+                  <span className="text-[11px] text-slate-500">고객님께 오늘 중으로 배송될 예정입니다.</span>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="font-mono text-slate-400 shrink-0">04:15</span>
+                <div>
+                  <span className="font-semibold text-slate-700 block">[간선하차] 옥천HUB 터미널 도착 및 분류</span>
+                  <span className="text-[11px] text-slate-500">목적지 관할 터미널로 간선상차 이동</span>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="font-mono text-slate-400 shrink-0">전일 18:00</span>
+                <div>
+                  <span className="font-semibold text-slate-700 block">[집하완료] 입점사 물류센터 인수</span>
+                  <span className="text-[11px] text-slate-500">택배 기사 상품 인수 및 바코드 등록</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const url = `https://search.naver.com/search.naver?query=${encodeURIComponent(
+                    (trackingModalOrder.courier || '') + ' ' + (trackingModalOrder.trackingNumber || '')
+                  )}`
+                  window.open(url, '_blank')
+                }}
+                className="text-xs h-9 font-bold gap-1 text-slate-700"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                네이버 실시간 택배조회
+              </Button>
+              <Button
+                onClick={() => setTrackingModalOrder(null)}
+                size="sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs h-9 px-5"
+              >
+                확인 닫기
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* Phase 2: 안심 구매확정 모달                                  */}
+      {/* ========================================================= */}
+      {confirmModalOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white text-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-indigo-600" />
+                <h3 className="font-black text-base">안심 에스크로 구매확정</h3>
+              </div>
+              <button
+                onClick={() => setConfirmModalOrder(null)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 주문 요약 */}
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
+              <img
+                src={confirmModalOrder.image}
+                alt={confirmModalOrder.title}
+                className="w-14 h-14 rounded-xl object-cover border shrink-0"
+              />
+              <div className="min-w-0">
+                <h5 className="font-extrabold text-sm text-slate-900 truncate">{confirmModalOrder.title}</h5>
+                <p className="font-black text-sm text-indigo-600 mt-0.5">
+                  {confirmModalOrder.price.toLocaleString()}원
+                </p>
+              </div>
+            </div>
+
+            {/* 포인트 리워드 혜택 안내 */}
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 text-xs space-y-2">
+              <div className="flex items-center gap-1.5 font-black text-amber-900">
+                <Sparkles className="w-4 h-4 text-amber-600" />
+                <span>구매확정 시 500 ON 포인트 즉시 적립!</span>
+              </div>
+              <p className="text-amber-800 leading-relaxed text-[11px]">
+                구매확정을 누르시면 모꼬 안전 에스크로에 보관 중이던 결제대금이 판매자에게 즉시 송금 정산되며, 고객님께는 <strong>500 ON 리워드 포인트</strong>가 지급됩니다.
+              </p>
+              <p className="text-rose-600 font-semibold text-[11px]">
+                * 구매확정 이후에는 단순 변심에 의한 환불 및 반품이 제한될 수 있습니다.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmModalOrder(null)}
+                className="text-xs h-9 font-bold text-slate-600"
+              >
+                다음에 하기
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  const targetOrder = confirmModalOrder
+                  setMyOrdersList((prev: any[]) =>
+                    prev.map((o) =>
+                      o.id === targetOrder.id
+                        ? { ...o, status: 'COMPLETED', statusText: '구매확정 완료 (정산지급)' }
+                        : o
+                    )
+                  )
+                  setMyPoints((prev: number) => prev + 500)
+                  setConfirmModalOrder(null)
+                  // 즉시 리뷰 모달 연결
+                  setReviewModalOrder(targetOrder)
+                  setReviewRating(5)
+                  setReviewComment('')
+                  toast({
+                    title: '🎉 구매확정이 완료되었습니다!',
+                    description: '판매자에게 정산금이 즉시 지급되었으며, 500 ON 포인트가 적립되었습니다.',
+                  })
+                }}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs h-9 px-5 shadow-xs"
+              >
+                구매확정 진행
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* Phase 2: 리뷰/구매후기 작성 모달                             */}
+      {/* ========================================================= */}
+      {reviewModalOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white text-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+                <h3 className="font-black text-base">구매후기 & 만족도 평가</h3>
+              </div>
+              <button
+                onClick={() => setReviewModalOrder(null)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 상품 요약 */}
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
+              <img
+                src={reviewModalOrder.image}
+                alt={reviewModalOrder.title}
+                className="w-12 h-12 rounded-xl object-cover border shrink-0"
+              />
+              <div className="min-w-0">
+                <h5 className="font-extrabold text-xs text-slate-900 truncate">{reviewModalOrder.title}</h5>
+                <span className="text-[11px] text-slate-500 font-semibold">{reviewModalOrder.seller}</span>
+              </div>
+            </div>
+
+            {/* 별점 선택기 */}
+            <div className="text-center py-2 space-y-1.5">
+              <span className="text-xs font-bold text-slate-600 block">상품과 배송에 만족하셨나요?</span>
+              <div className="flex items-center justify-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setReviewRating(star)}
+                    className="p-1 hover:scale-110 transition-transform"
+                  >
+                    <Star
+                      className={`w-7 h-7 ${
+                        star <= reviewRating
+                          ? 'fill-amber-400 text-amber-400 drop-shadow-xs'
+                          : 'fill-slate-200 text-slate-200'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+              <span className="text-xs font-extrabold text-amber-600">
+                {reviewRating === 5
+                  ? '최고예요! 아주 만족해요'
+                  : reviewRating === 4
+                  ? '만족해요! 추천합니다'
+                  : reviewRating === 3
+                  ? '보통이에요'
+                  : '조금 아쉬워요'}
+              </span>
+            </div>
+
+            {/* 빠른 키워드 태그 선택 */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700">이런 점이 좋았어요</label>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  '배송이 빨라요 ⚡',
+                  '상품이 신선해요 🥗',
+                  '포장이 꼼꼼해요 📦',
+                  '가성비가 최고예요 💰',
+                  '재구매할게요 👍',
+                ].map((tag) => {
+                  const isSel = selectedReviewTags.includes(tag)
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        setSelectedReviewTags((prev) =>
+                          isSel ? prev.filter((t) => t !== tag) : [...prev, tag]
+                        )
+                      }}
+                      className={`px-2.5 py-1 rounded-xl text-xs font-bold transition ${
+                        isSel
+                          ? 'bg-indigo-600 text-white shadow-2xs'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* 상세 후기 입력 */}
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-700">상세 리뷰 작성</label>
+              <textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder="다른 고객들에게 도움이 될 수 있도록 상품 상태, 크기, 품질에 대해 솔직하게 작성해주세요."
+                rows={3}
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-indigo-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setReviewModalOrder(null)}
+                className="text-xs h-9 font-bold text-slate-600"
+              >
+                닫기
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setReviewModalOrder(null)
+                  toast({
+                    title: '⭐ 리뷰가 소중하게 등록되었습니다!',
+                    description: '정성스러운 구매 후기가 다른 이웃들에게 큰 도움이 됩니다. 감사합니다!',
+                  })
+                }}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs h-9 px-5 shadow-xs"
+              >
+                리뷰 등록 완료
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* Phase 2: 교환/반품 CS 클레임 접수 모달                       */}
+      {/* ========================================================= */}
+      {returnModalOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white text-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <RotateCcw className="w-5 h-5 text-rose-600" />
+                <h3 className="font-black text-base">교환 / 반품 접수 (CS 클레임)</h3>
+              </div>
+              <button
+                onClick={() => setReturnModalOrder(null)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 상품 정보 */}
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
+              <img
+                src={returnModalOrder.image}
+                alt={returnModalOrder.title}
+                className="w-12 h-12 rounded-xl object-cover border shrink-0"
+              />
+              <div className="min-w-0">
+                <h5 className="font-extrabold text-xs text-slate-900 truncate">{returnModalOrder.title}</h5>
+                <span className="font-black text-xs text-slate-900">{returnModalOrder.price.toLocaleString()}원</span>
+              </div>
+            </div>
+
+            {/* 사유 선택 라디오 */}
+            <div className="space-y-2 text-xs">
+              <label className="block font-bold text-slate-700">반품 / 교환 사유 선택</label>
+              {[
+                { id: 'DEFECT', label: '상품 파손 / 하자 / 변질 (판매자 부담 무료 반품)' },
+                { id: 'WRONG_DELIVERY', label: '오배송 / 누락 (판매자 부담 무료 재발송)' },
+                { id: 'CHANGE_MIND', label: '단순 변심 (왕복 배송비 7,000원 구매자 부담)' },
+              ].map((r) => (
+                <label
+                  key={r.id}
+                  className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition ${
+                    returnReason === r.id
+                      ? 'border-indigo-600 bg-indigo-50/50 text-indigo-900 font-bold'
+                      : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="return_reason"
+                    checked={returnReason === r.id}
+                    onChange={() => setReturnReason(r.id)}
+                    className="mt-0.5"
+                  />
+                  <span>{r.label}</span>
+                </label>
+              ))}
+            </div>
+
+            {/* 상세 사유 서술 */}
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-700">상세 사유 기재</label>
+              <textarea
+                value={returnDetailText}
+                onChange={(e) => setReturnDetailText(e.target.value)}
+                placeholder="불량 또는 파손 상태, 교환 희망 사유를 상세히 입력해 주시면 신속한 처리에 도움이 됩니다."
+                rows={3}
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-indigo-500"
+              />
+            </div>
+
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-600 space-y-1">
+              <div className="flex justify-between">
+                <span>환불 수단</span>
+                <span className="font-bold text-slate-800">에스크로 결제 수단 승인취소</span>
+              </div>
+              <div className="flex justify-between">
+                <span>회수 주소지</span>
+                <span className="font-semibold text-slate-800">기존 배송지로 기사 방문 수거</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setReturnModalOrder(null)}
+                className="text-xs h-9 font-bold text-slate-600"
+              >
+                취소
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  const targetOrder = returnModalOrder
+                  setMyOrdersList((prev: any[]) =>
+                    prev.map((o) =>
+                      o.id === targetOrder.id
+                        ? { ...o, status: 'DISPUTED', statusText: '반품/교환 접수 (심사중)' }
+                        : o
+                    )
+                  )
+                  setReturnModalOrder(null)
+                  toast({
+                    title: '⚠️ 교환/반품 CS 접수가 완료되었습니다.',
+                    description: '입점사 관리자에게 클레임이 전송되었으며, 기사님 회수 일정이 배정됩니다.',
+                  })
+                }}
+                className="bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs h-9 px-5 shadow-xs"
+              >
+                접수 신청하기
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <MoccoPointChargeModal
         isOpen={isPointChargeModalOpen}
         onClose={() => setIsPointChargeModalOpen(false)}
