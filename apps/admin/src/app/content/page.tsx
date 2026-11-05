@@ -1789,10 +1789,10 @@ export default function ContentAndAnnouncementsPage() {
                   </span>
                   <div>
                     <CardTitle className="text-base font-semibold text-pink-950 dark:text-pink-200">
-                      동네 커뮤니티 카테고리(주제) 관리 및 실시간 동기화
+                      전국 모꼬지 커뮤니티 카테고리(주제) 관리 및 실시간 동기화
                     </CardTitle>
                     <p className="text-xs text-pink-700/80 dark:text-pink-400">
-                      여기서 추가하거나 삭제한 카테고리는 모바일 앱 상단 캡슐 바(전체/동네인기/...)와 글쓰기 페이지의 주제 선택 칩에 실시간으로 즉시 반영됩니다.
+                      여기서 추가하거나 삭제한 카테고리는 모바일 앱 상단 캡슐 바(전체/실시간인기/...)와 글쓰기 페이지의 주제 선택 칩에 실시간으로 즉시 반영됩니다.
                     </p>
                   </div>
                 </div>
@@ -1851,14 +1851,14 @@ export default function ContentAndAnnouncementsPage() {
                           <div>
                             <div className="flex items-center gap-2">
                               <h3 className="font-bold text-sm text-foreground">{cat.name}</h3>
-                              {cat.name === '전체' || cat.name === '동네인기' ? (
+                              {cat.name === '전체' || cat.name === '실시간인기' ? (
                                 <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-700">시스템</Badge>
                               ) : (
                                 <Badge variant="secondary" className="text-[10px] bg-pink-100 text-pink-700">사용자</Badge>
                               )}
                             </div>
                             <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
-                              {cat.description || `${cat.name} 관련 동네 이웃 이야기`}
+                              {cat.description || `${cat.name} 관련 전국 회원 이야기`}
                             </p>
                           </div>
                         </div>
@@ -2393,7 +2393,7 @@ export default function ContentAndAnnouncementsPage() {
             <div className="space-y-1.5">
               <Label>카테고리명 (필수)</Label>
               <Input
-                placeholder="예: 취미운동, 반려견, 동네맛집, 질문고민"
+                placeholder="예: 취미운동, 반려견, 전국맛집, 질문고민"
                 value={categoryForm.name}
                 onChange={(e) => setCategoryForm((prev) => ({ ...prev, name: e.target.value }))}
                 className="h-9 text-xs"
@@ -2428,7 +2428,7 @@ export default function ContentAndAnnouncementsPage() {
             <div className="space-y-1.5">
               <Label>카테고리 간단 설명 (선택)</Label>
               <Input
-                placeholder="예: 우리 동네 맛있는 음식점과 카페 정보 공유"
+                placeholder="예: 전국 각지 맛있는 음식점과 라이브 특가 정보 공유"
                 value={categoryForm.description}
                 onChange={(e) => setCategoryForm((prev) => ({ ...prev, description: e.target.value }))}
                 className="h-9 text-xs"

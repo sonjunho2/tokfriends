@@ -727,7 +727,7 @@ export default function ApiManagerPage() {
                 {/* 커뮤니티 & 공지 */}
                 <div>
                   <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-slate-700 font-medium">동네 커뮤니티 피드 & 고객지원 (Community)</span>
+                    <span className="text-slate-700 font-medium">전국 커뮤니티 피드 & 고객지원 (Community)</span>
                     <span className="text-foreground font-mono font-bold">6% (100,600건)</span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
