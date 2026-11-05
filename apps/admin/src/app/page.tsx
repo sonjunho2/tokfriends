@@ -1437,6 +1437,55 @@ export default function CustomerWebStorefrontPage() {
       } catch (e) {
         console.warn('Failed to load cart', e)
       }
+
+      try {
+        const storedHq = localStorage.getItem('mocco_hq_direct_products')
+        if (storedHq) {
+          const parsedHq = JSON.parse(storedHq)
+          if (Array.isArray(parsedHq) && parsedHq.length > 0) {
+            const mappedHqItems: MarketProductItem[] = parsedHq.map((p: any) => ({
+              id: p.id,
+              title: p.name,
+              description: p.description || p.subTitle || '',
+              price: Number(p.salePriceKrw || p.priceKrw),
+              originalPrice: Number(p.priceKrw || p.salePriceKrw),
+              type: p.planType === 'GROUP_BUY' ? 'B2C_GROUP' : 'B2C_NORMAL',
+              ownerType: 'HEADQUARTERS',
+              isHqDirect: true,
+              category:
+                p.category === 'FOOD'
+                  ? '식품/신선'
+                  : p.category === 'DIGITAL'
+                  ? '디지털/가전'
+                  : p.category === 'LIVING'
+                  ? '리빙/생활'
+                  : p.category === 'BEAUTY'
+                  ? '뷰티/케어'
+                  : '패션/잡화',
+              images: Array.isArray(p.images) && p.images.length > 0
+                ? p.images
+                : ['https://images.unsplash.com/photo-1544025162-d76694265947?w=800'],
+              sellerName: '모꼬(MOCCO) 본사 직영관',
+              shippingFee: Number(p.shippingFee || 0),
+              stock: Number(p.stock || 100),
+              status: p.status || 'ACTIVE',
+              affiliateCommissionRate: Number(p.affiliateCommissionRate || 10.0),
+              salesCount: Number(p.salesCount || 0),
+              orderCount: Math.floor(Number(p.salesCount || 0) * 0.8),
+              rating: 5.0,
+              reviewCount: Math.floor(Number(p.salesCount || 0) * 0.3),
+            }))
+
+            setMarketProducts((prev) => {
+              const hqIds = new Set(mappedHqItems.map((item: any) => item.id))
+              const remaining = prev.filter((item) => !hqIds.has(item.id))
+              return [...mappedHqItems, ...remaining]
+            })
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load HQ direct products', e)
+      }
     }
   }, [])
 

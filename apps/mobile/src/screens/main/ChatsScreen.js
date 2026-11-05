@@ -189,7 +189,7 @@ const GENDER_OPTIONS = ['전체', '여성', '남성'];
 const MIN_POSSIBLE_AGE = 20;
 const MAX_POSSIBLE_AGE = 65;
 
-export default function ChatsScreen({ navigation }: any) {
+export default function ChatsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
 
   // 3대 메인 탭: 'FRIENDS' (친구들) vs 'SUDA' (전체수다) vs 'CHATS' (대화함)
@@ -281,7 +281,7 @@ export default function ChatsScreen({ navigation }: any) {
     loadData();
   };
 
-  const handleScroll = (event: any) => {
+  const handleScroll = (event) => {
     const currentY = event.nativeEvent.contentOffset.y;
     if (currentY <= 15) {
       setIsFabExpanded(true);
@@ -294,7 +294,7 @@ export default function ChatsScreen({ navigation }: any) {
   };
 
   // 1:1 대화방 이동
-  const handleStartDirectChat = (targetUser: any) => {
+  const handleStartDirectChat = (targetUser) => {
     setProfileModalVisible(false);
     navigation.navigate('ChatRoom', {
       id: `direct_${targetUser.id}`,
@@ -338,7 +338,7 @@ export default function ChatsScreen({ navigation }: any) {
 
   // 필터링된 전체수다 목록
   const filteredSudaPosts = useMemo(() => {
-    return sudaPosts.filter((post: any) => {
+    return sudaPosts.filter((post) => {
       if (filterRegion !== '전체') {
         const postReg = post.neighborhood || post.author?.neighborhood || '';
         if (!postReg.includes(filterRegion)) return false;

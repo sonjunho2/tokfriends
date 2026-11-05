@@ -21,7 +21,7 @@ import client from '../../api/client';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-type HostLiveTabType = 'ALL' | 'MERCHANT' | 'B2C' | 'C2C' | 'AFFILIATE';
+type HostLiveTabType = 'ALL' | 'HQ' | 'AFFILIATE' | 'MERCHANT' | 'B2C' | 'C2C';
 
 interface HostLiveControlSheetProps {
   visible: boolean;
@@ -71,12 +71,16 @@ export default function HostLiveControlSheet({
                 price: np.salePriceKrw || np.priceKrw,
                 originalPrice: np.priceKrw,
                 images: np.images,
-                status: np.stock <= 0 ? 'SOLD_OUT' : 'ACTIVE',
-                locationName: '전국 무료배송',
+                status: np.stock <= 0 ? 'COMPLETED' : 'ACTIVE',
+                locationName: np.isHqDirect ? '본사 당일 직발송' : '전국 무료배송',
                 distanceKm: 0,
+                isHqDirect: np.isHqDirect,
+                ownerType: np.ownerType,
+                allowAffiliate: np.allowAffiliate,
+                affiliateCommissionRate: np.affiliateCommissionRate,
                 seller: {
-                  id: np.merchantId || 'mer-001',
-                  nickname: np.merchantName || '인증 입점사',
+                  id: np.merchantId || (np.isHqDirect ? 'mer-hq' : 'mer-001'),
+                  nickname: np.merchantName || (np.isHqDirect ? '모꼬 본사 공식 직영관' : '인증 입점사'),
                   avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200',
                   trustScore: 99.5,
                 },
@@ -134,8 +138,9 @@ export default function HostLiveControlSheet({
   }, [visible]);
 
   const filtered = products.filter((p) => {
+    if (activeTab === 'HQ') return p.isHqDirect || p.ownerType === 'HEADQUARTERS';
     if (activeTab === 'AFFILIATE') return (p.type as string) === 'AFFILIATE';
-    if (activeTab === 'MERCHANT') return (p.type as string) === 'B2C_NORMAL';
+    if (activeTab === 'MERCHANT') return (p.type as string) === 'B2C_NORMAL' && !p.isHqDirect;
     if (activeTab === 'B2C') return p.type === 'B2C_GROUP';
     if (activeTab === 'C2C') return p.type === 'C2C_USED';
     return true;
@@ -166,14 +171,15 @@ export default function HostLiveControlSheet({
             </TouchableOpacity>
           </View>
 
-          {/* Segment Filter (5대 탭) */}
+          {/* Segment Filter (6대 탭) */}
           <View style={styles.tabRow}>
             {[
               { id: 'ALL', label: '전체' },
+              { id: 'HQ', label: '👑 본사직영' },
               { id: 'AFFILIATE', label: '🎙️ 제휴위탁' },
               { id: 'MERCHANT', label: '🛍️ 입점사' },
               { id: 'B2C', label: '🔥 특가공구' },
-              { id: 'C2C', label: '🏷️ 중고' },
+              { id: 'C2C', label: '🏷️ 내 중고' },
             ].map((tab) => {
               const isSelected = activeTab === tab.id;
               return (
@@ -202,6 +208,7 @@ export default function HostLiveControlSheet({
               contentContainerStyle={styles.listContent}
               renderItem={({ item }) => {
                 const isPinned = pinnedProduct?.id === item.id;
+                const isHqDirect = Boolean(item.isHqDirect || item.ownerType === 'HEADQUARTERS');
                 const isAffiliate = (item.type as string) === 'AFFILIATE';
                 const isNormal = (item.type as string) === 'B2C_NORMAL';
                 const isGroup = item.type === 'B2C_GROUP';
@@ -216,7 +223,9 @@ export default function HostLiveControlSheet({
                         <View
                           style={[
                             styles.typeBadge,
-                            isAffiliate
+                            isHqDirect
+                              ? styles.typeBadgeHq
+                              : isAffiliate
                               ? styles.typeBadgeAffiliate
                               : isNormal
                               ? styles.typeBadgeMerchant
@@ -228,7 +237,9 @@ export default function HostLiveControlSheet({
                           <Text
                             style={[
                               styles.typeBadgeText,
-                              isAffiliate
+                              isHqDirect
+                                ? styles.typeBadgeTextHq
+                                : isAffiliate
                                 ? styles.typeBadgeTextAffiliate
                                 : isNormal
                                 ? styles.typeBadgeTextMerchant
@@ -237,7 +248,9 @@ export default function HostLiveControlSheet({
                                 : styles.typeBadgeTextC2C,
                             ]}
                           >
-                            {isAffiliate
+                            {isHqDirect
+                              ? '👑 본사직영'
+                              : isAffiliate
                               ? `🎙️ 제휴위탁 (${(item as any).affiliateCommissionRate || 10}%)`
                               : isNormal
                               ? '브랜드특가'
@@ -410,6 +423,11 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
     borderRadius: 3,
   },
+  typeBadgeHq: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 0.5,
+    borderColor: '#F59E0B',
+  },
   typeBadgeAffiliate: {
     backgroundColor: '#FFF1F2',
   },
@@ -424,6 +442,10 @@ const styles = StyleSheet.create({
   },
   typeBadgeText: {
     fontSize: 9,
+    fontWeight: '800',
+  },
+  typeBadgeTextHq: {
+    color: '#B45309',
     fontWeight: '800',
   },
   typeBadgeTextAffiliate: {
