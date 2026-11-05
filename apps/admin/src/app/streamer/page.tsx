@@ -22,6 +22,17 @@ import {
   ShieldCheck,
   RefreshCw,
   Truck,
+  Building2,
+  Download,
+  CreditCard,
+  Wallet,
+  FileText,
+  Check,
+  X,
+  Info,
+  Calendar,
+  Receipt,
+  Edit2,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -140,7 +151,63 @@ const INITIAL_AFFILIATE_PRODUCTS: AffiliateProductItem[] = [
 export default function StreamerStudioPage() {
   const { toast } = useToast()
   const { user, role, openCreatorModal } = useWebAuth()
-  const [activeTab, setActiveTab] = useState<'MY_PICKS' | 'EXPLORE'>('MY_PICKS')
+  const [activeTab, setActiveTab] = useState<'MY_PICKS' | 'EXPLORE' | 'REVENUE'>('MY_PICKS')
+
+  // Creator Bank & Settlement States
+  const [creatorBank, setCreatorBank] = useState({
+    bankName: '카카오뱅크',
+    accountNumber: '3333-01-9988221',
+    accountHolder: '정크리에이터',
+  })
+  const [isBankModalOpen, setIsBankModalOpen] = useState(false)
+  const [bankForm, setBankForm] = useState(creatorBank)
+
+  // Creator Withdrawal Modal State
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false)
+  const [withdrawAmount, setWithdrawAmount] = useState('300000')
+
+  // Commission Ledger History
+  const [commissionHistory, setCommissionHistory] = useState([
+    {
+      id: 'comm-101',
+      date: '2026-11-04 20:30',
+      liveTitle: '🔥 제주 특산물 초특가 먹방 & 라이브 특가',
+      orderNumber: 'ORD-20261104-5892',
+      productName: '[본사직영] 제주 프리미엄 1등급 흑돼지 오겹살 1kg',
+      quantity: 3,
+      saleTotalKrw: 98700,
+      commissionRate: 10.0,
+      commissionKrw: 9870,
+      status: 'SETTLED',
+      statusText: '정산 입금완료',
+    },
+    {
+      id: 'comm-102',
+      date: '2026-11-03 21:15',
+      liveTitle: '🎧 음향기기 덕후의 소니 헤드폰 실사용 리뷰',
+      orderNumber: 'ORD-20261103-1024',
+      productName: '소니 WH-1000XM5 프리미엄 무선 노이즈캔슬링 헤드폰',
+      quantity: 1,
+      saleTotalKrw: 369000,
+      commissionRate: 15.0,
+      commissionKrw: 55350,
+      status: 'PENDING',
+      statusText: '구매확정 대기',
+    },
+    {
+      id: 'comm-103',
+      date: '2026-10-30 19:00',
+      liveTitle: '🍎 제철 과일 산지직송 달콤 과일 라이브',
+      orderNumber: 'ORD-20261030-8812',
+      productName: '[본사공구] 프리미엄 나주 특등급 햇배 5kg',
+      quantity: 5,
+      saleTotalKrw: 99500,
+      commissionRate: 10.0,
+      commissionKrw: 9950,
+      status: 'SETTLED',
+      statusText: '정산 입금완료',
+    },
+  ])
   const [searchQuery, setSearchQuery] = useState('')
   const [ownerFilter, setOwnerFilter] = useState<'ALL' | 'HEADQUARTERS' | 'MERCHANT'>('ALL')
   const [availableProducts, setAvailableProducts] = useState<AffiliateProductItem[]>(INITIAL_AFFILIATE_PRODUCTS)
@@ -183,8 +250,32 @@ export default function StreamerStudioPage() {
         }
       }
 
-      // Sync newly planned HQ Direct products if affiliate is allowed
+      // Sync newly planned HQ Direct & Merchant custom products if affiliate is allowed
       if (typeof window !== 'undefined') {
+        // 1) Load saved creator bank
+        try {
+          const savedBank = localStorage.getItem('mocco_creator_bank')
+          if (savedBank) {
+            const parsedBank = JSON.parse(savedBank)
+            setCreatorBank(parsedBank)
+            setBankForm(parsedBank)
+          }
+        } catch {}
+
+        // 2) Load saved picks
+        try {
+          const savedPicks = localStorage.getItem('mocco_streamer_my_picks')
+          if (savedPicks) {
+            const parsedPicks = JSON.parse(savedPicks)
+            if (Array.isArray(parsedPicks) && parsedPicks.length > 0) {
+              setMyPicks(parsedPicks)
+            }
+          }
+        } catch {}
+
+        let dynamicAffiliates: AffiliateProductItem[] = []
+
+        // HQ Direct Products
         const storedHq = localStorage.getItem('mocco_hq_direct_products')
         if (storedHq) {
           const parsedHq = JSON.parse(storedHq)
@@ -208,15 +299,50 @@ export default function StreamerStudioPage() {
                 estimatedCommissionKrw: Math.floor((Number(p.salePriceKrw) * Number(p.affiliateCommissionRate || 10.0)) / 100),
                 merchantName: '모꼬(MOCCO) 본사 직영관',
               }))
-
-            if (hqAffiliates.length > 0) {
-              setAvailableProducts((prev) => {
-                const hqIds = new Set(hqAffiliates.map((item) => item.id))
-                const remaining = prev.filter((item) => !hqIds.has(item.id))
-                return [...hqAffiliates, ...remaining]
-              })
-            }
+            dynamicAffiliates = [...dynamicAffiliates, ...hqAffiliates]
           }
+        }
+
+        // Merchant Custom Products
+        const storedMerchant = localStorage.getItem('mocco_custom_products')
+        if (storedMerchant) {
+          try {
+            const parsedMerchant = JSON.parse(storedMerchant)
+            if (Array.isArray(parsedMerchant)) {
+              const merchantAffiliates: AffiliateProductItem[] = parsedMerchant
+                .filter((p: any) => p.allowCreatorSales)
+                .map((p: any) => {
+                  const rate = Number(p.creatorCommissionRate || 10.0)
+                  const effPrice = Number(p.price || 0)
+                  return {
+                    id: p.id,
+                    name: p.name,
+                    description: p.description || '',
+                    priceKrw: Number(p.originalPrice || p.price),
+                    salePriceKrw: effPrice,
+                    effectivePrice: effPrice,
+                    stock: Number(p.stock || 50),
+                    images: Array.isArray(p.images) && p.images.length > 0 ? p.images : ['https://images.unsplash.com/photo-1544025162-d76694265947?w=800'],
+                    category: p.category || 'FOOD',
+                    shippingFee: Number(p.shippingFee || 0),
+                    ownerType: 'MERCHANT',
+                    isHqDirect: false,
+                    commissionRate: rate,
+                    estimatedCommissionKrw: Math.floor((effPrice * rate) / 100),
+                    merchantName: p.merchantInfo?.businessName || '공식 제휴 입점사',
+                  }
+                })
+              dynamicAffiliates = [...dynamicAffiliates, ...merchantAffiliates]
+            }
+          } catch {}
+        }
+
+        if (dynamicAffiliates.length > 0) {
+          setAvailableProducts((prev) => {
+            const newIds = new Set(dynamicAffiliates.map((item) => item.id))
+            const remaining = prev.filter((item) => !newIds.has(item.id))
+            return [...dynamicAffiliates, ...remaining]
+          })
         }
       }
     } catch {}
@@ -237,7 +363,11 @@ export default function StreamerStudioPage() {
       }).catch(() => {})
 
       if (!myPicks.some((p) => p.id === product.id)) {
-        setMyPicks([product, ...myPicks])
+        const next = [product, ...myPicks]
+        setMyPicks(next)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('mocco_streamer_my_picks', JSON.stringify(next))
+        }
       }
       toast({
         title: '🎉 제휴 상품 바구니 담기 완료',
@@ -259,7 +389,11 @@ export default function StreamerStudioPage() {
         method: 'DELETE',
       }).catch(() => {})
 
-      setMyPicks(myPicks.filter((p) => p.id !== productId))
+      const next = myPicks.filter((p) => p.id !== productId)
+      setMyPicks(next)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('mocco_streamer_my_picks', JSON.stringify(next))
+      }
       toast({
         title: '상품 제거 완료',
         description: '내 방송 판매 바구니에서 상품이 제거되었습니다.',
@@ -267,7 +401,114 @@ export default function StreamerStudioPage() {
     } catch {}
   }
 
-  const filteredExplore = availableProducts.filter((p) => {
+
+  // Handle Export Creator Revenue CSV
+  const handleExportCreatorRevenueCSV = () => {
+    if (!commissionHistory || commissionHistory.length === 0) {
+      toast({
+        title: '다운로드할 내역 없음',
+        description: '정산 내역 데이터가 없습니다.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const headers = [
+      '방송일시',
+      '라이브방송제목',
+      '주문번호',
+      '판매상품명',
+      '수량',
+      '총판매액(원)',
+      '커미션율(%)',
+      '실수령수익금(원)',
+      '정산상태',
+    ]
+
+    const rows = commissionHistory.map((h) => [
+      `"${h.date}"`,
+      `"${h.liveTitle.replace(/"/g, '""')}"`,
+      `"${h.orderNumber}"`,
+      `"${h.productName.replace(/"/g, '""')}"`,
+      h.quantity,
+      h.saleTotalKrw,
+      `"${h.commissionRate}%"`,
+      h.commissionKrw,
+      `"${h.statusText}"`,
+    ].join(','))
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `MOCCO_Creator_Revenue_${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    toast({
+      title: '크리에이터 정산 내역서 CSV 다운로드 완료',
+      description: '회계 증빙용 커머스 판매 커미션 정산 내역서가 다운로드되었습니다.',
+    })
+  }
+
+  // Handle Request Withdrawal
+  const handleRequestWithdrawal = (e: React.FormEvent) => {
+    e.preventDefault()
+    const amount = Number(withdrawAmount)
+    if (!amount || amount < 10000) {
+      toast({
+        title: '출금 금액 오류',
+        description: '최소 출금 가능 금액은 10,000원입니다.',
+        variant: 'destructive',
+      })
+      return
+    }
+    if (amount > settledCommission) {
+      toast({
+        title: '출금 가능 잔액 초과',
+        description: `현재 출금 가능 정산 잔액은 ₩${settledCommission.toLocaleString()}입니다.`,
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const taxAmount = Math.floor(amount * 0.033) // 3.3% 사업소득세 원천징수
+    const netPayout = amount - taxAmount
+
+    setSettledCommission((prev) => prev - amount)
+    setIsWithdrawModalOpen(false)
+    toast({
+      title: '🎉 출금 신청이 성공적으로 접수되었습니다!',
+      description: `원천세(3.3%) ₩${taxAmount.toLocaleString()} 공제 후 실수령액 ₩${netPayout.toLocaleString()}이 ${creatorBank.bankName} 계좌로 익일 송금됩니다.`,
+    })
+  }
+
+  // Handle Save Bank Info
+  const handleSaveBankInfo = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!bankForm.bankName.trim() || !bankForm.accountNumber.trim() || !bankForm.accountHolder.trim()) {
+      toast({
+        title: '계좌 정보 누락',
+        description: '모든 항목을 입력해주세요.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setCreatorBank(bankForm)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('mocco_creator_bank', JSON.stringify(bankForm))
+    }
+    setIsBankModalOpen(false)
+    toast({
+      title: '정산 입금 계좌 저장 완료',
+      description: `${bankForm.bankName} ${bankForm.accountNumber} 계좌로 정산금이 송금됩니다.`,
+    })
+  }
+
+    const filteredExplore = availableProducts.filter((p) => {
     const matchOwner = ownerFilter === 'ALL' || p.ownerType === ownerFilter
     const matchSearch =
       !searchQuery.trim() ||
@@ -508,6 +749,17 @@ export default function StreamerStudioPage() {
               <Search className="w-4 h-4" />
               제휴 가능 상품 탐색 ({availableProducts.length})
             </button>
+            <button
+              onClick={() => setActiveTab('REVENUE')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'REVENUE'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              <Coins className="w-4 h-4 text-amber-500" />
+              💰 커머스 정산 & 계좌 관리
+            </button>
           </div>
 
           <Button
@@ -743,6 +995,349 @@ export default function StreamerStudioPage() {
             </div>
           </div>
         )}
+      
+        {/* Tab 3: Revenue & Settlement Management */}
+        {activeTab === 'REVENUE' && (
+          <div className="space-y-6">
+            {/* Bank Card & Metrics Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              {/* Creator Bank Info Card */}
+              <Card className="border border-border/80 bg-gradient-to-br from-card via-card to-muted/20 shadow-sm">
+                <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                  <CardTitle className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                    <Building2 className="w-4 h-4 text-primary" />
+                    정산 대금 입금 계좌
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setBankForm(creatorBank)
+                      setIsBankModalOpen(true)
+                    }}
+                    className="text-xs h-7 px-2 font-bold text-primary hover:text-primary gap-1"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                    계좌 변경
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <div className="text-xl font-bold font-mono text-foreground">
+                      {creatorBank.bankName}
+                    </div>
+                    <div className="text-sm font-mono text-foreground tracking-wide mt-1">
+                      {creatorBank.accountNumber}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      예금주: {creatorBank.accountHolder}
+                    </div>
+                  </div>
+                  <div className="p-3 bg-muted/40 rounded-xl border border-border text-[11px] text-muted-foreground flex items-start gap-1.5">
+                    <Info className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                    <span>
+                      매주 화요일 정산 확정된 커머스 커미션이 등록된 본인 계좌로 자동 지급됩니다.
+                    </span>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setWithdrawAmount(String(settledCommission))
+                      setIsWithdrawModalOpen(true)
+                    }}
+                    className="w-full bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-bold text-xs h-9 shadow-xs gap-1.5"
+                  >
+                    <Wallet className="w-3.5 h-3.5" />
+                    수익금 즉시 출금 신청
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Metric Cards (2 Col) */}
+              <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Card className="border border-border/80 shadow-sm flex flex-col justify-between">
+                  <CardHeader className="pb-2">
+                    <CardDescription className="text-xs font-semibold">
+                      출금 가능 확정 정산액
+                    </CardDescription>
+                    <CardTitle className="text-3xl font-black text-rose-500 font-mono">
+                      ₩{settledCommission.toLocaleString()}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground">
+                      구매확정 완료 건 기준 (언제든 1만원 이상 즉시 출금 가능)
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border border-border/80 shadow-sm flex flex-col justify-between">
+                  <CardHeader className="pb-2">
+                    <CardDescription className="text-xs font-semibold">
+                      정산 대기 예정 커미션
+                    </CardDescription>
+                    <CardTitle className="text-3xl font-black text-indigo-500 font-mono">
+                      ₩55,350
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground">
+                      현재 배송 중 또는 구매확정 대기 중인 주문 커미션
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Commission Ledger Table Card */}
+            <Card className="border border-border shadow-sm">
+              <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base font-bold flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-primary" />
+                    라이브 커머스 판매 & 커미션 정산 장부
+                  </CardTitle>
+                  <CardDescription className="text-xs mt-0.5">
+                    내 방송 핀 상품을 통해 발생한 실시간 주문 및 건당 커미션 적립 내역입니다.
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportCreatorRevenueCSV}
+                  className="gap-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  정산서 다운로드 (CSV/Excel)
+                </Button>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-muted/40 uppercase tracking-wider text-muted-foreground border-b border-border">
+                      <tr>
+                        <th className="py-3 px-4 font-semibold">주문번호 / 일시</th>
+                        <th className="py-3 px-4 font-semibold">방송 정보</th>
+                        <th className="py-3 px-4 font-semibold">판매 상품</th>
+                        <th className="py-3 px-4 text-center font-semibold">수량</th>
+                        <th className="py-3 px-4 text-right font-semibold">결제액</th>
+                        <th className="py-3 px-4 text-right font-semibold">요율</th>
+                        <th className="py-3 px-4 text-right font-semibold">수익금</th>
+                        <th className="py-3 px-4 text-center font-semibold">정산 상태</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {commissionHistory.map((item) => (
+                        <tr key={item.id} className="hover:bg-muted/20">
+                          <td className="py-3 px-4 font-mono">
+                            <span className="font-bold text-foreground block">{item.orderNumber}</span>
+                            <span className="text-[10px] text-muted-foreground">{item.date}</span>
+                          </td>
+                          <td className="py-3 px-4 max-w-[200px] truncate font-medium">
+                            {item.liveTitle}
+                          </td>
+                          <td className="py-3 px-4 max-w-[220px] truncate font-semibold text-foreground">
+                            {item.productName}
+                          </td>
+                          <td className="py-3 px-4 text-center font-mono font-bold">
+                            {item.quantity}개
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono text-muted-foreground">
+                            ₩{item.saleTotalKrw.toLocaleString()}
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono font-bold text-indigo-600">
+                            {item.commissionRate}%
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono font-extrabold text-rose-500 text-sm">
+                            +₩{item.commissionKrw.toLocaleString()}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            {item.status === 'SETTLED' ? (
+                              <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 text-[10px]">
+                                정산완료
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30 text-[10px]">
+                                구매확정 대기
+                              </Badge>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Modal 1: Bank Account Edit */}
+        {isBankModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+            <form
+              onSubmit={handleSaveBankInfo}
+              className="bg-white text-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95"
+            >
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-indigo-600" />
+                  <h3 className="text-base font-extrabold">크리에이터 정산 계좌 변경</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsBankModalOpen(false)}
+                  className="p-1 rounded-full hover:bg-slate-100 text-slate-500"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">입금 은행</label>
+                  <Input
+                    value={bankForm.bankName}
+                    onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })}
+                    placeholder="예: 카카오뱅크, 신한은행, 토스뱅크"
+                    className="text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">계좌번호 (하이픈 포함)</label>
+                  <Input
+                    value={bankForm.accountNumber}
+                    onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })}
+                    placeholder="예: 3333-01-9988221"
+                    className="text-xs font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">예금주명 (실명 일치 필수)</label>
+                  <Input
+                    value={bankForm.accountHolder}
+                    onChange={(e) => setBankForm({ ...bankForm, accountHolder: e.target.value })}
+                    placeholder="예: 정크리에이터"
+                    className="text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 flex items-start gap-1.5">
+                <Info className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
+                <span>
+                  소득세 원천징수 신고를 위해 예금주 실명과 가입자 명의가 일치해야 정산금이 정상 입금됩니다.
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsBankModalOpen(false)}
+                  className="text-xs"
+                >
+                  취소
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold"
+                >
+                  계좌 정보 저장
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Modal 2: Withdrawal Request */}
+        {isWithdrawModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+            <form
+              onSubmit={handleRequestWithdrawal}
+              className="bg-white text-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95"
+            >
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                <div className="flex items-center gap-2">
+                  <Wallet className="w-5 h-5 text-rose-600" />
+                  <h3 className="text-base font-extrabold">수익금 출금 신청</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsWithdrawModalOpen(false)}
+                  className="p-1 rounded-full hover:bg-slate-100 text-slate-500"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">출금 가능 잔액</span>
+                  <span className="font-bold text-slate-900 font-mono">₩{settledCommission.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">입금 예정 계좌</span>
+                  <span className="font-semibold text-indigo-600 font-mono">{creatorBank.bankName} {creatorBank.accountNumber}</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 text-xs">
+                <label className="block font-bold text-slate-700">출금 희망 금액 (최소 10,000원)</label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    className="text-xs font-mono font-bold pr-8"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">원</span>
+                </div>
+              </div>
+
+              {/* Tax Deduction Breakdown */}
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 text-[11px] space-y-1 font-mono">
+                <div className="flex justify-between text-slate-600">
+                  <span>출금 신청액</span>
+                  <span>₩{(Number(withdrawAmount) || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-rose-600">
+                  <span>원천세 3.3% (소득세 3% + 지방소득세 0.3%)</span>
+                  <span>-₩{Math.floor((Number(withdrawAmount) || 0) * 0.033).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between font-black text-slate-900 text-xs pt-1 border-t border-slate-200">
+                  <span>실제 입금 예정액</span>
+                  <span className="text-emerald-600 font-extrabold">
+                    ₩{Math.max(0, (Number(withdrawAmount) || 0) - Math.floor((Number(withdrawAmount) || 0) * 0.033)).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsWithdrawModalOpen(false)}
+                  className="text-xs"
+                >
+                  취소
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs"
+                >
+                  출금 신청하기
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
+
       </main>
     </div>
   )
