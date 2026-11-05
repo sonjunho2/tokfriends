@@ -21,6 +21,7 @@ import {
   ArrowRight,
   ShieldCheck,
   RefreshCw,
+  Truck,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -304,6 +305,17 @@ export default function StreamerStudioPage() {
               <Link href="/">
                 <ShoppingBag className="w-4 h-4" />
                 🛒 고객 웹 스토어
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs font-semibold border-emerald-300 text-emerald-700 bg-emerald-50"
+              asChild
+            >
+              <Link href="/seller">
+                <Truck className="w-4 h-4 text-emerald-600" />
+                🏪 입점사 셀러 센터
               </Link>
             </Button>
             {role === 'ADMIN' && (

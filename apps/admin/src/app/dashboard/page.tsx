@@ -34,6 +34,13 @@ import {
   Sparkles,
   Activity,
   AlertTriangle,
+  Crown,
+  Percent,
+  Package,
+  Truck,
+  ArrowRight,
+  Flame,
+  Radio,
 } from 'lucide-react'
 
 type KpiMetric = {
@@ -194,6 +201,81 @@ export default function DashboardPage() {
           </Card>
         ))}
       </section>
+
+      {/* 👑 본사 직영 상품 기획 & 수익 통제 허브 (HQ Direct Commerce & PB Hub) */}
+      <Card className="border-amber-200/80 bg-gradient-to-br from-white via-amber-50/20 to-yellow-50/30 shadow-sm">
+        <CardHeader className="pb-3 border-b border-amber-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-black shadow-xs">
+              <Crown className="w-5 h-5 font-black" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base font-bold text-foreground">
+                  본사 직영 기획 상품 & 수익 통제 허브
+                </CardTitle>
+                <Badge className="bg-amber-500 text-black font-extrabold text-[10px]">
+                  직영 PB 매출 68%
+                </Badge>
+              </div>
+              <CardDescription className="text-xs">
+                본사 공식 PB 브랜드, 단독 기획 특가 및 공식 공동구매 상품을 총괄 운영하고 스트리머 라이브 제휴를 통제합니다.
+              </CardDescription>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              asChild
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs h-8 shadow-xs"
+            >
+              <Link href="/dashboard/products">
+                <Crown className="w-3.5 h-3.5 text-amber-200" />
+                <span>직영 상품 관리 & 신규 등록</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-4 space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="p-3 bg-white rounded-xl border border-amber-200/60 shadow-2xs">
+              <div className="flex items-center justify-between text-muted-foreground mb-1">
+                <span>활성 직영 상품</span>
+                <Package className="w-3.5 h-3.5 text-amber-600" />
+              </div>
+              <div className="text-lg font-bold text-foreground">12개 품목</div>
+              <p className="text-[11px] text-amber-700 font-medium">PB 6 · 특가 4 · 공구 2</p>
+            </div>
+
+            <div className="p-3 bg-white rounded-xl border border-emerald-200/60 shadow-2xs">
+              <div className="flex items-center justify-between text-muted-foreground mb-1">
+                <span>직영 월 누적 매출</span>
+                <Coins className="w-3.5 h-3.5 text-emerald-600" />
+              </div>
+              <div className="text-lg font-bold text-emerald-700">₩58,400,000</div>
+              <p className="text-[11px] text-emerald-600 font-medium">에스크로 안전 정산</p>
+            </div>
+
+            <div className="p-3 bg-white rounded-xl border border-indigo-200/60 shadow-2xs">
+              <div className="flex items-center justify-between text-muted-foreground mb-1">
+                <span>본사 평균 순마진</span>
+                <Percent className="w-3.5 h-3.5 text-indigo-600" />
+              </div>
+              <div className="text-lg font-bold text-indigo-700">42.4%</div>
+              <p className="text-[11px] text-indigo-600 font-medium">월 순이익 ₩24.7M</p>
+            </div>
+
+            <div className="p-3 bg-white rounded-xl border border-rose-200/60 shadow-2xs">
+              <div className="flex items-center justify-between text-muted-foreground mb-1">
+                <span>라이브 제휴 쇼핑백</span>
+                <Radio className="w-3.5 h-3.5 text-rose-600" />
+              </div>
+              <div className="text-lg font-bold text-rose-700">10개 상품 핀</div>
+              <p className="text-[11px] text-rose-600 font-medium">스트리머 위탁 판매 중</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* 3. 통계 차트 그리드 & AI 직원 가동 현황 */}
       <section className="grid gap-6 lg:grid-cols-3">

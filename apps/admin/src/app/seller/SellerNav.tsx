@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Package, Truck, CircleDollarSign, Store, ArrowLeft, ShoppingBag, ShieldAlert } from 'lucide-react'
+import { LayoutDashboard, Package, Truck, CircleDollarSign, Store, ArrowLeft, ShoppingBag, ShieldAlert, Radio } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useWebAuth } from '@/lib/auth-context'
@@ -75,6 +75,13 @@ export function SellerNav() {
           >
             <ShoppingBag className="w-3.5 h-3.5" />
             🛒 고객 웹 스토어
+          </Link>
+          <Link
+            href="/streamer"
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
+          >
+            <Radio className="w-3.5 h-3.5 text-rose-500" />
+            🎙️ 스트리머 스튜디오
           </Link>
           {role === 'ADMIN' && (
             <Link

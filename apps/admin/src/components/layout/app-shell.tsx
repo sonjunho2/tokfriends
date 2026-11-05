@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ChevronRight, LogOut, Search, Smartphone, ShoppingBag } from 'lucide-react'
+import { ChevronRight, LogOut, Search, Smartphone, ShoppingBag, Crown, Truck, Radio } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -138,9 +138,14 @@ export function AppShell({ items, adminName = '관리자', children }: AppShellP
           <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
             <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3 md:px-8">
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                  MOCCO Admin
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                    MOCCO Admin
+                  </p>
+                  <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-600 border border-amber-500/20">
+                    👑 본사 총괄
+                  </span>
+                </div>
                 <h2 className="truncate text-base font-semibold">
                   {activeItem?.label ?? 'Dashboard'}
                 </h2>
@@ -148,7 +153,33 @@ export function AppShell({ items, adminName = '관리자', children }: AppShellP
                   {activeItem?.description}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+
+              {/* 3-Tier Admin Switcher + Actions */}
+              <div className="flex items-center flex-wrap gap-2">
+                <div className="hidden lg:flex items-center rounded-lg border bg-muted/40 p-1 text-xs">
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center gap-1.5 rounded-md px-2.5 py-1 font-semibold text-primary bg-background shadow-xs transition-colors"
+                  >
+                    <Crown className="h-3.5 w-3.5 text-amber-500" />
+                    <span>본사 총괄</span>
+                  </Link>
+                  <Link
+                    href="/seller"
+                    className="flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Truck className="h-3.5 w-3.5 text-emerald-500" />
+                    <span>입점사 셀러</span>
+                  </Link>
+                  <Link
+                    href="/streamer"
+                    className="flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Radio className="h-3.5 w-3.5 text-rose-500" />
+                    <span>스트리머 스튜디오</span>
+                  </Link>
+                </div>
+
                 <div className="hidden items-center gap-2 rounded-full border px-3 py-1 text-xs md:flex">
                   <span className="h-2 w-2 rounded-full bg-emerald-500" />
                   <span className="font-medium">{adminName}</span>
@@ -161,7 +192,7 @@ export function AppShell({ items, adminName = '관리자', children }: AppShellP
                 >
                   <Link href="/">
                     <ShoppingBag className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">🛒 고객 웹 둘러보기</span>
+                    <span className="hidden sm:inline">🛒 고객 웹</span>
                     <span className="sm:hidden">고객 웹</span>
                   </Link>
                 </Button>

@@ -21,6 +21,7 @@ import {
   Store,
   Tv,
   Truck,
+  Crown,
 } from 'lucide-react'
 import { AppShell, type AppShellNavItem } from '@/components/layout/app-shell'
 import { ThemeProvider } from '@/components/providers/theme-provider'
@@ -62,6 +63,13 @@ const NAV_ITEMS: AppShellNavItem[] = [
     description: '핵심 운영 현황과 주요 지표',
     group: '본사 총괄 운영',
     icon: LayoutDashboard,
+  },
+  {
+    label: '👑 본사 직영 상품 관리',
+    href: '/dashboard/products',
+    description: '본사 PB 기획 상품 등록, 라이브 제휴 위탁 설정 및 실시간 재고/매출 관리',
+    group: '본사 총괄 운영',
+    icon: Crown,
   },
   {
     label: 'AI 운영 본부 & HITL 결재',
