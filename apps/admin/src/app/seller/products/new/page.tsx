@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -25,11 +25,22 @@ import {
   HelpCircle,
   Eye,
   Plus,
+  Image as ImageIcon,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  Star,
+  Trash2,
+  Smartphone,
+  Layers,
+  Loader2,
 } from 'lucide-react'
 import { useWebAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/ui/use-toast'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { uploadMultipleImageFiles } from '@/lib/uploadHelper'
 
 const CATEGORIES = [
   '식품/신선',
@@ -143,11 +154,24 @@ export default function SellerProductRegisterPage() {
   const [allowCreatorSales, setAllowCreatorSales] = useState(true)
   const [creatorCommissionRate, setCreatorCommissionRate] = useState('15')
 
-  // Images
+  // Images (Thumbnail & Gallery)
   const [images, setImages] = useState<string[]>([
     'https://images.unsplash.com/photo-1544025162-d76694265947?w=1000',
   ])
   const [newImageUrl, setNewImageUrl] = useState('')
+  const [showUrlInput, setShowUrlInput] = useState(false)
+  const [isUploadingThumbnails, setIsUploadingThumbnails] = useState(false)
+  const [thumbnailUploadStatus, setThumbnailUploadStatus] = useState('')
+  const [isDraggingThumbnails, setIsDraggingThumbnails] = useState(false)
+  const thumbnailInputRef = useRef<HTMLInputElement>(null)
+
+  // Detail Page & Design Cut Images
+  const [detailImages, setDetailImages] = useState<string[]>([])
+  const [isUploadingDetailImages, setIsUploadingDetailImages] = useState(false)
+  const [detailUploadStatus, setDetailUploadStatus] = useState('')
+  const [isDraggingDetail, setIsDraggingDetail] = useState(false)
+  const detailInputRef = useRef<HTMLInputElement>(null)
+  const [detailViewTab, setDetailViewTab] = useState<'EDIT' | 'PREVIEW'>('EDIT')
 
   // Detailed Description
   const [description, setDescription] = useState(`■ 상품 특장점
@@ -157,6 +181,157 @@ export default function SellerProductRegisterPage() {
 
 ■ 보관 및 섭취/사용 방법
 - 수령 즉시 내용물을 확인하시고 냉장/냉동 보관해 주세요.`)
+
+  // 템플릿 모음
+  const DETAIL_TEMPLATES: Record<string, string> = {
+    food: `■ 상품 특장점
+1. 100% 산지직송 프리미엄 원물 엄선 (신선도 최상)
+2. HACCP 인증 시설 위생 가공 및 안심 포장
+3. 모꼬 고객만을 위한 단독 기획 특가 구성
+
+■ 보관 및 섭취/사용 방법
+- 수령 즉시 내용물을 확인하시고 냉장/냉동 보관해 주세요.
+- 조리 전 충분히 해동하시면 본연의 육즙과 풍미를 즐기실 수 있습니다.`,
+    digital: `■ 제품 주요 스펙 및 특장점
+1. 최신 고성능 칩셋 탑재 및 고속 충전 완벽 지원
+2. 국립전파연구원 KC 인증 정품 안전 설계
+3. 구매일로부터 1년 무상 품질보증 A/S 제공
+
+■ 사용 시 주의사항
+- 정격 충전기를 사용해 주시고, 직사광선 및 고온 다습한 환경을 피해 주세요.`,
+    fashion: `■ 상품 소재 및 디자인 포인트
+1. 피부 저자극 인증 및 고품질 원단/성분 배합
+2. 어떤 스타일에도 어울리는 감각적인 트렌드 디자인
+3. 꼼꼼한 봉제 마감 및 엄격한 품질 검수 완료
+
+■ 세탁 및 관리 요령
+- 첫 세탁은 단독 세탁 또는 드라이클리닝을 권장합니다.`,
+    shipping: `■ 배송 및 교환/반품 안내
+1. 당일 14시 이전 결제 완료 시 당일 안심 출고 (우체국/CJ대한통운)
+2. 파손 방지 에어캡 및 신선 보냉재 완벽 포장 발송
+3. 상품 수령 후 파손 및 오배송 시 1:1 고객센터로 사진과 함께 접수해 주시면 즉시 교환/환불해 드립니다.`,
+  }
+
+  // 썸네일 파일 업로드 핸들러
+  const handleThumbnailFiles = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files).filter((f) => f.type.startsWith('image/'))
+    if (fileArray.length === 0) {
+      toast({
+        title: '이미지 파일 선택 필요',
+        description: 'JPG, PNG, WEBP, GIF 등 이미지 형식의 파일만 업로드할 수 있습니다.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (images.length + fileArray.length > 10) {
+      toast({
+        title: '최대 이미지 개수 초과',
+        description: `대표 및 추가 이미지는 최대 10장까지만 등록 가능합니다. (현재 ${images.length}장 등록됨)`,
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      setIsUploadingThumbnails(true)
+      setThumbnailUploadStatus(`0/${fileArray.length} 업로드 중...`)
+      const uploadedUrls = await uploadMultipleImageFiles(fileArray, (done, total) => {
+        setThumbnailUploadStatus(`${done}/${total} 업로드 중...`)
+      })
+      setImages((prev) => [...prev, ...uploadedUrls].slice(0, 10))
+      toast({
+        title: '상품 이미지 등록 완료',
+        description: `${uploadedUrls.length}장의 사진이 성공적으로 등록되었습니다.`,
+      })
+    } catch {
+      toast({
+        title: '업로드 오류',
+        description: '이미지 업로드 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsUploadingThumbnails(false)
+      setThumbnailUploadStatus('')
+      if (thumbnailInputRef.current) {
+        thumbnailInputRef.current.value = ''
+      }
+    }
+  }
+
+  // 대표 썸네일로 설정
+  const handleSetPrimaryThumbnail = (idx: number) => {
+    if (idx === 0) return
+    setImages((prev) => {
+      const selected = prev[idx]
+      const filtered = prev.filter((_, i) => i !== idx)
+      return [selected, ...filtered]
+    })
+    toast({
+      title: '대표 썸네일 변경',
+      description: '선택하신 이미지가 상품의 대표 썸네일로 지정되었습니다.',
+    })
+  }
+
+  // 썸네일 순서 변경
+  const handleMoveThumbnail = (from: number, to: number) => {
+    if (to < 0 || to >= images.length) return
+    setImages((prev) => {
+      const updated = [...prev]
+      const [item] = updated.splice(from, 1)
+      updated.splice(to, 0, item)
+      return updated
+    })
+  }
+
+  // 상세페이지 디자인 이미지 업로드 핸들러
+  const handleDetailFiles = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files).filter((f) => f.type.startsWith('image/'))
+    if (fileArray.length === 0) {
+      toast({
+        title: '이미지 파일 선택 필요',
+        description: 'JPG, PNG, WEBP 등 상세페이지 이미지 파일만 업로드할 수 있습니다.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      setIsUploadingDetailImages(true)
+      setDetailUploadStatus(`0/${fileArray.length} 업로드 중...`)
+      const uploadedUrls = await uploadMultipleImageFiles(fileArray, (done, total) => {
+        setDetailUploadStatus(`${done}/${total} 업로드 중...`)
+      })
+      setDetailImages((prev) => [...prev, ...uploadedUrls])
+      toast({
+        title: '상세페이지 이미지 등록 완료',
+        description: `${uploadedUrls.length}장의 상세페이지 이미지가 추가되었습니다.`,
+      })
+    } catch {
+      toast({
+        title: '업로드 오류',
+        description: '상세 이미지 업로드 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsUploadingDetailImages(false)
+      setDetailUploadStatus('')
+      if (detailInputRef.current) {
+        detailInputRef.current.value = ''
+      }
+    }
+  }
+
+  // 상세페이지 이미지 순서 변경
+  const handleMoveDetailImage = (from: number, to: number) => {
+    if (to < 0 || to >= detailImages.length) return
+    setDetailImages((prev) => {
+      const updated = [...prev]
+      const [item] = updated.splice(from, 1)
+      updated.splice(to, 0, item)
+      return updated
+    })
+  }
 
   // Fair Trade Commission Mandatory Notice
   const [notice, setNotice] = useState(NOTICE_TEMPLATES['식품/신선'])
@@ -265,6 +440,7 @@ export default function SellerProductRegisterPage() {
       freeShippingThreshold:
         shippingFeeType === 'CONDITIONAL' ? parseInt(freeShippingThreshold, 10) || 50000 : 0,
       images,
+      detailImages,
       description,
       creatorCommissionRate: allowCreatorSales ? parseInt(creatorCommissionRate, 10) : 0,
       allowCreatorSales,
@@ -738,71 +914,497 @@ export default function SellerProductRegisterPage() {
             </div>
           </section>
 
-          {/* Section 4: Images */}
-          <section className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-4">
-            <h2 className="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
-              <Camera className="w-5 h-5 text-indigo-600" />
-              <span>상품 이미지 (대표 및 추가 컷)</span>
-              <span className="text-xs text-slate-500 font-normal">({images.length}/10)</span>
-            </h2>
-
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              {images.map((img, idx) => (
-                <div
-                  key={idx}
-                  className="relative aspect-square rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 group shadow-2xs"
-                >
-                  <img src={img} alt={`상품 컷 ${idx + 1}`} className="w-full h-full object-cover" />
-                  {idx === 0 && (
-                    <span className="absolute top-2 left-2 bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
-                      대표 썸네일
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setImages(images.filter((_, i) => i !== idx))}
-                    className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-rose-600 text-white rounded-full transition"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
+          {/* Section 4: Images (대표 및 추가 컷 파일 직접 업로드) */}
+          <section className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <h2 className="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
+                <Camera className="w-5 h-5 text-indigo-600" />
+                <span>상품 이미지 (대표 및 추가 컷)</span>
+                <span className="text-xs text-slate-500 font-normal">({images.length}/10)</span>
+              </h2>
+              <span className="text-[11px] text-indigo-600 font-semibold bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100 flex items-center gap-1 w-fit">
+                <Upload className="w-3 h-3" /> 내 PC 파일 선택 & 드래그 앤 드롭 지원
+              </span>
             </div>
 
-            <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-              <input
-                type="url"
-                value={newImageUrl}
-                onChange={(e) => setNewImageUrl(e.target.value)}
-                placeholder="고화질 이미지 URL을 입력하여 추가하세요 (예: https://...)"
-                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500"
-              />
-              <Button
+            {/* 숨겨진 파일 선택 Input */}
+            <input
+              type="file"
+              ref={thumbnailInputRef}
+              multiple
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={(e) => e.target.files && handleThumbnailFiles(e.target.files)}
+            />
+
+            {/* 대형 드래그 & 드롭 영역 (Dropzone) */}
+            <div
+              onDragOver={(e) => {
+                e.preventDefault()
+                setIsDraggingThumbnails(true)
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault()
+                setIsDraggingThumbnails(false)
+              }}
+              onDrop={(e) => {
+                e.preventDefault()
+                setIsDraggingThumbnails(false)
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                  handleThumbnailFiles(e.dataTransfer.files)
+                }
+              }}
+              onClick={() => thumbnailInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+                isDraggingThumbnails
+                  ? 'border-indigo-500 bg-indigo-50/80 scale-[1.01]'
+                  : 'border-slate-300 hover:border-indigo-400 bg-slate-50/60 hover:bg-slate-50'
+              }`}
+            >
+              {isUploadingThumbnails ? (
+                <div className="flex flex-col items-center gap-2 text-indigo-600">
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                  <span className="text-xs font-bold">{thumbnailUploadStatus || '사진 업로드 중...'}</span>
+                </div>
+              ) : (
+                <>
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mb-3 shadow-xs">
+                    <Upload className="w-6 h-6" />
+                  </div>
+                  <div className="text-xs sm:text-sm font-bold text-slate-800">
+                    <span className="text-indigo-600 hover:underline">내 PC에서 상품 사진 파일 선택</span> 또는 여기로 드래그하세요
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1.5">
+                    권장 규격: 1:1 정방형 (800×800px 이상) | JPG, PNG, WEBP, GIF | 최대 10장 (첫 번째 사진이 대표 썸네일)
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/* 등록된 썸네일 갤러리 */}
+            {images.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <span>등록된 상품 이미지 순서 (원하는 사진을 클릭하여 대표 썸네일로 변경할 수 있습니다)</span>
+                  <span>{images.length}/10장</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  {images.map((img, idx) => (
+                    <div
+                      key={idx}
+                      className={`relative aspect-square rounded-2xl overflow-hidden border bg-slate-100 group shadow-2xs transition-all ${
+                        idx === 0 ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-slate-200'
+                      }`}
+                    >
+                      <img src={img} alt={`상품 컷 ${idx + 1}`} className="w-full h-full object-cover" />
+                      
+                      {/* 대표 썸네일 배지 */}
+                      {idx === 0 ? (
+                        <span className="absolute top-2 left-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-md flex items-center gap-1">
+                          <Star className="w-2.5 h-2.5 fill-white" /> 대표 썸네일
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleSetPrimaryThumbnail(idx)
+                          }}
+                          className="absolute top-2 left-2 bg-black/70 hover:bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow opacity-0 group-hover:opacity-100 transition"
+                        >
+                          대표로 지정
+                        </button>
+                      )}
+
+                      {/* 삭제 버튼 */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setImages(images.filter((_, i) => i !== idx))
+                        }}
+                        className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-rose-600 text-white rounded-full transition shadow"
+                        title="이미지 삭제"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* 순서 이동 버튼 */}
+                      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between opacity-0 group-hover:opacity-100 transition bg-black/60 rounded-lg p-1 backdrop-blur-xs">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleMoveThumbnail(idx, idx - 1)
+                          }}
+                          className="text-white hover:text-indigo-300 disabled:opacity-30 p-0.5"
+                          title="왼쪽으로 이동"
+                        >
+                          <ChevronLeft className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="text-[10px] text-white font-mono">{idx + 1}</span>
+                        <button
+                          type="button"
+                          disabled={idx === images.length - 1}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleMoveThumbnail(idx, idx + 1)
+                          }}
+                          className="text-white hover:text-indigo-300 disabled:opacity-30 p-0.5"
+                          title="오른쪽으로 이동"
+                        >
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 보조: 웹 이미지 링크(URL)로 추가 옵션 */}
+            <div className="pt-2 border-t border-slate-100">
+              <button
                 type="button"
-                onClick={handleAddImageUrl}
-                variant="outline"
-                className="border-slate-300 text-slate-700 text-xs px-4 h-9 rounded-xl font-bold"
+                onClick={() => setShowUrlInput(!showUrlInput)}
+                className="text-xs text-slate-500 hover:text-indigo-600 flex items-center gap-1.5 font-medium transition"
               >
-                이미지 추가
-              </Button>
+                <span>{showUrlInput ? '▲ 링크 입력창 접기' : '🔗 웹 이미지 URL 주소로 직접 추가하기'}</span>
+              </button>
+
+              {showUrlInput && (
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="url"
+                    value={newImageUrl}
+                    onChange={(e) => setNewImageUrl(e.target.value)}
+                    placeholder="고화질 이미지 URL을 입력하여 추가하세요 (예: https://...)"
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleAddImageUrl}
+                    variant="outline"
+                    className="border-slate-300 text-slate-700 text-xs px-4 h-9 rounded-xl font-bold"
+                  >
+                    이미지 추가
+                  </Button>
+                </div>
+              )}
             </div>
           </section>
 
-          {/* Section 5: Detailed Page Description */}
-          <section className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-3">
-            <h2 className="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-indigo-600" />
-              <span>상세페이지 본문 작성 (상세설명)</span> <span className="text-rose-500">*</span>
-            </h2>
-            <p className="text-xs text-slate-500">
-              소비자에게 상품의 특장점, 원재료, 규격 및 섭취/사용 주의사항을 자세히 안내해 주세요.
-            </p>
-            <textarea
-              rows={8}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs leading-relaxed text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 font-mono"
-            />
+          {/* Section 5: 상세페이지 본문 및 이미지 제작 (Detail Page Builder) */}
+          <section className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-5">
+            {/* 헤더 & 모드 스위처 (작성 모드 vs 실시간 고객 미리보기) */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <h2 className="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-indigo-600" />
+                  <span>상세페이지 본문 및 디자인 이미지 제작</span> <span className="text-rose-500">*</span>
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  디자인 통 이미지 업로드와 텍스트 설명을 결합하여 실제 쇼핑몰 고품질 상세페이지를 제작합니다.
+                </p>
+              </div>
+
+              {/* 탭 전환 버튼 */}
+              <div className="flex items-center bg-slate-100 p-1 rounded-xl w-fit">
+                <button
+                  type="button"
+                  onClick={() => setDetailViewTab('EDIT')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
+                    detailViewTab === 'EDIT'
+                      ? 'bg-white text-indigo-600 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  ✏️ 상세페이지 편집
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDetailViewTab('PREVIEW')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition flex items-center gap-1 ${
+                    detailViewTab === 'PREVIEW'
+                      ? 'bg-indigo-600 text-white shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  실제 상세페이지 미리보기
+                </button>
+              </div>
+            </div>
+
+            {/* 1) EDIT MODE: 상세페이지 작성 및 이미지 업로드 */}
+            {detailViewTab === 'EDIT' && (
+              <div className="space-y-6">
+                
+                {/* 파트 A: 상세페이지 전용 디자인/통 이미지 직접 업로드 */}
+                <div className="space-y-3 bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 sm:p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+                        <ImageIcon className="w-4 h-4 text-purple-600" />
+                        <span>상세페이지 디자인 통 이미지 / 인증서 파일 업로드</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        캔바, 망고보드, 포토샵 등으로 제작한 세로형 상세페이지 이미지나 원재료/인증서 사진을 직접 업로드하세요.
+                      </p>
+                    </div>
+                    <span className="text-xs font-bold text-purple-700 bg-purple-100/60 px-2.5 py-0.5 rounded-full">
+                      {detailImages.length}개 등록됨
+                    </span>
+                  </div>
+
+                  {/* 숨겨진 상세 이미지 파일 Input */}
+                  <input
+                    type="file"
+                    ref={detailInputRef}
+                    multiple
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    className="hidden"
+                    onChange={(e) => e.target.files && handleDetailFiles(e.target.files)}
+                  />
+
+                  {/* 상세 이미지 전용 드롭존 */}
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault()
+                      setIsDraggingDetail(true)
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault()
+                      setIsDraggingDetail(false)
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      setIsDraggingDetail(false)
+                      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        handleDetailFiles(e.dataTransfer.files)
+                      }
+                    }}
+                    onClick={() => detailInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-white ${
+                      isDraggingDetail
+                        ? 'border-purple-500 bg-purple-50/50 scale-[1.01]'
+                        : 'border-slate-300 hover:border-purple-400 hover:bg-slate-50/80'
+                    }`}
+                  >
+                    {isUploadingDetailImages ? (
+                      <div className="flex flex-col items-center gap-1.5 text-purple-600 py-2">
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                        <span className="text-xs font-bold">{detailUploadStatus || '상세 이미지 업로드 중...'}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center mb-2">
+                          <Upload className="w-5 h-5" />
+                        </div>
+                        <div className="text-xs sm:text-sm font-bold text-slate-800">
+                          <span className="text-purple-600 hover:underline">내 PC에서 상세페이지 디자인 파일 선택</span> 또는 파일 드래그
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-1">
+                          세로형 통 이미지(최대 1200px 폭 권장), 홍보 배너, 시험성적서 등 복수 선택 가능
+                        </p>
+                      </>
+                    )}
+                  </div>
+
+                  {/* 등록된 상세페이지 이미지 목록 및 정렬 */}
+                  {detailImages.length > 0 && (
+                    <div className="space-y-2 pt-2">
+                      <div className="text-xs font-bold text-slate-700">상세페이지 이미지 노출 순서 (위에서 아래로 순차 노출):</div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {detailImages.map((img, idx) => (
+                          <div
+                            key={idx}
+                            className="relative rounded-xl overflow-hidden border border-slate-200 bg-white group shadow-2xs"
+                          >
+                            <div className="aspect-[3/4] overflow-hidden bg-slate-100">
+                              <img src={img} alt={`상세컷 ${idx + 1}`} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="p-2 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
+                              <span className="font-bold text-slate-700">{idx + 1}번 상세 컷</span>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  disabled={idx === 0}
+                                  onClick={() => handleMoveDetailImage(idx, idx - 1)}
+                                  className="p-1 hover:bg-slate-200 rounded disabled:opacity-30"
+                                  title="위로 이동"
+                                >
+                                  <ChevronUp className="w-3 h-3 text-slate-700" />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={idx === detailImages.length - 1}
+                                  onClick={() => handleMoveDetailImage(idx, idx + 1)}
+                                  className="p-1 hover:bg-slate-200 rounded disabled:opacity-30"
+                                  title="아래로 이동"
+                                >
+                                  <ChevronDown className="w-3 h-3 text-slate-700" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDetailImages(detailImages.filter((_, i) => i !== idx))}
+                                  className="p-1 hover:bg-rose-100 text-rose-600 rounded ml-1"
+                                  title="삭제"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 파트 B: 상세 설명 텍스트 작성 & 원클릭 서식 템플릿 */}
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <label className="text-xs sm:text-sm font-bold text-slate-800">
+                      상세 설명 텍스트 안내문 (스펙, 성분, 주의사항)
+                    </label>
+
+                    {/* 원클릭 서식 템플릿 버튼 */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[11px] text-slate-400">서식 템플릿:</span>
+                      <button
+                        type="button"
+                        onClick={() => setDescription(DETAIL_TEMPLATES.food)}
+                        className="text-[11px] px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg font-bold transition"
+                      >
+                        신선식품
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDescription(DETAIL_TEMPLATES.digital)}
+                        className="text-[11px] px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg font-bold transition"
+                      >
+                        디지털/가전
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDescription(DETAIL_TEMPLATES.fashion)}
+                        className="text-[11px] px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg font-bold transition"
+                      >
+                        패션/뷰티
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDescription(DETAIL_TEMPLATES.shipping)}
+                        className="text-[11px] px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg font-bold transition"
+                      >
+                        배송/안심안내
+                      </button>
+                    </div>
+                  </div>
+
+                  <textarea
+                    rows={8}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="소비자에게 상품의 특장점, 원재료, 규격 및 섭취/사용 주의사항을 자세히 안내해 주세요."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs sm:text-sm leading-relaxed text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 font-sans"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 2) PREVIEW MODE: 실제 쇼핑몰 상세페이지 실시간 렌더링 */}
+            {detailViewTab === 'PREVIEW' && (
+              <div className="bg-slate-100 rounded-2xl p-4 sm:p-8 flex flex-col items-center">
+                <div className="text-xs text-slate-500 mb-3 flex items-center gap-1 font-semibold">
+                  <Smartphone className="w-4 h-4 text-indigo-600" />
+                  고객이 실제 모바일 및 웹 쇼핑몰에서 보게 될 상세페이지 화면입니다
+                </div>
+
+                {/* 스마트폰 비율 미리보기 컨테이너 */}
+                <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200/90 overflow-hidden text-slate-900">
+                  {/* 상단 대표 이미지 */}
+                  <div className="aspect-square bg-slate-100 relative">
+                    {images[0] ? (
+                      <img src={images[0]} alt="대표 썸네일" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">
+                        등록된 대표 이미지가 없습니다
+                      </div>
+                    )}
+                    <span className="absolute bottom-3 right-3 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full backdrop-blur-xs">
+                      1 / {images.length || 1}
+                    </span>
+                  </div>
+
+                  {/* 상품 기본 정보 */}
+                  <div className="p-4 border-b border-slate-100">
+                    <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                      {category}
+                    </span>
+                    <h3 className="font-extrabold text-base text-slate-900 mt-1">
+                      {name || '상품명을 입력하세요'}
+                    </h3>
+                    <div className="flex items-baseline gap-2 mt-2">
+                      <span className="text-rose-600 font-black text-lg">
+                        {regularPrice && price && parseInt(regularPrice, 10) > parseInt(price, 10)
+                          ? `${Math.round(((parseInt(regularPrice, 10) - parseInt(price, 10)) / parseInt(regularPrice, 10)) * 100)}%`
+                          : ''}
+                      </span>
+                      <span className="text-xl font-black text-slate-900">
+                        {parseInt(price, 10) ? `${parseInt(price, 10).toLocaleString()}원` : '0원'}
+                      </span>
+                      {regularPrice && parseInt(regularPrice, 10) > parseInt(price, 10) && (
+                        <span className="text-xs text-slate-400 line-through">
+                          {parseInt(regularPrice, 10).toLocaleString()}원
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 상세 탭 헤더 시뮬레이션 */}
+                  <div className="flex border-b border-slate-200 text-xs font-bold bg-slate-50 text-slate-600">
+                    <div className="flex-1 py-3 text-center border-b-2 border-indigo-600 text-indigo-600 bg-white">
+                      상세 정보
+                    </div>
+                    <div className="flex-1 py-3 text-center text-slate-400">상품 정보 고시</div>
+                    <div className="flex-1 py-3 text-center text-slate-400">배송/환불 안내</div>
+                  </div>
+
+                  {/* 상세 본문 영역 (텍스트 + 디자인 통 이미지 세로 연결) */}
+                  <div className="p-4 space-y-4">
+                    {/* 텍스트 설명 박스 */}
+                    {description && (
+                      <div className="p-3.5 bg-slate-50 rounded-xl text-xs leading-relaxed text-slate-700 whitespace-pre-line border border-slate-100">
+                        {description}
+                      </div>
+                    )}
+
+                    {/* 업로드된 상세 디자인 이미지들 (세로로 매끄럽게 연결) */}
+                    {detailImages.length > 0 ? (
+                      <div className="space-y-2 pt-2">
+                        {detailImages.map((dImg, idx) => (
+                          <div key={idx} className="rounded-xl overflow-hidden shadow-2xs border border-slate-100">
+                            <img
+                              src={dImg}
+                              alt={`상세페이지 디자인 컷 ${idx + 1}`}
+                              className="w-full h-auto object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 border border-dashed border-slate-200 rounded-xl text-slate-400 text-xs">
+                        상세페이지 디자인 이미지가 등록되지 않았습니다.<br />
+                        [상세페이지 편집] 탭에서 디자인 통 이미지를 추가해 보세요.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Section 6: ★ 공정위 전자상거래 상품정보제공고시 */}

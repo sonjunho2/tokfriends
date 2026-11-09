@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '../../theme/tokens';
+import * as ImagePicker from 'expo-image-picker';
 import {
   MARKET_CATEGORIES,
   createMarketProduct,
@@ -37,6 +38,40 @@ export default function MarketCreateScreen({ navigation }: any) {
   const [images, setImages] = useState<string[]>([SAMPLE_IMAGES[0]]);
   const [allowLiveSale, setAllowLiveSale] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  // 갤러리에서 사진 직접 선택
+  const handlePickImages = async () => {
+    if (images.length >= 10) {
+      Alert.alert('알림', '사진은 최대 10장까지 등록할 수 있습니다.');
+      return;
+    }
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('권한 필요', '갤러리에서 사진을 선택하기 위해 사진 접근 권한을 허용해 주세요.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        selectionLimit: 10 - images.length,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const pickedUris = result.assets.map((a) => a.uri);
+        if (images.length === 1 && images[0] === SAMPLE_IMAGES[0]) {
+          setImages(pickedUris.slice(0, 10));
+        } else {
+          setImages((prev) => [...prev, ...pickedUris].slice(0, 10));
+        }
+      }
+    } catch (err) {
+      console.warn('Image picker error', err);
+      handleAddSampleImage();
+    }
+  };
 
   const handleAddSampleImage = () => {
     if (images.length >= 10) {
@@ -158,11 +193,11 @@ export default function MarketCreateScreen({ navigation }: any) {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesRow}>
           <TouchableOpacity
             style={styles.addPhotoBox}
-            onPress={handleAddSampleImage}
+            onPress={handlePickImages}
             activeOpacity={0.8}
           >
             <Ionicons name="camera-outline" size={24} color="#64748B" />
-            <Text style={styles.addPhotoText}>사진 추가</Text>
+            <Text style={styles.addPhotoText}>내 사진 추가</Text>
           </TouchableOpacity>
 
           {images.map((img, idx) => (

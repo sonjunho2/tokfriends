@@ -1082,14 +1082,24 @@ export default function MarketProductDetailPage() {
                   {product.description}
                 </div>
 
-                {/* 상세 본문 이미지 갤러리 */}
-                <div className="space-y-4">
-                  {product.images.map((img: string, idx: number) => (
-                    <div key={idx} className="rounded-2xl overflow-hidden border border-slate-200 shadow-xs">
-                      <img src={img} alt={`상세 이미지 ${idx + 1}`} className="w-full object-cover" />
-                    </div>
-                  ))}
-                </div>
+                {/* 상세 본문 디자인 이미지 갤러리 */}
+                {((product as any).detailImages && (product as any).detailImages.length > 0) ? (
+                  <div className="space-y-3">
+                    {(product as any).detailImages.map((img: string, idx: number) => (
+                      <div key={idx} className="rounded-2xl overflow-hidden border border-slate-200 shadow-xs">
+                        <img src={img} alt={`상세페이지 디자인 컷 ${idx + 1}`} className="w-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {product.images.map((img: string, idx: number) => (
+                      <div key={idx} className="rounded-2xl overflow-hidden border border-slate-200 shadow-xs">
+                        <img src={img} alt={`상세 이미지 ${idx + 1}`} className="w-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

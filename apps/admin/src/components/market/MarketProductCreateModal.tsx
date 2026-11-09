@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import {
   X,
   Upload,
@@ -12,7 +12,10 @@ import {
   Radio,
   AlertCircle,
   Video,
+  Loader2,
+  Camera,
 } from 'lucide-react'
+import { uploadMultipleImageFiles } from '@/lib/uploadHelper'
 import { type UserRole } from '@/lib/auth-context'
 
 export interface CreateProductPayload {
@@ -84,6 +87,24 @@ export function MarketProductCreateModal({
   const [noticeExpiration, setNoticeExpiration] = useState('제조일로부터 12개월 (포장별도표기)')
   const [noticeAsContact, setNoticeAsContact] = useState('1588-0923')
   const [noticeCert, setNoticeCert] = useState('해당사항 없음')
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileSelect = async (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    const fileArray = Array.from(files).filter((f) => f.type.startsWith('image/'))
+    if (fileArray.length === 0) return
+    try {
+      setIsUploading(true)
+      const urls = await uploadMultipleImageFiles(fileArray)
+      setImages((prev) => [...prev, ...urls])
+    } catch {
+      alert('이미지 업로드 중 오류가 발생했습니다.')
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
 
   if (!isOpen) return null
 
@@ -363,35 +384,67 @@ export function MarketProductCreateModal({
             </div>
           )}
 
-          {/* 5. 상품 이미지 등록 */}
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-300">상품 이미지 URL (최소 1장 이상)</label>
-            <div className="flex gap-2">
-              <input
-                type="url"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://images.unsplash.com/photo-..."
-                className="flex-1 px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-sm"
-              />
-              <button
-                type="button"
-                onClick={handleAddImage}
-                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition"
-              >
-                이미지 추가
-              </button>
+          {/* 5. 상품 이미지 등록 (내 PC 파일 선택 + 드래그 앤 드롭 + URL) */}
+          <div className="space-y-3 bg-slate-800/40 p-4 rounded-2xl border border-slate-750">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <Camera className="w-4 h-4 text-indigo-400" />
+                <span>상품 사진 등록 (대표 및 추가 컷)</span>
+              </label>
+              <span className="text-[11px] text-indigo-400">{images.length}장 등록됨</span>
             </div>
 
+            {/* 파일 선택 숨김 input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              multiple
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleFileSelect(e.target.files)}
+            />
+
+            {/* 드래그 앤 드롭 업로드 버튼 */}
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault()
+                if (e.dataTransfer.files) handleFileSelect(e.dataTransfer.files)
+              }}
+              className="border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl p-4 text-center cursor-pointer transition bg-slate-800/50 hover:bg-slate-800 flex flex-col items-center justify-center gap-1.5"
+            >
+              {isUploading ? (
+                <div className="flex items-center gap-2 text-indigo-400 text-xs py-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>사진 파일 업로드 중...</span>
+                </div>
+              ) : (
+                <>
+                  <Upload className="w-5 h-5 text-indigo-400" />
+                  <div className="text-xs font-bold text-white">
+                    <span className="text-indigo-400 underline">내 PC에서 사진 파일 선택</span> 또는 여기로 드래그
+                  </div>
+                  <div className="text-[10px] text-slate-400">JPG, PNG, WEBP 지원 · 복수 파일 선택 가능</div>
+                </>
+              )}
+            </div>
+
+            {/* 등록된 이미지 썸네일 */}
             {images.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto py-2">
+              <div className="flex gap-2 overflow-x-auto py-1">
                 {images.map((img, idx) => (
                   <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-700 shrink-0 group">
                     <img src={img} alt={`상품 ${idx}`} className="w-full h-full object-cover" />
+                    {idx === 0 && (
+                      <span className="absolute top-1 left-1 bg-indigo-600 text-white text-[9px] font-bold px-1.5 py-0.2 rounded shadow">
+                        대표
+                      </span>
+                    )}
                     <button
                       type="button"
                       onClick={() => handleRemoveImage(idx)}
-                      className="absolute top-1 right-1 p-1 bg-black/70 hover:bg-rose-600 text-white rounded-full transition"
+                      className="absolute top-1 right-1 p-1 bg-black/70 hover:bg-rose-600 text-white rounded-full transition shadow"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -399,6 +452,24 @@ export function MarketProductCreateModal({
                 ))}
               </div>
             )}
+
+            {/* URL 보조 추가창 */}
+            <div className="flex gap-2 pt-1 border-t border-slate-800/80">
+              <input
+                type="url"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="또는 이미지 URL 주소로 추가 (예: https://...)"
+                className="flex-1 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-xs"
+              />
+              <button
+                type="button"
+                onClick={handleAddImage}
+                className="px-3 py-1.5 bg-slate-700 hover:bg-indigo-600 text-white rounded-lg text-xs font-bold transition"
+              >
+                URL 추가
+              </button>
+            </div>
           </div>
 
           {/* 6. 상세 설명 */}

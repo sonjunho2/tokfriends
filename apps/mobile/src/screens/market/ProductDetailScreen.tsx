@@ -419,6 +419,20 @@ export default function ProductDetailScreen({ route, navigation }: any) {
             {/* 상품 설명 */}
             <Text style={styles.descriptionText}>{normalProduct.description}</Text>
 
+            {/* 상세페이지 디자인/통 이미지 갤러리 */}
+            {(normalProduct as any).detailImages && (normalProduct as any).detailImages.length > 0 && (
+              <View style={styles.detailImagesContainer}>
+                {(normalProduct as any).detailImages.map((dImg: string, idx: number) => (
+                  <Image
+                    key={idx}
+                    source={{ uri: dImg }}
+                    style={styles.detailImageItem}
+                    resizeMode="contain"
+                  />
+                ))}
+              </View>
+            )}
+
             {/* 4. 에스크로 안전결제 보증 카드 */}
             <View style={styles.escrowGuaranteeCard}>
               <View style={styles.escrowGuaranteeIconBox}>
@@ -744,6 +758,20 @@ export default function ProductDetailScreen({ route, navigation }: any) {
           )}
 
           <Text style={styles.descriptionText}>{product.description}</Text>
+
+          {/* 상세페이지 디자인/통 이미지 갤러리 */}
+          {(product as any).detailImages && (product as any).detailImages.length > 0 && (
+            <View style={styles.detailImagesContainer}>
+              {(product as any).detailImages.map((dImg: string, idx: number) => (
+                <Image
+                  key={idx}
+                  source={{ uri: dImg }}
+                  style={styles.detailImageItem}
+                  resizeMode="contain"
+                />
+              ))}
+            </View>
+          )}
 
           {/* 5. 에스크로 안전결제 보증 카드 */}
           <View style={styles.escrowGuaranteeCard}>
@@ -1242,6 +1270,17 @@ const styles = StyleSheet.create({
     color: '#334155',
     lineHeight: 22,
     marginBottom: 20,
+  },
+  detailImagesContainer: {
+    marginTop: 4,
+    marginBottom: 16,
+    gap: 12,
+  },
+  detailImageItem: {
+    width: '100%',
+    height: 360,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
   },
 
   escrowGuaranteeCard: {

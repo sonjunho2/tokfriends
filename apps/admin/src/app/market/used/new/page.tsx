@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -19,11 +19,13 @@ import {
   Info,
   Store,
   ChevronRight,
+  Loader2,
 } from 'lucide-react'
 import { useWebAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/ui/use-toast'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { uploadMultipleImageFiles } from '@/lib/uploadHelper'
 
 const CATEGORIES = [
   '디지털/가전',
@@ -76,6 +78,55 @@ export default function UsedItemRegisterPage() {
 
   // Live Broadcast Pin Linkage
   const [enableLivePin, setEnableLivePin] = useState(true)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadStatus, setUploadStatus] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Local File Upload Handler
+  const handleFileSelect = async (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    const fileArray = Array.from(files).filter((f) => f.type.startsWith('image/'))
+    if (fileArray.length === 0) {
+      toast({
+        title: '이미지 파일 선택 필요',
+        description: 'JPG, PNG, WEBP 등 사진 파일만 등록할 수 있습니다.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (images.length + fileArray.length > 10) {
+      toast({
+        title: '최대 사진 개수 초과',
+        description: `사진은 최대 10장까지만 등록 가능합니다. (현재 ${images.length}장)`,
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      setIsUploading(true)
+      setUploadStatus(`0/${fileArray.length} 업로드 중...`)
+      const urls = await uploadMultipleImageFiles(fileArray, (done, total) => {
+        setUploadStatus(`${done}/${total} 업로드 중...`)
+      })
+      setImages((prev) => [...prev, ...urls].slice(0, 10))
+      toast({
+        title: '사진 등록 완료',
+        description: `${urls.length}장의 사진이 등록되었습니다.`,
+      })
+    } catch {
+      toast({
+        title: '사진 업로드 실패',
+        description: '사진 업로드 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsUploading(false)
+      setUploadStatus('')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
 
   // Add Image URL
   const handleAddImageUrl = () => {
@@ -244,9 +295,9 @@ export default function UsedItemRegisterPage() {
       {/* 2. 메인 폼 컨테이너 */}
       <main className="max-w-4xl mx-auto px-4 py-8">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Section 1: Photos */}
+          {/* Section 1: Photos (내 PC 파일 선택 + 드래그 앤 드롭) */}
           <section className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <h2 className="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
                   <Camera className="w-5 h-5 text-indigo-600" />
@@ -257,6 +308,49 @@ export default function UsedItemRegisterPage() {
                   첫 번째 사진이 중고마켓 목록과 모바일 라이브 핀의 대표 썸네일로 노출됩니다.
                 </p>
               </div>
+              <span className="text-[11px] text-indigo-600 font-semibold bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100 flex items-center gap-1 w-fit">
+                <Upload className="w-3 h-3" /> 내 PC 파일 선택 & 드래그 앤 드롭 지원
+              </span>
+            </div>
+
+            {/* 파일 선택 숨김 input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              multiple
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={(e) => handleFileSelect(e.target.files)}
+            />
+
+            {/* 대형 드래그 앤 드롭 영역 */}
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault()
+                if (e.dataTransfer.files) handleFileSelect(e.dataTransfer.files)
+              }}
+              className="border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-2xl p-6 text-center cursor-pointer transition bg-slate-50/60 hover:bg-slate-50 flex flex-col items-center justify-center gap-2"
+            >
+              {isUploading ? (
+                <div className="flex items-center gap-2 text-indigo-600 py-3">
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                  <span className="text-xs font-bold">{uploadStatus || '사진 업로드 중...'}</span>
+                </div>
+              ) : (
+                <>
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center shadow-xs">
+                    <Upload className="w-6 h-6" />
+                  </div>
+                  <div className="text-xs sm:text-sm font-bold text-slate-800">
+                    <span className="text-indigo-600 hover:underline">내 PC에서 사진 파일 선택</span> 또는 여기로 드래그하세요
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    JPG, PNG, WEBP 지원 · 최대 10장까지 등록 가능 (복수 선택 가능)
+                  </p>
+                </>
+              )}
             </div>
 
             {/* Thumbnail Preview Grid */}
@@ -282,24 +376,15 @@ export default function UsedItemRegisterPage() {
                   </button>
                 </div>
               ))}
-
-              {/* Add Image Slot */}
-              {images.length < 10 && (
-                <div className="aspect-square rounded-2xl border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-slate-50 hover:bg-indigo-50/40 flex flex-col items-center justify-center p-3 text-center transition cursor-pointer">
-                  <Upload className="w-6 h-6 text-slate-400 mb-1" />
-                  <span className="text-xs text-slate-600 font-bold">사진 추가</span>
-                  <span className="text-[10px] text-slate-400">최대 10장</span>
-                </div>
-              )}
             </div>
 
-            {/* Quick URL Input */}
+            {/* Quick URL Input (보조 기능) */}
             <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
               <input
                 type="url"
                 value={newImageUrl}
                 onChange={(e) => setNewImageUrl(e.target.value)}
-                placeholder="고화질 이미지 웹 주소(URL)를 입력하여 추가해보세요 (예: https://...)"
+                placeholder="또는 고화질 이미지 웹 주소(URL)로 추가 (예: https://...)"
                 className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500"
               />
               <Button
@@ -308,7 +393,7 @@ export default function UsedItemRegisterPage() {
                 variant="outline"
                 className="border-slate-300 text-slate-700 text-xs px-4 h-9 rounded-xl font-bold hover:bg-slate-100"
               >
-                사진 추가
+                URL 추가
               </Button>
             </div>
           </section>

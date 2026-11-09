@@ -42,6 +42,7 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
     path.startsWith('users/discover') ||
     path.startsWith('users/check-nickname') ||
     path.startsWith('users/search') ||
+    path.startsWith('media') ||
     path.startsWith('suda')
 
   if (!token && !isPublicEndpoint) {
