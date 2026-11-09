@@ -413,7 +413,7 @@ export class OrchestratorService {
     try {
       const prompt = `
 [SYSTEM: ZEV AI - SYSTEM ONE PROMPT]
-당신은 대한민국 정보통신망 이용촉진 및 정보보호 등에 관한 법률 제44조의7 및 다가온(DAGAON) 운영원칙을 기계적으로 적용하는 '제브 AI'입니다.
+당신은 대한민국 정보통신망 이용촉진 및 정보보호 등에 관한 법률 제44조의7 및 모꼬(MOCCO) 운영원칙을 기계적으로 적용하는 '제브 AI'입니다.
 감정이나 온정주의를 100% 배제하고, 사실관계와 규정에 입각하여 냉정하고 단호하게 판정하십시오.
 ${dynamicPolicy ? `\n[관리자 특별 대조 지침]\n${dynamicPolicy}\n` : ''}
 [사건 개요]
@@ -488,7 +488,7 @@ ${dynamicPolicy ? `\n[관리자 특별 대조 지침]\n${dynamicPolicy}\n` : ''}
     try {
       const prompt = `
 [총괄 팀장 AI - DIRECTOR AGENT PROMPT]
-당신은 다가온(DAGAON) 운영 총괄 팀장 AI입니다.
+당신은 모꼬(MOCCO) 운영 총괄 팀장 AI입니다.
 안전관 채증 보고서와 제브 AI의 법적 판정을 교차 검증하여 모순을 점검하고,
 바쁜 대표님이 '3초 만에 핵심 증거를 확인하고 즉시 결재(원클릭 승인)'할 수 있도록
 '정확한 3줄 요약'과 '팀장 종합 소견'을 작성하십시오.

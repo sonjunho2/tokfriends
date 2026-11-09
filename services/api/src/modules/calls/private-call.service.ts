@@ -160,7 +160,7 @@ export class PrivateCallService {
    * Agora RTC 토큰 발급 헬퍼
    */
   private generateAgoraRtcToken(channelId: string, uid: string): { appId: string; token: string } {
-    const appId = process.env.AGORA_APP_ID || 'dagaon_agora_live';
+    const appId = process.env.AGORA_APP_ID || 'mocco_agora_live';
     // Agora RTC 채널 참여용 서명 토큰
     const token = `rtc_${channelId}_${uid}_${Date.now()}`;
     return { appId, token };

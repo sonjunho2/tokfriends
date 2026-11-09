@@ -20,7 +20,7 @@ export interface PointProduct {
 export const INITIAL_POINT_PRODUCTS: PointProduct[] = [
   {
     id: 'point-1',
-    name: '1,000 온 충전',
+    name: '1,000 꿀떡 충전',
     points: 1000,
     price: 1100,
     isRecommended: false,
@@ -31,7 +31,7 @@ export const INITIAL_POINT_PRODUCTS: PointProduct[] = [
   },
   {
     id: 'point-2',
-    name: '5,000 온 충전 (인기)',
+    name: '5,000 꿀떡 충전 (인기)',
     points: 5000,
     price: 5500,
     isRecommended: true,
@@ -42,7 +42,7 @@ export const INITIAL_POINT_PRODUCTS: PointProduct[] = [
   },
   {
     id: 'point-3',
-    name: '10,000 온 충전',
+    name: '10,000 꿀떡 충전',
     points: 10000,
     price: 11000,
     isRecommended: false,
@@ -53,7 +53,7 @@ export const INITIAL_POINT_PRODUCTS: PointProduct[] = [
   },
   {
     id: 'point-4',
-    name: '30,000 온 충전 (보너스 +10%)',
+    name: '30,000 꿀떡 충전 (보너스 +10%)',
     points: 33000,
     price: 33000,
     isRecommended: true,
@@ -64,7 +64,7 @@ export const INITIAL_POINT_PRODUCTS: PointProduct[] = [
   },
   {
     id: 'point-5',
-    name: '50,000 온 충전 (보너스 +15%)',
+    name: '50,000 꿀떡 충전 (보너스 +15%)',
     points: 57500,
     price: 55000,
     isRecommended: false,
@@ -75,7 +75,7 @@ export const INITIAL_POINT_PRODUCTS: PointProduct[] = [
   },
   {
     id: 'point-6',
-    name: '100,000 온 충전 (VIP 보너스 +20%)',
+    name: '100,000 꿀떡 충전 (VIP 보너스 +20%)',
     points: 120000,
     price: 110000,
     isRecommended: false,

@@ -1,5 +1,5 @@
 /**
- * DAGAON Suda (실시간 1줄 동네 토크 & 듀얼 대화함) Service
+ * MOCCO Suda (실시간 1줄 동네 토크 & 듀얼 대화함) Service
  */
 import client from '../api/client';
 

@@ -1256,7 +1256,7 @@ export const apiClient = {
     }
 
     try {
-      const raw = await AsyncStorage.getItem('dagaon_deleted_chats');
+      const raw = await AsyncStorage.getItem('mocco_deleted_chats');
       const deletedIds = raw ? JSON.parse(raw) : [];
       if (Array.isArray(deletedIds) && deletedIds.length > 0) {
         const set = new Set(deletedIds.map(String));
@@ -1270,11 +1270,11 @@ export const apiClient = {
   async deleteChat(chatId) {
     const idStr = String(chatId);
     try {
-      const raw = await AsyncStorage.getItem('dagaon_deleted_chats');
+      const raw = await AsyncStorage.getItem('mocco_deleted_chats');
       const deletedIds = raw ? JSON.parse(raw) : [];
       if (!deletedIds.includes(idStr)) {
         deletedIds.push(idStr);
-        await AsyncStorage.setItem('dagaon_deleted_chats', JSON.stringify(deletedIds));
+        await AsyncStorage.setItem('mocco_deleted_chats', JSON.stringify(deletedIds));
       }
     } catch {}
 
@@ -2115,12 +2115,12 @@ export const apiClient = {
       return data?.data ?? data;
     } catch (e) {
       return {
-        appId: 'dagaon_agora_live',
+        appId: 'mocco_agora_live',
         channelName: roomId,
         uid: Math.floor(Math.random() * 1000000) + 10000,
         role,
         streamDeliveryMode: 'AGORA_RTC',
-        hlsPlaybackUrl: `https://live-cdn.dagaon.app/live/${roomId}/index.m3u8`,
+        hlsPlaybackUrl: `https://live-cdn.mocco.app/live/${roomId}/index.m3u8`,
         token: `fallback_token_${roomId}`,
         isFallback: true,
       };
@@ -2134,7 +2134,7 @@ export const apiClient = {
     } catch {
       return {
         mode: 'AGORA_RTC',
-        cdnHlsUrlPattern: 'https://live-cdn.dagaon.app/live/{roomId}/index.m3u8',
+        cdnHlsUrlPattern: 'https://live-cdn.mocco.app/live/{roomId}/index.m3u8',
       };
     }
   },

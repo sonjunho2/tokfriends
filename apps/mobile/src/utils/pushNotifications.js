@@ -3,19 +3,19 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient } from '../api/client';
 
-const PUSH_DEVICE_TOKEN_KEY = 'dagaon_device_token';
-const PUSH_ENABLED_KEY = 'dagaon_push_enabled';
+const PUSH_DEVICE_TOKEN_KEY = 'mocco_device_token';
+const PUSH_ENABLED_KEY = 'mocco_push_enabled';
 
 export async function getOrCreateDeviceToken() {
   try {
     let token = await AsyncStorage.getItem(PUSH_DEVICE_TOKEN_KEY);
     if (!token) {
-      token = `dagaon_${Platform.OS}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+      token = `mocco_${Platform.OS}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
       await AsyncStorage.setItem(PUSH_DEVICE_TOKEN_KEY, token);
     }
     return token;
   } catch {
-    return `dagaon_${Platform.OS}_fallback_${Date.now()}`;
+    return `mocco_${Platform.OS}_fallback_${Date.now()}`;
   }
 }
 

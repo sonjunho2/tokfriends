@@ -900,8 +900,8 @@ export class LiveController {
   @Get('admin/stream-config')
   async getStreamConfig() {
     let mode: 'AGORA_RTC' | 'CDN_HLS' = 'AGORA_RTC';
-    let cdnHlsUrlPattern = 'https://live-cdn.dagaon.app/live/{channelName}/index.m3u8';
-    let cdnRtmpPushUrl = 'rtmp://push-cdn.dagaon.app/live/{channelName}';
+    let cdnHlsUrlPattern = 'https://live-cdn.mocco.app/live/{channelName}/index.m3u8';
+    let cdnRtmpPushUrl = 'rtmp://push-cdn.mocco.app/live/{channelName}';
 
     try {
       const modeSetting = await this.prisma.adminIntegrationSetting.findUnique({
@@ -957,7 +957,7 @@ export class LiveController {
       ok: true,
       data: {
         mode: body.mode || 'AGORA_RTC',
-        cdnHlsUrlPattern: body.cdnHlsUrlPattern || 'https://live-cdn.dagaon.app/live/{channelName}/index.m3u8',
+        cdnHlsUrlPattern: body.cdnHlsUrlPattern || 'https://live-cdn.mocco.app/live/{channelName}/index.m3u8',
       },
     };
   }

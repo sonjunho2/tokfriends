@@ -362,7 +362,7 @@ export default function LoginScreen({ navigation }) {
                     <Text style={styles.inputLabel}>이메일 주소</Text>
                     <TextInput
                       style={styles.inputField}
-                      placeholder="example@dagaon.app"
+                      placeholder="example@mocco.app"
                       placeholderTextColor={tokens.colors.textTertiary}
                       value={email}
                       onChangeText={setEmail}

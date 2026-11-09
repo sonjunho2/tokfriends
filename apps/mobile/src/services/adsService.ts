@@ -21,7 +21,7 @@ const FALLBACK_ADS: Record<string, AdvertisementItem[]> = {
       title: '[마켓 단독] 제주 직영 1등급 흑돼지 & 한라봉 최대 40% 특가',
       description: '인증 입점사 당일 산지 직송! 신선 보증 에스크로 안전결제',
       imageUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&auto=format&fit=crop&q=80',
-      targetUrl: 'https://dagaon.app/market',
+      targetUrl: 'https://mocco.app/market',
       placement: 'MARKET_BANNER',
       priority: 10,
       rewardPoints: 0,

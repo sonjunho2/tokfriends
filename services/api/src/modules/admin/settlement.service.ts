@@ -10,7 +10,7 @@ export interface SettlementRequest {
   krwAmount: number;
   taxAmount: number;
   netAmount: number;
-  exchangeRate: number; // 1온 당 지급 원화 (루키 60, 베스트 70, 파트너 80)
+  exchangeRate: number; // 1꿀떡 당 지급 원화 (루키 60, 베스트 70, 파트너 80)
   tier: 'ROOKIE' | 'BEST' | 'PARTNER';
   platformFeeKrw: number;
   bankName: string;
@@ -242,7 +242,7 @@ const INITIAL_PURCHASES: PointPurchase[] = [
     user: { id: 'u-user-1', displayName: '김철수', email: 'chulsoo.kim@example.com' },
     platform: 'android',
     productId: 'com.tokfriends.point.10000',
-    productName: '10,000 온 충전',
+    productName: '10,000 꿀떡 충전',
     transactionId: 'GPA.3391-4820-1928-48192',
     amountKrw: 11000,
     points: 10000,
@@ -255,7 +255,7 @@ const INITIAL_PURCHASES: PointPurchase[] = [
     user: { id: 'u-host-1', displayName: '박서아', email: 'seoa.park@example.com' },
     platform: 'ios',
     productId: 'tokfriends.point.30000',
-    productName: '30,000 온 충전 (보너스 +10%)',
+    productName: '30,000 꿀떡 충전 (보너스 +10%)',
     transactionId: 'APL_TX_848201923',
     amountKrw: 33000,
     points: 33000,
@@ -268,7 +268,7 @@ const INITIAL_PURCHASES: PointPurchase[] = [
     user: { id: 'u-user-3', displayName: '이지민', email: 'jimin.lee@example.com' },
     platform: 'android',
     productId: 'com.tokfriends.point.5000',
-    productName: '5,000 온 충전 (인기)',
+    productName: '5,000 꿀떡 충전 (인기)',
     transactionId: 'GPA.8271-9381-0192-38471',
     amountKrw: 5500,
     points: 5000,
@@ -281,7 +281,7 @@ const INITIAL_PURCHASES: PointPurchase[] = [
     user: { id: 'u-user-4', displayName: '강태양', email: 'taeyang.kang@example.com' },
     platform: 'web',
     productId: 'com.tokfriends.point.50000',
-    productName: '50,000 온 충전 (대용량)',
+    productName: '50,000 꿀떡 충전 (대용량)',
     transactionId: 'TOSS_PAY_2026101309812',
     amountKrw: 55000,
     points: 50000,

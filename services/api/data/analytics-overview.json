@@ -82,7 +82,7 @@
       "format": "CSV",
       "active": true,
       "lastRunAt": "2026-10-17T01:17:15.078Z",
-      "recipients": "#dagaon-kpi-daily"
+      "recipients": "#mocco-kpi-daily"
     },
     {
       "id": "job-weekly-cohort",
@@ -92,7 +92,7 @@
       "format": "XLSX",
       "active": true,
       "lastRunAt": "2026-10-15T06:17:15.078Z",
-      "recipients": "growth@dagaon.app, executive@dagaon.app"
+      "recipients": "growth@mocco.app, executive@mocco.app"
     },
     {
       "id": "job-monthly-revenue",
@@ -102,7 +102,7 @@
       "format": "Looker",
       "active": true,
       "lastRunAt": "2026-10-02T06:17:15.078Z",
-      "recipients": "dagaon-analytics-dataset.prod_revenue"
+      "recipients": "mocco-analytics-dataset.prod_revenue"
     }
   ]
 }

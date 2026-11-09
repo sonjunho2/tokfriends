@@ -92,7 +92,7 @@ export class SnapshotAuditorService {
     const { channelId, hostId, imageBuffer, mimeType = 'image/jpeg' } = params;
     const filename = `snapshots/${channelId}/${Date.now()}_${randomUUID().slice(0, 8)}.jpg`;
 
-    let snapshotUrl = `https://storage.dagaon.app/snapshots/${channelId}/${filename}`;
+    let snapshotUrl = `https://storage.mocco.app/snapshots/${channelId}/${filename}`;
 
     // 1. Supabase Storage 업로드
     const supabase = await this.getSupabaseClient();

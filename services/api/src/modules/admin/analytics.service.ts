@@ -161,7 +161,7 @@ export class AnalyticsService {
               format: 'CSV',
               active: true,
               lastRunAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-              recipients: '#dagaon-kpi-daily',
+              recipients: '#mocco-kpi-daily',
             },
             {
               id: 'job-weekly-cohort',
@@ -171,7 +171,7 @@ export class AnalyticsService {
               format: 'XLSX',
               active: true,
               lastRunAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-              recipients: 'growth@dagaon.app, executive@dagaon.app',
+              recipients: 'growth@mocco.app, executive@mocco.app',
             },
             {
               id: 'job-monthly-revenue',
@@ -181,7 +181,7 @@ export class AnalyticsService {
               format: 'Looker',
               active: true,
               lastRunAt: new Date(Date.now() - 86400000 * 15).toISOString(),
-              recipients: 'dagaon-analytics-dataset.prod_revenue',
+              recipients: 'mocco-analytics-dataset.prod_revenue',
             },
           ],
         };

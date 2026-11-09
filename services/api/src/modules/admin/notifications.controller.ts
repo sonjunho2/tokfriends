@@ -135,7 +135,7 @@ export class NotificationsController {
         id: 'notif-1',
         type: 'gift',
         title: '🎁 이지수님에게서 선물이 도착했어요!',
-        body: '[하트 팡팡] 선물 (+500 온)이 적립되었습니다.',
+        body: '[하트 팡팡] 선물 (+500 꿀떡)이 적립되었습니다.',
         createdAt: new Date(Date.now() - 15 * 60000).toISOString(),
         avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
         data: { points: 500, giftName: '하트 팡팡', senderAccountId: 'u-seed-3' },

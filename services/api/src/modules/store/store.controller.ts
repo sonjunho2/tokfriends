@@ -26,7 +26,7 @@ export class StoreController {
     {
       id: 'ord-mock-1',
       productId: 'point-2',
-      productName: '5,000 온 충전 (인기)',
+      productName: '5,000 꿀떡 충전 (인기)',
       points: 5000,
       amount: 5500,
       paymentMethod: '카드 간편결제',
@@ -240,7 +240,7 @@ export class StoreController {
     const purchaseRecord = {
       id: orderId,
       productId,
-      productName: `${points.toLocaleString()} 온 충전`,
+      productName: `${points.toLocaleString()} 꿀떡 충전`,
       points,
       amount,
       paymentMethod: body.paymentMethod || '인앱 간편결제',

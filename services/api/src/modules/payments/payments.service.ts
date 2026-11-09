@@ -202,8 +202,8 @@ export class PaymentsService {
       pgProvider: order.pgProvider,
       // 모바일 웹뷰 및 SDK 연동용 파라미터
       tossClientKey: process.env.TOSS_PAYMENTS_CLIENT_KEY || 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq',
-      successUrl: `${process.env.APP_BASE_URL || 'dagaon://'}payment/success`,
-      failUrl: `${process.env.APP_BASE_URL || 'dagaon://'}payment/fail`,
+      successUrl: `${process.env.APP_BASE_URL || 'mocco://'}payment/success`,
+      failUrl: `${process.env.APP_BASE_URL || 'mocco://'}payment/fail`,
     };
   }
 

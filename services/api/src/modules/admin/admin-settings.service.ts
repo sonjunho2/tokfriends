@@ -59,7 +59,7 @@ export const DEFAULT_INTEGRATION_SETTINGS: DefaultIntegrationSettingDef[] = [
   { id: 'iap_google_service_account', label: 'Google 인앱결제 Service Account JSON', placeholder: 'Google Play Console 서비스 계정 키 JSON' },
 
   // 3. 실시간 푸시 알림 (Push Notifications)
-  { id: 'firebase_project_id', label: 'Firebase 프로젝트 ID', placeholder: '예: dagaon-firebase-prod' },
+  { id: 'firebase_project_id', label: 'Firebase 프로젝트 ID', placeholder: '예: mocco-firebase-prod' },
   { id: 'firebase_service_account_json', label: 'Firebase 서비스 계정 비공개 키 JSON', placeholder: 'Firebase Console 서비스 계정 비공개 키 JSON 전체' },
   { id: 'apns_team_id', label: 'Apple APNs Team ID', placeholder: '10자리 Apple Developer Team ID' },
   { id: 'apns_key_id', label: 'Apple APNs Key ID', placeholder: '10자리 APNs 인증키 Key ID' },
@@ -70,8 +70,8 @@ export const DEFAULT_INTEGRATION_SETTINGS: DefaultIntegrationSettingDef[] = [
   { id: 'agora_app_id', label: 'Agora 라이브 App ID', placeholder: 'Agora 콘솔 > 프로젝트 관리 > App ID' },
   { id: 'agora_app_certificate', label: 'Agora 라이브 App Certificate (기본 인증서)', placeholder: 'Agora 콘솔 > 기본 인증서(Primary Certificate)' },
   { id: 'live_stream_mode', label: '라이브 스트리밍 송출 방식', placeholder: 'AGORA_RTC (초저지연 RTC) 또는 CDN_HLS (CDN 중계 HLS)' },
-  { id: 'live_cdn_hls_url_pattern', label: 'CDN HLS 재생 URL 템플릿', placeholder: '예: https://live-cdn.dagaon.app/live/{roomId}/index.m3u8' },
-  { id: 'live_cdn_rtmp_push_url', label: 'Agora Media Push RTMP 수신 주소', placeholder: '예: rtmp://live-push.dagaon.app/live/{roomId}' },
+  { id: 'live_cdn_hls_url_pattern', label: 'CDN HLS 재생 URL 템플릿', placeholder: '예: https://live-cdn.mocco.app/live/{roomId}/index.m3u8' },
+  { id: 'live_cdn_rtmp_push_url', label: 'Agora Media Push RTMP 수신 주소', placeholder: '예: rtmp://live-push.mocco.app/live/{roomId}' },
 
   // 5. 액션별 포인트 소모 정책 (Action Point Policy)
   { id: 'point_policy_chat_room_create_enabled', label: '1:1 채팅방 개설 포인트 소모 활성화 (true/false)', placeholder: 'false' },
@@ -88,7 +88,7 @@ export const DEFAULT_INTEGRATION_SETTINGS: DefaultIntegrationSettingDef[] = [
   // 6. 제브 AI (Zev AI) 및 AI 직원 거버넌스 설정 (Google Gemini & AI Staff)
   { id: 'gemini_api_key', label: 'Google Gemini API Key (실시간 영상 채증 및 제브 AI 법률 대조)', placeholder: 'AIzaSy...' },
   { id: 'zev_ai_model', label: '제브 AI (Zev AI) 수석 판정관 LLM 모델', placeholder: 'gemini-2.5-flash (권장) 또는 gemini-1.5-pro' },
-  { id: 'zev_ai_prompt_policy', label: '제브 AI 법률/약관 대조 기준 지침', placeholder: '정보통신망법 제44조의7 및 다가온 운영원칙 준용' },
+  { id: 'zev_ai_prompt_policy', label: '제브 AI 법률/약관 대조 기준 지침', placeholder: '정보통신망법 제44조의7 및 모꼬 운영원칙 준용' },
   { id: 'ai_staff_models', label: 'AI 직원별 LLM 모델 지정 (JSON)', placeholder: '{"zev":"gemini-2.5-flash","safety":"gemini-1.5-flash","settlement":"gemini-1.5-flash","happiness":"gemini-1.5-flash","curator":"gemini-1.5-flash","director":"gemini-2.5-flash"}' },
   { id: 'ai_staff_sensitivity', label: 'AI 위험도 민감도 기준 점수 (0~100)', placeholder: '60' },
   { id: 'ai_staff_toggles', label: 'AI 직원별 ON/OFF 활성화 상태 (JSON)', placeholder: '{"zev":true,"safety":true,"settlement":true,"happiness":true,"curator":true,"director":true}' },
@@ -701,10 +701,10 @@ export class AdminSettingsService implements OnModuleInit {
     const mode = rawMode?.toUpperCase() === 'CDN_HLS' ? 'CDN_HLS' : 'AGORA_RTC';
     const cdnHlsUrlPattern =
       (await this.getDecryptedSetting('live_cdn_hls_url_pattern')) ||
-      'https://live-cdn.dagaon.app/live/{roomId}/index.m3u8';
+      'https://live-cdn.mocco.app/live/{roomId}/index.m3u8';
     const cdnRtmpPushUrl =
       (await this.getDecryptedSetting('live_cdn_rtmp_push_url')) ||
-      'rtmp://live-push.dagaon.app/live/{roomId}';
+      'rtmp://live-push.mocco.app/live/{roomId}';
     return {
       mode,
       cdnHlsUrlPattern,

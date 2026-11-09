@@ -1,5 +1,5 @@
 /**
- * DAGAON Market & Escrow Service
+ * MOCCO Market & Escrow Service
  * C2C 중고거래 및 B2C 공동구매 에스크로(안전거래) 서비스
  * 
  * 경제 정책: 1 ON = 1 KRW (원화 1:1 직관 연동)

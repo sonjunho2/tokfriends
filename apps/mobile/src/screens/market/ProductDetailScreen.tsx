@@ -151,7 +151,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
     try {
       const pId = productId || (isNormal ? normalProduct?.id : product?.id);
       const name = isNormal ? normalProduct?.name : ((product as any)?.name || (product as any)?.title);
-      const shareUrl = `https://dagaon.app/share/market/${pId}`;
+      const shareUrl = `https://mocco.app/share/market/${pId}`;
       let discountRate = 0;
       if (isNormal && normalProduct) {
         const orig = normalProduct.priceKrw || 0;

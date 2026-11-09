@@ -304,7 +304,7 @@ export class ApiManagerService {
             statusCode: 200,
             latencyMs: 62,
             clientIp: '121.134.82.11',
-            userAgent: 'Dagaon/1.2.0 (Android 14; Galaxy S24)',
+            userAgent: 'Mocco/1.2.0 (Android 14; Galaxy S24)',
           },
           {
             id: 'log-1002',
@@ -314,7 +314,7 @@ export class ApiManagerService {
             statusCode: 200,
             latencyMs: 29,
             clientIp: '211.234.110.45',
-            userAgent: 'Dagaon/1.2.0 (iOS 17.5; iPhone 15 Pro)',
+            userAgent: 'Mocco/1.2.0 (iOS 17.5; iPhone 15 Pro)',
           },
           {
             id: 'log-1003',
@@ -324,7 +324,7 @@ export class ApiManagerService {
             statusCode: 200,
             latencyMs: 34,
             clientIp: '175.223.18.90',
-            userAgent: 'Dagaon/1.2.0 (Android 13; Galaxy A54)',
+            userAgent: 'Mocco/1.2.0 (Android 13; Galaxy A54)',
           },
           {
             id: 'log-1004',
@@ -334,7 +334,7 @@ export class ApiManagerService {
             statusCode: 200,
             latencyMs: 112,
             clientIp: '220.89.14.77',
-            userAgent: 'Dagaon/1.2.0 (iOS 17.4; iPhone 14)',
+            userAgent: 'Mocco/1.2.0 (iOS 17.4; iPhone 14)',
           },
           {
             id: 'log-1005',

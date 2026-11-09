@@ -64,7 +64,7 @@ export class AppController {
           messages: [
             { id: 'm1', senderId: 'u1', senderName: '이지민', text: '안녕하세요 철수님! 오늘 강남 쪽 날씨 좋네요 :)', time: '10:15', isFlagged: false },
             { id: 'm2', senderId: 'u2', senderName: '김철수', text: '네 지민님! 프로필 사진 분위기 너무 좋으세요!', time: '10:18', isFlagged: false },
-            { id: 'm3', senderId: 'u2', senderName: '김철수', type: 'GIFT', giftName: '하트 10개 (1,000온)', time: '10:20', isFlagged: false },
+            { id: 'm3', senderId: 'u2', senderName: '김철수', type: 'GIFT', giftName: '하트 10개 (1,000 꿀떡)', time: '10:20', isFlagged: false },
             { id: 'm4', senderId: 'u1', senderName: '이지민', text: '앗 하트 선물 감사합니다 ㅎㅎ 퇴근하고 보통 뭐 하세요?', time: '10:25', isFlagged: false },
             { id: 'm5', senderId: 'u2', senderName: '김철수', text: '혹시 여기서 대화하기 불편한데 카톡으로 연락하실래요? 제 아이디는 chulsoo_99 입니다!', time: '10:45', isFlagged: true, flagNotice: '외부 메신저(카카오톡 ID) 유도 감지' },
           ],

@@ -1,30 +1,21 @@
-# TokFriends
+# MOCCO (모꼬)
 
-톡친구 만들기(TokFriends) 상용화 작업 저장소입니다.
+전국 실시간 라이브 스트리밍, 1:1 대화, 커뮤니티, B2C 마켓 & 안심 에스크로 중고거래 옴니 플랫폼입니다.
 
 ## Active projects
 
 - `services/api` — NestJS + Prisma + PostgreSQL backend API
-- `apps/mobile` — React Native + Expo mobile app
-- `apps/admin` — Next.js admin web
+- `apps/mobile` — React Native + Expo mobile app (iOS / Android)
+- `apps/admin` — Next.js 14 관리자 콘솔 및 웹 포털 (슈퍼어드민, 입점사 셀러, 웹 마켓/라이브)
 
 ## Supporting folders
 
-- `infra` — Docker/Nginx/Render reference deployment configuration
-- `analytics` — analytics queries/reference
-- `contracts` — API/app/admin contract snapshots and reports
-- `docs` — existing project/deployment/store-review documentation
-- `store_assets` — app-store listing assets
-- `legacy/api-admin` — old admin app embedded in the API repository; reference only
+- `infra` — Docker/Nginx/Render/AWS 인프라 설정
+- `analytics` — 비즈니스 지표 및 매출 통계
+- `contracts` — API/App/Admin 인터페이스 스키마
+- `docs` — 운영 정책, 개인정보처리방침, 이용약관, 스토어 심사 가이드
+- `store_assets` — Google Play / App Store 등록용 스크린샷 및 배너
 
 ## Security
 
-Real `.env` files, signing keys, keystores, build outputs, and dependency folders are intentionally not committed. Start from each project's `.env.example` and create local `.env` files only on development machines or deployment platforms.
-
-## Current recovery direction
-
-1. Establish a clean local development baseline.
-2. Rebuild the Prisma migration baseline before applying migrations to a fresh database.
-3. Normalize Expo/React/React Native versions and Android target SDK.
-4. Remove development authentication bypasses and hard-coded fallback credentials before production.
-5. Connect and verify API, admin, mobile, real-time chat, OTP/SMS, push, store/payment, moderation, and deployment in phases.
+Real `.env` files, signing keys, keystores, and build outputs are intentionally not committed. Refer to `.env.example` in each project for environment configurations.
