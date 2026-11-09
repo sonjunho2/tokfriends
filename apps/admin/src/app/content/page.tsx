@@ -104,17 +104,17 @@ const FALLBACK_POSTS: CommunityPost[] = [
   {
     id: 'post-101',
     authorId: 'admin-official',
-    authorNickname: '다가온 공식운영팀',
+    authorNickname: '모꼬 공식운영팀',
     authorDisplayName: 'DAGAON Official',
     authorAvatarUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80',
     authorRole: 'ADMIN',
     category: 'OFFICIAL',
-    title: '🎉 다가온(DAGAON) 커뮤니티 라운지 정식 오픈!',
-    content: '새로운 사람이 다가오고, 새로운 이야기가 시작되는 다가온 커뮤니티 라운지에 오신 것을 환영합니다! 일상 속 소소한 이야기부터 취미, 고민, 라이브 방송 소식까지 자유롭게 공유해주세요.',
+    title: '🎉 모꼬(MOCCO) 커뮤니티 라운지 정식 오픈!',
+    content: '새로운 사람이 다가오고, 새로운 이야기가 시작되는 모꼬 커뮤니티 라운지에 오신 것을 환영합니다! 일상 속 소소한 이야기부터 취미, 고민, 라이브 방송 소식까지 자유롭게 공유해주세요.',
     mediaUrls: [
       'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=800&auto=format&fit=crop&q=80',
     ],
-    tags: ['공식환영', '커뮤니티오픈', '다가온'],
+    tags: ['공식환영', '커뮤니티오픈', '모꼬'],
     likesCount: 248,
     commentsCount: 36,
     viewsCount: 3820,
@@ -184,7 +184,7 @@ const FALLBACK_POSTS: CommunityPost[] = [
     authorRole: 'CREATOR',
     category: 'LIVE',
     title: '오늘 밤 10시! 신청곡 라이브 방송 오픈합니다 🎵',
-    content: '오늘 밤 10시에 신청곡 피아노 라이브 방송 진행해요! 신청곡 댓글로 미리 남겨주시면 방송에서 우선적으로 불러드릴게요. 많은 온(ON) 응원 부탁드려요 💖',
+    content: '오늘 밤 10시에 신청곡 피아노 라이브 방송 진행해요! 신청곡 댓글로 미리 남겨주시면 방송에서 우선적으로 불러드릴게요. 많은 모꼬 꿀떡 응원 부탁드려요 💖',
     mediaUrls: [
       'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=800&auto=format&fit=crop&q=80',
     ],
@@ -284,7 +284,7 @@ const FALLBACK_POSTS: CommunityPost[] = [
 const FALLBACK_ANNOUNCEMENTS: Announcement[] = [
   {
     id: 'ann-001',
-    title: '[필독] 다가온(DAGAON) 건전한 커뮤니티 가이드라인 및 24시간 AI 모니터링 정책 안내',
+    title: '[필독] 모꼬(MOCCO) 건전한 커뮤니티 가이드라인 및 24시간 AI 모니터링 정책 안내',
     body: '회원 여러분의 안전하고 즐거운 대화를 위해 24시간 실시간 AI 모니터링이 가동 중입니다. 외부 연락처 공유 유도, 음란/욕설, 타인 비방 행위 시 사전 경고 없이 계정이 영구 정지될 수 있습니다.',
     content: '회원 여러분의 안전하고 즐거운 대화를 위해 24시간 실시간 AI 모니터링이 가동 중입니다. 외부 연락처 공유 유도, 음란/욕설, 타인 비방 행위 시 사전 경고 없이 계정이 영구 정지될 수 있습니다.',
     audience: '전체',
@@ -299,7 +299,7 @@ const FALLBACK_ANNOUNCEMENTS: Announcement[] = [
   },
   {
     id: 'ann-002',
-    title: '[이벤트] 3D 인터랙티브 선물 출시 기념! 첫 온(ON) 충전 시 20% 보너스 지급',
+    title: '[이벤트] 3D 인터랙티브 선물 출시 기념! 첫 꿀떡 충전 시 20% 보너스 지급',
     body: '네온 슈퍼카, 골든 드래곤 등 화려한 3D 알파 이펙트 선물이 추가되었습니다. 기간 내 온 상점에서 첫 충전 시 추가 20% 보너스 온을 드립니다!',
     content: '네온 슈퍼카, 골든 드래곤 등 화려한 3D 알파 이펙트 선물이 추가되었습니다. 기간 내 온 상점에서 첫 충전 시 추가 20% 보너스 온을 드립니다!',
     audience: '홈 배너',
@@ -349,8 +349,8 @@ const FALLBACK_FAQS: FaqItem[] = [
   {
     id: 'faq-001',
     category: 'ON_STORE',
-    question: '결제한 온(ON) 코인은 어떻게 환불받을 수 있나요?',
-    answer: '충전 후 한 번도 사용하지 않은 온(ON) 코인은 결제일로부터 7일 이내에 [정산 & 환불] 고객센터를 통해 전액 환불 접수가 가능합니다. 단, 일부라도 후원이나 통화에 사용된 패키지는 전자상거래법에 따라 환불이 제한될 수 있습니다.',
+    question: '결제한 모꼬 꿀떡은 어떻게 환불받을 수 있나요?',
+    answer: '충전 후 한 번도 사용하지 않은 모꼬 꿀떡은 결제일로부터 7일 이내에 [정산 & 환불] 고객센터를 통해 전액 환불 접수가 가능합니다. 단, 일부라도 후원이나 통화에 사용된 패키지는 전자상거래법에 따라 환불이 제한될 수 있습니다.',
     priority: 1,
     isActive: true,
     createdAt: '2026-10-15',
@@ -1066,7 +1066,7 @@ export default function ContentAndAnnouncementsPage() {
                   공식 이벤트 피드 작성 & 상단 고정 (PIN)
                 </div>
                 <p className="mt-1.5 leading-relaxed text-slate-600 dark:text-slate-400">
-                  다가온 공식 인증 마크로 커뮤니티 피드에 직접 소통 게시글을 발행하고, 중요 안내는 <strong>[📌 상단 고정]</strong>하여 피드 최상단에 고정 노출시킵니다. 회원의 참여 댓글 모니터링도 함께 진행하세요.
+                  모꼬 공식 인증 마크로 커뮤니티 피드에 직접 소통 게시글을 발행하고, 중요 안내는 <strong>[📌 상단 고정]</strong>하여 피드 최상단에 고정 노출시킵니다. 회원의 참여 댓글 모니터링도 함께 진행하세요.
                 </p>
               </div>
             </div>
@@ -1433,7 +1433,7 @@ export default function ContentAndAnnouncementsPage() {
                     <div>
                       <CardTitle className="text-base">공식 공지사항 목록 및 스케줄링</CardTitle>
                       <p className="text-xs text-muted-foreground">
-                        다가온 모바일 앱 전체 또는 특정 세그먼트(홈 배너, 마이페이지)에 노출할 공지를 관리합니다.
+                        모꼬 모바일 앱 전체 또는 특정 세그먼트(홈 배너, 마이페이지)에 노출할 공지를 관리합니다.
                       </p>
                     </div>
                   </div>
@@ -1540,7 +1540,7 @@ export default function ContentAndAnnouncementsPage() {
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm font-semibold flex items-center gap-1.5 text-indigo-950 dark:text-indigo-200">
                       <Smartphone className="h-4 w-4 text-indigo-600" />
-                      다가온(DAGAON) 인앱 팝업 실시간 미리보기
+                      모꼬(MOCCO) 인앱 팝업 실시간 미리보기
                     </CardTitle>
                     <Badge variant="outline" className="text-[10px]">
                       {previewAnnouncement.isPopup ? '팝업 모달 모드' : '상단 배너 모드'}
@@ -1588,7 +1588,7 @@ export default function ContentAndAnnouncementsPage() {
                                 중요 공지
                               </span>
                             )}
-                            <span className="text-[10px] text-slate-500">다가온 공식 안내</span>
+                            <span className="text-[10px] text-slate-500">모꼬 공식 안내</span>
                           </div>
                           <span className="text-[10px] text-slate-400">DAGAON</span>
                         </div>
@@ -1910,7 +1910,7 @@ export default function ContentAndAnnouncementsPage() {
               공식 커뮤니티 게시글 발행
             </DialogTitle>
             <DialogDescription>
-              다가온(DAGAON) 공식 운영팀 계정으로 커뮤니티 라운지 피드에 새로운 게시글을 등록합니다.
+              모꼬(MOCCO) 공식 운영팀 계정으로 커뮤니티 라운지 피드에 새로운 게시글을 등록합니다.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2 text-xs">
@@ -1941,7 +1941,7 @@ export default function ContentAndAnnouncementsPage() {
             <div className="space-y-1.5">
               <Label>제목 (선택)</Label>
               <Input
-                placeholder="예: 🎉 다가온 봄맞이 첫 온 충전 20% 보너스 이벤트!"
+                placeholder="예: 🎉 모꼬 봄맞이 첫 온 충전 20% 보너스 이벤트!"
                 value={newPostTitle}
                 onChange={(e) => setNewPostTitle(e.target.value)}
                 className="h-9 text-xs"
@@ -1972,7 +1972,7 @@ export default function ContentAndAnnouncementsPage() {
             <div className="space-y-1.5">
               <Label>해시태그 (쉼표로 구분)</Label>
               <Input
-                placeholder="예: 다가온이벤트, 보너스온, 공식공지"
+                placeholder="예: 모꼬이벤트, 보너스온, 공식공지"
                 value={newPostTags}
                 onChange={(e) => setNewPostTags(e.target.value)}
                 className="h-9 text-xs"
@@ -2180,7 +2180,7 @@ export default function ContentAndAnnouncementsPage() {
             <div className="space-y-1.5">
               <Label>공지 제목 (필수)</Label>
               <Input
-                placeholder="예: [필독] 다가온(DAGAON) 정기 보안 점검 안내"
+                placeholder="예: [필독] 모꼬(MOCCO) 정기 보안 점검 안내"
                 value={annForm.title}
                 onChange={(e) => setAnnForm((prev) => ({ ...prev, title: e.target.value }))}
                 className="h-9 text-xs"
@@ -2341,7 +2341,7 @@ export default function ContentAndAnnouncementsPage() {
             <div className="space-y-1.5">
               <Label>질문 (Question)</Label>
               <Input
-                placeholder="예: 온(ON) 코인 충전 후 환불은 어떻게 하나요?"
+                placeholder="예: 모꼬 꿀떡 충전 후 환불은 어떻게 하나요?"
                 value={faqForm.question}
                 onChange={(e) => setFaqForm((prev) => ({ ...prev, question: e.target.value }))}
                 className="h-9 text-xs"

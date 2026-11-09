@@ -242,7 +242,7 @@ export default function StoreProductsPage() {
       return
     }
     if (!modalPoints || modalPoints <= 0) {
-      toast({ title: '온 수량 확인', description: '충전 온(ON) 수량을 1 이상으로 입력하세요.', variant: 'destructive' })
+      toast({ title: '꿀떡 수량 확인', description: '충전 꿀떡 수량을 1 이상으로 입력하세요.', variant: 'destructive' })
       return
     }
     if (!modalPrice || modalPrice <= 0) {
@@ -327,7 +327,7 @@ export default function StoreProductsPage() {
       return
     }
     if (!product.points || product.points <= 0) {
-      toast({ title: '온(ON) 수량 확인', description: '충전될 온(ON) 수량을 1개 이상으로 설정하세요.', variant: 'destructive' })
+      toast({ title: '꿀떡 수량 확인', description: '충전될 꿀떡 수량을 1개 이상으로 설정하세요.', variant: 'destructive' })
       return
     }
     if (!product.price || product.price <= 0) {
@@ -570,13 +570,13 @@ export default function StoreProductsPage() {
         </Card>
       </div>
 
-      {/* 4. 온(ON) 상품 관리 목록 */}
+      {/* 4. 모꼬 꿀떡 상품 관리 목록 */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <div>
             <CardTitle className="text-base flex items-center gap-2">
               <Tag className="h-4 w-4 text-primary" />
-              온(ON) 판매 상품 목록
+              모꼬 꿀떡 판매 상품 목록
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-0.5">
               각 상품 카드의 필드를 수정한 후 [저장] 버튼을 누르면 실시간으로 데이터베이스 및 앱 상점에 반영됩니다.
@@ -667,7 +667,7 @@ export default function StoreProductsPage() {
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold flex items-center gap-1">
                       <Coins className="h-3.5 w-3.5 text-primary" />
-                      충전 온(ON) 수량 *
+                      충전 꿀떡 수량 *
                     </Label>
                     <Input
                       value={product.points?.toString() ?? ''}
@@ -677,7 +677,7 @@ export default function StoreProductsPage() {
                       inputMode="numeric"
                       className="text-xs font-semibold"
                     />
-                    <p className="text-[11px] text-muted-foreground">구매 완료 시 유저 지갑에 지급될 온(ON) 코인</p>
+                    <p className="text-[11px] text-muted-foreground">구매 완료 시 유저 지갑에 지급될 모꼬 꿀떡</p>
                   </div>
 
                   <div className="space-y-1.5">
@@ -788,7 +788,7 @@ export default function StoreProductsPage() {
           {sortedProducts.length === 0 && (
             <div className="py-12 text-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">
               <ShoppingBag className="mx-auto h-8 w-8 text-muted-foreground mb-2 opacity-50" />
-              등록된 온(ON) 상품이 없습니다. 상단의 [신규 상품 등록] 버튼을 눌러 인앱 충전 상품을 등록하세요.
+              등록된 모꼬 꿀떡 상품이 없습니다. 상단의 [신규 상품 등록] 버튼을 눌러 인앱 충전 상품을 등록하세요.
             </div>
           )}
         </CardContent>
@@ -800,13 +800,13 @@ export default function StoreProductsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5 text-primary" />
-              신규 온(ON) 충전 상품 등록
+              신규 모꼬 꿀떡 충전 상품 등록
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2 text-xs">
             <div className="p-3 bg-muted/30 rounded-md border text-muted-foreground leading-relaxed">
-              💡 <b>온상점 상품 등록 안내:</b> 유저가 현금으로 구매할 온(ON) 패키지를 생성합니다. 선물 후원 시 온이 부족한 유저가 이 상품을 충전하게 됩니다.
+              💡 <b>꿀떡 상점 상품 등록 안내:</b> 유저가 현금으로 구매할 모꼬 꿀떡 패키지를 생성합니다. 선물 후원 시 꿀떡이 부족한 유저가 이 상품을 충전하게 됩니다.
             </div>
 
             <div className="space-y-1.5">
@@ -822,7 +822,7 @@ export default function StoreProductsPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="m-points" className="text-xs font-semibold">충전 온(ON) 코인 *</Label>
+                <Label htmlFor="m-points" className="text-xs font-semibold">충전 모꼬 꿀떡 수량 *</Label>
                 <Input
                   id="m-points"
                   type="number"

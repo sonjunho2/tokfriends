@@ -1335,8 +1335,8 @@ const LEGAL_DOCUMENTS = {
 1. 회사는 전자상거래 등에서의 소비자보호에 관한 법률 제24조에 따라 선지급식 통신판매에 있어서 소비자가 요청하는 경우 토스페이먼츠 및 제휴 금융기관을 통한 결제대금예치(에스크로) 서비스를 제공합니다.
 2. 구매자가 물품을 정상 수령하고 [구매확정]을 완료한 후 또는 법정 기한 내에 이의 제기가 없는 경우에 한하여 판매자에게 대금을 정산 지급합니다.
 
-제3조 (선불전자지급수단 - ON 포인트)
-1. 이용자는 계좌이체, 신용카드, 이벤트 리워드 등을 통해 모꼬 ON 포인트를 충전하거나 적립받을 수 있습니다.
+제3조 (선불전자지급수단 - 모꼬 꿀떡 및 모꼬 머니)
+1. 이용자는 계좌이체, 신용카드, 이벤트 리워드 등을 통해 모꼬 꿀떡을 충전하거나 적립받을 수 있습니다.
 2. 적립 및 충전된 포인트는 라이브 방송 후원, 1:1 대화방 입장, 상품 결제에 1 P = 1원의 가치로 사용됩니다.`,
   },
   'youth-protection': {
@@ -2217,7 +2217,7 @@ export default function CustomerWebStorefrontPage() {
       if (myPoints < gift.pricePoints) {
         toast({
           title: '포인트 부족',
-          description: `보유 온(ON) 포인트가 부족합니다. (필요: ${gift.pricePoints.toLocaleString()} P, 보유: ${(user?.pointBalance ?? myPoints).toLocaleString()} P)`,
+          description: `보유 모꼬 꿀떡이 부족합니다. (필요: ${gift.pricePoints.toLocaleString()}개, 보유: ${(user?.pointBalance ?? myPoints).toLocaleString()}개)`,
           variant: 'destructive',
         })
         return
@@ -2229,7 +2229,7 @@ export default function CustomerWebStorefrontPage() {
       const senderName = user?.nickname || '나 (시청자)'
       const giftMsg: LiveChatMessageItem = {
         sender: senderName,
-        text: `🎁 [선물] ${gift.name} (${gift.pricePoints.toLocaleString()} ON 후원)`,
+        text: `🎁 [선물] ${gift.name} (${gift.pricePoints.toLocaleString()} 꿀떡 후원)`,
         isGift: true,
         gift: {
           id: gift.id,
@@ -2257,7 +2257,7 @@ export default function CustomerWebStorefrontPage() {
 
       toast({
         title: '🎉 모꼬 3D 선물 후원 완료!',
-        description: `${gift.name} (${gift.pricePoints.toLocaleString()} ON)을 ${activeLiveModal.hostNickname}님께 선물했습니다!`,
+        description: `${gift.name} (${gift.pricePoints.toLocaleString()} 꿀떡)을 ${activeLiveModal.hostNickname}님께 선물했습니다!`,
       })
     })
   }
@@ -2313,7 +2313,7 @@ export default function CustomerWebStorefrontPage() {
       setIsCreateSudaRoomOpen(false)
       toast({
         title: '🎉 1:1 수다방 개설 완료!',
-        description: `"${newRoom.title}" 방이 열렸습니다. (입장단가: ${newRoom.entryFee ? newRoom.entryFee + ' ON' : '무료'})`,
+        description: `"${newRoom.title}" 방이 열렸습니다. (입장단가: ${newRoom.entryFee ? newRoom.entryFee + ' 꿀떡' : '무료'})`,
       })
     })
   }
@@ -2325,7 +2325,7 @@ export default function CustomerWebStorefrontPage() {
         if (myPoints < room.entryFee) {
           toast({
             title: '포인트가 부족합니다',
-            description: `수다방 입장료는 ${room.entryFee} ON입니다. 포인트를 무료 충전해 주세요.`,
+            description: `수다방 입장료는 ${room.entryFee} 꿀떡입니다. 포인트를 무료 충전해 주세요.`,
             variant: 'destructive',
           })
           setIsPointChargeModalOpen(true)
@@ -2333,7 +2333,7 @@ export default function CustomerWebStorefrontPage() {
         }
         setMyPoints((prev) => Math.max(0, prev - room.entryFee!))
         toast({
-          title: `💰 ${room.entryFee} ON 차감 & 수다방 입장`,
+          title: `💰 ${room.entryFee} 꿀떡 차감 & 수다방 입장`,
           description: `${room.nickname} 님의 1:1 수다방에 입장했습니다. 대화를 시작하세요!`,
         })
       } else {
@@ -2457,7 +2457,7 @@ export default function CustomerWebStorefrontPage() {
       if (myPoints < gift.pricePoints) {
         toast({
           title: '포인트 부족',
-          description: `보유 온(ON) 포인트가 부족합니다. (필요: ${gift.pricePoints.toLocaleString()} P, 보유: ${myPoints.toLocaleString()} P)`,
+          description: `보유 모꼬 꿀떡이 부족합니다. (필요: ${gift.pricePoints.toLocaleString()}개, 보유: ${myPoints.toLocaleString()}개)`,
           variant: 'destructive',
         })
         return
@@ -4670,7 +4670,7 @@ export default function CustomerWebStorefrontPage() {
                     <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20 text-right">
                       <span className="text-[10px] text-blue-200 block font-bold">내 보유 꿀떡</span>
                       <span className="text-sm sm:text-base font-black text-amber-300">
-                        {myPoints.toLocaleString()} ON
+                        {myPoints.toLocaleString()} 개
                       </span>
                     </div>
 
@@ -4679,7 +4679,7 @@ export default function CustomerWebStorefrontPage() {
                       className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs h-10 px-4 rounded-xl shadow-lg transition-all flex items-center"
                     >
                       <Coins className="h-4 w-4 mr-1.5" />
-                      포인트 무료 충전
+                      꿀떡 무료 충전
                     </Button>
                   </div>
                 </div>
@@ -4885,7 +4885,7 @@ export default function CustomerWebStorefrontPage() {
                                 placeholder="0 (무료)"
                                 className="w-16 sm:w-20 bg-white text-right font-black text-xs px-2 py-1 rounded-lg border border-slate-200 focus:border-[#FF3B6B] focus:outline-none"
                               />
-                              <span className="text-[11px] font-black text-[#FF3B6B] shrink-0">ON</span>
+                              <span className="text-[11px] font-black text-[#FF3B6B] shrink-0">꿀떡</span>
                             </div>
 
                             <Button
@@ -4904,9 +4904,9 @@ export default function CustomerWebStorefrontPage() {
                             <span className="font-bold text-slate-400">단가 퀵선택:</span>
                             {[
                               { label: '무료', value: 0 },
-                              { label: '300 ON', value: 300 },
-                              { label: '500 ON', value: 500 },
-                              { label: '1,000 ON', value: 1000 },
+                              { label: '300 꿀떡', value: 300 },
+                              { label: '500 꿀떡', value: 500 },
+                              { label: '1,000 꿀떡', value: 1000 },
                             ].map((chip) => (
                               <button
                                 key={chip.value}
@@ -5004,7 +5004,7 @@ export default function CustomerWebStorefrontPage() {
                                       ? 'bg-amber-50 text-amber-900 border border-amber-200 shadow-2xs'
                                       : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                                   }`}>
-                                    {room.entryFee && room.entryFee > 0 ? `💰 ${room.entryFee} ON` : '✨ 무료'}
+                                    {room.entryFee && room.entryFee > 0 ? `💰 ${room.entryFee} 꿀떡` : '✨ 무료'}
                                   </span>
 
                                   {/* 1:1 수다 입장 버튼 */}
@@ -5307,7 +5307,7 @@ export default function CustomerWebStorefrontPage() {
                                     <div className="pt-1 border-t border-white/20 flex items-center justify-between text-[10px] font-black">
                                       <span>후원 포인트</span>
                                       <span className="bg-white/25 px-1.5 py-0.5 rounded text-white">
-                                        {msg.gift.amount.toLocaleString()} ON
+                                        {msg.gift.amount.toLocaleString()} 꿀떡
                                       </span>
                                     </div>
                                   </div>
@@ -5393,7 +5393,7 @@ export default function CustomerWebStorefrontPage() {
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                                      보유 {myPoints.toLocaleString()} ON
+                                      보유 {myPoints.toLocaleString()} 개
                                     </span>
                                     <button
                                       onClick={() => setIsGiftPickerOpen(false)}
@@ -5438,7 +5438,7 @@ export default function CustomerWebStorefrontPage() {
                                         <div className="flex items-center justify-between">
                                           <span className="text-2xl group-hover:scale-110 transition-transform">{gift.icon}</span>
                                           <span className="text-[10px] font-black text-pink-600 bg-pink-100 px-1.5 py-0.2 rounded">
-                                            {gift.pricePoints.toLocaleString()} ON
+                                            {gift.pricePoints.toLocaleString()} 꿀떡
                                           </span>
                                         </div>
                                         <div>
@@ -8449,7 +8449,7 @@ export default function CustomerWebStorefrontPage() {
                     </p>
 
                     <Badge className="mt-3 bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 text-white font-black text-xs px-4 py-1 border-none shadow-xl">
-                      +{liveGiftEffect.amount.toLocaleString()} ON 후원 완료
+                      +{liveGiftEffect.amount.toLocaleString()} 꿀떡 후원 완료
                     </Badge>
                   </div>
                 )}
@@ -8558,7 +8558,7 @@ export default function CustomerWebStorefrontPage() {
                   <div className="bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-700/60 text-right">
                     <span className="text-[9px] text-slate-400 block font-semibold leading-tight">내 꿀떡</span>
                     <span className="text-[11px] font-black text-amber-300 leading-tight">
-                      {myPoints.toLocaleString()} ON
+                      {myPoints.toLocaleString()} 개
                     </span>
                   </div>
 
@@ -8591,7 +8591,7 @@ export default function CustomerWebStorefrontPage() {
                           </div>
                         </div>
                         <span className="text-[10px] font-black bg-pink-500/30 text-pink-200 px-2 py-0.5 rounded-full shrink-0 border border-pink-400/30">
-                          +{m.gift.amount.toLocaleString()} ON
+                          +{m.gift.amount.toLocaleString()} 꿀떡
                         </span>
                       </div>
                     ) : m.isSystem ? (
@@ -8624,7 +8624,7 @@ export default function CustomerWebStorefrontPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-bold text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-500/30">
-                        보유 {myPoints.toLocaleString()} ON
+                        보유 {myPoints.toLocaleString()} 개
                       </span>
                       <button
                         onClick={() => setIsLiveGiftPickerOpen(false)}
@@ -8669,7 +8669,7 @@ export default function CustomerWebStorefrontPage() {
                           <div className="flex items-center justify-between">
                             <span className="text-2xl group-hover:scale-110 transition-transform">{gift.icon}</span>
                             <span className="text-[10px] font-black text-amber-300 bg-amber-950/60 px-1.5 py-0.2 rounded border border-amber-500/20">
-                              {gift.pricePoints.toLocaleString()} ON
+                              {gift.pricePoints.toLocaleString()} 꿀떡
                             </span>
                           </div>
                           <div>

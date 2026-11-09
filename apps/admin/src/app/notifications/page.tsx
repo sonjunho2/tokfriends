@@ -64,7 +64,7 @@ const DEFAULT_TEMPLATES: PushTemplateItem[] = [
   {
     id: 'tpl-1',
     label: '서비스 정기 점검 안내',
-    title: '[안내] 다가온(DAGAON) 정기 서버 점검 안내',
+    title: '[안내] 모꼬(MOCCO) 정기 서버 점검 안내',
     body: '오늘 밤 02:00 ~ 04:00 안정적인 서비스 제공을 위한 서버 점검이 진행됩니다. 점검 중에는 서비스 이용이 일시 중단됩니다.',
     category: 'MAINTENANCE',
   },
@@ -97,7 +97,7 @@ const DEFAULT_TEMPLATES: PushTemplateItem[] = [
 const FALLBACK_HISTORY: PushHistoryItem[] = [
   {
     id: 'push-801',
-    title: '[안내] 다가온 커뮤니티 라운지 오픈 기념 이벤트',
+    title: '[안내] 모꼬 커뮤니티 라운지 오픈 기념 이벤트',
     body: '일상과 취미를 공유하고 새로운 친구를 만날 수 있는 커뮤니티 라운지가 열렸습니다! 지금 바로 글을 작성해보세요.',
     audience: '전체 사용자',
     deepLink: 'dagaon://community',
@@ -675,7 +675,7 @@ export default function NotificationsPage() {
                         <div className="flex h-4 w-4 items-center justify-center rounded-sm bg-indigo-600 text-white font-black text-[9px] shadow-2xs">
                           D
                         </div>
-                        <span className="font-bold tracking-tight text-white">다가온 (DAGAON)</span>
+                        <span className="font-bold tracking-tight text-white">모꼬 (DAGAON)</span>
                         {isAd && (
                           <span className="bg-amber-500/80 text-white text-[8px] font-bold px-1 rounded">
                             광고

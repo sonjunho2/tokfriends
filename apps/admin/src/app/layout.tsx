@@ -123,9 +123,9 @@ const NAV_ITEMS: AppShellNavItem[] = [
     icon: Users,
   },
   {
-    label: '온(ON) 상점',
+    label: '모꼬 꿀떡 상점',
     href: '/store',
-    description: '인앱 온(ON) 충전 상품 및 결제 관리',
+    description: '인앱 꿀떡 충전 상품 및 인앱결제 관리',
     group: '본사 총괄 운영',
     icon: ShoppingBag,
   },
@@ -139,7 +139,7 @@ const NAV_ITEMS: AppShellNavItem[] = [
   {
     label: '정산 & 환불',
     href: '/settlement',
-    description: '온(ON) 정산 및 환불 요청 처리',
+    description: '모꼬 꿀떡 정산 및 환불 요청 처리',
     group: '본사 총괄 운영',
     icon: CircleDollarSign,
   },

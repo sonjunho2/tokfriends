@@ -156,7 +156,7 @@ const FALLBACK_PENDING_DECISIONS: AiDecisionItem[] = [
       role: 'USER',
     },
     riskScore: 78,
-    summary: '단시간 내 동일 IP 및 연계 카드 통한 250만 ON 자전거래 의심 징후 포착',
+    summary: '단시간 내 동일 IP 및 연계 카드 통한 250만 원 자전거래 의심 징후 포착',
     evidence: '동일 기기 식별자(Device Fingerprint)에서 10분 내 5회 분할 결제 및 즉시 에스크로 환전 요청 접수',
     directorReview: '[대표님 3초 요약]\n1. 사안: 카드 깡 / 에스크로 자전거래 어뷰징 패턴 감지\n2. AI 합의: Auditor(84점 - 비정상 패턴 확정), Director(78점)\n3. 추천 조치: 에스크로 대금 지급 보류 및 본인 소명 요구(HOLD_PAYOUT)',
     collaborationLog: [

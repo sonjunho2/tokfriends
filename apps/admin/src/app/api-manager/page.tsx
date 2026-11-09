@@ -716,7 +716,7 @@ export default function ApiManagerPage() {
                 {/* 온 상점 결제 & 충전 */}
                 <div>
                   <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-slate-700 font-medium">온(ON) 충전소 결제 및 상점 (Store)</span>
+                    <span className="text-slate-700 font-medium">모꼬 꿀떡 충전소 결제 및 상점 (Store)</span>
                     <span className="text-foreground font-mono font-bold">8% (147,400건)</span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">

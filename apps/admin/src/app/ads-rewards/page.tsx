@@ -426,7 +426,7 @@ export default function AdsRewardsPage() {
                 1단계: Google AdMob 연동 & 리워드 단가 설정
               </span>
               <p className="mt-1.5 text-muted-foreground">
-                Google AdMob 앱 ID(`ca-app-pub-...`)와 보상형 비디오 단위 ID를 정확히 매핑하고, <b>일일 시청 한도(권장 5회)</b> 및 <b>시청당 지급 온(권장 10 온)</b>을 설정하여 수익 대비 코인 인플레이션을 방지합니다.
+                Google AdMob 앱 ID(`ca-app-pub-...`)와 보상형 비디오 단위 ID를 정확히 매핑하고, <b>일일 시청 한도(권장 5회)</b> 및 <b>시청당 지급 꿀떡(권장 10 꿀떡)</b>을 설정하여 수익 대비 코인 인플레이션을 방지합니다.
               </p>
             </div>
             <div className="rounded-md border border-amber-200/80 bg-white/70 p-3 shadow-xs dark:border-amber-900/40 dark:bg-black/20">
@@ -455,7 +455,7 @@ export default function AdsRewardsPage() {
           <CardContent className="pt-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">총 지급 리워드 온(ON)</p>
+                <p className="text-xs text-muted-foreground">총 지급 리워드 꿀떡</p>
                 <p className="text-2xl font-bold mt-1 text-amber-600">
                   {loading ? '—' : `${data?.stats.totalPointsDistributed.toLocaleString()} 온`}
                 </p>
@@ -539,7 +539,7 @@ export default function AdsRewardsPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">보상형 광고 및 리워드 정책 설정</CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
-                광고 시청 횟수 제한, 광고 시청당 지급 온(ON), 출석체크 및 친구 초대 보상 정책을 관리합니다.
+                광고 시청 횟수 제한, 광고 시청당 지급 꿀떡, 출석체크 및 친구 초대 보상 정책을 관리합니다.
               </p>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -928,7 +928,7 @@ export default function AdsRewardsPage() {
               <Input
                 value={adDescription}
                 onChange={(e) => setAdDescription(e.target.value)}
-                placeholder="프로필 완성하고 50온(ON)을 즉시 받아가세요"
+                placeholder="프로필 완성하고 50 꿀떡을 즉시 받아가세요"
                 className="text-xs"
               />
             </div>

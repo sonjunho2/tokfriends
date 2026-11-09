@@ -82,7 +82,7 @@ const FALLBACK_OVERVIEW: AnalyticsOverviewSnapshot = {
       name: '유료 결제 전환율 (PUR)',
       value: '8.7%',
       delta: '+0.8%p vs 전월',
-      description: '전체 활동 회원 대비 온(ON) 유료 결제 경험자 비율',
+      description: '전체 활동 회원 대비 모꼬 꿀떡 유료 결제 경험자 비율',
       pinned: true,
     },
     {
@@ -492,7 +492,7 @@ export default function AnalyticsPage() {
                 {purMetric?.delta || '+0.8%p'}
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">온(ON) 결제 경험자 비율 (업계 평균 4.2%)</p>
+            <p className="text-xs text-muted-foreground mt-1">모꼬 꿀떡 결제 경험자 비율 (업계 평균 4.2%)</p>
           </CardContent>
         </Card>
 
@@ -663,7 +663,7 @@ export default function AnalyticsPage() {
                     <div className="flex justify-between text-xs mb-1.5">
                       <span className="text-slate-700 font-medium flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 inline-block" />
-                        온(ON) 충전소 인앱결제 (IAP)
+                        모꼬 꿀떡 충전소 인앱결제 (IAP)
                       </span>
                       <span className="text-slate-900 font-bold font-mono">28% (₩232.8M)</span>
                     </div>
@@ -745,7 +745,7 @@ export default function AnalyticsPage() {
                   신규 유저 행동 전환 퍼널 (End-to-End Funnel)
                 </CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
-                  앱 설치부터 온(ON) 결제까지 단계별 유저 도달률과 이탈률을 정밀 추적합니다.
+                  앱 설치부터 모꼬 꿀떡 결제까지 단계별 유저 도달률과 이탈률을 정밀 추적합니다.
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">

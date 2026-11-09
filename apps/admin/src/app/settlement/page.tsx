@@ -206,7 +206,7 @@ const FALLBACK_REFUNDS: AdminRefundRequest[] = [
     receiptId: 'GPA.3391-4820-1928-48192',
     amountKrw: 11000,
     points: 10000,
-    reason: '실수로 잘못 결제했습니다. 충전된 온(ON) 코인을 아직 전혀 사용하지 않았습니다.',
+    reason: '실수로 잘못 결제했습니다. 충전된 모꼬 꿀떡을 아직 전혀 사용하지 않았습니다.',
     status: 'pending',
     createdAt: '2026-11-04T12:00:00.000Z',
   },
@@ -454,7 +454,7 @@ export default function SettlementPage() {
     setSubmittingAction(true)
     try {
       await rejectSettlementRequest(selectedRequestForReject.id, rejectReason.trim())
-      toast({ title: '출금 반려 처리', description: '출금 요청이 반려되고 온(ON)이 환원되었습니다.' })
+      toast({ title: '출금 반려 처리', description: '출금 요청이 반려되고 꿀떡이 환원되었습니다.' })
       setRejectModalOpen(false)
       setSelectedRequestForReject(null)
       setRejectReason('')
@@ -557,10 +557,10 @@ export default function SettlementPage() {
             </div>
             <div className="rounded-md border border-indigo-200/80 bg-white/70 p-3 shadow-xs dark:border-indigo-900/40 dark:bg-black/20">
               <span className="inline-block rounded bg-indigo-100 px-1.5 py-0.5 font-bold text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
-                2단계: 인앱 결제 환불 심사 & 온(ON) 즉시 회수
+                2단계: 인앱 결제 환불 심사 & 꿀떡 즉시 회수
               </span>
               <p className="mt-1.5 text-muted-foreground">
-                충전 후 사용하지 않은 정상적인 실수 결제 건만 <b>[환불 승인]</b>하며, 이미 라이브나 통화에서 소진한 건은 어뷰징 방지를 위해 <b>[환불 거절]</b>합니다. 승인 시 잔여 온(ON)은 자동 회수됩니다.
+                충전 후 사용하지 않은 정상적인 실수 결제 건만 <b>[환불 승인]</b>하며, 이미 라이브나 통화에서 소진한 건은 어뷰징 방지를 위해 <b>[환불 거절]</b>합니다. 승인 시 잔여 꿀떡은 자동 회수됩니다.
               </p>
             </div>
             <div className="rounded-md border border-indigo-200/80 bg-white/70 p-3 shadow-xs dark:border-indigo-900/40 dark:bg-black/20">
@@ -568,7 +568,7 @@ export default function SettlementPage() {
                 3단계: 지갑 원장(Wallet Ledger) 대사 & 멱등성 보장
               </span>
               <p className="mt-1.5 text-muted-foreground">
-                모든 입출금은 고유 멱등성 키(Idempotency Key)와 함께 불변 원장에 기록되어 이중 지급이 원천 차단됩니다. 출금 반려 시 대기 온은 크리에이터 지갑으로 100% 자동 환원됩니다.
+                모든 입출금은 고유 멱등성 키(Idempotency Key)와 함께 불변 원장에 기록되어 이중 지급이 원천 차단됩니다. 출금 반려 시 대기 꿀떡은 크리에이터 지갑으로 100% 자동 환원됩니다.
               </p>
             </div>
           </div>
@@ -581,9 +581,9 @@ export default function SettlementPage() {
           <CardContent className="pt-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">총 결제 온(ON) / 건수</p>
+                <p className="text-xs text-muted-foreground">총 결제 꿀떡 / 건수</p>
                 <p className="text-2xl font-bold mt-1">
-                  {summaryLoading ? '—' : `${totalPointsPurchasedDisplay} 온`}
+                  {summaryLoading ? '—' : `${totalPointsPurchasedDisplay} 꿀떡`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   총 {totalPurchasesCountDisplay}건 결제
@@ -613,9 +613,9 @@ export default function SettlementPage() {
           <CardContent className="pt-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">사용자 보유 온(ON) 총합</p>
+                <p className="text-xs text-muted-foreground">사용자 보유 꿀떡 총합</p>
                 <p className="text-2xl font-bold mt-1">
-                  {summaryLoading ? '—' : `${totalSpendableBalanceDisplay} 온`}
+                  {summaryLoading ? '—' : `${totalSpendableBalanceDisplay} 꿀떡`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   활성 지갑 {totalWalletsDisplay}개
@@ -632,10 +632,10 @@ export default function SettlementPage() {
               <div>
                 <p className="text-xs text-muted-foreground">출금 가능 잔액 / 대기액</p>
                 <p className="text-2xl font-bold mt-1 text-emerald-600">
-                  {summaryLoading ? '—' : `${totalRedeemableBalanceDisplay} 온`}
+                  {summaryLoading ? '—' : `${totalRedeemableBalanceDisplay} 꿀떡`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  정산 대기 {totalPendingEarningsDisplay} 온
+                  정산 대기 {totalPendingEarningsDisplay} 꿀떡
                   {pendingSettlementsCountVal > 0 && (
                     <span className="ml-1.5 font-semibold text-amber-600">
                       ({pendingSettlementsCountVal}건 대기)
@@ -754,7 +754,7 @@ export default function SettlementPage() {
                         <th className="p-2.5 font-medium">신청일시 / ID</th>
                         <th className="p-2.5 font-medium">호스트 / 등급</th>
                         <th className="p-2.5 font-medium">입금 계좌 정보</th>
-                        <th className="p-2.5 font-medium text-right">신청 온(ON)</th>
+                        <th className="p-2.5 font-medium text-right">신청 꿀떡 (개)</th>
                         <th className="p-2.5 font-medium text-right">적용 단가</th>
                         <th className="p-2.5 font-medium text-right">회사 수수료</th>
                         <th className="p-2.5 font-medium text-right">세금(3.3%)</th>
@@ -824,10 +824,10 @@ export default function SettlementPage() {
                               </div>
                             </td>
                             <td className="p-2.5 text-right font-medium text-foreground">
-                              {safeLocale(item.pointsAmount)} 온
+                              {safeLocale(item.pointsAmount)} 꿀떡
                             </td>
                             <td className="p-2.5 text-right font-semibold text-foreground">
-                              {effectiveRate}원/온
+                              {effectiveRate}원/꿀떡
                             </td>
                             <td className="p-2.5 text-right font-semibold text-indigo-600">
                               +{safeLocale(platformFee)}원
@@ -1082,9 +1082,9 @@ export default function SettlementPage() {
           <Card>
             <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-3">
               <div>
-                <CardTitle className="text-lg">온(ON) 결제 내역</CardTitle>
+                <CardTitle className="text-lg">모꼬 꿀떡 결제 내역</CardTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  앱 내 온(ON) 상품 충전/구매 내역 및 거래 ID를 조회합니다.
+                  앱 내 모꼬 꿀떡 충전/구매 내역 및 거래 ID를 조회합니다.
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -1133,7 +1133,7 @@ export default function SettlementPage() {
                           <th className="p-2.5">사용자</th>
                           <th className="p-2.5">플랫폼</th>
                           <th className="p-2.5">상품 ID</th>
-                          <th className="p-2.5">충전 온(ON)</th>
+                          <th className="p-2.5">충전 꿀떡</th>
                           <th className="p-2.5">상태</th>
                           <th className="p-2.5">거래 ID</th>
                         </tr>
@@ -1151,7 +1151,7 @@ export default function SettlementPage() {
                               {(p.platform || 'ANDROID').toUpperCase()}
                             </td>
                             <td className="p-2.5 font-mono text-muted-foreground">{p.productId || '—'}</td>
-                            <td className="p-2.5 font-bold text-amber-600">+{safeLocale(p.points)} 온</td>
+                            <td className="p-2.5 font-bold text-amber-600">+{safeLocale(p.points)} 꿀떡</td>
                             <td className="p-2.5">
                               <span className="rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-[10px] font-bold">
                                 {p.status || 'COMPLETED'}
@@ -1232,7 +1232,7 @@ export default function SettlementPage() {
                         <th className="p-2.5">일시</th>
                         <th className="p-2.5">계정 / 지갑</th>
                         <th className="p-2.5">종류 / 소스</th>
-                        <th className="p-2.5 text-right">보유 온(ON) 변동</th>
+                        <th className="p-2.5 text-right">보유 꿀떡 변동</th>
                         <th className="p-2.5 text-right">변동 후 잔액</th>
                         <th className="p-2.5 text-right">출금 가능 변동</th>
                         <th className="p-2.5">멱등성 키</th>
@@ -1258,15 +1258,15 @@ export default function SettlementPage() {
                             <td className={`p-2.5 text-right font-bold ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
                               <span className="inline-flex items-center gap-0.5">
                                 {isPositive ? <ArrowDownLeft className="h-3 w-3" /> : <ArrowUpRight className="h-3 w-3" />}
-                                {isPositive ? `+${safeNum(item.deltaSpendable)}` : safeNum(item.deltaSpendable)} 온
+                                {isPositive ? `+${safeNum(item.deltaSpendable)}` : safeNum(item.deltaSpendable)} 꿀떡
                               </span>
                             </td>
                             <td className="p-2.5 text-right font-medium text-foreground">
-                              {safeLocale(item.spendableAfter)} 온
+                              {safeLocale(item.spendableAfter)} 꿀떡
                             </td>
                             <td className="p-2.5 text-right text-muted-foreground">
                               {safeNum(item.deltaRedeemable) !== 0
-                                ? `${safeNum(item.deltaRedeemable) > 0 ? '+' : ''}${safeNum(item.deltaRedeemable)} 온`
+                                ? `${safeNum(item.deltaRedeemable) > 0 ? '+' : ''}${safeNum(item.deltaRedeemable)} 꿀떡`
                                 : '—'}
                             </td>
                             <td className="p-2.5 font-mono text-[10px] text-muted-foreground truncate max-w-[120px]">
@@ -1329,11 +1329,11 @@ export default function SettlementPage() {
                 </div>
                 <div className="border-t pt-1.5 flex justify-between">
                   <span className="text-muted-foreground">신청 수량:</span>
-                  <span className="font-medium text-foreground">{safeLocale(selectedRequestForApprove.pointsAmount)} 온</span>
+                  <span className="font-medium text-foreground">{safeLocale(selectedRequestForApprove.pointsAmount)} 꿀떡</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">적용 환전 단가:</span>
-                  <span className="font-semibold text-foreground">{selectedRequestForApprove.exchangeRate ?? 60}원/온</span>
+                  <span className="font-semibold text-foreground">{selectedRequestForApprove.exchangeRate ?? 60}원/꿀떡</span>
                 </div>
                 <div className="flex justify-between text-indigo-700 font-medium">
                   <span>플랫폼 수수료 (회사 수익):</span>
@@ -1395,7 +1395,7 @@ export default function SettlementPage() {
             <DialogDescription>
               요청을 반려하면 대기 잔액에서 차감되었던{' '}
               <strong className="text-foreground">
-                {safeLocale(selectedRequestForReject?.pointsAmount)} 온
+                {safeLocale(selectedRequestForReject?.pointsAmount)} 꿀떡
               </strong>
               가 크리에이터의 출금 가능 잔액으로 즉시 환원됩니다.
             </DialogDescription>
@@ -1409,7 +1409,7 @@ export default function SettlementPage() {
                   {selectedRequestForReject.bankName || '은행'} {selectedRequestForReject.accountNumber || '—'})
                 </p>
                 <p className="text-muted-foreground">
-                  신청 온(ON): <span className="font-bold text-rose-600">{safeLocale(selectedRequestForReject.pointsAmount)} 온</span>
+                  신청 꿀떡: <span className="font-bold text-rose-600">{safeLocale(selectedRequestForReject.pointsAmount)} 꿀떡</span>
                 </p>
               </div>
 
@@ -1438,7 +1438,7 @@ export default function SettlementPage() {
               disabled={submittingAction || !rejectReason.trim()}
             >
               {submittingAction ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <X className="mr-2 h-3.5 w-3.5" />}
-              반려 및 온(ON) 환원
+              반려 및 꿀떡 환원
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -528,12 +528,12 @@ export default function LivePage() {
           </CardContent>
         </Card>
 
-        {/* 누적 후원 온(ON) */}
+        {/* 누적 후원 꿀떡 */}
         <Card className="border-amber-200/50 shadow-xs">
           <CardContent className="pt-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">누적 후원 온(ON)</p>
+                <p className="text-xs text-muted-foreground">누적 후원 꿀떡</p>
                 <p className="text-2xl font-bold mt-1 text-amber-600">
                   {(summary?.totalGiftPoints ?? 0).toLocaleString()} 온
                 </p>

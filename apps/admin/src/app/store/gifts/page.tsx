@@ -481,7 +481,7 @@ export default function AdminGiftsPage() {
             선물 마스터 &amp; 3D 이펙트 관리
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            1:1 채팅방 및 라이브 방송(1:N 및 1:1 라이브)에서 유저들이 후원하는 선물 아이템, 온(ON) 소비 가격, 노출 채널 및 3D 투명 알파 비디오 이펙트를 관리합니다.
+            1:1 채팅방 및 라이브 방송(1:N 및 1:1 라이브)에서 유저들이 후원하는 선물 아이템, 모꼬 꿀떡 소비 가격, 노출 채널 및 3D 투명 알파 비디오 이펙트를 관리합니다.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -555,7 +555,7 @@ export default function AdminGiftsPage() {
             </div>
             <div className="text-[11px] text-muted-foreground/80 flex items-center gap-1">
               <HelpCircle className="h-3.5 w-3.5 text-primary" />
-              <span>유저의 온(ON) 충전 상품 패키지 관리는 좌측 사이드바의 <b>[온(ON) 상점]</b> 메뉴에서 별도로 운영됩니다.</span>
+              <span>유저의 꿀떡 충전 상품 패키지 관리는 좌측 사이드바의 <b>[모꼬 꿀떡 상점]</b> 메뉴에서 별도로 운영됩니다.</span>
             </div>
           </CardContent>
         )}
@@ -610,9 +610,9 @@ export default function AdminGiftsPage() {
           <CardContent className="pt-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">누적 후원 온(ON)</p>
+                <p className="text-xs text-muted-foreground">누적 후원 꿀떡</p>
                 <p className="text-2xl font-bold mt-1 text-amber-600">
-                  {stats.totalPointsSent.toLocaleString()} 온
+                  {stats.totalPointsSent.toLocaleString()} 꿀떡
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">창작자 후원 총액</p>
               </div>
@@ -699,7 +699,7 @@ export default function AdminGiftsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="font-bold text-sm text-primary">
-                      {gift.pricePoints.toLocaleString()} 온
+                      {gift.pricePoints.toLocaleString()} 꿀떡
                     </TableCell>
                     <TableCell>
                       {gift.animationType === 'alpha_video' ? (
@@ -826,7 +826,7 @@ export default function AdminGiftsPage() {
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="price" className="text-xs font-semibold">
-                  가격 (온/ON) *
+                  후원 꿀떡 수량 (개) *
                 </Label>
                 <Input
                   id="price"

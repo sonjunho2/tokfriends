@@ -190,7 +190,7 @@ const SORT_OPTIONS = [
   { value: 'createdAt_desc', label: '가입일 최신순' },
   { value: 'createdAt_asc', label: '가입일 오래된순' },
   { value: 'lastActiveAt_desc', label: '최근 활동 최신순' },
-  { value: 'pointBalance_desc', label: '보유 온(ON) 높은순' },
+  { value: 'pointBalance_desc', label: '보유 꿀떡 높은순' },
   { value: 'nickname_asc', label: '닉네임 가나다순' },
 ] as const
 
@@ -387,7 +387,7 @@ export default function UsersPage() {
                 2단계: 신원 정보 & 신고 이력 검토
               </span>
               <p className="mt-1.5 text-muted-foreground">
-                프로필 사진, 나이/성별, 거주 지역, 보유 온(ON) 자산, 그리고 <b>누적 신고 접수 횟수</b>를 확인하여 위험도를 파악합니다.
+                프로필 사진, 나이/성별, 거주 지역, 보유 꿀떡 자산, 그리고 <b>누적 신고 접수 횟수</b>를 확인하여 위험도를 파악합니다.
               </p>
             </div>
             <div className="rounded-md border border-amber-200/80 bg-white/60 p-3 shadow-sm dark:border-amber-900/40 dark:bg-black/20">

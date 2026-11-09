@@ -881,7 +881,7 @@ export default function MarketEscrowAdminPage() {
                         </td>
                         <td className="px-5 py-3.5 text-muted-foreground">{p.sellerName}</td>
                         <td className="px-5 py-3.5 text-right font-mono font-bold text-primary">
-                          {p.price.toLocaleString()} ON
+                          {p.price.toLocaleString()} 원
                         </td>
                         <td className="px-5 py-3.5 text-muted-foreground">{p.locationName}</td>
                         <td className="px-5 py-3.5 text-center">
@@ -1174,7 +1174,7 @@ export default function MarketEscrowAdminPage() {
                           판매: {o.sellerName}
                         </td>
                         <td className="px-5 py-3.5 text-right font-mono font-bold text-primary">
-                          {o.amount.toLocaleString()} ON
+                          {o.amount.toLocaleString()} 원
                         </td>
                         <td className="px-5 py-3.5 text-center">
                           {o.status === 'ESCROW_HOLD' && (

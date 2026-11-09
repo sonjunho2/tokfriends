@@ -198,7 +198,7 @@ const FALLBACK_REPORTS: ReportItem[] = [
     id: 1004,
     category: 'CHAT_MESSAGE',
     reason: '타인 명의 도용 및 사기성 상품권 핀번호 요구',
-    details: '다가온 공식 직원을 사칭하며 무료 온(ON) 충전 이벤트 당첨이라 속이고 문화상품권 핀번호를 요구했습니다.',
+    details: '모꼬 공식 직원을 사칭하며 무료 꿀떡 충전 이벤트 당첨이라 속이고 문화상품권 핀번호를 요구했습니다.',
     status: 'RESOLVED',
     aiRiskScore: 98,
     aiFlag: 'IMPERSONATION_AND_PHISHING_FRAUD',

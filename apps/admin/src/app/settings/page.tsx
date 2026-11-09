@@ -160,7 +160,7 @@ function generateEnvProductionText(integrations: AdminIntegrationDraft[]): strin
 
   const categories: { key: IntegrationCategory; title: string }[] = [
     { key: 'oauth', title: '1. 소셜 로그인 (OAuth)' },
-    { key: 'pg', title: '2. 결제 및 PG 연동 (온(ON) 상점)' },
+    { key: 'pg', title: '2. 결제 및 PG 연동 (모꼬 꿀떡 상점)' },
     { key: 'push', title: '3. 실시간 푸시 알림 (FCM & APNs)' },
     { key: 'streaming', title: '4. 실시간 라이브 스트리밍 (Agora & CDN)' },
     { key: 'ai_storage', title: '5. AI 직원 & 클라우드 스토리지 (Gemini & Supabase)' },
@@ -298,8 +298,8 @@ export default function SettingsPage() {
         },
         {
           id: 'pointPolicy' as SettingsSection,
-          label: '온(ON) 소모 & 통화 요금',
-          description: '1:1 통화 기본 요금, 채팅, 대화신청, 라이브방송 온(ON) 설정',
+          label: '모꼬 꿀떡 소모 & 통화 요금',
+          description: '1:1 통화 기본 요금, 채팅, 대화신청, 라이브방송 꿀떡 설정',
           icon: Coins,
         },
       ] satisfies { id: SettingsSection; label: string; description: string; icon: LucideIcon }[],
@@ -354,7 +354,7 @@ export default function SettingsPage() {
         },
         {
           id: 'pointPolicy' as SettingsSection,
-          label: '통화 & 온(ON) 정책',
+          label: '통화 & 꿀떡 정책',
           value: `${callRate?.ratePerMinute ? callRate.ratePerMinute.toLocaleString() : '1,500'} P/분`,
           helper: `1:1 통화 요금 & 정책`,
           icon: Video,
@@ -762,15 +762,15 @@ export default function SettingsPage() {
       const updated = await updateActionPointPolicy(pointPolicy)
       setPointPolicy(updated)
       toast({
-        title: '온(ON) 소모 정책 저장 완료',
-        description: '채팅방, 대화신청, 라이브방송 온(ON) 정책이 정상적으로 반영되었습니다.',
+        title: '꿀떡 소모 정책 저장 완료',
+        description: '채팅방, 대화신청, 라이브방송 꿀떡 정책이 정상적으로 반영되었습니다.',
       })
     } catch (error) {
       const ax = error as AxiosError | undefined
       const message =
         (ax?.response?.data as any)?.message ||
         ax?.message ||
-        '온(ON) 정책을 저장하지 못했습니다.'
+        '꿀떡 정책을 저장하지 못했습니다.'
       toast({
         title: '저장 실패',
         description: Array.isArray(message) ? message.join(', ') : String(message),
@@ -834,7 +834,7 @@ export default function SettingsPage() {
                   비즈니스 과금 정책 설정 (1:1 통화 요금 & 수수료)
                 </div>
                 <p className="mt-1.5 leading-relaxed text-slate-600">
-                  <strong>1:1 프라이빗 통화 분당 요금(기본 1,500P)</strong>과 <strong>플랫폼 수수료율(30%)</strong>, 채팅방 생성 온 소모량을 조정합니다. 변경 즉시 모바일 앱의 1:1 통화 신청 팝업에 동기화됩니다.
+                  <strong>1:1 프라이빗 통화 분당 요금(기본 1,500P)</strong>과 <strong>플랫폼 수수료율(30%)</strong>, 채팅방 생성 꿀떡 소모량을 조정합니다. 변경 즉시 모바일 앱의 1:1 통화 신청 팝업에 동기화됩니다.
                 </p>
               </div>
 
@@ -1504,7 +1504,7 @@ export default function SettingsPage() {
               <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
                 <div className="flex items-center gap-2">
                   <CreditCard className="h-5 w-5 text-indigo-500" />
-                  <h3 className="font-bold text-base text-foreground">2. 결제 및 PG 연동 (온(ON) 상점)</h3>
+                  <h3 className="font-bold text-base text-foreground">2. 결제 및 PG 연동 (모꼬 꿀떡 상점)</h3>
                   <span className="text-xs text-muted-foreground">토스페이먼츠, 포트원(아임포트), 구글/애플 인앱결제</span>
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs">
@@ -1918,10 +1918,10 @@ export default function SettingsPage() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20 text-amber-600">
                   <Coins className="h-5 w-5" />
                 </div>
-                <CardTitle className="text-lg font-bold">액션별 온(ON) 소모 정책</CardTitle>
+                <CardTitle className="text-lg font-bold">액션별 모꼬 꿀떡 소모 정책</CardTitle>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                사용자가 1:1 채팅방 개설, 1:1 대화/친구 신청, 라이브 방송 개설 및 입장 시 소모될 온(ON)을 설정합니다.
+                사용자가 1:1 채팅방 개설, 1:1 대화/친구 신청, 라이브 방송 개설 및 입장 시 소모될 꿀떡을 설정합니다.
                 활성화된 항목은 앱에서 사용자에게 사전에 확인 안내창이 표시되며 승인 시에만 소모됩니다.
               </p>
             </div>
@@ -1930,7 +1930,7 @@ export default function SettingsPage() {
               disabled={savingPointPolicy}
               className="bg-amber-500 hover:bg-amber-600 text-black font-semibold shadow-sm px-5"
             >
-              {savingPointPolicy ? '저장 중...' : '온(ON) 정책 저장'}
+              {savingPointPolicy ? '저장 중...' : '꿀떡 정책 저장'}
             </Button>
           </CardHeader>
           <CardContent className="space-y-6 pt-5">
@@ -1977,7 +1977,7 @@ export default function SettingsPage() {
                       className="pr-8 font-mono text-right"
                       placeholder="0"
                     />
-                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">온</span>
+                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">꿀떡</span>
                   </div>
                   <div className="flex gap-1">
                     {[10, 50, 100].map((inc) => (
@@ -2047,7 +2047,7 @@ export default function SettingsPage() {
                       className="pr-8 font-mono text-right"
                       placeholder="0"
                     />
-                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">온</span>
+                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">꿀떡</span>
                   </div>
                   <div className="flex gap-1">
                     {[10, 50, 100].map((inc) => (
@@ -2117,7 +2117,7 @@ export default function SettingsPage() {
                       className="pr-8 font-mono text-right"
                       placeholder="0"
                     />
-                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">온</span>
+                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">꿀떡</span>
                   </div>
                   <div className="flex gap-1">
                     {[10, 50, 100].map((inc) => (
@@ -2187,7 +2187,7 @@ export default function SettingsPage() {
                       className="pr-8 font-mono text-right"
                       placeholder="0"
                     />
-                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">온</span>
+                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">꿀떡</span>
                   </div>
                   <div className="flex gap-1">
                     {[50, 100, 300].map((inc) => (
@@ -2257,7 +2257,7 @@ export default function SettingsPage() {
                       className="pr-8 font-mono text-right"
                       placeholder="0"
                     />
-                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">온</span>
+                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">꿀떡</span>
                   </div>
                   <div className="flex gap-1">
                     {[10, 50, 100].map((inc) => (
