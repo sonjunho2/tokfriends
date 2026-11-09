@@ -291,7 +291,7 @@ export interface SudaPostItem {
   distance?: string
   title?: string // 1:1 수다 대기방 제목 (예: 나랑 술 마실 사람 구해요 🍺)
   content: string // 한 줄 소개 / 만남 내용
-  entryFee?: number // 입장 포인트 / 단가 설정 (예: 500 ON, 300 ON, 0)
+  entryFee?: number // 1:1 라이브 단가 설정 (예: 50 꿀떡, 100 꿀떡, 0)
   category?: string // 테마 (술한잔/맛집, 카페, 산책, 일상)
   time: string
   likes: number
@@ -518,7 +518,7 @@ const INITIAL_HERO_BANNERS = [
   {
     id: 'hero-3',
     badge: '웰컴 이벤트',
-    title: '모꼬 신규 가입 시 웰컴 10,000 ON 포인트 즉시 지급!',
+    title: '모꼬 신규 가입 시 웰컴 1,000 모꼬 꿀떡 즉시 지급!',
     desc: '라이브 방송 후원, 1:1 대화 입장, 마켓 안전결제 시 현금처럼 사용 가능',
     image: 'https://images.unsplash.com/photo-1556742049-0a67e557224f?w=1200',
     linkTab: 'MY' as const,
@@ -1329,7 +1329,7 @@ const LEGAL_DOCUMENTS = {
     title: '전자금융거래 이용약관',
     category: '전자금융거래법 준수',
     body: `제1조 (목적)
-본 약관은 주식회사 모꼬글로벌(이하 "회사")이 제공하는 전자지급결제대행서비스, 선불전자지급수단(ON 포인트) 발행 및 관리서비스, 결제대금예치(에스크로) 서비스를 이용자가 이용함에 있어 회사와 이용자 간의 전자금융거래의 법률관계를 정하는 것을 목적으로 합니다.
+본 약관은 주식회사 모꼬글로벌(이하 "회사")이 제공하는 전자지급결제대행서비스, 선불전자지급수단(모꼬 머니 및 모꼬 꿀떡) 발행 및 관리서비스, 결제대금예치(에스크로) 서비스를 이용자가 이용함에 있어 회사와 이용자 간의 전자금융거래의 법률관계를 정하는 것을 목적으로 합니다.
 
 제2조 (결제대금예치서비스 - 에스크로)
 1. 회사는 전자상거래 등에서의 소비자보호에 관한 법률 제24조에 따라 선지급식 통신판매에 있어서 소비자가 요청하는 경우 토스페이먼츠 및 제휴 금융기관을 통한 결제대금예치(에스크로) 서비스를 제공합니다.
@@ -4668,7 +4668,7 @@ export default function CustomerWebStorefrontPage() {
 
                   <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                     <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20 text-right">
-                      <span className="text-[10px] text-blue-200 block font-bold">내 보유 포인트</span>
+                      <span className="text-[10px] text-blue-200 block font-bold">내 보유 꿀떡</span>
                       <span className="text-sm sm:text-base font-black text-amber-300">
                         {myPoints.toLocaleString()} ON
                       </span>
@@ -5636,7 +5636,7 @@ export default function CustomerWebStorefrontPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
                         <span className="text-base">🪙</span>
-                        <span className="text-xs font-black text-pink-900">모꼬 포인트</span>
+                        <span className="text-xs font-black text-pink-900">모꼬 꿀떡</span>
                         <Badge className="bg-pink-200/60 text-pink-800 text-[9px] px-1.5 py-0 font-bold">
                           소통·후원
                         </Badge>
@@ -5655,7 +5655,7 @@ export default function CustomerWebStorefrontPage() {
                         <span className="text-2xl font-black text-pink-950">
                           {myPoints.toLocaleString()}
                         </span>
-                        <span className="text-sm font-bold text-pink-800">P</span>
+                        <span className="text-sm font-bold text-pink-800">개</span>
                       </div>
                       <p className="text-[10px] text-pink-700 mt-0.5">
                         라이브 방송 후원, 1:1 대화 및 3D 모꼬 선물 교환 시 사용
@@ -5667,7 +5667,7 @@ export default function CustomerWebStorefrontPage() {
                         onClick={() => setIsWithdrawOpen(true)}
                         className="text-[11px] font-bold text-pink-700 hover:underline flex items-center"
                       >
-                        환전 신청 ›
+                        스트리머 꿀떡 환전 신청 ›
                       </button>
                     </div>
                   </div>
@@ -5677,7 +5677,7 @@ export default function CustomerWebStorefrontPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
                         <span className="text-base">💵</span>
-                        <span className="text-xs font-black text-slate-800">판매 정산금 (원)</span>
+                        <span className="text-xs font-black text-slate-800">모꼬 머니 (KRW)</span>
                         <Badge className="bg-slate-200 text-slate-700 text-[9px] px-1.5 py-0 font-bold">
                           안전정산
                         </Badge>
@@ -5700,7 +5700,7 @@ export default function CustomerWebStorefrontPage() {
                         <span className="text-sm font-bold text-slate-600">원</span>
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
-                        중고거래 및 마켓 상품 판매 완료 시 계좌로 출금 가능
+                        중고거래 판매 대금, 쇼핑 적립금, 제휴 정산금 통합 (1원 = 현금 1원)
                       </p>
                     </div>
 
@@ -5709,7 +5709,7 @@ export default function CustomerWebStorefrontPage() {
                         onClick={() => setIsWithdrawOpen(true)}
                         className="text-[11px] font-bold text-slate-600 hover:underline flex items-center"
                       >
-                        계좌 출금 신청 ›
+                        내 은행 계좌 출금 신청 ›
                       </button>
                     </div>
                   </div>
@@ -5731,7 +5731,7 @@ export default function CustomerWebStorefrontPage() {
                           setMyPoints((p) => p + 10)
                           toast({
                             title: '🎉 리워드 보상 적립 완료!',
-                            description: '스폰서 광고 시청 보상으로 +10 ON이 충전되었습니다.',
+                            description: '스폰서 광고 시청 보상으로 모꼬 꿀떡 +10개가 충전되었습니다.',
                           })
                           setTimeout(() => setIsRewardAdOpen(false), 500)
                           return 0
@@ -5748,13 +5748,13 @@ export default function CustomerWebStorefrontPage() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h5 className="font-extrabold text-xs sm:text-sm">무료 모꼬 포인트 충전소</h5>
+                        <h5 className="font-extrabold text-xs sm:text-sm">무료 모꼬 꿀떡 충전소</h5>
                         <Badge className="bg-amber-400 text-slate-950 text-[10px] font-black px-1.5 py-0 border-none">
-                          +10 P
+                          +10 개
                         </Badge>
                       </div>
                       <p className="text-[11px] text-violet-100 mt-0.5">
-                        스폰서 광고를 시청하고 실시간 선물용 무료 포인트를 충전하세요!
+                        스폰서 광고를 시청하고 실시간 라이브 선물용 꿀떡 10개를 무료로 충전하세요!
                       </p>
                     </div>
                   </div>
@@ -8344,7 +8344,7 @@ export default function CustomerWebStorefrontPage() {
               <span className="text-5xl animate-bounce block">✨🎁</span>
               <h4 className="font-black text-lg text-white">모꼬 라이프 프리미엄</h4>
               <p className="text-xs text-slate-300">
-                광고 시청을 완료하면 모꼬 포인트 +10 ON이 즉시 무료 지급됩니다!
+                광고 시청을 완료하면 모꼬 꿀떡 +10개가 즉시 무료 지급됩니다!
               </p>
             </div>
             <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
@@ -8556,7 +8556,7 @@ export default function CustomerWebStorefrontPage() {
 
                 <div className="flex items-center gap-2 shrink-0">
                   <div className="bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-700/60 text-right">
-                    <span className="text-[9px] text-slate-400 block font-semibold leading-tight">내 포인트</span>
+                    <span className="text-[9px] text-slate-400 block font-semibold leading-tight">내 꿀떡</span>
                     <span className="text-[11px] font-black text-amber-300 leading-tight">
                       {myPoints.toLocaleString()} ON
                     </span>
@@ -9413,10 +9413,10 @@ export default function CustomerWebStorefrontPage() {
             <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 text-xs space-y-2">
               <div className="flex items-center gap-1.5 font-black text-amber-900">
                 <Sparkles className="w-4 h-4 text-amber-600" />
-                <span>구매확정 시 500 ON 포인트 즉시 적립!</span>
+                <span>구매확정 시 500원 모꼬 머니(적립금) 즉시 적립!</span>
               </div>
               <p className="text-amber-800 leading-relaxed text-[11px]">
-                구매확정을 누르시면 모꼬 안전 에스크로에 보관 중이던 결제대금이 판매자에게 즉시 송금 정산되며, 고객님께는 <strong>500 ON 리워드 포인트</strong>가 지급됩니다.
+                구매확정을 누르시면 모꼬 안전 에스크로에 보관 중이던 결제대금이 판매자에게 즉시 송금 정산되며, 고객님께는 <strong>500원 모꼬 머니 적립금</strong>가 지급됩니다.
               </p>
               <p className="text-rose-600 font-semibold text-[11px]">
                 * 구매확정 이후에는 단순 변심에 의한 환불 및 반품이 제한될 수 있습니다.
@@ -9451,7 +9451,7 @@ export default function CustomerWebStorefrontPage() {
                   setReviewComment('')
                   toast({
                     title: '🎉 구매확정이 완료되었습니다!',
-                    description: '판매자에게 정산금이 즉시 지급되었으며, 500 ON 포인트가 적립되었습니다.',
+                    description: '판매자에게 정산금이 즉시 지급되었으며, 500원 모꼬 머니 적립금이 지급되었습니다.',
                   })
                 }}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs h-9 px-5 shadow-xs"

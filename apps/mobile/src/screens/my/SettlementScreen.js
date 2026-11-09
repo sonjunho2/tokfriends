@@ -200,7 +200,7 @@ export default function SettlementScreen({ navigation, route }) {
               });
               Alert.alert(
                 '환전 신청 완료',
-                '모꼬 포인트 환전 신청이 정상 접수되었습니다.\n사업소득세(3.3%) 원천징수 후 영업일 기준 1~3일 이내에 계좌로 입금됩니다.',
+                '모꼬 꿀떡 환전 신청이 정상 접수되었습니다.\n사업소득세(3.3%) 원천징수 후 영업일 기준 1~3일 이내에 계좌로 입금됩니다.',
                 [{ text: '확인', onPress: () => setActiveTab('history') }],
               );
               setPointsAmountInput('');
@@ -334,7 +334,7 @@ export default function SettlementScreen({ navigation, route }) {
               activeOpacity={0.8}
             >
               <Text style={[styles.tabText, activeTab === 'market' && styles.tabTextActive]}>
-                💵 중고·마켓 출금 (원)
+                💳 모꼬 머니 출금 (원)
               </Text>
             </TouchableOpacity>
 
@@ -344,7 +344,7 @@ export default function SettlementScreen({ navigation, route }) {
               activeOpacity={0.8}
             >
               <Text style={[styles.tabText, activeTab === 'points' && styles.tabTextActive]}>
-                🟡 포인트 환전 (P)
+                🍡 모꼬 꿀떡 환전 (개)
               </Text>
             </TouchableOpacity>
 
@@ -363,7 +363,7 @@ export default function SettlementScreen({ navigation, route }) {
           {activeTab === 'market' && (
             <View style={styles.formContainer}>
               <View style={styles.formSectionHeader}>
-                <Text style={styles.formSectionTitle}>중고·마켓 판매대금 출금 신청</Text>
+                <Text style={styles.formSectionTitle}>모꼬 머니 계좌 출금 신청</Text>
                 <Text style={styles.formSectionSub}>
                   안전결제 및 직거래 완료로 정산된 원화 잔액을 본인 계좌로 이체합니다.
                 </Text>
@@ -550,7 +550,7 @@ export default function SettlementScreen({ navigation, route }) {
           {activeTab === 'points' && (
             <View style={styles.formContainer}>
               <View style={styles.formSectionHeader}>
-                <Text style={styles.formSectionTitle}>모꼬 포인트(P) 현금 환전 신청</Text>
+                <Text style={styles.formSectionTitle}>모꼬 꿀떡(개) 현금 환전 신청</Text>
                 <Text style={styles.formSectionSub}>
                   라이브 방송 후원 및 1:1 대화로 획득한 포인트를 원화로 환전 입금합니다.
                 </Text>

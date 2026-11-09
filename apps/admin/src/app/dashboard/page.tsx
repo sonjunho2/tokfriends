@@ -80,9 +80,9 @@ const DEFAULT_KPIS: KpiMetric[] = [
     trendType: 'positive',
   },
   {
-    label: '온(ON) 포인트 유통량',
-    value: '840,000 온',
-    hint: '플랫폼 내 정상 유통 및 정산 중',
+    label: '모꼬 꿀떡(후원) 유통량',
+    value: '840,000 개',
+    hint: '방송 후원 및 소통에 활발히 유통 중',
     icon: 'coins',
     trend: '+15.2%',
     trendType: 'positive',
@@ -156,7 +156,7 @@ export default function DashboardPage() {
               trendType: 'positive',
             },
             {
-              label: '온(ON) 포인트 유통량',
+              label: '모꼬 꿀떡(후원) 유통량',
               value: DEFAULT_KPIS[3].value,
               hint: DEFAULT_KPIS[3].hint,
               icon: 'coins',

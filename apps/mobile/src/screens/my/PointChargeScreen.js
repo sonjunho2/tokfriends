@@ -146,7 +146,7 @@ export default function PointChargeScreen({ navigation }) {
     const isGoogle = paymentMethod === 'googleplay';
     const isApple = paymentMethod === 'appstore';
 
-    let title = '모꼬 포인트 충전';
+    let title = '모꼬 꿀떡 충전';
     let message = '';
     let confirmBtnText = '결제하기';
 
@@ -163,7 +163,7 @@ export default function PointChargeScreen({ navigation }) {
       }\n결제 금액: ₩${selectedPackage.price.toLocaleString()} (VAT 포함)\n\nFace ID / Touch ID 또는 Apple ID로 결제를 승인합니다.`;
       confirmBtnText = 'Apple Pay로 승인';
     } else {
-      title = '모꼬 포인트 충전';
+      title = '모꼬 꿀떡 충전';
       const pmName = PAYMENT_METHODS.find((m) => m.id === paymentMethod)?.name || '간편결제';
       message = `선택 상품: ${selectedPackage.points.toLocaleString()} P ${
         selectedPackage.bonus > 0 ? `(+보너스 ${selectedPackage.bonus.toLocaleString()} P)` : ''
@@ -245,7 +245,7 @@ export default function PointChargeScreen({ navigation }) {
         >
           <Ionicons name="chevron-back" size={24} color="#191919" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>모꼬 포인트 충전</Text>
+        <Text style={styles.headerTitle}>모꼬 꿀떡 충전</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -269,7 +269,7 @@ export default function PointChargeScreen({ navigation }) {
             {currentPoints.toLocaleString()} <Text style={styles.balanceUnit}>P</Text>
           </Text>
           <Text style={styles.balanceSubtext}>
-            모꼬 포인트는 유효기간 없이 라이브 후원, 통화, 대화 신청에 즉시 사용 가능합니다.
+            모꼬 꿀떡은 유효기간 없이 라이브 후원, 통화, 대화 신청에 즉시 사용 가능합니다.
           </Text>
         </View>
 
@@ -407,7 +407,7 @@ export default function PointChargeScreen({ navigation }) {
         <View style={styles.noticeBox}>
           <Ionicons name="shield-checkmark-outline" size={16} color="#6B7280" />
           <Text style={styles.noticeText}>
-            충전된 모꼬 포인트는 서비스 내 크리에이터 후원, 1:1 대화, 미디어 통화 시 사용됩니다. Google Play 및 App Store 인앱결제 영수증은 스토어 정책에 따라 안전하게 보관됩니다.
+            충전된 모꼬 꿀떡은 서비스 내 스트리머 후원, 1:1 대화, 미디어 통화 시 사용됩니다. Google Play 및 App Store 인앱결제 영수증은 스토어 정책에 따라 안전하게 보관됩니다.
           </Text>
         </View>
       </ScrollView>

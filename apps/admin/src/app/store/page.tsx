@@ -57,7 +57,7 @@ interface EditablePointProduct extends PointProduct {
 const FALLBACK_PRODUCTS: EditablePointProduct[] = [
   {
     id: 'point-1',
-    name: '1,000 온 충전',
+    name: '1,000 꿀떡 충전',
     points: 1000,
     price: 1100,
     isRecommended: false,
@@ -68,7 +68,7 @@ const FALLBACK_PRODUCTS: EditablePointProduct[] = [
   },
   {
     id: 'point-2',
-    name: '5,000 온 충전 (인기)',
+    name: '5,000 꿀떡 충전 (인기)',
     points: 5000,
     price: 5500,
     isRecommended: true,
@@ -79,7 +79,7 @@ const FALLBACK_PRODUCTS: EditablePointProduct[] = [
   },
   {
     id: 'point-3',
-    name: '10,000 온 충전',
+    name: '10,000 꿀떡 충전',
     points: 10000,
     price: 11000,
     isRecommended: false,
@@ -90,7 +90,7 @@ const FALLBACK_PRODUCTS: EditablePointProduct[] = [
   },
   {
     id: 'point-4',
-    name: '30,000 온 충전 (보너스 +10%)',
+    name: '30,000 꿀떡 충전 (보너스 +10%)',
     points: 33000,
     price: 33000,
     isRecommended: true,
@@ -101,7 +101,7 @@ const FALLBACK_PRODUCTS: EditablePointProduct[] = [
   },
   {
     id: 'point-5',
-    name: '50,000 온 충전 (보너스 +15%)',
+    name: '50,000 꿀떡 충전 (보너스 +15%)',
     points: 57500,
     price: 55000,
     isRecommended: false,
@@ -112,7 +112,7 @@ const FALLBACK_PRODUCTS: EditablePointProduct[] = [
   },
   {
     id: 'point-6',
-    name: '100,000 온 충전 (VIP 보너스 +20%)',
+    name: '100,000 꿀떡 충전 (VIP 보너스 +20%)',
     points: 120000,
     price: 110000,
     isRecommended: false,
@@ -274,7 +274,7 @@ export default function StoreProductsPage() {
       } as EditablePointProduct
 
       setProducts((prev) => [...prev, newProduct])
-      toast({ title: '등록 완료', description: `[${modalName}] 온(ON) 충전 상품이 추가되었습니다.` })
+      toast({ title: '등록 완료', description: `[${modalName}] 모꼬 꿀떡 충전 상품이 추가되었습니다.` })
       setDialogOpen(false)
       void loadProducts()
     } catch {
@@ -304,7 +304,7 @@ export default function StoreProductsPage() {
     try {
       await deletePointProduct(product.id)
       setProducts((prev) => prev.filter((item) => item.id !== product.id))
-      toast({ title: '삭제 완료', description: '온(ON) 상품이 삭제되었습니다.' })
+      toast({ title: '삭제 완료', description: '모꼬 꿀떡 상품이 삭제되었습니다.' })
     } catch {
       setProducts((prev) => prev.filter((item) => item.id !== product.id))
       toast({ title: '삭제 완료', description: '목록에서 상품이 제거되었습니다.' })
@@ -418,14 +418,14 @@ export default function StoreProductsPage() {
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
             <span>수익 및 결제</span>
             <span>&gt;</span>
-            <span className="text-foreground font-medium">온(ON) 상점</span>
+            <span className="text-foreground font-medium">모꼬 꿀떡 상점</span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <ShoppingBag className="h-6 w-6 text-primary" />
-            온(ON) 상점 충전 상품 관리
+            모꼬 꿀떡(후원 재화) 충전 상품 관리
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            유저가 실제 현금(KRW)을 결제하여 온(ON) 포인트를 충전하는 인앱 결제 패키지 상품(Google Play / Apple App Store)을 관리합니다.
+            유저가 실제 현금(KRW)을 결제하여 라이브 방송 후원 및 1:1 대화에 사용하는 모꼬 꿀떡을 충전하는 인앱 결제 패키지 상품(Google Play / Apple App Store)을 관리합니다.
           </p>
         </div>
 
@@ -450,7 +450,7 @@ export default function StoreProductsPage() {
         </div>
       </div>
 
-      {/* 2. 신입 운영자를 위한 온(ON) 상점 vs 선물 시스템 실무 가이드 (아코디언) */}
+      {/* 2. 신입 운영자를 위한 모꼬 꿀떡 상점 vs 선물 시스템 실무 가이드 (아코디언) */}
       <Card className="border-primary/20 bg-primary/5 shadow-sm overflow-hidden">
         <CardHeader
           className="py-3 px-4 flex flex-row items-center justify-between cursor-pointer hover:bg-primary/10 transition-colors"
@@ -458,7 +458,7 @@ export default function StoreProductsPage() {
         >
           <div className="flex items-center gap-2 text-primary font-semibold text-sm">
             <Info className="h-4 w-4" />
-            💡 신입 운영자를 위한 온(ON) 상점 &amp; 선물 연동 체계 실무 가이드
+            💡 신입 운영자를 위한 모꼬 꿀떡 상점 &amp; 선물 연동 체계 실무 가이드
           </div>
           <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary">
             {guideExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -471,13 +471,13 @@ export default function StoreProductsPage() {
               <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-primary/10 shadow-sm space-y-1">
                 <div className="font-semibold text-primary flex items-center gap-1">
                   <CreditCard className="h-4 w-4" />
-                  1. 온(ON) 상점의 본질 (현금 충전소)
+                  1. 모꼬 꿀떡 상점의 본질 (현금 충전소)
                 </div>
                 <p className="text-[11px] text-foreground font-medium">
-                  순수 인앱 결제(IAP) 온(ON) 충전 패키지
+                  순수 인앱 결제(IAP) 꿀떡 충전 패키지
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  유저가 앱에서 신용카드/카카오페이/인앱 결제로 <b>현금(원화)을 지불하고 온(ON)을 구매</b>하는 곳입니다. Google Play / App Store 콘솔의 상품 ID와 100% 일치해야 결제창이 작동합니다.
+                  유저가 앱에서 신용카드/카카오페이/인앱 결제로 <b>현금(원화)을 지불하고 모꼬 꿀떡을 구매</b>하는 곳입니다. Google Play / App Store 콘솔의 상품 ID와 100% 일치해야 결제창이 작동합니다.
                 </p>
               </div>
 
@@ -487,10 +487,10 @@ export default function StoreProductsPage() {
                   2. 선물 시스템과의 연계 구조 (소비 &amp; 충전 유도)
                 </div>
                 <p className="text-[11px] text-foreground font-medium">
-                  보유 온 차감 후원 &amp; 부족 시 상점 이동
+                  보유 꿀떡 차감 후원 &amp; 부족 시 상점 이동
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  선물은 유저의 <b>보유 온(ON)에서 차감</b>되어 호스트에게 전달됩니다. 유저의 온이 부족하면 앱에서 <b>온상점으로 자동 이동하여 충전</b>한 후 다시 선물을 보내게 됩니다.
+                  선물은 유저의 <b>보유 모꼬 꿀떡에서 차감</b>되어 스트리머에게 전달됩니다. 유저의 꿀떡이 부족하면 앱에서 <b>꿀떡 상점으로 자동 이동하여 충전</b>한 후 다시 선물을 보내게 됩니다.
                 </p>
               </div>
 

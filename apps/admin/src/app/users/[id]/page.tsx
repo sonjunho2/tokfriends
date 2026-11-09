@@ -410,7 +410,7 @@ export default function UserDetailPage() {
                 2단계: 활동 실적 & 보유 자산 확인
               </span>
               <p className="mt-1.5 text-muted-foreground">
-                보유 온(ON) 잔액, 1:N 라이브 방송 및 1:1 프라이빗 라이브 참여 세션, 선물 교환 내역을 종합 검토합니다.
+                보유 모꼬 꿀떡 잔액, 1:N 라이브 방송 및 1:1 프라이빗 라이브 참여 세션, 선물 교환 내역을 종합 검토합니다.
               </p>
             </div>
             <div className="rounded-md border border-amber-200/80 bg-white/60 p-3 shadow-sm dark:border-amber-900/40 dark:bg-black/20">
@@ -427,17 +427,17 @@ export default function UserDetailPage() {
 
       {/* 3. 핵심 4대 메트릭 KPI 카드 그리드 */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* 온(ON) 포인트 */}
+        {/* 모꼬 꿀떡 */}
         <Card className="border-amber-200/60 bg-gradient-to-br from-amber-50/40 via-white to-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold text-amber-900">보유 온 (ON) 포인트</CardTitle>
+            <CardTitle className="text-xs font-semibold text-amber-900">보유 모꼬 꿀떡 (후원 재화)</CardTitle>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
               <Coins className="h-4 w-4" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold tracking-tight text-amber-700">
-              {((user as any)?.pointBalance ?? 0).toLocaleString()} <span className="text-sm font-normal text-muted-foreground">온</span>
+              {((user as any)?.pointBalance ?? 0).toLocaleString()} <span className="text-sm font-normal text-muted-foreground">개</span>
             </div>
             <p className="mt-1 text-[11px] text-muted-foreground">현재 보유 중인 유료 충전 잔액</p>
           </CardContent>
@@ -456,10 +456,10 @@ export default function UserDetailPage() {
               {(user as any)?.callRatePerMinute ? (
                 <>
                   {Number((user as any).callRatePerMinute).toLocaleString()}{' '}
-                  <span className="text-sm font-normal text-muted-foreground">온/분</span>
+                  <span className="text-sm font-normal text-muted-foreground">꿀떡/분</span>
                 </>
               ) : (
-                <span className="text-base text-muted-foreground font-normal">기본 (100 온/분)</span>
+                <span className="text-base text-muted-foreground font-normal">기본 (100 꿀떡/분)</span>
               )}
             </div>
             <p className="mt-1 text-[11px] text-muted-foreground">1:1 프라이빗 라이브 방송 분당 단가</p>
@@ -628,20 +628,20 @@ export default function UserDetailPage() {
             </CardContent>
           </Card>
 
-          {/* 온(ON) 포인트 수동 지급 / 차감 카드 */}
+          {/* 모꼬 꿀떡 수동 지급 / 차감 카드 */}
           <Card className="border-amber-100 bg-gradient-to-br from-white to-amber-50/20 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center justify-between">
                 <span className="flex items-center gap-2">
                   <Coins className="h-4 w-4 text-amber-600" />
-                  온(ON) 포인트 관리
+                  모꼬 꿀떡(후원 재화) 관리
                 </span>
                 <span className="text-xs font-bold text-amber-700">
-                  {((user as any)?.pointBalance ?? 0).toLocaleString()} ON
+                  {((user as any)?.pointBalance ?? 0).toLocaleString()} 꿀떡
                 </span>
               </CardTitle>
               <CardDescription className="text-xs">
-                관리자 권한으로 포인트를 직접 지급하거나 차감합니다.
+                관리자 권한으로 꿀떡을 직접 지급하거나 차감합니다.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">

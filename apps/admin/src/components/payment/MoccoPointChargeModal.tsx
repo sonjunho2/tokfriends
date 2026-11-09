@@ -220,7 +220,7 @@ export function MoccoPointChargeModal({
 
         toast({
           title: `🎉 ${totalPointsToAdd.toLocaleString()} P 충전 완료!`,
-          description: `결제가 정상 승인되어 모꼬 포인트가 즉시 지급되었습니다.`,
+          description: `결제가 정상 승인되어 모꼬 꿀떡이 즉시 지급되었습니다.`,
         })
       } catch (err: any) {
         toast({
@@ -250,13 +250,13 @@ export function MoccoPointChargeModal({
             </div>
             <div>
               <h3 className="font-bold text-base text-white flex items-center gap-2">
-                <span>모꼬 포인트 충전소</span>
+                <span>모꼬 꿀떡 충전소</span>
                 <Badge className="bg-pink-500/20 text-pink-400 border border-pink-500/30 text-[10px]">
                   웹·앱 실시간 100% 연동
                 </Badge>
               </h3>
               <p className="text-[11px] text-neutral-400">
-                라이브 방송 후원, 1:1 대화 및 선물 보내기에 사용하는 공식 모꼬 포인트입니다
+                라이브 방송 후원, 1:1 대화 및 3D 선물에 사용하는 모꼬 꿀떡입니다
               </p>
             </div>
           </div>
@@ -275,7 +275,7 @@ export function MoccoPointChargeModal({
               {/* My Balance Summary Card */}
               <div className="p-4 rounded-2xl bg-gradient-to-r from-pink-950/40 via-purple-950/30 to-neutral-800/60 border border-pink-500/30 flex items-center justify-between">
                 <div>
-                  <span className="text-xs text-neutral-400 font-medium">현재 보유 포인트</span>
+                  <span className="text-xs text-neutral-400 font-medium">현재 보유 꿀떡</span>
                   <div className="flex items-baseline gap-1 mt-0.5">
                     <span className="text-2xl font-black text-pink-400">
                       {currentPoints.toLocaleString()}
@@ -445,7 +445,7 @@ export function MoccoPointChargeModal({
                 <div className="w-14 h-14 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto border border-emerald-500/40">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
-                <h4 className="text-lg font-black text-white">모꼬 포인트 충전이 완료되었습니다!</h4>
+                <h4 className="text-lg font-black text-white">모꼬 꿀떡 충전이 완료되었습니다!</h4>
                 <p className="text-xs text-neutral-300">
                   결제가 정상 완료되어 포인트 잔액이 즉시 반영되었습니다.
                 </p>

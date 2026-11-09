@@ -258,7 +258,7 @@ const FALLBACK_POSTS: CommunityPost[] = [
     authorRole: 'CREATOR',
     category: 'QA',
     title: '호스트 첫 출금 신청 질문드려요!',
-    content: '이번 주에 처음으로 모은 온(ON) 포인트 출금 신청해봤는데 보통 며칠 정도 뒤에 계좌 입금되나요? 정산 경험 있으신 선배 호스트님들 팁 부탁드려요!',
+    content: '이번 주에 처음으로 후원받은 모꼬 꿀떡 환전 신청해봤는데 보통 며칠 정도 뒤에 계좌 입금되나요? 정산 경험 있으신 선배 호스트님들 팁 부탁드려요!',
     mediaUrls: [],
     tags: ['호스트팁', '정산질문', '초보호스트'],
     likesCount: 19,

@@ -534,7 +534,7 @@ export default function MyPageScreen({ navigation }) {
       }
 
       Alert.alert(
-        '🎉 10 모꼬 포인트 충전 완료!',
+        '🎉 모꼬 꿀떡 10개 충전 완료!',
         `10 P가 충전되었습니다! (오늘 잔여: ${remaining}/5회)\n포인트 잔액이 즉시 반영되었습니다.`,
         [{ text: '확인' }]
       );
@@ -624,7 +624,7 @@ export default function MyPageScreen({ navigation }) {
           </View>
         </View>
 
-        {/* 3. 자산/지갑 체계 전면 분리 (🪙 모꼬 포인트 vs 💵 판매 정산금 원화 분리) */}
+        {/* 3. 자산/지갑 체계 전면 분리 (🍡 모꼬 꿀떡 vs 💵 판매 정산금 원화 분리) */}
         <View style={styles.walletSectionWrap}>
           {/* (1) 모꼬 포인트 카드 (인앱 소통, 라이브 입장/후원) */}
           <LinearGradient
@@ -635,7 +635,7 @@ export default function MyPageScreen({ navigation }) {
           >
             <View style={styles.walletHeaderRow}>
               <View style={styles.walletTitleGroup}>
-                <Text style={styles.walletLabel}>🪙 모꼬 포인트</Text>
+                <Text style={styles.walletLabel}>🍡 모꼬 꿀떡</Text>
                 <View style={styles.walletMiniTag}>
                   <Text style={styles.walletMiniTagText}>소통·후원</Text>
                 </View>
@@ -657,13 +657,13 @@ export default function MyPageScreen({ navigation }) {
 
             <View style={styles.walletBalanceRow}>
               <Text style={styles.walletBalanceNumber}>{pointBalance.toLocaleString()}</Text>
-              <Text style={styles.walletBalanceUnit}>P</Text>
+              <Text style={styles.walletBalanceUnit}>개</Text>
               <TouchableOpacity
                 style={styles.pointExchangeLink}
                 onPress={() => navigation.navigate('Settlement', { initialTab: 'points' })}
                 activeOpacity={0.7}
               >
-                <Text style={styles.pointExchangeLinkText}>환전 신청 ›</Text>
+                <Text style={styles.pointExchangeLinkText}>스트리머 꿀떡 환전 신청 ›</Text>
               </TouchableOpacity>
             </View>
             <Text style={styles.walletSubHint}>라이브 방송 후원, 1:1 대화 및 선물 교환 시 사용</Text>
@@ -673,7 +673,7 @@ export default function MyPageScreen({ navigation }) {
           <View style={styles.cashWalletCard}>
             <View style={styles.walletHeaderRow}>
               <View style={styles.walletTitleGroup}>
-                <Text style={styles.cashWalletLabel}>💵 판매 정산금 (원)</Text>
+                <Text style={styles.cashWalletLabel}>💳 모꼬 머니 (KRW)</Text>
                 <View style={styles.cashMiniTag}>
                   <Text style={styles.cashMiniTagText}>안전정산</Text>
                 </View>
@@ -692,7 +692,7 @@ export default function MyPageScreen({ navigation }) {
               <Text style={styles.cashBalanceNumber}>{sellerRevenue.toLocaleString()}</Text>
               <Text style={styles.cashBalanceUnit}>원</Text>
             </View>
-            <Text style={styles.cashSubHint}>중고거래 및 마켓 상품 판매 완료 시 계좌로 출금 가능</Text>
+            <Text style={styles.cashSubHint}>중고거래 판매 대금, 쇼핑 적립금, 제휴 정산금 통합 (1원 = 현금 1원)</Text>
           </View>
         </View>
 
@@ -714,7 +714,7 @@ export default function MyPageScreen({ navigation }) {
               </View>
               <View style={styles.rewardBannerTextBox}>
                 <View style={styles.rewardBannerBadgeRow}>
-                  <Text style={styles.rewardBannerTitle}>🎬 무료 모꼬 포인트 충전소</Text>
+                  <Text style={styles.rewardBannerTitle}>🎬 무료 모꼬 꿀떡 충전소</Text>
                   <View style={styles.rewardPointBadge}>
                     <Text style={styles.rewardPointBadgeText}>+10 P</Text>
                   </View>
@@ -2268,7 +2268,7 @@ export default function MyPageScreen({ navigation }) {
             <View style={styles.rewardModalBottom}>
               <View style={styles.rewardRewardBadgeRow}>
                 <Ionicons name="gift" size={18} color="#FF3B6B" />
-                <Text style={styles.rewardRewardDesc}>광고 시청 완료 보상: +10 모꼬 포인트</Text>
+                <Text style={styles.rewardRewardDesc}>광고 시청 완료 보상: +10 모꼬 꿀떡</Text>
               </View>
 
               <TouchableOpacity

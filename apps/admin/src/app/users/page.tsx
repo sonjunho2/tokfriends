@@ -339,7 +339,7 @@ export default function UsersPage() {
             </span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            서비스 전체 가입 회원의 프로필, 본인인증 상태, 활동 이력, 보유 자산(온/포인트)을 조회하고 규정 위반 회원을 신속히
+            서비스 전체 가입 회원의 프로필, 본인인증 상태, 활동 이력, 보유 자산(모꼬 꿀떡 / 모꼬 머니)을 조회하고 규정 위반 회원을 신속히
             심사·제재합니다.
           </p>
         </div>
@@ -484,7 +484,7 @@ export default function UsersPage() {
                 </span>
               </CardTitle>
               <CardDescription className="text-xs mt-1">
-                프로필, 상태, 가입일, 보유 자산(온)을 확인하고 즉시 제재 조치를 집행할 수 있습니다.
+                프로필, 상태, 가입일, 보유 자산(모꼬 꿀떡 / 모꼬 머니)을 확인하고 즉시 제재 조치를 집행할 수 있습니다.
               </CardDescription>
             </div>
 
@@ -589,7 +589,7 @@ export default function UsersPage() {
                   <th className="px-3.5 py-3">연락처 / 계정</th>
                   <th className="px-3.5 py-3">거주 지역</th>
                   <th className="px-3.5 py-3">상태</th>
-                  <th className="px-3.5 py-3">보유 온(ON)</th>
+                  <th className="px-3.5 py-3">보유 꿀떡 (후원)</th>
                   <th className="px-3.5 py-3">가입일 / 최근활동</th>
                   <th className="px-3.5 py-3 text-center">신속 관리</th>
                 </tr>
@@ -675,11 +675,11 @@ export default function UsersPage() {
                         </div>
                       </td>
 
-                      {/* 5. 보유 온(ON) */}
+                      {/* 5. 보유 꿀떡 (후원) */}
                       <td className="px-3.5 py-3">
                         <div className="flex items-center gap-1 font-bold text-amber-600">
                           <Gift className="h-3.5 w-3.5" />
-                          <span>{(user.pointBalance ?? 0).toLocaleString()} 온</span>
+                          <span>{(user.pointBalance ?? 0).toLocaleString()} 꿀떡</span>
                         </div>
                       </td>
 
