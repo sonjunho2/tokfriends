@@ -155,6 +155,23 @@ export default function SellerProductsPage() {
     fetchProducts()
   }, [])
 
+  // Delete Product
+  const handleDeleteProduct = (productId: string, productName: string) => {
+    if (!confirm(`[${productName}] 상품을 카탈로그에서 완전히 삭제하시겠습니까?`)) return
+    try {
+      const custom = JSON.parse(localStorage.getItem('mocco_custom_products') || '[]')
+      const filtered = custom.filter((item: any) => item.id !== productId)
+      localStorage.setItem('mocco_custom_products', JSON.stringify(filtered))
+    } catch (err) {
+      console.warn(err)
+    }
+    setProducts((prev) => prev.filter((p) => p.id !== productId))
+    toast({
+      title: '상품 삭제 완료',
+      description: `[${productName}] 상품이 정상적으로 삭제되었습니다.`,
+    })
+  }
+
   // Toggle Sold-out (OUT_OF_STOCK <-> ACTIVE)
   const toggleSoldOut = async (productId: string, currentStatus: string) => {
     const nextStatus = currentStatus === 'OUT_OF_STOCK' ? 'ACTIVE' : 'OUT_OF_STOCK'
@@ -473,25 +490,48 @@ export default function SellerProductsPage() {
                         )}
                       </td>
 
-                      <td className="px-5 py-3.5 text-right">
-                        <Button
-                          size="sm"
-                          variant={p.status === 'OUT_OF_STOCK' ? 'default' : 'outline'}
-                          onClick={() => toggleSoldOut(p.id, p.status)}
-                          className="h-7 text-xs gap-1"
-                        >
-                          {p.status === 'OUT_OF_STOCK' ? (
-                            <>
-                              <Eye className="w-3 h-3" />
-                              판매 재개
-                            </>
-                          ) : (
-                            <>
-                              <EyeOff className="w-3 h-3" />
-                              품절 설정
-                            </>
-                          )}
-                        </Button>
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Link href={`/seller/products/new?edit=${p.id}`}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs gap-1 border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-semibold"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                              수정
+                            </Button>
+                          </Link>
+
+                          <Button
+                            size="sm"
+                            variant={p.status === 'OUT_OF_STOCK' ? 'default' : 'outline'}
+                            onClick={() => toggleSoldOut(p.id, p.status)}
+                            className="h-7 text-xs gap-1"
+                          >
+                            {p.status === 'OUT_OF_STOCK' ? (
+                              <>
+                                <Eye className="w-3 h-3" />
+                                판매 재개
+                              </>
+                            ) : (
+                              <>
+                                <EyeOff className="w-3 h-3" />
+                                품절 설정
+                              </>
+                            )}
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteProduct(p.id, p.name)}
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-rose-600 hover:bg-rose-50"
+                            title="상품 삭제"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   )

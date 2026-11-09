@@ -1,9 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowLeft,
   Building2,
@@ -35,6 +35,7 @@ import {
   Smartphone,
   Layers,
   Loader2,
+  Edit2,
 } from 'lucide-react'
 import { useWebAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/ui/use-toast'
@@ -95,8 +96,11 @@ export interface ProductOption {
   stock: number
 }
 
-export default function SellerProductRegisterPage() {
+function SellerProductRegisterForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const editId = searchParams.get('edit')
+  const isEditMode = Boolean(editId)
   const { user } = useWebAuth()
   const { toast } = useToast()
 
@@ -364,6 +368,122 @@ export default function SellerProductRegisterPage() {
     }
   }
 
+  // Load Product Details if in Edit Mode
+  useEffect(() => {
+    if (!editId) return
+
+    try {
+      // 1. Check custom products
+      const customProducts = JSON.parse(localStorage.getItem('mocco_custom_products') || '[]')
+      let target = customProducts.find((p: any) => p.id === editId)
+
+      // 2. Fallback to normal products mock
+      if (!target) {
+        const normalProducts = JSON.parse(localStorage.getItem('mocco_normal_products') || '[]')
+        target = normalProducts.find((p: any) => p.id === editId)
+      }
+
+      // 3. Fallback to default mock list
+      if (!target) {
+        if (editId === 'np-001') {
+          target = {
+            id: 'np-001',
+            name: '[입점사상시] 제주 산지직송 프리미엄 1등급 흑돼지 오겹살 1kg',
+            description: '제주 청정 농가에서 당일 도축 후 신선 포장 발송하는 1등급 명품 흑돼지 오겹살입니다.',
+            price: 32900,
+            originalPrice: 38000,
+            stock: 150,
+            images: ['https://images.unsplash.com/photo-1544025162-d76694265947?w=600'],
+            category: '식품/신선',
+            shippingFee: 3000,
+            hasOptions: true,
+            options: [
+              { id: 'opt-1', name: '오겹살 500g', additionalPrice: 0, stock: 90 },
+              { id: 'opt-2', name: '오겹살 1kg (+14,000원)', additionalPrice: 14000, stock: 60 },
+            ],
+          }
+        } else if (editId === 'np-002') {
+          target = {
+            id: 'np-002',
+            name: '[입점사상시] 제주 유기농 감귤 착즙 원액주스 1000ml (3병 세트)',
+            description: '물 한 방울 섞지 않은 무가당 100% 제주 감귤 순수 착즙 프리미엄 주스입니다.',
+            price: 24900,
+            originalPrice: 29000,
+            stock: 80,
+            images: ['https://images.unsplash.com/photo-1613478223719-2ab802602423?w=600'],
+            category: '식품/신선',
+            shippingFee: 0,
+          }
+        }
+      }
+
+      if (target) {
+        setName(target.name || '')
+        if (target.category) setCategory(target.category)
+        if (target.type === 'B2C_GROUP') setSaleType('B2C_GROUP')
+        else setSaleType('B2C_NORMAL')
+
+        setPrice(String(target.price || target.salePriceKrw || ''))
+        setRegularPrice(String(target.originalPrice || target.priceKrw || target.price || ''))
+        setStock(String(target.stock ?? '100'))
+
+        if (target.hasOptions && target.options && target.options.length > 0) {
+          setHasOptions(true)
+          setOptions(target.options)
+        } else {
+          setHasOptions(false)
+        }
+
+        if (target.images && target.images.length > 0) {
+          setImages(target.images)
+        }
+        if (target.detailImages && target.detailImages.length > 0) {
+          setDetailImages(target.detailImages)
+        }
+        if (target.description) {
+          setDescription(target.description)
+        }
+        if (target.shippingFee !== undefined) {
+          if (target.shippingFee === 0) {
+            setShippingFeeType('FREE')
+            setBaseShippingFee('0')
+          } else {
+            setShippingFeeType('PAID')
+            setBaseShippingFee(String(target.shippingFee))
+          }
+        }
+        if (target.creatorCommissionRate !== undefined) {
+          setCreatorCommissionRate(String(target.creatorCommissionRate))
+        }
+        if (target.allowCreatorSales !== undefined) {
+          setAllowCreatorSales(Boolean(target.allowCreatorSales))
+        }
+        if (target.noticeInfo) {
+          setNotice((prev) => ({ ...prev, ...target.noticeInfo }))
+        }
+        if (target.shippingInfo?.courierName) {
+          setCourierName(target.shippingInfo.courierName)
+        }
+        if (target.shippingInfo?.deliveryDays) {
+          setDispatchDays(target.shippingInfo.deliveryDays)
+        }
+        if (target.shippingInfo?.returnFee) {
+          setReturnFee(String(target.shippingInfo.returnFee))
+        }
+        if (target.shippingInfo?.exchangeFee) {
+          setExchangeFee(String(target.shippingInfo.exchangeFee))
+        }
+
+        toast({
+          title: '기존 상품 정보 로드 완료',
+          description: `[${target.name}] 상품의 정보가 수정 폼에 채워졌습니다.`,
+        })
+      }
+    } catch (e) {
+      console.warn('Failed to load product for edit', e)
+    }
+  }, [editId, toast])
+
   // Handle Add Image
   const handleAddImageUrl = () => {
     if (!newImageUrl.trim()) return
@@ -411,15 +531,15 @@ export default function SellerProductRegisterPage() {
       }
     }
 
-    const newId = `prod-${Date.now()}`
+    const targetId = isEditMode && editId ? editId : `prod-${Date.now()}`
     const finalPrice = parseInt(price.replace(/,/g, ''), 10)
     const original = parseInt(regularPrice.replace(/,/g, ''), 10) || finalPrice
     const calculatedStock = hasOptions
       ? options.reduce((sum, o) => sum + (Number(o.stock) || 0), 0)
       : parseInt(stock, 10) || 50
 
-    const newProduct = {
-      id: newId,
+    const productPayload = {
+      id: targetId,
       name: name.trim(),
       category,
       type: saleType,
@@ -467,28 +587,57 @@ export default function SellerProductRegisterPage() {
           '고객 부주의로 인한 파손 및 멸실의 경우',
         ],
       },
-      createdAt: new Date().toISOString(),
-      orderCount: 0,
-      rating: 5.0,
-      reviewCount: 0,
+      updatedAt: new Date().toISOString(),
     }
 
-    // Save to localStorage mock
+    // Save to localStorage
     try {
       const existing = JSON.parse(localStorage.getItem('mocco_custom_products') || '[]')
-      localStorage.setItem('mocco_custom_products', JSON.stringify([newProduct, ...existing]))
+      if (isEditMode) {
+        const idx = existing.findIndex((p: any) => p.id === targetId)
+        if (idx >= 0) {
+          existing[idx] = { ...existing[idx], ...productPayload }
+        } else {
+          existing.unshift({
+            ...productPayload,
+            createdAt: new Date().toISOString(),
+            orderCount: 0,
+            rating: 5.0,
+            reviewCount: 0,
+          })
+        }
+        localStorage.setItem('mocco_custom_products', JSON.stringify(existing))
+      } else {
+        const fullNewProduct = {
+          ...productPayload,
+          createdAt: new Date().toISOString(),
+          orderCount: 0,
+          rating: 5.0,
+          reviewCount: 0,
+        }
+        localStorage.setItem('mocco_custom_products', JSON.stringify([fullNewProduct, ...existing]))
+      }
     } catch (err) {
       console.warn('Failed to save product in storage', err)
     }
 
-    toast({
-      title: '상품이 정식 승인 등록되었습니다!',
-      description: '대한민국 전자상거래 규격에 맞게 상세페이지가 즉시 오픈됩니다.',
-    })
-
-    setTimeout(() => {
-      router.push(`/market/${newId}`)
-    }, 600)
+    if (isEditMode) {
+      toast({
+        title: '✏️ 상품 정보 수정 완료',
+        description: '변경된 상품 정보, 대표 사진 및 상세페이지가 즉시 반영되었습니다.',
+      })
+      setTimeout(() => {
+        router.push('/seller/products')
+      }, 500)
+    } else {
+      toast({
+        title: '🎉 상품이 정식 승인 등록되었습니다!',
+        description: '대한민국 전자상거래 규격에 맞게 상세페이지가 즉시 오픈됩니다.',
+      })
+      setTimeout(() => {
+        router.push(`/market/${targetId}`)
+      }, 600)
+    }
   }
 
   return (
@@ -507,15 +656,24 @@ export default function SellerProductRegisterPage() {
             </button>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-lg font-black text-slate-900">
-                  입점사 셀러 센터 | 신규 상품 등록
+                <h1 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+                  {isEditMode ? (
+                    <>
+                      <Edit2 className="w-5 h-5 text-indigo-600" />
+                      <span>입점사 셀러 센터 | 상품 정보 수정</span>
+                    </>
+                  ) : (
+                    <span>입점사 셀러 센터 | 신규 상품 등록</span>
+                  )}
                 </h1>
                 <Badge className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold">
-                  B2C 마켓 & 공구 표준
+                  {isEditMode ? '수정 모드' : 'B2C 마켓 & 공구 표준'}
                 </Badge>
               </div>
               <p className="text-[11px] text-slate-500 hidden sm:block">
-                대한민국 공정거래위원회 35대 표준 상품고시 및 전자상거래 규정을 완벽하게 지원합니다
+                {isEditMode
+                  ? '기존 등록된 상품의 대표 사진, 상세페이지 컷, 판매가, 재고 및 배송 정보를 수정합니다.'
+                  : '대한민국 공정거래위원회 35대 표준 상품고시 및 전자상거래 규정을 완벽하게 지원합니다'}
               </p>
             </div>
           </div>
@@ -1658,11 +1816,28 @@ export default function SellerProductRegisterPage() {
               type="submit"
               className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-8 h-11 rounded-2xl shadow-md shadow-indigo-600/25"
             >
-              정식 마켓 상품 등록 완료
+              {isEditMode ? '상품 수정 내용 저장하기' : '정식 마켓 상품 등록 완료'}
             </Button>
           </div>
         </form>
       </main>
     </div>
+  )
+}
+
+export default function SellerProductRegisterPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+          <div className="flex items-center gap-2 text-slate-500 text-sm font-semibold">
+            <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+            <span>상품 등록/수정 페이지를 불러오는 중입니다...</span>
+          </div>
+        </div>
+      }
+    >
+      <SellerProductRegisterForm />
+    </React.Suspense>
   )
 }

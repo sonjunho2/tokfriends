@@ -30,6 +30,10 @@ import {
   Flame,
   Users2,
   Boxes,
+  Upload,
+  Camera,
+  Image as ImageIcon,
+  Loader2,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -37,6 +41,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { api } from '@/lib/api'
+import { uploadMultipleImageFiles } from '@/lib/uploadHelper'
 
 export interface HqDirectProduct {
   id: string
@@ -51,6 +56,7 @@ export interface HqDirectProduct {
   stock: number
   shippingFee: number
   images: string[]
+  detailImages?: string[]
   status: 'ACTIVE' | 'OUT_OF_STOCK' | 'HIDDEN'
   allowAffiliate: boolean
   affiliateCommissionRate: number
@@ -189,8 +195,9 @@ export default function HqProductsPage() {
   const [planTypeFilter, setPlanTypeFilter] = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
 
-  // Register Modal State
+  // Register / Edit Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<HqDirectProduct | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     subTitle: '',
@@ -202,11 +209,125 @@ export default function HqProductsPage() {
     salePriceKrw: 32900,
     stock: 100,
     shippingFee: 0,
-    imageUrl: IMAGE_PRESETS[0].url,
+    images: [IMAGE_PRESETS[0].url] as string[],
+    detailImages: [] as string[],
     allowAffiliate: true,
     affiliateCommissionRate: 10.0,
     groupTargetCount: 100,
   })
+
+  // Image Upload States
+  const [isUploadingThumbnails, setIsUploadingThumbnails] = useState(false)
+  const [thumbnailUploadStatus, setThumbnailUploadStatus] = useState('')
+  const thumbnailInputRef = React.useRef<HTMLInputElement>(null)
+
+  const [isUploadingDetailImages, setIsUploadingDetailImages] = useState(false)
+  const [detailUploadStatus, setDetailUploadStatus] = useState('')
+  const detailInputRef = React.useRef<HTMLInputElement>(null)
+
+  const handleThumbnailFiles = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files).filter((f) => f.type.startsWith('image/'))
+    if (fileArray.length === 0) return
+    try {
+      setIsUploadingThumbnails(true)
+      setThumbnailUploadStatus(`0/${fileArray.length} 업로드 중...`)
+      const uploadedUrls = await uploadMultipleImageFiles(fileArray, (done, total) => {
+        setThumbnailUploadStatus(`${done}/${total} 업로드 중...`)
+      })
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, ...uploadedUrls].slice(0, 10),
+      }))
+      toast({
+        title: '대표 썸네일 이미지 등록 완료',
+        description: `${uploadedUrls.length}장의 사진이 성공적으로 등록되었습니다.`,
+      })
+    } catch {
+      toast({
+        title: '업로드 오류',
+        description: '이미지 업로드 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsUploadingThumbnails(false)
+      setThumbnailUploadStatus('')
+      if (thumbnailInputRef.current) thumbnailInputRef.current.value = ''
+    }
+  }
+
+  const handleDetailFiles = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files).filter((f) => f.type.startsWith('image/'))
+    if (fileArray.length === 0) return
+    try {
+      setIsUploadingDetailImages(true)
+      setDetailUploadStatus(`0/${fileArray.length} 업로드 중...`)
+      const uploadedUrls = await uploadMultipleImageFiles(fileArray, (done, total) => {
+        setDetailUploadStatus(`${done}/${total} 업로드 중...`)
+      })
+      setFormData((prev) => ({
+        ...prev,
+        detailImages: [...prev.detailImages, ...uploadedUrls].slice(0, 15),
+      }))
+      toast({
+        title: '상세페이지 이미지 등록 완료',
+        description: `${uploadedUrls.length}장의 상세페이지 컷이 성공적으로 등록되었습니다.`,
+      })
+    } catch {
+      toast({
+        title: '업로드 오류',
+        description: '상세페이지 이미지 업로드 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsUploadingDetailImages(false)
+      setDetailUploadStatus('')
+      if (detailInputRef.current) detailInputRef.current.value = ''
+    }
+  }
+
+  const handleOpenCreateModal = () => {
+    setEditingProduct(null)
+    setFormData({
+      name: '',
+      subTitle: '',
+      description: '■ 본사 직영 프리미엄 기획 상품\n- 본사 전문 바이어가 산지 및 제조사와 직접 계약하여 최고의 품질을 보증합니다.\n- 철저한 위생 검수 및 안심 포장으로 당일/익일 신속 발송됩니다.',
+      category: 'FOOD',
+      planType: 'PB',
+      costPriceKrw: 18000,
+      priceKrw: 42000,
+      salePriceKrw: 32900,
+      stock: 100,
+      shippingFee: 0,
+      images: [IMAGE_PRESETS[0].url],
+      detailImages: [],
+      allowAffiliate: true,
+      affiliateCommissionRate: 10.0,
+      groupTargetCount: 100,
+    })
+    setIsCreateModalOpen(true)
+  }
+
+  const handleOpenEditModal = (p: HqDirectProduct) => {
+    setEditingProduct(p)
+    setFormData({
+      name: p.name,
+      subTitle: p.subTitle || '',
+      description: p.description || '',
+      category: p.category,
+      planType: p.planType,
+      costPriceKrw: p.costPriceKrw,
+      priceKrw: p.priceKrw,
+      salePriceKrw: p.salePriceKrw,
+      stock: p.stock,
+      shippingFee: p.shippingFee,
+      images: p.images && p.images.length > 0 ? p.images : [IMAGE_PRESETS[0].url],
+      detailImages: p.detailImages || [],
+      allowAffiliate: p.allowAffiliate,
+      affiliateCommissionRate: p.affiliateCommissionRate,
+      groupTargetCount: p.groupTargetCount || 100,
+    })
+    setIsCreateModalOpen(true)
+  }
 
   // Quick Stock Edit State
   const [quickStockTarget, setQuickStockTarget] = useState<HqDirectProduct | null>(null)
@@ -282,8 +403,8 @@ export default function HqProductsPage() {
     })
   }, [products, categoryFilter, planTypeFilter, statusFilter, searchQuery])
 
-  // Create Product Handler
-  const handleCreateProduct = async () => {
+  // Create or Update Product Handler
+  const handleSaveProduct = async () => {
     if (!formData.name.trim()) {
       toast({
         title: '상품명 입력 필요',
@@ -302,68 +423,85 @@ export default function HqProductsPage() {
       return
     }
 
-    const newProduct: HqDirectProduct = {
-      id: `hq-p-${Date.now().toString().slice(-6)}`,
-      name: formData.name.trim(),
-      subTitle: formData.subTitle.trim(),
-      description: formData.description.trim() || formData.name.trim(),
-      category: formData.category,
-      planType: formData.planType,
-      costPriceKrw: Number(formData.costPriceKrw),
-      priceKrw: Number(formData.priceKrw || formData.salePriceKrw),
-      salePriceKrw: Number(formData.salePriceKrw),
-      stock: Number(formData.stock),
-      shippingFee: Number(formData.shippingFee),
-      images: [formData.imageUrl.trim() || IMAGE_PRESETS[0].url],
-      status: 'ACTIVE',
-      allowAffiliate: formData.allowAffiliate,
-      affiliateCommissionRate: Number(formData.affiliateCommissionRate),
-      salesCount: 0,
-      viewCount: 1,
-      isHqDirect: true,
-      createdAt: new Date().toISOString().slice(0, 10),
-      ...(formData.planType === 'GROUP_BUY'
-        ? {
-            groupTargetCount: Number(formData.groupTargetCount || 100),
-            groupCurrentCount: 0,
-          }
-        : {}),
+    if (editingProduct) {
+      // EDIT MODE
+      const updated = products.map((p) => {
+        if (p.id !== editingProduct.id) return p
+        return {
+          ...p,
+          name: formData.name.trim(),
+          subTitle: formData.subTitle.trim(),
+          description: formData.description.trim() || formData.name.trim(),
+          category: formData.category,
+          planType: formData.planType,
+          costPriceKrw: Number(formData.costPriceKrw),
+          priceKrw: Number(formData.priceKrw || formData.salePriceKrw),
+          salePriceKrw: Number(formData.salePriceKrw),
+          stock: Number(formData.stock),
+          shippingFee: Number(formData.shippingFee),
+          images: formData.images.length > 0 ? formData.images : [IMAGE_PRESETS[0].url],
+          detailImages: formData.detailImages,
+          allowAffiliate: formData.allowAffiliate,
+          affiliateCommissionRate: Number(formData.affiliateCommissionRate),
+          groupTargetCount: Number(formData.groupTargetCount || 100),
+        }
+      })
+      saveProducts(updated)
+      setIsCreateModalOpen(false)
+      setEditingProduct(null)
+      toast({
+        title: '✏️ 직영 상품 정보 수정 완료',
+        description: `[${formData.name}] 상품의 정보가 성공적으로 변경되었습니다.`,
+      })
+    } else {
+      // CREATE MODE
+      const newProduct: HqDirectProduct = {
+        id: `hq-p-${Date.now().toString().slice(-6)}`,
+        name: formData.name.trim(),
+        subTitle: formData.subTitle.trim(),
+        description: formData.description.trim() || formData.name.trim(),
+        category: formData.category,
+        planType: formData.planType,
+        costPriceKrw: Number(formData.costPriceKrw),
+        priceKrw: Number(formData.priceKrw || formData.salePriceKrw),
+        salePriceKrw: Number(formData.salePriceKrw),
+        stock: Number(formData.stock),
+        shippingFee: Number(formData.shippingFee),
+        images: formData.images.length > 0 ? formData.images : [IMAGE_PRESETS[0].url],
+        detailImages: formData.detailImages,
+        status: 'ACTIVE',
+        allowAffiliate: formData.allowAffiliate,
+        affiliateCommissionRate: Number(formData.affiliateCommissionRate),
+        salesCount: 0,
+        viewCount: 1,
+        isHqDirect: true,
+        createdAt: new Date().toISOString().slice(0, 10),
+        ...(formData.planType === 'GROUP_BUY'
+          ? {
+              groupTargetCount: Number(formData.groupTargetCount || 100),
+              groupCurrentCount: 0,
+            }
+          : {}),
+      }
+
+      // Background sync to backend if API is live
+      api.post('/market/admin/normal-products', {
+        ...newProduct,
+        ownerType: 'HEADQUARTERS',
+        merchantId: 'mer-hq',
+        merchantName: '모꼬(MOCCO) 본사 직영관',
+      }).catch(() => null)
+
+      const updated = [newProduct, ...products]
+      saveProducts(updated)
+      setIsCreateModalOpen(false)
+      setEditingProduct(null)
+
+      toast({
+        title: '👑 본사 직영 상품 기획 등록 완료',
+        description: `[${newProduct.name}]이 본사 직영 마켓 및 스트리머 제휴 센터에 즉시 노출됩니다.`,
+      })
     }
-
-    // Background sync to backend if API is live
-    api.post('/market/admin/normal-products', {
-      ...newProduct,
-      ownerType: 'HEADQUARTERS',
-      merchantId: 'mer-hq',
-      merchantName: '모꼬(MOCCO) 본사 직영관',
-    }).catch(() => null)
-
-    const updated = [newProduct, ...products]
-    saveProducts(updated)
-    setIsCreateModalOpen(false)
-
-    // Reset Form
-    setFormData({
-      name: '',
-      subTitle: '',
-      description: '',
-      category: 'FOOD',
-      planType: 'PB',
-      costPriceKrw: 18000,
-      priceKrw: 42000,
-      salePriceKrw: 32900,
-      stock: 100,
-      shippingFee: 0,
-      imageUrl: IMAGE_PRESETS[0].url,
-      allowAffiliate: true,
-      affiliateCommissionRate: 10.0,
-      groupTargetCount: 100,
-    })
-
-    toast({
-      title: '👑 본사 직영 상품 기획 등록 완료',
-      description: `[${newProduct.name}]이 본사 직영 마켓 및 스트리머 제휴 센터에 즉시 노출됩니다.`,
-    })
   }
 
   // Toggle Status Handler
@@ -450,7 +588,7 @@ export default function HqProductsPage() {
 
         <div className="flex items-center flex-wrap gap-2">
           <Button
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={handleOpenCreateModal}
             className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-bold gap-1.5 shadow-sm"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
@@ -817,6 +955,16 @@ export default function HqProductsPage() {
                         <div className="flex items-center justify-end gap-1.5">
                           <Button
                             size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenEditModal(p)}
+                            className="h-8 text-xs gap-1 border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-semibold"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>수정</span>
+                          </Button>
+
+                          <Button
+                            size="sm"
                             variant={p.status === 'ACTIVE' ? 'outline' : 'default'}
                             onClick={() => handleToggleStatus(p.id, p.status)}
                             className="h-8 text-xs gap-1"
@@ -861,10 +1009,10 @@ export default function HqProductsPage() {
         </CardContent>
       </Card>
 
-      {/* 5. 신규 본사 직영 상품 기획 등록 모달 */}
+      {/* 5. 본사 직영 상품 기획 등록 및 수정 모달 */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-card border border-border rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 animate-in fade-in-50 zoom-in-95 my-8">
+          <div className="bg-card border border-border rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5 animate-in fade-in-50 zoom-in-95 my-8">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-black shadow">
@@ -872,22 +1020,27 @@ export default function HqProductsPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-foreground">
-                    신규 본사 직영 상품 기획 등록
+                    {editingProduct ? '👑 본사 직영 상품 정보 수정' : '신규 본사 직영 상품 기획 등록'}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    골드 메탈릭 뱃지와 함께 본사 직영관 및 라이브 쇼핑백에 등록됩니다.
+                    {editingProduct
+                      ? '등록된 직영 상품의 이미지, 상세 설명, 가격, 재고 및 제휴 수수료를 실시간 수정합니다.'
+                      : '골드 메탈릭 뱃지와 함께 본사 직영관 및 라이브 쇼핑백에 등록됩니다.'}
                   </p>
                 </div>
               </div>
               <button
-                onClick={() => setIsCreateModalOpen(false)}
+                onClick={() => {
+                  setIsCreateModalOpen(false)
+                  setEditingProduct(null)
+                }}
                 className="text-muted-foreground hover:text-foreground"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-4 text-xs">
+            <div className="space-y-4 text-xs max-h-[75vh] overflow-y-auto pr-1">
               {/* 기획 유형 라디오 카드 */}
               <div>
                 <label className="font-semibold block mb-1.5 text-foreground">
@@ -986,29 +1139,182 @@ export default function HqProductsPage() {
                 />
               </div>
 
-              {/* 이미지 URL 및 추천 프리셋 */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="font-semibold">대표 썸네일 이미지 URL</label>
-                  <span className="text-[10px] text-muted-foreground">빠른 프리셋 선택:</span>
+              {/* 상품 썸네일 이미지 파일 직접 업로드 (내 PC 파일 선택 / 드래그 앤 드롭) */}
+              <div className="p-3.5 bg-muted/30 rounded-xl border border-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Camera className="w-4 h-4 text-amber-500" />
+                    <label className="font-bold text-foreground">
+                      대표 및 추가 썸네일 이미지 ({formData.images.length}/10) *
+                    </label>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => thumbnailInputRef.current?.click()}
+                    disabled={isUploadingThumbnails}
+                    className="h-7 text-xs gap-1 border-amber-300 text-amber-800 hover:bg-amber-50"
+                  >
+                    {isUploadingThumbnails ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span>{thumbnailUploadStatus || '업로드 중...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-3 h-3" />
+                        <span>내 PC 사진 업로드</span>
+                      </>
+                    )}
+                  </Button>
+                  <input
+                    ref={thumbnailInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files) handleThumbnailFiles(e.target.files)
+                    }}
+                  />
                 </div>
-                <div className="flex items-center gap-1.5 mb-2">
+
+                {/* 이미지 미리보기 썸네일 목록 */}
+                {formData.images.length > 0 && (
+                  <div className="flex items-center gap-2 overflow-x-auto py-1">
+                    {formData.images.map((url, idx) => (
+                      <div
+                        key={idx}
+                        className="relative w-16 h-16 rounded-lg border border-border overflow-hidden shrink-0 group bg-card"
+                      >
+                        <img src={url} alt={`thumb-${idx}`} className="w-full h-full object-cover" />
+                        {idx === 0 && (
+                          <span className="absolute bottom-0 inset-x-0 bg-amber-500 text-black text-[9px] font-black text-center py-0.5">
+                            대표
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              images: prev.images.filter((_, i) => i !== idx),
+                            }))
+                          }}
+                          className="absolute top-1 right-1 w-4 h-4 rounded-full bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 프리셋 선택 바 */}
+                <div className="pt-1 border-t border-border/60 flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] text-muted-foreground font-medium">빠른 프리셋 추가:</span>
                   {IMAGE_PRESETS.map((p) => (
                     <button
                       key={p.label}
                       type="button"
-                      onClick={() => setFormData({ ...formData, imageUrl: p.url })}
-                      className="px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[10px] font-medium"
+                      onClick={() => {
+                        if (!formData.images.includes(p.url)) {
+                          setFormData({ ...formData, images: [...formData.images, p.url].slice(0, 10) })
+                        }
+                      }}
+                      className="px-2 py-0.5 rounded bg-muted hover:bg-muted/80 text-[10px] font-medium transition-colors"
                     >
-                      {p.label}
+                      +{p.label}
                     </button>
                   ))}
                 </div>
-                <Input
-                  value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  placeholder="https://images.unsplash.com/..."
-                  className="text-xs h-9"
+              </div>
+
+              {/* 상세페이지 컷 이미지 등록 (선택) */}
+              <div className="p-3.5 bg-muted/30 rounded-xl border border-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-indigo-500" />
+                    <div>
+                      <label className="font-bold text-foreground">
+                        상세페이지 디자인 컷 이미지 ({formData.detailImages.length}/15)
+                      </label>
+                      <p className="text-[10px] text-muted-foreground">
+                        소비자 상세페이지에 고화질로 세로 스택 연결되어 노출됩니다.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => detailInputRef.current?.click()}
+                    disabled={isUploadingDetailImages}
+                    className="h-7 text-xs gap-1 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                  >
+                    {isUploadingDetailImages ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span>{detailUploadStatus || '업로드 중...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-3 h-3" />
+                        <span>상세 이미지 업로드</span>
+                      </>
+                    )}
+                  </Button>
+                  <input
+                    ref={detailInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files) handleDetailFiles(e.target.files)
+                    }}
+                  />
+                </div>
+
+                {formData.detailImages.length > 0 && (
+                  <div className="flex items-center gap-2 overflow-x-auto py-1">
+                    {formData.detailImages.map((url, idx) => (
+                      <div
+                        key={idx}
+                        className="relative w-14 h-14 rounded-lg border border-border overflow-hidden shrink-0 group bg-card"
+                      >
+                        <img src={url} alt={`detail-${idx}`} className="w-full h-full object-cover" />
+                        <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[9px] text-center py-0.5">
+                          {idx + 1}번 컷
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              detailImages: prev.detailImages.filter((_, i) => i !== idx),
+                            }))
+                          }}
+                          className="absolute top-1 right-1 w-4 h-4 rounded-full bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 상세 설명 텍스트 에디터 */}
+              <div>
+                <label className="font-semibold block mb-1">상세페이지 설명 본문</label>
+                <textarea
+                  rows={4}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="상품 특장점, 규격, 보관방법, 인증 정보 등을 기재해 주세요."
+                  className="w-full p-2.5 rounded-xl border border-border bg-background text-xs text-foreground focus:outline-hidden font-sans leading-relaxed"
                 />
               </div>
 
@@ -1083,7 +1389,7 @@ export default function HqProductsPage() {
               {/* 재고 및 배송 */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-semibold block mb-1">초기 재고 수량 *</label>
+                  <label className="font-semibold block mb-1">재고 수량 *</label>
                   <Input
                     type="number"
                     value={formData.stock}
@@ -1146,15 +1452,22 @@ export default function HqProductsPage() {
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
-              <Button variant="outline" size="sm" onClick={() => setIsCreateModalOpen(false)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsCreateModalOpen(false)
+                  setEditingProduct(null)
+                }}
+              >
                 취소
               </Button>
               <Button
-                onClick={handleCreateProduct}
+                onClick={handleSaveProduct}
                 className="bg-amber-600 hover:bg-amber-700 text-white font-bold gap-1.5 shadow-sm text-xs"
               >
                 <Crown className="w-4 h-4 text-amber-200" />
-                직영 기획 상품 즉시 등록
+                {editingProduct ? '상품 수정 내용 저장하기' : '직영 기획 상품 즉시 등록'}
               </Button>
             </div>
           </div>
