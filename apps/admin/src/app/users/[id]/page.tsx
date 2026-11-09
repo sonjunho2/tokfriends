@@ -192,7 +192,7 @@ export default function UserDetailPage() {
       }))
       toast({
         title: '포인트 변동 처리 완료',
-        description: `${delta > 0 ? `+${delta.toLocaleString()} 온 지급` : `${delta.toLocaleString()} 온 차감`}이 정상 반영되었습니다.`,
+        description: `${delta > 0 ? `+${delta.toLocaleString()} 꿀떡 지급` : `${delta.toLocaleString()} 꿀떡 차감`}이 정상 반영되었습니다.`,
       })
       setPointDeltaDraft('')
       setPointReasonDraft('')
@@ -749,11 +749,11 @@ export default function UserDetailPage() {
                         스트리머 등급 및 정산 환급율 계약 관리
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        호스트의 등급을 부여하고, 출금 신청 시 적용될 1온당 KRW 환전 단가를 설정합니다.
+                        호스트의 등급을 부여하고, 출금 신청 시 적용될 1꿀떡당 KRW 환전 단가를 설정합니다.
                       </CardDescription>
                     </div>
                     <Badge variant="outline" className="border-indigo-300 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 w-fit">
-                      현재 실적용: {effectiveRate}원/온 (회사 수수료 {100 - effectiveRate}%)
+                      현재 실적용: {effectiveRate}원/꿀떡 (회사 수수료 {100 - effectiveRate}%)
                     </Badge>
                   </div>
                 </CardHeader>
@@ -775,7 +775,7 @@ export default function UserDetailPage() {
                         <SelectContent>
                           {STREAMER_TIER_OPTIONS.map((opt) => (
                             <SelectItem key={opt.value} value={opt.value} className="text-xs">
-                              {opt.label} ({opt.baseRate}원/온, 회사 {opt.feePercent}%)
+                              {opt.label} ({opt.baseRate}원/꿀떡, 회사 {opt.feePercent}%)
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -789,7 +789,7 @@ export default function UserDetailPage() {
                     <div className="space-y-2 rounded-xl border bg-card p-4">
                       <div className="flex items-center justify-between">
                         <Label htmlFor="custom-exchange-rate" className="text-xs font-bold text-foreground">
-                          개별 계약 환전 단가 (원/온, 선택사항)
+                          개별 계약 환전 단가 (원/꿀떡, 선택사항)
                         </Label>
                         {customRateDraft && (
                           <span className="text-[11px] font-medium text-indigo-600">
@@ -808,7 +808,7 @@ export default function UserDetailPage() {
                         className="h-10 text-xs font-mono"
                       />
                       <p className="text-[11px] leading-relaxed text-muted-foreground">
-                        MCN 제휴사 특별 계약이 있는 경우에만 1온당 지급할 원화 금액(1~100)을 직접 입력하세요.
+                        MCN 제휴사 특별 계약이 있는 경우에만 1꿀떡당 지급할 원화 금액(1~100)을 직접 입력하세요.
                       </p>
                     </div>
                   </div>
@@ -817,12 +817,12 @@ export default function UserDetailPage() {
                   <div className="rounded-xl border border-indigo-100 bg-indigo-50/30 p-4">
                     <p className="text-xs font-bold text-indigo-950 flex items-center gap-1.5 mb-2">
                       <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-                      실시간 정산 환전 시뮬레이션 (10,000 온 출금 신청 기준)
+                      실시간 정산 환전 시뮬레이션 (10,000 꿀떡 환전 신청 기준)
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                       <div className="rounded-lg bg-white p-3 border shadow-2xs">
                         <span className="text-muted-foreground text-[11px]">적용 환급율</span>
-                        <p className="text-base font-bold text-indigo-600 mt-0.5">{effectiveRate} KRW / 1온</p>
+                        <p className="text-base font-bold text-indigo-600 mt-0.5">{effectiveRate} KRW / 1꿀떡</p>
                       </div>
                       <div className="rounded-lg bg-white p-3 border shadow-2xs">
                         <span className="text-muted-foreground text-[11px]">스트리머 실수령액</span>

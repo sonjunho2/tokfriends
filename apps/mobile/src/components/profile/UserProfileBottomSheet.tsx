@@ -121,7 +121,7 @@ export const UserProfileBottomSheet = memo(({
   const handleRequestCall = useCallback(async () => {
     if (!user) return;
     try {
-      // 1. 잔액 확인 (최소 1,500 ON)
+      // 1. 잔액 확인 (최소 1,500 꿀떡)
       const balanceRes = await apiClient.getPointBalance();
       const currentBalance = Number(balanceRes?.balance ?? 0);
       const minRequired = effectiveRate || 1500;
@@ -129,11 +129,11 @@ export const UserProfileBottomSheet = memo(({
       if (currentBalance < minRequired) {
         Alert.alert(
           '포인트 부족',
-          `1:1 유료 통화를 신청하려면 최소 ${minRequired.toLocaleString()} ON이 필요합니다.\n현재 보유 잔액: ${currentBalance.toLocaleString()} ON\n\n온(ON)을 충전하시겠습니까?`,
+          `1:1 유료 통화를 신청하려면 최소 ${minRequired.toLocaleString()} 꿀떡이 필요합니다.\n현재 보유 잔액: ${currentBalance.toLocaleString()} 꿀떡\n\n꿀떡을 충전하시겠습니까?`,
           [
             { text: '취소', style: 'cancel' },
             {
-              text: '온 충전하기',
+              text: '꿀떡 충전하기',
               onPress: () => {
                 onClose();
               },
@@ -171,7 +171,7 @@ export const UserProfileBottomSheet = memo(({
       if (msg.includes('포인트') || msg.includes('balance') || msg.includes('잔액')) {
         Alert.alert(
           '포인트 부족',
-          '통화를 시작하기 위한 온(ON)이 부족합니다.\n충전소에서 포인트를 충전해 주세요.',
+          '통화를 시작하기 위한 꿀떡이 부족합니다.\n충전소에서 꿀떡을 충전해 주세요.',
           [{ text: '확인', onPress: onClose }]
         );
       } else {
@@ -327,7 +327,7 @@ export const UserProfileBottomSheet = memo(({
           >
             <Ionicons name="videocam" size={22} color="#FFF" style={styles.callBtnIcon} />
             <Text style={styles.callActionText}>
-              📞 1:1 유료 통화 신청 (분당 1,500 ON)
+              📞 1:1 유료 통화 신청 (분당 1,500 꿀떡)
             </Text>
             <View style={styles.rateBadge}>
               <Text style={styles.rateBadgeText}>

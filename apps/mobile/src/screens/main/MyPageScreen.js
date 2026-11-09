@@ -1417,7 +1417,7 @@ export default function MyPageScreen({ navigation }) {
                             onPress={() => {
                               Alert.alert(
                                 '에스크로 구매확정',
-                                `정산금을 판매자에게 즉시 지급하고 500 ON 포인트를 적립하시겠습니까?\n(확정 후 교환/반품이 제한될 수 있습니다)`,
+                                `정산금을 판매자에게 즉시 지급하고 500원 모꼬 머니를 적립하시겠습니까?\n(확정 후 교환/반품이 제한될 수 있습니다)`,
                                 [
                                   { text: '취소', style: 'cancel' },
                                   {
@@ -1433,7 +1433,7 @@ export default function MyPageScreen({ navigation }) {
                                       setReviewOrder(order);
                                       setReviewRating(5);
                                       setReviewComment('');
-                                      Alert.alert('🎉 구매확정 완료', '판매자 정산이 승인되었으며 500 ON 포인트가 적립되었습니다!');
+                                      Alert.alert('🎉 구매확정 완료', '판매자 정산이 승인되었으며 500원 모꼬 머니가 적립되었습니다!');
                                     },
                                   },
                                 ]
@@ -1633,7 +1633,7 @@ export default function MyPageScreen({ navigation }) {
                 style={[styles.dialogCancelBtn, { flex: 1.5, backgroundColor: '#4F46E5' }]}
                 onPress={() => {
                   setReviewOrder(null);
-                  Alert.alert('⭐ 리뷰 등록 완료', '소중한 구매후기가 등록되었으며 500 ON 포인트가 적립되었습니다!');
+                  Alert.alert('⭐ 리뷰 등록 완료', '소중한 구매후기가 등록되었으며 500원 모꼬 머니가 적립되었습니다!');
                 }}
               >
                 <Text style={[styles.dialogCancelText, { color: '#FFFFFF' }]}>등록하기</Text>

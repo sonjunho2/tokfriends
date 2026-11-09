@@ -328,7 +328,7 @@ export default function ApiManagerPage() {
                   핵심 API 가용성 & 응답속도 점검 (평균 42ms)
                 </div>
                 <p className="mt-1.5 leading-relaxed text-slate-600">
-                  1:1 통화 토큰 발급(`/calls/private/token`), 온 결제 검증(`/store/charge/verify`) 등 핵심 비즈니스 API의 <strong>지연시간(100ms 미만 유지)</strong>과 정상 응답 상태를 상시 점검합니다.
+                  1:1 통화 토큰 발급(`/calls/private/token`), 꿀떡 결제 검증(`/store/charge/verify`) 등 핵심 비즈니스 API의 <strong>지연시간(100ms 미만 유지)</strong>과 정상 응답 상태를 상시 점검합니다.
                 </p>
               </div>
 
@@ -842,7 +842,7 @@ export default function ApiManagerPage() {
                       </td>
                       <td className="py-3 px-3 text-cyan-600 font-semibold">{log.latencyMs || log.durationMs || 30}ms</td>
                       <td className="py-3 px-3 text-muted-foreground">{log.clientIp || '127.0.0.1'}</td>
-                      <td className="py-3 px-3 text-muted-foreground font-sans truncate max-w-xs">{log.userAgent || 'Dagaon/1.2.0 (Mobile App)'}</td>
+                      <td className="py-3 px-3 text-muted-foreground font-sans truncate max-w-xs">{log.userAgent || 'Mocco/1.2.0 (Mobile App)'}</td>
                     </tr>
                   )
                 })}

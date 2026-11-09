@@ -33,9 +33,9 @@ export default function SudaCreateModal({
 
   const FEE_OPTIONS = [
     { label: '✨ 무료', value: 0 },
-    { label: '💰 300 ON', value: 300 },
-    { label: '💰 500 ON', value: 500 },
-    { label: '💰 1,000 ON', value: 1000 },
+    { label: '💰 300 꿀떡', value: 300 },
+    { label: '💰 500 꿀떡', value: 500 },
+    { label: '💰 1,000 꿀떡', value: 1000 },
   ];
 
   const handleSubmit = async () => {

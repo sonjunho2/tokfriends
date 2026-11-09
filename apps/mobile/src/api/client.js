@@ -870,12 +870,12 @@ export const apiClient = {
     // In dummy mode, return a static set of products without network calls
     if (USE_DUMMY_AUTH) {
       return [
-        { id: 'points_100', productId: 'com.company.points.100', label: '100 온', points: 100, price: 1100, priceText: '₩1,100' },
-        { id: 'points_300', productId: 'com.company.points.300', label: '300 온', points: 300, price: 3300, priceText: '₩3,300' },
-        { id: 'points_500', productId: 'com.company.points.500', label: '500 온', points: 500, price: 5500, priceText: '₩5,500' },
-        { id: 'points_1000', productId: 'com.company.points.1000', label: '1,000 온', points: 1000, price: 11000, priceText: '₩11,000', recommended: true },
-        { id: 'points_3000', productId: 'com.company.points.3000', label: '3,000 온', points: 3000, price: 33000, priceText: '₩33,000' },
-        { id: 'points_5000', productId: 'com.company.points.5000', label: '5,000 온', points: 5000, price: 55000, priceText: '₩55,000' },
+        { id: 'points_100', productId: 'com.company.points.100', label: '100 꿀떡', points: 100, price: 1100, priceText: '₩1,100' },
+        { id: 'points_300', productId: 'com.company.points.300', label: '300 꿀떡', points: 300, price: 3300, priceText: '₩3,300' },
+        { id: 'points_500', productId: 'com.company.points.500', label: '500 꿀떡', points: 500, price: 5500, priceText: '₩5,500' },
+        { id: 'points_1000', productId: 'com.company.points.1000', label: '1,000 꿀떡', points: 1000, price: 11000, priceText: '₩11,000', recommended: true },
+        { id: 'points_3000', productId: 'com.company.points.3000', label: '3,000 꿀떡', points: 3000, price: 33000, priceText: '₩33,000' },
+        { id: 'points_5000', productId: 'com.company.points.5000', label: '5,000 꿀떡', points: 5000, price: 55000, priceText: '₩55,000' },
       ];
     }
 
@@ -1185,8 +1185,8 @@ export const apiClient = {
       {
         id: 'faq-001',
         category: '환불/결제',
-        question: '결제한 온(ON) 코인은 어떻게 환불받을 수 있나요?',
-        answer: '충전 후 한 번도 사용하지 않은 온(ON) 코인은 결제일로부터 7일 이내에 [정산 & 환불] 고객센터를 통해 전액 환불 접수가 가능합니다. 단, 일부라도 후원이나 통화에 사용된 패키지는 전자상거래법에 따라 환불이 제한될 수 있습니다.',
+        question: '결제한 모꼬 꿀떡은 어떻게 환불받을 수 있나요?',
+        answer: '충전 후 한 번도 사용하지 않은 모꼬 꿀떡은 결제일로부터 7일 이내에 [정산 & 환불] 고객센터를 통해 전액 환불 접수가 가능합니다. 단, 일부라도 후원이나 통화에 사용된 패키지는 전자상거래법에 따라 환불이 제한될 수 있습니다.',
       },
       {
         id: 'faq-002',
@@ -3035,7 +3035,7 @@ export const apiClient = {
 
   async requestSettlement({ pointsAmount, bankName, accountNumber, accountHolder, idCardNumberHash } = {}) {
     if (!pointsAmount || pointsAmount < 10000) {
-      throw normalizeError(new Error('최소 출금 신청 수량은 10,000 온(ON)입니다.'));
+      throw normalizeError(new Error('최소 환전 신청 수량은 10,000 꿀떡입니다.'));
     }
     if (!bankName || !accountNumber || !accountHolder) {
       throw normalizeError(new Error('은행명, 계좌번호, 예금주명을 모두 입력해 주세요.'));
@@ -3090,7 +3090,7 @@ export const apiClient = {
             id: 'mock-notif-1',
             type: 'gift',
             title: '🎁 이지수님에게서 선물이 도착했어요!',
-            body: '[하트 팡팡] 선물 (+500 온)이 적립되었습니다.',
+            body: '[하트 팡팡] 선물 (+500 꿀떡)이 적립되었습니다.',
             createdAt: new Date(Date.now() - 15 * 60000).toISOString(),
             avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
             data: { points: 500, giftName: '하트 팡팡', senderAccountId: 'usr_mock_1' },

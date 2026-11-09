@@ -522,8 +522,8 @@ export default function ChatRoomScreen({ route, navigation }) {
         const errorMsg = error?.response?.data?.message || error?.message || '';
         if (typeof errorMsg === 'string' && (errorMsg.includes('포인트가 부족합니다') || errorMsg.includes('부족합니다'))) {
           Alert.alert(
-            '온(ON) 부족',
-            '1:1 채팅방 참여에 필요한 온(ON)이 부족합니다.\n\n온 충전소로 이동하시겠습니까?',
+            '꿀떡 부족',
+            '1:1 채팅방 참여에 필요한 꿀떡이 부족합니다.\n\n꿀떡 충전소로 이동하시겠습니까?',
             [
               { text: '닫기', style: 'cancel', onPress: () => navigation.goBack() },
               {
@@ -1117,7 +1117,7 @@ export default function ChatRoomScreen({ route, navigation }) {
       } catch (error) {
         Alert.alert(
           '선물 전송 실패',
-          error?.message || '선물을 전송하지 못했습니다. 보유 온(ON)을 확인해 주세요.',
+          error?.message || '선물을 전송하지 못했습니다. 보유 꿀떡을 확인해 주세요.',
         );
       }
     },

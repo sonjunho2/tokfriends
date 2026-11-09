@@ -997,7 +997,7 @@ export default function LiveScreen({ navigation }) {
 
             <Text style={[styles.inputLabel, { marginTop: 24 }]}>시청자 입장료 (참여 온 설정)</Text>
             <Text style={styles.inputSubLabel}>
-              호스트가 직접 시청자의 입장료를 지정할 수 있습니다. (0 온 설정 시 무료)
+              호스트가 직접 시청자의 입장료를 지정할 수 있습니다. (0 꿀떡 설정 시 무료)
             </Text>
             <View style={styles.entryFeeChipRow}>
               {[0, 10, 30, 50, 100].map((feeVal) => {
@@ -1037,7 +1037,7 @@ export default function LiveScreen({ navigation }) {
                   setEntryFee(isNaN(num) ? 0 : Math.min(num, 50000));
                 }}
               />
-              <Text style={styles.customFeeUnit}>온(ON)</Text>
+              <Text style={styles.customFeeUnit}>꿀떡</Text>
             </View>
 
             <View style={styles.modalTipCard}>

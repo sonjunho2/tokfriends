@@ -300,7 +300,7 @@ export default function GiftPickerSheet({
                   ) : (
                     <Text style={styles.sendBtnText}>
                       {myPoints < (selectedGift?.pricePoints || 0)
-                        ? '온(ON) 충전하기'
+                        ? '꿀떡 충전하기'
                         : '선물 보내기'}
                     </Text>
                   )}

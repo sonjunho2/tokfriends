@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import { apiClient } from '../api/client';
 
 /**
- * 액션별 포인트 소모 정책을 확인하고,
+ * 액션별 꿀떡 소모 정책을 확인하고,
  * 포인트가 필요한 경우 사용자에게 확인 안내창을 띄워 승인 시에만 작업을 진행합니다.
  * 포인트가 부족할 경우 상점(Shop) 화면으로 이동할 수 있는 옵션을 제공합니다.
  *
@@ -25,7 +25,7 @@ export async function checkAndConfirmActionPoint({
     let requiredAmount = 0;
     if (overrideAmount !== undefined && overrideAmount !== null) {
       requiredAmount = Math.max(0, Number(overrideAmount) || 0);
-      // 참여 비용이 0 온(무료)이면 즉시 진행
+      // 참여 비용이 0 꿀떡(무료)이면 즉시 진행
       if (requiredAmount <= 0) {
         if (typeof onConfirm === 'function') {
           onConfirm();
@@ -37,7 +37,7 @@ export async function checkAndConfirmActionPoint({
       const policy = await apiClient.getActionPointPolicy();
       const actionConfig = policy?.[actionType];
 
-      // 포인트 소모가 비활성화되어 있거나 0P인 경우 즉시 진행
+      // 꿀떡 소모가 비활성화되어 있거나 0개인 경우 즉시 진행
       if (!actionConfig || !actionConfig.enabled || actionConfig.amount <= 0) {
         if (typeof onConfirm === 'function') {
           onConfirm();
@@ -60,8 +60,8 @@ export async function checkAndConfirmActionPoint({
     // 잔액 부족 안내
     if (currentBalance < requiredAmount) {
       Alert.alert(
-        '온(ON) 부족',
-        `${actionName}을(를) 진행하려면 ${requiredAmount.toLocaleString()} 온이 필요합니다.\n\n현재 보유: ${currentBalance.toLocaleString()} 온\n부족한 온: ${(requiredAmount - currentBalance).toLocaleString()} 온\n\n온 충전소로 이동하시겠습니까?`,
+        '꿀떡 부족',
+        `${actionName}을(를) 진행하려면 ${requiredAmount.toLocaleString()} 꿀떡이 필요합니다.\n\n현재 보유: ${currentBalance.toLocaleString()} 꿀떡\n부족한 꿀떡: ${(requiredAmount - currentBalance).toLocaleString()} 꿀떡\n\n꿀떡 충전소로 이동하시겠습니까?`,
         [
           { text: '취소', style: 'cancel' },
           {

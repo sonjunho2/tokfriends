@@ -73,15 +73,15 @@ const DEFAULT_TEMPLATES: PushTemplateItem[] = [
     label: '주말 매칭 & 통화 부스트',
     title: '🔥 지금 접속자가 가장 많은 시간! 새로운 인연을 만나보세요',
     body: '서울/경기 및 전국 활성 회원이 지금 대화 상대를 찾고 있어요. 3초 만에 연결되는 1:1 라이브 통화를 시작해보세요!',
-    deepLink: 'dagaon://market/boost',
+    deepLink: 'mocco://market/boost',
     category: 'BOOST',
   },
   {
     id: 'tpl-3',
     label: '신규 3D 이펙트 선물 출시',
-    title: '🎁 네온 슈퍼카 3D 선물 오픈! 첫 충전 20% 보너스 온',
-    body: '화려한 3D 입체 이펙트로 좋아하는 호스트에게 마음을 전해보세요. 온 상점에서 20% 보너스 온을 드립니다!',
-    deepLink: 'dagaon://store/gifts',
+    title: '🎁 네온 슈퍼카 3D 선물 오픈! 첫 충전 20% 보너스 꿀떡',
+    body: '화려한 3D 입체 이펙트로 좋아하는 호스트에게 마음을 전해보세요. 꿀떡 상점에서 20% 보너스 꿀떡을 드립니다!',
+    deepLink: 'mocco://store/gifts',
     category: 'EVENT',
   },
   {
@@ -89,7 +89,7 @@ const DEFAULT_TEMPLATES: PushTemplateItem[] = [
     label: '인기 호스트 라이브 방송 시작',
     title: '🎙️ 은별_Live 님이 신청곡 라이브 방송을 시작했습니다!',
     body: '지금 바로 방송에 입장하여 달콤한 피아노 연주와 대화를 함께 즐겨보세요.',
-    deepLink: 'dagaon://live/room/301',
+    deepLink: 'mocco://live/room/301',
     category: 'FEATURE',
   },
 ]
@@ -100,7 +100,7 @@ const FALLBACK_HISTORY: PushHistoryItem[] = [
     title: '[안내] 모꼬 커뮤니티 라운지 오픈 기념 이벤트',
     body: '일상과 취미를 공유하고 새로운 친구를 만날 수 있는 커뮤니티 라운지가 열렸습니다! 지금 바로 글을 작성해보세요.',
     audience: '전체 사용자',
-    deepLink: 'dagaon://community',
+    deepLink: 'mocco://community',
     isAd: false,
     scheduleType: 'IMMEDIATE',
     sentAt: '2026-10-17 05:30',
@@ -115,7 +115,7 @@ const FALLBACK_HISTORY: PushHistoryItem[] = [
     title: '🔥 금요일 심야 실시간 라이브 부스트',
     body: '불타는 금요일 밤! 지금 인기 호스트들이 라이브 방송을 진행하고 있습니다. 놓치지 마세요!',
     audience: '일반 회원',
-    deepLink: 'dagaon://live',
+    deepLink: 'mocco://live',
     isAd: false,
     scheduleType: 'IMMEDIATE',
     sentAt: '2026-10-16 23:00',
@@ -127,10 +127,10 @@ const FALLBACK_HISTORY: PushHistoryItem[] = [
   },
   {
     id: 'push-803',
-    title: '(광고) 친구 초대하고 둘 다 50 온 코인 무제한 적립 혜택',
-    body: '내 초대 코드로 친구가 가입하면 초대한 분도, 친구도 50 온 즉시 지급! [수신거부: 마이페이지>설정]',
+    title: '(광고) 친구 초대하고 둘 다 50 꿀떡 무제한 적립 혜택',
+    body: '내 초대 코드로 친구가 가입하면 초대한 분도, 친구도 50 꿀떡 즉시 지급! [수신거부: 마이페이지>설정]',
     audience: '휴면 회원 (7일 이상)',
-    deepLink: 'dagaon://event/invite',
+    deepLink: 'mocco://event/invite',
     isAd: true,
     scheduleType: 'IMMEDIATE',
     sentAt: '2026-10-15 14:00',
@@ -342,7 +342,7 @@ export default function NotificationsPage() {
                   타깃 세그먼트 분리 및 인앱 딥링크 매핑
                 </div>
                 <p className="mt-1.5 leading-relaxed text-slate-600 dark:text-slate-400">
-                  불특정 전체 발송은 알림 피로도를 유발하므로 <strong>호스트/일반회원/휴면회원</strong>을 구분하여 타깃팅하세요. 클릭 시 해당 화면으로 즉시 이동하도록 <code>dagaon://live</code>, <code>dagaon://store</code> 등의 딥링크를 반드시 지정합니다.
+                  불특정 전체 발송은 알림 피로도를 유발하므로 <strong>호스트/일반회원/휴면회원</strong>을 구분하여 타깃팅하세요. 클릭 시 해당 화면으로 즉시 이동하도록 <code>mocco://live</code>, <code>dagaon://store</code> 등의 딥링크를 반드시 지정합니다.
                 </p>
               </div>
 
@@ -548,7 +548,7 @@ export default function NotificationsPage() {
                   <span className="text-[11px] text-muted-foreground">클릭 시 자동 이동</span>
                 </div>
                 <Input
-                  placeholder="예: dagaon://live, dagaon://store, dagaon://market"
+                  placeholder="예: mocco://live, dagaon://store, dagaon://market"
                   value={deepLink}
                   onChange={(e) => setDeepLink(e.target.value)}
                   className="h-9 text-xs"
@@ -556,31 +556,31 @@ export default function NotificationsPage() {
                 <div className="flex flex-wrap gap-1.5 pt-0.5">
                   <button
                     type="button"
-                    onClick={() => setDeepLink('dagaon://live')}
+                    onClick={() => setDeepLink('mocco://live')}
                     className="text-[10px] text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 px-2 py-0.5 rounded"
                   >
-                    + 라이브 방송 (dagaon://live)
+                    + 라이브 방송 (mocco://live)
                   </button>
                   <button
                     type="button"
-                    onClick={() => setDeepLink('dagaon://store')}
+                    onClick={() => setDeepLink('mocco://store')}
                     className="text-[10px] text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 px-2 py-0.5 rounded"
                   >
-                    + 온 상점 (dagaon://store)
+                    + 꿀떡 상점 (mocco://store)
                   </button>
                   <button
                     type="button"
-                    onClick={() => setDeepLink('dagaon://market')}
+                    onClick={() => setDeepLink('mocco://market')}
                     className="text-[10px] text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 px-2 py-0.5 rounded"
                   >
-                    + 마켓 & 스토어 (dagaon://market)
+                    + 마켓 & 스토어 (mocco://market)
                   </button>
                   <button
                     type="button"
-                    onClick={() => setDeepLink('dagaon://community')}
+                    onClick={() => setDeepLink('mocco://community')}
                     className="text-[10px] text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 px-2 py-0.5 rounded"
                   >
-                    + 커뮤니티 (dagaon://community)
+                    + 커뮤니티 (mocco://community)
                   </button>
                 </div>
               </div>
@@ -673,9 +673,9 @@ export default function NotificationsPage() {
                     <div className="flex items-center justify-between text-[10px]">
                       <div className="flex items-center gap-1.5">
                         <div className="flex h-4 w-4 items-center justify-center rounded-sm bg-indigo-600 text-white font-black text-[9px] shadow-2xs">
-                          D
+                          M
                         </div>
-                        <span className="font-bold tracking-tight text-white">모꼬 (DAGAON)</span>
+                        <span className="font-bold tracking-tight text-white">모꼬 (MOCCO)</span>
                         {isAd && (
                           <span className="bg-amber-500/80 text-white text-[8px] font-bold px-1 rounded">
                             광고

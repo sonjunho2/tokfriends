@@ -192,7 +192,7 @@ export default function LiveParticipantProfileSheet({
 
     setCalling(true);
     try {
-      // 1. 잔액 확인 (최소 1,500 ON)
+      // 1. 잔액 확인 (최소 1,500 꿀떡)
       const balanceRes = await apiClient.getPointBalance();
       const currentBalance = Number(balanceRes?.balance ?? 0);
       const minRequired = Number(callRatePerMinute) || 1500;
@@ -200,7 +200,7 @@ export default function LiveParticipantProfileSheet({
       if (currentBalance < minRequired) {
         Alert.alert(
           '포인트 부족',
-          `1:1 유료 통화를 신청하려면 최소 ${minRequired.toLocaleString()} ON이 필요합니다.\n현재 잔액: ${currentBalance.toLocaleString()} ON\n\n상점에서 온(ON)을 충전하시겠습니까?`,
+          `1:1 유료 통화를 신청하려면 최소 ${minRequired.toLocaleString()} 꿀떡이 필요합니다.\n현재 잔액: ${currentBalance.toLocaleString()} 꿀떡\n\n상점에서 꿀떡을 충전하시겠습니까?`,
           [
             { text: '닫기', style: 'cancel' },
             {
@@ -238,7 +238,7 @@ export default function LiveParticipantProfileSheet({
       if (msg.includes('포인트') || msg.includes('balance') || msg.includes('잔액')) {
         Alert.alert(
           '포인트 부족',
-          '통화를 시작하기 위한 온(ON)이 부족합니다.\n상점에서 포인트를 충전해 주세요.',
+          '통화를 시작하기 위한 꿀떡이 부족합니다.\n상점에서 꿀떡을 충전해 주세요.',
           [
             { text: '닫기', style: 'cancel' },
             {
@@ -543,7 +543,7 @@ export default function LiveParticipantProfileSheet({
                   ) : (
                     <>
                       <Ionicons name="call" size={18} color="#FFFFFF" />
-                      <Text style={styles.callBtnText}>📞 1:1 유료 통화 신청 (분당 1,500 ON)</Text>
+                      <Text style={styles.callBtnText}>📞 1:1 유료 통화 신청 (분당 1,500 꿀떡)</Text>
                     </>
                   )}
                 </TouchableOpacity>

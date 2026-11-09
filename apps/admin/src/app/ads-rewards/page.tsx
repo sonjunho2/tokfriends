@@ -129,10 +129,10 @@ const FALLBACK_OVERVIEW: AdsRewardsOverviewResponse = {
 const FALLBACK_INHOUSE_ADS: AdminAdvertisementItem[] = [
   {
     id: 'ad-001',
-    title: '신규 회원 웰컴 보너스 100 온 지급 이벤트',
-    description: '가입 즉시 100 온 코인이 지갑으로 충전됩니다. 첫 라이브 방송을 응원해보세요!',
+    title: '신규 회원 웰컴 보너스 100 꿀떡 지급 이벤트',
+    description: '가입 즉시 100 꿀떡이 지갑으로 충전됩니다. 첫 라이브 방송을 응원해보세요!',
     imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop&q=80',
-    targetUrl: 'https://dagaon.app/event/welcome',
+    targetUrl: 'https://mocco.app/event/welcome',
     placement: 'HOME_BANNER',
     priority: 10,
     rewardPoints: 0,
@@ -144,10 +144,10 @@ const FALLBACK_INHOUSE_ADS: AdminAdvertisementItem[] = [
   },
   {
     id: 'ad-002',
-    title: '무료 충전소 OPEN — 광고 보고 매일 50 온 받기',
-    description: '동영상 광고를 1회 시청할 때마다 10 온이 즉시 적립됩니다. (일일 최대 5회)',
+    title: '무료 충전소 OPEN — 광고 보고 매일 50 꿀떡 받기',
+    description: '동영상 광고를 1회 시청할 때마다 10 꿀떡이 즉시 적립됩니다. (일일 최대 5회)',
     imageUrl: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=600&auto=format&fit=crop&q=80',
-    targetUrl: 'https://dagaon.app/reward-station',
+    targetUrl: 'https://mocco.app/reward-station',
     placement: 'SHOP_BANNER',
     priority: 8,
     rewardPoints: 10,
@@ -159,10 +159,10 @@ const FALLBACK_INHOUSE_ADS: AdminAdvertisementItem[] = [
   },
   {
     id: 'ad-003',
-    title: '다가온 공식 크리에이터 2기 대모집 💎',
+    title: '모꼬 공식 크리에이터 2기 대모집 💎',
     description: '최대 80% 업계 최고 환급율! 나만의 팬덤을 만들고 주인공이 되어보세요.',
     imageUrl: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=600&auto=format&fit=crop&q=80',
-    targetUrl: 'https://dagaon.app/creator/recruit',
+    targetUrl: 'https://mocco.app/creator/recruit',
     placement: 'LIVE_BANNER',
     priority: 7,
     rewardPoints: 0,
@@ -174,10 +174,10 @@ const FALLBACK_INHOUSE_ADS: AdminAdvertisementItem[] = [
   },
   {
     id: 'ad-004',
-    title: '친구 초대하고 둘 다 50 온 코인 무제한 적립',
-    description: '초대 코드로 친구가 가입하면 초대한 사람도, 받은 사람도 50 온 즉시 지급!',
+    title: '친구 초대하고 둘 다 50 꿀떡 무제한 적립',
+    description: '초대 코드로 친구가 가입하면 초대한 사람도, 받은 사람도 50 꿀떡 즉시 지급!',
     imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80',
-    targetUrl: 'https://dagaon.app/event/referral',
+    targetUrl: 'https://mocco.app/event/referral',
     placement: 'HOME_BANNER',
     priority: 6,
     rewardPoints: 50,
@@ -442,7 +442,7 @@ export default function AdsRewardsPage() {
                 3단계: 출석체크 & 친구초대 리워드 원장 대사
               </span>
               <p className="mt-1.5 text-muted-foreground">
-                매일 자정(KST) 자동 갱신되는 <b>출석 보상(5 온)</b>과 <b>친구 초대 보상(50 온)</b>의 지급 내역은 [리워드 지급 로그]에서 실시간으로 대사할 수 있으며, 모든 보상은 불변 원장에 기록되어 이중 수령을 차단합니다.
+                매일 자정(KST) 자동 갱신되는 <b>출석 보상(5 꿀떡)</b>과 <b>친구 초대 보상(50 꿀떡)</b>의 지급 내역은 [리워드 지급 로그]에서 실시간으로 대사할 수 있으며, 모든 보상은 불변 원장에 기록되어 이중 수령을 차단합니다.
               </p>
             </div>
           </div>
@@ -457,7 +457,7 @@ export default function AdsRewardsPage() {
               <div>
                 <p className="text-xs text-muted-foreground">총 지급 리워드 꿀떡</p>
                 <p className="text-2xl font-bold mt-1 text-amber-600">
-                  {loading ? '—' : `${data?.stats.totalPointsDistributed.toLocaleString()} 온`}
+                  {loading ? '—' : `${data?.stats.totalPointsDistributed.toLocaleString()} 꿀떡`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">사용자 지갑 충전 누적액</p>
               </div>
@@ -592,7 +592,7 @@ export default function AdsRewardsPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground">광고 1회당 지급 온 (ON)</label>
+                    <label className="text-xs font-semibold text-muted-foreground">광고 1회당 지급 꿀떡</label>
                     <Input
                       type="number"
                       min={1}
@@ -602,7 +602,7 @@ export default function AdsRewardsPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground">출석체크 지급 온 (ON)</label>
+                    <label className="text-xs font-semibold text-muted-foreground">출석체크 지급 꿀떡</label>
                     <Input
                       type="number"
                       min={1}
@@ -612,7 +612,7 @@ export default function AdsRewardsPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground">친구초대 1인당 온 (ON)</label>
+                    <label className="text-xs font-semibold text-muted-foreground">친구초대 1인당 꿀떡</label>
                     <Input
                       type="number"
                       min={1}
@@ -814,7 +814,7 @@ export default function AdsRewardsPage() {
               <CardContent className="space-y-2 text-xs">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">출석 보상:</span>
-                  <span className="font-bold text-blue-600">+{attendancePoints} 온</span>
+                  <span className="font-bold text-blue-600">+{attendancePoints} 꿀떡</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">지급 주기:</span>
@@ -837,11 +837,11 @@ export default function AdsRewardsPage() {
               <CardContent className="space-y-2 text-xs">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">추천인 보상:</span>
-                  <span className="font-bold text-purple-600">+{referralPoints} 온</span>
+                  <span className="font-bold text-purple-600">+{referralPoints} 꿀떡</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">피추천인 혜택:</span>
-                  <span>가입 시 50 온 즉시 지급</span>
+                  <span>가입 시 50 꿀떡 즉시 지급</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">상태:</span>
@@ -918,7 +918,7 @@ export default function AdsRewardsPage() {
               <Input
                 value={adTitle}
                 onChange={(e) => setAdTitle(e.target.value)}
-                placeholder="다가온 첫 만남 이벤트"
+                placeholder="모꼬 첫 만남 이벤트"
                 className="text-xs"
               />
             </div>

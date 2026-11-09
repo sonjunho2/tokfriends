@@ -301,7 +301,7 @@ export function MoccoPointChargeModal({
               {/* Package Select Grid */}
               <div>
                 <label className="block text-xs font-bold text-white mb-2.5 flex items-center justify-between">
-                  <span>1. 충전 포인트 패키지 선택</span>
+                  <span>1. 충전 꿀떡 패키지 선택</span>
                   <span className="text-[11px] font-normal text-neutral-400">
                     모바일 앱과 100% 동일한 혜택가
                   </span>
@@ -447,7 +447,7 @@ export function MoccoPointChargeModal({
                 </div>
                 <h4 className="text-lg font-black text-white">모꼬 꿀떡 충전이 완료되었습니다!</h4>
                 <p className="text-xs text-neutral-300">
-                  결제가 정상 완료되어 포인트 잔액이 즉시 반영되었습니다.
+                  결제가 정상 완료되어 꿀떡 잔액이 즉시 반영되었습니다.
                 </p>
               </div>
 
@@ -485,7 +485,7 @@ export function MoccoPointChargeModal({
                     </span>
                   </div>
                   <div className="flex justify-between pt-2 border-t border-neutral-800">
-                    <span className="text-pink-400 font-bold">충전 지급 포인트</span>
+                    <span className="text-pink-400 font-bold">충전 지급 꿀떡</span>
                     <span className="text-pink-400 font-black text-sm">
                       +{receiptData.chargedPoints.toLocaleString()} P
                     </span>
@@ -544,7 +544,7 @@ export function MoccoPointChargeModal({
               onClick={handleClose}
               className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-10 rounded-xl"
             >
-              확인 및 포인트 사용하기
+              확인 및 꿀떡 사용하기
             </Button>
           )}
         </div>

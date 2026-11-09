@@ -39,10 +39,10 @@ const CATEGORIES = ['#친목', '#취미', '#고민', '#운동', '#동네', '#자
 // 입장료 프리셋 칩 목록
 const ENTRY_FEE_PRESETS = [
   { label: '무료', value: 0 },
-  { label: '10 ON', value: 10 },
-  { label: '30 ON', value: 30 },
-  { label: '50 ON', value: 50 },
-  { label: '100 ON', value: 100 },
+  { label: '10 꿀떡', value: 10 },
+  { label: '30 꿀떡', value: 30 },
+  { label: '50 꿀떡', value: 50 },
+  { label: '100 꿀떡', value: 100 },
   { label: '직접 입력', value: -1 },
 ];
 
@@ -83,7 +83,7 @@ export default function CreateRoomModal({
     return selectedFeePreset;
   }, [selectedFeePreset, customFeeInput]);
 
-  // 50 ON 이상일 때 VIP 프라이빗 룸 여부
+  // 50 꿀떡 이상일 때 VIP 프라이빗 룸 여부
   const isVipPrivateRoom = effectiveEntryFee >= 50;
 
   // 폼 초기화
@@ -464,7 +464,7 @@ export default function CreateRoomModal({
                       <View style={{ flex: 1 }}>
                         <Text style={styles.vipNoticeTitle}>VIP 프라이빗 룸 인증</Text>
                         <Text style={styles.vipNoticeDesc}>
-                          50 ON 이상 설정 시 VIP 프라이빗 뱃지가 자동 부여되며 진정성 있는 인연들과 더 깊이 있는 대화가 가능합니다.
+                          50 꿀떡 이상 설정 시 VIP 프라이빗 뱃지가 자동 부여되며 진정성 있는 인연들과 더 깊이 있는 대화가 가능합니다.
                         </Text>
                       </View>
                     </View>

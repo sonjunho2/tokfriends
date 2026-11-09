@@ -105,7 +105,7 @@ const FALLBACK_POSTS: CommunityPost[] = [
     id: 'post-101',
     authorId: 'admin-official',
     authorNickname: '모꼬 공식운영팀',
-    authorDisplayName: 'DAGAON Official',
+    authorDisplayName: 'MOCCO Official',
     authorAvatarUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80',
     authorRole: 'ADMIN',
     category: 'OFFICIAL',
@@ -288,7 +288,7 @@ const FALLBACK_ANNOUNCEMENTS: Announcement[] = [
     body: '회원 여러분의 안전하고 즐거운 대화를 위해 24시간 실시간 AI 모니터링이 가동 중입니다. 외부 연락처 공유 유도, 음란/욕설, 타인 비방 행위 시 사전 경고 없이 계정이 영구 정지될 수 있습니다.',
     content: '회원 여러분의 안전하고 즐거운 대화를 위해 24시간 실시간 AI 모니터링이 가동 중입니다. 외부 연락처 공유 유도, 음란/욕설, 타인 비방 행위 시 사전 경고 없이 계정이 영구 정지될 수 있습니다.',
     audience: '전체',
-    link: 'https://dagaon.app/policy/community-rules',
+    link: 'https://mocco.app/policy/community-rules',
     isActive: true,
     isPopup: true,
     isImportant: true,
@@ -303,7 +303,7 @@ const FALLBACK_ANNOUNCEMENTS: Announcement[] = [
     body: '네온 슈퍼카, 골든 드래곤 등 화려한 3D 알파 이펙트 선물이 추가되었습니다. 기간 내 온 상점에서 첫 충전 시 추가 20% 보너스 온을 드립니다!',
     content: '네온 슈퍼카, 골든 드래곤 등 화려한 3D 알파 이펙트 선물이 추가되었습니다. 기간 내 온 상점에서 첫 충전 시 추가 20% 보너스 온을 드립니다!',
     audience: '홈 배너',
-    link: 'https://dagaon.app/event/3d-gifts-launch',
+    link: 'https://mocco.app/event/3d-gifts-launch',
     isActive: true,
     isPopup: true,
     isImportant: false,
@@ -334,7 +334,7 @@ const FALLBACK_ANNOUNCEMENTS: Announcement[] = [
     body: '고화질 영상 코덱 적용으로 배터리 소모를 30% 줄이고 프레임 드랍을 개선했습니다. 지금 바로 최신 버전으로 업데이트하세요.',
     content: '고화질 영상 코덱 적용으로 배터리 소모를 30% 줄이고 프레임 드랍을 개선했습니다. 지금 바로 최신 버전으로 업데이트하세요.',
     audience: '마이페이지',
-    link: 'https://dagaon.app/download',
+    link: 'https://mocco.app/download',
     isActive: true,
     isPopup: false,
     isImportant: false,
@@ -1590,7 +1590,7 @@ export default function ContentAndAnnouncementsPage() {
                             )}
                             <span className="text-[10px] text-slate-500">모꼬 공식 안내</span>
                           </div>
-                          <span className="text-[10px] text-slate-400">DAGAON</span>
+                          <span className="text-[10px] text-slate-400">MOCCO</span>
                         </div>
 
                         <h4 className="font-bold text-xs text-slate-900 leading-snug">
@@ -1941,7 +1941,7 @@ export default function ContentAndAnnouncementsPage() {
             <div className="space-y-1.5">
               <Label>제목 (선택)</Label>
               <Input
-                placeholder="예: 🎉 모꼬 봄맞이 첫 온 충전 20% 보너스 이벤트!"
+                placeholder="예: 🎉 모꼬 봄맞이 첫 꿀떡 충전 20% 보너스 이벤트!"
                 value={newPostTitle}
                 onChange={(e) => setNewPostTitle(e.target.value)}
                 className="h-9 text-xs"
@@ -2283,7 +2283,7 @@ export default function ContentAndAnnouncementsPage() {
             <div className="space-y-1.5">
               <Label>링크 URL (선택)</Label>
               <Input
-                placeholder="https://dagaon.app/policy 또는 딥링크"
+                placeholder="https://mocco.app/policy 또는 딥링크"
                 value={annForm.link}
                 onChange={(e) => setAnnForm((prev) => ({ ...prev, link: e.target.value }))}
                 className="h-9 text-xs"

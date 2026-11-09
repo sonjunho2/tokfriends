@@ -85,7 +85,7 @@ const routeMap = defineRouteMap({
     required: '/users/{userId}/adjust-points',
     actual: '/admin/users/:userId/adjust-points',
     method: 'post',
-    description: '관리자 수동 포인트 지급 및 회수.',
+    description: '관리자 수동 꿀떡 지급 및 회수.',
   },
   'community.report': {
     key: 'community.report',

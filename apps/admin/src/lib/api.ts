@@ -1598,7 +1598,7 @@ export async function getFunnelAnalytics(): Promise<FunnelStage[]> {
       { step: 3, name: '프로필 탐색 & 이웃 발견', count: 8120, conversionRate: 64.9, dropRate: 17.6 },
       { step: 4, name: '1:1 대화방 개설 / 라이브 입장', count: 5440, conversionRate: 43.5, dropRate: 33.0 },
       { step: 5, name: '1:1 프라이빗 통화 성사', count: 2680, conversionRate: 21.4, dropRate: 50.7 },
-      { step: 6, name: '온(ON) 결제 / 선물 후원', count: 1088, conversionRate: 8.7, dropRate: 59.4 },
+      { step: 6, name: '꿀떡 결제 / 선물 후원', count: 1088, conversionRate: 8.7, dropRate: 59.4 },
     ]
   }
 }
@@ -2045,7 +2045,7 @@ export interface ApiManagerSnapshot {
 
 const FALLBACK_ENDPOINTS: ApiEndpointInfo[] = [
   { id: 'ep-auth-login', method: 'POST', path: '/v1/auth/login/email', module: 'Auth', description: '이메일 기반 로그인 및 JWT 세션 토큰 발급', rateLimitPerMin: 15, enabled: true, requiresAuth: false, latencyMs: 38, totalCalls24h: 34200, errorCount24h: 12 },
-  { id: 'ep-users-me', method: 'GET', path: '/v1/users/me', module: 'Users', description: '내 프로필 및 보유 온(ON) 잔여 포인트 조회', rateLimitPerMin: 120, enabled: true, requiresAuth: true, latencyMs: 18, totalCalls24h: 215400, errorCount24h: 4 },
+  { id: 'ep-users-me', method: 'GET', path: '/v1/users/me', module: 'Users', description: '내 프로필 및 보유 꿀떡/머니 조회', rateLimitPerMin: 120, enabled: true, requiresAuth: true, latencyMs: 18, totalCalls24h: 215400, errorCount24h: 4 },
   { id: 'ep-discover-feed', method: 'GET', path: '/v1/discover', module: 'Discover', description: '주변 이웃 및 접속 중인 추천 인연 피드 탐색', rateLimitPerMin: 60, enabled: true, requiresAuth: true, latencyMs: 32, totalCalls24h: 489000, errorCount24h: 8 },
   { id: 'ep-calls-initiate', method: 'POST', path: '/v1/calls/private/initiate', module: 'Calls', description: '1:1 프라이빗 영상/음성 통화 세션 개설 및 첫 1분 선차감', rateLimitPerMin: 10, enabled: true, requiresAuth: true, latencyMs: 65, totalCalls24h: 26800, errorCount24h: 3 },
   { id: 'ep-calls-token', method: 'POST', path: '/v1/calls/private/token', module: 'Calls', description: 'Agora RTC 암호화 채널 참여 토큰 발급', rateLimitPerMin: 30, enabled: true, requiresAuth: true, latencyMs: 22, totalCalls24h: 53600, errorCount24h: 0 },
@@ -2053,7 +2053,7 @@ const FALLBACK_ENDPOINTS: ApiEndpointInfo[] = [
   { id: 'ep-chats-list', method: 'GET', path: '/v1/chats', module: 'Chats', description: '내 1:1 대화방 목록 및 안 읽은 메시지 수 조회', rateLimitPerMin: 100, enabled: true, requiresAuth: true, latencyMs: 24, totalCalls24h: 312000, errorCount24h: 5 },
   { id: 'ep-chats-message-send', method: 'POST', path: '/v1/chats/:id/messages', module: 'Chats', description: '1:1 대화방 메시지 전송 및 웹소켓 브로드캐스트', rateLimitPerMin: 150, enabled: true, requiresAuth: true, latencyMs: 35, totalCalls24h: 421000, errorCount24h: 9 },
   { id: 'ep-community-posts', method: 'GET', path: '/v1/posts', module: 'Community', description: '동네생활 및 일상 커뮤니티 피드 목록 조회', rateLimitPerMin: 60, enabled: true, requiresAuth: true, latencyMs: 34, totalCalls24h: 185000, errorCount24h: 3 },
-  { id: 'ep-store-products', method: 'GET', path: '/v1/store/point-products', module: 'Store', description: '온(ON) 포인트 충전 상품 목록 및 단가 조회', rateLimitPerMin: 60, enabled: true, requiresAuth: false, latencyMs: 16, totalCalls24h: 98000, errorCount24h: 0 },
+  { id: 'ep-store-products', method: 'GET', path: '/v1/store/point-products', module: 'Store', description: '꿀떡 충전 상품 목록 및 단가 조회', rateLimitPerMin: 60, enabled: true, requiresAuth: false, latencyMs: 16, totalCalls24h: 98000, errorCount24h: 0 },
   { id: 'ep-safety-report', method: 'POST', path: '/v1/reports', module: 'Safety', description: '유저 및 유해 게시글 2단계 심층 신고 접수', rateLimitPerMin: 10, enabled: true, requiresAuth: true, latencyMs: 54, totalCalls24h: 4200, errorCount24h: 0 },
 ]
 

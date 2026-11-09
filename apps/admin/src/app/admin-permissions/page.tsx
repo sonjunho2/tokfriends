@@ -66,7 +66,7 @@ const ROLE_BADGES: Record<string, { bg: string; text: string; label: string; bor
 }
 
 const AVAILABLE_PERMISSIONS = [
-  { key: 'users.manage', label: '회원 관리 & 제재', desc: '회원 상태 변경, 강제 탈퇴, 포인트 지급/회수' },
+  { key: 'users.manage', label: '회원 관리 & 제재', desc: '회원 상태 변경, 강제 탈퇴, 꿀떡/머니 지급 및 회수' },
   { key: 'reports.view', label: '신고 내역 열람', desc: '유저 및 게시글 신고 내역 및 AI 분석 조회' },
   { key: 'content.manage', label: '콘텐츠 검수 & 공지', desc: '피드 블라인드, 공지사항 발행, 팝업 제어' },
   { key: 'refunds.view', label: '환불 내역 열람', desc: '결제 환불 신청 건 조회' },
@@ -1091,7 +1091,7 @@ export default function AdminPermissionsPage() {
             <div>
               <Label className="text-xs font-semibold">초대 이메일 주소</Label>
               <Input
-                placeholder="예: operator@dagaon.app"
+                placeholder="예: operator@mocco.app"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 className="mt-1 text-sm"

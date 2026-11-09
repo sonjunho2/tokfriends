@@ -211,7 +211,7 @@ export function CallRateSettingCard({
                   <Coins className="h-3.5 w-3.5 text-amber-500" />
                   현재 적용:
                   <span className="font-bold text-foreground">
-                    {setting ? setting.ratePerMinute.toLocaleString() : '1,500'} P / 분
+                    {setting ? setting.ratePerMinute.toLocaleString() : '1,500'} 꿀떡 / 분
                   </span>
                 </div>
               </div>
@@ -229,7 +229,7 @@ export function CallRateSettingCard({
                   className="h-12 pr-16 text-right font-mono text-xl font-bold tracking-tight shadow-inner"
                 />
                 <div className="pointer-events-none absolute right-3 top-3 flex items-center gap-1 text-sm font-semibold text-muted-foreground">
-                  <span>P / 분</span>
+                  <span>꿀떡 / 분</span>
                 </div>
               </div>
 
@@ -245,7 +245,7 @@ export function CallRateSettingCard({
                     onClick={() => addAmount(amount)}
                     className="h-7 px-2.5 text-xs hover:border-rose-400 hover:bg-rose-500/10 hover:text-rose-600"
                   >
-                    +{amount.toLocaleString()}P
+                    +{amount.toLocaleString()} 꿀떡
                   </Button>
                 ))}
                 <Button
@@ -255,7 +255,7 @@ export function CallRateSettingCard({
                   onClick={handleResetToDefault}
                   className="h-7 px-2.5 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-500/20"
                 >
-                  기본값 복원 (1,500P)
+                  기본값 복원 (1,500 꿀떡)
                 </Button>
               </div>
             </div>
@@ -273,7 +273,7 @@ export function CallRateSettingCard({
                 type="text"
                 value={descriptionInput}
                 onChange={(e) => setDescriptionInput(e.target.value)}
-                placeholder="1:1 영상 통화 기본 분당 요금(포인트)"
+                placeholder="1:1 영상 통화 기본 분당 요금(꿀떡)"
                 className="mt-2 h-10 text-sm"
               />
             </div>
@@ -284,10 +284,10 @@ export function CallRateSettingCard({
             <div>
               <div className="flex items-center gap-2 text-sm font-bold text-foreground">
                 <Calculator className="h-4 w-4 text-rose-500" />
-                통화 시간별 예상 포인트 차감 시뮬레이터
+                통화 시간별 예상 꿀떡 차감 시뮬레이터
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                현재 입력된 <span className="font-semibold text-rose-600 dark:text-rose-400">{rateInput.toLocaleString()} P/분</span> 기준으로 유저에게 차감될 예상 포인트입니다.
+                현재 입력된 <span className="font-semibold text-rose-600 dark:text-rose-400">{rateInput.toLocaleString()} 꿀떡/분</span> 기준으로 유저에게 차감될 예상 꿀떡입니다.
               </p>
 
               <div className="mt-3.5 space-y-2">
@@ -309,7 +309,7 @@ export function CallRateSettingCard({
                       </div>
                       <div className="flex items-center gap-1 font-mono font-bold text-rose-600 dark:text-rose-400">
                         <span>{cost.toLocaleString()}</span>
-                        <span className="text-[10px] text-muted-foreground">P</span>
+                        <span className="text-[10px] text-muted-foreground">꿀떡</span>
                       </div>
                     </div>
                   )

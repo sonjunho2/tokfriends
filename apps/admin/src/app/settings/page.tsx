@@ -117,7 +117,7 @@ const DEFAULT_INTEGRATION_ITEMS: DefaultIntegrationItemDef[] = [
   // 5. 제브 AI (Zev AI) 및 AI 직원 거버넌스 & 클라우드 스토리지
   { id: 'gemini_api_key', label: 'Google Gemini API Key (실시간 영상 채증 및 법률 대조)', placeholder: 'AIzaSy... (채증/법률 대조/AI 직원)', envKey: 'GEMINI_API_KEY', category: 'ai_storage' },
   { id: 'zev_ai_model', label: '제브 AI (Zev AI) 수석 판정관 LLM 모델', placeholder: 'gemini-2.5-flash (권장) 또는 gemini-1.5-pro', envKey: 'ZEV_AI_MODEL', category: 'ai_storage' },
-  { id: 'zev_ai_prompt_policy', label: '제브 AI 법률/약관 대조 기준 지침', placeholder: '정보통신망법 제44조의7 및 다가온 운영원칙 준용', envKey: 'ZEV_AI_PROMPT_POLICY', category: 'ai_storage' },
+  { id: 'zev_ai_prompt_policy', label: '제브 AI 법률/약관 대조 기준 지침', placeholder: '정보통신망법 제44조의7 및 모꼬 운영원칙 준용', envKey: 'ZEV_AI_PROMPT_POLICY', category: 'ai_storage' },
   { id: 'ai_staff_models', label: 'AI 직원별 LLM 모델 지정 (JSON)', placeholder: '{"director":"gemini-2.5-flash",...}', envKey: 'AI_STAFF_MODELS', category: 'ai_storage' },
   { id: 'supabase_url', label: 'Supabase 프로젝트 URL', placeholder: 'https://xxxx.supabase.co', envKey: 'SUPABASE_URL', category: 'ai_storage' },
   { id: 'supabase_service_role_key', label: 'Supabase Service Role Key', placeholder: 'eyJhbGciOiJIUzI1Ni... (스토리지/채증 관리자 키)', envKey: 'SUPABASE_SERVICE_ROLE_KEY', category: 'ai_storage' },
@@ -150,7 +150,7 @@ function generateEnvProductionText(integrations: AdminIntegrationDraft[]): strin
   const byId = new Map(integrations.map((i) => [i.id, i]))
   const lines: string[] = [
     '# ==============================================================================',
-    '# 다가온 (DAGAON) 본서버 실서비스 환경설정 (.env.production)',
+    '# 모꼬 (MOCCO) 본서버 실서비스 환경설정 (.env.production)',
     `# 내보내기 일시: ${new Date().toLocaleString('ko-KR')}`,
     '# 본 파일의 내용을 본서버(Render / Vercel / Docker / 자체 서버)의 환경변수에 주입하세요.',
     '# ==============================================================================',
@@ -1902,10 +1902,10 @@ export default function SettingsPage() {
       </section>
     )}
 
-    {/* 포인트 소모 및 통화 요금 정책 섹션 */}
+    {/* 꿀떡 소모 및 통화 요금 정책 섹션 */}
     {isSectionVisible('pointPolicy') && (
       <section id="settings-pointPolicy" className="space-y-6">
-        {/* 1:1 영상 통화 기본 분당 요금(포인트) 동적 설정 카드 */}
+        {/* 1:1 영상 통화 기본 분당 요금(꿀떡) 동적 설정 카드 */}
         <CallRateSettingCard
           initialData={callRate}
           onUpdated={(updated) => setCallRate(updated)}

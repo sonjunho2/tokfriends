@@ -263,7 +263,7 @@ export default function LivePage() {
                 id: 'm2',
                 roomId: room.id,
                 type: 'GIFT',
-                content: '하트 50개 (5,000온) 선물',
+                content: '하트 50개 (5,000 꿀떡) 선물',
                 giftPoints: 5000,
                 createdAt: '11:20',
                 sender: { id: 'u2', name: '이수진', avatar: null },
@@ -535,7 +535,7 @@ export default function LivePage() {
               <div>
                 <p className="text-xs text-muted-foreground">누적 후원 꿀떡</p>
                 <p className="text-2xl font-bold mt-1 text-amber-600">
-                  {(summary?.totalGiftPoints ?? 0).toLocaleString()} 온
+                  {(summary?.totalGiftPoints ?? 0).toLocaleString()} 꿀떡
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">시청자 후원 총액</p>
               </div>
@@ -745,7 +745,7 @@ export default function LivePage() {
                       </div>
                     </div>
 
-                    {/* 지표: 좋아요 & 후원 온 */}
+                    {/* 지표: 좋아요 & 후원 꿀떡 */}
                     <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-2 text-xs">
                       <div className="flex items-center gap-1.5">
                         <Heart className="h-3.5 w-3.5 text-rose-500 fill-rose-500" />
@@ -754,7 +754,7 @@ export default function LivePage() {
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Gift className="h-3.5 w-3.5 text-amber-500" />
-                        <span className="text-muted-foreground">후원 온:</span>
+                        <span className="text-muted-foreground">후원 꿀떡:</span>
                         <span className="font-semibold">{room.totalGiftsPoints.toLocaleString()}</span>
                       </div>
                     </div>

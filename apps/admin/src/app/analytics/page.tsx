@@ -658,7 +658,7 @@ export default function AnalyticsPage() {
                     </div>
                   </div>
 
-                  {/* 온 충전소 인앱결제 */}
+                  {/* 꿀떡 충전소 인앱결제 */}
                   <div>
                     <div className="flex justify-between text-xs mb-1.5">
                       <span className="text-slate-700 font-medium flex items-center gap-1.5">
@@ -881,7 +881,7 @@ export default function AnalyticsPage() {
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      수신 채널: <span className="text-foreground font-mono">{job.destination === 'Slack' ? '#dagaon-kpi-daily' : 'growth@dagaon.app'}</span>
+                      수신 채널: <span className="text-foreground font-mono">{job.destination === 'Slack' ? '#mocco-kpi-daily' : 'growth@mocco.app'}</span>
                     </p>
                   </div>
 
@@ -1020,7 +1020,7 @@ export default function AnalyticsPage() {
             <div>
               <Label className="text-xs font-semibold">지표명 (KPI Name)</Label>
               <Input
-                placeholder="예: VIP 온 충전 유저 수"
+                placeholder="예: VIP 꿀떡 충전 유저 수"
                 value={metricForm.name}
                 onChange={(e) => setMetricForm({ ...metricForm, name: e.target.value })}
                 className="mt-1 text-sm"

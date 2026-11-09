@@ -217,7 +217,7 @@ export default function StoreProductsPage() {
   function openCreateDialog() {
     const nextOrder = (products[products.length - 1]?.order ?? products.length) + 1
     const defaultPoints = 5000
-    setModalName(`${defaultPoints.toLocaleString()} 온 충전`)
+    setModalName(`${defaultPoints.toLocaleString()} 꿀떡 충전`)
     setModalPoints(defaultPoints)
     setModalPrice(Math.round(defaultPoints * 1.1))
     setModalAndroidId(`com.tokfriends.point.${defaultPoints}`)
@@ -561,7 +561,7 @@ export default function StoreProductsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">기본 충전 비율</p>
-                <p className="text-2xl font-bold mt-1 text-blue-600">1 온 : 1.1원</p>
+                <p className="text-2xl font-bold mt-1 text-blue-600">1 꿀떡 : 1.1원</p>
                 <p className="text-xs text-muted-foreground mt-0.5">VAT 10% 포함 기준</p>
               </div>
               <Coins className="h-8 w-8 text-blue-500 opacity-80" />
@@ -651,14 +651,14 @@ export default function StoreProductsPage() {
                   </div>
                 </div>
 
-                {/* 상품 기본 정보 (이름 / 온 수량 / 판매가) */}
+                {/* 상품 기본 정보 (이름 / 꿀떡 수량 / 판매가) */}
                 <div className="grid gap-3 lg:grid-cols-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">상품 노출명 *</Label>
                     <Input
                       value={product.name ?? ''}
                       onChange={(event) => handleFieldChange(product.id, 'name', event.target.value)}
-                      placeholder="예: 5,000 온 충전"
+                      placeholder="예: 5,000 꿀떡 충전"
                       className="text-xs font-medium"
                     />
                     <p className="text-[11px] text-muted-foreground">앱 상점 화면에 유저에게 노출되는 패키지 명칭</p>
@@ -815,7 +815,7 @@ export default function StoreProductsPage() {
                 id="m-name"
                 value={modalName}
                 onChange={(e) => setModalName(e.target.value)}
-                placeholder="예: 5,000 온 충전"
+                placeholder="예: 5,000 꿀떡 충전"
                 className="text-xs"
               />
             </div>
