@@ -2723,23 +2723,8 @@ export default function CustomerWebStorefrontPage() {
               ) : (
                 /* Authenticated State */
                 <div className="flex items-center gap-2 sm:gap-3">
-                  {/* Dedicated Super Admin Console Button for ADMIN role only */}
-                  {role === 'ADMIN' && (
-                    <Button
-                      asChild
-                      size="sm"
-                      className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs h-8 rounded-xl px-3 shrink-0"
-                    >
-                      <Link href="/dashboard">
-                        <Crown className="h-3.5 w-3.5 mr-1 text-amber-400" />
-                        회사 총괄 관리자 콘솔
-                        <ExternalLink className="h-3 w-3 ml-1 opacity-70" />
-                      </Link>
-                    </Button>
-                  )}
-
                   {/* User Profile Info & Logout */}
-                  <div className="flex items-center gap-2 pl-2 border-l">
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => setActiveTab('MY')}
                       className="flex items-center gap-2 hover:opacity-80 transition-opacity"
