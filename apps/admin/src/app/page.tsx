@@ -3569,18 +3569,7 @@ export default function CustomerWebStorefrontPage() {
                       중고 물품 판매 등록
                     </Button>
                   )}
-                  {(role === 'MERCHANT' || role === 'ADMIN') && (
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-xs sm:text-sm font-bold h-9 sm:h-10 px-4 rounded-xl"
-                    >
-                      <Link href="/seller/products/new">
-                        <Store className="h-4 w-4 mr-1.5" />
-                        셀러 센터 상품 등록
-                      </Link>
-                    </Button>
-                  )}
+
                 </div>
               </div>
 
