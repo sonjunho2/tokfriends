@@ -18,6 +18,9 @@ import {
   RefreshCcw,
   Search,
   Wallet,
+  Download,
+  FileSpreadsheet,
+  FileText,
   X,
   XCircle,
 } from 'lucide-react'
@@ -54,6 +57,34 @@ import {
 import type { AxiosError } from 'axios'
 
 // Safe helper functions to prevent any undefined/null/NaN runtime crashes
+
+// 🏛️ 한국 금융결제원 표준 은행 코드 매핑
+const BANK_CODES: Record<string, string> = {
+  '국민은행': '004',
+  'KB국민은행': '004',
+  '기업은행': '003',
+  'IBK기업은행': '003',
+  '농협은행': '011',
+  'NH농협': '011',
+  '신한은행': '088',
+  '우리은행': '020',
+  '하나은행': '081',
+  'KEB하나은행': '081',
+  '카카오뱅크': '090',
+  '토스뱅크': '092',
+  '케이뱅크': '089',
+  'SC제일은행': '023',
+  '우체국': '071',
+  '부산은행': '032',
+  '대구은행': '031',
+  '광주은행': '034',
+  '전북은행': '037',
+  '경남은행': '039',
+  '수협은행': '007',
+  '새마을금고': '045',
+  '신협': '048',
+}
+
 const safeNum = (val: any): number => {
   if (typeof val === 'number' && !isNaN(val)) return val
   const n = Number(val)
@@ -240,6 +271,13 @@ export default function SettlementPage() {
   const [rejectModalOpen, setRejectModalOpen] = useState(false)
   const [selectedRequestForReject, setSelectedRequestForReject] = useState<SettlementRequestItem | null>(null)
   const [rejectReason, setRejectReason] = useState('')
+  // 📥 대량 이체 엑셀 다운로드 및 일괄 송금 승인 상태
+  const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([])
+  const [selectedDetailItem, setSelectedDetailItem] = useState<SettlementRequestItem | null>(null)
+  const [isBulkApproveModalOpen, setIsBulkApproveModalOpen] = useState(false)
+  const [bulkApproveMemo, setBulkApproveMemo] = useState('')
+  const [bulkProcessing, setBulkProcessing] = useState(false)
+
   const [submittingAction, setSubmittingAction] = useState(false)
 
   // Tab: Refunds
@@ -445,6 +483,154 @@ export default function SettlementPage() {
     }
   }
 
+
+  // 📥 은행 대량 이체 표준 엑셀(CSV) 생성 및 다운로드 (UTF-8 BOM 지원으로 한글 깨짐 원천 방어)
+  const handleDownloadBankExcel = (mode: 'selected' | 'pending' | 'all') => {
+    let targetList: SettlementRequestItem[] = []
+    if (mode === 'selected') {
+      targetList = requests.filter((r) => selectedRequestIds.includes(r.id))
+      if (targetList.length === 0) {
+        toast({ title: '선택된 내역 없음', description: '엑셀로 내보낼 항목을 먼저 체크박스로 선택해 주세요.', variant: 'destructive' })
+        return
+      }
+    } else if (mode === 'pending') {
+      targetList = requests.filter((r) => r.status === 'PENDING')
+      if (targetList.length === 0) {
+        toast({ title: '대기 중인 출금 신청 없음', description: '현재 승인 대기(PENDING) 상태인 출금 요청이 없습니다.' })
+        return
+      }
+    } else {
+      targetList = requests
+    }
+
+    // CSV 헤더 정의 (시중은행 기업 뱅킹 공통 대량 급여/이체 포맷 준수)
+    const headers = [
+      '순번',
+      '입금은행코드',
+      '입금은행명',
+      '입금계좌번호',
+      '이체금액(실지급액KRW)',
+      '받는분성명(예금주)',
+      '내통장표기',
+      '받는분통장표기',
+      '호스트닉네임',
+      '회원등급',
+      '신청꿀떡(개)',
+      '적용단가(원)',
+      '회사수수료(원)',
+      '원천징수세(3.3%)',
+      '정산상태',
+      '신청일시',
+      '신청ID',
+    ]
+
+    const rows = targetList.map((item, idx) => {
+      const bankCode = BANK_CODES[item.bankName || ''] || '000'
+      const netAmount = safeNum(item.netAmount)
+      const points = safeNum(item.pointsAmount)
+      const tier = item.tier || item.activityAccount?.owner?.legacyUser?.streamerTier || 'ROOKIE'
+      const rate = item.exchangeRate ?? (tier === 'PARTNER' ? 80 : tier === 'BEST' ? 70 : 60)
+      const platformFee = item.platformFeeKrw != null ? item.platformFeeKrw : Math.max(0, points * 100 - safeNum(item.krwAmount))
+      const cleanAccount = String(item.accountNumber || '').replace(/[^0-9]/g, '')
+
+      return [
+        idx + 1,
+        bankCode,
+        `"${(item.bankName || '').replace(/"/g, '""')}"`,
+        `"	${cleanAccount}"`, // 엑셀에서 앞자리 0 누락 방지 (	 접두)
+        netAmount,
+        `"${(item.accountHolder || '').replace(/"/g, '""')}"`,
+        '"모꼬수익금"',
+        '"모꼬정산"',
+        `"${(item.activityAccount?.displayName || '').replace(/"/g, '""')}"`,
+        tier,
+        points,
+        rate,
+        platformFee,
+        safeNum(item.taxAmount),
+        item.status || 'PENDING',
+        `"${item.createdAt || ''}"`,
+        item.id,
+      ].join(',')
+    })
+
+    // UTF-8 BOM(﻿) 추가하여 엑셀 오픈 시 한글 깨짐 방지
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const now = new Date()
+    const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`
+    link.href = url
+    link.setAttribute('download', `모꼬_크리에이터_대량이체_${mode.toUpperCase()}_${timestamp}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    toast({
+      title: '📥 대량 이체 엑셀 다운로드 완료',
+      description: `총 ${targetList.length}건의 이체 데이터가 다운로드되었습니다. 기업 인터넷 뱅킹에서 일괄 등록하세요.`,
+    })
+  }
+
+  // ☑️ 전체 선택/해제 핸들러
+  const handleToggleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRequestIds(requests.map((r) => r.id))
+    } else {
+      setSelectedRequestIds([])
+    }
+  }
+
+  // ☑️ 개별 선택 토글 핸들러
+  const handleToggleSelectOne = (id: string) => {
+    setSelectedRequestIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    )
+  }
+
+  // 🚀 선택 항목 일괄 송금 완료(Bulk Approve) 핸들러
+  const handleBulkApproveSubmit = async () => {
+    const pendingSelected = requests.filter(
+      (r) => selectedRequestIds.includes(r.id) && r.status === 'PENDING'
+    )
+    if (pendingSelected.length === 0) {
+      toast({ title: '승인할 대기 항목 없음', description: '선택된 항목 중 승인 대기(PENDING) 상태인 요청이 없습니다.', variant: 'destructive' })
+      setIsBulkApproveModalOpen(false)
+      return
+    }
+
+    setBulkProcessing(true)
+    let successCount = 0
+    let failCount = 0
+
+    for (const item of pendingSelected) {
+      try {
+        const memo = bulkApproveMemo.trim() || `대량 이체 일괄 승인 (${new Date().toLocaleDateString()})`
+        await approveSettlementRequest(item.id, memo)
+        successCount++
+      } catch (err) {
+        console.error('Bulk approve failure for item:', item.id, err)
+        failCount++
+      }
+    }
+
+    setBulkProcessing(false)
+    setIsBulkApproveModalOpen(false)
+    setSelectedRequestIds([])
+    setBulkApproveMemo('')
+
+    toast({
+      title: '🎉 일괄 송금 승인 완료',
+      description: `성공: ${successCount}건${failCount > 0 ? `, 실패: ${failCount}건` : ''}의 출금 처리가 완료되었습니다.`,
+    })
+
+    void loadRequests(requestsPage, requestsStatus, requestsSearch)
+    void loadSummary()
+    void loadLedger()
+  }
+
   const handleRejectSettlement = async () => {
     if (!selectedRequestForReject) return
     if (!rejectReason.trim()) {
@@ -471,6 +657,12 @@ export default function SettlementPage() {
       setSubmittingAction(false)
     }
   }
+
+  
+  // 선택된 항목 통계
+  const selectedItems = requests.filter((r) => selectedRequestIds.includes(r.id))
+  const selectedTotalNet = selectedItems.reduce((acc, r) => acc + safeNum(r.netAmount), 0)
+  const selectedTotalPoints = selectedItems.reduce((acc, r) => acc + safeNum(r.pointsAmount), 0)
 
   const filteredRefunds = refunds.filter((r) => {
     const rawStatus = (r.status || '').toLowerCase()
@@ -729,6 +921,26 @@ export default function SettlementPage() {
                 <Button
                   size="sm"
                   variant="outline"
+                  className="h-8 text-xs bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100 flex items-center gap-1 font-semibold"
+                  onClick={() => handleDownloadBankExcel('pending')}
+                  title="승인 대기 중인 모든 출금 요청을 기업 인터넷뱅킹 대량 이체 CSV 파일로 다운로드합니다"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>대기건 엑셀 다운로드</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center gap-1"
+                  onClick={() => handleDownloadBankExcel('all')}
+                  title="조회된 모든 출금 내역을 CSV 파일로 다운로드합니다"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span>전체 엑셀</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
                   className="h-8"
                   onClick={() => void loadRequests(requestsPage, requestsStatus, requestsSearch)}
                   disabled={requestsLoading}
@@ -738,6 +950,55 @@ export default function SettlementPage() {
               </div>
             </CardHeader>
             <CardContent>
+              {/* ⚡ 선택된 항목 일괄 처리 플로팅 액션 바 */}
+              {selectedRequestIds.length > 0 && (
+                <div className="mb-3.5 p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 flex flex-wrap items-center justify-between gap-2.5 text-xs animate-in fade-in slide-in-from-top-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-amber-950 flex items-center gap-1">
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-600 text-white text-[10px] font-black">
+                        {selectedRequestIds.length}
+                      </span>
+                      건 선택됨
+                    </span>
+                    <span className="text-amber-400">|</span>
+                    <span className="text-amber-900 font-medium">
+                      총 실지급 예정액: <strong className="text-emerald-700 font-black">{safeLocale(selectedTotalNet)}원</strong>
+                    </span>
+                    <span className="text-amber-400">|</span>
+                    <span className="text-amber-800">
+                      총 환전 꿀떡: <strong>{safeLocale(selectedTotalPoints)}개</strong>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs bg-white border-amber-300 text-amber-900 hover:bg-amber-100 flex items-center gap-1 font-bold shadow-2xs"
+                      onClick={() => handleDownloadBankExcel('selected')}
+                    >
+                      <FileSpreadsheet className="h-3 w-3 text-emerald-600" />
+                      <span>선택 {selectedRequestIds.length}건 대량 이체 엑셀</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-black flex items-center gap-1 shadow-2xs"
+                      onClick={() => setIsBulkApproveModalOpen(true)}
+                    >
+                      <Check className="h-3 w-3" />
+                      <span>선택 {selectedRequestIds.length}건 일괄 송금 승인</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs text-amber-800 hover:bg-amber-100"
+                      onClick={() => setSelectedRequestIds([])}
+                    >
+                      선택 해제
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {requestsLoading ? (
                 <div className="flex h-40 items-center justify-center">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -750,7 +1011,16 @@ export default function SettlementPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b text-left text-muted-foreground">
+                      <tr className="border-b text-left text-muted-foreground bg-slate-50/50">
+                        <th className="p-2.5 w-8 text-center">
+                          <input
+                            type="checkbox"
+                            checked={requests.length > 0 && selectedRequestIds.length === requests.length}
+                            onChange={(e) => handleToggleSelectAll(e.target.checked)}
+                            className="rounded border-slate-300 text-pink-600 focus:ring-pink-500 cursor-pointer h-3.5 w-3.5"
+                            title="전체 선택 / 해제"
+                          />
+                        </th>
                         <th className="p-2.5 font-medium">신청일시 / ID</th>
                         <th className="p-2.5 font-medium">호스트 / 등급</th>
                         <th className="p-2.5 font-medium">입금 계좌 정보</th>
@@ -778,7 +1048,15 @@ export default function SettlementPage() {
                           : Math.max(0, (safeNum(item.pointsAmount) * 100) - safeNum(item.krwAmount))
 
                         return (
-                          <tr key={item.id} className="hover:bg-muted/30">
+                          <tr key={item.id} className={`hover:bg-muted/30 transition ${selectedRequestIds.includes(item.id) ? 'bg-amber-50/30' : ''}`}>
+                            <td className="p-2.5 text-center">
+                              <input
+                                type="checkbox"
+                                checked={selectedRequestIds.includes(item.id)}
+                                onChange={() => handleToggleSelectOne(item.id)}
+                                className="rounded border-slate-300 text-pink-600 focus:ring-pink-500 cursor-pointer h-3.5 w-3.5"
+                              />
+                            </td>
                             <td className="p-2.5">
                               <p className="font-medium text-foreground">
                                 {isMounted ? safeDateStr(item.createdAt) : '2026-11-05'}
@@ -864,6 +1142,16 @@ export default function SettlementPage() {
                                 <div className="flex items-center justify-end gap-1.5">
                                   <Button
                                     size="sm"
+                                    variant="ghost"
+                                    className="h-7 px-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-[11px]"
+                                    onClick={() => setSelectedDetailItem(item)}
+                                    title="정산 세부 계산 내역 및 영수증 확인"
+                                  >
+                                    <FileText className="h-3 w-3 mr-0.5" />
+                                    영수증
+                                  </Button>
+                                  <Button
+                                    size="sm"
                                     className="h-7 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px]"
                                     onClick={() => {
                                       setSelectedRequestForApprove(item)
@@ -889,7 +1177,19 @@ export default function SettlementPage() {
                                   </Button>
                                 </div>
                               ) : (
-                                <span className="text-[11px] text-muted-foreground">처리 완료</span>
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 px-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-[11px]"
+                                    onClick={() => setSelectedDetailItem(item)}
+                                    title="정산 세부 내역 및 이체 영수증 확인"
+                                  >
+                                    <FileText className="h-3 w-3 mr-0.5" />
+                                    영수증
+                                  </Button>
+                                  <span className="text-[11px] text-muted-foreground">처리 완료</span>
+                                </div>
                               )}
                             </td>
                           </tr>
@@ -1379,6 +1679,163 @@ export default function SettlementPage() {
             >
               {submittingAction ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-2 h-3.5 w-3.5" />}
               승인 및 송금 완료 처리
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+      {/* 📄 1. 크리에이터 수익금 정산 상세 영수증 모달 */}
+      <Dialog open={!!selectedDetailItem} onOpenChange={(open) => !open && setSelectedDetailItem(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground font-black text-base">
+              <FileText className="h-5 w-5 text-indigo-600" />
+              <span>크리에이터 수익금 정산 영수증</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              모꼬 정산 시스템에 의해 산출된 원천징수 세액 및 최종 실지급 명세서입니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedDetailItem && (
+            <div className="space-y-3.5 text-xs">
+              {/* 호스트 & 계좌 정보 카드 */}
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground font-medium">크리에이터</span>
+                  <span className="font-bold text-foreground">
+                    {selectedDetailItem.activityAccount?.displayName} (@{selectedDetailItem.activityAccount?.handle || 'creator'})
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground font-medium">입금 은행 / 예금주</span>
+                  <span className="font-bold text-foreground">
+                    {selectedDetailItem.bankName} / {selectedDetailItem.accountHolder}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground font-medium">입금 계좌번호</span>
+                  <span className="font-mono font-bold text-foreground">{selectedDetailItem.accountNumber}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground font-medium">신청일시</span>
+                  <span className="font-medium text-foreground">{selectedDetailItem.createdAt}</span>
+                </div>
+              </div>
+
+              {/* 금액 정산 계산서 */}
+              <div className="p-3.5 rounded-xl bg-indigo-50/50 border border-indigo-100 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">환전 신청 꿀떡</span>
+                  <span className="font-black text-indigo-950">{safeLocale(selectedDetailItem.pointsAmount)}개</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-500">
+                  <span>적용 단가</span>
+                  <span>{selectedDetailItem.exchangeRate ?? 70}원/꿀떡</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-500">
+                  <span>총 정산 대상액 (꿀떡 × 단가)</span>
+                  <span>{safeLocale(safeNum(selectedDetailItem.pointsAmount) * (selectedDetailItem.exchangeRate ?? 70))}원</span>
+                </div>
+                <div className="flex items-center justify-between text-indigo-700 text-[11px]">
+                  <span>플랫폼 수수료</span>
+                  <span>+{safeLocale(selectedDetailItem.platformFeeKrw || 0)}원</span>
+                </div>
+                <div className="flex items-center justify-between text-rose-600 text-[11px] font-semibold border-t border-indigo-200/60 pt-1.5">
+                  <span>원천징수 사업소득세 (3.0%) + 지방소득세 (0.3%)</span>
+                  <span>-{safeLocale(selectedDetailItem.taxAmount)}원</span>
+                </div>
+                <div className="flex items-center justify-between border-t border-indigo-200 pt-2 text-sm">
+                  <span className="font-extrabold text-foreground">최종 실지급액 (KRW)</span>
+                  <span className="font-black text-base text-emerald-600">{safeLocale(selectedDetailItem.netAmount)}원</span>
+                </div>
+              </div>
+
+              {/* 처리 정보 및 멱등성 식별키 */}
+              <div className="p-2.5 rounded-lg bg-slate-100/70 text-[10px] space-y-1 text-slate-500">
+                <div className="flex justify-between">
+                  <span>상태:</span>
+                  <span className="font-bold text-foreground">{selectedDetailItem.status}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>처리 메모:</span>
+                  <span className="font-medium text-foreground">{selectedDetailItem.adminMemo || '—'}</span>
+                </div>
+                <div className="flex justify-between font-mono">
+                  <span>고유 멱등성 Key:</span>
+                  <span>STMT-{selectedDetailItem.id.slice(0, 12)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button size="sm" variant="outline" onClick={() => setSelectedDetailItem(null)}>
+              닫기
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 🚀 2. 선택 항목 대량 송금 승인 모달 */}
+      <Dialog open={isBulkApproveModalOpen} onOpenChange={setIsBulkApproveModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-700 font-black text-base">
+              <Check className="h-5 w-5" />
+              <span>대량 이체 일괄 송금 승인 ({selectedRequestIds.length}건)</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              은행 기업 뱅킹에서 대량 이체를 정상 송금 완료한 후 실행해 주세요. 선택된 모든 요청이 일괄 승인 처리됩니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200/80 space-y-1.5">
+              <div className="flex justify-between text-emerald-950 font-bold">
+                <span>승인 대상 건수</span>
+                <span>{selectedRequestIds.length}건</span>
+              </div>
+              <div className="flex justify-between text-emerald-900">
+                <span>총 이체 환전 꿀떡</span>
+                <span>{safeLocale(selectedTotalPoints)}개</span>
+              </div>
+              <div className="flex justify-between text-emerald-950 font-black text-sm border-t border-emerald-200 pt-1.5">
+                <span>총 실지급 합계액</span>
+                <span className="text-emerald-700">{safeLocale(selectedTotalNet)}원</span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-semibold text-slate-700 text-xs">관리자 송금 확인 메모 (공통 적용)</label>
+              <Input
+                placeholder="예: 신한은행 대량 이체 송금 완료 (이체파일번호: 20261110-01)"
+                value={bulkApproveMemo}
+                onChange={(e) => setBulkApproveMemo(e.target.value)}
+                className="text-xs"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" size="sm" onClick={() => setIsBulkApproveModalOpen(false)} disabled={bulkProcessing}>
+              취소
+            </Button>
+            <Button
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+              onClick={() => void handleBulkApproveSubmit()}
+              disabled={bulkProcessing}
+            >
+              {bulkProcessing ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  일괄 승인 처리 중...
+                </>
+              ) : (
+                '일괄 송금 완료 승인'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
