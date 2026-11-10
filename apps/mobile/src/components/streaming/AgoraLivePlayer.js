@@ -138,7 +138,7 @@ export default function AgoraLivePlayer({
 <body>
   <div id="player-container">
     <div id="remote-video"></div>
-    <div id="waiting-card" class="waiting-card">
+    <div id="waiting-card" class="waiting-card" style="${isHost ? 'display: none !important;' : ''}">
       <div class="status-badge"><span class="pulse-dot"></span>D LIVE AGORA RTC</div>
       <div style="font-weight:700;font-size:16px;">실시간 라이브 신호 수신 중...</div>
       <div class="status-text">호스트의 고화질 스트림 연결을 준비하고 있습니다.</div>
@@ -182,65 +182,55 @@ export default function AgoraLivePlayer({
         AgoraRTC.setLogLevel(2);
         client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
         const isPublisherHost = ${Boolean(isHost)};
+
         if (isPublisherHost) {
           await client.setClientRole('host');
-          try {
-            const localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-            const localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-            const remoteContainer = document.getElementById('remote-video');
-            if (remoteContainer) {
-              remoteContainer.innerHTML = '';
-              localVideoTrack.play('remote-video', { fit: 'cover' });
-            }
-            await client.publish([localAudioTrack, localVideoTrack]);
-            const waiting = document.getElementById('waiting-card');
-            if (waiting) waiting.style.display = 'none';
-            sendState('playing');
-          } catch (pubErr) {
-            console.warn('Host publish error:', pubErr);
-          }
         } else {
           await client.setClientRole('audience', { level: 1 });
-        }
 
-        client.on('user-published', async (user, mediaType) => {
-          try {
-            await client.subscribe(user, mediaType);
-            if (mediaType === 'video') {
-              remoteVideoTrack = user.videoTrack;
-              const remoteContainer = document.getElementById('remote-video');
-              if (remoteContainer) {
-                remoteContainer.innerHTML = '';
-                remoteVideoTrack.play('remote-video', { fit: 'cover' });
+          client.on('user-published', async (user, mediaType) => {
+            try {
+              await client.subscribe(user, mediaType);
+              if (mediaType === 'video') {
+                remoteVideoTrack = user.videoTrack;
+                const remoteContainer = document.getElementById('remote-video');
+                if (remoteContainer) {
+                  remoteContainer.innerHTML = '';
+                  remoteVideoTrack.play('remote-video', { fit: 'cover' });
+                }
+                const waiting = document.getElementById('waiting-card');
+                if (waiting) waiting.style.display = 'none';
+                sendState('playing');
               }
-              const waiting = document.getElementById('waiting-card');
-              if (waiting) waiting.style.display = 'none';
-              sendState('playing');
+              if (mediaType === 'audio') {
+                remoteAudioTrack = user.audioTrack;
+                remoteAudioTrack.play();
+              }
+            } catch (subErr) {
+              console.error('Subscription error', subErr);
             }
-            if (mediaType === 'audio') {
-              remoteAudioTrack = user.audioTrack;
-              remoteAudioTrack.play();
-            }
-          } catch (subErr) {
-            console.error('Subscription error', subErr);
-          }
-        });
+          });
 
-        client.on('user-unpublished', (user, mediaType) => {
-          if (mediaType === 'video') {
-            const waiting = document.getElementById('waiting-card');
-            if (waiting) waiting.style.display = 'flex';
-            sendState('waiting');
-          }
-        });
+          client.on('user-unpublished', (user, mediaType) => {
+            if (mediaType === 'video') {
+              const waiting = document.getElementById('waiting-card');
+              if (waiting) waiting.style.display = 'flex';
+              sendState('waiting');
+            }
+          });
+        }
 
         client.on('connection-state-change', (curState, revState) => {
           if (curState === 'DISCONNECTED') {
-            sendState('waiting');
+            if (!isPublisherHost) {
+              const waiting = document.getElementById('waiting-card');
+              if (waiting) waiting.style.display = 'flex';
+              sendState('waiting');
+            }
           }
         });
 
-        // Agora RTC 채널 접속
+        // 1. Agora RTC 채널 먼저 접속 (Join FIRST!)
         const joinedUid = await client.join(
           appId,
           channel,
@@ -249,13 +239,38 @@ export default function AgoraLivePlayer({
         );
 
         sendState('connected', { joinedUid });
+
+        // 2. 호스트인 경우: 채널 접속 성공 후 카메라/마이크 생성 및 퍼블리시
+        if (isPublisherHost) {
+          try {
+            const waiting = document.getElementById('waiting-card');
+            if (waiting) waiting.style.display = 'none';
+
+            const localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+            const localVideoTrack = await AgoraRTC.createCameraVideoTrack({
+              facingMode: 'user',
+              optimizationMode: 'detail',
+            });
+
+            const remoteContainer = document.getElementById('remote-video');
+            if (remoteContainer) {
+              remoteContainer.innerHTML = '';
+              localVideoTrack.play('remote-video', { fit: 'cover' });
+            }
+
+            await client.publish([localAudioTrack, localVideoTrack]);
+            sendState('playing');
+          } catch (pubErr) {
+            console.error('Host publish error:', pubErr);
+            sendError('카메라 송출 오류: ' + (pubErr?.message || pubErr));
+          }
+        }
       } catch (err) {
         console.error('Agora join failed', err);
         sendError((err && err.message) || 'Agora 채널 접속 실패');
       }
     }
 
-    // React Native 메시지 리스너
     window.addEventListener('message', (e) => {
       try {
         const data = JSON.parse(e.data);
@@ -311,14 +326,14 @@ export default function AgoraLivePlayer({
       />
 
       {/* Host Avatar & Wait Overlay (Shown when stream is connecting or waiting) */}
-      {streamState === 'connecting' && (
+      {!isHost && streamState === 'connecting' && (
         <View style={styles.centerOverlay} pointerEvents="none">
           <ActivityIndicator size="large" color={LIVE_ACCENT} />
           <Text style={styles.connectingText}>Agora 실시간 스트림 연결 중...</Text>
         </View>
       )}
 
-      {streamState === 'waiting' && (
+      {!isHost && streamState === 'waiting' && (
         <View style={styles.centerOverlay} pointerEvents="none">
           <Avatar
             size={90}
