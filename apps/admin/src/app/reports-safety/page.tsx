@@ -69,7 +69,8 @@ const CATEGORY_OPTIONS: { value: string; label: string }[] = [
   { value: 'ALL', label: '전체 신고 유형' },
   { value: 'PRIVATE_CALL', label: '📞 1:1 통화 비매너' },
   { value: 'LIVE_STREAM', label: '🎙️ 라이브 방송 위반' },
-  { value: 'POST', label: '📰 커뮤니티 악성 피드' },
+  { value: 'MARKET_FRAUD', label: '🛒 마켓·중고거래 사기' },
+  { value: 'SUDA_ROOM', label: '☕ 1:1 수다방 규정 위반' },
   { value: 'CHAT_MESSAGE', label: '💬 채팅 성희롱/사기' },
   { value: 'PROFILE', label: '👤 프로필 도용/사칭' },
 ]
@@ -489,10 +490,10 @@ export default function ReportsSafetyPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <ShieldAlert className="h-7 w-7 text-rose-500" />
-            신고 & 커뮤니티 안전 관리 센터
+            MOCCO 신뢰 & 안전 모니터링 센터 (Trust & Safety)
           </h1>
           <p className="text-sm text-muted-foreground">
-            1:1 통화, 라이브 방송, 커뮤니티 피드, 채팅 신고를 24시간 실시간 심사하고 비매너 악성 회원을 단계별 제재합니다.
+            1:1 안심 통화, 라이브 방송, 1:1 수다방, 마켓 에스크로 거래 신고를 24시간 실시간 심사하고 비매너 악성 회원을 단계별 제재합니다.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -566,7 +567,7 @@ export default function ReportsSafetyPage() {
                   유해 게시글 영구 파기 및 사유 기록
                 </div>
                 <p className="mt-1.5 leading-relaxed text-slate-600 dark:text-slate-400">
-                  신고된 피드 게시글은 <strong>[게시글 강제 삭제]</strong> 버튼으로 원본과 미디어를 영구 파기하고, 제재 사유 및 관리자 메모를 남겨 향후 이의제기 소명 심사 시 근거 자료로 활용합니다.
+                  불법 매물이나 음란/사기 1:1 수다방은 <strong>[방 강제 종료 및 삭제]</strong> 버튼으로 즉시 폐쇄하고, 제재 사유 및 관리자 메모를 남겨 향후 이의제기 소명 심사 시 근거 자료로 활용합니다.
                 </p>
               </div>
             </div>
@@ -695,7 +696,7 @@ export default function ReportsSafetyPage() {
             <CardContent className="py-16 text-center text-muted-foreground">
               <ShieldCheck className="mx-auto h-12 w-12 text-emerald-400 mb-2 opacity-70" />
               <p className="text-sm font-semibold">접수된 신고 내역이 없거나 필터 조건과 일치하는 항목이 없습니다.</p>
-              <p className="text-xs mt-1 text-muted-foreground">커뮤니티가 안전하게 운영되고 있습니다.</p>
+              <p className="text-xs mt-1 text-muted-foreground">신고 없이 모든 라이브와 수다방이 안전하게 운영되고 있습니다.</p>
             </CardContent>
           </Card>
         ) : (
@@ -726,7 +727,9 @@ export default function ReportsSafetyPage() {
                       <Badge variant="outline" className="text-xs font-medium">
                         {report.category === 'PRIVATE_CALL' && '📞 1:1 통화'}
                         {report.category === 'LIVE_STREAM' && '🎙️ 라이브 방송'}
-                        {report.category === 'POST' && '📰 커뮤니티 피드'}
+                        {report.category === 'MARKET_FRAUD' && '🛒 마켓/거래 사기'}
+                                {report.category === 'SUDA_ROOM' && '☕ 1:1 수다방'}
+                                {report.category === 'POST' && '🛒 마켓/거래 사기'}
                         {report.category === 'CHAT_MESSAGE' && '💬 채팅 메시지'}
                         {report.category === 'PROFILE' && '👤 프로필 사칭'}
                       </Badge>
@@ -1124,7 +1127,7 @@ export default function ReportsSafetyPage() {
                 유해 게시글 영구 파기
               </DialogTitle>
               <DialogDescription>
-                신고 #{confirmDeletePost.id} 대상 게시글을 커뮤니티 데이터베이스에서 영구 삭제합니다.
+                신고 #{confirmDeletePost.id} 대상 수다방 및 불법 게시 콘텐츠를 데이터베이스에서 즉시 폐쇄 및 영구 삭제합니다.
               </DialogDescription>
             </DialogHeader>
 

@@ -144,9 +144,9 @@ const NAV_ITEMS: AppShellNavItem[] = [
     icon: CircleDollarSign,
   },
   {
-    label: '게시물 & 공지',
+    label: '공지사항 & 고객센터',
     href: '/content',
-    description: '공지사항 및 플랫폼 콘텐츠 관리',
+    description: '공지사항, 팝업 배너, 자주 묻는 질문(FAQ) 및 1:1 고객 문의 관리',
     group: '본사 총괄 운영',
     icon: Clapperboard,
   },

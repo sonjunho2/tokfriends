@@ -97,10 +97,10 @@ const DEFAULT_TEMPLATES: PushTemplateItem[] = [
 const FALLBACK_HISTORY: PushHistoryItem[] = [
   {
     id: 'push-801',
-    title: '[안내] 모꼬 커뮤니티 라운지 오픈 기념 이벤트',
-    body: '일상과 취미를 공유하고 새로운 친구를 만날 수 있는 커뮤니티 라운지가 열렸습니다! 지금 바로 글을 작성해보세요.',
+    title: '[안내] 1:1 수다방 & 모꼬 꿀떡 첫 충전 보너스 이벤트',
+    body: '새로운 이웃과 즐겁게 대화할 수 있는 1:1 수다방이 오픈되었습니다! 지금 입장하여 꿀떡 선물을 주고받아 보세요.',
     audience: '전체 사용자',
-    deepLink: 'mocco://community',
+    deepLink: 'mocco://suda',
     isAd: false,
     scheduleType: 'IMMEDIATE',
     sentAt: '2026-10-17 05:30',
@@ -580,7 +580,7 @@ export default function NotificationsPage() {
                     onClick={() => setDeepLink('mocco://community')}
                     className="text-[10px] text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 px-2 py-0.5 rounded"
                   >
-                    + 커뮤니티 (mocco://community)
+                    + 1:1 수다방 (mocco://suda)
                   </button>
                 </div>
               </div>

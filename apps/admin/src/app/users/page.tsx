@@ -851,7 +851,7 @@ export default function UsersPage() {
               </div>
 
               <div className="rounded-md bg-amber-50 p-2.5 text-[11px] text-amber-900 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-900">
-                ⚠️ [이용 정지] 적용 시 해당 회원은 즉시 앱 로그아웃되며 1:1 대화, 라이브 방송, 피드 작성이 모두 차단됩니다.
+                ⚠️ [이용 정지] 적용 시 해당 회원은 즉시 앱 로그아웃되며 1:1 수다방, 라이브 방송, 마켓 거래가 모두 차단됩니다.
               </div>
             </div>
 
