@@ -29,6 +29,9 @@ export interface WebUser {
   nickname: string
   email?: string
   role: UserRole
+  status?: 'ACTIVE' | 'SUSPENDED' | 'BANNED'
+  banReason?: string
+  banExpiresAt?: string
   avatarUrl?: string
   pointBalance: number
   cashBalance?: number
@@ -67,6 +70,9 @@ interface AuthContextType {
     paymentMethod: string,
     productId?: string
   ) => Promise<{ success: boolean; newBalance: number; transactionId: string }>
+  isBannedModalOpen: boolean
+  banInfo: { isBanned: boolean; reason?: string; expiresAt?: string } | null
+  closeBannedModal: () => void
 }
 
 const DEFAULT_GUEST_USER: WebUser | null = null
@@ -144,21 +150,70 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
   const [isMerchantModalOpen, setIsMerchantModalOpen] = useState(false)
   const [isCreatorModalOpen, setIsCreatorModalOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+  
+  // ⛔ 제재 및 이용 정지 상태
+  const [isBannedModalOpen, setIsBannedModalOpen] = useState(false)
+  const [banInfo, setBanInfo] = useState<{ isBanned: boolean; reason?: string; expiresAt?: string } | null>(null)
 
-  // Initialize from storage on mount
-  useEffect(() => {
+  // 제재 여부 검사 유틸리티
+  const checkIsUserBanned = useCallback((u: WebUser | null): { banned: boolean; reason?: string; expiresAt?: string } => {
+    if (!u) return { banned: false }
+    if (u.status === 'SUSPENDED' || u.status === 'BANNED') {
+      return { banned: true, reason: u.banReason || '운영정책 위반', expiresAt: u.banExpiresAt }
+    }
     try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (parsed && parsed.role && parsed.role !== 'GUEST') {
-          setUser(parsed)
+      const stored = localStorage.getItem('mocco_banned_users')
+      if (stored) {
+        const list = JSON.parse(stored)
+        const matched = list.find((item: any) => item.id === u.id || item.nickname === u.nickname)
+        if (matched) {
+          return { banned: true, reason: matched.reason || '이용 제한 조치', expiresAt: matched.expiresAt }
         }
       }
-    } catch {
+    } catch (e) {
       // ignore
     }
+    return { banned: false }
   }, [])
+
+  // Initialize from storage on mount & listen for real-time admin sanctions
+  useEffect(() => {
+    const loadAndVerify = () => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY)
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (parsed && parsed.role && parsed.role !== 'GUEST') {
+            const check = checkIsUserBanned(parsed)
+            if (check.banned) {
+              setBanInfo({ isBanned: true, reason: check.reason, expiresAt: check.expiresAt })
+              setIsBannedModalOpen(true)
+              setUser(null)
+              localStorage.removeItem(STORAGE_KEY)
+              document.cookie = 'tokfriends_role=; path=/; max-age=0'
+              return
+            }
+            setUser(parsed)
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    loadAndVerify()
+
+    // 📡 관리자 제재 집행(영구차단/이용정지) 발생 시 브라우저 세션 실시간 강제 종료
+    const onSanctionUpdated = () => {
+      loadAndVerify()
+    }
+    window.addEventListener('mocco_sanction_updated', onSanctionUpdated)
+    window.addEventListener('storage', onSanctionUpdated)
+    return () => {
+      window.removeEventListener('mocco_sanction_updated', onSanctionUpdated)
+      window.removeEventListener('storage', onSanctionUpdated)
+    }
+  }, [checkIsUserBanned])
 
   const saveUserState = useCallback((newUser: WebUser | null) => {
     setUser(newUser)
@@ -203,15 +258,28 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
     setIsCreatorModalOpen(false)
   }, [])
 
+  const closeBannedModal = useCallback(() => {
+    setIsBannedModalOpen(false)
+    setBanInfo(null)
+  }, [])
+
   const requireAuth = useCallback(
     (callback: () => void) => {
       if (user && user.role !== 'GUEST') {
+        // ⛔ 제재된 회원인지 실시간 검사
+        const check = checkIsUserBanned(user)
+        if (check.banned) {
+          setBanInfo({ isBanned: true, reason: check.reason, expiresAt: check.expiresAt })
+          setIsBannedModalOpen(true)
+          saveUserState(null) // 세션 강제 만료
+          return
+        }
         callback()
       } else {
         openLoginModal(callback)
       }
     },
-    [user, openLoginModal]
+    [user, openLoginModal, checkIsUserBanned, saveUserState]
   )
 
   const quickLogin = useCallback(
@@ -478,6 +546,9 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
         requireAuth,
         updatePointBalance,
         rechargePoints,
+        isBannedModalOpen,
+        banInfo,
+        closeBannedModal,
       }}
     >
       {children}

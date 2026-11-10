@@ -299,7 +299,7 @@ export default function UsersPage() {
     })
   }
 
-  // 상태 변경 확인
+  // 상태 변경 확인 및 제재 실시간 동기화
   const handleStatusChangeConfirm = async () => {
     if (!statusModalUser) return
     setIsUpdatingStatus(true)
@@ -308,6 +308,29 @@ export default function UsersPage() {
       setUsers((prev) =>
         prev.map((u) => (u.id === statusModalUser.id ? { ...u, status: targetStatus } : u))
       )
+
+      // ⛔ 로컬 제재 저장소 동기화 & 실시간 세션 만료 이벤트 전파
+      try {
+        const stored = localStorage.getItem('mocco_banned_users')
+        let bannedList = stored ? JSON.parse(stored) : []
+        if (targetStatus === 'SUSPENDED') {
+          bannedList = bannedList.filter((item: any) => item.id !== statusModalUser.id)
+          bannedList.push({
+            id: statusModalUser.id,
+            nickname: statusModalUser.nickname,
+            status: 'SUSPENDED',
+            reason: '운영자 수동 이용 정지 조치',
+            createdAt: new Date().toISOString(),
+          })
+        } else if (targetStatus === 'ACTIVE') {
+          bannedList = bannedList.filter((item: any) => item.id !== statusModalUser.id)
+        }
+        localStorage.setItem('mocco_banned_users', JSON.stringify(bannedList))
+        window.dispatchEvent(new Event('mocco_sanction_updated'))
+      } catch (err) {
+        console.error('Failed to sync banned users to storage:', err)
+      }
+
       toast({
         title: '회원 상태 변경 완료',
         description: `[${statusModalUser.nickname}] 회원의 상태가 [${STATUS_LABELS[targetStatus]?.label ?? targetStatus}]로 변경되었습니다.`,

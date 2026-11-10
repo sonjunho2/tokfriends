@@ -79,12 +79,21 @@ import {
   Copy,
   RotateCcw,
   AlertTriangle,
+  AlertCircle,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { useWebAuth, type UserRole, type MerchantApplication, type CreatorApplication } from '@/lib/auth-context'
 import { RoleSwitcherFloating } from '@/components/common/RoleSwitcherFloating'
 import { getLiveTop3Rooms, getLiveRankings } from '@/lib/api'
@@ -1385,6 +1394,9 @@ export default function CustomerWebStorefrontPage() {
     applyCreator,
     logout,
     requireAuth,
+    isBannedModalOpen,
+    banInfo,
+    closeBannedModal,
   } = useWebAuth()
 
   // 1. Navigation Active Tab (모바일 앱 5대 구조와 100% 동일)
@@ -8502,6 +8514,45 @@ export default function CustomerWebStorefrontPage() {
           setIsProductCreateModalOpen(true)
         }}
       />
+
+      
+      {/* ⛔ 서비스 이용 제한 (이용 정지 / 영구 차단) 안내 모달 */}
+      <Dialog open={isBannedModalOpen} onOpenChange={(open: boolean) => !open && closeBannedModal()}>
+        <DialogContent className="max-w-md bg-white border-rose-200">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-600 font-black text-base">
+              <AlertCircle className="h-5 w-5" />
+              <span>서비스 이용 제한 안내</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600">
+              해당 계정은 모꼬 서비스 운영정책 위반으로 인해 서비스 이용이 제한되었습니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-100 space-y-2 text-xs">
+            <div className="flex justify-between">
+              <span className="text-slate-500 font-medium">제재 구분</span>
+              <span className="font-extrabold text-rose-700">이용 정지 / 세션 만료</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500 font-medium">제재 사유</span>
+              <span className="font-bold text-slate-800">{banInfo?.reason || '커뮤니티 가이드라인 및 운영정책 위반'}</span>
+            </div>
+            <p className="text-[11px] text-rose-800 pt-1.5 border-t border-rose-200/60 leading-relaxed">
+              1:1 수다방, 라이브 방송, 대화 및 마켓 상품 등록이 전면 차단되었습니다. 정지 기간 종료 후 정상 이용 가능하며, 관련 소명 및 문의는 고객센터 1:1 문의를 이용해 주세요.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs"
+              onClick={closeBannedModal}
+            >
+              확인
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Market Product Create Modal (C2C 중고 & B2C 마켓/공구 등록 시스템 및 실시간 수정) */}
       <MarketProductCreateModal

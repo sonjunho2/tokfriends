@@ -411,6 +411,27 @@ export default function ReportsSafetyPage() {
             : r,
         ),
       )
+      // ⛔ 로컬 제재 저장소 동기화 & 실시간 세션 만료 이벤트 전파
+      if (action !== 'WARNING' && report.reported) {
+        try {
+          const stored = localStorage.getItem('mocco_banned_users')
+          let bannedList = stored ? JSON.parse(stored) : []
+          bannedList = bannedList.filter((item: any) => item.id !== report.reported?.id)
+          bannedList.push({
+            id: report.reported.id,
+            nickname: report.reported.nickname,
+            status: action === 'PERMANENT_BAN' ? 'BANNED' : 'SUSPENDED',
+            reason: reason.trim() || '신고 접수에 따른 운영정책 위반 제재',
+            actionType: action,
+            createdAt: new Date().toISOString(),
+          })
+          localStorage.setItem('mocco_banned_users', JSON.stringify(bannedList))
+          window.dispatchEvent(new Event('mocco_sanction_updated'))
+        } catch (err) {
+          console.error('Failed to sync banned user from report:', err)
+        }
+      }
+
       const actionLabels = {
         WARNING: '경고 조치 (신뢰도 차감)',
         SUSPEND_7D: '7일 이용 정지 및 세션 강제 만료',
