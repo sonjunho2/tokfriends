@@ -181,7 +181,27 @@ export default function AgoraLivePlayer({
 
         AgoraRTC.setLogLevel(2);
         client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
-        await client.setClientRole('audience', { level: 1 });
+        const isPublisherHost = ${Boolean(isHost)};
+        if (isPublisherHost) {
+          await client.setClientRole('host');
+          try {
+            const localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+            const localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+            const remoteContainer = document.getElementById('remote-video');
+            if (remoteContainer) {
+              remoteContainer.innerHTML = '';
+              localVideoTrack.play('remote-video', { fit: 'cover' });
+            }
+            await client.publish([localAudioTrack, localVideoTrack]);
+            const waiting = document.getElementById('waiting-card');
+            if (waiting) waiting.style.display = 'none';
+            sendState('playing');
+          } catch (pubErr) {
+            console.warn('Host publish error:', pubErr);
+          }
+        } else {
+          await client.setClientRole('audience', { level: 1 });
+        }
 
         client.on('user-published', async (user, mediaType) => {
           try {
@@ -275,6 +295,7 @@ export default function AgoraLivePlayer({
         source={{ html: htmlContent }}
         style={styles.webView}
         allowsInlineMediaPlayback={true}
+        mediaCapturePermissionGrantType="grant"
         mediaPlaybackRequiresUserAction={false}
         javaScriptEnabled={true}
         domStorageEnabled={true}

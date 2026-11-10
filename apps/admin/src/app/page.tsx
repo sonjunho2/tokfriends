@@ -9211,12 +9211,12 @@ export default function CustomerWebStorefrontPage() {
                   } transition-opacity duration-300`}
                 />
 
-                {/* 실시간 온에어 라이브 비디오 스트림 캔버스 (웹 시청자에게 고화질 모션 비디오 즉시 재생) */}
+                {/* 실시간 온에어 라이브 비디오 스트림 캔버스 (웹 시청자 브라우저 정책 준수: muted 자동재생) */}
                 <video
                   src="https://assets.mixkit.co/videos/preview/mixkit-girl-in-a-neon-room-listening-to-music-with-headphones-42417-large.mp4"
                   autoPlay
                   loop
-                  muted={isLiveMuted}
+                  muted
                   playsInline
                   poster={activeLiveModal.coverUrl}
                   className="h-full w-full object-cover"

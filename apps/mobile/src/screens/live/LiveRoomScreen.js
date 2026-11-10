@@ -1418,6 +1418,17 @@ export default function LiveRoomScreen({ navigation, route }) {
               hasCameraPermission ? (
                 isFocused && !isCameraOff ? (
                   <View style={styles.cameraFillWrapper}>
+                    {agoraTokenData?.appId ? (
+                      <AgoraLivePlayer
+                        appId={agoraTokenData?.appId}
+                        token={agoraTokenData?.token}
+                        channelName={agoraTokenData?.channelName || roomId}
+                        uid={agoraTokenData?.uid}
+                        isHost={true}
+                        isVideoSubscribed={!isCameraOff}
+                        isSpeakerMuted={isMicMuted}
+                      />
+                    ) : (
                     <CameraView
                       key={`cam_${cameraFacing}_${isFocused ? 'focused' : 'blurred'}`}
                       style={styles.cameraPreview}
@@ -1432,6 +1443,7 @@ export default function LiveRoomScreen({ navigation, route }) {
                         setCameraMountError(error?.message || '카메라 센서를 열 수 없습니다.');
                       }}
                     />
+                    )}
                     {!isCameraReady && !cameraMountError && (
                       <View style={styles.cameraLoadingOverlay} pointerEvents="none">
                         <ActivityIndicator size="large" color={LIVE_ACCENT} />
