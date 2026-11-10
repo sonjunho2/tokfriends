@@ -51,7 +51,7 @@ export default function PgPaymentModal({
 
   if (!product) return null;
 
-  const itemPrice = product.price; // KRW (1 ON = 1 KRW)
+  const itemPrice = product.price; // KRW
   const feeRate = 0.035; // 3.5% 안전결제 수수료
   const feeAmount = Math.round(itemPrice * feeRate);
   const totalAmount = itemPrice + feeAmount;

@@ -775,7 +775,7 @@ export default function LiveScreen({ navigation }) {
                     }}
                     style={{ width: 60, fontSize: 13, fontWeight: '800', textAlign: 'right', paddingVertical: 0 }}
                   />
-                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#FF3B6B', marginLeft: 4 }}>ON</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#FF3B6B', marginLeft: 4 }}>꿀떡</Text>
                 </View>
               </View>
             )}

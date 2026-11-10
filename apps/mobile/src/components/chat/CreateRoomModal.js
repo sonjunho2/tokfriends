@@ -399,7 +399,7 @@ export default function CreateRoomModal({
                   </ScrollView>
                 </View>
 
-                {/* 4. 참여자 입장료(ON) 선택 칩 */}
+                {/* 4. 참여자 입장료(꿀떡) 선택 칩 */}
                 <View style={styles.section}>
                   <View style={styles.labelWithBadgeRow}>
                     <Text style={styles.sectionLabel}>참여자 입장료 설정 (ON)</Text>
@@ -451,7 +451,7 @@ export default function CreateRoomModal({
                         onChangeText={setCustomFeeInput}
                         maxLength={5}
                       />
-                      <Text style={styles.customFeeUnit}>ON</Text>
+                      <Text style={styles.customFeeUnit}>꿀떡</Text>
                     </View>
                   )}
 
@@ -484,7 +484,7 @@ export default function CreateRoomModal({
                       • 클린하고 안전한 소통을 위해 24시간 AI 안심 케어 센터가 가동됩니다.
                     </Text>
                     <Text style={styles.policyText}>
-                      • 유료 입장료(ON)는 방 입장 시 차감되며 개설자에게 크리에이터 포인트로 적립됩니다.
+                      • 유료 입장료는 방 입장 시 차감되며 개설자에게 크리에이터 수익금으로 적립됩니다.
                     </Text>
                   </View>
                 </View>

@@ -135,7 +135,7 @@ export default function ActiveCallModal({
 
         Alert.alert(
           '통화 종료 안내',
-          `잔액 소진 또는 시스템 정책으로 통화가 종료되었습니다.\n\n· 총 통화 시간: ${durMin}분\n· 소진 포인트: ${used.toLocaleString()} ON`,
+          `잔액 소진 또는 시스템 정책으로 통화가 종료되었습니다.\n\n· 총 통화 시간: ${durMin}분\n· 소진 꿀떡: ${used.toLocaleString()}개`,
           [{ text: '확인' }]
         );
 
@@ -152,7 +152,7 @@ export default function ActiveCallModal({
 
         Alert.alert(
           '통화 완료',
-          `1:1 프라이빗 통화가 완료되었습니다.\n\n· 총 통화 시간: ${durMin}분\n· 정산 소진: ${used.toLocaleString()} ON`,
+          `1:1 프라이빗 통화가 완료되었습니다.\n\n· 총 통화 시간: ${durMin}분\n· 정산 소진: ${used.toLocaleString()} 꿀떡`,
           [{ text: '확인' }]
         );
 
@@ -221,7 +221,7 @@ export default function ActiveCallModal({
       onClose();
       Alert.alert(
         '통화 종료',
-        `통화가 정상적으로 종료되었습니다.\n\n· 총 통화 시간: ${durMin}분 (${formattedTime(durationSeconds)})\n· 소진 포인트: ${used.toLocaleString()} ON`,
+        `통화가 정상적으로 종료되었습니다.\n\n· 총 통화 시간: ${durMin}분 (${formattedTime(durationSeconds)})\n· 소진 꿀떡: ${used.toLocaleString()}개`,
         [{ text: '확인' }]
       );
       onCallFinished?.({ durationMinutes: durMin, usedPoints: used });
@@ -249,7 +249,7 @@ export default function ActiveCallModal({
               </Text>
             </View>
             <View style={styles.rateChip}>
-              <Text style={styles.rateChipText}>분당 {ratePerMinute.toLocaleString()} ON</Text>
+              <Text style={styles.rateChipText}>분당 {ratePerMinute.toLocaleString()} 꿀떡</Text>
             </View>
           </View>
 
@@ -280,7 +280,7 @@ export default function ActiveCallModal({
             <View style={styles.timerCard}>
               <Text style={styles.timerValueText}>{formattedTime(durationSeconds)}</Text>
               <Text style={styles.maxMinutesText}>
-                최대 통화 가능: 약 {maxMinutes}분 (보유 {initialBalance.toLocaleString()} ON)
+                최대 통화 가능: 약 {maxMinutes}분 (보유 {initialBalance.toLocaleString()}개)
               </Text>
             </View>
           </View>

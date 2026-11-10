@@ -1076,7 +1076,7 @@ export default function ChatRoomScreen({ route, navigation }) {
             chatId,
             sender: 'me',
             senderAccountId: currentActivityAccountId,
-            text: `🎁 [선물] ${giftName} (${giftPoints} ON)을 보냈습니다!`,
+            text: `🎁 [선물] ${giftName} (${giftPoints} 꿀떡)을 선물했습니다!`,
             timestamp: formatMessageTime(new Date()),
             type: 'gift',
             backendType: 'gift',
@@ -1581,7 +1581,7 @@ export default function ChatRoomScreen({ route, navigation }) {
                 {route.params.marketOrder.title || route.params.marketOrder.productTitle || '거래 물품'}
               </Text>
               <Text style={styles.marketOrderPrice}>
-                {(route.params.marketOrder.price || 0).toLocaleString()} ON
+                {(route.params.marketOrder.price || 0).toLocaleString()}원
               </Text>
             </View>
             <View style={styles.marketOrderBadge}>

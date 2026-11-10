@@ -161,7 +161,7 @@ export default function GiftPickerSheet({
                   <View style={styles.myPointsPill}>
                     <Text style={{ fontSize: 13 }}>🪙</Text>
                     <Text style={styles.myPointsText}>
-                      보유 {myPoints?.toLocaleString() ?? 0} 온
+                      보유 {myPoints?.toLocaleString() ?? 0} 꿀떡
                     </Text>
                     {onGoToShop && (
                       <TouchableOpacity
@@ -262,7 +262,7 @@ export default function GiftPickerSheet({
                           {item.name}
                         </Text>
                         <Text style={styles.giftPrice}>
-                          {item.pricePoints?.toLocaleString()} 온
+                          {item.pricePoints?.toLocaleString()} 꿀떡
                         </Text>
                       </TouchableOpacity>
                     );
@@ -278,7 +278,7 @@ export default function GiftPickerSheet({
                       선택: <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{selectedGift.name}</Text>
                     </Text>
                     <Text style={styles.selectedGiftPrice}>
-                      {selectedGift.pricePoints?.toLocaleString()} 온 차감
+                      {selectedGift.pricePoints?.toLocaleString()} 꿀떡 선물하기
                     </Text>
                   </View>
                 ) : (

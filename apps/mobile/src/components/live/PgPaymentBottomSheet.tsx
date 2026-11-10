@@ -50,7 +50,7 @@ export default function PgPaymentBottomSheet({
 
   if (!product) return null;
 
-  const itemPrice = product.price; // 1 ON = 1 KRW (원화)
+  const itemPrice = product.price; // KRW (원화)
   const feeRate = 0.035; // 3.5% 안전결제 에스크로 수수료
   const feeAmount = Math.round(itemPrice * feeRate);
   const totalAmount = itemPrice + feeAmount;

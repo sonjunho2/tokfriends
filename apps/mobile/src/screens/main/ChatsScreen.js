@@ -479,7 +479,7 @@ export default function ChatsScreen({ navigation }) {
                 color: item.entryFee ? '#92400E' : '#166534',
               }}
             >
-              {item.entryFee ? `💰 ${item.entryFee} ON` : '✨ 무료'}
+              {item.entryFee ? `💰 ${item.entryFee} 꿀떡` : '✨ 무료'}
             </Text>
           </View>
 

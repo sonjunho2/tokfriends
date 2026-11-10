@@ -2322,10 +2322,11 @@ export default function CustomerWebStorefrontPage() {
       if (!activeLiveModal) return
       if (myPoints < gift.pricePoints) {
         toast({
-          title: '포인트 부족',
-          description: `보유 모꼬 꿀떡이 부족합니다. (필요: ${gift.pricePoints.toLocaleString()}개, 보유: ${(user?.pointBalance ?? myPoints).toLocaleString()}개)`,
+          title: '🍯 꿀떡이 부족합니다',
+          description: `선물 후원에 필요한 꿀떡이 부족합니다. (필요: ${gift.pricePoints.toLocaleString()}개 / 보유: ${myPoints.toLocaleString()}개) 무료 충전소 또는 상점으로 이동합니다.`,
           variant: 'destructive',
         })
+        setIsPointChargeModalOpen(true)
         return
       }
 
@@ -2424,14 +2425,27 @@ export default function CustomerWebStorefrontPage() {
     })
   }
 
-  // 1:1 수다 대기방 입장 핸들러 (단가 적용 및 1:1 톡 자동 연결)
+  // 1:1 수다 대기방 입장 핸들러 (단가 적용, 개설자 면제, 중복 차감 방지 및 1:1 톡 자동 연결)
   const handleEnterSudaRoom = (room: SudaPostItem) => {
     requireAuth(() => {
-      if (room.entryFee && room.entryFee > 0) {
+      const existing = chatRooms.find((r) => r.targetNickname === room.nickname)
+      const isOwner = user?.nickname && room.nickname === user.nickname
+
+      if (isOwner) {
+        toast({
+          title: '✨ 내가 개설한 1:1 수다방',
+          description: '개설자 본인 방으로 즉시 입장합니다. (입장료 면제)',
+        })
+      } else if (existing) {
+        toast({
+          title: '✨ 기존 1:1 수다방 연결',
+          description: `${room.nickname} 님과의 기존 대화방으로 바로 이동합니다.`,
+        })
+      } else if (room.entryFee && room.entryFee > 0) {
         if (myPoints < room.entryFee) {
           toast({
-            title: '꿀떡이 부족합니다',
-          description: `수다방 입장료는 ${room.entryFee} 꿀떡입니다. 꿀떡을 무료 충전해 주세요.`,
+            title: '🍯 꿀떡이 부족합니다',
+            description: `수다방 입장료는 ${room.entryFee.toLocaleString()} 꿀떡입니다. (보유: ${myPoints.toLocaleString()}개) 무료 충전소 또는 꿀떡 상점으로 이동합니다.`,
             variant: 'destructive',
           })
           setIsPointChargeModalOpen(true)
@@ -2439,7 +2453,7 @@ export default function CustomerWebStorefrontPage() {
         }
         setMyPoints((prev) => Math.max(0, prev - room.entryFee!))
         toast({
-          title: `💰 ${room.entryFee} 꿀떡 차감 & 수다방 입장`,
+          title: `💰 ${room.entryFee.toLocaleString()} 꿀떡 결제 완료! & 수다방 입장`,
           description: `${room.nickname} 님의 1:1 수다방에 입장했습니다. 대화를 시작하세요!`,
         })
       } else {
@@ -2450,7 +2464,6 @@ export default function CustomerWebStorefrontPage() {
       }
 
       // 1:1 대화방 개설 및 연결
-      const existing = chatRooms.find((r) => r.targetNickname === room.nickname)
       if (existing) {
         setActiveChatRoom(existing)
       } else {
@@ -5317,13 +5330,26 @@ export default function CustomerWebStorefrontPage() {
 
                             <div className="flex items-center gap-1 text-slate-600">
                               <button
-                                onClick={() =>
-                                  toast({
-                                    title: '📞 1:1 보이스톡 연결',
-                                    description: `${activeChatRoom.targetNickname}님께 안전 안심통화를 요청합니다.`,
+                                onClick={() => {
+                                  requireAuth(() => {
+                                    const requiredCallRate = 1500 // 분당 기본 1,500 꿀떡
+                                    if (myPoints < requiredCallRate) {
+                                      toast({
+                                        title: '🍯 통화 꿀떡이 부족합니다',
+                                        description: `1:1 안심통화 기본 요금은 분당 ${requiredCallRate.toLocaleString()} 꿀떡입니다. (보유: ${myPoints.toLocaleString()}개) 충전 후 다시 시도해 주세요.`,
+                                        variant: 'destructive',
+                                      })
+                                      setIsPointChargeModalOpen(true)
+                                      return
+                                    }
+                                    toast({
+                                      title: '📞 1:1 안심통화 연결 요청',
+                                      description: `${activeChatRoom.targetNickname}님께 안심통화를 요청했습니다. (분당 ${requiredCallRate.toLocaleString()} 꿀떡 차감 정책)`,
+                                    })
                                   })
-                                }
+                                }}
                                 className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-slate-100 text-blue-600"
+                                title="1:1 안심 보이스톡 (분당 1,500 꿀떡)"
                               >
                                 <Phone className="h-3.5 w-3.5" />
                               </button>

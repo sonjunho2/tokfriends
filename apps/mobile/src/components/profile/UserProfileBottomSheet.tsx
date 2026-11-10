@@ -331,7 +331,7 @@ export const UserProfileBottomSheet = memo(({
             </Text>
             <View style={styles.rateBadge}>
               <Text style={styles.rateBadgeText}>
-                {effectiveRate.toLocaleString()} ON/분
+                {effectiveRate.toLocaleString()} 꿀떡/분
               </Text>
             </View>
           </TouchableOpacity>

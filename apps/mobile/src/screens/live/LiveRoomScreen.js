@@ -779,7 +779,7 @@ export default function LiveRoomScreen({ navigation, route }) {
             showLiveNotice({
               type: 'gift',
               title: `🎁 ${donorName}님의 선물 후원!`,
-              desc: `[${gName}] ${Number(gPoints).toLocaleString()}온을 보냈습니다`,
+              desc: `[${gName}] ${Number(gPoints).toLocaleString()} 꿀떡을 선물했습니다`,
             });
 
             giftOverlayRef.current?.enqueueGift({
@@ -1064,7 +1064,7 @@ export default function LiveRoomScreen({ navigation, route }) {
       showLiveNotice({
         type: 'gift',
         title: '🎁 내가 보낸 선물!',
-        desc: `[${gift.name}] ${Number(gift.pricePoints).toLocaleString()}온을 후원했습니다`,
+        desc: `[${gift.name}] ${Number(gift.pricePoints).toLocaleString()} 꿀떡을 후원했습니다`,
       });
 
       giftOverlayRef.current?.enqueueGift({
@@ -1186,7 +1186,7 @@ export default function LiveRoomScreen({ navigation, route }) {
     const rate = Number(targetUser.pointsPerMinute || 1500);
     Alert.alert(
       '1:1 LIVE 라이브 방송 요청',
-      `${targetUser.name}님에게 1:1 프라이빗 라이브를 요청하시겠습니까?\n(분당 ${rate.toLocaleString()} 온이 소진됩니다)`,
+      `${targetUser.name}님에게 1:1 프라이빗 라이브를 요청하시겠습니까?\n(분당 ${rate.toLocaleString()} 꿀떡이 소진됩니다)`,
       [
         { text: '취소', style: 'cancel' },
         {

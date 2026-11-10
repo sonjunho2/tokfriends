@@ -310,7 +310,7 @@ const GiftAnimationInner = memo(({ gift, onAnimationFinish }: GiftAnimationInner
             <View style={styles.badgeContainerTier2}>
               <Text style={styles.senderTextTier2}>🔥 {gift.senderName} 님이 선물 투척! 🔥</Text>
               <Text style={styles.giftInfoTextTier2}>
-                {gift.giftName} • {gift.points.toLocaleString()} ON
+                {gift.giftName} • {gift.points.toLocaleString()} 꿀떡
               </Text>
             </View>
           </Animated.View>

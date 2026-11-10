@@ -68,7 +68,7 @@ export default function LiveCommercePinOverlay({
               <Text style={styles.discountRate}>{discountRate}%</Text>
             ) : null}
             <Text style={styles.priceText}>
-              {product.price.toLocaleString()} ON
+              {product.price.toLocaleString()}원
             </Text>
             {product.originalPrice ? (
               <Text style={styles.originalPrice}>
