@@ -1478,7 +1478,29 @@ export default function CustomerWebStorefrontPage() {
         console.warn('Failed to load custom suda rooms', e)
       }
 
-      // 💌 2) 1:1 대화방 목록 및 대화 기록 복원
+      // 🎙️ 2) 커스텀 라이브 방송 목록 복원
+      try {
+        const storedLives = localStorage.getItem('mocco_custom_lives')
+        if (storedLives) {
+          const parsedLives = JSON.parse(storedLives)
+          if (Array.isArray(parsedLives) && parsedLives.length > 0) {
+            setLives((prev) => {
+              const ids = new Set(parsedLives.map((item: any) => item.id))
+              const remaining = prev.filter((item) => !ids.has(item.id))
+              return [...parsedLives, ...remaining]
+            })
+            setTop3Lives((prev) => {
+              const ids = new Set(parsedLives.map((item: any) => item.id))
+              const remaining = prev.filter((item) => !ids.has(item.id))
+              return [...parsedLives.slice(0, 3), ...remaining.slice(0, 3)].slice(0, 3)
+            })
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load custom live rooms', e)
+      }
+
+      // 💌 3) 1:1 대화방 목록 및 대화 기록 복원
       try {
         const storedChats = localStorage.getItem('mocco_custom_chat_rooms')
         if (storedChats) {
@@ -2315,30 +2337,95 @@ export default function CustomerWebStorefrontPage() {
   // Handlers
   // ==========================================
 
-  // Live Chat Send & Auto Scroll
+  // Live Chat Send & Auto Scroll + Cross-window Broadcast
   const handleSendLiveChat = () => {
     requireAuth(() => {
       if (!liveChatInput.trim()) return
       const now = new Date()
       const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-      setLiveChatMessages((prev) => [
-        ...prev,
-        { sender: user?.nickname || '나', text: liveChatInput.trim(), time: timeStr },
-      ])
+      const newMsg = { sender: user?.nickname || '나', text: liveChatInput.trim(), time: timeStr }
+      setLiveChatMessages((prev) => [...prev, newMsg])
       setLiveChatInput('')
       setTimeout(() => {
         liveChatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
       }, 50)
+
+      // 📡 다른 브라우저 탭/창에 실시간 채팅 브로드캐스트
+      try {
+        if (activeLiveModal) {
+          const chatPayload = {
+            msg: newMsg,
+            roomId: activeLiveModal.id,
+            timestamp: Date.now(),
+          }
+          localStorage.setItem('mocco_live_chat_event', JSON.stringify(chatPayload))
+          window.dispatchEvent(new Event('mocco_live_chat_broadcast'))
+        }
+      } catch (e) {}
     })
   }
 
-  // 모달 오픈 시 상품 카드 펼침 및 채팅 최신 스크롤 동기화
+  // 모달 오픈 시 상품 카드 펼침 및 채팅 최신 스크롤 동기화 + 실시간 크로스 브라우저 선물/채팅 수신 리스너
   useEffect(() => {
-    if (activeLiveModal) {
-      setIsPinnedProductMinimized(false)
-      setTimeout(() => {
-        liveChatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-      }, 100)
+    if (!activeLiveModal) return
+
+    setIsPinnedProductMinimized(false)
+    setTimeout(() => {
+      liveChatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, 100)
+
+    const onLiveGiftReceived = () => {
+      try {
+        const raw = localStorage.getItem('mocco_live_gift_event')
+        if (!raw) return
+        const payload = JSON.parse(raw)
+        if (payload && payload.roomId === activeLiveModal.id && Date.now() - payload.timestamp < 4000) {
+          setLiveChatMessages((prev) => {
+            if (prev.some((m) => m.time === payload.msg.time && m.text === payload.msg.text && m.sender === payload.msg.sender)) {
+              return prev
+            }
+            return [...prev, payload.msg]
+          })
+          setLiveGiftEffect(payload.effect)
+          setTimeout(() => {
+            setLiveGiftEffect(null)
+          }, 4000)
+          setTimeout(() => {
+            liveChatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+          }, 100)
+        }
+      } catch (e) {}
+    }
+
+    const onLiveChatReceived = () => {
+      try {
+        const raw = localStorage.getItem('mocco_live_chat_event')
+        if (!raw) return
+        const payload = JSON.parse(raw)
+        if (payload && payload.roomId === activeLiveModal.id && Date.now() - payload.timestamp < 3000) {
+          setLiveChatMessages((prev) => {
+            if (prev.some((m) => m.time === payload.msg.time && m.text === payload.msg.text && m.sender === payload.msg.sender)) {
+              return prev
+            }
+            return [...prev, payload.msg]
+          })
+          setTimeout(() => {
+            liveChatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+          }, 50)
+        }
+      } catch (e) {}
+    }
+
+    window.addEventListener('mocco_live_gift_broadcast', onLiveGiftReceived)
+    window.addEventListener('mocco_live_chat_broadcast', onLiveChatReceived)
+    window.addEventListener('storage', onLiveGiftReceived)
+    window.addEventListener('storage', onLiveChatReceived)
+
+    return () => {
+      window.removeEventListener('mocco_live_gift_broadcast', onLiveGiftReceived)
+      window.removeEventListener('mocco_live_chat_broadcast', onLiveChatReceived)
+      window.removeEventListener('storage', onLiveGiftReceived)
+      window.removeEventListener('storage', onLiveChatReceived)
     }
   }, [activeLiveModal])
 
@@ -2363,13 +2450,19 @@ export default function CustomerWebStorefrontPage() {
         viewerCount: 1,
         coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800',
         hasCommerce: Boolean(newLivePinnedProduct),
-        isOfficialCreator: role === 'CREATOR' || role === 'ADMIN',
+        isOfficialCreator: true,
         broadcastType: newLiveBroadcastType,
         entryFee: newLiveBroadcastType === 'PRIVATE' ? newLiveEntryFee : 0,
         pinnedProduct: newLivePinnedProduct || undefined,
       }
-      setLives([newRoom, ...lives])
+      const updatedLives = [newRoom, ...lives]
+      setLives(updatedLives)
       setTop3Lives([newRoom, ...top3Lives.slice(0, 2)])
+      try {
+        localStorage.setItem('mocco_custom_lives', JSON.stringify(updatedLives))
+        window.dispatchEvent(new Event('mocco_live_updated'))
+      } catch (e) {}
+
       setIsStartLiveModalOpen(false)
       setNewLiveTitle('')
       setNewLivePinnedProduct(null)
@@ -2425,6 +2518,24 @@ export default function CustomerWebStorefrontPage() {
       setTimeout(() => {
         setLiveGiftEffect(null)
       }, 4000)
+
+      // 📡 다른 브라우저 탭/창(호스트 화면)에 실시간 선물 후원 브로드캐스트
+      try {
+        const giftPayload = {
+          msg: giftMsg,
+          effect: {
+            name: gift.name,
+            icon: gift.icon,
+            description: gift.description,
+            sender: senderName,
+            amount: gift.pricePoints,
+          },
+          roomId: activeLiveModal.id,
+          timestamp: Date.now(),
+        }
+        localStorage.setItem('mocco_live_gift_event', JSON.stringify(giftPayload))
+        window.dispatchEvent(new Event('mocco_live_gift_broadcast'))
+      } catch (e) {}
 
       toast({
         title: '🎉 모꼬 3D 선물 후원 완료!',
@@ -7394,12 +7505,57 @@ export default function CustomerWebStorefrontPage() {
 
             {loginTab === 'EMAIL' && (
               <div className="space-y-3 animate-in fade-in duration-150">
+                {/* 🔴 라이브 방송 테스트 전용 계정 1클릭 프리셋 버튼 */}
+                <div className="space-y-1.5 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5 text-pink-500" />
+                      실시간 라이브 테스트 계정 (원클릭 자동입력)
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmailInput('test01@te.te')
+                        setPasswordInput('12345678')
+                        toast({ title: '🎙️ 테스터01 (호스트/송출) 입력 완료', description: 'test01@te.te / 12345678 계정이 자동 입력되었습니다.' })
+                      }}
+                      className="p-2 rounded-xl border border-pink-200 bg-pink-50/70 hover:bg-pink-100/70 text-left transition text-xs group"
+                    >
+                      <div className="font-extrabold text-[11px] text-pink-700 flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-pink-500 animate-ping" />
+                        테스터 01 (호스트)
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-mono mt-0.5 truncate">test01@te.te</div>
+                      <span className="text-[9px] text-pink-600 font-bold block mt-1">방송 송출 호스트</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmailInput('test02@te.te')
+                        setPasswordInput('12345678')
+                        toast({ title: '🎁 테스터02 (시청자/후원) 입력 완료', description: 'test02@te.te / 12345678 계정이 자동 입력되었습니다.' })
+                      }}
+                      className="p-2 rounded-xl border border-amber-200 bg-amber-50/70 hover:bg-amber-100/70 text-left transition text-xs group"
+                    >
+                      <div className="font-extrabold text-[11px] text-amber-800 flex items-center gap-1">
+                        <span>🎁</span>
+                        테스터 02 (시청자)
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-mono mt-0.5 truncate">test02@te.te</div>
+                      <span className="text-[9px] text-amber-700 font-bold block mt-1">20만 꿀떡 보유</span>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700">이메일</label>
                   <Input
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
-                    placeholder="admin@tokfriends.com"
+                    placeholder="test01@te.te 또는 test02@te.te"
                     className="text-xs rounded-xl h-9"
                   />
                 </div>
@@ -7409,7 +7565,7 @@ export default function CustomerWebStorefrontPage() {
                     type="password"
                     value={passwordInput}
                     onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder="비밀번호 입력"
+                    placeholder="비밀번호 입력 (예: 12345678)"
                     className="text-xs rounded-xl h-9"
                   />
                 </div>
@@ -7419,8 +7575,14 @@ export default function CustomerWebStorefrontPage() {
                     const res = await emailLogin(emailInput, passwordInput)
                     if (res.success) {
                       toast({
-                        title: '로그인 성공',
-                        description: '성공적으로 인증되었습니다.',
+                        title: '🎉 로그인 완료!',
+                        description: `${emailInput} 계정으로 로그인되었습니다.`,
+                      })
+                    } else if (res.message) {
+                      toast({
+                        title: '로그인 실패',
+                        description: res.message,
+                        variant: 'destructive',
                       })
                     }
                   }}

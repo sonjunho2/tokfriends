@@ -308,6 +308,58 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
   const emailLogin = useCallback(
     async (email: string, pass: string) => {
       const cleanEmail = email.trim().toLowerCase()
+
+      // 🔴 실서비스 동작 테스트 전용 회원 2명 (test01@te.te / test02@te.te)
+      if (cleanEmail === 'test01@te.te') {
+        if (pass && pass !== '12345678') {
+          return { success: false, message: '비밀번호가 일치하지 않습니다. (테스트 비밀번호: 12345678)' }
+        }
+        const hostUser: WebUser = {
+          id: 'u-tester-01',
+          nickname: '테스터01(스트리머)',
+          email: 'test01@te.te',
+          role: 'CREATOR',
+          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+          pointBalance: 50000,
+          cashBalance: 100000,
+          creatorInfo: {
+            channelName: '테스터01의 온에어 라이브 🎙️',
+            category: '일상/토크',
+            bio: '실시간 라이브 방송 송출 및 선물 후원 테스트용 공식 크리에이터 계정입니다.',
+            activeTime: '상시 On-Air',
+          },
+        }
+        saveUserState(hostUser)
+        setIsLoginModalOpen(false)
+        if (pendingAction) {
+          pendingAction()
+          setPendingAction(null)
+        }
+        return { success: true }
+      }
+
+      if (cleanEmail === 'test02@te.te') {
+        if (pass && pass !== '12345678') {
+          return { success: false, message: '비밀번호가 일치하지 않습니다. (테스트 비밀번호: 12345678)' }
+        }
+        const viewerUser: WebUser = {
+          id: 'u-tester-02',
+          nickname: '테스터02(시청자)',
+          email: 'test02@te.te',
+          role: 'USER',
+          avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
+          pointBalance: 200000, // 넉넉한 20만 꿀떡으로 VIP 3D 선물 후원 테스트 가능
+          cashBalance: 500000,
+        }
+        saveUserState(viewerUser)
+        setIsLoginModalOpen(false)
+        if (pendingAction) {
+          pendingAction()
+          setPendingAction(null)
+        }
+        return { success: true }
+      }
+
       // 특수 계정 체크
       if (cleanEmail.includes('admin') || cleanEmail === 'admin@dagaon.com' || cleanEmail === 'admin@tokfriends.com') {
         const adminUser = PRESET_USERS.ADMIN
