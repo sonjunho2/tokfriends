@@ -2730,6 +2730,103 @@ export async function getLiveRankings(): Promise<any[]> {
   }
 }
 
+export async function getLiveRooms(category?: string): Promise<any[]> {
+  try {
+    const response = await api.get('/live/rooms', { params: category ? { category } : {} })
+    const d = (response.data as any)?.data ?? response.data?.items ?? response.data
+    return Array.isArray(d) ? d : []
+  } catch {
+    return []
+  }
+}
+
+export async function sendWebLiveMessage(roomId: string, message: { text: string; sender?: string; senderId?: string }): Promise<any> {
+  try {
+    const response = await api.post(`/live/rooms/${encodeURIComponent(roomId)}/messages`, {
+      type: 'chat',
+      content: message.text,
+      senderName: message.sender || '웹시청자',
+      senderId: message.senderId || 'guest',
+    })
+    return (response.data as any)?.data ?? response.data
+  } catch {
+    return null
+  }
+}
+
+export async function sendWebLiveGift(roomId: string, gift: { name: string; points: number; senderName?: string; senderId?: string }): Promise<any> {
+  try {
+    const response = await api.post(`/live/rooms/${encodeURIComponent(roomId)}/gift`, {
+      giftName: gift.name,
+      points: gift.points,
+      senderName: gift.senderName || '웹시청자',
+      senderId: gift.senderId || 'guest',
+    })
+    return (response.data as any)?.data ?? response.data
+  } catch {
+    return null
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 마켓(중고거래 & 일반상품), 수다 커뮤니티, 채팅 실시간 연동 API
+// ---------------------------------------------------------------------------
+
+export async function getMarketProducts(params?: any): Promise<any[]> {
+  try {
+    const res = await api.get('/market/products', { params })
+    const data = res?.data ?? res
+    return Array.isArray(data) ? data : (data?.items || data?.products || [])
+  } catch (err) {
+    console.warn('getMarketProducts error:', err)
+    return []
+  }
+}
+
+export async function createMarketProduct(payload: any): Promise<any> {
+  const res = await api.post('/market/products', payload)
+  return res?.data ?? res
+}
+
+export async function getNormalProducts(params?: any): Promise<any[]> {
+  try {
+    const res = await api.get('/merchants/products', { params })
+    const data = res?.data ?? res
+    return Array.isArray(data) ? data : (data?.items || data?.products || [])
+  } catch (err) {
+    console.warn('getNormalProducts error:', err)
+    return []
+  }
+}
+
+export async function getSudaPosts(params?: any): Promise<any[]> {
+  try {
+    const res = await api.get('/suda/posts', { params })
+    const data = res?.data ?? res
+    return Array.isArray(data) ? data : (data?.items || data?.posts || [])
+  } catch (err) {
+    console.warn('getSudaPosts error:', err)
+    return []
+  }
+}
+
+export async function createSudaPost(payload: any): Promise<any> {
+  const res = await api.post('/suda/posts', payload)
+  return res?.data ?? res
+}
+
+export async function getChatRooms(): Promise<any[]> {
+  try {
+    const res = await api.get('/chats')
+    const data = res?.data ?? res
+    return Array.isArray(data) ? data : (data?.items || data?.chats || [])
+  } catch (err) {
+    console.warn('getChatRooms error:', err)
+    return []
+  }
+}
+
+
 // =============================================
 // Admin Permissions, Approvals & Audit
 // =============================================

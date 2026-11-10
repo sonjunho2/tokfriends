@@ -775,6 +775,17 @@ export default function LivePage() {
                     {/* 원클릭 조치 버튼 그룹 */}
                     <div className="flex items-center gap-1.5 pt-1 border-t">
                       <Button
+                        asChild
+                        size="sm"
+                        variant="default"
+                        className="h-8 text-xs bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1 font-bold shadow-xs"
+                      >
+                        <Link href={`/?tab=LIVE&roomId=${room.id}`}>
+                          <Video className="h-3.5 w-3.5" />
+                          시청하기
+                        </Link>
+                      </Button>
+                      <Button
                         size="sm"
                         variant="outline"
                         onClick={() => void handleOpenMessages(room)}

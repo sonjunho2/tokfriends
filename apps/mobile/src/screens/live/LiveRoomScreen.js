@@ -123,6 +123,28 @@ export default function LiveRoomScreen({ navigation, route }) {
   const roomId = route?.params?.roomId || initialRoom?.id;
 
   const [room, setRoom] = useState(initialRoom || null);
+
+  // 👑 호스트(스트리머) 여부 최상단 즉시 판정 (TDZ 오류 완벽 방지)
+  const initialHostFlag = useRef(Boolean(route?.params?.isHost)).current;
+  const isHost = Boolean(
+    initialHostFlag ||
+    route?.params?.isHost ||
+    (currentUser?.id && room?.host?.id && String(currentUser.id) === String(room.host.id)) ||
+    (currentUser?.id && room?.hostId && String(currentUser.id) === String(room.hostId)) ||
+    (currentUser?.activityAccountId && room?.host?.targetAccountId && String(currentUser.activityAccountId) === String(room.host.targetAccountId))
+  );
+
+  // 📷 카메라 & 오디오 스트리밍 핵심 상태 최상단 정의
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const hasCameraPermission = Boolean(
+    cameraPermission?.granted || cameraPermission?.status === 'granted'
+  );
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const [isCameraOff, setIsCameraOff] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState('front'); // 'front' | 'back'
+  const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
+  const [agoraTokenData, setAgoraTokenData] = useState(null);
+  const [streamConnecting, setStreamConnecting] = useState(true);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
@@ -379,14 +401,7 @@ export default function LiveRoomScreen({ navigation, route }) {
     ? keyboardHeight + 8
     : Math.max(insets.bottom, 12);
 
-  // Agora Live Streaming States (Video + Audio)
-  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-  const [agoraTokenData, setAgoraTokenData] = useState(null);
-  const [streamConnecting, setStreamConnecting] = useState(true);
-  const [isMicMuted, setIsMicMuted] = useState(false);
-  const [isCameraOff, setIsCameraOff] = useState(false);
-  const [cameraFacing, setCameraFacing] = useState('front'); // 'front' | 'back'
-  const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
+  // Agora Live Streaming States (Moved to top)
 
   // Agora Traffic Optimization: Background Video Unsubscribe & Audio Mode Switch
   const [isVideoSubscribed, setIsVideoSubscribed] = useState(true);
@@ -516,19 +531,7 @@ export default function LiveRoomScreen({ navigation, route }) {
     showStreamToast('라이브 비디오 영상을 다시 켰습니다', 'videocam');
   }, [agoraStreamController, showStreamToast]);
 
-  const initialHostFlag = useRef(Boolean(route?.params?.isHost)).current;
-
-  const isHost = Boolean(
-    initialHostFlag ||
-    route?.params?.isHost ||
-    (currentUser?.id && room?.host?.id && String(currentUser.id) === String(room.host.id)) ||
-    (currentUser?.id && room?.hostId && String(currentUser.id) === String(room.hostId)) ||
-    (currentUser?.activityAccountId && room?.host?.targetAccountId && String(currentUser.activityAccountId) === String(room.host.targetAccountId))
-  );
-
-  const hasCameraPermission = Boolean(
-    cameraPermission?.granted || cameraPermission?.status === 'granted'
-  );
+  // isHost & hasCameraPermission defined at top
 
   const handleRequestCamera = useCallback(async () => {
     try {
@@ -580,6 +583,8 @@ export default function LiveRoomScreen({ navigation, route }) {
       if (mounted && res?.viewerCount) {
         setViewerCount(res.viewerCount);
       }
+    }).catch((e) => {
+      console.warn('joinLiveRoom non-critical error:', e?.message);
     });
 
     loadRoomDetails();

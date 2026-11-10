@@ -80,7 +80,7 @@ export default function WebLivePlayerPage() {
 
         let tokenData: any = null
         try {
-          const res: any = await api.get(`/v1/live/rooms/${liveId}/agora-token?role=subscriber`)
+          const res: any = await api.get(`/live/rooms/${liveId}/agora-token?role=subscriber`)
           tokenData = res?.data ?? res
         } catch {
           tokenData = {

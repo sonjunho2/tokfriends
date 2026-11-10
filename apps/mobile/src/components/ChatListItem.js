@@ -57,7 +57,7 @@ const formatLastMessage = (content) => {
     ) {
       try {
         const parsed = JSON.parse(content);
-        return `🎁 선물: ${parsed.name || '선물'} (${parsed.amount ?? 0} 온)`;
+        return `🎁 선물: ${parsed.name || '선물'} (${parsed.amount ?? 0} 꿀떡)`;
       } catch {
         return '🎁 선물을 보냈습니다.';
       }
@@ -101,7 +101,7 @@ export default function ChatListItem({ item, onPress, onLongPress, onDeletePress
             </Text>
             {item.entryFee !== undefined && Number(item.entryFee) > 0 ? (
               <View style={styles.feeBadge}>
-                <Text style={styles.feeBadgeText}>{Number(item.entryFee).toLocaleString()} 온</Text>
+                <Text style={styles.feeBadgeText}>{Number(item.entryFee).toLocaleString()} 꿀떡</Text>
               </View>
             ) : item.entryFee !== undefined && Number(item.entryFee) === 0 ? (
               <View style={styles.freeBadge}>

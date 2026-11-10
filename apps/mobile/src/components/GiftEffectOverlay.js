@@ -1062,7 +1062,7 @@ const GiftEffectOverlay = forwardRef(({ onEffectEnd }, ref) => {
               >
                 {giftName}
               </Text>
-              {pricePoints > 0 ? ` (${pricePoints.toLocaleString()} 온)` : ''}이 도착했습니다!
+              {pricePoints > 0 ? ` (${pricePoints.toLocaleString()} 꿀떡)` : ''}이 도착했습니다!
             </Text>
           </View>
         </Animated.View>

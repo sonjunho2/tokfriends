@@ -24,7 +24,7 @@ const SLIDES = [
     badge: '우리 동네 잔치',
     title: '우리 동네 매일매일\n열리는 잔치!',
     desc: '모꼬에서 이웃들과 따뜻한 이야기와\n핫딜을 만나보세요!',
-    btnText: '시작하기',
+    btnText: '다음',
     accentColor: '#FF6445',
   },
   {
@@ -32,7 +32,7 @@ const SLIDES = [
     badge: '실시간 LIVE & 통화',
     title: '실시간 LIVE 소통과\n생생한 1:1 대화!',
     desc: '인기 크리에이터의 라이브 방송과 프라이빗 통화,\n화려한 3D 선물로 마음을 전해보세요!',
-    btnText: '다음으로',
+    btnText: '다음',
     accentColor: '#8B5CF6',
   },
   {
@@ -96,27 +96,30 @@ export default function OnboardingScreen({ navigation }) {
     };
   }, [floatAnim, pulseAnim]);
 
-  // 로그인 화면으로 바로 이동
-  const goToLogin = useCallback(async () => {
+  // 온보딩 완료 시 앱 접근 권한 안내(PermissionGuide) 화면으로 이동
+  const goToPermissionGuide = useCallback(async () => {
     try {
-      await AsyncStorage.multiSet([
-        ['@mocco_onboarded', 'true'],
-        ['@dagaon_onboarded', 'true'],
-      ]);
+      await AsyncStorage.setItem('@mocco_onboarded', 'true');
     } catch (e) {
       console.warn('Failed to save onboarding state:', e);
     }
-    if (navigation?.navigate) {
-      navigation.navigate('Login');
-    } else if (navigation?.reset) {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-      });
+    if (navigation?.replace) {
+      navigation.replace('PermissionGuide');
+    } else if (navigation?.navigate) {
+      navigation.navigate('PermissionGuide');
     }
   }, [navigation]);
 
-  const handleFinishOnboarding = goToLogin;
+  const goToLogin = useCallback(async () => {
+    try {
+      await AsyncStorage.setItem('@mocco_onboarded', 'true');
+    } catch (e) {}
+    if (navigation?.navigate) {
+      navigation.navigate('Login');
+    }
+  }, [navigation]);
+
+  const handleFinishOnboarding = goToPermissionGuide;
 
   // 슬라이드 변경 애니메이션
   const goToSlide = (nextIndex) => {
@@ -151,13 +154,10 @@ export default function OnboardingScreen({ navigation }) {
   };
 
   const handleNext = () => {
-    if (currentIndex === 0) {
-      // 슬라이드 1 시안의 '시작하기' 누르면 즉시 로그인 화면으로 이동!
-      goToLogin();
-    } else if (currentIndex < SLIDES.length - 1) {
+    if (currentIndex < SLIDES.length - 1) {
       goToSlide(currentIndex + 1);
     } else {
-      goToLogin();
+      goToPermissionGuide();
     }
   };
 

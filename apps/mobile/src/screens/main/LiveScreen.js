@@ -257,7 +257,9 @@ export default function LiveScreen({ navigation }) {
           setTitle('');
           setEntryFee(0);
           if (refreshMe) refreshMe().catch(() => {});
-          navigation.navigate('LiveRoom', { room, roomId: room.id, isHost: true });
+          setTimeout(() => {
+            navigation.navigate('LiveRoom', { room, roomId: room.id, isHost: true });
+          }, 80);
           loadRooms();
         } catch (e) {
           Alert.alert('시작 실패', e?.message || '라이브 방송을 시작하지 못했습니다.');
@@ -281,7 +283,7 @@ export default function LiveScreen({ navigation }) {
 
     checkAndConfirmActionPoint({
       actionType: 'liveRoomJoin',
-      actionName: fee > 0 ? `라이브 방송 입장(입장료 ${fee.toLocaleString()} 온)` : '라이브 방송 무료 입장',
+      actionName: fee > 0 ? `라이브 방송 입장(입장료 ${fee.toLocaleString()} 꿀떡)` : '라이브 방송 무료 입장',
       overrideAmount: fee,
       navigation,
       onConfirm: async () => {
@@ -327,7 +329,7 @@ export default function LiveScreen({ navigation }) {
             ]}
           >
             <Text style={styles.entryFeePillText}>
-              {Number(item.entryFee || 0) > 0 ? `${Number(item.entryFee).toLocaleString()} 온` : '무료'}
+              {Number(item.entryFee || 0) > 0 ? `${Number(item.entryFee).toLocaleString()} 꿀떡` : '무료'}
             </Text>
           </View>
         </View>
@@ -995,7 +997,7 @@ export default function LiveScreen({ navigation }) {
               </View>
             )}
 
-            <Text style={[styles.inputLabel, { marginTop: 24 }]}>시청자 입장료 (참여 온 설정)</Text>
+            <Text style={[styles.inputLabel, { marginTop: 24 }]}>시청자 입장료 (참여 꿀떡 설정)</Text>
             <Text style={styles.inputSubLabel}>
               호스트가 직접 시청자의 입장료를 지정할 수 있습니다. (0 꿀떡 설정 시 무료)
             </Text>
@@ -1017,7 +1019,7 @@ export default function LiveScreen({ navigation }) {
                         isSelected && styles.entryFeeChipTextActive,
                       ]}
                     >
-                      {feeVal === 0 ? '무료' : `${feeVal} 온`}
+                      {feeVal === 0 ? '무료' : `${feeVal} 꿀떡`}
                     </Text>
                   </TouchableOpacity>
                 );

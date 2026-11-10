@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -13,6 +13,7 @@ import {
   MessageCircle,
   User,
   Heart,
+  Maximize2,
   Share2,
   ExternalLink,
   CheckCircle2,
@@ -97,7 +98,21 @@ import {
 } from '@/components/ui/dialog'
 import { useWebAuth, type UserRole, type MerchantApplication, type CreatorApplication } from '@/lib/auth-context'
 import { RoleSwitcherFloating } from '@/components/common/RoleSwitcherFloating'
-import { getLiveTop3Rooms, getLiveRankings } from '@/lib/api'
+import {
+  api,
+  getLiveTop3Rooms,
+  getLiveRankings,
+  getLiveRooms,
+  sendWebLiveMessage,
+  sendWebLiveGift,
+  getAdminLiveMessages,
+  getMarketProducts,
+  getNormalProducts,
+  createMarketProduct,
+  getSudaPosts,
+  createSudaPost,
+  getChatRooms,
+} from '@/lib/api'
 import {
   MarketProductDetailModal,
   type MarketProductDetail,
@@ -1607,6 +1622,31 @@ export default function CustomerWebStorefrontPage() {
       setMarketSubTab(subParam as any)
     }
 
+    const roomIdParam = params.get('roomId')
+    if (roomIdParam) {
+      setActiveTab('LIVE')
+      getLiveRooms()
+        .then((items) => {
+          const found = items.find((r: any) => r.id === roomIdParam)
+          if (found) {
+            setActiveLiveModal({
+              id: found.id,
+              rank: 1,
+              title: found.title || '모꼬 실시간 소통 라이브',
+              category: found.category === 'talk' ? '일상/토크' : (found.category || '일상/토크'),
+              hostNickname: found.host?.displayName || found.host?.nickname || found.host?.name || '호스트',
+              hostAvatar: found.host?.avatarUrl || found.host?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+              viewerCount: Number(found.viewerCount || 0),
+              coverUrl: found.coverUri || found.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800',
+              hasCommerce: Boolean(found.hasCommerce || found.pinnedProduct || found.pinnedProductId),
+              isOfficialCreator: Boolean(found.isOfficialCreator ?? true),
+              pinnedProduct: found.pinnedProduct,
+            })
+          }
+        })
+        .catch(() => {})
+    }
+
     // 중고물품 상세에서 [거래톡] 클릭하여 넘어온 경우
     if (tabParam === 'CHAT' && tradeIdParam) {
       setChatSubTab('CHATS')
@@ -1680,8 +1720,6 @@ export default function CustomerWebStorefrontPage() {
   const [liveChatInput, setLiveChatInput] = useState('')
   const [liveChatMessages, setLiveChatMessages] = useState<LiveChatMessageItem[]>([
     { sender: '시스템', text: '모꼬(MOCCO) 실시간 라이브 방송에 오신 것을 환영합니다!', isSystem: true, time: '12:00' },
-    { sender: '고기러버', text: '오겹살 때깔 미쳤네요 바로 주문합니다!', time: '12:01' },
-    { sender: '제주도민', text: '당일 도축이라 진짜 신선해요 추천!', time: '12:02' },
   ])
 
   // Live Stream Viewer & 3D Gift States
@@ -1698,6 +1736,10 @@ export default function CustomerWebStorefrontPage() {
   const [floatingHearts, setFloatingHearts] = useState<{ id: number; color: string; left: number }[]>([])
   const [isPinnedProductMinimized, setIsPinnedProductMinimized] = useState(false)
   const liveChatEndRef = useRef<HTMLDivElement>(null)
+  const modalAgoraContainerRef = useRef<HTMLDivElement>(null)
+  const modalAgoraClientRef = useRef<any>(null)
+  const modalRemoteAudioTrackRef = useRef<any>(null)
+  const [isAgoraStreaming, setIsAgoraStreaming] = useState(false)
 
   // ==========================================
   // 마이모꼬 (MY) 모바일 완전 동기화 상태들
@@ -2170,6 +2212,15 @@ export default function CustomerWebStorefrontPage() {
         status: 'ACTIVE',
       }
       setUsedProducts((prev) => [newUsed, ...prev])
+      createMarketProduct({
+        title: payload.name,
+        description: payload.description,
+        price: payload.price,
+        category: payload.category,
+        type: 'C2C_USED',
+        images: payload.images,
+        shippingFee: 3000,
+      }).catch((e) => console.warn('createMarketProduct error:', e))
       toast({
         title: '🎉 중고 물품 등록 완료!',
         description: '내 중고물품이 등록되었으며, 모바일 라이브 방송 시 핀 상품으로 실시간 판매할 수 있습니다.',
@@ -2199,6 +2250,19 @@ export default function CustomerWebStorefrontPage() {
         csPhone: payload.csPhone,
       }
       setMarketProducts((prev) => [newItem, ...prev])
+      createMarketProduct({
+        title: payload.name,
+        description: payload.description,
+        price: payload.price,
+        originalPrice: payload.originalPrice,
+        category: payload.category,
+        type: payload.type,
+        images: payload.images,
+        stock: payload.stock,
+        shippingFee: payload.shippingFee,
+        detailNotice: payload.detailNotice,
+        detailImages: payload.detailImages,
+      }).catch((e) => console.warn('createMarketProduct error:', e))
 
       // LocalStorage 캐싱 동기화
       try {
@@ -2286,8 +2350,42 @@ export default function CustomerWebStorefrontPage() {
     }
   }, [activeChatRoom?.messages])
 
-  // Load real-time live top 3 and rankings from API
-  useEffect(() => {
+  // Load real-time live rooms, top 3, and rankings from API
+  const refreshLiveRooms = useCallback(() => {
+    getLiveRooms()
+      .then((items) => {
+        if (Array.isArray(items) && items.length > 0) {
+          const formatted: LiveRoomItem[] = items.map((item, idx) => ({
+            id: item.id || `live-room-${idx + 1}`,
+            title: item.title || '모꼬 실시간 소통 라이브',
+            category: item.category === 'talk' ? '일상/토크' : item.category || '일상/토크',
+            hostNickname:
+              item.hostNickname ||
+              item.host?.displayName ||
+              item.host?.nickname ||
+              item.host?.name ||
+              '호스트',
+            hostAvatar:
+              item.hostAvatar ||
+              item.host?.avatarUrl ||
+              item.host?.avatar ||
+              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+            viewerCount: Number(item.viewerCount || 0),
+            coverUrl:
+              item.coverUrl ||
+              item.coverUri ||
+              'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800',
+            hasCommerce: Boolean(item.hasCommerce || item.pinnedProduct || item.pinnedProductId),
+            isOfficialCreator: Boolean(item.isOfficialCreator ?? true),
+            rank: item.rank || idx + 1,
+            pinnedProduct: item.pinnedProduct,
+          }))
+          setLives(formatted)
+          setTop3Lives(formatted.slice(0, 3))
+        }
+      })
+      .catch(() => {})
+
     getLiveTop3Rooms()
       .then((items) => {
         if (Array.isArray(items) && items.length > 0) {
@@ -2295,7 +2393,12 @@ export default function CustomerWebStorefrontPage() {
             id: item.id || `live-top-${idx + 1}`,
             title: item.title,
             category: item.category || '일상/토크',
-            hostNickname: item.hostNickname || item.host?.displayName || item.host?.name || '호스트',
+            hostNickname:
+              item.hostNickname ||
+              item.host?.displayName ||
+              item.host?.nickname ||
+              item.host?.name ||
+              '호스트',
             hostAvatar:
               item.hostAvatar ||
               item.host?.avatarUrl ||
@@ -2325,6 +2428,113 @@ export default function CustomerWebStorefrontPage() {
       .catch(() => {})
   }, [])
 
+  // 마켓 상품(중고/일반), 수다글, 채팅방 목록 실시간 API 로딩
+  const refreshMarketData = useCallback(() => {
+    getMarketProducts()
+      .then((items) => {
+        if (Array.isArray(items) && items.length > 0) {
+          const formatted: UsedProductItem[] = items.map((p, idx) => ({
+            id: p.id || `used-${idx + 1}`,
+            title: p.title || p.name || '중고 매물',
+            description: p.description || '',
+            price: Number(p.price || 0),
+            category: p.category || '기타',
+            locationName: p.region || p.locationName || '서울 강남구',
+            sellerNickname: p.seller?.nickname || p.sellerNickname || '모꼬 이웃',
+            sellerAvatar: p.seller?.avatar || p.sellerAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+            mannerTemp: Number(p.mannerTemp || 36.5),
+            images: Array.isArray(p.images) && p.images.length > 0 ? p.images : [p.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500'],
+            likesCount: Number(p.likesCount || p.likes || 0),
+            chatsCount: Number(p.chatsCount || p.chats || 0),
+            createdAt: p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '최근',
+            status: p.status || 'ACTIVE',
+            allowLiveSale: Boolean(p.allowLiveSale),
+          }))
+          setUsedProducts(formatted)
+        }
+      })
+      .catch(() => {})
+
+    getNormalProducts()
+      .then((items) => {
+        if (Array.isArray(items) && items.length > 0) {
+          const formatted: MarketProductItem[] = items.map((p, idx) => ({
+            id: p.id || `prod-${idx + 1}`,
+            title: p.title || p.name || '모꼬 마켓 상품',
+            description: p.description || '',
+            price: Number(p.price || 0),
+            originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
+            type: p.type || 'B2C_NORMAL',
+            ownerType: p.ownerType || 'MERCHANT',
+            category: p.category || '라이프스타일',
+            images: Array.isArray(p.images) && p.images.length > 0 ? p.images : [p.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500'],
+            sellerName: p.merchantName || p.sellerName || '모꼬 공식 파트너',
+            shippingFee: Number(p.shippingFee || 0),
+            stock: Number(p.stock || 999),
+            status: p.status || 'ACTIVE',
+            salesCount: Number(p.salesCount || 0),
+            orderCount: Number(p.orderCount || 0),
+            rating: Number(p.rating || 5.0),
+            reviewCount: Number(p.reviewCount || 0),
+          }))
+          setMarketProducts(formatted)
+        }
+      })
+      .catch(() => {})
+
+    getSudaPosts()
+      .then((items) => {
+        if (Array.isArray(items) && items.length > 0) {
+          const formatted: SudaPostItem[] = items.map((s, idx) => ({
+            id: s.id || `suda-${idx + 1}`,
+            nickname: s.author?.nickname || s.nickname || '모꼬 이웃',
+            avatar: s.author?.avatar || s.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+            region: s.region || '서울 강남구',
+            distance: s.distance || '500m',
+            title: s.title,
+            content: s.content || s.text || '',
+            entryFee: Number(s.entryFee || 0),
+            category: s.category || '일상',
+            time: s.createdAt ? new Date(s.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '방금 전',
+            likes: Number(s.likes || s.likesCount || 0),
+            comments: Number(s.comments || s.commentsCount || 0),
+            isLiked: Boolean(s.isLiked),
+          }))
+          setSudaPosts(formatted)
+        }
+      })
+      .catch(() => {})
+
+    getChatRooms()
+      .then((items) => {
+        if (Array.isArray(items) && items.length > 0) {
+          const formatted: ChatRoomItem[] = items.map((c, idx) => ({
+            id: c.id || `chat-${idx + 1}`,
+            type: c.type === 'MARKET' ? 'MARKET' : 'SUDA',
+            targetNickname: c.targetNickname || c.otherUser?.nickname || '대화 상대',
+            targetAvatar: c.targetAvatar || c.otherUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+            lastMessage: c.lastMessage || c.lastMessageContent || '대화가 시작되었습니다.',
+            lastTime: c.lastTime || '방금 전',
+            unreadCount: Number(c.unreadCount || 0),
+            productInfo: c.productInfo,
+            messages: Array.isArray(c.messages) ? c.messages : [],
+          }))
+          setChatRooms(formatted)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    refreshLiveRooms()
+    refreshMarketData()
+    const timer = setInterval(() => {
+      refreshLiveRooms()
+      refreshMarketData()
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [refreshLiveRooms, refreshMarketData])
+
   // Hero auto-slide
   useEffect(() => {
     const timer = setInterval(() => {
@@ -2337,42 +2547,176 @@ export default function CustomerWebStorefrontPage() {
   // Handlers
   // ==========================================
 
-  // Live Chat Send & Auto Scroll + Cross-window Broadcast
+  // Live Chat Send & Auto Scroll + Server Sync + Cross-window Broadcast
   const handleSendLiveChat = () => {
     requireAuth(() => {
-      if (!liveChatInput.trim()) return
+      if (!liveChatInput.trim() || !activeLiveModal) return
+      const text = liveChatInput.trim()
       const now = new Date()
       const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-      const newMsg = { sender: user?.nickname || '나', text: liveChatInput.trim(), time: timeStr }
+      const senderName = user?.nickname || '웹시청자'
+      const newMsg = { sender: senderName, text, time: timeStr }
       setLiveChatMessages((prev) => [...prev, newMsg])
       setLiveChatInput('')
       setTimeout(() => {
         liveChatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
       }, 50)
 
+      // 📡 서버 API로 실시간 메시지 전송 (앱 스트리머 화면에 WebSocket으로 즉시 도달)
+      sendWebLiveMessage(activeLiveModal.id, {
+        text,
+        sender: senderName,
+        senderId: user?.id || 'guest_web',
+      }).catch(() => {})
+
       // 📡 다른 브라우저 탭/창에 실시간 채팅 브로드캐스트
       try {
-        if (activeLiveModal) {
-          const chatPayload = {
-            msg: newMsg,
-            roomId: activeLiveModal.id,
-            timestamp: Date.now(),
-          }
-          localStorage.setItem('mocco_live_chat_event', JSON.stringify(chatPayload))
-          window.dispatchEvent(new Event('mocco_live_chat_broadcast'))
+        const chatPayload = {
+          msg: newMsg,
+          roomId: activeLiveModal.id,
+          timestamp: Date.now(),
         }
+        localStorage.setItem('mocco_live_chat_event', JSON.stringify(chatPayload))
+        window.dispatchEvent(new Event('mocco_live_chat_broadcast'))
       } catch (e) {}
     })
   }
 
-  // 모달 오픈 시 상품 카드 펼침 및 채팅 최신 스크롤 동기화 + 실시간 크로스 브라우저 선물/채팅 수신 리스너
+  // 모달 오픈 시 상품 카드 펼침 및 채팅 최신 스크롤 동기화 + 서버 메시지 실시간 폴링 + 실시간 크로스 브라우저 선물/채팅 수신 리스너 + Agora WebRTC 연동
   useEffect(() => {
-    if (!activeLiveModal) return
+    if (!activeLiveModal) {
+      if (modalAgoraClientRef.current) {
+        try { modalAgoraClientRef.current.leave() } catch {}
+        modalAgoraClientRef.current = null
+      }
+      setIsAgoraStreaming(false)
+      return
+    }
 
     setIsPinnedProductMinimized(false)
+
+    // 방별 환영 공지 메시지로 초기화 (이전 방의 잘못된 잔여 메시지 배제)
+    const initialMsg: LiveChatMessageItem = {
+      sender: '시스템',
+      text: `[공지] 모꼬(MOCCO) 실시간 라이브 방송에 오신 것을 환영합니다! '${activeLiveModal.title}' 방송이 진행 중입니다.`,
+      isSystem: true,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    }
+    setLiveChatMessages([initialMsg])
+
     setTimeout(() => {
       liveChatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, 100)
+
+    // 서버의 실시간 채팅/선물 목록 초기 동기화 및 2.5초 주기 폴링
+    const fetchServerMessages = () => {
+      getAdminLiveMessages(activeLiveModal.id)
+        .then((msgs) => {
+          if (Array.isArray(msgs) && msgs.length > 0) {
+            const formatted = msgs.map((m: any) => ({
+              sender: m.sender?.nickname || m.sender?.name || m.senderName || '시청자',
+              text: m.content || m.text || '',
+              isSystem: m.type === 'system',
+              isGift: m.type === 'gift',
+              gift: m.gift,
+              time: m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            }))
+            setLiveChatMessages((prev) => {
+              const unique = [...prev]
+              formatted.forEach((f) => {
+                if (!unique.some((u) => u.text === f.text && u.sender === f.sender)) {
+                  unique.push(f)
+                }
+              })
+              return unique.length > prev.length ? unique : prev
+            })
+          }
+        })
+        .catch(() => {})
+    }
+
+    fetchServerMessages()
+    const msgInterval = setInterval(fetchServerMessages, 2500)
+
+    // Agora WebRTC 실시간 스트림 연결
+    let unmounted = false
+    const initModalStream = async () => {
+      try {
+        if (!(window as any).AgoraRTC) {
+          await new Promise<void>((resolve, reject) => {
+            const script = document.createElement('script')
+            script.src = 'https://download.agora.io/sdk/release/AgoraRTC_N-4.22.0.js'
+            script.async = true
+            script.onload = () => resolve()
+            script.onerror = () => reject(new Error('Agora SDK 로드 실패'))
+            document.head.appendChild(script)
+          })
+        }
+
+        if (unmounted) return
+
+        let tokenData: any = null
+        try {
+          const res: any = await api.get(`/live/rooms/${encodeURIComponent(activeLiveModal.id)}/agora-token?role=subscriber`)
+          tokenData = res?.data ?? res
+        } catch {
+          tokenData = {
+            appId: 'mocco_agora_live',
+            token: '',
+            channelName: activeLiveModal.id,
+            uid: Math.floor(Math.random() * 900000) + 100000,
+          }
+        }
+
+        if (!tokenData?.appId || unmounted) return
+
+        const AgoraRTC = (window as any).AgoraRTC
+        AgoraRTC.setLogLevel(2)
+        const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' })
+        modalAgoraClientRef.current = client
+
+        await client.setClientRole('audience', { level: 1 })
+
+        client.on('user-published', async (user: any, mediaType: string) => {
+          try {
+            await client.subscribe(user, mediaType)
+            if (mediaType === 'video') {
+              if (modalAgoraContainerRef.current) {
+                modalAgoraContainerRef.current.innerHTML = ''
+                user.videoTrack.play(modalAgoraContainerRef.current, { fit: 'cover' })
+              }
+              setIsAgoraStreaming(true)
+            }
+            if (mediaType === 'audio') {
+              modalRemoteAudioTrackRef.current = user.audioTrack
+              if (!isLiveMuted) {
+                user.audioTrack.play()
+              }
+            }
+          } catch (subErr) {
+            console.error('Modal Agora subscribe error:', subErr)
+          }
+        })
+
+        client.on('user-unpublished', (user: any, mediaType: string) => {
+          if (mediaType === 'video') {
+            setIsAgoraStreaming(false)
+          }
+        })
+
+        await client.join(
+          tokenData.appId,
+          tokenData.channelName || activeLiveModal.id,
+          tokenData.token && tokenData.token.length > 5 ? tokenData.token : null,
+          tokenData.uid || null
+        )
+      } catch (err: any) {
+        console.warn('Modal AgoraRTC init:', err?.message || err)
+        setIsAgoraStreaming(false)
+      }
+    }
+
+    initModalStream()
 
     const onLiveGiftReceived = () => {
       try {
@@ -2422,12 +2766,29 @@ export default function CustomerWebStorefrontPage() {
     window.addEventListener('storage', onLiveChatReceived)
 
     return () => {
+      unmounted = true
+      clearInterval(msgInterval)
       window.removeEventListener('mocco_live_gift_broadcast', onLiveGiftReceived)
       window.removeEventListener('mocco_live_chat_broadcast', onLiveChatReceived)
       window.removeEventListener('storage', onLiveGiftReceived)
       window.removeEventListener('storage', onLiveChatReceived)
+      if (modalAgoraClientRef.current) {
+        try { modalAgoraClientRef.current.leave() } catch {}
+        modalAgoraClientRef.current = null
+      }
+      setIsAgoraStreaming(false)
     }
   }, [activeLiveModal])
+
+  useEffect(() => {
+    if (modalRemoteAudioTrackRef.current) {
+      if (isLiveMuted) {
+        try { modalRemoteAudioTrackRef.current.stop() } catch {}
+      } else {
+        try { modalRemoteAudioTrackRef.current.play() } catch {}
+      }
+    }
+  }, [isLiveMuted])
 
   // Live Donation: Send 3D Mocco Gift with full screen animation and chat sync
   // 🔴 라이브 방송 개설 핸들러 (1:N 대중 / 1:1 프라이빗 & 판매 상품 연동)
@@ -2506,6 +2867,14 @@ export default function CustomerWebStorefrontPage() {
       }
 
       setLiveChatMessages((prev) => [...prev, giftMsg])
+
+      // 📡 서버 API로 실시간 선물 전송 (앱 스트리머 화면에 3D 선물 애니메이션 및 정산 즉시 반영)
+      sendWebLiveGift(activeLiveModal.id, {
+        name: gift.name,
+        points: gift.pricePoints,
+        senderName,
+        senderId: user?.id || 'guest_web',
+      }).catch(() => {})
 
       // 3D Gift Effect Overlay on Video Player
       setLiveGiftEffect({
@@ -4734,6 +5103,18 @@ export default function CustomerWebStorefrontPage() {
                         <Badge className="bg-rose-50 text-[#FF3B6B] border border-rose-200 text-[10px] font-bold">
                           온에어 {lives.length}개
                         </Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            refreshLiveRooms()
+                            toast({ title: '라이브 목록 갱신', description: '최신 방송 목록을 불러왔습니다.' })
+                          }}
+                          className="h-6 text-[11px] px-2 rounded-lg border-rose-200 text-rose-700 hover:bg-rose-50 flex items-center gap-1 font-bold"
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                          새로고침
+                        </Button>
                       </div>
 
                       {/* Category Filter Pills */}
@@ -8822,6 +9203,14 @@ export default function CustomerWebStorefrontPage() {
 
               {/* 9:16 모바일 라이브 본래 비율을 온전히 살린 대형 비디오 캔버스 컨테이너 */}
               <div className="relative h-full aspect-[9/16] max-w-full flex items-center justify-center overflow-hidden bg-slate-950 shadow-2xl ring-1 ring-white/10">
+                {/* Agora Remote WebRTC Live Video Layer */}
+                <div
+                  ref={modalAgoraContainerRef}
+                  className={`absolute inset-0 z-10 w-full h-full overflow-hidden [&_video]:w-full [&_video]:h-full [&_video]:object-cover ${
+                    isAgoraStreaming ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                  } transition-opacity duration-300`}
+                />
+
                 <img
                   src={activeLiveModal.coverUrl}
                   alt="stream"
@@ -8846,6 +9235,15 @@ export default function CustomerWebStorefrontPage() {
                     <span className="text-[10px] bg-black/50 text-slate-300 font-bold px-2 py-0.5 rounded-md border border-white/10">
                       HD 1080p
                     </span>
+                    <Link
+                      href={`/web/live/${activeLiveModal.id}`}
+                      target="_blank"
+                      className="text-[10px] bg-rose-600/90 hover:bg-rose-600 text-white font-bold px-2 py-0.5 rounded-md flex items-center gap-1 transition shadow-xs"
+                      title="전체 화면 WebRTC 플레이어로 시청"
+                    >
+                      <Maximize2 className="h-3 w-3" />
+                      전체화면
+                    </Link>
                     <button
                       onClick={() => setIsLiveMuted((prev) => !prev)}
                       className="h-7 w-7 rounded-full bg-black/50 hover:bg-black/80 flex items-center justify-center text-white/90 border border-white/10 transition-colors"

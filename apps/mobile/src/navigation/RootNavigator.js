@@ -34,6 +34,7 @@ import { tokens } from '../theme/tokens';
 
 // ===== 인증 =====
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
+import PermissionGuideScreen from '../screens/auth/PermissionGuideScreen';
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import PhoneEntryScreen from '../screens/auth/PhoneEntryScreen';
@@ -57,6 +58,7 @@ function AuthFlow({ initialRoute = 'Onboarding' }) {
       screenOptions={{ headerShown: false }}
     >
       <AuthStack.Screen name="Onboarding" component={OnboardingScreen} />
+      <AuthStack.Screen name="PermissionGuide" component={PermissionGuideScreen} />
       <AuthStack.Screen name="Welcome" component={WelcomeScreen} />
       <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="PhoneEntry" component={PhoneEntryScreen} />
@@ -312,45 +314,48 @@ export default function RootNavigator() {
   const { user, token, initializing, isOffline } = useAuth();
   useAuthStoreSync();
 
-  const [checkingOnboarding, setCheckingOnboarding] = React.useState(true);
-  const [isOnboarded, setIsOnboarded] = React.useState(false);
+  const [checkingInitialRoute, setCheckingInitialRoute] = React.useState(true);
+  const [initialAuthRoute, setInitialAuthRoute] = React.useState('Onboarding');
 
   React.useEffect(() => {
     let isMounted = true;
-    async function checkOnboarding() {
+    async function checkFlow() {
       try {
-        const moccoFlag = await AsyncStorage.getItem('@mocco_onboarded');
-        const dagaonFlag = await AsyncStorage.getItem('@dagaon_onboarded');
-        const flag = moccoFlag || dagaonFlag;
+        const onboarded = await AsyncStorage.getItem('@mocco_onboarded');
+        const permGuided = await AsyncStorage.getItem('@mocco_permission_guided');
         if (isMounted) {
-          setIsOnboarded(flag === 'true');
+          if (onboarded !== 'true') {
+            setInitialAuthRoute('Onboarding');
+          } else if (permGuided !== 'true') {
+            setInitialAuthRoute('PermissionGuide');
+          } else {
+            setInitialAuthRoute('Login');
+          }
         }
       } catch (err) {
-        console.warn('[RootNavigator] check onboarding error:', err);
+        console.warn('[RootNavigator] check flow error:', err);
       } finally {
         if (isMounted) {
-          setCheckingOnboarding(false);
+          setCheckingInitialRoute(false);
         }
       }
     }
-    checkOnboarding();
+    checkFlow();
     return () => {
       isMounted = false;
     };
   }, []);
 
   React.useEffect(() => {
-    if (isSignedIn && !isOnboarded) {
-      setIsOnboarded(true);
-      AsyncStorage.multiSet([
-        ['@mocco_onboarded', 'true'],
-        ['@dagaon_onboarded', 'true'],
-      ]).catch(() => {});
+    if (isSignedIn) {
+      AsyncStorage.setItem('@mocco_onboarded', 'true').catch(() => {});
+      AsyncStorage.setItem('@mocco_permission_guided', 'true').catch(() => {});
+      setInitialAuthRoute('Login');
     }
-  }, [isSignedIn, isOnboarded]);
+  }, [isSignedIn]);
 
   // 초기화 중이거나 온보딩 상태 검사 중: 깔끔한 tokens.colors.background(#F8FAFC) + #FF3B6B 스피너 렌더링
-  if (initializing || checkingOnboarding) {
+  if (initializing || checkingInitialRoute) {
     return (
       <View style={styles.splashContainer}>
         <View style={styles.splashBrandBox}>
@@ -374,7 +379,7 @@ export default function RootNavigator() {
       {isSignedIn ? (
         <AppFlow />
       ) : (
-        <AuthFlow initialRoute={isOnboarded ? 'Login' : 'Onboarding'} />
+        <AuthFlow initialRoute={initialAuthRoute} />
       )}
     </View>
   );

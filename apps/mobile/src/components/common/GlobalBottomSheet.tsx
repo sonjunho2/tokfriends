@@ -184,7 +184,7 @@ export default function GlobalBottomSheet({
                   </View>
                   <View style={styles.callTextCol}>
                     <Text style={styles.callTitle}>1:1 LIVE (프라이빗 방송)</Text>
-                    <Text style={styles.callSub}>{pointRate.toLocaleString()} 온 / 분</Text>
+                    <Text style={styles.callSub}>{pointRate.toLocaleString()} 꿀떡 / 분</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.8)" />
                 </LinearGradient>

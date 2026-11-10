@@ -1,5 +1,5 @@
 /**
- * DAGAON Global Foundation Design Tokens
+ * MOCCO Global Foundation Design Tokens
  * Single Source of Truth for App Styling & Consistent Design System
  */
 

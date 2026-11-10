@@ -42,6 +42,25 @@ export class MerchantsController {
     return this.merchantsService.getMyMerchant(userId);
   }
 
+  @Get('products')
+  @Public()
+  @ApiOperation({ summary: '입점사 일반 상시 상품 목록 조회' })
+  async listProducts(
+    @Query('category') category?: string,
+    @Query('search') search?: string,
+    @Query('sort') sort?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.merchantsService.listNormalProducts({
+      category,
+      search,
+      sort,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 20,
+    });
+  }
+
   @Post('products')
   @Public()
   @ApiOperation({ summary: '입점사 일반 상품 등록 (가격, 재고, 배송비)' })

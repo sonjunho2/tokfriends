@@ -22,6 +22,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { tokens } from '../../theme/tokens';
 import { useAuth } from '../../context/AuthContext';
+import { apiClient } from '../../api/client';
 import TestLoginButton from '../../components/TestLoginButton';
 
 export default function LoginScreen({ navigation }) {
@@ -33,6 +34,80 @@ export default function LoginScreen({ navigation }) {
   const [displayName, setDisplayName] = useState('');
   const [emailLoading, setEmailLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(null);
+
+  // 📝 회원가입 표준 약관 동의 상태
+  const [agreements, setAgreements] = useState({
+    age14: true,
+    tos: true,
+    privacy: true,
+    location: false,
+    marketing: false,
+  });
+
+  const isAllAgreed =
+    agreements.age14 &&
+    agreements.tos &&
+    agreements.privacy &&
+    agreements.location &&
+    agreements.marketing;
+
+  const toggleAllAgreements = () => {
+    const nextVal = !isAllAgreed;
+    setAgreements({
+      age14: nextVal,
+      tos: nextVal,
+      privacy: nextVal,
+      location: nextVal,
+      marketing: nextVal,
+    });
+  };
+
+  const toggleAgreement = (key) => {
+    setAgreements((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // 약관 세부 내용 팝업 모달 상태
+  const [termModalVisible, setTermModalVisible] = useState(false);
+  const [termModalTitle, setTermModalTitle] = useState('');
+  const [termModalContent, setTermModalContent] = useState('');
+  const [termModalLoading, setTermModalLoading] = useState(false);
+
+  const viewTermDetail = async (slug, title) => {
+    setTermModalTitle(title);
+    setTermModalVisible(true);
+    setTermModalLoading(true);
+    setTermModalContent('');
+    try {
+      const res = await apiClient.getLegalDocument(slug);
+      const text =
+        res?.content ||
+        res?.body ||
+        res?.text ||
+        res?.data?.content ||
+        '';
+      if (text) {
+        setTermModalContent(text);
+      } else {
+        throw new Error('Fallback needed');
+      }
+    } catch {
+      if (slug === 'terms-of-service') {
+        setTermModalContent(
+          '제1조 (목적)\n본 약관은 모꼬(MOCCO)가 제공하는 동네 라이브 방송, 커머스 및 이웃 소통 서비스의 이용조건 및 절차, 권리와 의무를 규정함을 목적으로 합니다.\n\n제2조 (이용자의 의무)\n이용자는 건전하고 따뜻한 이웃 공동체 조성을 위해 상호 배려하며 법령 및 본 약관을 준수해야 합니다.\n\n제3조 (서비스의 제공 및 변경)\n모꼬는 실시간 라이브 스트리밍, 이웃 간 안심 직거래, 채팅 및 3D 후원 선물 서비스를 연중무휴 제공합니다.'
+        );
+      } else if (slug === 'privacy-policy') {
+        setTermModalContent(
+          '1. 수집하는 개인정보 항목\n- 필수: 이메일 주소, 비밀번호, 닉네임\n- 서비스 이용 과정에서 자동 생성: 기기정보, 접속 로그, 서비스 이용 기록\n\n2. 개인정보의 수집 및 이용목적\n- 회원 가입 의사 확인 및 본인 식별\n- 실시간 방송, 채팅 및 모꼬몰 안전거래 서비스 제공\n- 불법 이용 방지 및 분쟁 조정을 위한 기록 보존\n\n3. 개인정보의 보유 및 이용기간\n- 회원 탈퇴 시까지 (관계 법령에 의한 보존 필요 시 해당 기간 동안 안전하게 보관)'
+        );
+      } else if (slug === 'location-based-service') {
+        setTermModalContent(
+          '제1조 (위치기반 서비스)\n모꼬는 이용자의 현재 위치를 기반으로 인근 이웃의 라이브 방송 추천, 우리 동네 핫딜 상품 매칭 및 안전 직거래 서비스를 제공합니다.\n\n제2조 (위치정보의 이용 및 보관)\n회사는 서비스 제공을 위해 필요한 최소한의 위치정보만을 일시적으로 활용하며, 목적 달성 시 즉시 파기합니다.'
+        );
+      }
+    } finally {
+      setTermModalLoading(false);
+    }
+  };
 
   // Dynamic Keyboard Height Tracking to avoid obscuring inputs
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -61,7 +136,7 @@ export default function LoginScreen({ navigation }) {
     try {
       await AsyncStorage.multiSet([
         ['@mocco_onboarded', 'true'],
-        ['@dagaon_onboarded', 'true'],
+        ['@mocco_permission_guided', 'true'],
       ]);
     } catch (e) {
       console.warn('Failed to save onboarded state:', e);
@@ -102,6 +177,14 @@ export default function LoginScreen({ navigation }) {
       if (isSignupMode) {
         if (!displayName.trim()) {
           Alert.alert('알림', '닉네임을 입력해 주세요.');
+          setEmailLoading(false);
+          return;
+        }
+        if (!agreements.age14 || !agreements.tos || !agreements.privacy) {
+          Alert.alert(
+            '약관 동의 필요',
+            '모꼬 서비스 가입을 위해 필수 약관([필수] 만 14세 이상, 서비스 이용약관, 개인정보 수집 및 이용)에 모두 동의해 주세요.'
+          );
           setEmailLoading(false);
           return;
         }
@@ -326,6 +409,48 @@ export default function LoginScreen({ navigation }) {
                 ]}
               >
                 {/* 상단 닫기 바 */}
+                <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 }}>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#FFF0F5',
+                      borderColor: '#FF3B6B',
+                      borderWidth: 1,
+                      borderRadius: 10,
+                      paddingVertical: 8,
+                      paddingHorizontal: 6,
+                      alignItems: 'center',
+                    }}
+                    onPress={() => {
+                      setEmail('test01@te.te');
+                      setPassword('12345678');
+                      setIsSignupMode(false);
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#FF3B6B' }}>👑 테스터01 (방송용)</Text>
+                    <Text style={{ fontSize: 9, color: '#888', marginTop: 2 }}>test01 / 12345678</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#F0F9FF',
+                      borderColor: '#0284C7',
+                      borderWidth: 1,
+                      borderRadius: 10,
+                      paddingVertical: 8,
+                      paddingHorizontal: 6,
+                      alignItems: 'center',
+                    }}
+                    onPress={() => {
+                      setEmail('test02@te.te');
+                      setPassword('12345678');
+                      setIsSignupMode(false);
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#0284C7' }}>🎁 테스터02 (시청용)</Text>
+                    <Text style={{ fontSize: 9, color: '#888', marginTop: 2 }}>test02 / 12345678</Text>
+                  </TouchableOpacity>
+                </View>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>
                     {isSignupMode ? '이메일 간편 회원가입' : '이메일 로그인'}
@@ -385,6 +510,110 @@ export default function LoginScreen({ navigation }) {
                     />
                   </View>
 
+                  {/* 📜 [가입 시 표준 약관 동의 체크리스트] */}
+                  {isSignupMode && (
+                    <View style={styles.termsAgreementBox}>
+                      {/* 전체 동의 버튼 */}
+                      <TouchableOpacity
+                        style={styles.allAgreeRow}
+                        onPress={toggleAllAgreements}
+                        activeOpacity={0.8}
+                      >
+                        <View style={[styles.checkboxCircle, isAllAgreed && styles.checkboxCircleActive]}>
+                          {isAllAgreed && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
+                        </View>
+                        <Text style={styles.allAgreeText}>모꼬 약관 전체 동의하기</Text>
+                      </TouchableOpacity>
+
+                      <View style={styles.termsDivider} />
+
+                      {/* 필수 1: 만 14세 이상 */}
+                      <TouchableOpacity
+                        style={styles.termRow}
+                        onPress={() => toggleAgreement('age14')}
+                        activeOpacity={0.8}
+                      >
+                        <View style={[styles.termCheckbox, agreements.age14 && styles.termCheckboxActive]}>
+                          {agreements.age14 && <Ionicons name="checkmark" size={11} color="#FFFFFF" />}
+                        </View>
+                        <Text style={styles.termText}>
+                          <Text style={styles.requiredTag}>[필수]</Text> 만 14세 이상입니다
+                        </Text>
+                      </TouchableOpacity>
+
+                      {/* 필수 2: 서비스 이용약관 */}
+                      <View style={styles.termRowWithLink}>
+                        <TouchableOpacity
+                          style={styles.termRowLeft}
+                          onPress={() => toggleAgreement('tos')}
+                          activeOpacity={0.8}
+                        >
+                          <View style={[styles.termCheckbox, agreements.tos && styles.termCheckboxActive]}>
+                            {agreements.tos && <Ionicons name="checkmark" size={11} color="#FFFFFF" />}
+                          </View>
+                          <Text style={styles.termText}>
+                            <Text style={styles.requiredTag}>[필수]</Text> 모꼬 서비스 이용약관 동의
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => viewTermDetail('terms-of-service', '모꼬 서비스 이용약관')}>
+                          <Text style={styles.termDetailLink}>보기</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* 필수 3: 개인정보 수집 및 이용 동의 */}
+                      <View style={styles.termRowWithLink}>
+                        <TouchableOpacity
+                          style={styles.termRowLeft}
+                          onPress={() => toggleAgreement('privacy')}
+                          activeOpacity={0.8}
+                        >
+                          <View style={[styles.termCheckbox, agreements.privacy && styles.termCheckboxActive]}>
+                            {agreements.privacy && <Ionicons name="checkmark" size={11} color="#FFFFFF" />}
+                          </View>
+                          <Text style={styles.termText}>
+                            <Text style={styles.requiredTag}>[필수]</Text> 개인정보 수집 및 이용 동의
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => viewTermDetail('privacy-policy', '개인정보 수집 및 이용 동의')}>
+                          <Text style={styles.termDetailLink}>보기</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* 선택 4: 위치기반 서비스 이용약관 */}
+                      <View style={styles.termRowWithLink}>
+                        <TouchableOpacity
+                          style={styles.termRowLeft}
+                          onPress={() => toggleAgreement('location')}
+                          activeOpacity={0.8}
+                        >
+                          <View style={[styles.termCheckbox, agreements.location && styles.termCheckboxActive]}>
+                            {agreements.location && <Ionicons name="checkmark" size={11} color="#FFFFFF" />}
+                          </View>
+                          <Text style={styles.termText}>
+                            <Text style={styles.optionalTag}>[선택]</Text> 위치기반 서비스 이용약관 동의
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => viewTermDetail('location-based-service', '위치기반 서비스 이용약관')}>
+                          <Text style={styles.termDetailLink}>보기</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* 선택 5: 마케팅 정보 수신 및 혜택 알림 동의 */}
+                      <TouchableOpacity
+                        style={styles.termRow}
+                        onPress={() => toggleAgreement('marketing')}
+                        activeOpacity={0.8}
+                      >
+                        <View style={[styles.termCheckbox, agreements.marketing && styles.termCheckboxActive]}>
+                          {agreements.marketing && <Ionicons name="checkmark" size={11} color="#FFFFFF" />}
+                        </View>
+                        <Text style={styles.termText}>
+                          <Text style={styles.optionalTag}>[선택]</Text> 마케팅 정보 및 혜택 알림 동의
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
                   <TouchableOpacity
                     style={styles.submitButton}
                     onPress={handleEmailSubmit}
@@ -423,6 +652,41 @@ export default function LoginScreen({ navigation }) {
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* 📄 약관 세부 내용 뷰어 모달 */}
+      <Modal
+        visible={termModalVisible}
+        animationType="slide"
+        onRequestClose={() => setTermModalVisible(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top', 'bottom', 'left', 'right']}>
+          <View style={{
+            height: 54,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 18,
+            borderBottomWidth: 1,
+            borderBottomColor: '#F1F5F9'
+          }}>
+            <Text style={{ fontSize: 16, fontWeight: '800', color: '#0F172A' }}>{termModalTitle}</Text>
+            <TouchableOpacity onPress={() => setTermModalVisible(false)} hitSlop={8}>
+              <Ionicons name="close" size={24} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+          {termModalLoading ? (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <ActivityIndicator size="large" color="#FF3B6B" />
+            </View>
+          ) : (
+            <ScrollView contentContainerStyle={{ padding: 20 }}>
+              <Text style={{ fontSize: 14, color: '#334155', lineHeight: 22 }}>
+                {termModalContent}
+              </Text>
+            </ScrollView>
+          )}
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
@@ -673,6 +937,182 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     fontSize: 14,
     color: tokens.colors.textPrimary,
+  },
+  termsAgreementBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  allAgreeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  checkboxCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    backgroundColor: '#FFFFFF',
+  },
+  checkboxCircleActive: {
+    backgroundColor: '#FF3B6B',
+    borderColor: '#FF3B6B',
+  },
+  allAgreeText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  termsDivider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 10,
+  },
+  termRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+  },
+  termRowWithLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  termRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  termCheckbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    backgroundColor: '#FFFFFF',
+  },
+  termCheckboxActive: {
+    backgroundColor: '#FF3B6B',
+    borderColor: '#FF3B6B',
+  },
+  termText: {
+    fontSize: 12.5,
+    color: '#334155',
+    fontWeight: '500',
+  },
+  requiredTag: {
+    color: '#FF3B6B',
+    fontWeight: '700',
+  },
+  optionalTag: {
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  termDetailLink: {
+    fontSize: 11.5,
+    color: '#64748B',
+    textDecorationLine: 'underline',
+    paddingHorizontal: 4,
+  },
+  termsAgreementBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  allAgreeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  checkboxCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    backgroundColor: '#FFFFFF',
+  },
+  checkboxCircleActive: {
+    backgroundColor: '#FF3B6B',
+    borderColor: '#FF3B6B',
+  },
+  allAgreeText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  termsDivider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 10,
+  },
+  termRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+  },
+  termRowWithLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  termRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  termCheckbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    backgroundColor: '#FFFFFF',
+  },
+  termCheckboxActive: {
+    backgroundColor: '#FF3B6B',
+    borderColor: '#FF3B6B',
+  },
+  termText: {
+    fontSize: 12.5,
+    color: '#334155',
+    fontWeight: '500',
+  },
+  requiredTag: {
+    color: '#FF3B6B',
+    fontWeight: '700',
+  },
+  optionalTag: {
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  termDetailLink: {
+    fontSize: 11.5,
+    color: '#64748B',
+    textDecorationLine: 'underline',
+    paddingHorizontal: 4,
   },
   submitButton: {
     borderRadius: 14,

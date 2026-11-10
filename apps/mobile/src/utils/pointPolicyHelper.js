@@ -81,7 +81,7 @@ export async function checkAndConfirmActionPoint({
     const remainingAfter = currentBalance - requiredAmount;
     Alert.alert(
       `${actionName} 안내`,
-      `${actionName} 시 ${requiredAmount.toLocaleString()} 온이 소모됩니다.\n(현재 보유: ${currentBalance.toLocaleString()} 온 → ${remainingAfter.toLocaleString()} 온)\n\n계속 진행하시겠습니까?`,
+      `${actionName} 시 ${requiredAmount.toLocaleString()} 꿀떡이 소모됩니다.\n(현재 보유:  꿀떡 →  꿀떡)\n\n계속 진행하시겠습니까?`,
       [
         { text: '취소', style: 'cancel' },
         {

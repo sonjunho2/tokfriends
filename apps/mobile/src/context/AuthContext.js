@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
   apiClient,
@@ -77,7 +78,13 @@ export const AuthProvider = ({ children }) => {
             });
           }
 
-          // 백그라운드에서 최신 유저 프로필 검증 및 동기화
+          // 백그라운드에서 최신 유저 프로필 검증 및 동기화 (테스트 토큰은 401 로그아웃 방지 위해 getMe 스킵)
+          if (storedToken?.startsWith('token_test') || cachedUser?.id?.startsWith('user_test')) {
+            if (isMounted) {
+              setState((s) => ({ ...s, initializing: false, isOffline: false }));
+            }
+            return;
+          }
           try {
             const me = await apiClient.getMe();
             if (isMounted && me) {
@@ -184,6 +191,56 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password) => {
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    const cleanPassword = String(password || '').trim();
+
+    // 🧪 라이브 방송 송출 및 시청 테스트 계정 프리셋 (오프라인/네트워크 무관 100% 즉시 인증)
+    if (cleanEmail === 'test01@te.te' && cleanPassword === '12345678') {
+      const mockTest01 = normalizeAuthUser({
+        id: 'user_test01',
+        email: 'test01@te.te',
+        nickname: '테스터01(스트리머)',
+        displayName: '테스터01(스트리머)',
+        role: 'CREATOR',
+        pointBalance: 50000,
+        points: 50000,
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+        avatarUri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+        bio: '모꼬 공식 라이브 호스트(스트리머) 테스트 계정',
+      });
+      await saveToken('token_test01_creator');
+      await saveStoredUser(mockTest01);
+      try {
+        await AsyncStorage.setItem('@mocco_onboarded', 'true');
+        await AsyncStorage.setItem('@mocco_permission_guided', 'true');
+      } catch {}
+      setState({ user: mockTest01, token: 'token_test01_creator', initializing: false, isOffline: false });
+      return { success: true, user: mockTest01 };
+    }
+
+    if (cleanEmail === 'test02@te.te' && cleanPassword === '12345678') {
+      const mockTest02 = normalizeAuthUser({
+        id: 'user_test02',
+        email: 'test02@te.te',
+        nickname: '테스터02(시청자)',
+        displayName: '테스터02(시청자)',
+        role: 'USER',
+        pointBalance: 200000,
+        points: 200000,
+        avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200',
+        avatarUri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200',
+        bio: '모꼬 라이브 시청 및 3D 선물 테스트 계정',
+      });
+      await saveToken('token_test02_viewer');
+      await saveStoredUser(mockTest02);
+      try {
+        await AsyncStorage.setItem('@mocco_onboarded', 'true');
+        await AsyncStorage.setItem('@mocco_permission_guided', 'true');
+      } catch {}
+      setState({ user: mockTest02, token: 'token_test02_viewer', initializing: false, isOffline: false });
+      return { success: true, user: mockTest02 };
+    }
+
     try {
       const res = await apiClient.login(email, password);
       const token = res?.access_token || res?.token || res?.accessToken || res?.data?.token || res?.data?.accessToken;
@@ -242,6 +299,10 @@ export const AuthProvider = ({ children }) => {
 
   const refreshMe = async () => {
     if (!state.token) return;
+    // 테스트 토큰은 백엔드 401 에러로 인한 튕김/로그아웃 방지를 위해 캐시 상태 보존
+    if (state.token?.startsWith('token_test') || state.user?.id?.startsWith('user_test')) {
+      return state.user;
+    }
     try {
       const me = await apiClient.getMe();
       if (me) {
@@ -260,7 +321,9 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       const status = err?.response?.status || err?.status;
       if (status === 401 || status === 403) {
-        await logout();
+        if (!state.token?.startsWith('token_test')) {
+          await logout();
+        }
       } else {
         setState((s) => ({ ...s, isOffline: true }));
       }
