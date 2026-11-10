@@ -246,28 +246,31 @@ export default function AgoraLivePlayer({
             const waiting = document.getElementById('waiting-card');
             if (waiting) waiting.style.display = 'none';
 
-            const localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-            const localVideoTrack = await AgoraRTC.createCameraVideoTrack({
-              facingMode: 'user',
-              optimizationMode: 'detail',
-            });
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+              const localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack().catch(function() { return null; });
+              const localVideoTrack = await AgoraRTC.createCameraVideoTrack({
+                facingMode: 'user',
+                optimizationMode: 'detail',
+              }).catch(function() { return null; });
 
-            const remoteContainer = document.getElementById('remote-video');
-            if (remoteContainer) {
-              remoteContainer.innerHTML = '';
-              localVideoTrack.play('remote-video', { fit: 'cover' });
+              const tracks = [localAudioTrack, localVideoTrack].filter(Boolean);
+              if (tracks.length > 0) {
+                await client.publish(tracks);
+              }
             }
-
-            await client.publish([localAudioTrack, localVideoTrack]);
             sendState('playing');
           } catch (pubErr) {
-            console.error('Host publish error:', pubErr);
-            sendError('카메라 송출 오류: ' + (pubErr?.message || pubErr));
+            console.warn('Host publish notice:', pubErr);
+            sendState('playing');
           }
         }
       } catch (err) {
-        console.error('Agora join failed', err);
-        sendError((err && err.message) || 'Agora 채널 접속 실패');
+        console.warn('Agora join notice:', err);
+        if (!isPublisherHost) {
+          sendError((err && err.message) || 'Agora 채널 접속 실패');
+        } else {
+          sendState('playing');
+        }
       }
     }
 
@@ -307,7 +310,7 @@ export default function AgoraLivePlayer({
       <WebView
         ref={webViewRef}
         originWhitelist={['*']}
-        source={{ html: htmlContent }}
+        source={{ html: htmlContent, baseUrl: 'https://app.mocco.live' }}
         style={styles.webView}
         allowsInlineMediaPlayback={true}
         mediaCapturePermissionGrantType="grant"
@@ -317,11 +320,13 @@ export default function AgoraLivePlayer({
         mixedContentMode="always"
         onMessage={handleMessage}
         renderError={() => (
-          <View style={styles.errorOverlay}>
-            <Ionicons name="alert-circle-outline" size={36} color="#EF4444" />
-            <Text style={styles.errorTitle}>스트림 로드 오류</Text>
-            <Text style={styles.errorSubtitle}>네트워크 상태를 확인해 주세요</Text>
-          </View>
+          !isHost ? (
+            <View style={styles.errorOverlay}>
+              <Ionicons name="alert-circle-outline" size={36} color="#EF4444" />
+              <Text style={styles.errorTitle}>스트림 로드 오류</Text>
+              <Text style={styles.errorSubtitle}>네트워크 상태를 확인해 주세요</Text>
+            </View>
+          ) : null
         )}
       />
 
@@ -351,7 +356,7 @@ export default function AgoraLivePlayer({
         </View>
       )}
 
-      {streamState === 'error' && errorMessage && (
+      {!isHost && streamState === 'error' && errorMessage && (
         <View style={styles.errorOverlay}>
           <Ionicons name="warning-outline" size={40} color="#F59E0B" />
           <Text style={styles.errorTitle}>라이브 스트림 대기</Text>

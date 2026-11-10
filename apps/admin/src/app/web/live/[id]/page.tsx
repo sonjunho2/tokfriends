@@ -366,7 +366,7 @@ export default function WebLivePlayerPage() {
 
           {/* Live Video Stream Motion Player */}
           <video
-            src="https://assets.mixkit.co/videos/preview/mixkit-girl-in-a-neon-room-listening-to-music-with-headphones-42417-large.mp4"
+            src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
             autoPlay
             loop
             muted={isMuted}

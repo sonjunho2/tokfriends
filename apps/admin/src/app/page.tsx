@@ -1739,6 +1739,7 @@ export default function CustomerWebStorefrontPage() {
   const modalAgoraContainerRef = useRef<HTMLDivElement>(null)
   const modalAgoraClientRef = useRef<any>(null)
   const modalRemoteAudioTrackRef = useRef<any>(null)
+  const modalVideoRef = useRef<HTMLVideoElement>(null)
   const [isAgoraStreaming, setIsAgoraStreaming] = useState(false)
 
   // ==========================================
@@ -2594,6 +2595,11 @@ export default function CustomerWebStorefrontPage() {
     }
 
     setIsPinnedProductMinimized(false)
+
+    if (modalVideoRef.current) {
+      modalVideoRef.current.muted = true
+      modalVideoRef.current.play().catch(() => {})
+    }
 
     // 방별 환영 공지 메시지로 초기화 (이전 방의 잘못된 잔여 메시지 배제)
     const initialMsg: LiveChatMessageItem = {
@@ -9197,7 +9203,7 @@ export default function CustomerWebStorefrontPage() {
               {/* 은은한 앰비언트 백그라운드 블러 글로우 */}
               <div
                 className="absolute inset-0 bg-cover bg-center filter blur-3xl opacity-30 scale-125 pointer-events-none"
-                style={{ backgroundImage: `url(${activeLiveModal.coverUrl})` }}
+                style={{ backgroundImage: `url(${activeLiveModal.coverUri || activeLiveModal.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500'})` }}
               />
               <div className="absolute inset-0 bg-black/60 pointer-events-none" />
 
@@ -9213,12 +9219,13 @@ export default function CustomerWebStorefrontPage() {
 
                 {/* 실시간 온에어 라이브 비디오 스트림 캔버스 (웹 시청자 브라우저 정책 준수: muted 자동재생) */}
                 <video
-                  src="https://assets.mixkit.co/videos/preview/mixkit-girl-in-a-neon-room-listening-to-music-with-headphones-42417-large.mp4"
+                  ref={modalVideoRef}
+                  src={activeLiveModal.streamVideoUri || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'}
                   autoPlay
                   loop
                   muted
                   playsInline
-                  poster={activeLiveModal.coverUrl}
+                  poster={activeLiveModal.coverUri || activeLiveModal.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500'}
                   className="h-full w-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/60 pointer-events-none" />

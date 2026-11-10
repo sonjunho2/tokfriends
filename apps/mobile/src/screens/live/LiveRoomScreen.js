@@ -1418,17 +1418,6 @@ export default function LiveRoomScreen({ navigation, route }) {
               hasCameraPermission ? (
                 isFocused && !isCameraOff ? (
                   <View style={styles.cameraFillWrapper}>
-                    {agoraTokenData?.appId ? (
-                      <AgoraLivePlayer
-                        appId={agoraTokenData?.appId}
-                        token={agoraTokenData?.token}
-                        channelName={agoraTokenData?.channelName || roomId}
-                        uid={agoraTokenData?.uid}
-                        isHost={true}
-                        isVideoSubscribed={!isCameraOff}
-                        isSpeakerMuted={isMicMuted}
-                      />
-                    ) : (
                     <CameraView
                       key={`cam_${cameraFacing}_${isFocused ? 'focused' : 'blurred'}`}
                       style={styles.cameraPreview}
@@ -1443,7 +1432,19 @@ export default function LiveRoomScreen({ navigation, route }) {
                         setCameraMountError(error?.message || '카메라 센서를 열 수 없습니다.');
                       }}
                     />
-                    )}
+                    {agoraTokenData?.appId ? (
+                      <View style={styles.offscreenAgoraContainer} pointerEvents="none">
+                        <AgoraLivePlayer
+                          appId={agoraTokenData?.appId}
+                          token={agoraTokenData?.token}
+                          channelName={agoraTokenData?.channelName || roomId}
+                          uid={agoraTokenData?.uid}
+                          isHost={true}
+                          isVideoSubscribed={!isCameraOff}
+                          isSpeakerMuted={isMicMuted}
+                        />
+                      </View>
+                    ) : null}
                     {!isCameraReady && !cameraMountError && (
                       <View style={styles.cameraLoadingOverlay} pointerEvents="none">
                         <ActivityIndicator size="large" color={LIVE_ACCENT} />
@@ -1974,6 +1975,13 @@ const styles = StyleSheet.create({
   videoStreamContainer: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'transparent',
+    overflow: 'hidden',
+  },
+  offscreenAgoraContainer: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    opacity: 0,
     overflow: 'hidden',
   },
   cameraFillWrapper: {
