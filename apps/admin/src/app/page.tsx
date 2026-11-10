@@ -199,6 +199,8 @@ export interface LiveRoomItem {
   hostAvatar: string
   viewerCount: number
   coverUrl: string
+  coverUri?: string
+  streamVideoUri?: string
   hasCommerce: boolean
   isOfficialCreator?: boolean
   rank?: number
