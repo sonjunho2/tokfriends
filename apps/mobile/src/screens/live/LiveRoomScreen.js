@@ -800,6 +800,65 @@ export default function LiveRoomScreen({ navigation, route }) {
         }
       });
 
+      // 🎁 실시간 선물 다중 채널 수신 (live:gift & GIFT_OVERLAY_TRIGGER)
+      const onDirectGiftReceived = (giftMsg) => {
+        if (!giftMsg) return;
+        const giftId = giftMsg.id || ('gift-' + Date.now());
+        if (processedGiftMessageIdsRef.current.has(giftId)) return;
+        processedGiftMessageIdsRef.current.add(giftId);
+
+        let giftMeta = {};
+        try {
+          giftMeta = typeof giftMsg.content === 'string' ? JSON.parse(giftMsg.content) : (giftMsg.content || {});
+        } catch {
+          giftMeta = {};
+        }
+
+        const giftPts = Number(giftMeta.pricePoints || giftMsg.giftPoints || 1000);
+        setRoom((prev) =>
+          prev
+            ? {
+                ...prev,
+                totalGiftsPoints: (prev.totalGiftsPoints || 0) + giftPts,
+              }
+            : prev,
+        );
+
+        const donorName =
+          giftMeta.senderNickname ||
+          giftMeta.senderName ||
+          giftMsg.senderName ||
+          giftMsg.sender?.nickname ||
+          giftMsg.sender?.name ||
+          '테스터02(시청자)';
+
+        const gName = giftMeta.giftName || '모꼬 선물';
+
+        showLiveNotice({
+          type: 'gift',
+          title: '🎁 ' + donorName + '님의 선물 후원!',
+          desc: '[' + gName + '] ' + Number(giftPts).toLocaleString() + ' 꿀떡을 선물했습니다',
+        });
+
+        giftOverlayRef.current?.enqueueGift({
+          giftId: giftMeta.giftId || 'gift',
+          giftName: gName,
+          pricePoints: giftPts,
+          senderNickname: donorName,
+          animationUrl: giftMeta.animationUrl,
+          animationType: giftMeta.animationType || (giftPts >= 3000 ? 'fireworks' : '3d_heart'),
+          thumbnailUrl: giftMeta.thumbnailUrl,
+        });
+
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === giftId)) return prev;
+          return [...prev, { ...giftMsg, id: giftId, type: 'gift', senderName: donorName }];
+        });
+      };
+
+      socket.on(LIVE_SOCKET_EVENTS.GIFT, onDirectGiftReceived);
+      socket.on('GIFT_OVERLAY_TRIGGER', onDirectGiftReceived);
+
       socket.on(LIVE_SOCKET_EVENTS.VIEWER_COUNT, (data) => {
         if (typeof data?.viewerCount === 'number') {
           setViewerCount(data.viewerCount);

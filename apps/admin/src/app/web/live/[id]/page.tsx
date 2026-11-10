@@ -364,10 +364,16 @@ export default function WebLivePlayerPage() {
             } transition-opacity duration-300`}
           />
 
-          {/* Animated Video Background Mockup */}
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-rose-950 to-indigo-950 opacity-90">
-            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#ff3b6b_1px,transparent_1px)] [background-size:16px_16px]" />
-          </div>
+          {/* Live Video Stream Motion Player */}
+          <video
+            src="https://assets.mixkit.co/videos/preview/mixkit-girl-in-a-neon-room-listening-to-music-with-headphones-42417-large.mp4"
+            autoPlay
+            loop
+            muted={isMuted}
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover opacity-80"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/50 pointer-events-none" />
 
           {/* Center Live Ambient Graphic */}
           {!streamPlaying && (

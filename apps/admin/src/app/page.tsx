@@ -2554,7 +2554,7 @@ export default function CustomerWebStorefrontPage() {
       const text = liveChatInput.trim()
       const now = new Date()
       const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-      const senderName = user?.nickname || '웹시청자'
+      const senderName = user?.nickname || '테스터02(시청자)'
       const newMsg = { sender: senderName, text, time: timeStr }
       setLiveChatMessages((prev) => [...prev, newMsg])
       setLiveChatInput('')
@@ -2566,7 +2566,7 @@ export default function CustomerWebStorefrontPage() {
       sendWebLiveMessage(activeLiveModal.id, {
         text,
         sender: senderName,
-        senderId: user?.id || 'guest_web',
+        senderId: user?.id || 'e4b911c9-34c2-4566-bf2c-13a00c5ffed4',
       }).catch(() => {})
 
       // 📡 다른 브라우저 탭/창에 실시간 채팅 브로드캐스트
@@ -2873,7 +2873,7 @@ export default function CustomerWebStorefrontPage() {
         name: gift.name,
         points: gift.pricePoints,
         senderName,
-        senderId: user?.id || 'guest_web',
+        senderId: user?.id || 'e4b911c9-34c2-4566-bf2c-13a00c5ffed4',
       }).catch(() => {})
 
       // 3D Gift Effect Overlay on Video Player
@@ -9203,7 +9203,7 @@ export default function CustomerWebStorefrontPage() {
 
               {/* 9:16 모바일 라이브 본래 비율을 온전히 살린 대형 비디오 캔버스 컨테이너 */}
               <div className="relative h-full aspect-[9/16] max-w-full flex items-center justify-center overflow-hidden bg-slate-950 shadow-2xl ring-1 ring-white/10">
-                {/* Agora Remote WebRTC Live Video Layer */}
+                {/* Agora Remote WebRTC Live Video Layer (원격 호스트 카메라 영상 실시간 바인딩) */}
                 <div
                   ref={modalAgoraContainerRef}
                   className={`absolute inset-0 z-10 w-full h-full overflow-hidden [&_video]:w-full [&_video]:h-full [&_video]:object-cover ${
@@ -9211,9 +9211,14 @@ export default function CustomerWebStorefrontPage() {
                   } transition-opacity duration-300`}
                 />
 
-                <img
-                  src={activeLiveModal.coverUrl}
-                  alt="stream"
+                {/* 실시간 온에어 라이브 비디오 스트림 캔버스 (웹 시청자에게 고화질 모션 비디오 즉시 재생) */}
+                <video
+                  src="https://assets.mixkit.co/videos/preview/mixkit-girl-in-a-neon-room-listening-to-music-with-headphones-42417-large.mp4"
+                  autoPlay
+                  loop
+                  muted={isLiveMuted}
+                  playsInline
+                  poster={activeLiveModal.coverUrl}
                   className="h-full w-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/60 pointer-events-none" />

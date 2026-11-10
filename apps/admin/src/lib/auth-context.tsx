@@ -315,7 +315,7 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
           return { success: false, message: '비밀번호가 일치하지 않습니다. (테스트 비밀번호: 12345678)' }
         }
         const hostUser: WebUser = {
-          id: 'u-tester-01',
+          id: '4ed31aef-5b0a-4cac-a13a-48d9e9465efe',
           nickname: '테스터01(스트리머)',
           email: 'test01@te.te',
           role: 'CREATOR',
@@ -343,12 +343,12 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
           return { success: false, message: '비밀번호가 일치하지 않습니다. (테스트 비밀번호: 12345678)' }
         }
         const viewerUser: WebUser = {
-          id: 'u-tester-02',
+          id: 'e4b911c9-34c2-4566-bf2c-13a00c5ffed4',
           nickname: '테스터02(시청자)',
           email: 'test02@te.te',
           role: 'USER',
           avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
-          pointBalance: 200000, // 넉넉한 20만 꿀떡으로 VIP 3D 선물 후원 테스트 가능
+          pointBalance: 500000, // 넉넉한 50만 꿀떡으로 VIP 3D 선물 후원 테스트 가능
           cashBalance: 500000,
         }
         saveUserState(viewerUser)
