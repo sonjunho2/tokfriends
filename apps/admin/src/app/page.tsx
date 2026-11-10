@@ -1460,6 +1460,40 @@ export default function CustomerWebStorefrontPage() {
         console.warn('Failed to load cart', e)
       }
 
+      // 💬 1) 커스텀 수다방 목록 복원
+      try {
+        const storedSuda = localStorage.getItem('mocco_custom_suda_rooms')
+        if (storedSuda) {
+          const parsedSuda = JSON.parse(storedSuda)
+          if (Array.isArray(parsedSuda) && parsedSuda.length > 0) {
+            setSudaPosts((prev) => {
+              const ids = new Set(parsedSuda.map((item: any) => item.id))
+              const remaining = prev.filter((item) => !ids.has(item.id))
+              return [...parsedSuda, ...remaining]
+            })
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load custom suda rooms', e)
+      }
+
+      // 💌 2) 1:1 대화방 목록 및 대화 기록 복원
+      try {
+        const storedChats = localStorage.getItem('mocco_custom_chat_rooms')
+        if (storedChats) {
+          const parsedChats = JSON.parse(storedChats)
+          if (Array.isArray(parsedChats) && parsedChats.length > 0) {
+            setChatRooms((prev) => {
+              const ids = new Set(parsedChats.map((item: any) => item.id))
+              const remaining = prev.filter((item) => !ids.has(item.id))
+              return [...parsedChats, ...remaining]
+            })
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load custom chat rooms', e)
+      }
+
       try {
         const storedHq = localStorage.getItem('mocco_hq_direct_products')
         if (storedHq) {
@@ -2426,7 +2460,15 @@ export default function CustomerWebStorefrontPage() {
         likes: 0,
         comments: 0,
       }
-      setSudaPosts([newRoom, ...sudaPosts])
+      const updatedSudaList = [newRoom, ...sudaPosts]
+      setSudaPosts(updatedSudaList)
+      try {
+        localStorage.setItem('mocco_custom_suda_rooms', JSON.stringify(updatedSudaList))
+        window.dispatchEvent(new Event('mocco_suda_updated'))
+      } catch (e) {
+        console.warn('Failed to save suda room to localStorage', e)
+      }
+
       setNewRoomTitle('')
       setSudaInputText('')
       setIsCreateSudaRoomOpen(false)
@@ -2577,24 +2619,43 @@ export default function CustomerWebStorefrontPage() {
       messages: [...activeChatRoom.messages, newMsg],
     }
     setActiveChatRoom(updatedRoom)
-    setChatRooms(chatRooms.map((r) => (r.id === updatedRoom.id ? updatedRoom : r)))
+    const updatedChatList = chatRooms.map((r) => (r.id === updatedRoom.id ? updatedRoom : r))
+    setChatRooms(updatedChatList)
+    try {
+      localStorage.setItem('mocco_custom_chat_rooms', JSON.stringify(updatedChatList))
+    } catch (e) {
+      console.warn('Failed to save chat rooms to localStorage', e)
+    }
     setChatInputText('')
   }
 
-  // Send Gift inside Mobile Phone Mockup Chat
+  // Send Gift inside Mobile Phone Mockup Chat & Trigger 3D Effect
   const handleSendGift = (gift: MoccoChatGiftItem) => {
     requireAuth(() => {
       if (!activeChatRoom) return
       if (myPoints < gift.pricePoints) {
         toast({
-          title: '포인트 부족',
-          description: `보유 모꼬 꿀떡이 부족합니다. (필요: ${gift.pricePoints.toLocaleString()}개, 보유: ${myPoints.toLocaleString()}개)`,
+          title: '🍯 꿀떡이 부족합니다',
+          description: `선물 후원에 필요한 꿀떡이 부족합니다. (필요: ${gift.pricePoints.toLocaleString()}개 / 보유: ${myPoints.toLocaleString()}개) 무료 충전소 또는 상점으로 이동합니다.`,
           variant: 'destructive',
         })
+        setIsPointChargeModalOpen(true)
         return
       }
 
       setMyPoints((prev) => prev - gift.pricePoints)
+
+      // 3D Gift Effect 재생
+      setLiveGiftEffect({
+        name: gift.name,
+        icon: gift.icon,
+        description: gift.description,
+        sender: user?.nickname || '나',
+        amount: gift.pricePoints,
+      })
+      setTimeout(() => {
+        setLiveGiftEffect(null)
+      }, 4000)
       setIsGiftPickerOpen(false)
 
       const giftMsg: ChatMessageItem = {
@@ -8614,33 +8675,60 @@ export default function CustomerWebStorefrontPage() {
                   </div>
                 </div>
 
-                {/* ✨ 3D 모꼬 선물 전체 화면 애니메이션 이펙트 (GiftEffectOverlay) */}
+                {/* ✨ 3D 모꼬 선물 전체 화면 애니메이션 이펙트 (GiftEffectOverlay VIP 반응형 지원) */}
                 {liveGiftEffect && (
-                  <div className="absolute inset-0 z-30 bg-black/65 flex flex-col items-center justify-center p-6 text-center pointer-events-none animate-in fade-in zoom-in-75 duration-300">
+                  <div className={`absolute inset-0 z-30 flex flex-col items-center justify-center p-6 text-center pointer-events-none animate-in fade-in zoom-in-75 duration-300 ${
+                    liveGiftEffect.amount >= 30000
+                      ? 'bg-gradient-to-b from-amber-950/80 via-black/85 to-purple-950/80'
+                      : 'bg-black/70 backdrop-blur-xs'
+                  }`}>
+                    {/* VIP 대형 축제 이펙트인 경우 상단 엠블럼 */}
+                    {liveGiftEffect.amount >= 30000 && (
+                      <div className="mb-2 px-3.5 py-1 rounded-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-widest shadow-[0_0_20px_rgba(251,191,36,0.8)] animate-pulse">
+                        👑 VIP SUPER SPECIAL GIFT 👑
+                      </div>
+                    )}
+
                     <div className="relative mb-3">
-                      <span className="text-7xl sm:text-8xl animate-bounce block drop-shadow-2xl">
+                      <span className={`block drop-shadow-[0_10px_25px_rgba(0,0,0,0.8)] animate-bounce ${
+                        liveGiftEffect.amount >= 30000 ? 'text-8xl sm:text-9xl scale-110' : 'text-7xl sm:text-8xl'
+                      }`}>
                         {liveGiftEffect.icon}
                       </span>
-                      <span className="absolute -top-4 -right-4 text-4xl animate-spin">✨</span>
-                      <span className="absolute -bottom-3 -left-4 text-4xl animate-ping">💖</span>
-                      <span className="absolute -top-2 -left-3 text-3xl animate-bounce">🪙</span>
+                      <span className="absolute -top-6 -right-6 text-5xl animate-spin">✨</span>
+                      <span className="absolute -bottom-4 -left-6 text-5xl animate-ping">🎆</span>
+                      <span className="absolute -top-4 -left-4 text-4xl animate-bounce">🪙</span>
+                      {liveGiftEffect.amount >= 30000 && (
+                        <>
+                          <span className="absolute top-1/2 -right-10 text-4xl animate-bounce">🎉</span>
+                          <span className="absolute top-1/2 -left-10 text-4xl animate-bounce">🎊</span>
+                        </>
+                      )}
                     </div>
 
-                    <div className="bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-full border border-amber-400/40 mb-2 shadow-lg">
+                    <div className="bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-full border border-amber-400/50 mb-2 shadow-lg">
                       <span className="text-[11px] font-extrabold text-amber-300">
-                        🎉 {liveGiftEffect.sender}님의 특별 모꼬 선물!
+                        🎉 {liveGiftEffect.sender}님의 정성 가득 모꼬 선물!
                       </span>
                     </div>
 
-                    <h3 className="font-black text-2xl sm:text-3xl text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-pink-400 to-rose-400 drop-shadow-lg">
+                    <h3 className={`font-black text-transparent bg-clip-text drop-shadow-lg ${
+                      liveGiftEffect.amount >= 30000
+                        ? 'text-3xl sm:text-4xl bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-400 shadow-[0_0_30px_rgba(250,204,21,0.5)]'
+                        : 'text-2xl sm:text-3xl bg-gradient-to-r from-amber-300 via-pink-400 to-rose-400'
+                    }`}>
                       {liveGiftEffect.name}
                     </h3>
 
-                    <p className="text-xs sm:text-sm text-white/95 mt-1.5 max-w-xs drop-shadow-md leading-snug font-medium">
+                    <p className="text-xs sm:text-sm text-white/95 mt-1.5 max-w-sm drop-shadow-md leading-snug font-medium">
                       {liveGiftEffect.description}
                     </p>
 
-                    <Badge className="mt-3 bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 text-white font-black text-xs px-4 py-1 border-none shadow-xl">
+                    <Badge className={`mt-3 text-white font-black text-xs px-5 py-1.5 border-none shadow-2xl ${
+                      liveGiftEffect.amount >= 30000
+                        ? 'bg-gradient-to-r from-yellow-500 via-amber-500 to-orange-500 ring-2 ring-yellow-300/80'
+                        : 'bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500'
+                    }`}>
                       +{liveGiftEffect.amount.toLocaleString()} 꿀떡 후원 완료
                     </Badge>
                   </div>
