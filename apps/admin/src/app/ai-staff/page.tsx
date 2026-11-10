@@ -139,7 +139,7 @@ const FALLBACK_PENDING_DECISIONS: AiDecisionItem[] = [
       { timestamp: '10:32:03', sender: 'Director AI', role: '총괄팀장', avatar: '🤖', message: '6인 교차 검증 종합: 대표님 원클릭 승인 안건 상신', status: 'ESCALATED' },
     ],
     recommendedAction: 'SUSPEND_30D',
-    rationale: '플랫폼 커뮤니티 가이드라인 및 방송통신심의위원회 인터넷 유해물 심의기준 3차 위반',
+    rationale: '플랫폼 운영 안전 가이드라인 및 방송통신심의위원회 인터넷 유해물 심의기준 3차 위반',
     status: 'PENDING_APPROVAL',
     createdAt: new Date(Date.now() - 1000 * 60 * 3).toISOString(),
   },
@@ -284,7 +284,7 @@ export default function AiStaffConsolePage() {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [toast]);
 
   const toggleTimeline = (id: number) => {
     setExpandedTimelines((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -617,7 +617,7 @@ export default function AiStaffConsolePage() {
                         sender: '제브 AI',
                         role: 'ZEV',
                         avatar: '⚖️',
-                        message: `정산 감사관, 대상 유저 최근 환전/포인트 이상 여부 조회 요청`,
+                        message: `정산 감사관, 대상 유저 최근 환전/꿀떡·모꼬 머니 이상 여부 조회 요청`,
                         status: 'INVESTIGATING',
                       },
                       {
@@ -625,7 +625,7 @@ export default function AiStaffConsolePage() {
                         sender: '정산 감사관',
                         role: 'SETTLEMENT',
                         avatar: '💰',
-                        message: `최근 충전 건 있음. 즉시 차단보다 포인트 동결 후 계정 정지 권고`,
+                        message: `최근 충전 건 있음. 즉시 차단보다 꿀떡·머니 자산 동결 후 계정 정지 권고`,
                         status: 'CROSS_CHECKED',
                       },
                       {
@@ -971,7 +971,7 @@ export default function AiStaffConsolePage() {
             <CardHeader>
               <CardTitle className="text-base font-bold flex items-center gap-2">
                 <Cpu className="w-5 h-5 text-indigo-600" />
-                6인 AI 직원별 LLM 모델 지정 & 개별 온/오프 (Toggle)
+                6인 AI 직원별 LLM 모델 지정 & 개별 활성화/비활성화 (ON/OFF 토글)
               </CardTitle>
               <CardDescription className="text-xs text-slate-400 mt-1">
                 직원 역할별로 적용할 LLM 모델을 선택하고, 필요 시 특정 직원을 일시 정지(OFF)할 수 있습니다.

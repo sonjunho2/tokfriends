@@ -240,7 +240,7 @@ export class ChatService implements OnModuleInit {
         senderAccountId: 'u-seed-1',
         senderName: '박서연',
         senderAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
-        content: '안녕하세요! 다가온에서 프로필 보고 인사드려요 👋',
+        content: '안녕하세요! 모꼬에서 프로필 보고 인사드려요 👋',
         type: 'text',
         createdAt: new Date(Date.now() - 1000 * 3600 * 2).toISOString(),
       },

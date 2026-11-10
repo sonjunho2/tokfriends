@@ -367,7 +367,7 @@ export class AnalyticsService {
     const exports = this.readExportsData();
     const newExport: AnalyticsExportLogItem = {
       id: `exp-${Date.now().toString().slice(-4)}`,
-      title: dto.title || `다가온 ${dto.dimension || '데이터'} 집계 원장`,
+      title: dto.title || `모꼬 ${dto.dimension || '데이터'} 집계 원장`,
       generatedAt: new Date().toLocaleString('ko-KR'),
       status: 'SUCCESS',
       fileSize: `${(Math.random() * 3 + 0.8).toFixed(1)} MB`,

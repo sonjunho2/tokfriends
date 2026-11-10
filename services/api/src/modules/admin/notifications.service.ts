@@ -67,10 +67,10 @@ const INITIAL_TEMPLATES: PushTemplateItem[] = [
 const INITIAL_HISTORY: PushHistoryItem[] = [
   {
     id: 'push-801',
-    title: '[안내] 다가온 커뮤니티 라운지 오픈 기념 이벤트',
-    body: '일상과 취미를 공유하고 새로운 친구를 만날 수 있는 커뮤니티 라운지가 열렸습니다! 지금 바로 글을 작성해보세요.',
+    title: '[안내] 모꼬 1:1 수다방 & 라이브 그랜드 오픈 이벤트',
+    body: '관심사를 나누고 새로운 인연을 만날 수 있는 1:1 수다방이 열렸습니다! 지금 바로 참여해보세요.',
     audience: '전체 사용자',
-    deepLink: 'mocco://community',
+    deepLink: 'mocco://suda',
     isAd: false,
     scheduleType: 'IMMEDIATE',
     sentAt: new Date(Date.now() - 3600000 * 5).toISOString(),

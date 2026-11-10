@@ -280,7 +280,7 @@ export default function LivePage() {
   const handleSendWarning = (room: AdminLiveRoom) => {
     toast({
       title: '⚠️ 경고 팝업 발송 완료',
-      description: `[${room.host.name}] 호스트에게 "커뮤니티 가이드라인 준수 주의" 알림을 전송했습니다.`,
+      description: `[${room.host.name}] 호스트에게 "라이브 방송 운영 및 안전 가이드라인 준수 주의" 알림을 전송했습니다.`,
     })
   }
 

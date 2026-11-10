@@ -295,7 +295,7 @@ export default function UsersPage() {
   const handleSendWarning = (user: ExtendedUserSummary) => {
     toast({
       title: '⚠️ 주의 경고장 발송 완료',
-      description: `[${user.nickname}] 회원에게 커뮤니티 가이드라인 준수 인앱 팝업 푸시를 발송했습니다.`,
+      description: `[${user.nickname}] 회원에게 모꼬 서비스 운영 및 안전 가이드라인 준수 인앱 팝업 푸시를 발송했습니다.`,
     })
   }
 

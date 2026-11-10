@@ -440,7 +440,7 @@ export default function ChatsPage() {
                       id: `sys-${Date.now()}`,
                       senderId: 'system',
                       senderName: '시스템',
-                      text: `⚠️ [관리자 경고 발송] ${targetNickname} 회원님에게 커뮤니티 가이드라인 준수 주의 조치가 전달되었습니다.`,
+                      text: `⚠️ [관리자 경고 발송] ${targetNickname} 회원님에게 1:1 대화 및 수다방 안전 가이드라인 준수 주의 조치가 전달되었습니다.`,
                       time: '방금',
                     },
                   ],

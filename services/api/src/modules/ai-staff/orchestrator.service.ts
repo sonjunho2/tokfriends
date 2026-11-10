@@ -301,7 +301,7 @@ export class OrchestratorService {
         sender: '제브 AI',
         role: 'ZEV',
         avatar: '⚖️',
-        message: `정산 감사관, 대상 유저 최근 환전/포인트 이상 여부 및 충전 내역 즉시 조회 요청`,
+        message: `정산 감사관, 대상 유저 최근 환전/꿀떡·머니 이상 여부 및 충전 내역 즉시 조회 요청`,
         status: 'INVESTIGATING',
       },
       {
@@ -309,7 +309,7 @@ export class OrchestratorService {
         sender: '정산 감사관',
         role: 'SETTLEMENT',
         avatar: '💰',
-        message: `유저 이력 확인: ${userHistorySummary}. 최근 충전 건 있음. 즉시 영구 차단보다 포인트 동결 후 계정 정지(30일) 권고`,
+        message: `유저 이력 확인: ${userHistorySummary}. 최근 충전 건 있음. 즉시 영구 차단보다 꿀떡·머니 자산 동결 후 계정 정지(30일) 권고`,
         status: 'CROSS_CHECKED',
       },
       {
@@ -325,7 +325,7 @@ export class OrchestratorService {
         sender: '제브 AI',
         role: 'ZEV',
         avatar: '⚖️',
-        message: `정보통신망법 제44조의7 및 다가온 운영약관 대조 완료. 최종 권고: '${zevJudgement.recommendedAction}' 확정`,
+        message: `정보통신망법 제44조의7 및 모꼬(MOCCO) 운영약관 대조 완료. 최종 권고: '${zevJudgement.recommendedAction}' 확정`,
         status: 'RESOLVED',
       },
       {

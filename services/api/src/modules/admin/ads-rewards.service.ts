@@ -86,7 +86,7 @@ const INITIAL_ADS: AdvertisementItem[] = [
   },
   {
     id: 'ad-003',
-    title: '다가온 공식 크리에이터 2기 대모집 💎',
+    title: '모꼬 공식 크리에이터 2기 대모집 💎',
     description: '최대 80% 업계 최고 환급율! 나만의 팬덤을 만들고 주인공이 되어보세요.',
     imageUrl: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=600&auto=format&fit=crop&q=80',
     targetUrl: 'https://mocco.app/creator/recruit',

@@ -8597,7 +8597,7 @@ export default function CustomerWebStorefrontPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500 font-medium">제재 사유</span>
-              <span className="font-bold text-slate-800">{banInfo?.reason || '커뮤니티 가이드라인 및 운영정책 위반'}</span>
+              <span className="font-bold text-slate-800">{banInfo?.reason || '모꼬 서비스 이용약관 및 운영정책 위반'}</span>
             </div>
             <p className="text-[11px] text-rose-800 pt-1.5 border-t border-rose-200/60 leading-relaxed">
               1:1 수다방, 라이브 방송, 대화 및 마켓 상품 등록이 전면 차단되었습니다. 정지 기간 종료 후 정상 이용 가능하며, 관련 소명 및 문의는 고객센터 1:1 문의를 이용해 주세요.

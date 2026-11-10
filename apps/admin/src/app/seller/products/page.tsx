@@ -559,7 +559,7 @@ export default function SellerProductsPage() {
                 신규 B2C 일반 상품 등록
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
-                등록 즉시 다가온 모바일 마켓 상시 탭에 상품이 노출됩니다.
+                등록 즉시 모꼬 모바일 마켓 상시 탭에 상품이 노출됩니다.
               </p>
             </div>
 

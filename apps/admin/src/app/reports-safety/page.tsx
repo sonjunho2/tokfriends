@@ -130,9 +130,9 @@ const FALLBACK_REPORTS: ReportItem[] = [
   },
   {
     id: 1002,
-    category: 'POST',
-    reason: '커뮤니티 피드 불법 사설 도박 및 성매매 조건만남 광고 도배',
-    details: '새벽 시간대에 텔레그램 링크를 포함하여 동일한 사설 토토 홍보글을 5회 연속 게시했습니다.',
+    category: 'SUDA_ROOM',
+    reason: '1:1 수다방 불법 사설 도박 및 외부 연락처(텔레그램) 유도 도배',
+    details: '새벽 시간대에 텔레그램 링크를 포함하여 동일한 사설 토토 홍보글을 1:1 수다방에 연속 전송했습니다.',
     status: 'REVIEWING',
     aiRiskScore: 92,
     aiFlag: 'GAMBLING_SPAM_AND_SOLICITATION',
@@ -205,7 +205,7 @@ const FALLBACK_REPORTS: ReportItem[] = [
     aiFlag: 'IMPERSONATION_AND_PHISHING_FRAUD',
     reporter: {
       id: 'usr-105',
-      nickname: '착한다가온유저',
+      nickname: '착한모꼬유저',
       displayName: '홍길동',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
       role: 'USER',
@@ -469,15 +469,15 @@ export default function ReportsSafetyPage() {
         ),
       )
       toast({
-        title: '유해 게시글 삭제 완료',
-        description: `신고 #${reportId} 대상 게시글이 영구 삭제되었습니다.`,
+        title: '신고 콘텐츠 영구 삭제 완료',
+        description: `신고 #${reportId} 대상 콘텐츠가 데이터베이스에서 영구 삭제되었습니다.`,
       })
       void loadReports(page, statusFilter, categoryFilter, search)
     } catch {
       setReports((prev) =>
         prev.map((r) => (r.id === reportId ? { ...r, post: null } : r))
       )
-      toast({ title: '게시글 삭제 완료 (로컬 반영)' })
+      toast({ title: '신고 콘텐츠 삭제 완료 (로컬 반영)' })
     } finally {
       setActioningId(null)
     }
@@ -564,7 +564,7 @@ export default function ReportsSafetyPage() {
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold dark:bg-emerald-900/60 dark:text-emerald-300">
                     3
                   </span>
-                  유해 게시글 영구 파기 및 사유 기록
+                  유해 콘텐츠/수다방 영구 파기 및 사유 기록
                 </div>
                 <p className="mt-1.5 leading-relaxed text-slate-600 dark:text-slate-400">
                   불법 매물이나 음란/사기 1:1 수다방은 <strong>[방 강제 종료 및 삭제]</strong> 버튼으로 즉시 폐쇄하고, 제재 사유 및 관리자 메모를 남겨 향후 이의제기 소명 심사 시 근거 자료로 활용합니다.
@@ -968,7 +968,7 @@ export default function ReportsSafetyPage() {
                     <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2 dark:bg-muted/30">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-foreground flex items-center gap-1">
-                          📰 신고 대상 커뮤니티 게시글 (ID: {report.post.id})
+                          📋 신고 대상 수다방/마켓 콘텐츠 (ID: {report.post.id})
                         </span>
                         <Button
                           size="sm"
@@ -977,7 +977,7 @@ export default function ReportsSafetyPage() {
                           onClick={() => setConfirmDeletePost(report)}
                         >
                           <Trash2 className="h-3 w-3 mr-1" />
-                          게시글 영구 파기
+                          콘텐츠 영구 파기
                         </Button>
                       </div>
                       <p className="text-foreground bg-white p-2 rounded border border-slate-200 dark:bg-card">
@@ -1124,10 +1124,10 @@ export default function ReportsSafetyPage() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-rose-600">
                 <Trash2 className="h-5 w-5" />
-                유해 게시글 영구 파기
+                신고 콘텐츠/수다방 영구 파기
               </DialogTitle>
               <DialogDescription>
-                신고 #{confirmDeletePost.id} 대상 수다방 및 불법 게시 콘텐츠를 데이터베이스에서 즉시 폐쇄 및 영구 삭제합니다.
+                신고 #{confirmDeletePost.id} 대상 수다방 및 불법 콘텐츠를 데이터베이스에서 즉시 폐쇄 및 영구 삭제합니다.
               </DialogDescription>
             </DialogHeader>
 
