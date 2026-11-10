@@ -24,6 +24,7 @@ import {
   Crown,
   UserCheck,
   ChevronDown,
+  ChevronUp,
   Clock,
   MapPin,
   Flame,
@@ -1673,6 +1674,8 @@ export default function CustomerWebStorefrontPage() {
   const [liveGiftCategory, setLiveGiftCategory] = useState<'all' | 'mocco_special' | 'mocco_vip'>('all')
   const [isLiveMuted, setIsLiveMuted] = useState(false)
   const [floatingHearts, setFloatingHearts] = useState<{ id: number; color: string; left: number }[]>([])
+  const [isPinnedProductMinimized, setIsPinnedProductMinimized] = useState(false)
+  const liveChatEndRef = useRef<HTMLDivElement>(null)
 
   // ==========================================
   // 마이모꼬 (MY) 모바일 완전 동기화 상태들
@@ -2312,17 +2315,32 @@ export default function CustomerWebStorefrontPage() {
   // Handlers
   // ==========================================
 
-  // Live Chat Send
+  // Live Chat Send & Auto Scroll
   const handleSendLiveChat = () => {
     requireAuth(() => {
       if (!liveChatInput.trim()) return
+      const now = new Date()
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
       setLiveChatMessages((prev) => [
         ...prev,
-        { sender: user?.nickname || '나', text: liveChatInput.trim() },
+        { sender: user?.nickname || '나', text: liveChatInput.trim(), time: timeStr },
       ])
       setLiveChatInput('')
+      setTimeout(() => {
+        liveChatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }, 50)
     })
   }
+
+  // 모달 오픈 시 상품 카드 펼침 및 채팅 최신 스크롤 동기화
+  useEffect(() => {
+    if (activeLiveModal) {
+      setIsPinnedProductMinimized(false)
+      setTimeout(() => {
+        liveChatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
+    }
+  }, [activeLiveModal])
 
   // Live Donation: Send 3D Mocco Gift with full screen animation and chat sync
   // 🔴 라이브 방송 개설 핸들러 (1:N 대중 / 1:1 프라이빗 & 판매 상품 연동)
@@ -8747,41 +8765,89 @@ export default function CustomerWebStorefrontPage() {
 
                 {/* 🔴 {activeLiveModal.pinnedProduct.type === 'USED' ? '🏷️ 호스트 중고 매물' : '🛍️ 방송 단독 핀 특가 상품'} (In-stream Pinned Commerce Card) */}
                 {activeLiveModal.pinnedProduct && (
-                  <div className="absolute bottom-4 left-4 right-4 z-20 flex items-center gap-3 rounded-2xl bg-white/95 p-3 text-slate-900 shadow-2xl backdrop-blur-md border border-white/50">
-                    <img
-                      src={activeLiveModal.pinnedProduct.image}
-                      alt="product"
-                      className="h-13 w-13 rounded-xl object-cover border border-slate-200 shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[10px] font-bold text-rose-600 flex items-center gap-1">
-                        <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-                        방송 단독 핀 특가 상품
-                      </span>
-                      <h4 className="text-xs font-bold text-slate-900 truncate">
-                        {activeLiveModal.pinnedProduct.title}
-                      </h4>
-                      <span className="text-sm font-black text-slate-950">
-                        {activeLiveModal.pinnedProduct.price.toLocaleString()}원
-                      </span>
-                    </div>
-                    <Button
-                      onClick={() => {
-                        requireAuth(() => {
-                          setCheckoutTarget({
-                            title: activeLiveModal.pinnedProduct!.title,
-                            price: activeLiveModal.pinnedProduct!.price,
-                            shippingFee: 3000,
-                            image: activeLiveModal.pinnedProduct!.image,
-                          })
-                          setIsCheckoutOpen(true)
-                        })
-                      }}
-                      className="bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] hover:opacity-95 text-white font-black text-xs h-9 px-3.5 shrink-0 shadow-md shadow-[#FF3B6B]/25 rounded-xl"
-                    >
-                      즉시 구매
-                    </Button>
-                  </div>
+                  <>
+                    {!isPinnedProductMinimized ? (
+                      <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 z-20 flex items-center gap-2.5 sm:gap-3 rounded-2xl bg-white/95 p-2.5 sm:p-3 text-slate-900 shadow-2xl backdrop-blur-md border border-white/60 animate-in slide-in-from-bottom-2 duration-200">
+                        {/* 엄격하게 고정된 썸네일 이미지 크기 (56x56 px, 어떤 비율의 사진도 왜곡 없이 커버) */}
+                        <div className="relative w-14 h-14 min-w-[56px] min-h-[56px] max-w-[56px] max-h-[56px] rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 shrink-0">
+                          <img
+                            src={activeLiveModal.pinnedProduct.image}
+                            alt={activeLiveModal.pinnedProduct.title}
+                            className="w-full h-full object-cover"
+                            style={{ width: '56px', height: '56px', minWidth: '56px', minHeight: '56px', objectFit: 'cover' }}
+                          />
+                          <span className="absolute top-1 left-1 flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
+                          </span>
+                        </div>
+
+                        {/* 상품 정보 영역 */}
+                        <div className="flex-1 min-w-0 pr-1">
+                          <div className="flex items-center gap-1.5 leading-none">
+                            <span className="text-[10px] font-extrabold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded-md border border-rose-200/60 whitespace-nowrap">
+                              {activeLiveModal.pinnedProduct.type === 'USED' ? '🏷️ 호스트 매물' : '🛍️ 방송 단독 특가'}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">무료배송</span>
+                          </div>
+                          <h4 className="text-xs font-bold text-slate-900 truncate leading-tight mt-1" title={activeLiveModal.pinnedProduct.title}>
+                            {activeLiveModal.pinnedProduct.title}
+                          </h4>
+                          <div className="flex items-baseline gap-1 mt-0.5">
+                            <span className="text-sm font-black text-slate-950 font-mono tracking-tight">
+                              {activeLiveModal.pinnedProduct.price.toLocaleString()}원
+                            </span>
+                            {activeLiveModal.pinnedProduct.originalPrice && activeLiveModal.pinnedProduct.originalPrice > activeLiveModal.pinnedProduct.price && (
+                              <span className="text-[10px] text-slate-400 line-through font-mono">
+                                {activeLiveModal.pinnedProduct.originalPrice.toLocaleString()}원
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 액션 버튼 및 접기 버튼 */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Button
+                            onClick={() => {
+                              requireAuth(() => {
+                                setCheckoutTarget({
+                                  title: activeLiveModal.pinnedProduct!.title,
+                                  price: activeLiveModal.pinnedProduct!.price,
+                                  shippingFee: 3000,
+                                  image: activeLiveModal.pinnedProduct!.image,
+                                })
+                                setIsCheckoutOpen(true)
+                              })
+                            }}
+                            className="bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] hover:opacity-95 text-white font-black text-xs h-8.5 sm:h-9 px-3 sm:px-3.5 shadow-md shadow-[#FF3B6B]/25 rounded-xl whitespace-nowrap"
+                          >
+                            즉시 구매
+                          </Button>
+                          <button
+                            onClick={() => setIsPinnedProductMinimized(true)}
+                            className="h-7 w-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition shrink-0"
+                            title="특가 상품 카드 접기"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* 접혔을 때: 방송 화면을 가리지 않는 세련된 플로팅 캡슐 버튼 */
+                      <button
+                        onClick={() => setIsPinnedProductMinimized(false)}
+                        className="absolute bottom-3 left-3 z-20 flex items-center gap-2 rounded-full bg-slate-950/85 hover:bg-slate-900 text-white px-3.5 py-2 shadow-2xl backdrop-blur-md border border-white/20 transition group animate-in fade-in duration-200 hover:scale-105 active:scale-95"
+                        title="방송 특가 상품 열기"
+                      >
+                        <span className="text-sm">🛍️</span>
+                        <span className="text-[11px] font-extrabold text-rose-300">방송 특가 상품</span>
+                        <span className="text-xs font-black text-amber-300 font-mono">
+                          {activeLiveModal.pinnedProduct.price.toLocaleString()}원
+                        </span>
+                        <ChevronUp className="h-3.5 w-3.5 text-slate-400 group-hover:text-white" />
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -8890,6 +8956,7 @@ export default function CustomerWebStorefrontPage() {
                     )}
                   </div>
                 ))}
+                <div ref={liveChatEndRef} />
               </div>
 
               {/* (3) 🎁 폰 선물함과 100% 동일한 3D 선물 선택 바텀 트레이 */}

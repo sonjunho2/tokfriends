@@ -84,7 +84,7 @@ export default function WebLivePlayerPage() {
           tokenData = res?.data ?? res
         } catch {
           tokenData = {
-            appId: 'dagaon_agora_live',
+            appId: 'mocco_agora_live',
             token: '',
             channelName: liveId,
             uid: Math.floor(Math.random() * 900000) + 100000,
