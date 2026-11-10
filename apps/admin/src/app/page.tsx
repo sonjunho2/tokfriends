@@ -106,6 +106,7 @@ import {
   sendWebLiveMessage,
   sendWebLiveGift,
   getAdminLiveMessages,
+  getAdminGifts,
   getMarketProducts,
   getNormalProducts,
   createMarketProduct,
@@ -1734,6 +1735,7 @@ export default function CustomerWebStorefrontPage() {
   } | null>(null)
   const [isLiveGiftPickerOpen, setIsLiveGiftPickerOpen] = useState(false)
   const [liveGiftCategory, setLiveGiftCategory] = useState<'all' | 'mocco_special' | 'mocco_vip'>('all')
+  const [adminGifts, setAdminGifts] = useState<MoccoChatGiftItem[]>(MOCCO_CHAT_GIFTS)
   const [isLiveMuted, setIsLiveMuted] = useState(false)
   const [floatingHearts, setFloatingHearts] = useState<{ id: number; color: string; left: number }[]>([])
   const [isPinnedProductMinimized, setIsPinnedProductMinimized] = useState(false)
@@ -2603,6 +2605,23 @@ export default function CustomerWebStorefrontPage() {
       modalVideoRef.current.play().catch(() => {})
     }
 
+    // 관리자 등록 선물 목록 실시간 동기화
+    getAdminGifts()
+      .then((items) => {
+        if (Array.isArray(items) && items.length > 0) {
+          const mapped: MoccoChatGiftItem[] = items.map((item) => ({
+            id: item.id || item.code,
+            name: item.name,
+            description: item.description || '',
+            pricePoints: item.pricePoints || item.points || item.amount || 1000,
+            icon: item.animationType === 'GOLDEN_KING_MOCCO' ? '👑🪙' : item.animationType === 'CLOUD_CAR_MOCCO' ? '🚗🎉' : '☁️💖',
+            category: (item.category as any) || 'all',
+          }))
+          setAdminGifts(mapped)
+        }
+      })
+      .catch(() => {})
+
     // 방별 환영 공지 메시지로 초기화 (이전 방의 잘못된 잔여 메시지 배제)
     const initialMsg: LiveChatMessageItem = {
       sender: '시스템',
@@ -2621,18 +2640,57 @@ export default function CustomerWebStorefrontPage() {
       getAdminLiveMessages(activeLiveModal.id)
         .then((msgs) => {
           if (Array.isArray(msgs) && msgs.length > 0) {
-            const formatted = msgs.map((m: any) => ({
-              sender: m.sender?.nickname || m.sender?.name || m.senderName || '시청자',
-              text: m.content || m.text || '',
-              isSystem: m.type === 'system',
-              isGift: m.type === 'gift',
-              gift: m.gift,
-              time: m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            }))
+            const formatted = msgs.map((m: any) => {
+              let isGift = m.type === 'gift' || Boolean(m.gift)
+              let giftObj = m.gift
+              let textContent = m.text || m.content || ''
+
+              if (typeof m.content === 'string' && m.content.startsWith('{')) {
+                try {
+                  const parsed = JSON.parse(m.content)
+                  if (parsed.giftId || parsed.giftName || m.type === 'gift') {
+                    isGift = true
+                    const pts = Number(parsed.pricePoints || parsed.points || m.giftPoints || 1000)
+                    const gName = parsed.giftName || parsed.name || '모꼬 선물'
+                    giftObj = {
+                      id: parsed.giftId || 'gift',
+                      name: gName,
+                      amount: pts,
+                      description: parsed.bannerMessage || parsed.description || '',
+                      icon: parsed.animationType === 'GOLDEN_KING_MOCCO' ? '👑🪙' : parsed.animationType === 'CLOUD_CAR_MOCCO' ? '🚗🎉' : '☁️💖',
+                    }
+                    textContent = `🎁 [선물] ${gName} (${pts.toLocaleString()} 꿀떡 후원)`
+                  }
+                } catch {}
+              } else if (isGift && !giftObj) {
+                giftObj = {
+                  id: 'gift',
+                  name: m.name || '모꼬 선물',
+                  amount: Number(m.giftPoints || 1000),
+                  description: '',
+                  icon: '🎁',
+                }
+              }
+
+              return {
+                sender: m.sender?.nickname || m.sender?.name || m.senderName || '시청자',
+                text: textContent,
+                isSystem: m.type === 'system',
+                isGift,
+                gift: giftObj,
+                time: m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              }
+            })
             setLiveChatMessages((prev) => {
               const unique = [...prev]
               formatted.forEach((f) => {
-                if (!unique.some((u) => u.text === f.text && u.sender === f.sender)) {
+                const isDuplicate = unique.some((u) => {
+                  if (u.isGift && f.isGift && u.gift && f.gift) {
+                    return u.gift.name === f.gift.name && u.gift.amount === f.gift.amount && u.sender === f.sender
+                  }
+                  return u.text === f.text && u.sender === f.sender
+                })
+                if (!isDuplicate) {
                   unique.push(f)
                 }
               })
@@ -9579,7 +9637,7 @@ export default function CustomerWebStorefrontPage() {
 
                   {/* 선물 그리드 */}
                   <div className="grid grid-cols-2 gap-2 overflow-y-auto max-h-[220px] pr-1">
-                    {MOCCO_CHAT_GIFTS
+                    {adminGifts
                       .filter((g) => (liveGiftCategory === 'all' ? true : g.category === liveGiftCategory))
                       .map((gift) => (
                         <div

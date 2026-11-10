@@ -144,6 +144,7 @@ export default function LiveRoomScreen({ navigation, route }) {
   const [cameraFacing, setCameraFacing] = useState('front'); // 'front' | 'back'
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
   const [agoraTokenData, setAgoraTokenData] = useState(null);
+  const [useNativeCameraFallback, setUseNativeCameraFallback] = useState(false);
   const [streamConnecting, setStreamConnecting] = useState(true);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -1418,33 +1419,37 @@ export default function LiveRoomScreen({ navigation, route }) {
               hasCameraPermission ? (
                 isFocused && !isCameraOff ? (
                   <View style={styles.cameraFillWrapper}>
-                    <CameraView
-                      key={`cam_${cameraFacing}_${isFocused ? 'focused' : 'blurred'}`}
-                      style={styles.cameraPreview}
-                      facing={cameraFacing}
-                      enableTorch={false}
-                      onCameraReady={() => {
-                        setIsCameraReady(true);
-                        setCameraMountError(null);
-                      }}
-                      onMountError={(error) => {
-                        console.warn('Camera mount error:', error);
-                        setCameraMountError(error?.message || '카메라 센서를 열 수 없습니다.');
-                      }}
-                    />
-                    {agoraTokenData?.appId ? (
-                      <View style={styles.offscreenAgoraContainer} pointerEvents="none">
-                        <AgoraLivePlayer
-                          appId={agoraTokenData?.appId}
-                          token={agoraTokenData?.token}
-                          channelName={agoraTokenData?.channelName || roomId}
-                          uid={agoraTokenData?.uid}
-                          isHost={true}
-                          isVideoSubscribed={!isCameraOff}
-                          isSpeakerMuted={isMicMuted}
-                        />
-                      </View>
-                    ) : null}
+                    {agoraTokenData?.appId && !useNativeCameraFallback ? (
+                      <AgoraLivePlayer
+                        appId={agoraTokenData?.appId}
+                        token={agoraTokenData?.token}
+                        channelName={agoraTokenData?.channelName || roomId}
+                        uid={agoraTokenData?.uid}
+                        isHost={true}
+                        isVideoSubscribed={!isCameraOff}
+                        isSpeakerMuted={isMicMuted}
+                        onStreamStatusChange={(status) => {
+                          if (status === 'fallback_camera') {
+                            setUseNativeCameraFallback(true);
+                          }
+                        }}
+                      />
+                    ) : (
+                      <CameraView
+                        key={`cam_${cameraFacing}_${isFocused ? 'focused' : 'blurred'}`}
+                        style={styles.cameraPreview}
+                        facing={cameraFacing}
+                        enableTorch={false}
+                        onCameraReady={() => {
+                          setIsCameraReady(true);
+                          setCameraMountError(null);
+                        }}
+                        onMountError={(error) => {
+                          console.warn('Camera mount error:', error);
+                          setCameraMountError(error?.message || '카메라 센서를 열 수 없습니다.');
+                        }}
+                      />
+                    )}
                     {!isCameraReady && !cameraMountError && (
                       <View style={styles.cameraLoadingOverlay} pointerEvents="none">
                         <ActivityIndicator size="large" color={LIVE_ACCENT} />

@@ -90,6 +90,7 @@ export default function AgoraLivePlayer({
       object-fit: cover !important;
       width: 100% !important;
       height: 100% !important;
+      ${isHost ? 'transform: scaleX(-1);' : ''}
     }
     .waiting-card {
       position: absolute;
@@ -253,12 +254,22 @@ export default function AgoraLivePlayer({
                 optimizationMode: 'detail',
               }).catch(function() { return null; });
 
+              if (localVideoTrack) {
+                const remoteContainer = document.getElementById('remote-video');
+                if (remoteContainer) {
+                  remoteContainer.innerHTML = '';
+                  localVideoTrack.play('remote-video', { fit: 'cover' });
+                }
+              }
+
               const tracks = [localAudioTrack, localVideoTrack].filter(Boolean);
               if (tracks.length > 0) {
                 await client.publish(tracks);
               }
+              sendState('playing');
+            } else {
+              sendState('fallback_camera');
             }
-            sendState('playing');
           } catch (pubErr) {
             console.warn('Host publish notice:', pubErr);
             sendState('playing');
