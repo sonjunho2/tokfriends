@@ -12,7 +12,7 @@ export interface MarketProduct {
   title: string;
   description: string;
   category: string;
-  price: number;              // ON 포인트 (1 ON = 1원)
+  price: number;              // 모꼬 머니 (원)
   originalPrice?: number;     // B2C 공구 시 정가
   targetQuantity?: number;    // 공구 목표 인원
   currentQuantity?: number;   // 현재 참여 인원
@@ -126,7 +126,7 @@ export const INITIAL_MARKET_PRODUCTS: MarketProduct[] = [
     id: 'prod-b2c-1',
     type: 'B2C_GROUP',
     title: '[입점사특가] 제주 산지직송 프리미엄 흑돼지 오겹살 1kg',
-    description: '입점 브랜드 직배송! 냉장 신선포장 당일 발송. 목표 인원 도달 시 즉시 발송됩니다. 온 포인트 에스크로로 안전 결제!',
+    description: '입점 브랜드 직배송! 냉장 신선포장 당일 발송. 목표 인원 도달 시 즉시 발송됩니다. 모꼬 머니 에스크로로 안전 결제!',
     category: 'FOOD_GROUP',
     price: 24900,
     originalPrice: 42000,

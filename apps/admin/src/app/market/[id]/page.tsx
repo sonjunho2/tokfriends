@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { MarketProductCreateModal, type CreateProductPayload } from '@/components/market/MarketProductCreateModal'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ChevronLeft,
@@ -28,6 +29,7 @@ import {
   HelpCircle,
   ShoppingCart,
   Trash2,
+  Edit3,
   Plus,
   Minus,
   X,
@@ -270,6 +272,7 @@ export default function MarketProductDetailPage() {
   const [isLiked, setIsLiked] = useState(false)
   const [activeTab, setActiveTab] = useState<'DETAIL' | 'NOTICE' | 'SHIPPING' | 'MERCHANT' | 'REVIEW'>('DETAIL')
   const [isGroupJoinedModalOpen, setIsGroupJoinedModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [selectedOptionId, setSelectedOptionId] = useState<string>('')
 
   // 장바구니 Drawer 상태 및 아이템 목록
@@ -570,6 +573,49 @@ export default function MarketProductDetailPage() {
     })
   }
 
+  
+  // 상품 실시간 수정 완료 핸들러
+  const handleEditProductSubmit = (payload: CreateProductPayload, editProductId?: string) => {
+    if (!product) return
+    const updated = {
+      ...product,
+      name: payload.name,
+      category: payload.category,
+      price: payload.price,
+      originalPrice: payload.originalPrice,
+      images: payload.images,
+      description: payload.description,
+      stock: payload.stock,
+      shippingFee: payload.shippingFee,
+      detailImages: payload.detailImages,
+      detailNotice: payload.detailNotice,
+      manufacturer: payload.manufacturer,
+      origin: payload.origin,
+      csPhone: payload.csPhone,
+    }
+    setProduct(updated as any)
+
+    // LocalStorage 동기화
+    try {
+      const stored = localStorage.getItem('mocco_custom_products')
+      if (stored) {
+        const list = JSON.parse(stored)
+        const updatedList = list.map((item: any) =>
+          item.id === product.id ? { ...item, ...payload, title: payload.name } : item
+        )
+        localStorage.setItem('mocco_custom_products', JSON.stringify(updatedList))
+      }
+    } catch (e) {
+      console.error(e)
+    }
+
+    toast({
+      title: '✅ 상품 정보 수정 완료!',
+      description: '상품 정보 및 상세페이지 컷이 성공적으로 업데이트되었습니다.',
+    })
+    setIsEditModalOpen(false)
+  }
+
   // SNS 공유하기
   const handleShare = () => {
     if (typeof window !== 'undefined') {
@@ -635,6 +681,15 @@ export default function MarketProductDetailPage() {
                 )}
               </button>
             )}
+
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold transition flex items-center gap-1 border border-amber-200 shadow-2xs"
+              title="상품 정보 수정"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>상품 수정</span>
+            </button>
 
             <button
               onClick={handleShare}
@@ -1563,6 +1618,18 @@ export default function MarketProductDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      
+      {/* ✏️ 상품 정보 실시간 수정 모달 */}
+      {product && (
+        <MarketProductCreateModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          userRole="ADMIN"
+          onSubmit={handleEditProductSubmit}
+          editProduct={product}
+        />
       )}
 
       {/* 5. 특가 공동구매 참여 완료 & 바이럴 공유 모달 */}

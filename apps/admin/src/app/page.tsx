@@ -275,6 +275,11 @@ export interface MarketProductItem {
   targetQuantity?: number
   currentQuantity?: number
   affiliateCommissionRate?: number
+  detailImages?: string[]
+  detailNotice?: string
+  manufacturer?: string
+  origin?: string
+  csPhone?: string
   // 실제 서비스 집계 및 랭킹 산출 메트릭
   salesCount?: number        // 누적 실시간 판매량
   orderCount?: number        // 최근 실시간 주문 건수
@@ -1337,7 +1342,7 @@ const LEGAL_DOCUMENTS = {
 
 제3조 (선불전자지급수단 - 모꼬 꿀떡 및 모꼬 머니)
 1. 이용자는 계좌이체, 신용카드, 이벤트 리워드 등을 통해 모꼬 꿀떡을 충전하거나 적립받을 수 있습니다.
-2. 적립 및 충전된 포인트는 라이브 방송 후원, 1:1 대화방 입장, 상품 결제에 1 P = 1원의 가치로 사용됩니다.`,
+2. 충전된 모꼬 꿀떡은 라이브 방송 후원, 1:1 대화방 입장 및 3D 선물 교환에 사용되며, 마켓 상품 결제 및 판매 정산은 모꼬 머니(KRW)로 안전하게 처리됩니다.`,
   },
   'youth-protection': {
     title: '청소년보호정책',
@@ -1600,6 +1605,7 @@ export default function CustomerWebStorefrontPage() {
   // Market Detail & Create Modals (통신판매 규정 준수 및 입점사 등록)
   const [selectedProductDetail, setSelectedProductDetail] = useState<MarketProductDetail | null>(null)
   const [isProductCreateModalOpen, setIsProductCreateModalOpen] = useState(false)
+  const [editingMarketProduct, setEditingMarketProduct] = useState<MarketProductDetail | null>(null)
   // Mocco Point Payment & Charge Modal
   const [isPointChargeModalOpen, setIsPointChargeModalOpen] = useState(false)
   const [liveChatInput, setLiveChatInput] = useState('')
@@ -1990,7 +1996,91 @@ export default function CustomerWebStorefrontPage() {
   }
 
   // Handle Create Product Submit
-  const handleCreateProductSubmit = (payload: CreateProductPayload) => {
+  // Handle Create & Edit Product Submit
+  const handleCreateProductSubmit = (payload: CreateProductPayload, editProductId?: string) => {
+    // ✏️ 수정 모드인 경우 (Edit Mode)
+    if (editProductId) {
+      if (payload.type === 'C2C_USED') {
+        setUsedProducts((prev) =>
+          prev.map((item) =>
+            item.id === editProductId
+              ? {
+                  ...item,
+                  title: payload.name,
+                  description: payload.description,
+                  price: payload.price,
+                  category: payload.category,
+                  images: payload.images,
+                }
+              : item
+          )
+        )
+      } else {
+        setMarketProducts((prev) =>
+          prev.map((item) =>
+            item.id === editProductId
+              ? {
+                  ...item,
+                  title: payload.name,
+                  category: payload.category,
+                  type: payload.type as 'B2C_NORMAL' | 'B2C_GROUP',
+                  price: payload.price,
+                  originalPrice: payload.originalPrice,
+                  images: payload.images,
+                  description: payload.description,
+                  stock: payload.stock,
+                  shippingFee: payload.shippingFee,
+                  detailImages: payload.detailImages,
+                  detailNotice: payload.detailNotice,
+                  manufacturer: payload.manufacturer,
+                  origin: payload.origin,
+                  csPhone: payload.csPhone,
+                }
+              : item
+          )
+        )
+
+        // LocalStorage 동기화
+        try {
+          const stored = localStorage.getItem('mocco_custom_products')
+          if (stored) {
+            const list = JSON.parse(stored)
+            const updated = list.map((item: any) =>
+              item.id === editProductId
+                ? {
+                    ...item,
+                    title: payload.name,
+                    category: payload.category,
+                    price: payload.price,
+                    originalPrice: payload.originalPrice,
+                    images: payload.images,
+                    description: payload.description,
+                    stock: payload.stock,
+                    shippingFee: payload.shippingFee,
+                    detailImages: payload.detailImages,
+                    detailNotice: payload.detailNotice,
+                    manufacturer: payload.manufacturer,
+                    origin: payload.origin,
+                    csPhone: payload.csPhone,
+                  }
+                : item
+            )
+            localStorage.setItem('mocco_custom_products', JSON.stringify(updated))
+          }
+        } catch (err) {
+          console.error('Failed to sync updated product to localStorage:', err)
+        }
+      }
+
+      toast({
+        title: '✅ 상품 정보 수정 완료!',
+        description: `[${payload.name}] 상품 정보 및 상세페이지 컷이 성공적으로 업데이트되었습니다.`,
+      })
+      setEditingMarketProduct(null)
+      return
+    }
+
+    // ➕ 신규 등록 모드인 경우 (Create Mode)
     if (payload.type === 'C2C_USED') {
       const newUsed: UsedProductItem = {
         id: `used-${Date.now()}`,
@@ -2031,11 +2121,27 @@ export default function CustomerWebStorefrontPage() {
         salesCount: 0,
         orderCount: 0,
         rating: 5.0,
+        detailImages: payload.detailImages,
+        detailNotice: payload.detailNotice,
+        manufacturer: payload.manufacturer,
+        origin: payload.origin,
+        csPhone: payload.csPhone,
       }
       setMarketProducts((prev) => [newItem, ...prev])
+
+      // LocalStorage 캐싱 동기화
+      try {
+        const stored = localStorage.getItem('mocco_custom_products')
+        const list = stored ? JSON.parse(stored) : []
+        list.unshift(newItem)
+        localStorage.setItem('mocco_custom_products', JSON.stringify(list))
+      } catch (err) {
+        console.error('Failed to sync to local storage:', err)
+      }
+
       toast({
         title: '🎉 공식 마켓 상품 등록 완료!',
-        description: '대한민국 전자상거래 규정에 맞춘 공식 마켓 상품이 성공적으로 등록되었습니다.',
+        description: `[${payload.name}] 상품이 모꼬 마켓에 성공적으로 입점 등록되었습니다.`,
       })
     }
   }
@@ -2324,8 +2430,8 @@ export default function CustomerWebStorefrontPage() {
       if (room.entryFee && room.entryFee > 0) {
         if (myPoints < room.entryFee) {
           toast({
-            title: '포인트가 부족합니다',
-            description: `수다방 입장료는 ${room.entryFee} 꿀떡입니다. 포인트를 무료 충전해 주세요.`,
+            title: '꿀떡이 부족합니다',
+          description: `수다방 입장료는 ${room.entryFee} 꿀떡입니다. 꿀떡을 무료 충전해 주세요.`,
             variant: 'destructive',
           })
           setIsPointChargeModalOpen(true)
@@ -5305,7 +5411,7 @@ export default function CustomerWebStorefrontPage() {
                                       {msg.gift.description}
                                     </p>
                                     <div className="pt-1 border-t border-white/20 flex items-center justify-between text-[10px] font-black">
-                                      <span>후원 포인트</span>
+                                      <span>후원 꿀떡</span>
                                       <span className="bg-white/25 px-1.5 py-0.5 rounded text-white">
                                         {msg.gift.amount.toLocaleString()} 꿀떡
                                       </span>
@@ -5719,7 +5825,7 @@ export default function CustomerWebStorefrontPage() {
 
 
 
-                {/* [모바일 앱 100% 동일] (3) 🎬 무료 모꼬 포인트 충전소 (리워드 광고) */}
+                {/* [모바일 앱 100% 동일] (3) 🎬 무료 모꼬 꿀떡 충전소 (리워드 광고) */}
                 <div
                   onClick={() => {
                     setIsRewardAdOpen(true)
@@ -8068,7 +8174,7 @@ export default function CustomerWebStorefrontPage() {
             <div className="space-y-4 text-xs">
               <div className="space-y-1.5">
                 <label className="font-bold text-slate-800 block">💬 1:1 대화방 입장 단가 (건당 P)</label>
-                <p className="text-[11px] text-muted-foreground">이웃이 나와 1:1 대화를 시작할 때 소모되는 포인트입니다.</p>
+                <p className="text-[11px] text-muted-foreground">이웃이 나와 1:1 대화를 시작할 때 소모되는 꿀떡입니다.</p>
                 <div className="grid grid-cols-4 gap-1.5 pt-1">
                   {[100, 300, 500, 1000].map((rate) => (
                     <button
@@ -8086,7 +8192,7 @@ export default function CustomerWebStorefrontPage() {
 
               <div className="space-y-1.5">
                 <label className="font-bold text-slate-800 block">🎥 1:1 영상/LIVE 단가 (분당 P)</label>
-                <p className="text-[11px] text-muted-foreground">1:1 영상 통화 진행 시 분당 차감되는 포인트입니다.</p>
+                <p className="text-[11px] text-muted-foreground">1:1 영상 통화 진행 시 분당 차감되는 꿀떡입니다.</p>
                 <div className="grid grid-cols-4 gap-1.5 pt-1">
                   {[500, 1000, 2000, 3000].map((rate) => (
                     <button
@@ -8364,14 +8470,23 @@ export default function CustomerWebStorefrontPage() {
         isOpen={!!selectedProductDetail}
         onClose={() => setSelectedProductDetail(null)}
         onBuy={handleBuyProductInModal}
+        onEdit={(prod) => {
+          setSelectedProductDetail(null)
+          setEditingMarketProduct(prod)
+          setIsProductCreateModalOpen(true)
+        }}
       />
 
-      {/* Market Product Create Modal (C2C 중고 & B2C 마켓/공구 등록 시스템) */}
+      {/* Market Product Create Modal (C2C 중고 & B2C 마켓/공구 등록 시스템 및 실시간 수정) */}
       <MarketProductCreateModal
         isOpen={isProductCreateModalOpen}
-        onClose={() => setIsProductCreateModalOpen(false)}
+        onClose={() => {
+          setIsProductCreateModalOpen(false)
+          setEditingMarketProduct(null)
+        }}
         userRole={role}
         onSubmit={handleCreateProductSubmit}
+        editProduct={editingMarketProduct}
       />
 
       {activeLiveModal && (
@@ -9409,7 +9524,7 @@ export default function CustomerWebStorefrontPage() {
               </div>
             </div>
 
-            {/* 포인트 리워드 혜택 안내 */}
+            {/* 꿀떡 리워드 혜택 안내 */}
             <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 text-xs space-y-2">
               <div className="flex items-center gap-1.5 font-black text-amber-900">
                 <Sparkles className="w-4 h-4 text-amber-600" />

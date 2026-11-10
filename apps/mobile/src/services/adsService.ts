@@ -32,7 +32,7 @@ const FALLBACK_ADS: Record<string, AdvertisementItem[]> = {
     {
       id: 'ad-mkt-2',
       title: '모꼬 공식 검증 브랜드 스토어 오픈 페스티벌 🎁',
-      description: '입점사 전 상품 무료배송 혜택 + 구매 확정 시 5% 모꼬 포인트 적립',
+      description: '입점사 전 상품 무료배송 혜택 + 구매 확정 시 5% 모꼬 머니 적립',
       imageUrl: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800&auto=format&fit=crop&q=80',
       targetUrl: 'https://mocco.app/market',
       placement: 'MARKET_BANNER',

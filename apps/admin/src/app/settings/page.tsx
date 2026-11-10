@@ -834,7 +834,7 @@ export default function SettingsPage() {
                   비즈니스 과금 정책 설정 (1:1 통화 요금 & 수수료)
                 </div>
                 <p className="mt-1.5 leading-relaxed text-slate-600">
-                  <strong>1:1 프라이빗 통화 분당 요금(기본 1,500P)</strong>과 <strong>플랫폼 수수료율(30%)</strong>, 채팅방 생성 꿀떡 소모량을 조정합니다. 변경 즉시 모바일 앱의 1:1 통화 신청 팝업에 동기화됩니다.
+                  <strong>1:1 프라이빗 통화 분당 요금(기본 1,500 꿀떡)</strong>과 <strong>플랫폼 수수료율(30%)</strong>, 채팅방 생성 꿀떡 소모량을 조정합니다. 변경 즉시 모바일 앱의 1:1 통화 신청 팝업에 동기화됩니다.
                 </p>
               </div>
 

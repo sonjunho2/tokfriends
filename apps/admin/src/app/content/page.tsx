@@ -300,8 +300,8 @@ const FALLBACK_ANNOUNCEMENTS: Announcement[] = [
   {
     id: 'ann-002',
     title: '[이벤트] 3D 인터랙티브 선물 출시 기념! 첫 꿀떡 충전 시 20% 보너스 지급',
-    body: '네온 슈퍼카, 골든 드래곤 등 화려한 3D 알파 이펙트 선물이 추가되었습니다. 기간 내 온 상점에서 첫 충전 시 추가 20% 보너스 온을 드립니다!',
-    content: '네온 슈퍼카, 골든 드래곤 등 화려한 3D 알파 이펙트 선물이 추가되었습니다. 기간 내 온 상점에서 첫 충전 시 추가 20% 보너스 온을 드립니다!',
+    body: '네온 슈퍼카, 골든 드래곤 등 화려한 3D 알파 이펙트 선물이 추가되었습니다. 기간 내 꿀떡 상점에서 첫 충전 시 추가 20% 보너스 꿀떡을 드립니다!',
+    content: '네온 슈퍼카, 골든 드래곤 등 화려한 3D 알파 이펙트 선물이 추가되었습니다. 기간 내 꿀떡 상점에서 첫 충전 시 추가 20% 보너스 꿀떡을 드립니다!',
     audience: '홈 배너',
     link: 'https://mocco.app/event/3d-gifts-launch',
     isActive: true,
@@ -360,7 +360,7 @@ const FALLBACK_FAQS: FaqItem[] = [
     id: 'faq-002',
     category: 'SETTLEMENT',
     question: '크리에이터 출금 환전 시 실수령액과 원천징수세(3.3%)는 어떻게 계산되나요?',
-    answer: '호스트 등급별 차등 환전 단가(루키 60원, 베스트 70원, 파트너 80원)에 보유 온을 곱하여 총 정산액을 산출합니다. 사업소득세 3% 및 지방소득세 0.3% 총 3.3%를 원천징수한 뒤 등록하신 실명 본인 계좌로 실수령액이 안전하게 입금됩니다.',
+    answer: '호스트 등급별 차등 환전 단가(루키 60원, 베스트 70원, 파트너 80원)에 보유 꿀떡을 곱하여 총 정산액을 산출합니다. 사업소득세 3% 및 지방소득세 0.3% 총 3.3%를 원천징수한 뒤 등록하신 실명 본인 계좌로 실수령액이 안전하게 입금됩니다.',
     priority: 2,
     isActive: true,
     createdAt: '2026-10-15',
@@ -1660,7 +1660,7 @@ export default function ContentAndAnnouncementsPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
                         <Badge variant="secondary" className="text-[10px]">
-                          {faq.category === 'ON_STORE' && '온상점/결제'}
+                          {faq.category === 'ON_STORE' && '꿀떡 상점/결제'}
                           {faq.category === 'SETTLEMENT' && '호스트정산'}
                           {faq.category === 'SAFETY' && '안전/신고'}
                           {faq.category === 'CHAT_LIVE' && '채팅/라이브'}
@@ -1972,7 +1972,7 @@ export default function ContentAndAnnouncementsPage() {
             <div className="space-y-1.5">
               <Label>해시태그 (쉼표로 구분)</Label>
               <Input
-                placeholder="예: 모꼬이벤트, 보너스온, 공식공지"
+                placeholder="예: 모꼬이벤트, 보너스꿀떡, 공식공지"
                 value={newPostTags}
                 onChange={(e) => setNewPostTags(e.target.value)}
                 className="h-9 text-xs"
@@ -2330,7 +2330,7 @@ export default function ContentAndAnnouncementsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="SAFETY">🛡️ 안전/신고/제재</SelectItem>
-                  <SelectItem value="ON_STORE">💰 온상점/충전/환불</SelectItem>
+                  <SelectItem value="ON_STORE">🍯 꿀떡 상점/충전/환불</SelectItem>
                   <SelectItem value="SETTLEMENT">💵 호스트 출금/정산</SelectItem>
                   <SelectItem value="CHAT_LIVE">🎙️ 통화/채팅/선물</SelectItem>
                   <SelectItem value="ACCOUNT">👤 계정/프로필 인증</SelectItem>

@@ -16,6 +16,7 @@ import {
   Store,
   Sparkles,
   ExternalLink,
+  Edit2,
 } from 'lucide-react'
 
 export interface MarketProductDetail {
@@ -26,6 +27,7 @@ export interface MarketProductDetail {
   price: number
   originalPrice?: number
   images: string[]
+  detailImages?: string[]
   description: string
   detailHtml?: string
   stock?: number
@@ -78,6 +80,7 @@ interface MarketProductDetailModalProps {
   onClose: () => void
   onBuy: (product: MarketProductDetail, quantity: number) => void
   onShare?: (product: MarketProductDetail) => void
+  onEdit?: (product: MarketProductDetail) => void
   onLiveLinkedSell?: (product: MarketProductDetail) => void
 }
 
@@ -87,6 +90,7 @@ export function MarketProductDetailModal({
   onClose,
   onBuy,
   onShare,
+  onEdit,
   onLiveLinkedSell,
 }: MarketProductDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'DETAIL' | 'NOTICE' | 'SHIPPING' | 'MERCHANT'>('DETAIL')
@@ -104,6 +108,7 @@ export function MarketProductDetailModal({
       : 0
 
   const images = product.images && product.images.length > 0 ? product.images : ['https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800']
+  const detailImages = product.detailImages || []
 
   // Default merchant info fallback for B2C
   const merchant = product.merchantInfo || {
@@ -174,6 +179,18 @@ export function MarketProductDetailModal({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* 상품 수정 버튼 */}
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(product)}
+                className="px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/40 text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                <span>상품 정보 수정</span>
+              </button>
+            )}
+
             {onShare && (
               <button
                 onClick={() => onShare(product)}
@@ -207,28 +224,54 @@ export function MarketProductDetailModal({
               <>
                 <button
                   onClick={handlePrevImage}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white transition backdrop-blur-sm"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 text-white hover:bg-black/80 transition backdrop-blur-sm"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <button
                   onClick={handleNextImage}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white transition backdrop-blur-sm"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 text-white hover:bg-black/80 transition backdrop-blur-sm"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
-                <div className="absolute bottom-3 right-3 px-3 py-1 rounded-full bg-black/60 backdrop-blur-sm text-xs font-semibold text-white">
+                <div className="absolute bottom-3 right-3 px-3 py-1 rounded-full bg-black/60 text-white text-xs font-bold backdrop-blur-sm">
                   {currentImageIdx + 1} / {images.length}
                 </div>
               </>
             )}
 
-            {/* Escrow Badge Tag */}
-            <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/90 text-white text-xs font-semibold shadow-lg backdrop-blur-sm">
-              <ShieldCheck className="w-4 h-4" />
-              <span>토스페이먼츠 PG 에스크로 100% 안심결제</span>
-            </div>
+            {/* C2C 중고인 경우 상태 뱃지 */}
+            {product.type === 'C2C_USED' && product.usedCondition && (
+              <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-black/70 border border-white/20 text-white text-xs font-bold backdrop-blur-sm">
+                상태 등급: {product.usedCondition}급 (
+                {product.usedCondition === 'S'
+                  ? '새상품급'
+                  : product.usedCondition === 'A'
+                  ? '사용감적음'
+                  : '일반중고'}
+                )
+              </div>
+            )}
           </div>
+
+          {/* 썸네일 스트립 */}
+          {images.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {images.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentImageIdx(idx)}
+                  className={`relative w-16 h-16 rounded-xl overflow-hidden border shrink-0 transition ${
+                    currentImageIdx === idx
+                      ? 'border-indigo-500 ring-2 ring-indigo-500/50'
+                      : 'border-slate-800 opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <img src={img} alt={`썸네일 ${idx + 1}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* 2. Title & Pricing Section */}
           <div className="space-y-2">
@@ -319,38 +362,52 @@ export function MarketProductDetailModal({
                   : 'border-transparent text-slate-400 hover:text-slate-200'
               }`}
             >
-              배송/교환/반품 안내
+              배송 / 교환 / 반품
             </button>
-            <button
-              onClick={() => setActiveTab('MERCHANT')}
-              className={`pb-3 px-3 text-sm font-semibold border-b-2 transition flex items-center gap-1.5 ${
-                activeTab === 'MERCHANT'
-                  ? 'border-indigo-500 text-indigo-400'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <span>판매자 정보</span>
-              <span className="px-1.5 py-0.2 rounded text-[10px] bg-indigo-900/60 text-indigo-300">전자상거래법</span>
-            </button>
+            {isB2C && (
+              <button
+                onClick={() => setActiveTab('MERCHANT')}
+                className={`pb-3 px-3 text-sm font-semibold border-b-2 transition flex items-center gap-1.5 ${
+                  activeTab === 'MERCHANT'
+                    ? 'border-indigo-500 text-indigo-400'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span>판매자 정보</span>
+                <span className="px-1.5 py-0.2 rounded text-[10px] bg-indigo-900/60 text-indigo-300">전자상거래법</span>
+              </button>
+            )}
           </div>
 
           {/* Tab Content 1: DETAIL */}
           {activeTab === 'DETAIL' && (
             <div className="space-y-4 text-slate-300 leading-relaxed">
-              <div className="p-4 bg-slate-800/50 rounded-2xl border border-slate-700/60 whitespace-pre-line text-sm">
+              {/* 상세페이지 디자인 컷 이미지 연속 노출 */}
+              {detailImages.length > 0 && (
+                <div className="space-y-2">
+                  {detailImages.map((img, idx) => (
+                    <div key={`detail-${idx}`} className="rounded-2xl overflow-hidden border border-slate-800 shadow-md">
+                      <img src={img} alt={`상세 디자인 컷 ${idx + 1}`} className="w-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 본문 텍스트 설명 */}
+              <div className="p-4 bg-slate-800/50 rounded-2xl border border-slate-700/60 whitespace-pre-line text-sm leading-relaxed font-sans">
                 {product.description || '상세 설명이 등록되지 않았습니다.'}
               </div>
 
-              {/* Sub-Images inside description */}
+              {/* 추가 서브 갤러리 컷 */}
               {images.slice(1).map((img, idx) => (
-                <div key={idx} className="rounded-2xl overflow-hidden border border-slate-800 shadow-md">
-                  <img src={img} alt={`상세 이미지 ${idx + 2}`} className="w-full object-cover" />
+                <div key={`sub-${idx}`} className="rounded-2xl overflow-hidden border border-slate-800 shadow-md">
+                  <img src={img} alt={`상세 컷 ${idx + 2}`} className="w-full object-cover" />
                 </div>
               ))}
             </div>
           )}
 
-          {/* Tab Content 2: NOTICE (공정위 통신판매 상품정보제공고시 35대 표준 규격) */}
+          {/* Tab Content 2: NOTICE */}
           {activeTab === 'NOTICE' && (
             <div className="space-y-4">
               <div className="flex items-center gap-2 p-3 bg-slate-800/60 rounded-xl text-xs text-slate-300 border border-slate-700">
@@ -403,7 +460,7 @@ export function MarketProductDetailModal({
             </div>
           )}
 
-          {/* Tab Content 3: SHIPPING (배송 / 교환 / 반품 안내) */}
+          {/* Tab Content 3: SHIPPING */}
           {activeTab === 'SHIPPING' && (
             <div className="space-y-4 text-xs">
               <div className="grid sm:grid-cols-2 gap-3">
@@ -418,33 +475,38 @@ export function MarketProductDetailModal({
                     • 발송일정: {shipping.deliveryDays}
                     <br />
                     • 기본 배송비:{' '}
-                    {shippingCost === 0 ? (
-                      <span className="text-emerald-400 font-bold">무료배송</span>
-                    ) : (
-                      `${shippingCost.toLocaleString()}원`
+                    <strong>
+                      {product.isFreeShipping || product.shippingFee === 0
+                        ? '무료배송'
+                        : `${(product.shippingFee || 3000).toLocaleString()}원`}
+                    </strong>
+                    {product.freeShippingThreshold && product.freeShippingThreshold > 0 && (
+                      <span className="text-slate-400">
+                        {' '}
+                        ({product.freeShippingThreshold.toLocaleString()}원 이상 무료)
+                      </span>
                     )}
                   </p>
                 </div>
 
                 <div className="p-4 bg-slate-800/60 border border-slate-700/60 rounded-2xl space-y-2">
-                  <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                  <div className="flex items-center gap-2 text-indigo-400 font-bold text-sm">
                     <RotateCcw className="w-4 h-4" />
-                    <span>반품 / 교환 배송비</span>
+                    <span>교환 / 반품 안내</span>
                   </div>
                   <p className="text-slate-300 leading-relaxed">
-                    • 반품 배송비: 편도 {shipping.returnFee.toLocaleString()}원 (최초 무료배송 시 6,000원)
+                    • 반품 배송비: {shipping.returnFee.toLocaleString()}원 (편도)
                     <br />
-                    • 교환 배송비: 왕복 {shipping.exchangeFee.toLocaleString()}원
+                    • 교환 배송비: {shipping.exchangeFee.toLocaleString()}원 (왕복)
                     <br />
-                    • 반품 회수지: {shipping.returnAddress}
+                    • 반품 주소지: {shipping.returnAddress}
                   </p>
                 </div>
               </div>
 
-              {/* 청약철회 기준 (전자상거래법 제17조) */}
-              <div className="p-4 bg-slate-900 border border-slate-800 rounded-2xl space-y-2">
-                <div className="font-bold text-slate-200">청약철회 및 교환/반품 불가 사유 (전자상거래법 준수)</div>
-                <ul className="space-y-1 text-slate-400 list-disc pl-4 leading-relaxed">
+              <div className="p-4 bg-slate-800/40 border border-slate-700/40 rounded-2xl space-y-2">
+                <div className="font-semibold text-slate-200">교환 / 반품 불가 사유</div>
+                <ul className="list-disc list-inside space-y-1 text-slate-400">
                   {shipping.nonReturnableReasons.map((reason, idx) => (
                     <li key={idx}>{reason}</li>
                   ))}
@@ -453,18 +515,18 @@ export function MarketProductDetailModal({
             </div>
           )}
 
-          {/* Tab Content 4: MERCHANT (판매자 사업자 정보 고시 - 전자상거래법 제10조) */}
-          {activeTab === 'MERCHANT' && (
-            <div className="space-y-4">
-              <div className="p-4 bg-slate-800/60 border border-slate-700/60 rounded-2xl space-y-3 text-xs">
+          {/* Tab Content 4: MERCHANT */}
+          {isB2C && activeTab === 'MERCHANT' && (
+            <div className="space-y-4 text-xs">
+              <div className="p-5 bg-slate-800/60 border border-slate-700/60 rounded-2xl space-y-3">
                 <div className="flex items-center justify-between border-b border-slate-700 pb-3">
                   <div className="flex items-center gap-2">
-                    <Store className="w-5 h-5 text-indigo-400" />
+                    <Building2 className="w-5 h-5 text-indigo-400" />
                     <span className="font-bold text-sm text-white">{merchant.businessName}</span>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[11px] font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    공식인증 입점사
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    모꼬 사업자 신원 인증 완료
                   </span>
                 </div>
 
@@ -568,4 +630,3 @@ export function MarketProductDetailModal({
     </div>
   )
 }
-
