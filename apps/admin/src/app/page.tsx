@@ -2022,6 +2022,7 @@ export default function CustomerWebStorefrontPage() {
   const modalAgoraContainerRef = useRef<HTMLDivElement>(null)
   const modalAgoraClientRef = useRef<any>(null)
   const modalRemoteAudioTrackRef = useRef<any>(null)
+  const modalRemoteVideoTrackRef = useRef<any>(null)
   const modalVideoRef = useRef<HTMLVideoElement>(null)
   const [isAgoraStreaming, setIsAgoraStreaming] = useState(false)
 
@@ -3248,30 +3249,28 @@ export default function CustomerWebStorefrontPage() {
         const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' })
         modalAgoraClientRef.current = client
 
-        // 🛡️ 지역/망 간 방화벽 및 대칭형 NAT 통과를 위한 Agora Cloud Proxy 활성화 (다른 지역 접속자 100% 릴레이 보장)
-        try {
-          if (typeof client.startProxyServer === 'function') {
-            await client.startProxyServer(3).catch(() => client.startProxyServer(5).catch(() => {}))
-          }
-        } catch (proxyErr) {
-          console.warn('Agora Cloud Proxy fallback notice:', proxyErr)
-        }
-
         await client.setClientRole('audience', { level: 1 })
 
         client.on('user-published', async (user: any, mediaType: string) => {
           try {
             await client.subscribe(user, mediaType)
             if (mediaType === 'video') {
+              modalRemoteVideoTrackRef.current = user.videoTrack
+              setIsAgoraStreaming(true)
               if (modalAgoraContainerRef.current) {
                 modalAgoraContainerRef.current.innerHTML = ''
                 try {
                   user.videoTrack.play(modalAgoraContainerRef.current, { fit: 'cover' })
+                  const vid = modalAgoraContainerRef.current.querySelector('video')
+                  if (vid) {
+                    vid.setAttribute('playsinline', 'true')
+                    vid.setAttribute('webkit-playsinline', 'true')
+                    vid.play().catch(() => {})
+                  }
                 } catch (playErr) {
                   console.warn('Video autoplay policy warning:', playErr)
                 }
               }
-              setIsAgoraStreaming(true)
             }
             if (mediaType === 'audio') {
               modalRemoteAudioTrackRef.current = user.audioTrack
@@ -3366,18 +3365,51 @@ export default function CustomerWebStorefrontPage() {
         try { modalAgoraClientRef.current.leave() } catch {}
         modalAgoraClientRef.current = null
       }
+      modalRemoteVideoTrackRef.current = null
+      modalRemoteAudioTrackRef.current = null
       setIsAgoraStreaming(false)
     }
   }, [activeLiveModal])
 
-  useEffect(() => {
-    if (modalRemoteAudioTrackRef.current) {
-      if (isLiveMuted) {
-        try { modalRemoteAudioTrackRef.current.stop() } catch {}
-      } else {
-        try { modalRemoteAudioTrackRef.current.play() } catch {}
-      }
+  // 🎬 라이브 오디오 & 비디오 동시 재생 잠금 해제 (모바일/사파리 WebRTC Autoplay 브라우저 정책 준수)
+  const resumeLiveMediaPlayback = () => {
+    // 1. 원격 오디오 재생
+    if (modalRemoteAudioTrackRef.current && !isLiveMuted) {
+      try { modalRemoteAudioTrackRef.current.play() } catch {}
     }
+    // 2. 원격 WebRTC 비디오 재생 및 DOM 요소 강제 활성화
+    if (modalRemoteVideoTrackRef.current && modalAgoraContainerRef.current) {
+      try {
+        if (!modalAgoraContainerRef.current.querySelector('video')) {
+          modalRemoteVideoTrackRef.current.play(modalAgoraContainerRef.current, { fit: 'cover' })
+        }
+        const vids = modalAgoraContainerRef.current.querySelectorAll('video')
+        vids.forEach((v) => {
+          v.setAttribute('playsinline', 'true')
+          v.setAttribute('webkit-playsinline', 'true')
+          v.play().catch(() => {})
+        })
+      } catch (e) {}
+    }
+    // 3. 폴백 비디오 재생
+    if (modalVideoRef.current) {
+      modalVideoRef.current.play().catch(() => {})
+    }
+  }
+
+  // 컨테이너 마운트 또는 활성 모달 변경 시 비디오 트랙 재연결 보장
+  useEffect(() => {
+    if (modalRemoteVideoTrackRef.current && modalAgoraContainerRef.current) {
+      try {
+        if (!modalAgoraContainerRef.current.querySelector('video')) {
+          modalRemoteVideoTrackRef.current.play(modalAgoraContainerRef.current, { fit: 'cover' })
+        }
+      } catch (e) {}
+    }
+  }, [activeLiveModal, isAgoraStreaming])
+
+  useEffect(() => {
+    resumeLiveMediaPlayback()
   }, [isLiveMuted])
 
   // Live Donation: Send 3D Mocco Gift with full screen animation and chat sync
@@ -10173,7 +10205,11 @@ export default function CustomerWebStorefrontPage() {
               <div className="absolute inset-0 bg-black/60 pointer-events-none" />
 
               {/* 9:16 모바일 라이브 본래 비율을 온전히 살린 대형 비디오 캔버스 컨테이너 */}
-              <div className="relative h-full aspect-[9/16] max-w-full flex items-center justify-center overflow-hidden bg-slate-950 shadow-2xl ring-1 ring-white/10">
+              <div
+                onClick={resumeLiveMediaPlayback}
+                onTouchStart={resumeLiveMediaPlayback}
+                className="relative h-full aspect-[9/16] max-w-full flex items-center justify-center overflow-hidden bg-slate-950 shadow-2xl ring-1 ring-white/10 cursor-pointer"
+              >
                 {/* Agora Remote WebRTC Live Video Layer (원격 호스트 카메라 영상 실시간 바인딩) */}
                 <div
                   ref={modalAgoraContainerRef}
@@ -10210,7 +10246,7 @@ export default function CustomerWebStorefrontPage() {
 
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] bg-black/50 text-slate-300 font-bold px-2 py-0.5 rounded-md border border-white/10">
-                      HD 1080p
+                      HD 720p
                     </span>
                     <Link
                       href={`/web/live/${activeLiveModal.id}`}
@@ -10222,7 +10258,10 @@ export default function CustomerWebStorefrontPage() {
                       전체화면
                     </Link>
                     <button
-                      onClick={() => setIsLiveMuted((prev) => !prev)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setIsLiveMuted((prev) => !prev)
+                      }}
                       className="h-7 w-7 rounded-full bg-black/50 hover:bg-black/80 flex items-center justify-center text-white/90 border border-white/10 transition-colors"
                     >
                       {isLiveMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}

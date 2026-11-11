@@ -98,15 +98,6 @@ export default function WebLivePlayerPage() {
         const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' })
         agoraClientRef.current = client
 
-        // 🛡️ 지역/망 간 방화벽 및 대칭형 NAT 통과를 위한 Agora Cloud Proxy 활성화 (다른 지역 접속자 100% 릴레이 보장)
-        try {
-          if (typeof client.startProxyServer === 'function') {
-            await client.startProxyServer(3).catch(() => client.startProxyServer(5).catch(() => {}))
-          }
-        } catch (proxyErr) {
-          console.warn('Agora Cloud Proxy fallback notice:', proxyErr)
-        }
-
         await client.setClientRole('audience', { level: 1 })
 
         client.on('user-published', async (user: any, mediaType: string) => {
@@ -116,7 +107,17 @@ export default function WebLivePlayerPage() {
               remoteVideoTrackRef.current = user.videoTrack
               if (videoContainerRef.current) {
                 videoContainerRef.current.innerHTML = ''
-                user.videoTrack.play(videoContainerRef.current, { fit: 'cover' })
+                try {
+                  user.videoTrack.play(videoContainerRef.current, { fit: 'cover' })
+                  const vid = videoContainerRef.current.querySelector('video')
+                  if (vid) {
+                    vid.setAttribute('playsinline', 'true')
+                    vid.setAttribute('webkit-playsinline', 'true')
+                    vid.play().catch(() => {})
+                  }
+                } catch (playErr) {
+                  console.warn('Video play warning:', playErr)
+                }
               }
               setStreamPlaying(true)
               setStreamConnecting(false)
@@ -124,7 +125,11 @@ export default function WebLivePlayerPage() {
             if (mediaType === 'audio') {
               remoteAudioTrackRef.current = user.audioTrack
               if (!isMutedRef.current) {
-                user.audioTrack.play()
+                try {
+                  user.audioTrack.play()
+                } catch (audioErr) {
+                  console.warn('Audio play warning:', audioErr)
+                }
               }
             }
           } catch (subErr) {
@@ -164,14 +169,37 @@ export default function WebLivePlayerPage() {
     }
   }, [liveId])
 
-  useEffect(() => {
-    if (remoteAudioTrackRef.current) {
-      if (isMuted) {
-        remoteAudioTrackRef.current.stop()
-      } else {
-        remoteAudioTrackRef.current.play()
-      }
+  const resumePlayback = () => {
+    if (remoteAudioTrackRef.current && !isMuted) {
+      try { remoteAudioTrackRef.current.play() } catch {}
     }
+    if (remoteVideoTrackRef.current && videoContainerRef.current) {
+      try {
+        if (!videoContainerRef.current.querySelector('video')) {
+          remoteVideoTrackRef.current.play(videoContainerRef.current, { fit: 'cover' })
+        }
+        const vids = videoContainerRef.current.querySelectorAll('video')
+        vids.forEach((v) => {
+          v.setAttribute('playsinline', 'true')
+          v.setAttribute('webkit-playsinline', 'true')
+          v.play().catch(() => {})
+        })
+      } catch (e) {}
+    }
+  }
+
+  useEffect(() => {
+    if (remoteVideoTrackRef.current && videoContainerRef.current) {
+      try {
+        if (!videoContainerRef.current.querySelector('video')) {
+          remoteVideoTrackRef.current.play(videoContainerRef.current, { fit: 'cover' })
+        }
+      } catch (e) {}
+    }
+  }, [streamPlaying])
+
+  useEffect(() => {
+    resumePlayback()
   }, [isMuted])
 
   // Floating Pinned Product
@@ -364,7 +392,11 @@ export default function WebLivePlayerPage() {
       {/* Main Split Player Layout */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Left: Video Player Area */}
-        <div className="flex-1 relative bg-black flex flex-col justify-between overflow-hidden min-h-[420px] lg:min-h-0">
+        <div
+          onClick={resumePlayback}
+          onTouchStart={resumePlayback}
+          className="flex-1 relative bg-black flex flex-col justify-between overflow-hidden min-h-[420px] lg:min-h-0 cursor-pointer"
+        >
           {/* Agora Remote WebRTC Video Layer */}
           <div
             ref={videoContainerRef}

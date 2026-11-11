@@ -239,7 +239,14 @@ export default function AgoraLivePlayer({
 
         localVideoTrack = await AgoraRTC.createCameraVideoTrack({
           facingMode: targetFacingMode,
-          optimizationMode: 'detail',
+          optimizationMode: 'motion',
+          encoderConfig: {
+            width: { ideal: 720, max: 1280 },
+            height: { ideal: 1280, max: 1920 },
+            frameRate: { ideal: 24, max: 30 },
+            bitrateMin: 400,
+            bitrateMax: 1200,
+          },
         });
 
         if (localVideoTrack) {
@@ -275,15 +282,15 @@ export default function AgoraLivePlayer({
 
         AgoraRTC.setLogLevel(2);
         client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
-        try {
-          if (typeof client.startProxyServer === 'function') {
-            await client.startProxyServer(3).catch(function() { return client.startProxyServer(5).catch(function() {}); });
-          }
-        } catch (pe) {}
         const isPublisherHost = ${Boolean(isHost)};
 
         if (isPublisherHost) {
           await client.setClientRole('host');
+          try {
+            if (typeof client.enableDualStream === 'function') {
+              await client.enableDualStream();
+            }
+          } catch (dsErr) {}
         } else {
           await client.setClientRole('audience', { level: 1 });
 
@@ -350,7 +357,14 @@ export default function AgoraLivePlayer({
               localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack().catch(function() { return null; });
               localVideoTrack = await AgoraRTC.createCameraVideoTrack({
                 facingMode: targetFacingMode,
-                optimizationMode: 'detail',
+                optimizationMode: 'motion',
+                encoderConfig: {
+                  width: { ideal: 720, max: 1280 },
+                  height: { ideal: 1280, max: 1920 },
+                  frameRate: { ideal: 24, max: 30 },
+                  bitrateMin: 400,
+                  bitrateMax: 1200,
+                },
               }).catch(function() { return null; });
 
               if (localVideoTrack) {
