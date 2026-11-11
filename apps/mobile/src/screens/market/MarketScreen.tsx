@@ -207,7 +207,51 @@ export default function MarketScreen({ navigation }: any) {
   // C2C 중고 & B2C 공구 렌더 아이템
   const renderProductItem = ({ item }: { item: MarketProduct }) => {
     if ((item as any).isStandby) {
+      const isUsedSell = (item as any).isUsedSell || selectedType === 'C2C_USED';
       const isGroup = (item as any).type === 'B2C_GROUP' || selectedType === 'B2C_GROUP';
+
+      if (isUsedSell) {
+        return (
+          <TouchableOpacity
+            style={[styles.standbyProductCard, { borderColor: '#FDBA74' }]}
+            activeOpacity={0.88}
+            onPress={() => navigation.navigate('MarketCreate')}
+          >
+            {/* 상단 중고 판매 유도 영역 (가지고 계신 중고 판매해 보세요) */}
+            <View style={[styles.standbyProductImgWrap, { backgroundColor: '#FFF7ED' }]}>
+              <View style={[styles.standbyProductIconCircle, { backgroundColor: '#FFEDD5' }]}>
+                <Ionicons name="pricetag" size={26} color="#EA580C" />
+              </View>
+              <Text style={[styles.standbyProductMainText, { color: '#9A3412', lineHeight: 16 }]}>
+                가지고 계신 중고 물품을{'\n'}
+                <Text style={{ color: '#EA580C' }}>지금 판매해 보세요!</Text>
+              </Text>
+              <Text style={[styles.standbyProductSubText, { color: '#C2410C', marginTop: 2 }]}>
+                잠자는 물건 등록하고 이웃과 직거래해요 🥕
+              </Text>
+              <Text style={[styles.standbyProductWaitText, { color: '#EA580C', marginTop: 4 }]}>
+                + 1분 간편 무료 등록
+              </Text>
+            </View>
+
+            {/* 하단 정보 영역 */}
+            <View style={styles.standbyProductContent}>
+              <Text style={[styles.standbyProductSeller, { color: '#EA580C' }]}>
+                🥕 우리 동네 이웃장터
+              </Text>
+              <Text style={styles.standbyProductTitle} numberOfLines={1}>
+                내 중고물품 판매글 등록하기 #{(item as any).standbyIndex}
+              </Text>
+              <View style={styles.standbyProductPriceRow}>
+                <Text style={[styles.standbyProductComing, { color: '#EA580C' }]}>
+                  수수료 0원 무료 등록
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        );
+      }
+
       return (
         <TouchableOpacity
           style={styles.standbyProductCard}
@@ -657,7 +701,8 @@ export default function MarketScreen({ navigation }: any) {
 
   const displayProducts = useMemo(() => {
     const list = [...filteredProducts] as any[];
-    const minSlots = 6;
+    // 중고마켓(C2C_USED)은 기본 4개 박스를 유지 (현재 3개 등록 시 4번째 슬롯을 '가지고 계신 중고 판매해 보세요' 카드로 채움)
+    const minSlots = selectedType === 'C2C_USED' ? 4 : 6;
     const targetCount = Math.max(minSlots, Math.ceil(list.length / 2) * 2);
     const needed = Math.max(0, targetCount - list.length);
     for (let i = 0; i < needed; i++) {
@@ -665,7 +710,8 @@ export default function MarketScreen({ navigation }: any) {
         id: `standby-prod-${i}`,
         isStandby: true,
         standbyIndex: list.length + 1,
-        title: selectedType === 'B2C_GROUP' ? '공구 상품 준비중입니다.' : '상품 준비중입니다.',
+        isUsedSell: selectedType === 'C2C_USED',
+        title: selectedType === 'C2C_USED' ? '가지고 계신 중고 물품을 판매해 보세요!' : selectedType === 'B2C_GROUP' ? '공구 상품 준비중입니다.' : '상품 준비중입니다.',
       });
     }
     return list;

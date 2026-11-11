@@ -925,13 +925,13 @@ export default function HomeScreen({ navigation }) {
   };
 
   // =================================================================
-  // 7. [중고마켓] (신규 추가, 2개 박스 & 슬라이드 순환 변경)
+  // 7. [중고마켓] (신규 추가, 2개 박스 & 슬라이드 순환 변경, 물품 부족 시 판매 유도 스탠바이 카드로 패딩)
   // =================================================================
   const renderUsedMarketDualSection = () => {
     if (usedProducts.length === 0) return null;
     const item1 = usedProducts[usedPairIndex % usedProducts.length];
-    const item2 = usedProducts[(usedPairIndex + 1) % usedProducts.length];
-    const pairItems = [item1, item2].filter(Boolean);
+    const item2 = usedProducts.length > 1 ? usedProducts[(usedPairIndex + 1) % usedProducts.length] : null;
+    const pairItems = [item1, item2];
 
     return (
       <View style={styles.sectionWrap}>
@@ -955,53 +955,104 @@ export default function HomeScreen({ navigation }) {
 
         {/* 좌/우 2개 박스 슬라이드 배치 */}
         <View style={styles.dualBoxRow}>
-          {pairItems.map((item, idx) => (
-            <TouchableOpacity
-              key={`${item.id}-${idx}`}
-              style={styles.dualUsedCard}
-              activeOpacity={0.9}
-              onPress={() =>
-                navigation.navigate('Market', {
-                  screen: 'ProductDetail',
-                  params: { productId: item.id, product: item },
-                })
-              }
-            >
-              <View style={styles.dualUsedThumbWrap}>
-                <Image
-                  source={{ uri: item.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400' }}
-                  style={styles.dualUsedThumb}
-                  resizeMode="cover"
-                />
-                {item.condition ? (
-                  <View style={styles.dualUsedCondChip}>
-                    <Text style={styles.dualUsedCondText}>{item.condition}</Text>
+          {pairItems.map((item, idx) => {
+            if (!item) {
+              return (
+                <TouchableOpacity
+                  key={`standby-dual-used-${idx}`}
+                  style={[
+                    styles.dualUsedCard,
+                    {
+                      backgroundColor: '#FFF7ED',
+                      borderWidth: 1,
+                      borderColor: '#FDBA74',
+                      padding: 10,
+                      justifyContent: 'space-between',
+                    },
+                  ]}
+                  activeOpacity={0.9}
+                  onPress={() => navigation.navigate('MarketCreate')}
+                >
+                  <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 10 }}>
+                    <View
+                      style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 19,
+                        backgroundColor: '#FFEDD5',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: 6,
+                      }}
+                    >
+                      <Ionicons name="pricetag" size={20} color="#EA580C" />
+                    </View>
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#9A3412', textAlign: 'center' }}>
+                      가지고 계신 중고 물품을{'\n'}
+                      <Text style={{ color: '#EA580C' }}>지금 판매해 보세요!</Text>
+                    </Text>
+                    <Text style={{ fontSize: 8.5, color: '#C2410C', marginTop: 3, textAlign: 'center' }}>
+                      이웃과 안심 직거래해요 🥕
+                    </Text>
                   </View>
-                ) : null}
-              </View>
 
-              <View style={styles.dualUsedInfo}>
-                <View style={styles.dualUsedMetaRow}>
-                  <Text style={styles.dualUsedRegion}>{item.region || '지역 인증'}</Text>
-                </View>
-                <Text style={styles.dualUsedTitle} numberOfLines={1}>
-                  {item.title}
-                </Text>
-                <Text style={styles.dualUsedPrice}>{item.price?.toLocaleString()}원</Text>
+                  <View style={{ borderTopWidth: 1, borderTopColor: '#FED7AA', paddingTop: 6, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#EA580C' }}>
+                      + 1분 간편 무료 등록
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            }
 
-                <View style={styles.dualUsedFooterRow}>
-                  <View style={styles.dualUsedStat}>
-                    <Ionicons name="heart-outline" size={11} color="#94A3B8" />
-                    <Text style={styles.dualUsedStatText}>{item.likes || 12}</Text>
+            return (
+              <TouchableOpacity
+                key={`${item.id}-${idx}`}
+                style={styles.dualUsedCard}
+                activeOpacity={0.9}
+                onPress={() =>
+                  navigation.navigate('Market', {
+                    screen: 'ProductDetail',
+                    params: { productId: item.id, product: item },
+                  })
+                }
+              >
+                <View style={styles.dualUsedThumbWrap}>
+                  <Image
+                    source={{ uri: item.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400' }}
+                    style={styles.dualUsedThumb}
+                    resizeMode="cover"
+                  />
+                  {item.condition ? (
+                    <View style={styles.dualUsedCondChip}>
+                      <Text style={styles.dualUsedCondText}>{item.condition}</Text>
+                    </View>
+                  ) : null}
+                </View>
+
+                <View style={styles.dualUsedInfo}>
+                  <View style={styles.dualUsedMetaRow}>
+                    <Text style={styles.dualUsedRegion}>{item.region || '지역 인증'}</Text>
                   </View>
-                  <View style={styles.dualUsedStat}>
-                    <Ionicons name="chatbubble-outline" size={11} color="#94A3B8" />
-                    <Text style={styles.dualUsedStatText}>{item.chats || 5}</Text>
+                  <Text style={styles.dualUsedTitle} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text style={styles.dualUsedPrice}>{item.price?.toLocaleString()}원</Text>
+
+                  <View style={styles.dualUsedFooterRow}>
+                    <View style={styles.dualUsedStat}>
+                      <Ionicons name="heart-outline" size={11} color="#94A3B8" />
+                      <Text style={styles.dualUsedStatText}>{item.likes || 12}</Text>
+                    </View>
+                    <View style={styles.dualUsedStat}>
+                      <Ionicons name="chatbubble-outline" size={11} color="#94A3B8" />
+                      <Text style={styles.dualUsedStatText}>{item.chats || 5}</Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))}
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
     );

@@ -1596,6 +1596,70 @@ function MoccoGroupBuyStandbyCard({ index = 1 }: { index?: number }) {
   )
 }
 
+/**
+ * 🥕 모꼬 중고마켓 판매 유도 스탠바이 카드 (가지고 계신 중고 판매해 보세요)
+ * 기본 4개 박스 유지 및 슬롯 채움, 클릭 시 중고 판매글 작성 모달 오픈
+ */
+function MoccoUsedSellStandbyCard({ onClick, index = 1 }: { onClick?: () => void; index?: number }) {
+  return (
+    <Card
+      onClick={onClick}
+      className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-dashed border-orange-300 bg-white flex flex-col justify-between select-none"
+    >
+      <div>
+        {/* Aspect-square illustration area */}
+        <div className="aspect-square w-full bg-gradient-to-b from-orange-50 via-amber-50/50 to-orange-100/40 overflow-hidden relative flex flex-col items-center justify-center p-4 text-center">
+          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+            <span className="bg-orange-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs">
+              🥕 이웃 장터
+            </span>
+            <span className="bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+              수수료 0원
+            </span>
+          </div>
+
+          <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 mb-2 group-hover:scale-110 transition-transform shadow-xs">
+            <PlusCircle className="w-6 h-6 stroke-[2.5]" />
+          </div>
+          <h5 className="font-extrabold text-xs sm:text-sm text-slate-800 leading-tight">
+            가지고 계신 중고 물품을<br />
+            <span className="text-orange-600">지금 판매해 보세요!</span>
+          </h5>
+          <p className="text-[10px] text-slate-500 mt-1.5 leading-snug">
+            잠자는 물건 등록하고<br />가까운 이웃과 안심 직거래해요 🥕
+          </p>
+        </div>
+
+        <CardContent className="p-3.5 space-y-1">
+          <span className="text-[10px] text-muted-foreground font-semibold block truncate">
+            📍 내 동네 이웃 직거래
+          </span>
+          <h4 className="font-bold text-xs sm:text-sm text-slate-800 line-clamp-1 group-hover:text-orange-600 transition-colors">
+            우리 동네 중고물품 판매 등록하기 #{index}
+          </h4>
+          <p className="font-extrabold text-sm sm:text-base text-orange-600">
+            즉시 무료 등록
+          </p>
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t">
+            <span>안전결제 지원</span>
+            <span className="text-orange-600 font-bold">1분 간편 등록</span>
+          </div>
+        </CardContent>
+      </div>
+
+      <div className="p-3.5 pt-0">
+        <Button
+          size="sm"
+          className="w-full h-8 sm:h-9 text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5"
+        >
+          <PlusCircle className="h-3.5 w-3.5" />
+          <span>내 중고 판매하기</span>
+        </Button>
+      </div>
+    </Card>
+  )
+}
+
 // 5 Mobile App Equivalent Tabs
 type ActiveTab = 'HOME' | 'MARKET' | 'LIVE' | 'CHAT' | 'MY'
 
@@ -4330,6 +4394,7 @@ export default function CustomerWebStorefrontPage() {
                   </Button>
                 </div>
 
+                {/* 4-Card Used Market Grid (현재 3개이므로 4번째 슬롯을 '가지고 계신 중고 판매해 보세요' 카드로 채워 기본 4개 박스 유지) */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {usedProducts.slice(0, 4).map((item) => (
                     <Card
@@ -4360,6 +4425,14 @@ export default function CustomerWebStorefrontPage() {
                         </div>
                       </CardContent>
                     </Card>
+                  ))}
+                  {/* 기본 4개 박스 유지: 상품이 4개 미만일 때 '가지고 계신 중고 판매해 보세요' 카드로 자동 패딩 */}
+                  {Array.from({ length: Math.max(0, 4 - usedProducts.slice(0, 4).length) }).map((_, idx) => (
+                    <MoccoUsedSellStandbyCard
+                      key={`standby-home-used-${idx}`}
+                      index={usedProducts.slice(0, 4).length + idx + 1}
+                      onClick={() => requireAuth(() => setIsNewUsedModalOpen(true))}
+                    />
                   ))}
                 </div>
               </section>
@@ -4801,53 +4874,69 @@ export default function CustomerWebStorefrontPage() {
 
               {/* Market Products Display */}
               {marketSubTab === 'C2C_USED' ? (
-                /* 1) C2C Used Grid */
+                /* 1) C2C Used Grid - 4칸 단위 유지 및 판매 유도 스탠바이 카드 자동 패딩 */
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {usedProducts
-                    .filter((item) => {
-                      const matchCategory = marketCategoryFilter === '전체' ? true : item.category.includes(marketCategoryFilter)
-                      const matchSearch = !searchQuery.trim() ? true : (item.title.toLowerCase().includes(searchQuery.toLowerCase()) || item.description.toLowerCase().includes(searchQuery.toLowerCase()))
-                      return matchCategory && matchSearch
-                    })
-                    .map((item) => (
-                      <Card
-                        key={item.id}
-                        onClick={() => router.push('/market/used/' + item.id)}
-                        className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80"
-                      >
-                        <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
-                          <img
-                            src={item.images[0]}
-                            alt={item.title}
-                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <Badge className="absolute top-2 left-2 bg-orange-600 text-white text-[10px] font-bold border-none">
-                            🥕 중고
-                          </Badge>
-                          <Badge className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] font-semibold border-none">
-                            {item.locationName}
-                          </Badge>
-                        </div>
-                        <CardContent className="p-3.5 space-y-2">
-                          <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-orange-600 transition-colors">
-                            {item.title}
-                          </h4>
-                          <div className="flex items-baseline justify-between">
-                            <span className="font-extrabold text-sm sm:text-base text-slate-900">
-                              {item.price.toLocaleString()}원
-                            </span>
-                            <span className="text-[11px] text-muted-foreground">{item.createdAt}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
-                            <span className="font-semibold text-slate-700">매너 {item.mannerTemp}℃</span>
-                            <div className="flex items-center gap-2">
-                              <span>♥ {item.likesCount}</span>
-                              <span>💬 {item.chatsCount}</span>
+                  {(() => {
+                    const filteredUsed = usedProducts
+                      .filter((item) => {
+                        const matchCategory = marketCategoryFilter === '전체' ? true : item.category.includes(marketCategoryFilter)
+                        const matchSearch = !searchQuery.trim() ? true : (item.title.toLowerCase().includes(searchQuery.toLowerCase()) || item.description.toLowerCase().includes(searchQuery.toLowerCase()))
+                        return matchCategory && matchSearch
+                      })
+                    const targetCount = Math.max(4, Math.ceil(filteredUsed.length / 4) * 4)
+                    const needed = Math.max(0, targetCount - filteredUsed.length)
+
+                    return (
+                      <>
+                        {filteredUsed.map((item) => (
+                          <Card
+                            key={item.id}
+                            onClick={() => router.push('/market/used/' + item.id)}
+                            className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80"
+                          >
+                            <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
+                              <img
+                                src={item.images[0]}
+                                alt={item.title}
+                                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <Badge className="absolute top-2 left-2 bg-orange-600 text-white text-[10px] font-bold border-none">
+                                🥕 중고
+                              </Badge>
+                              <Badge className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] font-semibold border-none">
+                                {item.locationName}
+                              </Badge>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            <CardContent className="p-3.5 space-y-2">
+                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-orange-600 transition-colors">
+                                {item.title}
+                              </h4>
+                              <div className="flex items-baseline justify-between">
+                                <span className="font-extrabold text-sm sm:text-base text-slate-900">
+                                  {item.price.toLocaleString()}원
+                                </span>
+                                <span className="text-[11px] text-muted-foreground">{item.createdAt}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
+                                <span className="font-semibold text-slate-700">매너 {item.mannerTemp}℃</span>
+                                <div className="flex items-center gap-2">
+                                  <span>♥ {item.likesCount}</span>
+                                  <span>💬 {item.chatsCount}</span>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                        {Array.from({ length: needed }).map((_, idx) => (
+                          <MoccoUsedSellStandbyCard
+                            key={`standby-market-used-grid-${idx}`}
+                            index={filteredUsed.length + idx + 1}
+                            onClick={() => requireAuth(() => setIsNewUsedModalOpen(true))}
+                          />
+                        ))}
+                      </>
+                    )
+                  })()}
                 </div>
               ) : marketSubTab === 'B2C_GROUP' ? (
                 /* 2) 🔥 공동구매 그리드 (홈 화면의 특가공구 프리미엄 박스 디자인과 100% 동일한 완성도) - 공구 상품 부족 시 스탠바이 카드로 자동 패딩 */
