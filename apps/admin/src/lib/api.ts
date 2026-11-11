@@ -2815,6 +2815,16 @@ export async function createSudaPost(payload: any): Promise<any> {
   return res?.data ?? res
 }
 
+export async function deleteSudaPost(postId: string): Promise<any> {
+  try {
+    const res = await api.delete(`/suda/posts/${postId}`)
+    return res?.data ?? res
+  } catch (err) {
+    console.warn('deleteSudaPost error:', err)
+    return null
+  }
+}
+
 export async function getChatRooms(): Promise<any[]> {
   try {
     const res = await api.get('/chats')
@@ -2823,6 +2833,16 @@ export async function getChatRooms(): Promise<any[]> {
   } catch (err) {
     console.warn('getChatRooms error:', err)
     return []
+  }
+}
+
+export async function deleteChatRoom(chatId: string): Promise<any> {
+  try {
+    const res = await api.delete(`/chats/${chatId}`)
+    return res?.data ?? res
+  } catch (err) {
+    console.warn('deleteChatRoom error:', err)
+    return null
   }
 }
 

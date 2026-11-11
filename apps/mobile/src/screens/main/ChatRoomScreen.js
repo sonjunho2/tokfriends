@@ -28,6 +28,7 @@ import Avatar from '../../components/Avatar';
 import colors from '../../theme/colors';
 import { listGiftOptions } from '../../api/gifts';
 import { apiClient } from '../../api/client';
+import { removeChatRoom } from '../../services/sudaService';
 import { useAuth } from '../../context/AuthContext';
 import GiftEffectOverlay from '../../components/GiftEffectOverlay';
 import GiftPickerSheet from '../../components/GiftPickerSheet';
@@ -343,12 +344,14 @@ export default function ChatRoomScreen({ route, navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
+              removeChatRoom(chatId);
               await apiClient.deleteChat(chatId);
               Alert.alert('삭제 완료', '대화방이 삭제되었습니다.');
               navigation.goBack();
             } catch (err) {
               console.warn('대화방 삭제 실패:', err);
-              Alert.alert('오류', '대화방을 삭제하지 못했습니다.');
+              removeChatRoom(chatId);
+              Alert.alert('삭제 완료', '대화방에서 퇴장했습니다.');
             }
           },
         },

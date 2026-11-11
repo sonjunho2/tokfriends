@@ -181,6 +181,8 @@ export const INITIAL_CHAT_ROOMS: ChatRoomItem[] = [
 
 let inMemorySudaPosts = [...INITIAL_SUDA_POSTS];
 let inMemoryChatRooms = [...INITIAL_CHAT_ROOMS];
+const deletedSudaIds = new Set<string>();
+const deletedChatIds = new Set<string>();
 
 export async function fetchSudaPosts(neighborhood?: string): Promise<SudaPostItem[]> {
   try {
@@ -189,12 +191,12 @@ export async function fetchSudaPosts(neighborhood?: string): Promise<SudaPostIte
       timeout: 3000,
     });
     if (res?.data?.items && Array.isArray(res.data.items) && res.data.items.length > 0) {
-      return res.data.items;
+      return res.data.items.filter((p: any) => !deletedSudaIds.has(p.id));
     }
   } catch (err) {
     // Offline or server unreachable fallback
   }
-  return inMemorySudaPosts;
+  return inMemorySudaPosts.filter((p) => !deletedSudaIds.has(p.id));
 }
 
 export async function createSudaPost(
@@ -242,6 +244,7 @@ export async function createSudaPost(
 }
 
 export async function deleteSudaPost(postId: string): Promise<boolean> {
+  deletedSudaIds.add(postId);
   try {
     await client.delete(`/suda/posts/${postId}`);
   } catch (err) {}
@@ -250,6 +253,9 @@ export async function deleteSudaPost(postId: string): Promise<boolean> {
 }
 
 export function addOrUpdateChatRoom(newRoom: ChatRoomItem) {
+  if (deletedChatIds.has(newRoom.id)) {
+    deletedChatIds.delete(newRoom.id);
+  }
   const existingIndex = inMemoryChatRooms.findIndex(
     (r) => r.id === newRoom.id || r.peer?.id === newRoom.peer?.id || r.peer?.nickname === newRoom.peer?.nickname
   );
@@ -261,6 +267,7 @@ export function addOrUpdateChatRoom(newRoom: ChatRoomItem) {
 }
 
 export function removeChatRoom(roomId: string) {
+  deletedChatIds.add(roomId);
   inMemoryChatRooms = inMemoryChatRooms.filter((r) => r.id !== roomId);
 }
 
@@ -309,7 +316,7 @@ export async function fetchChatRooms(type?: 'SUDA' | 'MARKET'): Promise<ChatRoom
       // Combine with in-memory market demo items if needed
       const marketRooms = inMemoryChatRooms.filter((r) => r.type === 'MARKET');
       const combined = [...serverRooms, ...marketRooms];
-      const unique = Array.from(new Map(combined.map((m) => [m.id, m])).values());
+      const unique = Array.from(new Map(combined.map((m) => [m.id, m])).values()).filter((r) => !deletedChatIds.has(r.id));
       if (type) {
         return unique.filter((r) => r.type === type);
       }
@@ -319,8 +326,9 @@ export async function fetchChatRooms(type?: 'SUDA' | 'MARKET'): Promise<ChatRoom
     // Fallback to in-memory list
   }
 
+  const fallback = inMemoryChatRooms.filter((r) => !deletedChatIds.has(r.id));
   if (type) {
-    return inMemoryChatRooms.filter((r) => r.type === type);
+    return fallback.filter((r) => r.type === type);
   }
-  return inMemoryChatRooms;
+  return fallback;
 }

@@ -112,7 +112,9 @@ import {
   createMarketProduct,
   getSudaPosts,
   createSudaPost,
+  deleteSudaPost,
   getChatRooms,
+  deleteChatRoom,
   createDirectChat,
   sendChatMessage,
   getChatMessages,
@@ -1668,6 +1670,24 @@ function MoccoUsedSellStandbyCard({ onClick, index = 1 }: { onClick?: () => void
 // 5 Mobile App Equivalent Tabs
 type ActiveTab = 'HOME' | 'MARKET' | 'LIVE' | 'CHAT' | 'MY'
 
+function getDeletedSudaIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set()
+  try {
+    return new Set(JSON.parse(localStorage.getItem('mocco_deleted_suda_ids') || '[]'))
+  } catch (e) {
+    return new Set()
+  }
+}
+
+function getDeletedChatIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set()
+  try {
+    return new Set(JSON.parse(localStorage.getItem('mocco_deleted_chat_ids') || '[]'))
+  } catch (e) {
+    return new Set()
+  }
+}
+
 export default function CustomerWebStorefrontPage() {
   const router = useRouter()
   const { toast } = useToast()
@@ -1759,18 +1779,21 @@ export default function CustomerWebStorefrontPage() {
         console.warn('Failed to load cart', e)
       }
 
-      // 💬 1) 커스텀 수다방 목록 복원
+      // 💬 1) 커스텀 수다방 목록 복원 (삭제된 수다방 완전 제외)
       try {
+        const deletedSuda = getDeletedSudaIds()
         const storedSuda = localStorage.getItem('mocco_custom_suda_rooms')
-        if (storedSuda) {
+        if (storedSuda !== null) {
           const parsedSuda = JSON.parse(storedSuda)
-          if (Array.isArray(parsedSuda) && parsedSuda.length > 0) {
-            setSudaPosts((prev) => {
-              const ids = new Set(parsedSuda.map((item: any) => item.id))
-              const remaining = prev.filter((item) => !ids.has(item.id))
-              return [...parsedSuda, ...remaining]
-            })
+          if (Array.isArray(parsedSuda)) {
+            const filteredCustom = parsedSuda.filter((item: any) => !deletedSuda.has(item.id))
+            const initialFiltered = INITIAL_SUDA_POSTS.filter((item) => !deletedSuda.has(item.id))
+            const customIds = new Set(filteredCustom.map((item: any) => item.id))
+            const remaining = initialFiltered.filter((item) => !customIds.has(item.id))
+            setSudaPosts([...filteredCustom, ...remaining])
           }
+        } else {
+          setSudaPosts((prev) => prev.filter((item) => !deletedSuda.has(item.id)))
         }
       } catch (e) {
         console.warn('Failed to load custom suda rooms', e)
@@ -1798,18 +1821,27 @@ export default function CustomerWebStorefrontPage() {
         console.warn('Failed to load custom live rooms', e)
       }
 
-      // 💌 3) 1:1 대화방 목록 및 대화 기록 복원
+      // 💌 3) 1:1 대화방 목록 및 대화 기록 복원 (퇴장/삭제된 방 완전 제외)
       try {
+        const deletedChats = getDeletedChatIds()
         const storedChats = localStorage.getItem('mocco_custom_chat_rooms')
-        if (storedChats) {
+        if (storedChats !== null) {
           const parsedChats = JSON.parse(storedChats)
-          if (Array.isArray(parsedChats) && parsedChats.length > 0) {
-            setChatRooms((prev) => {
-              const ids = new Set(parsedChats.map((item: any) => item.id))
-              const remaining = prev.filter((item) => !ids.has(item.id))
-              return [...parsedChats, ...remaining]
+          if (Array.isArray(parsedChats)) {
+            const filtered = parsedChats.filter((c: any) => !deletedChats.has(c.id))
+            setChatRooms(filtered)
+            setActiveChatRoom((prev) => {
+              if (prev && filtered.some((r: any) => r.id === prev.id)) return prev
+              return filtered[0] || null
             })
           }
+        } else {
+          const filteredInitial = INITIAL_CHAT_ROOMS.filter((c) => !deletedChats.has(c.id))
+          setChatRooms(filteredInitial)
+          setActiveChatRoom((prev) => {
+            if (prev && filteredInitial.some((r: any) => r.id === prev.id)) return prev
+            return filteredInitial[0] || null
+          })
         }
       } catch (e) {
         console.warn('Failed to load custom chat rooms', e)
@@ -2190,6 +2222,8 @@ export default function CustomerWebStorefrontPage() {
       playMoccoSoundWeb()
       const previewText = data.content || data.text || '새로운 메시지가 도착했습니다.'
       const targetRoomId = data.chatId || data.roomId
+      const deletedChats = getDeletedChatIds()
+      if (targetRoomId && deletedChats.has(targetRoomId)) return
 
       toast({
         title: `🐱 모꼬! ${senderName}님의 새 메시지`,
@@ -3010,42 +3044,58 @@ export default function CustomerWebStorefrontPage() {
 
     getSudaPosts()
       .then((items) => {
-        if (Array.isArray(items) && items.length > 0) {
-          const formatted: SudaPostItem[] = items.map((s, idx) => ({
-            id: s.id || `suda-${idx + 1}`,
-            nickname: s.author?.nickname || s.nickname || '모꼬 이웃',
-            avatar: s.author?.avatar || s.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
-            region: s.region || '서울 강남구',
-            distance: s.distance || '500m',
-            title: s.title,
-            content: s.content || s.text || '',
-            entryFee: Number(s.entryFee || 0),
-            category: s.category || '일상',
-            time: s.createdAt ? new Date(s.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '방금 전',
-            likes: Number(s.likes || s.likesCount || 0),
-            comments: Number(s.comments || s.commentsCount || 0),
-            isLiked: Boolean(s.isLiked),
-          }))
-          setSudaPosts(formatted)
+        if (Array.isArray(items)) {
+          const deletedSuda = getDeletedSudaIds()
+          const serverPosts: SudaPostItem[] = items
+            .map((s, idx) => ({
+              id: s.id || `suda-${idx + 1}`,
+              nickname: s.author?.nickname || s.nickname || '모꼬 이웃',
+              avatar: s.author?.avatar || s.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+              region: s.region || '서울 강남구',
+              distance: s.distance || '500m',
+              title: s.title,
+              content: s.content || s.text || '',
+              entryFee: Number(s.entryFee || 0),
+              category: s.category || '일상',
+              time: s.createdAt ? new Date(s.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '방금 전',
+              likes: Number(s.likes || s.likesCount || 0),
+              comments: Number(s.comments || s.commentsCount || 0),
+              isLiked: Boolean(s.isLiked),
+            }))
+            .filter((p) => !deletedSuda.has(p.id))
+
+          setSudaPosts((prev) => {
+            const combined = [...serverPosts, ...prev].filter((p) => !deletedSuda.has(p.id))
+            const unique = Array.from(new Map(combined.map((m) => [m.id, m])).values())
+            return unique
+          })
         }
       })
       .catch(() => {})
 
     getChatRooms()
       .then((items) => {
-        if (Array.isArray(items) && items.length > 0) {
-          const formatted: ChatRoomItem[] = items.map((c, idx) => ({
-            id: c.id || `chat-${idx + 1}`,
-            type: c.type === 'MARKET' ? 'MARKET' : 'SUDA',
-            targetNickname: c.targetNickname || c.otherUser?.nickname || '대화 상대',
-            targetAvatar: c.targetAvatar || c.otherUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
-            lastMessage: c.lastMessage || c.lastMessageContent || '대화가 시작되었습니다.',
-            lastTime: c.lastTime || '방금 전',
-            unreadCount: Number(c.unreadCount || 0),
-            productInfo: c.productInfo,
-            messages: Array.isArray(c.messages) ? c.messages : [],
-          }))
-          setChatRooms(formatted)
+        if (Array.isArray(items)) {
+          const deletedChats = getDeletedChatIds()
+          const serverRooms: ChatRoomItem[] = items
+            .map((c, idx) => ({
+              id: c.id || `chat-${idx + 1}`,
+              type: (c.type === 'MARKET' ? 'MARKET' : 'SUDA') as 'MARKET' | 'SUDA',
+              targetNickname: c.targetNickname || c.otherUser?.nickname || '대화 상대',
+              targetAvatar: c.targetAvatar || c.otherUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+              lastMessage: c.lastMessage || c.lastMessageContent || '대화가 시작되었습니다.',
+              lastTime: c.lastTime || '방금 전',
+              unreadCount: Number(c.unreadCount || 0),
+              productInfo: c.productInfo,
+              messages: Array.isArray(c.messages) ? c.messages : [],
+            }))
+            .filter((c) => !deletedChats.has(c.id))
+
+          setChatRooms((prev) => {
+            const combined = [...serverRooms, ...prev].filter((r) => !deletedChats.has(r.id))
+            const unique = Array.from(new Map(combined.map((m) => [m.id, m])).values())
+            return unique
+          })
         }
       })
       .catch(() => {})
@@ -3568,18 +3618,72 @@ export default function CustomerWebStorefrontPage() {
     handleSendLiveGiftItem(defaultGift)
   }
 
-    // 내가 개설한 1:1 수다 대기방 삭제
-  const handleDeleteSudaRoom = (roomId: string) => {
+  // 내가 개설한 1:1 수다 대기방 삭제
+  const handleDeleteSudaRoom = async (roomId: string) => {
     if (confirm('내가 개설한 1:1 수다 대기방을 삭제하시겠습니까?')) {
+      // 1) 영구 삭제 ID 등록 (재부활 방지)
+      try {
+        const deletedSet = getDeletedSudaIds()
+        deletedSet.add(roomId)
+        localStorage.setItem('mocco_deleted_suda_ids', JSON.stringify(Array.from(deletedSet)))
+      } catch (e) {}
+
+      // 2) 로컬 상태 및 localStorage 즉시 반영
       const updatedSudaList = sudaPosts.filter((p) => p.id !== roomId)
       setSudaPosts(updatedSudaList)
       try {
         localStorage.setItem('mocco_custom_suda_rooms', JSON.stringify(updatedSudaList))
         window.dispatchEvent(new Event('mocco_suda_updated'))
       } catch (e) {}
+
+      // 3) 백엔드 REST API 삭제 호출
+      try {
+        await deleteSudaPost(roomId)
+      } catch (e) {
+        console.warn('deleteSudaPost API call failed:', e)
+      }
+
       toast({
         title: '🗑️ 수다방 삭제 완료',
-        description: '내가 개설한 수다방이 삭제되었습니다.',
+        description: '내가 개설한 수다방이 완전히 삭제되었습니다.',
+      })
+    }
+  }
+
+  // 1:1 대화방 나가기 (대화방 완전 삭제 & 퇴장)
+  const handleLeaveChatRoom = async (roomToLeave: ChatRoomItem) => {
+    setIsChatMenuOpen(false)
+    if (confirm('1:1 대화방을 나가시겠습니까?\n\n※ 나가면 대화방 목록에서 삭제되며 이전 대화 내용이 종료됩니다.')) {
+      const roomId = roomToLeave.id
+
+      // 1) 영구 퇴장/삭제 ID 등록 (재부활 방지)
+      try {
+        const deletedSet = getDeletedChatIds()
+        deletedSet.add(roomId)
+        localStorage.setItem('mocco_deleted_chat_ids', JSON.stringify(Array.from(deletedSet)))
+      } catch (e) {}
+
+      // 2) 로컬 상태 및 localStorage 즉시 반영
+      const remaining = chatRooms.filter((r) => r.id !== roomId)
+      setChatRooms(remaining)
+      try {
+        localStorage.setItem('mocco_custom_chat_rooms', JSON.stringify(remaining))
+      } catch (e) {}
+
+      if (activeChatRoom?.id === roomId) {
+        setActiveChatRoom(remaining[0] || null)
+      }
+
+      // 3) 백엔드 REST API 삭제 호출
+      try {
+        await deleteChatRoom(roomId)
+      } catch (e) {
+        console.warn('deleteChatRoom API call failed:', e)
+      }
+
+      toast({
+        title: '🚪 대화방 나가기 완료',
+        description: '대화방에서 정상적으로 퇴장했으며 목록에서 삭제되었습니다.',
       })
     }
   }
@@ -6832,7 +6936,19 @@ export default function CustomerWebStorefrontPage() {
                                     <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
                                       {room.targetNickname}
                                     </span>
-                                    <span className="text-[10px] text-muted-foreground">{room.lastTime}</span>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      <span className="text-[10px] text-muted-foreground">{room.lastTime}</span>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleLeaveChatRoom(room)
+                                        }}
+                                        className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                                        title="대화방 나가기"
+                                      >
+                                        <LogOut className="h-3 w-3" />
+                                      </button>
+                                    </div>
                                   </div>
                                   <p className="text-xs text-slate-600 truncate">{room.lastMessage}</p>
                                   {room.productInfo && (
@@ -6989,21 +7105,7 @@ export default function CustomerWebStorefrontPage() {
                                     </button>
                                     <div className="border-t border-slate-100 my-1" />
                                     <button
-                                      onClick={() => {
-                                        setIsChatMenuOpen(false)
-                                        if (confirm('1:1 대화방을 나가시겠습니까?\n\n※ 나가면 대화방 목록에서 삭제되며 이전 대화 내용이 종료됩니다.')) {
-                                          const remaining = chatRooms.filter((r) => r.id !== activeChatRoom.id)
-                                          setChatRooms(remaining)
-                                          try {
-                                            localStorage.setItem('mocco_custom_chat_rooms', JSON.stringify(remaining))
-                                          } catch (e) {}
-                                          setActiveChatRoom(remaining[0] || null)
-                                          toast({
-                                            title: '🚪 대화방 나가기 완료',
-                                            description: '대화방에서 정상적으로 퇴장했습니다.',
-                                          })
-                                        }
-                                      }}
+                                      onClick={() => handleLeaveChatRoom(activeChatRoom)}
                                       className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition text-left"
                                     >
                                       <LogOut className="h-3.5 w-3.5 text-rose-600" />
