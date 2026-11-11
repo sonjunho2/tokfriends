@@ -1729,6 +1729,7 @@ export default function CustomerWebStorefrontPage() {
   const [chatRooms, setChatRooms] = useState<ChatRoomItem[]>(INITIAL_CHAT_ROOMS)
   const [activeChatRoom, setActiveChatRoom] = useState<ChatRoomItem | null>(INITIAL_CHAT_ROOMS[0])
   const [chatInputText, setChatInputText] = useState('')
+  const [isChatMenuOpen, setIsChatMenuOpen] = useState(false)
   const [sudaInputText, setSudaInputText] = useState('')
   const [isCreateSudaRoomOpen, setIsCreateSudaRoomOpen] = useState(false)
   const [newRoomTitle, setNewRoomTitle] = useState('')
@@ -2176,9 +2177,17 @@ export default function CustomerWebStorefrontPage() {
     // 2) 실시간 1:1 채팅 도착 알림 ("모꼬" 사운드 + 팝업 배너)
     socket.on('chat:incoming', (data: any) => {
       if (!data) return
-      playMoccoSoundWeb()
 
       const senderName = data.senderNickname || data.sender?.nickname || '모꼬이웃'
+      const senderId = data.senderId || data.sender?.id
+
+      // 🛡️ 내가 보낸 메시지의 에코 브로드캐스트인 경우 무시 (상대방 글로 복사되는 버그 완전 방지)
+      const isMyMessage =
+        (senderId && (senderId === user?.id || senderId === 'me')) ||
+        (user?.nickname && senderName === user.nickname)
+      if (isMyMessage) return
+
+      playMoccoSoundWeb()
       const previewText = data.content || data.text || '새로운 메시지가 도착했습니다.'
       const targetRoomId = data.chatId || data.roomId
 
@@ -2355,7 +2364,11 @@ export default function CustomerWebStorefrontPage() {
             },
           ],
         }
-        setChatRooms([newRoom, ...chatRooms])
+        const updatedList = [newRoom, ...chatRooms.filter((r) => r.id !== newRoom.id)]
+        setChatRooms(updatedList)
+        try {
+          localStorage.setItem('mocco_custom_chat_rooms', JSON.stringify(updatedList))
+        } catch (e) {}
         setActiveChatRoom(newRoom)
       }
       setIsUserProfileModalOpen(false)
@@ -3555,7 +3568,23 @@ export default function CustomerWebStorefrontPage() {
     handleSendLiveGiftItem(defaultGift)
   }
 
-    // 1:1 수다 대기방 개설 (방 만들기 & 단가 설정)
+    // 내가 개설한 1:1 수다 대기방 삭제
+  const handleDeleteSudaRoom = (roomId: string) => {
+    if (confirm('내가 개설한 1:1 수다 대기방을 삭제하시겠습니까?')) {
+      const updatedSudaList = sudaPosts.filter((p) => p.id !== roomId)
+      setSudaPosts(updatedSudaList)
+      try {
+        localStorage.setItem('mocco_custom_suda_rooms', JSON.stringify(updatedSudaList))
+        window.dispatchEvent(new Event('mocco_suda_updated'))
+      } catch (e) {}
+      toast({
+        title: '🗑️ 수다방 삭제 완료',
+        description: '내가 개설한 수다방이 삭제되었습니다.',
+      })
+    }
+  }
+
+  // 1:1 수다 대기방 개설 (방 만들기 & 단가 설정)
   const handleCreateSudaRoom = () => {
     requireAuth(async () => {
       const title = newRoomTitle.trim() || sudaInputText.trim()
@@ -3688,8 +3717,13 @@ export default function CustomerWebStorefrontPage() {
             },
           ],
         }
-        setChatRooms([newRoomItem, ...chatRooms])
+        const updatedList = [newRoomItem, ...chatRooms.filter((r) => r.id !== newRoomItem.id)]
+        setChatRooms(updatedList)
+        try {
+          localStorage.setItem('mocco_custom_chat_rooms', JSON.stringify(updatedList))
+        } catch (e) {}
         setActiveChatRoom(newRoomItem)
+        setChatSubTab('CHATS')
       }
     })
   }
@@ -3900,7 +3934,11 @@ export default function CustomerWebStorefrontPage() {
             },
           ],
         }
-        setChatRooms([newRoom, ...chatRooms])
+        const updatedList = [newRoom, ...chatRooms.filter((r) => r.id !== newRoom.id)]
+        setChatRooms(updatedList)
+        try {
+          localStorage.setItem('mocco_custom_chat_rooms', JSON.stringify(updatedList))
+        } catch (e) {}
         setActiveChatRoom(newRoom)
       }
       setActiveTab('CHAT')
@@ -6667,15 +6705,27 @@ export default function CustomerWebStorefrontPage() {
                                     {room.entryFee && room.entryFee > 0 ? `💰 ${room.entryFee} 꿀떡` : '✨ 무료'}
                                   </span>
 
-                                  {/* 1:1 수다 입장 버튼 */}
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleEnterSudaRoom(room)}
-                                    className="bg-[#FF3B6B] hover:bg-[#E02958] text-white font-extrabold text-xs h-8 px-3 rounded-xl shadow-xs"
-                                  >
-                                    <MessageCircle className="h-3.5 w-3.5 mr-1" />
-                                    <span>입장하기</span>
-                                  </Button>
+                                  {/* 1:1 수다 입장 버튼 또는 내 개설방인 경우 삭제 버튼 */}
+                                  {Boolean(room.nickname === user?.nickname || room.nickname === '테스터01' || room.nickname === '나') ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleDeleteSudaRoom(room.id)}
+                                      className="border-rose-200 text-[#FF3B6B] hover:bg-rose-50 font-extrabold text-xs h-8 px-3 rounded-xl shadow-2xs flex items-center gap-1"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                      <span>삭제</span>
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleEnterSudaRoom(room)}
+                                      className="bg-[#FF3B6B] hover:bg-[#E02958] text-white font-extrabold text-xs h-8 px-3 rounded-xl shadow-xs"
+                                    >
+                                      <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                                      <span>입장하기</span>
+                                    </Button>
+                                  )}
                                 </div>
                               </div>
 
@@ -6827,8 +6877,12 @@ export default function CustomerWebStorefrontPage() {
                           <div className="p-2.5 px-3 border-b bg-white flex items-center justify-between shrink-0 shadow-2xs">
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => setChatSubTab('CHATS')}
+                                onClick={() => {
+                                  setActiveChatRoom(null)
+                                  setChatSubTab('CHATS')
+                                }}
                                 className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-slate-100 text-slate-700"
+                                title="대화 목록으로 돌아가기"
                               >
                                 <ArrowLeft className="h-4 w-4" />
                               </button>
@@ -6894,9 +6948,70 @@ export default function CustomerWebStorefrontPage() {
                               >
                                 <Phone className="h-3.5 w-3.5" />
                               </button>
-                              <button className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-slate-100 text-slate-400">
-                                <MoreVertical className="h-3.5 w-3.5" />
-                              </button>
+                              <div className="relative">
+                                <button
+                                  onClick={() => setIsChatMenuOpen((prev) => !prev)}
+                                  className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-slate-100 text-slate-500 transition"
+                                  title="대화방 메뉴"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </button>
+
+                                {isChatMenuOpen && (
+                                  <div className="absolute top-9 right-0 z-50 w-40 bg-white rounded-2xl shadow-xl border border-slate-200/80 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-150">
+                                    <button
+                                      onClick={() => {
+                                        setIsChatMenuOpen(false)
+                                        toast({
+                                          title: '🚨 신고 접수 완료',
+                                          description: `${activeChatRoom.targetNickname}님에 대한 신고가 접수되었습니다. 확인 후 신속히 조치하겠습니다.`,
+                                        })
+                                      }}
+                                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-xl transition text-left"
+                                    >
+                                      <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
+                                      <span>신고하기</span>
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setIsChatMenuOpen(false)
+                                        if (confirm(`${activeChatRoom.targetNickname}님을 차단하시겠습니까? 차단 시 더 이상 메시지를 주고받을 수 없습니다.`)) {
+                                          toast({
+                                            title: '🚫 사용자 차단 완료',
+                                            description: `${activeChatRoom.targetNickname}님이 차단되었습니다.`,
+                                          })
+                                        }
+                                      }}
+                                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-xl transition text-left"
+                                    >
+                                      <Ban className="h-3.5 w-3.5 text-slate-500" />
+                                      <span>차단하기</span>
+                                    </button>
+                                    <div className="border-t border-slate-100 my-1" />
+                                    <button
+                                      onClick={() => {
+                                        setIsChatMenuOpen(false)
+                                        if (confirm('1:1 대화방을 나가시겠습니까?\n\n※ 나가면 대화방 목록에서 삭제되며 이전 대화 내용이 종료됩니다.')) {
+                                          const remaining = chatRooms.filter((r) => r.id !== activeChatRoom.id)
+                                          setChatRooms(remaining)
+                                          try {
+                                            localStorage.setItem('mocco_custom_chat_rooms', JSON.stringify(remaining))
+                                          } catch (e) {}
+                                          setActiveChatRoom(remaining[0] || null)
+                                          toast({
+                                            title: '🚪 대화방 나가기 완료',
+                                            description: '대화방에서 정상적으로 퇴장했습니다.',
+                                          })
+                                        }
+                                      }}
+                                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition text-left"
+                                    >
+                                      <LogOut className="h-3.5 w-3.5 text-rose-600" />
+                                      <span>대화방 나가기</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
 

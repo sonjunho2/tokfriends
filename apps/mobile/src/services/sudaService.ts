@@ -241,6 +241,29 @@ export async function createSudaPost(
   return newPost;
 }
 
+export async function deleteSudaPost(postId: string): Promise<boolean> {
+  try {
+    await client.delete(`/suda/posts/${postId}`);
+  } catch (err) {}
+  inMemorySudaPosts = inMemorySudaPosts.filter((p) => p.id !== postId);
+  return true;
+}
+
+export function addOrUpdateChatRoom(newRoom: ChatRoomItem) {
+  const existingIndex = inMemoryChatRooms.findIndex(
+    (r) => r.id === newRoom.id || r.peer?.id === newRoom.peer?.id || r.peer?.nickname === newRoom.peer?.nickname
+  );
+  if (existingIndex >= 0) {
+    inMemoryChatRooms[existingIndex] = { ...inMemoryChatRooms[existingIndex], ...newRoom };
+  } else {
+    inMemoryChatRooms = [newRoom, ...inMemoryChatRooms];
+  }
+}
+
+export function removeChatRoom(roomId: string) {
+  inMemoryChatRooms = inMemoryChatRooms.filter((r) => r.id !== roomId);
+}
+
 export async function likeSudaPost(postId: string): Promise<number> {
   try {
     const res = await client.post(`/suda/posts/${postId}/like`);

@@ -13,6 +13,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '../../theme/tokens';
 import { apiClient } from '../../api/client';
@@ -21,6 +22,8 @@ import SudaCreateModal from '../../components/suda/SudaCreateModal';
 import {
   fetchSudaPosts,
   fetchChatRooms,
+  deleteSudaPost,
+  addOrUpdateChatRoom,
 } from '../../services/sudaService';
 import { useAuth } from '../../context/AuthContext';
 import { createChatSocket } from '../../realtime/chatSocket';
@@ -279,6 +282,12 @@ export default function ChatsScreen({ navigation }) {
     loadData();
   }, [loadData]);
 
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
+
   // 실시간 1줄 수다 및 대화함 목록 소켓 리스너
   useEffect(() => {
     const normToken = typeof token === 'string' && token.trim() ? token.trim() : '';
@@ -339,6 +348,20 @@ export default function ChatsScreen({ navigation }) {
         resolvedChatId = room.id;
       }
     } catch {}
+
+    addOrUpdateChatRoom({
+      id: resolvedChatId,
+      type: 'SUDA',
+      peer: {
+        id: targetUser.id,
+        nickname: targetUser.nickname || targetUser.name || '대화 상대',
+        avatarUrl: targetUser.avatarUrl || targetUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+        isOnline: true,
+      },
+      lastMessage: '대화가 시작되었습니다.',
+      lastMessageTime: '방금',
+      unreadCount: 0,
+    });
 
     navigation.navigate('ChatRoom', {
       id: resolvedChatId,
@@ -528,21 +551,48 @@ export default function ChatsScreen({ navigation }) {
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.applyChatBtn}
-            activeOpacity={0.8}
-            onPress={() =>
-              handleStartDirectChat({
-                id: item.author.id,
-                nickname: item.author.nickname,
-                avatarUrl: item.author.avatarUrl,
-                region: item.neighborhood,
-              })
-            }
-          >
-            <Ionicons name="chatbubble-ellipses" size={12} color="#E11D48" />
-            <Text style={styles.applyChatBtnText}>입장하기</Text>
-          </TouchableOpacity>
+          {Boolean((user?.id && item.author?.id === user.id) || item.author?.id === 'my-user-id' || (user?.nickname && item.author?.nickname === user.nickname) || item.author?.nickname === '나') ? (
+            <TouchableOpacity
+              style={[styles.applyChatBtn, { borderColor: '#FECDD3', backgroundColor: '#FFF1F2' }]}
+              activeOpacity={0.8}
+              onPress={() => {
+                Alert.alert('수다방 삭제', '내가 개설한 수다방을 삭제하시겠습니까?', [
+                  { text: '취소', style: 'cancel' },
+                  {
+                    text: '삭제',
+                    style: 'destructive',
+                    onPress: async () => {
+                      try {
+                        await deleteSudaPost(item.id);
+                        loadData();
+                      } catch (e) {
+                        Alert.alert('오류', '수다방 삭제에 실패했습니다.');
+                      }
+                    },
+                  },
+                ]);
+              }}
+            >
+              <Ionicons name="trash-outline" size={12} color="#E11D48" />
+              <Text style={[styles.applyChatBtnText, { color: '#E11D48' }]}>삭제</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.applyChatBtn}
+              activeOpacity={0.8}
+              onPress={() =>
+                handleStartDirectChat({
+                  id: item.author.id,
+                  nickname: item.author.nickname,
+                  avatarUrl: item.author.avatarUrl,
+                  region: item.neighborhood,
+                })
+              }
+            >
+              <Ionicons name="chatbubble-ellipses" size={12} color="#E11D48" />
+              <Text style={styles.applyChatBtnText}>입장하기</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -1404,7 +1454,7 @@ export default function ChatsScreen({ navigation }) {
       {/* 6. [전체수다] 탭일 때 우측 하단 가변 FAB: + 글쓰기 */}
       {activeMainTab === 'SUDA' && (
         <ScrollExpandableFAB
-          label="글쓰기"
+          label="방 만들기"
           iconName="pencil"
           isExpanded={isFabExpanded}
           onPress={() => setShowCreateModal(true)}

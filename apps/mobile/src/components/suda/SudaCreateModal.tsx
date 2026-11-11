@@ -29,7 +29,6 @@ export default function SudaCreateModal({
 }: SudaCreateModalProps) {
   const { user } = useAuth();
   const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
   const [entryFee, setEntryFee] = useState<number>(300);
   const [submitting, setSubmitting] = useState(false);
 
@@ -48,24 +47,18 @@ export default function SudaCreateModal({
   ];
 
   const handleSubmit = async () => {
-    if (!title.trim() && !content.trim()) {
-      Alert.alert('알림', '수다방 제목 또는 내용을 입력해주세요.');
+    if (!title.trim()) {
+      Alert.alert('알림', '방 제목을 입력해주세요.');
       return;
     }
     setSubmitting(true);
     try {
-      const roomPayload = {
-        title: title.trim() || content.trim(),
-        content: content.trim() || '나랑 1:1로 즐겁게 수다떨 이웃 편하게 입장해주세요!',
-        entryFee,
-      };
-      await createSudaPost(roomPayload.content, roomPayload.title, roomPayload.entryFee);
+      await createSudaPost(title.trim(), title.trim(), entryFee);
       setTitle('');
-      setContent('');
       onCreated();
       onClose();
     } catch (err) {
-      Alert.alert('오류', '수다방 개설에 실패했습니다.');
+      Alert.alert('오류', '방 만들기에 실패했습니다.');
     } finally {
       setSubmitting(false);
     }
@@ -91,7 +84,7 @@ export default function SudaCreateModal({
           <View style={styles.headerRow}>
             <View style={styles.badgeRow}>
               <Ionicons name="chatbubbles" size={18} color="#FF3B6B" />
-              <Text style={styles.sheetTitle}>1:1 실시간 수다방 만들기</Text>
+              <Text style={styles.sheetTitle}>방 만들기</Text>
               <View style={styles.townBadge}>
                 <Text style={styles.townBadgeText}>역삼1동</Text>
               </View>
@@ -101,10 +94,10 @@ export default function SudaCreateModal({
             </TouchableOpacity>
           </View>
 
-          {/* 방 제목 인풋 */}
+          {/* 방 제목 단일 인풋 (웹과 동일한 1줄 제목 입력) */}
           <TextInput
-            style={[styles.textInput, { minHeight: 46, maxHeight: 52, marginBottom: 10, fontWeight: '700' }]}
-            placeholder="방 제목 (예: 오늘 퇴근 후 강남역 맥주 한잔 🍺)"
+            style={[styles.textInput, { minHeight: 48, maxHeight: 56, marginBottom: 14, fontWeight: '700' }]}
+            placeholder="방 제목을 입력해주세요 (예: 오늘 퇴근 후 강남역 맥주 한잔 🍺)"
             placeholderTextColor="#94A3B8"
             maxLength={60}
             value={title}
@@ -112,22 +105,11 @@ export default function SudaCreateModal({
             autoFocus
           />
 
-          {/* 소개 내용 인풋 */}
-          <TextInput
-            style={[styles.textInput, { minHeight: 64, maxHeight: 90, marginBottom: 12 }]}
-            placeholder="상세 내용 (예: 역삼/강남 근처 이웃 환영! 가볍게 치맥해요~)"
-            placeholderTextColor="#94A3B8"
-            multiline
-            maxLength={150}
-            value={content}
-            onChangeText={setContent}
-          />
-
           {/* 입장 비용 직접 입력 & 퀵 선택 */}
           <View style={{ marginBottom: 14 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569' }}>
-                💰 1:1 수다방 입장 비용
+                💰 1:1 대화방 입장 비용
               </Text>
               <Text style={{ fontSize: 10, color: '#94A3B8' }}>
                 0원 입력 시 무료 입장
@@ -201,20 +183,20 @@ export default function SudaCreateModal({
           </View>
 
           <View style={styles.footerRow}>
-            <Text style={styles.charCount}>{content.length} / 150자</Text>
+            <Text style={styles.charCount}>{title.length} / 60자</Text>
             <TouchableOpacity
               style={[
                 styles.submitBtn,
-                !title.trim() && !content.trim() && styles.submitBtnDisabled,
+                !title.trim() && styles.submitBtnDisabled,
               ]}
               onPress={handleSubmit}
-              disabled={(!title.trim() && !content.trim()) || submitting}
+              disabled={!title.trim() || submitting}
               activeOpacity={0.85}
             >
               {submitting ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text style={styles.submitBtnText}>등록하기</Text>
+                <Text style={styles.submitBtnText}>방 만들기</Text>
               )}
             </TouchableOpacity>
           </View>

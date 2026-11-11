@@ -330,16 +330,16 @@ export default function ChatRoomScreen({ route, navigation }) {
     };
   }, []);
 
-  // 1:1 대화방 나가기 및 삭제 (어느 한쪽이라도 삭제하면 양쪽 모두에서 대화창 완전 삭제)
+  // 1:1 대화방 나가기 (어느 한쪽이라도 삭제하면 양쪽 모두에서 대화창 완전 삭제)
   const handleLeaveAndDeleteRoom = useCallback(() => {
     setOptionsVisible(false);
     Alert.alert(
-      '대화방 나가기 및 삭제',
-      '1:1 대화방을 나가시겠습니까?\n\n※ 1:1 대화방 특성상 어느 한쪽이라도 나가면 상대방과의 대화방도 함께 완전히 종료 및 삭제되며 복구할 수 없습니다.',
+      '대화방 나가기',
+      '1:1 대화방을 나가시겠습니까?\n\n※ 나가면 대화방 목록에서 삭제되며 이전 대화 내용이 종료됩니다.',
       [
         { text: '취소', style: 'cancel' },
         {
-          text: '나가기 및 삭제',
+          text: '나가기',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -1934,7 +1934,7 @@ export default function ChatRoomScreen({ route, navigation }) {
                 >
                   <Ionicons name="trash-outline" size={18} color="#FF3B30" />
                   <Text style={[styles.optionText, { color: '#FF3B30', fontWeight: '700' }]}>
-                    대화방 나가기 및 삭제
+                    대화방 나가기
                   </Text>
                 </TouchableOpacity>
               </View>
