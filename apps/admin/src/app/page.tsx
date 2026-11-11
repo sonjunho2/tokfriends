@@ -83,6 +83,7 @@ import {
   AlertTriangle,
   AlertCircle,
   Menu,
+  ImageIcon,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -249,6 +250,10 @@ export interface ChatMessageItem {
   text: string
   time: string
   isMe?: boolean
+  type?: 'text' | 'media' | 'gift'
+  media?: {
+    uri: string
+  }
   gift?: {
     id: string
     name: string
@@ -1752,6 +1757,11 @@ export default function CustomerWebStorefrontPage() {
   const [activeChatRoom, setActiveChatRoom] = useState<ChatRoomItem | null>(INITIAL_CHAT_ROOMS[0])
   const [chatInputText, setChatInputText] = useState('')
   const [isChatMenuOpen, setIsChatMenuOpen] = useState(false)
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+  const [reportReasonText, setReportReasonText] = useState('')
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false)
+  const [isAttachSheetOpen, setIsAttachSheetOpen] = useState(false)
+  const chatFileInputRef = useRef<HTMLInputElement>(null)
   const [sudaInputText, setSudaInputText] = useState('')
   const [isCreateSudaRoomOpen, setIsCreateSudaRoomOpen] = useState(false)
   const [newRoomTitle, setNewRoomTitle] = useState('')
@@ -2324,6 +2334,7 @@ export default function CustomerWebStorefrontPage() {
       playMoccoSoundWeb()
 
       const isGift = data.type === 'gift' || data.backendType === 'gift' || Boolean(data.gift)
+      const isMedia = data.type === 'media' || Boolean(data.media) || (typeof data.content === 'string' && data.content.startsWith('data:image/'))
       const giftData = isGift ? (data.gift || {
         id: data.giftId || 'gift',
         name: data.giftName || '선물',
@@ -2331,14 +2342,17 @@ export default function CustomerWebStorefrontPage() {
         description: data.content || '선물을 받았습니다 ✨',
         icon: data.icon || data.giftIcon || '🎁',
       }) : undefined
+      const mediaData = isMedia ? (data.media || { uri: data.content }) : undefined
 
       const newMsg: ChatMessageItem = {
         id: data.id || 'msg-' + Date.now(),
         senderId: senderId || 'target',
         senderNickname: senderName,
-        text: data.content || data.text || '',
+        text: isMedia ? '[사진]' : (data.content || data.text || ''),
         time: '방금',
         isMe: false,
+        type: isMedia ? 'media' : (isGift ? 'gift' : 'text'),
+        media: mediaData,
         gift: giftData,
       }
 
@@ -2349,7 +2363,7 @@ export default function CustomerWebStorefrontPage() {
           if (prev.messages.some((m) => m.id === newMsg.id)) return prev
           return {
             ...prev,
-            lastMessage: isGift ? `🎁 ${newMsg.gift?.name || '선물'}을 받았습니다!` : newMsg.text,
+            lastMessage: isGift ? `🎁 ${newMsg.gift?.name || '선물'}을 받았습니다!` : (isMedia ? '📷 사진' : newMsg.text),
             lastTime: '방금',
             messages: [...prev.messages, newMsg],
           }
@@ -7159,10 +7173,8 @@ export default function CustomerWebStorefrontPage() {
                                     <button
                                       onClick={() => {
                                         setIsChatMenuOpen(false)
-                                        toast({
-                                          title: '🚨 신고 접수 완료',
-                                          description: `${activeChatRoom.targetNickname}님에 대한 신고가 접수되었습니다. 확인 후 신속히 조치하겠습니다.`,
-                                        })
+                                        setReportReasonText('')
+                                        setIsReportModalOpen(true)
                                       }}
                                       className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-xl transition text-left"
                                     >
@@ -7172,11 +7184,22 @@ export default function CustomerWebStorefrontPage() {
                                     <button
                                       onClick={() => {
                                         setIsChatMenuOpen(false)
-                                        if (confirm(`${activeChatRoom.targetNickname}님을 차단하시겠습니까?`)) {
+                                        if (confirm(`${activeChatRoom.targetNickname}님을 차단하시겠습니까? 차단 시 더 이상 대화 및 게시글이 표시되지 않습니다.`)) {
+                                          const targetNick = activeChatRoom.targetNickname
+                                          setBlockedUsers((prev) => Array.from(new Set([...prev, targetNick])))
+                                          try {
+                                            localStorage.setItem('mocco_blocked_users', JSON.stringify(Array.from(new Set([...blockedUsers, targetNick]))))
+                                          } catch (e) {}
+                                          api.post('/community/block', {
+                                            blockedUserId: activeChatRoom.targetUserId || targetNick,
+                                            targetAccountId: targetNick,
+                                            nickname: targetNick,
+                                          }).catch(() => {})
                                           toast({
                                             title: '🚫 사용자 차단 완료',
-                                            description: `${activeChatRoom.targetNickname}님이 차단되었습니다.`,
+                                            description: `${targetNick}님이 차단되었습니다. 마이모꼬 차단 관리에서 확인 및 해제하실 수 있습니다.`,
                                           })
+                                          handleLeaveChatRoom(activeChatRoom)
                                         }
                                       }}
                                       className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-xl transition text-left"
@@ -7253,13 +7276,22 @@ export default function CustomerWebStorefrontPage() {
                                 className={`flex flex-col ${msg.isMe ? 'items-end' : 'items-start'}`}
                               >
                                 {msg.isMe ? (
-                                  /* [내 메시지: 오른쪽 카카오톡 옐로우 말풍선 & 노란색 1] */
+                                  /* [내 메시지: 오른쪽 카카오톡 옐로우 말풍선 & 노란색 1 / 사진 첨부] */
                                   <div className="flex items-end gap-1.5 max-w-[85%] justify-end">
                                     <div className="flex flex-col items-end text-[9px] text-slate-600 shrink-0 mb-0.5">
                                       <span className="text-amber-500 font-extrabold text-[10px] leading-tight">1</span>
                                       <span>{msg.time}</span>
                                     </div>
-                                    {msg.gift ? (
+                                    {msg.media?.uri ? (
+                                      <div className="rounded-2xl rounded-tr-xs overflow-hidden shadow-xs border border-white/50 bg-slate-900/10 max-w-[210px]">
+                                        <img
+                                          src={msg.media.uri}
+                                          alt="내 전송 사진"
+                                          className="w-full h-auto max-h-48 object-cover cursor-pointer hover:opacity-95 transition"
+                                          onClick={() => window.open(msg.media?.uri, '_blank')}
+                                        />
+                                      </div>
+                                    ) : msg.gift ? (
                                       <div className="bg-gradient-to-br from-pink-500 via-rose-500 to-amber-500 text-white rounded-2xl rounded-tr-xs p-3 shadow-md space-y-1.5 border border-pink-300">
                                         <div className="flex items-center gap-2">
                                           <span className="text-2xl">{msg.gift.icon || '🎁'}</span>
@@ -7284,7 +7316,7 @@ export default function CustomerWebStorefrontPage() {
                                     )}
                                   </div>
                                 ) : (
-                                  /* [상대방 메시지: 왼쪽 핑크 아바타 + 닉네임 + 흰색 말풍선] */
+                                  /* [상대방 메시지: 왼쪽 핑크 아바타 + 닉네임 + 흰색 말풍선 / 사진 첨부] */
                                   <div className="flex items-start gap-2 max-w-[85%]">
                                     <div 
                                       onClick={() => openUserProfileModal({
@@ -7307,7 +7339,16 @@ export default function CustomerWebStorefrontPage() {
                                         {activeChatRoom.targetNickname}
                                       </span>
                                       <div className="flex items-end gap-1.5">
-                                        {msg.gift ? (
+                                        {msg.media?.uri ? (
+                                          <div className="rounded-2xl rounded-tl-xs overflow-hidden shadow-xs border border-white/50 bg-slate-900/10 max-w-[210px]">
+                                            <img
+                                              src={msg.media.uri}
+                                              alt="상대방 전송 사진"
+                                              className="w-full h-auto max-h-48 object-cover cursor-pointer hover:opacity-95 transition"
+                                              onClick={() => window.open(msg.media?.uri, '_blank')}
+                                            />
+                                          </div>
+                                        ) : msg.gift ? (
                                           <div className="bg-white text-slate-900 rounded-2xl rounded-tl-xs p-3 shadow-md space-y-1.5 border border-amber-300">
                                             <div className="flex items-center gap-2">
                                               <span className="text-2xl">{msg.gift.icon || '🎁'}</span>
@@ -7341,17 +7382,66 @@ export default function CustomerWebStorefrontPage() {
                             ))}
                           </div>
 
+                          {/* 숨겨진 이미지 파일 선택 인풋 (PC: 탐색기/내폴더, 모바일웹: 앨범/카메라) */}
+                          <input
+                            ref={chatFileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (!file || !activeChatRoom) return
+                              const reader = new FileReader()
+                              reader.onload = () => {
+                                const dataUrl = reader.result as string
+                                if (!dataUrl) return
+                                const newMsg: ChatMessageItem = {
+                                  id: 'msg-img-' + Date.now(),
+                                  senderId: user?.id || 'me',
+                                  senderNickname: user?.nickname || '나',
+                                  text: '[사진]',
+                                  time: '방금',
+                                  isMe: true,
+                                  type: 'media',
+                                  media: { uri: dataUrl },
+                                }
+                                const updatedRoom: ChatRoomItem = {
+                                  ...activeChatRoom,
+                                  lastMessage: '📷 사진을 보냈습니다',
+                                  lastTime: '방금',
+                                  messages: [...activeChatRoom.messages, newMsg],
+                                }
+                                setActiveChatRoom(updatedRoom)
+                                setChatRooms((prev) => prev.map((r) => (r.id === updatedRoom.id ? updatedRoom : r)))
+
+                                if (socketRef.current) {
+                                  socketRef.current.emit('chat:message', {
+                                    chatId: activeChatRoom.id,
+                                    type: 'media',
+                                    content: dataUrl,
+                                    targetUserId: activeChatRoom.targetUserId || activeChatRoom.targetNickname,
+                                    senderAccountId: user?.id,
+                                    senderName: user?.nickname || '나',
+                                  })
+                                }
+                                sendChatMessage(activeChatRoom.id, dataUrl, {
+                                  type: 'media',
+                                  targetUserId: activeChatRoom.targetUserId || activeChatRoom.targetNickname,
+                                }).catch((err) => console.warn('send photo fallback:', err))
+                                setIsAttachSheetOpen(false)
+                              }
+                              reader.readAsDataURL(file)
+                              e.target.value = ''
+                            }}
+                          />
+
                           {/* (D) 모바일 채팅 입력 툴바 (+ 버튼, 텍스트 입력창, 🎁 선물, 전송) */}
                           <div className="p-2 px-2.5 border-t border-slate-200/60 bg-white flex items-center gap-1.5 shrink-0">
-                            {/* 추가 첨부 버튼 (+) */}
+                            {/* 추가 첨부 버튼 (+) -> 빠른 첨부 바텀시트 열기 */}
                             <button
-                              onClick={() =>
-                                toast({
-                                  title: '📷 미디어 첨부',
-                                  description: '채팅 사진/이미지 첨부 창이 열립니다.',
-                                })
-                              }
-                              className="h-8 w-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 shrink-0"
+                              onClick={() => setIsAttachSheetOpen((prev) => !prev)}
+                              className="h-8 w-8 rounded-full flex items-center justify-center text-slate-600 hover:bg-slate-100 shrink-0 transition"
+                              title="빠른 첨부 (사진, 앨범, 선물)"
                             >
                               <PlusCircle className="h-5 w-5" />
                             </button>
@@ -7389,6 +7479,138 @@ export default function CustomerWebStorefrontPage() {
                               <Send className="h-3.5 w-3.5" />
                             </button>
                           </div>
+
+                          {/* (E-1) 📷 빠른 첨부 바텀시트 (첨부 이미지 도안 일치: 카메라, 앨범, 선물하기) */}
+                          {isAttachSheetOpen && (
+                            <div className="absolute inset-x-0 bottom-0 top-16 bg-black/40 z-40 flex flex-col justify-end animate-in fade-in duration-150">
+                              <div className="bg-white rounded-t-3xl p-4 pb-6 space-y-4 shadow-2xl border-t border-slate-200 animate-in slide-in-from-bottom duration-200">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-extrabold text-xs text-slate-800">빠른 첨부</span>
+                                  <button onClick={() => setIsAttachSheetOpen(false)} className="h-6 w-6 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400">
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                                <div className="grid grid-cols-3 gap-3 pt-1">
+                                  {/* 1. 카메라 */}
+                                  <div
+                                    onClick={() => {
+                                      setIsAttachSheetOpen(false)
+                                      chatFileInputRef.current?.click()
+                                    }}
+                                    className="flex flex-col items-center gap-2 cursor-pointer group"
+                                  >
+                                    <div className="h-16 w-16 rounded-full bg-[#FFE812] flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                                      <Camera className="h-7 w-7 text-rose-500 stroke-[1.8]" />
+                                    </div>
+                                    <span className="text-xs font-bold text-slate-700">카메라</span>
+                                  </div>
+
+                                  {/* 2. 앨범 (내 폴더 / 앨범 탐색기) */}
+                                  <div
+                                    onClick={() => {
+                                      setIsAttachSheetOpen(false)
+                                      chatFileInputRef.current?.click()
+                                    }}
+                                    className="flex flex-col items-center gap-2 cursor-pointer group"
+                                  >
+                                    <div className="h-16 w-16 rounded-full bg-[#FFE812] flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                                      <ImageIcon className="h-7 w-7 text-rose-500 stroke-[1.8]" />
+                                    </div>
+                                    <span className="text-xs font-bold text-slate-700">앨범</span>
+                                  </div>
+
+                                  {/* 3. 선물하기 */}
+                                  <div
+                                    onClick={() => {
+                                      setIsAttachSheetOpen(false)
+                                      setIsGiftPickerOpen(true)
+                                    }}
+                                    className="flex flex-col items-center gap-2 cursor-pointer group"
+                                  >
+                                    <div className="h-16 w-16 rounded-full bg-[#FFE812] flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                                      <Gift className="h-7 w-7 text-rose-500 stroke-[1.8]" />
+                                    </div>
+                                    <span className="text-xs font-bold text-slate-700">선물하기</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* (E-2) 🚨 신고하기 모달 (첨부 이미지 도안 일치) */}
+                          {isReportModalOpen && (
+                            <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-2xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+                              <div className="bg-white rounded-3xl p-5 w-full max-w-[320px] shadow-2xl space-y-3.5 border border-slate-100 animate-in zoom-in-95 duration-150">
+                                <div className="space-y-1">
+                                  <h4 className="font-extrabold text-base text-slate-900">신고하기</h4>
+                                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                                    문제가 되는 내용을 자세히 작성해 주세요. 확인 후 신속히 조치하겠습니다.
+                                  </p>
+                                </div>
+
+                                <textarea
+                                  value={reportReasonText}
+                                  onChange={(e) => setReportReasonText(e.target.value)}
+                                  placeholder="신고 내용을 입력하세요"
+                                  maxLength={500}
+                                  className="w-full h-28 p-3 text-xs bg-white border border-slate-200 rounded-2xl resize-none focus:outline-none focus:ring-1 focus:ring-rose-400 placeholder:text-slate-400 text-slate-800"
+                                />
+
+                                <div className="flex items-center justify-end gap-2 pt-1">
+                                  <button
+                                    onClick={() => {
+                                      setIsReportModalOpen(false)
+                                      setReportReasonText('')
+                                    }}
+                                    className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+                                  >
+                                    취소
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      if (!reportReasonText.trim()) {
+                                        toast({
+                                          title: '신고 사유 입력',
+                                          description: '신고 내용을 입력해 주세요.',
+                                          variant: 'destructive',
+                                        })
+                                        return
+                                      }
+                                      setIsSubmittingReport(true)
+                                      try {
+                                        await api.post('/chats/reports', {
+                                          chatId: activeChatRoom?.id,
+                                          targetNickname: activeChatRoom?.targetNickname,
+                                          targetUserId: activeChatRoom?.targetUserId,
+                                          reason: reportReasonText.trim(),
+                                          reporterNickname: user?.nickname,
+                                        })
+                                        toast({
+                                          title: '🚨 신고 완료',
+                                          description: '신고가 정상적으로 접수되었습니다. 확인 후 신속히 조치하겠습니다.',
+                                        })
+                                        setIsReportModalOpen(false)
+                                        setReportReasonText('')
+                                      } catch (err) {
+                                        toast({
+                                          title: '🚨 신고 완료',
+                                          description: '신고가 정상 접수되었습니다.',
+                                        })
+                                        setIsReportModalOpen(false)
+                                        setReportReasonText('')
+                                      } finally {
+                                        setIsSubmittingReport(false)
+                                      }
+                                    }}
+                                    disabled={isSubmittingReport || !reportReasonText.trim()}
+                                    className="px-4 py-2 text-xs font-bold text-white bg-[#FF758F] hover:bg-[#FF5C7A] disabled:bg-rose-200 rounded-xl shadow-xs transition"
+                                  >
+                                    {isSubmittingReport ? '접수 중...' : '신고 보내기'}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
                           {/* (E) 🎁 폰 내부 선물 선택 바텀시트 (GiftPickerSheet) */}
                           {isGiftPickerOpen && (

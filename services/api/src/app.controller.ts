@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { PrismaService } from 'nestjs-prisma';
 import { Public } from './modules/auth/public.decorator';
@@ -6,6 +6,8 @@ import { ChatService } from './modules/chat/chat.service';
 
 @Controller()
 export class AppController {
+  private dynamicChatReports: any[] = [];
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly chatService: ChatService,
@@ -135,6 +137,7 @@ export class AppController {
         },
       ],
       reports: [
+        ...this.dynamicChatReports,
         {
           id: 'REP-1001',
           roomId: 'CHAT-101',
@@ -214,5 +217,29 @@ export class AppController {
   @Post('chats/control-panel/memo')
   async saveChatSafetyMemo(@Body() body: any) {
     return { memo: body.memo || '' };
+  }
+
+  @Public()
+  @Post(['chats/reports', 'community/report', 'reports'])
+  async createChatReport(@Req() req: any, @Body() body: any) {
+    const user = req?.user;
+    const reportItem = {
+      id: `REP-${Date.now()}`,
+      roomId: body.roomId || body.chatId || 'CHAT-DIRECT',
+      reporter: user?.nickname || body.reporterNickname || body.reporter || '신고자',
+      target: body.targetNickname || body.targetUserId || body.targetAccountId || body.target || '피신고자',
+      reason: body.reason || body.content || '부적절한 내용',
+      status: 'PENDING',
+      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+    };
+    this.dynamicChatReports.unshift(reportItem);
+    return { ok: true, data: reportItem, message: '신고가 정상적으로 접수되었습니다.' };
+  }
+
+  @Public()
+  @Post(['community/block', 'chats/block'])
+  async blockUser(@Req() req: any, @Body() body: any) {
+    const target = body.blockedUserId || body.targetAccountId || body.nickname || '회원';
+    return { ok: true, target, message: '회원이 차단되었습니다.' };
   }
 }
