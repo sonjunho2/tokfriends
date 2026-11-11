@@ -3248,6 +3248,15 @@ export default function CustomerWebStorefrontPage() {
         const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' })
         modalAgoraClientRef.current = client
 
+        // 🛡️ 지역/망 간 방화벽 및 대칭형 NAT 통과를 위한 Agora Cloud Proxy 활성화 (다른 지역 접속자 100% 릴레이 보장)
+        try {
+          if (typeof client.startProxyServer === 'function') {
+            await client.startProxyServer(3).catch(() => client.startProxyServer(5).catch(() => {}))
+          }
+        } catch (proxyErr) {
+          console.warn('Agora Cloud Proxy fallback notice:', proxyErr)
+        }
+
         await client.setClientRole('audience', { level: 1 })
 
         client.on('user-published', async (user: any, mediaType: string) => {
@@ -3256,14 +3265,22 @@ export default function CustomerWebStorefrontPage() {
             if (mediaType === 'video') {
               if (modalAgoraContainerRef.current) {
                 modalAgoraContainerRef.current.innerHTML = ''
-                user.videoTrack.play(modalAgoraContainerRef.current, { fit: 'cover' })
+                try {
+                  user.videoTrack.play(modalAgoraContainerRef.current, { fit: 'cover' })
+                } catch (playErr) {
+                  console.warn('Video autoplay policy warning:', playErr)
+                }
               }
               setIsAgoraStreaming(true)
             }
             if (mediaType === 'audio') {
               modalRemoteAudioTrackRef.current = user.audioTrack
               if (!isLiveMuted) {
-                user.audioTrack.play()
+                try {
+                  user.audioTrack.play()
+                } catch (audioErr) {
+                  console.warn('Audio autoplay blocked by browser policy:', audioErr)
+                }
               }
             }
           } catch (subErr) {

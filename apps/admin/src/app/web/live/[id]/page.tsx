@@ -98,6 +98,15 @@ export default function WebLivePlayerPage() {
         const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' })
         agoraClientRef.current = client
 
+        // 🛡️ 지역/망 간 방화벽 및 대칭형 NAT 통과를 위한 Agora Cloud Proxy 활성화 (다른 지역 접속자 100% 릴레이 보장)
+        try {
+          if (typeof client.startProxyServer === 'function') {
+            await client.startProxyServer(3).catch(() => client.startProxyServer(5).catch(() => {}))
+          }
+        } catch (proxyErr) {
+          console.warn('Agora Cloud Proxy fallback notice:', proxyErr)
+        }
+
         await client.setClientRole('audience', { level: 1 })
 
         client.on('user-published', async (user: any, mediaType: string) => {

@@ -275,6 +275,11 @@ export default function AgoraLivePlayer({
 
         AgoraRTC.setLogLevel(2);
         client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
+        try {
+          if (typeof client.startProxyServer === 'function') {
+            await client.startProxyServer(3).catch(function() { return client.startProxyServer(5).catch(function() {}); });
+          }
+        } catch (pe) {}
         const isPublisherHost = ${Boolean(isHost)};
 
         if (isPublisherHost) {
