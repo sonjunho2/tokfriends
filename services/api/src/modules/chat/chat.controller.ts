@@ -61,10 +61,18 @@ export class ChatController {
   }
 
   @Public()
-  @Post('message')
-  async sendChatMessage(@CurrentUser() user: any, @Body() body: any) {
+  @Post([':id/messages', 'message'])
+  async sendChatMessage(
+    @CurrentUser() user: any,
+    @Param('id') routeChatId: string | undefined,
+    @Body() body: any,
+  ) {
     const userId = user?.id || user?.sub || body.senderAccountId || body.senderId || body.userId || 'guest';
-    const msg = await this.chatService.sendMessage(userId, body);
+    const payload = {
+      ...body,
+      chatId: routeChatId || body.chatId,
+    };
+    const msg = await this.chatService.sendMessage(userId, payload);
     return { ok: true, data: msg, message: msg };
   }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '../../theme/tokens';
 import { createSudaPost } from '../../services/sudaService';
+import { useAuth } from '../../context/AuthContext';
 
 interface SudaCreateModalProps {
   visible: boolean;
@@ -26,16 +27,24 @@ export default function SudaCreateModal({
   onClose,
   onCreated,
 }: SudaCreateModalProps) {
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [entryFee, setEntryFee] = useState<number>(500);
+  const [entryFee, setEntryFee] = useState<number>(300);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (visible && user?.chatEntryFee !== undefined) {
+      setEntryFee(Number(user.chatEntryFee) || 0);
+    }
+  }, [visible, user?.chatEntryFee]);
 
   const FEE_OPTIONS = [
     { label: '✨ 무료', value: 0 },
+    { label: '💰 50 꿀떡', value: 50 },
+    { label: '💰 100 꿀떡', value: 100 },
     { label: '💰 300 꿀떡', value: 300 },
     { label: '💰 500 꿀떡', value: 500 },
-    { label: '💰 1,000 꿀떡', value: 1000 },
   ];
 
   const handleSubmit = async () => {

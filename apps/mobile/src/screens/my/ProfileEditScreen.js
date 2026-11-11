@@ -70,6 +70,9 @@ export default function ProfileEditScreen({ navigation, route }) {
   const [chatEntryFee, setChatEntryFee] = useState(
     Number(user?.chatEntryFee ?? userProfile?.chatEntryFee ?? profile?.chatEntryFee ?? 30)
   );
+  const [liveEntryFee, setLiveEntryFee] = useState(
+    Number(user?.liveEntryFee ?? userProfile?.liveEntryFee ?? profile?.liveEntryFee ?? 0)
+  );
   const [age, setAge] = useState(String(user?.age ?? userProfile?.age ?? profile?.age ?? '26'));
   const [gender, setGender] = useState(user?.gender ?? userProfile?.gender ?? profile?.gender ?? '여');
   const [avatarUri, setAvatarUri] = useState(
@@ -398,6 +401,7 @@ export default function ProfileEditScreen({ navigation, route }) {
         headline: title.trim(),
         bio: bio.trim(),
         chatEntryFee: Number(chatEntryFee) || 0,
+        liveEntryFee: Number(liveEntryFee) || 0,
         age: Math.max(1, Math.min(120, parseInt(age, 10) || 26)),
         gender: gender || '여',
         interests,
@@ -781,6 +785,117 @@ export default function ProfileEditScreen({ navigation, route }) {
                   </TouchableOpacity>
                 );
               })}
+            </View>
+          </View>
+        </View>
+
+        {/* 6. 모꼬 활동 입장료 및 단가 자율 설정 카드 */}
+        <View style={styles.card}>
+          <View style={styles.sectionTitleRow}>
+            <Ionicons name="wallet-outline" size={18} color="#FF3B6B" />
+            <Text style={styles.sectionTitle}>소통 및 라이브 방송 입장료(단가) 설정</Text>
+          </View>
+          <Text style={styles.sectionDesc}>
+            관리자 정책 및 마이모꼬에서 설정한 금액이 대화방 개설 및 라이브 방송 시 자동 연동됩니다.
+          </Text>
+
+          {/* (1) 1:1 수다/대화 기본 입장료 */}
+          <View style={[styles.fieldBlock, { marginTop: 14 }]}>
+            <View style={styles.labelRow}>
+              <Text style={styles.label}>1:1 대화·수다 기본 입장료</Text>
+              <Text style={{ fontSize: 13, fontWeight: '800', color: '#FF3B6B' }}>
+                {chatEntryFee > 0 ? `${chatEntryFee} 꿀떡` : '무료'}
+              </Text>
+            </View>
+            <Text style={styles.subHelpText}>
+              상대방이 나와 1:1 대화방을 시작할 때 지불하는 꿀떡입니다. (수수료 제외 후 내 수익 적립)
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+              {[0, 30, 50, 100, 300, 500].map((fee) => (
+                <TouchableOpacity
+                  key={`chat-fee-${fee}`}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 7,
+                    borderRadius: 12,
+                    borderWidth: 1.5,
+                    borderColor: chatEntryFee === fee ? '#FF3B6B' : '#E2E8F0',
+                    backgroundColor: chatEntryFee === fee ? '#FFF1F2' : '#F8FAFC',
+                  }}
+                  onPress={() => setChatEntryFee(fee)}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: '800',
+                      color: chatEntryFee === fee ? '#FF3B6B' : '#475569',
+                    }}
+                  >
+                    {fee === 0 ? '✨ 무료' : `${fee} 꿀떡`}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+              <TextInput
+                style={[styles.input, { flex: 1, height: 44 }]}
+                value={String(chatEntryFee)}
+                onChangeText={(text) => setChatEntryFee(Math.max(0, parseInt(text.replace(/\D/g, ''), 10) || 0))}
+                keyboardType="numeric"
+                placeholder="직접 입력 (예: 50)"
+                placeholderTextColor={colors.textTertiary}
+              />
+              <Text style={{ marginLeft: 8, fontSize: 13, fontWeight: '700', color: '#64748B' }}>꿀떡</Text>
+            </View>
+          </View>
+
+          {/* (2) 모꼬 LIVE 방송 기본 입장료 */}
+          <View style={[styles.fieldBlock, { marginTop: 18 }]}>
+            <View style={styles.labelRow}>
+              <Text style={styles.label}>모꼬 LIVE 방송 기본 입장료</Text>
+              <Text style={{ fontSize: 13, fontWeight: '800', color: '#FF3B6B' }}>
+                {liveEntryFee > 0 ? `${liveEntryFee} 꿀떡` : '무료'}
+              </Text>
+            </View>
+            <Text style={styles.subHelpText}>
+              내가 라이브 방송을 개설할 때 시청자 입장료 기본값으로 자동 채워집니다.
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+              {[0, 50, 100, 300, 500, 1000].map((fee) => (
+                <TouchableOpacity
+                  key={`live-fee-${fee}`}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 7,
+                    borderRadius: 12,
+                    borderWidth: 1.5,
+                    borderColor: liveEntryFee === fee ? '#FF3B6B' : '#E2E8F0',
+                    backgroundColor: liveEntryFee === fee ? '#FFF1F2' : '#F8FAFC',
+                  }}
+                  onPress={() => setLiveEntryFee(fee)}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: '800',
+                      color: liveEntryFee === fee ? '#FF3B6B' : '#475569',
+                    }}
+                  >
+                    {fee === 0 ? '✨ 무료' : `${fee} 꿀떡`}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+              <TextInput
+                style={[styles.input, { flex: 1, height: 44 }]}
+                value={String(liveEntryFee)}
+                onChangeText={(text) => setLiveEntryFee(Math.max(0, parseInt(text.replace(/\D/g, ''), 10) || 0))}
+                keyboardType="numeric"
+                placeholder="직접 입력 (예: 100)"
+                placeholderTextColor={colors.textTertiary}
+              />
+              <Text style={{ marginLeft: 8, fontSize: 13, fontWeight: '700', color: '#64748B' }}>꿀떡</Text>
             </View>
           </View>
         </View>

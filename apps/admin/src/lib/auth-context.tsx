@@ -35,6 +35,8 @@ export interface WebUser {
   avatarUrl?: string
   pointBalance: number
   cashBalance?: number
+  chatEntryFee?: number
+  liveEntryFee?: number
   merchantInfo?: MerchantApplication
   creatorInfo?: CreatorApplication
 }
@@ -340,6 +342,8 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
                 : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500'),
               pointBalance: Number(userData.pointBalance ?? (isViewer ? 500000 : 100000)),
               cashBalance: Number(userData.cashBalance ?? 100000),
+              chatEntryFee: Number(userData.chatEntryFee ?? 300),
+              liveEntryFee: Number(userData.liveEntryFee ?? 1000),
               creatorInfo: isStreamer ? {
                 channelName: '테스터01의 온에어 라이브 🎙️',
                 category: '일상/토크',
@@ -373,6 +377,8 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
           avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
           pointBalance: 100000,
           cashBalance: 100000,
+          chatEntryFee: 300,
+          liveEntryFee: 1000,
           creatorInfo: {
             channelName: '테스터01의 온에어 라이브 🎙️',
             category: '일상/토크',
@@ -401,6 +407,8 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
           avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
           pointBalance: 500000, // 넉넉한 50만 꿀떡으로 VIP 3D 선물 후원 테스트 가능
           cashBalance: 500000,
+          chatEntryFee: 300,
+          liveEntryFee: 1000,
         }
         saveUserState(viewerUser)
         setIsLoginModalOpen(false)

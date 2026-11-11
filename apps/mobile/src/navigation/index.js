@@ -1,10 +1,13 @@
 // src/navigation/index.js
 import React from 'react';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, createNavigationContainerRef } from '@react-navigation/native';
 import RootNavigator from './RootNavigator';
 import colors from '../theme/colors';
 import GlobalProfileModal from '../components/GlobalProfileModal';
 import { ProfileModalProvider } from '../context/ProfileModalContext';
+import { InAppNotificationProvider } from '../components/common/InAppNotificationBanner';
+
+export const navigationRef = createNavigationContainerRef();
 
 const navTheme = {
   ...DefaultTheme,
@@ -52,10 +55,12 @@ const linking = {
 
 export default function Navigation() {
   return (
-    <NavigationContainer theme={navTheme} linking={linking}>
+    <NavigationContainer ref={navigationRef} theme={navTheme} linking={linking}>
       <ProfileModalProvider>
-        <RootNavigator />
-        <GlobalProfileModal />
+        <InAppNotificationProvider>
+          <RootNavigator />
+          <GlobalProfileModal />
+        </InAppNotificationProvider>
       </ProfileModalProvider>
     </NavigationContainer>
   );

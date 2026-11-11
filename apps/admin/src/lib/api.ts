@@ -2826,6 +2826,32 @@ export async function getChatRooms(): Promise<any[]> {
   }
 }
 
+export async function createDirectChat(targetUserId: string, title?: string, entryFee?: number): Promise<any> {
+  try {
+    const res = await api.post('/chats/direct', { targetUserId, title, entryFee })
+    return res?.data?.room || res?.data?.data || res?.data || res
+  } catch (err) {
+    console.warn('createDirectChat error:', err)
+    return null
+  }
+}
+
+export async function sendChatMessage(chatId: string, content: string, extra?: any): Promise<any> {
+  const res = await api.post('/chats/message', { chatId, content, ...(extra || {}) })
+  return res?.data?.message || res?.data?.data || res?.data || res
+}
+
+export async function getChatMessages(chatId: string): Promise<any[]> {
+  try {
+    const res = await api.get(`/chats/${chatId}/messages`)
+    const data = res?.data ?? res
+    return Array.isArray(data) ? data : (data?.items || data?.messages || [])
+  } catch (err) {
+    console.warn('getChatMessages error:', err)
+    return []
+  }
+}
+
 
 // =============================================
 // Admin Permissions, Approvals & Audit

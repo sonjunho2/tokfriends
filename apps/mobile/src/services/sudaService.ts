@@ -223,12 +223,15 @@ export async function createSudaPost(
 
   try {
     const res = await client.post('/suda/posts', {
+      title: title ? title.trim() : undefined,
       content: content.trim(),
+      entryFee,
       neighborhood,
     });
-    if (res?.data?.id) {
-      inMemorySudaPosts = [res.data, ...inMemorySudaPosts];
-      return res.data;
+    const postData = res?.data?.data || res?.data;
+    if (postData?.id) {
+      inMemorySudaPosts = [postData, ...inMemorySudaPosts];
+      return postData;
     }
   } catch (err) {
     // Local fallback
@@ -258,6 +261,41 @@ export async function likeSudaPost(postId: string): Promise<number> {
 }
 
 export async function fetchChatRooms(type?: 'SUDA' | 'MARKET'): Promise<ChatRoomItem[]> {
+  try {
+    const res = await client.get('/chats');
+    const items = res?.data?.items || res?.data?.data || res?.data;
+    if (Array.isArray(items) && items.length > 0) {
+      const serverRooms: ChatRoomItem[] = items.map((r: any) => ({
+        id: r.id,
+        type: r.category === 'MARKET' ? 'MARKET' : 'SUDA',
+        peer: {
+          id: r.counterpart?.id || r.participantIds?.[1] || 'peer',
+          nickname: r.counterpart?.displayName || r.title || '대화 상대',
+          avatarUrl:
+            r.counterpart?.avatarUrl ||
+            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+          isOnline: Boolean(r.counterpart?.online),
+        },
+        lastMessage: r.lastMessage || '대화가 시작되었습니다.',
+        lastMessageTime: r.lastMessageAt
+          ? new Date(r.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : '방금',
+        unreadCount: Number(r.unreadCount || 0),
+      }));
+
+      // Combine with in-memory market demo items if needed
+      const marketRooms = inMemoryChatRooms.filter((r) => r.type === 'MARKET');
+      const combined = [...serverRooms, ...marketRooms];
+      const unique = Array.from(new Map(combined.map((m) => [m.id, m])).values());
+      if (type) {
+        return unique.filter((r) => r.type === type);
+      }
+      return unique;
+    }
+  } catch (err) {
+    // Fallback to in-memory list
+  }
+
   if (type) {
     return inMemoryChatRooms.filter((r) => r.type === type);
   }

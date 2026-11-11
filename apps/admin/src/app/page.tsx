@@ -113,7 +113,12 @@ import {
   getSudaPosts,
   createSudaPost,
   getChatRooms,
+  createDirectChat,
+  sendChatMessage,
+  getChatMessages,
 } from '@/lib/api'
+import { io } from 'socket.io-client'
+import { ToastAction } from '@/components/ui/toast'
 import {
   MarketProductDetailModal,
   type MarketProductDetail,
@@ -2062,6 +2067,234 @@ export default function CustomerWebStorefrontPage() {
     return () => clearInterval(timer)
   }, [isUserProfileModalOpen, selectedUserProfile?.photos])
   
+  // 🎵 웹 브라우저 "모꼬" 알림음 합성 재생 (카톡 알림음처럼 산뜻한 2단계 차임벨)
+  const playMoccoSoundWeb = useCallback(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+      if (!AudioCtx) return
+      const ctx = new AudioCtx()
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {})
+      }
+      const now = ctx.currentTime
+
+      // 1음 "모~" (포근한 트라이앵글파 E5 659Hz -> G5 784Hz)
+      const osc1 = ctx.createOscillator()
+      const gain1 = ctx.createGain()
+      osc1.type = 'triangle'
+      osc1.frequency.setValueAtTime(659.25, now)
+      osc1.frequency.exponentialRampToValueAtTime(783.99, now + 0.12)
+      gain1.gain.setValueAtTime(0.001, now)
+      gain1.gain.exponentialRampToValueAtTime(0.28, now + 0.03)
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.18)
+      osc1.connect(gain1)
+      gain1.connect(ctx.destination)
+      osc1.start(now)
+      osc1.stop(now + 0.2)
+
+      // 2음 "꼬!" (청아한 사인파 벨소리 C6 1046.5Hz 딩동~)
+      const osc2 = ctx.createOscillator()
+      const gain2 = ctx.createGain()
+      osc2.type = 'sine'
+      osc2.frequency.setValueAtTime(1046.5, now + 0.14)
+      osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.18)
+      gain2.gain.setValueAtTime(0.001, now + 0.14)
+      gain2.gain.exponentialRampToValueAtTime(0.35, now + 0.16)
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.75)
+      osc2.connect(gain2)
+      gain2.connect(ctx.destination)
+      osc2.start(now + 0.14)
+      osc2.stop(now + 0.8)
+    } catch (err) {
+      console.warn('Failed to play web Mocco sound:', err)
+    }
+  }, [])
+
+  // 유저 단가 및 입장료 동기화
+  useEffect(() => {
+    if (user?.chatEntryFee !== undefined && user.chatEntryFee !== null) {
+      setChatRoomRate(Number(user.chatEntryFee))
+      setNewRoomEntryFee(Number(user.chatEntryFee))
+    }
+    if (user?.liveEntryFee !== undefined && user.liveEntryFee !== null) {
+      setVideoCallRate(Number(user.liveEntryFee))
+    }
+  }, [user?.chatEntryFee, user?.liveEntryFee])
+
+  // 실시간 웹소켓(Socket.io) 수다 & 1:1 채팅 & "모꼬" 알림 동기화
+  const socketRef = useRef<any>(null)
+  const activeChatRoomRef = useRef<ChatRoomItem | null>(null)
+  const chatRoomsRef = useRef<ChatRoomItem[]>([])
+  activeChatRoomRef.current = activeChatRoom
+  chatRoomsRef.current = chatRooms
+
+  useEffect(() => {
+    const wsUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/v1', '') || 'https://tok-friends-api.onrender.com'
+    const socket = io(wsUrl, {
+      transports: ['websocket', 'polling'],
+      query: {
+        userId: user?.id || 'guest',
+        nickname: user?.nickname || '게스트',
+      },
+    })
+    socketRef.current = socket
+
+    socket.on('connect', () => {
+      console.log('Web socket connected to MOCCO server:', socket.id)
+      if (user?.id) {
+        socket.emit('chat:join', { userId: user.id })
+      }
+      if (user?.nickname) {
+        socket.emit('chat:join', { nickname: user.nickname })
+      }
+    })
+
+    // 1) 실시간 수다방/수다글 등록 브로드캐스트
+    socket.on('suda:new_post', (post: any) => {
+      if (!post) return
+      const mappedPost: SudaPostItem = {
+        id: post.id || 'suda-' + Date.now(),
+        nickname: post.authorNickname || post.author?.nickname || post.nickname || '모꼬이웃',
+        avatar: post.authorAvatar || post.author?.avatarUrl || post.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+        region: post.neighborhood || post.region || '역삼1동',
+        title: post.title || post.content?.slice(0, 30) || '새로운 수다글',
+        content: post.content || '',
+        entryFee: post.entryFee ?? 0,
+        category: post.category || '일상',
+        time: '방금 전',
+        likes: post.likeCount ?? 0,
+        comments: post.commentCount ?? 0,
+      }
+      setSudaPosts((prev) => {
+        if (prev.some((p) => p.id === mappedPost.id)) return prev
+        return [mappedPost, ...prev]
+      })
+    })
+
+    // 2) 실시간 1:1 채팅 도착 알림 ("모꼬" 사운드 + 팝업 배너)
+    socket.on('chat:incoming', (data: any) => {
+      if (!data) return
+      playMoccoSoundWeb()
+
+      const senderName = data.senderNickname || data.sender?.nickname || '모꼬이웃'
+      const previewText = data.content || data.text || '새로운 메시지가 도착했습니다.'
+      const targetRoomId = data.chatId || data.roomId
+
+      toast({
+        title: `🐱 모꼬! ${senderName}님의 새 메시지`,
+        description: previewText,
+        action: (
+          <ToastAction
+            altText="채팅방 입장"
+            onClick={() => {
+              if (targetRoomId) {
+                const targetRoom = chatRoomsRef.current.find((r) => r.id === targetRoomId || r.targetNickname === senderName)
+                if (targetRoom) {
+                  setActiveChatRoom(targetRoom)
+                } else {
+                  const newRoom: ChatRoomItem = {
+                    id: targetRoomId,
+                    type: 'SUDA',
+                    targetNickname: senderName,
+                    targetAvatar: data.senderAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+                    lastMessage: previewText,
+                    lastTime: '방금',
+                    unreadCount: 0,
+                    messages: [
+                      {
+                        id: 'msg-' + Date.now(),
+                        senderId: data.senderId || 'target',
+                        senderNickname: senderName,
+                        text: previewText,
+                        time: '방금',
+                      },
+                    ],
+                  }
+                  setChatRooms((prev) => [newRoom, ...prev])
+                  setActiveChatRoom(newRoom)
+                }
+              }
+            }}
+          >
+            대화하기
+          </ToastAction>
+        ),
+      })
+
+      // 활성 채팅방에 자동 반영
+      if (activeChatRoomRef.current && (activeChatRoomRef.current.id === targetRoomId || activeChatRoomRef.current.targetNickname === senderName)) {
+        const incomingMsg: ChatMessageItem = {
+          id: data.id || 'msg-' + Date.now(),
+          senderId: data.senderId || 'target',
+          senderNickname: senderName,
+          text: previewText,
+          time: '방금',
+          isMe: false,
+        }
+        setActiveChatRoom((prev) => {
+          if (!prev) return null
+          return {
+            ...prev,
+            lastMessage: previewText,
+            lastTime: '방금',
+            messages: [...prev.messages, incomingMsg],
+          }
+        })
+      }
+
+      // 채팅방 목록 최신화
+      setChatRooms((prev) =>
+        prev.map((r) => {
+          if (r.id === targetRoomId || r.targetNickname === senderName) {
+            return {
+              ...r,
+              lastMessage: previewText,
+              lastTime: '방금',
+              unreadCount: activeChatRoomRef.current?.id === r.id ? 0 : (r.unreadCount || 0) + 1,
+            }
+          }
+          return r
+        })
+      )
+    })
+
+    // 3) 같은 방 참가자 간 메시지 수신
+    socket.on('chat:message', (data: any) => {
+      if (!data) return
+      const senderName = data.senderNickname || data.sender?.nickname || '상대방'
+      const isMyMessage = data.senderId === user?.id || (user?.nickname && senderName === user.nickname)
+      if (isMyMessage) return
+
+      playMoccoSoundWeb()
+
+      const newMsg: ChatMessageItem = {
+        id: data.id || 'msg-' + Date.now(),
+        senderId: data.senderId || 'target',
+        senderNickname: senderName,
+        text: data.content || data.text || '',
+        time: '방금',
+        isMe: false,
+      }
+
+      if (activeChatRoomRef.current && activeChatRoomRef.current.id === data.chatId) {
+        setActiveChatRoom((prev) => {
+          if (!prev) return null
+          return {
+            ...prev,
+            lastMessage: newMsg.text,
+            lastTime: '방금',
+            messages: [...prev.messages, newMsg],
+          }
+        })
+      }
+    })
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [user?.id, user?.nickname, playMoccoSoundWeb, toast])
+  
 
   // 상대방 프로필 팝업 열기 헬퍼 함수
   const openUserProfileModal = (user: any) => {
@@ -3275,7 +3508,7 @@ export default function CustomerWebStorefrontPage() {
 
     // 1:1 수다 대기방 개설 (방 만들기 & 단가 설정)
   const handleCreateSudaRoom = () => {
-    requireAuth(() => {
+    requireAuth(async () => {
       const title = newRoomTitle.trim() || sudaInputText.trim()
       if (!title) {
         toast({
@@ -3285,8 +3518,22 @@ export default function CustomerWebStorefrontPage() {
         })
         return
       }
+
+      let createdPost: any = null
+      try {
+        createdPost = await createSudaPost({
+          title,
+          content: sudaInputText.trim() || '나랑 즐겁게 수다떨 이웃 편하게 입장해주세요!',
+          entryFee: newRoomEntryFee,
+          neighborhood: '역삼1동',
+          category: newRoomCategory,
+        })
+      } catch (e) {
+        console.warn('createSudaPost API call fallback:', e)
+      }
+
       const newRoom: SudaPostItem = {
-        id: 'suda-room-' + Date.now(),
+        id: createdPost?.id || 'suda-room-' + Date.now(),
         nickname: user?.nickname || '모꼬이웃',
         avatar: user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
         region: '역삼1동',
@@ -3298,7 +3545,7 @@ export default function CustomerWebStorefrontPage() {
         likes: 0,
         comments: 0,
       }
-      const updatedSudaList = [newRoom, ...sudaPosts]
+      const updatedSudaList = [newRoom, ...sudaPosts.filter((p) => p.id !== newRoom.id)]
       setSudaPosts(updatedSudaList)
       try {
         localStorage.setItem('mocco_custom_suda_rooms', JSON.stringify(updatedSudaList))
@@ -3319,7 +3566,7 @@ export default function CustomerWebStorefrontPage() {
 
   // 1:1 수다 대기방 입장 핸들러 (단가 적용, 개설자 면제, 중복 차감 방지 및 1:1 톡 자동 연결)
   const handleEnterSudaRoom = (room: SudaPostItem) => {
-    requireAuth(() => {
+    requireAuth(async () => {
       const existing = chatRooms.find((r) => r.targetNickname === room.nickname)
       const isOwner = user?.nickname && room.nickname === user.nickname
 
@@ -3355,12 +3602,27 @@ export default function CustomerWebStorefrontPage() {
         })
       }
 
+      // 서버 1:1 채팅방 생성 및 실시간 동기화
+      let serverRoom: any = null
+      try {
+        serverRoom = await createDirectChat(room.nickname, room.title, room.entryFee)
+      } catch (e) {
+        console.warn('createDirectChat fallback:', e)
+      }
+
+      const roomId = serverRoom?.id || (existing ? existing.id : 'chat-suda-' + room.id)
+
+      if (socketRef.current) {
+        socketRef.current.emit('chat:join', { chatId: roomId })
+      }
+
       // 1:1 대화방 개설 및 연결
       if (existing) {
-        setActiveChatRoom(existing)
+        const updated = { ...existing, id: roomId }
+        setActiveChatRoom(updated)
       } else {
         const newRoomItem: ChatRoomItem = {
-          id: 'chat-suda-' + room.id,
+          id: roomId,
           type: 'SUDA',
           targetNickname: room.nickname,
           targetAvatar: room.avatar,
@@ -3440,19 +3702,23 @@ export default function CustomerWebStorefrontPage() {
   }
 
   // 1:1 Chat Send
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!chatInputText.trim() || !activeChatRoom) return
+    const text = chatInputText.trim()
+    const senderNickname = user?.nickname || '테스터02(시청자)'
+    const senderId = user?.id || 'me'
+
     const newMsg: ChatMessageItem = {
       id: 'm-' + Date.now(),
-      senderId: user?.id || 'me',
-      senderNickname: user?.nickname || '나',
-      text: chatInputText.trim(),
+      senderId: senderId,
+      senderNickname: senderNickname,
+      text: text,
       time: '방금',
       isMe: true,
     }
     const updatedRoom: ChatRoomItem = {
       ...activeChatRoom,
-      lastMessage: chatInputText.trim(),
+      lastMessage: text,
       lastTime: '방금',
       messages: [...activeChatRoom.messages, newMsg],
     }
@@ -3465,6 +3731,27 @@ export default function CustomerWebStorefrontPage() {
       console.warn('Failed to save chat rooms to localStorage', e)
     }
     setChatInputText('')
+
+    // 백엔드 REST API 및 Socket.io 실시간 전송
+    try {
+      await sendChatMessage(activeChatRoom.id, text, {
+        targetUserId: activeChatRoom.targetNickname,
+        senderNickname: senderNickname,
+        senderId: senderId,
+      })
+    } catch (e) {
+      console.warn('sendChatMessage API error:', e)
+    }
+
+    if (socketRef.current) {
+      socketRef.current.emit('chat:message', {
+        chatId: activeChatRoom.id,
+        content: text,
+        targetUserId: activeChatRoom.targetNickname,
+        senderNickname: senderNickname,
+        senderId: senderId,
+      })
+    }
   }
 
   // Send Gift inside Mobile Phone Mockup Chat & Trigger 3D Effect
@@ -9159,11 +9446,46 @@ export default function CustomerWebStorefrontPage() {
                   className="h-9 text-xs"
                 />
               </div>
+              <div className="pt-2 border-t space-y-2">
+                <label className="font-bold text-slate-800 block text-[11px]">💰 소통 및 라이브 방송 입장료(단가) 설정</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block mb-1">💬 1:1 수다 입장료 (꿀떡)</span>
+                    <Input
+                      type="number"
+                      value={chatRoomRate}
+                      onChange={(e) => setChatRoomRate(Number(e.target.value) || 0)}
+                      className="h-8 text-xs font-bold"
+                      placeholder="예: 300"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block mb-1">🎥 라이브 방송 단가 (꿀떡)</span>
+                    <Input
+                      type="number"
+                      value={videoCallRate}
+                      onChange={(e) => setVideoCallRate(Number(e.target.value) || 0)}
+                      className="h-8 text-xs font-bold"
+                      placeholder="예: 1000"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
             <Button
-              onClick={() => {
+              onClick={async () => {
                 setIsProfileEditOpen(false)
-                toast({ title: '프로필 수정 완료', description: '프로필 정보가 성공적으로 반영되었습니다.' })
+                try {
+                  if (user?.id) {
+                    await api.patch(`/users/${user.id}`, {
+                      chatEntryFee: chatRoomRate,
+                      liveEntryFee: videoCallRate,
+                    })
+                  }
+                } catch (e) {
+                  console.warn('Failed to update profile rates:', e)
+                }
+                toast({ title: '프로필 수정 완료', description: '프로필 및 소통 단가 정보가 성공적으로 반영되었습니다.' })
               }}
               className="w-full bg-[#FF3B6B] hover:bg-[#e0345e] text-white font-bold text-xs h-9 rounded-xl shadow-md"
             >
@@ -9301,9 +9623,19 @@ export default function CustomerWebStorefrontPage() {
               </div>
             </div>
             <Button
-              onClick={() => {
+              onClick={async () => {
                 setIsRateSettingOpen(false)
-                toast({ title: '단가 설정 저장 완료', description: '새로운 대화/영상 단가가 적용되었습니다.' })
+                try {
+                  if (user?.id) {
+                    await api.patch(`/users/${user.id}`, {
+                      chatEntryFee: chatRoomRate,
+                      liveEntryFee: videoCallRate,
+                    })
+                  }
+                } catch (e) {
+                  console.warn('Failed to save user rates:', e)
+                }
+                toast({ title: '단가 설정 저장 완료', description: `1:1 대화: ${chatRoomRate}P / 영상: ${videoCallRate}P 단가가 안전하게 저장되었습니다.` })
               }}
               className="w-full bg-[#FF3B6B] hover:bg-[#e0345e] text-white font-bold text-xs h-9 rounded-xl shadow-md"
             >

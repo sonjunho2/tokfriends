@@ -55,6 +55,12 @@ export default function LiveScreen({ navigation }) {
   const [entryFee, setEntryFee] = useState(0);
   const [broadcastType, setBroadcastType] = useState('PUBLIC');
   const [starting, setStarting] = useState(false);
+
+  useEffect(() => {
+    if (modalVisible && user?.liveEntryFee !== undefined) {
+      setEntryFee(Number(user.liveEntryFee) || 0);
+    }
+  }, [modalVisible, user?.liveEntryFee]);
   // 상품 연결 사전 세팅 상태
   const [marketProducts, setMarketProducts] = useState(INITIAL_MARKET_PRODUCTS);
   const [selectedProductIds, setSelectedProductIds] = useState([]);

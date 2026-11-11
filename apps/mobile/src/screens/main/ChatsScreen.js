@@ -22,6 +22,8 @@ import {
   fetchSudaPosts,
   fetchChatRooms,
 } from '../../services/sudaService';
+import { useAuth } from '../../context/AuthContext';
+import { createChatSocket } from '../../realtime/chatSocket';
 
 const { width } = Dimensions.get('window');
 
@@ -191,6 +193,7 @@ const MAX_POSSIBLE_AGE = 65;
 
 export default function ChatsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { user, token } = useAuth();
 
   // 3대 메인 탭: 'FRIENDS' (친구들) vs 'SUDA' (전체수다) vs 'CHATS' (대화함)
   const [activeMainTab, setActiveMainTab] = useState('FRIENDS');
@@ -276,6 +279,39 @@ export default function ChatsScreen({ navigation }) {
     loadData();
   }, [loadData]);
 
+  // 실시간 1줄 수다 및 대화함 목록 소켓 리스너
+  useEffect(() => {
+    const normToken = typeof token === 'string' && token.trim() ? token.trim() : '';
+    if (!normToken) return;
+
+    const socket = createChatSocket(normToken);
+
+    socket.on('connect', () => {
+      if (user?.id) {
+        socket.emit('connected', { userId: user.id });
+      }
+    });
+
+    socket.on('suda:new_post', (newPost) => {
+      if (!newPost?.id) return;
+      setSudaPosts((prev) => {
+        if (prev.some((p) => p.id === newPost.id)) return prev;
+        return [newPost, ...prev];
+      });
+    });
+
+    socket.on('chat:room_updated', () => {
+      fetchChatRooms(activeChatSubTab).then((rooms) => {
+        if (rooms) setChatRooms(rooms);
+      });
+    });
+
+    socket.connect();
+    return () => {
+      socket.disconnect();
+    };
+  }, [token, user?.id, activeChatSubTab]);
+
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
@@ -294,12 +330,21 @@ export default function ChatsScreen({ navigation }) {
   };
 
   // 1:1 대화방 이동
-  const handleStartDirectChat = (targetUser) => {
+  const handleStartDirectChat = async (targetUser) => {
     setProfileModalVisible(false);
+    let resolvedChatId = `direct_${targetUser.id}`;
+    try {
+      const room = await apiClient.ensureDirectRoom({ targetUserId: targetUser.id });
+      if (room?.id) {
+        resolvedChatId = room.id;
+      }
+    } catch {}
+
     navigation.navigate('ChatRoom', {
-      id: `direct_${targetUser.id}`,
-      chatId: `direct_${targetUser.id}`,
+      id: resolvedChatId,
+      chatId: resolvedChatId,
       peerId: targetUser.id,
+      counterpartAccountId: targetUser.id,
       peerName: targetUser.nickname || targetUser.name,
       title: targetUser.nickname || targetUser.name,
       initialType: 'SUDA',

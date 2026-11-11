@@ -28,4 +28,14 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   gender?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  chatEntryFee?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  liveEntryFee?: number;
 }

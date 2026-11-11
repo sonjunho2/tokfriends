@@ -2,13 +2,48 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { CreateSudaPostDto } from './dto/suda.dto';
+import { ChatGateway } from '../ws/chat.gateway';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class SudaService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly dataDir = path.resolve(process.cwd(), 'data');
+  private readonly sudaFilePath = path.join(this.dataDir, 'suda-posts.json');
+  private inMemoryPosts: any[] = [];
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => ChatGateway))
+    private readonly chatGateway: ChatGateway,
+  ) {
+    this.loadFromDisk();
+  }
+
+  private loadFromDisk() {
+    try {
+      if (fs.existsSync(this.sudaFilePath)) {
+        const raw = fs.readFileSync(this.sudaFilePath, 'utf-8');
+        this.inMemoryPosts = JSON.parse(raw);
+      }
+    } catch {
+      this.inMemoryPosts = [];
+    }
+  }
+
+  private saveToDisk() {
+    try {
+      if (!fs.existsSync(this.dataDir)) {
+        fs.mkdirSync(this.dataDir, { recursive: true });
+      }
+      fs.writeFileSync(this.sudaFilePath, JSON.stringify(this.inMemoryPosts, null, 2), 'utf-8');
+    } catch {}
+  }
 
   /**
    * 1줄 수다 토크 목록 조회
@@ -20,6 +55,9 @@ export class SudaService {
   }) {
     const { neighborhood, page = 1, limit = 30 } = params;
     const skip = (page - 1) * limit;
+
+    let dbItems: any[] = [];
+    let dbTotal = 0;
 
     const where: any = {};
     if (neighborhood && neighborhood.trim()) {
@@ -46,42 +84,47 @@ export class SudaService {
           },
         }),
       ]);
-
-      if (items && items.length > 0) {
-        return {
-          total,
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit),
-          items: items.map((p) => ({
-            id: p.id,
-            content: p.content,
-            neighborhood: p.neighborhood,
-            latitude: p.latitude,
-            longitude: p.longitude,
-            likesCount: p.likesCount,
-            repliesCount: p.repliesCount,
-            createdAt: p.createdAt,
-            author: {
-              id: p.author.id,
-              nickname: p.author.nickname || p.author.displayName || '이웃',
-              avatarUrl:
-                p.author.avatarUrl ||
-                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
-              trustScore: 99.0,
-            },
-          })),
-        };
-      }
+      dbTotal = total;
+      dbItems = (items || []).map((p) => ({
+        id: p.id,
+        title: (p as any).title || p.content,
+        content: p.content,
+        neighborhood: p.neighborhood,
+        entryFee: Number((p as any).entryFee || 0),
+        latitude: p.latitude,
+        longitude: p.longitude,
+        likesCount: p.likesCount,
+        repliesCount: p.repliesCount,
+        createdAt: p.createdAt,
+        author: {
+          id: p.author.id,
+          nickname: p.author.nickname || p.author.displayName || '이웃',
+          avatarUrl:
+            p.author.avatarUrl ||
+            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+          trustScore: 99.0,
+        },
+      }));
     } catch (err) {
       console.warn('[SudaService] DB query notice, using seed posts:', (err as any)?.message);
     }
 
+    // Merge in-memory/disk posts (newest first)
+    const combined = [...this.inMemoryPosts, ...dbItems];
+    const uniqueMap = new Map<string, any>();
+    combined.forEach((item) => {
+      if (!uniqueMap.has(item.id)) {
+        uniqueMap.set(item.id, item);
+      }
+    });
+
     const seedPosts = [
       {
         id: 'post-1',
+        title: '오늘 저녁 한강공원 산책 🌿',
         content: '오늘 날씨가 너무 좋아서 한강공원 산책 나왔어요 🌿 산책이나 피크닉 좋아하시는 동네 친구 계신가요?',
         neighborhood: '역삼1동',
+        entryFee: 0,
         latitude: 37.5006,
         longitude: 127.0365,
         likesCount: 15,
@@ -96,49 +139,41 @@ export class SudaService {
       },
       {
         id: 'post-2',
+        title: '주말 어쿠스틱 기타 소모임 🎸',
         content: '주말에 어쿠스틱 기타 소모임이나 가벼운 음악 세션 함께하실 분 구해요! 초보자분들도 환영합니다 🎸',
         neighborhood: '서초2동',
-        latitude: 37.4921,
-        longitude: 127.0253,
-        likesCount: 28,
-        repliesCount: 4,
-        createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+        entryFee: 500,
+        latitude: 37.4912,
+        longitude: 127.0234,
+        likesCount: 22,
+        repliesCount: 5,
+        createdAt: new Date(Date.now() - 75 * 60 * 1000).toISOString(),
         author: {
           id: 'u102',
-          nickname: '김민우',
-          avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
-          trustScore: 98.4,
-        },
-      },
-      {
-        id: 'post-3',
-        content: '퇴근하고 가볍게 커피 한잔하면서 이야기 나눌 동네 친구 만들고 싶어요 ☕ 판교/분당 쪽 환영해요!',
-        neighborhood: '대치동',
-        latitude: 37.4947,
-        longitude: 127.0628,
-        likesCount: 34,
-        repliesCount: 6,
-        createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
-        author: {
-          id: 'u103',
-          nickname: '박서연',
-          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
-          trustScore: 99.8,
+          nickname: '김도현',
+          avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200',
+          trustScore: 97.5,
         },
       },
     ];
 
-    let filtered = seedPosts;
-    if (neighborhood && neighborhood.trim()) {
-      filtered = filtered.filter((p) => p.neighborhood.includes(neighborhood.trim()));
-    }
+    seedPosts.forEach((s) => {
+      if (!uniqueMap.has(s.id)) {
+        uniqueMap.set(s.id, s);
+      }
+    });
+
+    const allItems = Array.from(uniqueMap.values());
+    const filtered = neighborhood && neighborhood.trim()
+      ? allItems.filter((p) => p.neighborhood?.includes(neighborhood.trim()))
+      : allItems;
 
     return {
       total: filtered.length,
       page,
       limit,
-      totalPages: 1,
-      items: filtered,
+      totalPages: Math.ceil(filtered.length / limit),
+      items: filtered.slice(skip, skip + limit),
     };
   }
 
@@ -194,8 +229,46 @@ export class SudaService {
    * 1줄 수다 토크 작성
    */
   async createPost(authorId: string, dto: CreateSudaPostDto) {
+    let authorName = '나 (이웃)';
+    let authorAvatar: string | null = null;
+
+    if (authorId && authorId !== 'usr_guest') {
+      try {
+        const u = await this.prisma.user.findUnique({
+          where: { id: authorId },
+          select: { nickname: true, displayName: true, avatarUrl: true },
+        });
+        if (u) {
+          authorName = u.nickname || u.displayName || authorName;
+          authorAvatar = u.avatarUrl || null;
+        }
+      } catch {}
+    }
+
+    const postItem = {
+      id: `suda-post-${Date.now()}`,
+      title: dto.title?.trim() || dto.content.trim(),
+      content: dto.content.trim(),
+      neighborhood: dto.neighborhood.trim(),
+      entryFee: Math.max(0, Number(dto.entryFee || 0)),
+      latitude: dto.latitude || 37.5006,
+      longitude: dto.longitude || 127.0365,
+      likesCount: 0,
+      repliesCount: 0,
+      createdAt: new Date().toISOString(),
+      author: {
+        id: authorId || 'usr_guest',
+        nickname: authorName,
+        avatarUrl:
+          authorAvatar ||
+          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+        trustScore: 99.0,
+      },
+    };
+
+    // Try DB insertion if available
     try {
-      const post = await this.prisma.sudaPost.create({
+      await this.prisma.sudaPost.create({
         data: {
           authorId: authorId || 'usr_guest',
           content: dto.content.trim(),
@@ -203,51 +276,18 @@ export class SudaService {
           latitude: dto.latitude,
           longitude: dto.longitude,
         },
-        include: {
-          author: {
-            select: {
-              id: true,
-              nickname: true,
-              displayName: true,
-              avatarUrl: true,
-            },
-          },
-        },
       });
-
-      return {
-        id: post.id,
-        content: post.content,
-        neighborhood: post.neighborhood,
-        latitude: post.latitude,
-        longitude: post.longitude,
-        likesCount: post.likesCount,
-        repliesCount: post.repliesCount,
-        createdAt: post.createdAt,
-        author: {
-          id: post.author.id,
-          nickname: post.author.nickname || post.author.displayName || '나',
-          avatarUrl: post.author.avatarUrl || null,
-        },
-      };
     } catch (err) {
-      console.warn('[SudaService] DB create notice, using resilient fallback:', (err as any)?.message);
-      return {
-        id: `post-user-${Date.now()}`,
-        content: dto.content.trim(),
-        neighborhood: dto.neighborhood.trim(),
-        latitude: dto.latitude,
-        longitude: dto.longitude,
-        likesCount: 0,
-        repliesCount: 0,
-        createdAt: new Date().toISOString(),
-        author: {
-          id: authorId || 'usr_guest',
-          nickname: '나 (이웃)',
-          avatarUrl: null,
-        },
-      };
+      console.warn('[SudaService] DB create notice, using resilient store:', (err as any)?.message);
     }
+
+    this.inMemoryPosts.unshift(postItem);
+    this.saveToDisk();
+
+    // Broadcast over WebSocket to all connected clients!
+    this.chatGateway.emitSudaPost(postItem);
+
+    return postItem;
   }
 
   /**

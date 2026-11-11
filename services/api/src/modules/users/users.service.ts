@@ -62,6 +62,8 @@ export class UsersService implements OnModuleInit {
     const interests = Array.isArray(ext.interests) ? ext.interests : ['소통', '일상', '친구'];
     const age = user.age !== undefined ? user.age : (ext.age !== undefined ? ext.age : 26);
     const gender = user.gender || ext.gender || '여';
+    const chatEntryFee = ext.chatEntryFee !== undefined ? Number(ext.chatEntryFee) : 30;
+    const liveEntryFee = ext.liveEntryFee !== undefined ? Number(ext.liveEntryFee) : 0;
 
     const pointBal = user.pointBalance ?? 0;
 
@@ -72,6 +74,8 @@ export class UsersService implements OnModuleInit {
       points: pointBal,
       balance: pointBal,
       spendableBalance: pointBal,
+      chatEntryFee,
+      liveEntryFee,
       nickname,
       displayName,
       avatarUrl,
@@ -98,6 +102,8 @@ export class UsersService implements OnModuleInit {
         interests,
         age,
         gender,
+        chatEntryFee,
+        liveEntryFee,
       },
       photos: (user.photos || []).map((p: any) => ({
         ...p,
@@ -177,6 +183,8 @@ export class UsersService implements OnModuleInit {
       ...(data.avatarUri !== undefined ? { avatarUrl: data.avatarUri, avatarUri: data.avatarUri } : {}),
       ...(data.age !== undefined ? { age: Number(data.age) } : {}),
       ...(data.gender !== undefined ? { gender: data.gender } : {}),
+      ...(data.chatEntryFee !== undefined ? { chatEntryFee: Math.max(0, Number(data.chatEntryFee)) } : {}),
+      ...(data.liveEntryFee !== undefined ? { liveEntryFee: Math.max(0, Number(data.liveEntryFee)) } : {}),
     };
     this.saveExtendedProfiles();
 

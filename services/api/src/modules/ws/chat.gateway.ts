@@ -46,14 +46,31 @@ export class ChatGateway
         (socket.handshake.query?.token as string) ||
         socket.handshake.headers.authorization?.replace('Bearer ', '');
 
+      const directUserId =
+        (socket.handshake.auth?.userId as string) ||
+        (socket.handshake.query?.userId as string);
+
+      if (directUserId) {
+        socket.join(`user_${directUserId}`);
+      }
+
       if (token) {
         try {
           const decoded = jwt.verify(token, this.jwtSecret) as any;
+          const uId = decoded?.sub || decoded?.id;
+          if (uId) {
+            socket.join(`user_${uId}`);
+          }
           const user = await this.authenticatedUserContext.resolveFromPayload(decoded);
           if (user) {
             socket.data.user = user;
             socket.join(`user_${user.id}`);
+            if (user.nickname) {
+              socket.join(`user_${user.nickname}`);
+            }
             this.logger.log(`User connected to WS: ${user.nickname} (${user.id})`);
+          } else if (uId) {
+            socket.data.user = { id: uId, nickname: decoded.nickname || '회원' };
           }
         } catch {
           // Token invalid or dummy - treat as guest
@@ -359,6 +376,171 @@ export class ChatGateway
   emitLiveViewerCount(roomId: string, count: number) {
     const channel = `live_room_${roomId}`;
     this.server.to(channel).emit('live:viewer_count', { roomId, viewerCount: count });
+  }
+
+  // =========================================================================
+  // 1:1 대화방 (Chat Rooms) 실시간 웹소켓 이벤트
+  // =========================================================================
+
+  /**
+   * 1:1 대화방 입장 (소켓 룸 조인)
+   */
+  @SubscribeMessage('chat:join')
+  handleChatJoin(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { chatId: string },
+  ) {
+    if (data?.chatId) {
+      const channel = `chat_room_${data.chatId}`;
+      socket.join(channel);
+      this.logger.log(`Socket ${socket.id} joined chat room: ${data.chatId}`);
+      return { ok: true, chatId: data.chatId };
+    }
+    return { ok: false };
+  }
+
+  /**
+   * 1:1 대화방 퇴장 (소켓 룸 퇴장)
+   */
+  @SubscribeMessage('chat:leave')
+  handleChatLeave(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { chatId: string },
+  ) {
+    if (data?.chatId) {
+      const channel = `chat_room_${data.chatId}`;
+      socket.leave(channel);
+      this.logger.log(`Socket ${socket.id} left chat room: ${data.chatId}`);
+      return { ok: true, chatId: data.chatId };
+    }
+    return { ok: false };
+  }
+
+  /**
+   * 실시간 타이핑 중 이벤트 전파
+   */
+  @SubscribeMessage('chat:typing')
+  handleChatTyping(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { chatId: string; typing: boolean },
+  ) {
+    if (data?.chatId) {
+      const user = socket.data?.user;
+      socket.to(`chat_room_${data.chatId}`).emit('chat:typing', {
+        chatId: data.chatId,
+        typing: Boolean(data.typing),
+        senderAccountId: user?.id || 'unknown',
+      });
+    }
+    return { ok: true };
+  }
+
+  /**
+   * 메시지 읽음 처리 이벤트 전파
+   */
+  @SubscribeMessage('chat:read')
+  handleChatRead(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { chatId: string },
+  ) {
+    if (data?.chatId) {
+      const user = socket.data?.user;
+      socket.to(`chat_room_${data.chatId}`).emit('chat:read', {
+        chatId: data.chatId,
+        readerId: user?.id,
+      });
+    }
+    return { ok: true };
+  }
+
+  /**
+   * 실시간 채팅 메시지 수신 및 중계
+   */
+  @SubscribeMessage('chat:message')
+  handleChatMessage(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: any,
+  ) {
+    const user = socket.data?.user;
+    const userId = user?.id || data?.senderAccountId || 'guest';
+    const chatId = data?.chatId;
+    if (!chatId) return { ok: false };
+
+    const payload = {
+      ...data,
+      senderAccountId: userId,
+      senderName: user?.nickname || user?.displayName || data.senderName || '대화 상대',
+      senderAvatar: user?.avatarUrl || data.senderAvatar || null,
+      createdAt: data.createdAt || new Date().toISOString(),
+    };
+
+    // 1) 대화방 내부 전체에 실시간 메시지 브로드캐스트
+    this.server.to(`chat_room_${chatId}`).emit('chat:message', payload);
+
+    // 2) 대화 상대방(외부 화면/목록/타 탭)에게 실시간 인앱 알림 & "모꼬" 사운드 트리거 브로드캐스트
+    if (data?.targetUserId && data.targetUserId !== userId) {
+      this.server.to(`user_${data.targetUserId}`).emit('chat:incoming', {
+        chatId,
+        sender: {
+          id: userId,
+          nickname: payload.senderName,
+          avatarUrl: payload.senderAvatar,
+        },
+        content: data.content,
+        type: data.type || 'text',
+        createdAt: payload.createdAt,
+      });
+    }
+
+    return { ok: true, data: payload };
+  }
+
+  // =========================================================================
+  // 외부(서비스/컨트롤러) 호출용 브로드캐스트 메소드
+  // =========================================================================
+
+  /**
+   * 대화방 메시지 브로드캐스트 및 수신자에게 팝업 알림("모꼬" 사운드) 전송
+   */
+  emitChatMessage(chatId: string, message: any, targetUserId?: string) {
+    this.server.to(`chat_room_${chatId}`).emit('chat:message', message);
+    if (targetUserId) {
+      this.server.to(`user_${targetUserId}`).emit('chat:incoming', {
+        chatId,
+        sender: {
+          id: message.senderAccountId,
+          nickname: message.senderName || '대화 상대',
+          avatarUrl: message.senderAvatar || null,
+        },
+        content: message.content,
+        type: message.type || 'text',
+        createdAt: message.createdAt || new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
+   * 상대방에게 1:1 대화방 인앱 알림 전파
+   */
+  emitIncomingChat(targetUserId: string, payload: any) {
+    this.server.to(`user_${targetUserId}`).emit('chat:incoming', payload);
+  }
+
+  /**
+   * 대화방 목록 업데이트 이벤트 (마지막 메시지 및 시간 실시간 동기화)
+   */
+  emitChatRoomUpdated(participantIds: string[], room: any) {
+    participantIds.forEach((pid) => {
+      this.server.to(`user_${pid}`).emit('chat:room_updated', room);
+    });
+  }
+
+  /**
+   * 신규 1줄 수다 토크 브로드캐스트 (전체 사용자 실시간 피드 반영)
+   */
+  emitSudaPost(post: any) {
+    this.server.emit('suda:new_post', post);
+    this.logger.log(`[WS Suda Broadcast] New Suda post: ${post.id}`);
   }
 }
 

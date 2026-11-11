@@ -1,5 +1,6 @@
-import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
+import { ChatGateway } from '../ws/chat.gateway';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -290,7 +291,11 @@ export class ChatService implements OnModuleInit {
     ],
   };
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => ChatGateway))
+    private readonly chatGateway: ChatGateway,
+  ) {}
 
   onModuleInit() {
     this.loadFromDisk();
@@ -349,9 +354,45 @@ export class ChatService implements OnModuleInit {
   }
 
   async getChats(userId?: string): Promise<ChatRoomItem[]> {
-    return this.rooms.sort(
+    const sorted = [...this.rooms].sort(
       (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime(),
     );
+
+    if (!userId || userId === 'guest') {
+      return sorted;
+    }
+
+    // Filter to rooms where user is participant, host, or counterpart, or mock rooms
+    const userRooms = sorted.filter((r) =>
+      r.participantIds?.includes(userId) ||
+      r.hostId === userId ||
+      r.creatorId === userId ||
+      r.counterpart?.id === userId ||
+      r.id.startsWith('chat-mock-')
+    );
+
+    // Compute counterpart perspective for this user
+    return userRooms.map((r) => {
+      let otherUser = r.counterpart;
+      let title = r.title;
+
+      // If the requesting user is the counterpart, then for them the other user is host!
+      if (r.counterpart?.id === userId && r.host) {
+        otherUser = {
+          id: r.host.id,
+          displayName: r.host.displayName,
+          avatarUrl: r.host.avatarUrl,
+          online: true,
+        };
+        title = r.host.displayName;
+      }
+
+      return {
+        ...r,
+        title,
+        counterpart: otherUser,
+      };
+    });
   }
 
   getRoom(roomId: string): ChatRoomItem | undefined {
@@ -371,23 +412,48 @@ export class ChatService implements OnModuleInit {
       (r) =>
         !r.isGroup &&
         (r.counterpart?.id === targetUserId ||
-          (r.participantIds.includes(userId) && r.participantIds.includes(targetUserId))),
+          (r.participantIds?.includes(userId) && r.participantIds?.includes(targetUserId))),
     );
 
     if (existing) {
       return existing;
     }
 
+    let hostName = '나';
+    let hostAvatar: string | null = null;
+    try {
+      const dbHost = await this.prisma.user.findFirst({
+        where: {
+          OR: [
+            { id: userId },
+            { nickname: userId },
+          ],
+        },
+        include: { photos: { take: 1, orderBy: { sortOrder: 'asc' } } },
+      });
+      if (dbHost) {
+        hostName = dbHost.nickname || dbHost.displayName || '나';
+        hostAvatar = dbHost.avatarUrl || dbHost.photos?.[0]?.url || null;
+      }
+    } catch {}
+
     let targetName = '대화 상대';
     let targetAvatar: string | null = null;
+    let entryFee = 0;
     try {
-      const u = await this.prisma.user.findUnique({
-        where: { id: targetUserId },
+      const u = await this.prisma.user.findFirst({
+        where: {
+          OR: [
+            { id: targetUserId },
+            { nickname: targetUserId },
+          ],
+        },
         include: { photos: { take: 1, orderBy: { sortOrder: 'asc' } } },
       });
       if (u) {
         targetName = u.nickname || u.displayName || '대화 상대';
         targetAvatar = u.avatarUrl || u.photos?.[0]?.url || null;
+        entryFee = (u as any).chatEntryFee || 0;
       }
     } catch {}
 
@@ -395,9 +461,16 @@ export class ChatService implements OnModuleInit {
       id: `chat-direct-${Date.now()}`,
       title: targetName,
       category: '1:1',
-      entryFee: 0,
+      entryFee,
       isGroup: false,
       participantIds: [userId, targetUserId],
+      hostId: userId,
+      creatorId: userId,
+      host: {
+        id: userId,
+        displayName: hostName,
+        avatarUrl: hostAvatar,
+      },
       counterpart: {
         id: targetUserId,
         displayName: targetName,
@@ -416,13 +489,17 @@ export class ChatService implements OnModuleInit {
         id: `msg-welcome-${Date.now()}`,
         chatId: newRoom.id,
         senderAccountId: 'system',
-        content: `🎉 ${targetName}님과의 1:1 대화방이 열렸습니다.`,
+        content: `🎉 ${targetName}님과의 1:1 대화방이 열렸습니다. (입장료: ${entryFee > 0 ? `${entryFee} 꿀떡` : '무료'})`,
         type: 'text',
         createdAt: new Date().toISOString(),
       },
     ];
 
     this.saveToDisk();
+
+    // Broadcast room created event to participants
+    this.chatGateway.emitChatRoomUpdated([userId, targetUserId], newRoom);
+
     return newRoom;
   }
 
@@ -575,11 +652,28 @@ export class ChatService implements OnModuleInit {
     },
   ): Promise<ChatMessageItem> {
     const { chatId, content, type = 'text', giftPoints, giftName, giftIcon } = dto;
+
+    let senderName = userId === 'guest' ? '나' : undefined;
+    let senderAvatar: string | undefined;
+    if (userId && userId !== 'guest') {
+      try {
+        const u = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { nickname: true, displayName: true, avatarUrl: true },
+        });
+        if (u) {
+          senderName = u.nickname || u.displayName || '대화 상대';
+          senderAvatar = u.avatarUrl || undefined;
+        }
+      } catch {}
+    }
+
     const msg: ChatMessageItem = {
       id: dto.clientMessageId || `msg-${Date.now()}`,
       chatId,
       senderAccountId: userId,
-      senderName: userId === 'guest' ? '나' : undefined,
+      senderName,
+      senderAvatar,
       content,
       type,
       giftPoints: giftPoints !== undefined ? Number(giftPoints) : null,
@@ -594,12 +688,28 @@ export class ChatService implements OnModuleInit {
     this.messagesStore[chatId].push(msg);
 
     const room = this.rooms.find((r) => r.id === chatId);
+    let targetUserId: string | undefined;
     if (room) {
       room.lastMessage = content;
       room.lastMessageAt = msg.createdAt;
+      targetUserId = room.participantIds?.find((id) => id !== userId);
+      if (!targetUserId && room.counterpart?.id && room.counterpart.id !== userId) {
+        targetUserId = room.counterpart.id;
+      }
+      if (!targetUserId && room.hostId && room.hostId !== userId) {
+        targetUserId = room.hostId;
+      }
     }
 
     this.saveToDisk();
+
+    // Broadcast message to room and notify target user
+    this.chatGateway.emitChatMessage(chatId, msg, targetUserId);
+
+    if (room && room.participantIds) {
+      this.chatGateway.emitChatRoomUpdated(room.participantIds, room);
+    }
+
     return msg;
   }
 

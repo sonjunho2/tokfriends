@@ -44,7 +44,8 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
     path.startsWith('users/check-nickname') ||
     path.startsWith('users/search') ||
     path.startsWith('media') ||
-    path.startsWith('suda')
+    path.startsWith('suda') ||
+    path.startsWith('chats')
 
   if (!token && !incomingAuth && !isPublicEndpoint) {
     return NextResponse.json({ message: 'Authentication required.' }, { status: 401, headers: { 'Cache-Control': 'no-store' } })
