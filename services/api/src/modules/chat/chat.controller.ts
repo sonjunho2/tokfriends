@@ -34,8 +34,18 @@ export class ChatController {
   async ensureDirectRoom(@CurrentUser() user: any, @Body() body: any) {
     const userId = user?.id || user?.sub || body.userId || body.senderAccountId || 'guest';
     const targetUserId = body.targetUserId || body.targetAccountId;
-    const room = await this.chatService.ensureDirectRoom(userId, targetUserId);
+    const senderNickname = body.senderNickname || user?.nickname || user?.displayName;
+    const targetNickname = body.targetNickname || body.targetName;
+    const room = await this.chatService.ensureDirectRoom(userId, targetUserId, senderNickname, targetNickname);
     return { ok: true, data: room, room };
+  }
+
+  @Public()
+  @Post(':id/read')
+  async markChatRead(@CurrentUser() user: any, @Param('id') id: string, @Body() body: any) {
+    const userId = user?.id || user?.sub || body.userId || body.readerId || body.readerAccountId || 'guest';
+    this.chatService.markAsRead(id, userId);
+    return { ok: true };
   }
 
   @Public()

@@ -250,6 +250,7 @@ export interface ChatMessageItem {
   text: string
   time: string
   isMe?: boolean
+  unread?: boolean
   type?: 'text' | 'media' | 'gift'
   media?: {
     uri: string
@@ -2317,6 +2318,20 @@ export default function CustomerWebStorefrontPage() {
       )
     })
 
+    // 2-1) 실시간 읽음 처리 (상대방이 읽었을 때 내 메시지의 '1' 즉시 제거)
+    socket.on('chat:read', (data: any) => {
+      if (!data || !data.chatId) return
+      if (activeChatRoomRef.current && activeChatRoomRef.current.id === data.chatId) {
+        setActiveChatRoom((prev) => {
+          if (!prev) return null
+          return {
+            ...prev,
+            messages: prev.messages.map((m) => (m.isMe ? { ...m, unread: false } : m)),
+          }
+        })
+      }
+    })
+
     // 3) 같은 방 참가자 간 메시지 수신 (웹 본인 메시지 에코/복제 방지 및 선물 수신 완벽 처리)
     socket.on('chat:message', (data: any) => {
       if (!data) return
@@ -2357,6 +2372,18 @@ export default function CustomerWebStorefrontPage() {
       }
 
       if (activeChatRoomRef.current && (activeChatRoomRef.current.id === data.chatId || data.chatId?.includes(activeChatRoomRef.current.targetNickname))) {
+        // 상대방이 새 메시지를 보냈으므로 내 기존 메시지들의 '1' 즉시 삭제 및 읽음 이벤트 전송
+        socket.emit('chat:read', {
+          chatId: data.chatId || activeChatRoomRef.current.id,
+          readerId: user?.id,
+          readerAccountId: user?.id,
+        });
+        fetch('/api/v1/chats/' + (data.chatId || activeChatRoomRef.current.id) + '/read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user?.id, readerId: user?.id }),
+        }).catch(() => {});
+
         setActiveChatRoom((prev) => {
           if (!prev) return null
           // 이미 추가된 동일 ID 메시지 중복 방지
@@ -2365,7 +2392,7 @@ export default function CustomerWebStorefrontPage() {
             ...prev,
             lastMessage: isGift ? `🎁 ${newMsg.gift?.name || '선물'}을 받았습니다!` : (isMedia ? '📷 사진' : newMsg.text),
             lastTime: '방금',
-            messages: [...prev.messages, newMsg],
+            messages: [...prev.messages.map((m) => (m.isMe ? { ...m, unread: false } : m)), newMsg],
           }
         })
 
@@ -7027,7 +7054,22 @@ export default function CustomerWebStorefrontPage() {
                             return (
                               <div
                                 key={room.id}
-                                onClick={() => setActiveChatRoom(room)}
+                                onClick={() => {
+                                  setActiveChatRoom({ ...room, unreadCount: 0 });
+                                  setChatRooms((prev) => prev.map((r) => r.id === room.id ? { ...r, unreadCount: 0 } : r));
+                                  if (socketRef.current) {
+                                    socketRef.current.emit('chat:read', {
+                                      chatId: room.id,
+                                      readerId: user?.id,
+                                      readerAccountId: user?.id,
+                                    });
+                                  }
+                                  fetch('/api/v1/chats/' + room.id + '/read', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ userId: user?.id, readerId: user?.id }),
+                                  }).catch(() => {});
+                                }}
                                 className={`p-3.5 flex items-start gap-3.5 transition-all cursor-pointer ${
                                   isActive
                                     ? 'bg-blue-50/80 border-l-4 border-blue-600 shadow-2xs'
@@ -7074,7 +7116,14 @@ export default function CustomerWebStorefrontPage() {
                                       </button>
                                     </div>
                                   </div>
-                                  <p className="text-xs text-slate-600 truncate">{room.lastMessage}</p>
+                                  <div className="flex items-center justify-between gap-1">
+                                    <p className="text-xs text-slate-600 truncate flex-1">{room.lastMessage}</p>
+                                    {room.unreadCount > 0 && (
+                                      <span className="ml-1 inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-[#FF3B6B] text-[10px] font-extrabold text-white shrink-0 shadow-2xs">
+                                        {room.unreadCount}
+                                      </span>
+                                    )}
+                                  </div>
                                   {room.productInfo && (
                                     <div className="flex items-center gap-1.5 mt-1.5 p-1 px-1.5 bg-orange-50/80 rounded-lg border border-orange-200/60 text-[10px] text-slate-700">
                                       <span className="font-bold text-orange-600 shrink-0">📌 거래물품:</span>
@@ -7279,7 +7328,9 @@ export default function CustomerWebStorefrontPage() {
                                   /* [내 메시지: 오른쪽 카카오톡 옐로우 말풍선 & 노란색 1 / 사진 첨부] */
                                   <div className="flex items-end gap-1.5 max-w-[85%] justify-end">
                                     <div className="flex flex-col items-end text-[9px] text-slate-600 shrink-0 mb-0.5">
-                                      <span className="text-amber-500 font-extrabold text-[10px] leading-tight">1</span>
+                                      {msg.unread !== false && (
+                                        <span className="text-amber-500 font-extrabold text-[10px] leading-tight">1</span>
+                                      )}
                                       <span>{msg.time}</span>
                                     </div>
                                     {msg.media?.uri ? (

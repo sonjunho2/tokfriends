@@ -474,13 +474,17 @@ export class ChatGateway
   @SubscribeMessage('chat:read')
   handleChatRead(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() data: { chatId: string },
+    @MessageBody() data: { chatId: string; readerId?: string; readerAccountId?: string },
   ) {
     if (data?.chatId) {
       const user = socket.data?.user;
+      const readerId = data?.readerId || data?.readerAccountId || user?.id || (user as any)?.nickname;
+      const readAt = new Date().toISOString();
       socket.to(`chat_room_${data.chatId}`).emit('chat:read', {
         chatId: data.chatId,
-        readerId: user?.id,
+        readerId,
+        readerAccountId: readerId,
+        readAt,
       });
     }
     return { ok: true };

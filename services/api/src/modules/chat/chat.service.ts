@@ -13,6 +13,7 @@ export interface ChatMessageItem {
   content: string;
   type: string;
   createdAt: string;
+  readAt?: string | null;
   giftPoints?: number | null;
   giftName?: string | null;
   giftIcon?: string | null;
@@ -394,19 +395,43 @@ export class ChatService implements OnModuleInit {
           (r.counterpart?.id === userNickname || r.counterpart?.displayName === userNickname));
       // If the requesting user is the counterpart, then for them the other user is host!
       if (isCurrentCounterpart && r.host) {
+        let hostName = r.host.displayName;
+        if (!hostName || hostName === '나' || hostName === userNickname || hostName === userId) {
+          hostName = r.host.id && r.host.id !== userId ? r.host.id : '대화 상대';
+        }
         otherUser = {
           id: r.host.id,
-          displayName: r.host.displayName,
+          displayName: hostName,
           avatarUrl: r.host.avatarUrl,
           online: true,
         };
-        title = r.host.displayName;
+        title = hostName;
       }
+
+      if (otherUser && (!otherUser.displayName || otherUser.displayName === '나')) {
+        const altId = r.participantIds?.find((id) => id !== userId && id !== userNickname);
+        otherUser = {
+          ...otherUser,
+          displayName: altId || '대화 상대',
+        };
+        title = otherUser.displayName;
+      }
+
+      // Compute dynamic unreadCount for current user
+      const msgs = this.messagesStore[r.id] || [];
+      const computedUnread = msgs.filter(
+        (m) =>
+          m.senderAccountId !== userId &&
+          (!userNickname || m.senderAccountId !== userNickname) &&
+          m.senderAccountId !== 'system' &&
+          !m.readAt,
+      ).length;
 
       return {
         ...r,
         title,
         counterpart: otherUser,
+        unreadCount: computedUnread,
       };
     });
   }
@@ -423,19 +448,42 @@ export class ChatService implements OnModuleInit {
     return room;
   }
 
-  async ensureDirectRoom(userId: string, targetUserId: string): Promise<ChatRoomItem> {
+  markAsRead(chatId: string, userId: string): void {
+    const msgs = this.messagesStore[chatId];
+    if (Array.isArray(msgs)) {
+      let changed = false;
+      const now = new Date().toISOString();
+      for (const m of msgs) {
+        if (m.senderAccountId !== userId && !m.readAt) {
+          m.readAt = now;
+          changed = true;
+        }
+      }
+      const room = this.rooms.find((r) => r.id === chatId);
+      if (room) {
+        room.unreadCount = 0;
+      }
+      if (changed) {
+        this.saveToDisk();
+      }
+    }
+  }
+
+  async ensureDirectRoom(
+    userId: string,
+    targetUserId: string,
+    senderNickname?: string,
+    targetNickname?: string,
+  ): Promise<ChatRoomItem> {
     const existing = this.rooms.find(
       (r) =>
         !r.isGroup &&
         (r.counterpart?.id === targetUserId ||
+          r.counterpart?.id === targetNickname ||
           (r.participantIds?.includes(userId) && r.participantIds?.includes(targetUserId))),
     );
 
-    if (existing) {
-      return existing;
-    }
-
-    let hostName = '나';
+    let hostName = senderNickname || (userId && userId !== 'guest' ? userId : '회원');
     let hostAvatar: string | null = null;
     let dbHost: any = null;
     try {
@@ -449,12 +497,12 @@ export class ChatService implements OnModuleInit {
         include: { photos: { take: 1, orderBy: { sortOrder: 'asc' } } },
       });
       if (dbHost) {
-        hostName = dbHost.nickname || dbHost.displayName || '나';
+        hostName = dbHost.nickname || dbHost.displayName || hostName;
         hostAvatar = dbHost.avatarUrl || dbHost.photos?.[0]?.url || null;
       }
     } catch {}
 
-    let targetName = '대화 상대';
+    let targetName = targetNickname || (targetUserId && targetUserId !== 'guest' ? targetUserId : '대화 상대');
     let targetAvatar: string | null = null;
     let entryFee = 0;
     let u: any = null;
@@ -469,11 +517,22 @@ export class ChatService implements OnModuleInit {
         include: { photos: { take: 1, orderBy: { sortOrder: 'asc' } } },
       });
       if (u) {
-        targetName = u.nickname || u.displayName || '대화 상대';
+        targetName = u.nickname || u.displayName || targetName;
         targetAvatar = u.avatarUrl || u.photos?.[0]?.url || null;
         entryFee = (u as any).chatEntryFee || 0;
       }
     } catch {}
+
+    if (existing) {
+      // Fix potential '나' display name bug in existing room
+      if (existing.host && (!existing.host.displayName || existing.host.displayName === '나')) {
+        existing.host.displayName = hostName;
+      }
+      if (existing.counterpart && (!existing.counterpart.displayName || existing.counterpart.displayName === '나')) {
+        existing.counterpart.displayName = targetName;
+      }
+      return existing;
+    }
 
     const participants = Array.from(
       new Set(

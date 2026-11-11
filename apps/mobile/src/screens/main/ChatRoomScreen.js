@@ -32,6 +32,7 @@ import { removeChatRoom } from '../../services/sudaService';
 import { useAuth } from '../../context/AuthContext';
 import GiftEffectOverlay from '../../components/GiftEffectOverlay';
 import GiftPickerSheet from '../../components/GiftPickerSheet';
+import { setActiveChatRoomId } from '../../components/common/InAppNotificationBanner';
 import {
   CHAT_SOCKET_EVENTS,
   createChatSocket,
@@ -296,10 +297,12 @@ export default function ChatRoomScreen({ route, navigation }) {
 
   // 하단 탭바 숨기기 (채팅방 화면에서는 하단 탭바 완전 숨김)
   useEffect(() => {
+    setActiveChatRoomId(chatId);
     navigation.getParent()?.setOptions({
       tabBarStyle: { display: 'none' },
     });
     return () => {
+      setActiveChatRoomId(null);
       navigation.getParent()?.setOptions({
         tabBarStyle: undefined,
       });
@@ -646,6 +649,12 @@ export default function ChatRoomScreen({ route, navigation }) {
     const handleConnect = () => {
       if (chatId) {
         socket.emit(CHAT_SOCKET_EVENTS.JOIN, { chatId });
+        socket.emit(CHAT_SOCKET_EVENTS.READ, {
+          chatId,
+          readerId: currentActivityAccountId,
+          readerAccountId: currentActivityAccountId,
+        });
+        try { apiClient.markChatRead(chatId).catch(() => {}); } catch {}
       }
     };
 
@@ -661,10 +670,19 @@ export default function ChatRoomScreen({ route, navigation }) {
         appendUniquePersistedMessage(nextMessage);
 
         if (nextMessage.sender === 'other') {
+          setMessages((currentMessages) =>
+            currentMessages.map((msg) =>
+              msg.sender === 'me' && !msg.readAt ? { ...msg, readAt: new Date().toISOString() } : msg,
+            ),
+          );
           try {
             apiClient.markChatRead(chatId).catch(() => {});
-            if (socket.connected && socketAuthReadyRef.current) {
-              socket.emit(CHAT_SOCKET_EVENTS.READ, { chatId });
+            if (socket.connected) {
+              socket.emit(CHAT_SOCKET_EVENTS.READ, {
+                chatId,
+                readerId: currentActivityAccountId,
+                readerAccountId: currentActivityAccountId,
+              });
             }
           } catch {}
 
@@ -722,11 +740,11 @@ export default function ChatRoomScreen({ route, navigation }) {
 
     const handleRealtimeRead = (payload) => {
       if (!payload || payload.chatId !== chatId) return;
-      const readerAccountId =
-        typeof payload.readerAccountId === 'string'
-          ? payload.readerAccountId.trim()
-          : '';
-      if (readerAccountId && readerAccountId !== currentActivityAccountId) {
+      const readerId =
+        (typeof payload.readerAccountId === 'string' && payload.readerAccountId.trim())
+          || (typeof payload.readerId === 'string' && payload.readerId.trim())
+          || '';
+      if (!readerId || readerId !== currentActivityAccountId) {
         const readAt = payload.readAt || new Date().toISOString();
         setMessages((currentMessages) =>
           currentMessages.map((msg) =>

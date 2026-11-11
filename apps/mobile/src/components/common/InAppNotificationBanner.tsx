@@ -42,6 +42,12 @@ const InAppNotificationContext = createContext<InAppNotificationContextType>({
 
 export const useInAppNotification = () => useContext(InAppNotificationContext);
 
+// Global active chat room tracker to prevent duplicate in-room popup banners
+export let currentActiveChatRoomId: string | null = null;
+export const setActiveChatRoomId = (id: string | null) => {
+  currentActiveChatRoomId = id;
+};
+
 // Hidden HTML Audio Player using Web Audio API for crystal-clear "모~꼬!" melodic chime
 const AUDIO_HTML = `
 <!DOCTYPE html>
@@ -169,6 +175,22 @@ export function InAppNotificationProvider({ children }: { children: React.ReactN
       if (!payload) return;
       // Don't notify if sent by me
       if (payload.sender?.id && String(payload.sender.id) === String(user.id)) return;
+
+      // Don't show popup notification if user is currently inside this chat room
+      if (currentActiveChatRoomId && String(currentActiveChatRoomId) === String(payload.chatId)) {
+        return;
+      }
+      try {
+        if (navigationRef.isReady()) {
+          const currentRoute = navigationRef.getCurrentRoute();
+          if (currentRoute?.name === 'ChatRoom') {
+            const activeId = (currentRoute.params as any)?.id || (currentRoute.params as any)?.chatId;
+            if (activeId && String(activeId) === String(payload.chatId)) {
+              return;
+            }
+          }
+        }
+      } catch {}
 
       showNotification({
         chatId: payload.chatId,
