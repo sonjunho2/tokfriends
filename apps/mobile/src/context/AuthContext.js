@@ -194,59 +194,66 @@ export const AuthProvider = ({ children }) => {
     const cleanEmail = String(email || '').trim().toLowerCase();
     const cleanPassword = String(password || '').trim();
 
-    // 🧪 라이브 방송 송출 및 시청 테스트 계정 프리셋 (오프라인/네트워크 무관 100% 즉시 인증)
-    if (cleanEmail === 'test01@te.te' && cleanPassword === '12345678') {
-      const mockTest01 = normalizeAuthUser({
-        id: 'user_test01',
-        email: 'test01@te.te',
-        nickname: '테스터01(스트리머)',
-        displayName: '테스터01(스트리머)',
-        role: 'CREATOR',
-        pointBalance: 50000,
-        points: 50000,
-        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
-        avatarUri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
-        bio: '모꼬 공식 라이브 호스트(스트리머) 테스트 계정',
-      });
-      await saveToken('token_test01_creator');
-      await saveStoredUser(mockTest01);
-      try {
-        await AsyncStorage.setItem('@mocco_onboarded', 'true');
-        await AsyncStorage.setItem('@mocco_permission_guided', 'true');
-      } catch {}
-      setState({ user: mockTest01, token: 'token_test01_creator', initializing: false, isOffline: false });
-      return { success: true, user: mockTest01 };
-    }
-
-    if (cleanEmail === 'test02@te.te' && cleanPassword === '12345678') {
-      const mockTest02 = normalizeAuthUser({
-        id: 'user_test02',
-        email: 'test02@te.te',
-        nickname: '테스터02(시청자)',
-        displayName: '테스터02(시청자)',
-        role: 'USER',
-        pointBalance: 200000,
-        points: 200000,
-        avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200',
-        avatarUri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200',
-        bio: '모꼬 라이브 시청 및 3D 선물 테스트 계정',
-      });
-      await saveToken('token_test02_viewer');
-      await saveStoredUser(mockTest02);
-      try {
-        await AsyncStorage.setItem('@mocco_onboarded', 'true');
-        await AsyncStorage.setItem('@mocco_permission_guided', 'true');
-      } catch {}
-      setState({ user: mockTest02, token: 'token_test02_viewer', initializing: false, isOffline: false });
-      return { success: true, user: mockTest02 };
-    }
-
+    // 1. 실서비스 백엔드 정식 로그인 시도 (test01, test02 모두 정식 일반 회원 role: 'user' 및 실제 JWT 발급)
     try {
-      const res = await apiClient.login(email, password);
+      const res = await apiClient.login(cleanEmail, cleanPassword);
       const token = res?.access_token || res?.token || res?.accessToken || res?.data?.token || res?.data?.accessToken;
       if (!token) throw new Error('토큰 응답이 비어 있습니다.');
+      try {
+        await AsyncStorage.setItem('@mocco_onboarded', 'true');
+        await AsyncStorage.setItem('@mocco_permission_guided', 'true');
+      } catch {}
       return await authenticateWithToken(token, res?.user || res?.data?.user);
     } catch (e) {
+      console.warn('Backend login attempt notice:', e?.message);
+
+      // 오프라인/네트워크 단절 환경 대비 폴백 프리셋
+      if (cleanEmail === 'test01@te.te' && cleanPassword === '12345678') {
+        const mockTest01 = normalizeAuthUser({
+          id: 'user_test01',
+          email: 'test01@te.te',
+          nickname: '테스터01',
+          displayName: '테스터01(스트리머)',
+          role: 'user',
+          pointBalance: 100000,
+          points: 100000,
+          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+          avatarUri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+          bio: '모꼬 공식 라이브 스트리머 테스트 계정',
+        });
+        await saveToken('token_test01_creator');
+        await saveStoredUser(mockTest01);
+        try {
+          await AsyncStorage.setItem('@mocco_onboarded', 'true');
+          await AsyncStorage.setItem('@mocco_permission_guided', 'true');
+        } catch {}
+        setState({ user: mockTest01, token: 'token_test01_creator', initializing: false, isOffline: true });
+        return { success: true, user: mockTest01 };
+      }
+
+      if (cleanEmail === 'test02@te.te' && cleanPassword === '12345678') {
+        const mockTest02 = normalizeAuthUser({
+          id: 'user_test02',
+          email: 'test02@te.te',
+          nickname: '테스터02',
+          displayName: '테스터02(시청자)',
+          role: 'user',
+          pointBalance: 500000,
+          points: 500000,
+          avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
+          avatarUri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
+          bio: '모꼬 라이브 시청 및 꿀떡 선물 테스트 계정',
+        });
+        await saveToken('token_test02_viewer');
+        await saveStoredUser(mockTest02);
+        try {
+          await AsyncStorage.setItem('@mocco_onboarded', 'true');
+          await AsyncStorage.setItem('@mocco_permission_guided', 'true');
+        } catch {}
+        setState({ user: mockTest02, token: 'token_test02_viewer', initializing: false, isOffline: true });
+        return { success: true, user: mockTest02 };
+      }
+
       return { success: false, error: e?.message || '아이디 또는 비밀번호를 확인해 주세요.' };
     }
   };

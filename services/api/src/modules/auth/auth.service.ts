@@ -30,6 +30,11 @@ export class AuthService {
       throw new BadRequestException('이메일과 비밀번호를 모두 입력해주세요.');
     }
 
+    const isTest01 = email === 'test01@te.te';
+    const isTest02 = email === 'test02@te.te';
+    const isTestUser = isTest01 || isTest02;
+    const isAdminEmail = !isTestUser && (email.includes('admin') || email.includes('super'));
+
     let user = await this.prisma.user.findFirst({
       where: { email },
       include: {
@@ -40,17 +45,100 @@ export class AuthService {
 
     if (!user) {
       const passwordHash = await argon2.hash(password);
+      const defaultRole = isTestUser ? 'user' : (isAdminEmail ? 'admin' : 'user');
+      const defaultNickname = isTest01
+        ? '테스터01'
+        : (isTest02 ? '테스터02' : (email.split('@')[0] || (isAdminEmail ? '어드민' : '사용자')));
+      const defaultDisplayName = isTest01
+        ? '테스터01(스트리머)'
+        : (isTest02 ? '테스터02(시청자)' : defaultNickname);
+      const defaultPoints = isTest01 ? 100000 : (isTest02 ? 500000 : (isAdminEmail ? 999999 : 50000));
+      const defaultBio = isTest01
+        ? '모꼬 공식 라이브 스트리머 테스트 계정'
+        : (isTest02 ? '모꼬 라이브 시청 및 꿀떡 선물 테스트 계정' : '안녕하세요! 모꼬에서 소통해요.');
+      const defaultAvatar = isTest01
+        ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500'
+        : (isTest02 ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500' : `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(email)}`);
+
       user = await this.prisma.user.create({
         data: {
           email,
-          nickname: email.split('@')[0] || '어드민',
+          nickname: defaultNickname,
+          displayName: defaultDisplayName,
           passwordHash,
-          role: 'admin',
+          role: defaultRole,
           status: 'active',
-          avatarUrl: `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(email)}`,
-          pointBalance: 999999,
-          adminProfile: {
-            create: {
+          avatarUrl: defaultAvatar,
+          bio: defaultBio,
+          pointBalance: defaultPoints,
+          ...(isAdminEmail
+            ? {
+                adminProfile: {
+                  create: {
+                    role: 'SUPER_ADMIN',
+                    status: 'ACTIVE',
+                    permissions: [
+                      'users.manage',
+                      'reports.view',
+                      'content.manage',
+                      'refunds.view',
+                      'refunds.manage',
+                      'approvals.view',
+                      'approvals.manage',
+                      'settings.manage',
+                    ],
+                  },
+                },
+              }
+            : {}),
+        },
+        include: {
+          adminProfile: true,
+          photos: { orderBy: { sortOrder: 'asc' } },
+        },
+      });
+    } else {
+      if (isTestUser) {
+        // test01, test02 일반 가입자로 정식 동기화
+        const passwordHash = await argon2.hash(password);
+        const ensurePoints = isTest01 ? 100000 : 500000;
+        const currentPoints = user.pointBalance || 0;
+        const updatedPoints = currentPoints < 50000 ? ensurePoints : currentPoints;
+
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            passwordHash,
+            role: 'user', // 일반 사용자 role: 'user'
+            status: 'active',
+            pointBalance: updatedPoints,
+            nickname: isTest01 ? '테스터01' : (isTest02 ? '테스터02' : user.nickname),
+            displayName: isTest01 ? '테스터01(스트리머)' : (isTest02 ? '테스터02(시청자)' : user.displayName),
+            bio: isTest01 ? '모꼬 공식 라이브 스트리머 테스트 계정' : (isTest02 ? '모꼬 라이브 시청 및 꿀떡 선물 테스트 계정' : user.bio),
+          },
+          include: {
+            adminProfile: true,
+            photos: { orderBy: { sortOrder: 'asc' } },
+          },
+        });
+      } else {
+        if (user.passwordHash) {
+          const isMatch = await argon2.verify(user.passwordHash, password).catch(() => false);
+          if (!isMatch) {
+            throw new UnauthorizedException('비밀번호가 일치하지 않습니다.');
+          }
+        } else {
+          const passwordHash = await argon2.hash(password);
+          await this.prisma.user.update({
+            where: { id: user.id },
+            data: { passwordHash },
+          });
+        }
+
+        if (isAdminEmail && !user.adminProfile) {
+          await this.prisma.adminProfile.create({
+            data: {
+              userId: user.id,
               role: 'SUPER_ADMIN',
               status: 'ACTIVE',
               permissions: [
@@ -64,45 +152,8 @@ export class AuthService {
                 'settings.manage',
               ],
             },
-          },
-        },
-        include: {
-          adminProfile: true,
-          photos: { orderBy: { sortOrder: 'asc' } },
-        },
-      });
-    } else {
-      if (user.passwordHash) {
-        const isMatch = await argon2.verify(user.passwordHash, password).catch(() => false);
-        if (!isMatch) {
-          throw new UnauthorizedException('비밀번호가 일치하지 않습니다.');
+          }).catch(() => null);
         }
-      } else {
-        const passwordHash = await argon2.hash(password);
-        await this.prisma.user.update({
-          where: { id: user.id },
-          data: { passwordHash, role: 'admin' },
-        });
-      }
-
-      if (!user.adminProfile) {
-        await this.prisma.adminProfile.create({
-          data: {
-            userId: user.id,
-            role: 'SUPER_ADMIN',
-            status: 'ACTIVE',
-            permissions: [
-              'users.manage',
-              'reports.view',
-              'content.manage',
-              'refunds.view',
-              'refunds.manage',
-              'approvals.view',
-              'approvals.manage',
-              'settings.manage',
-            ],
-          },
-        }).catch(() => null);
       }
     }
 
@@ -110,9 +161,13 @@ export class AuthService {
       throw new UnauthorizedException('이용이 정지된 계정입니다.');
     }
 
+    const effectiveRole = isTestUser
+      ? 'user'
+      : (user.adminProfile ? 'admin' : (user.role || 'user')).toLowerCase();
+
     const normalizedUser = {
       ...user,
-      role: 'admin',
+      role: effectiveRole,
       photos: (user.photos || []).map((p) => ({
         ...p,
         imageUrl: p.url,

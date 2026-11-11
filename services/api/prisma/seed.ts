@@ -114,8 +114,67 @@ async function seedSystemSettings() {
   }
 }
 
+async function seedTestUsers() {
+  const passwordHash = await argon2.hash('12345678');
+
+  // test01 (스트리머/호스트 - 일반 사용자)
+  await prisma.user.upsert({
+    where: { email: 'test01@te.te' },
+    update: {
+      passwordHash,
+      role: 'user',
+      status: 'active',
+      nickname: '테스터01',
+      displayName: '테스터01(스트리머)',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+      bio: '모꼬 공식 라이브 스트리머 테스트 계정',
+      pointBalance: 100000,
+    },
+    create: {
+      email: 'test01@te.te',
+      passwordHash,
+      role: 'user',
+      status: 'active',
+      nickname: '테스터01',
+      displayName: '테스터01(스트리머)',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+      bio: '모꼬 공식 라이브 스트리머 테스트 계정',
+      pointBalance: 100000,
+    },
+  });
+
+  // test02 (시청자 - 일반 사용자)
+  await prisma.user.upsert({
+    where: { email: 'test02@te.te' },
+    update: {
+      passwordHash,
+      role: 'user',
+      status: 'active',
+      nickname: '테스터02',
+      displayName: '테스터02(시청자)',
+      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
+      bio: '모꼬 라이브 시청 및 꿀떡 선물 테스트 계정',
+      pointBalance: 500000,
+    },
+    create: {
+      email: 'test02@te.te',
+      passwordHash,
+      role: 'user',
+      status: 'active',
+      nickname: '테스터02',
+      displayName: '테스터02(시청자)',
+      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
+      bio: '모꼬 라이브 시청 및 꿀떡 선물 테스트 계정',
+      pointBalance: 500000,
+    },
+  });
+
+  console.log('✅ Seeded test01 and test02 as regular users (role: user)');
+}
+
 async function main() {
   await seedAdminUser()
+  await seedTestUsers()
   await seedTopics()
   await seedAnnouncements()
   await seedSystemSettings()

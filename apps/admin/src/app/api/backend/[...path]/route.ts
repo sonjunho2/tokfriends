@@ -29,6 +29,7 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
   }
 
   const token = request.cookies.get(SESSION_COOKIE)?.value
+  const incomingAuth = request.headers.get('authorization')
   const isPublicEndpoint =
     path === 'health' ||
     path.startsWith('auth/') ||
@@ -45,7 +46,7 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
     path.startsWith('media') ||
     path.startsWith('suda')
 
-  if (!token && !isPublicEndpoint) {
+  if (!token && !incomingAuth && !isPublicEndpoint) {
     return NextResponse.json({ message: 'Authentication required.' }, { status: 401, headers: { 'Cache-Control': 'no-store' } })
   }
 
@@ -55,7 +56,11 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
 
   if (contentType) headers.set('Content-Type', contentType)
   if (accept) headers.set('Accept', accept)
-  if (token) headers.set('Authorization', `Bearer ${token}`)
+  if (incomingAuth) {
+    headers.set('Authorization', incomingAuth)
+  } else if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
 
   const hasBody = !['GET', 'HEAD'].includes(request.method)
   const body = hasBody ? await request.arrayBuffer() : undefined

@@ -309,18 +309,69 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
     async (email: string, pass: string) => {
       const cleanEmail = email.trim().toLowerCase()
 
-      // 🔴 실서비스 동작 테스트 전용 회원 2명 (test01@te.te / test02@te.te)
+      // 🔴 백엔드 정식 로그인 시도 (test01@te.te, test02@te.te 일반 가입자 role: 'user' 및 실제 JWT 발급)
+      try {
+        const response = await fetch('/api/backend/auth/login/email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: cleanEmail, password: pass }),
+        })
+
+        if (response.ok) {
+          const resData = await response.json()
+          const token = resData.token || resData.access_token || resData.accessToken
+          const userData = resData.user || resData.data?.user
+          if (token && typeof window !== 'undefined') {
+            localStorage.setItem('tokfriends_admin_token', token)
+            localStorage.setItem('access_token', token)
+          }
+          if (userData) {
+            const isStreamer = cleanEmail === 'test01@te.te'
+            const isViewer = cleanEmail === 'test02@te.te'
+            const webUser: WebUser = {
+              id: userData.id,
+              nickname: userData.nickname || (isStreamer ? '테스터01' : isViewer ? '테스터02' : cleanEmail.split('@')[0]),
+              email: userData.email || cleanEmail,
+              role: isStreamer ? 'CREATOR' : isViewer ? 'USER' : (userData.role?.toUpperCase() || 'USER'),
+              avatarUrl: userData.avatarUrl || (isStreamer
+                ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500'
+                : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500'),
+              pointBalance: Number(userData.pointBalance ?? (isViewer ? 500000 : 100000)),
+              cashBalance: Number(userData.cashBalance ?? 100000),
+              creatorInfo: isStreamer ? {
+                channelName: '테스터01의 온에어 라이브 🎙️',
+                category: '일상/토크',
+                bio: '실시간 라이브 방송 송출 및 선물 후원 테스트용 공식 크리에이터 계정입니다.',
+                activeTime: '상시 On-Air',
+              } : undefined,
+            }
+            saveUserState(webUser)
+            setIsLoginModalOpen(false)
+            if (pendingAction) {
+              pendingAction()
+              setPendingAction(null)
+            }
+            return { success: true }
+          }
+        }
+      } catch (err) {
+        console.warn('Backend login attempt failed, using fallback:', err)
+      }
+
+      // 🔴 네트워크 단절 시 오프라인 폴백 처리
       if (cleanEmail === 'test01@te.te') {
         if (pass && pass !== '12345678') {
           return { success: false, message: '비밀번호가 일치하지 않습니다. (테스트 비밀번호: 12345678)' }
         }
         const hostUser: WebUser = {
           id: '4ed31aef-5b0a-4cac-a13a-48d9e9465efe',
-          nickname: '테스터01(스트리머)',
+          nickname: '테스터01',
           email: 'test01@te.te',
           role: 'CREATOR',
           avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
-          pointBalance: 50000,
+          pointBalance: 100000,
           cashBalance: 100000,
           creatorInfo: {
             channelName: '테스터01의 온에어 라이브 🎙️',
@@ -344,7 +395,7 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
         }
         const viewerUser: WebUser = {
           id: 'e4b911c9-34c2-4566-bf2c-13a00c5ffed4',
-          nickname: '테스터02(시청자)',
+          nickname: '테스터02',
           email: 'test02@te.te',
           role: 'USER',
           avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',

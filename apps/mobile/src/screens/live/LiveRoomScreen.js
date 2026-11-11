@@ -1428,6 +1428,7 @@ export default function LiveRoomScreen({ navigation, route }) {
                         isHost={true}
                         isVideoSubscribed={!isCameraOff}
                         isSpeakerMuted={isMicMuted}
+                        cameraFacing={cameraFacing}
                         onStreamStatusChange={(status) => {
                           if (status === 'fallback_camera') {
                             setUseNativeCameraFallback(true);

@@ -14,6 +14,7 @@ export default function AgoraLivePlayer({
   isHost = false,
   isVideoSubscribed = true,
   isSpeakerMuted = false,
+  cameraFacing = 'front', // 'front' | 'back'
   hostInfo = {},
   onStreamStatusChange,
 }) {
@@ -31,6 +32,16 @@ export default function AgoraLivePlayer({
     });
     webViewRef.current.postMessage(command);
   }, [isVideoSubscribed, isSpeakerMuted]);
+
+  // Sync Camera Facing (Front <-> Rear) to WebView
+  useEffect(() => {
+    if (!webViewRef.current) return;
+    const command = JSON.stringify({
+      type: 'SWITCH_CAMERA',
+      cameraFacing, // 'front' | 'back'
+    });
+    webViewRef.current.postMessage(command);
+  }, [cameraFacing]);
 
   const handleMessage = (event) => {
     try {
@@ -90,7 +101,12 @@ export default function AgoraLivePlayer({
       object-fit: cover !important;
       width: 100% !important;
       height: 100% !important;
-      ${isHost ? 'transform: scaleX(-1);' : ''}
+    }
+    #remote-video.front-camera video {
+      transform: scaleX(-1) !important;
+    }
+    #remote-video.rear-camera video {
+      transform: none !important;
     }
     .waiting-card {
       position: absolute;
@@ -138,7 +154,7 @@ export default function AgoraLivePlayer({
 </head>
 <body>
   <div id="player-container">
-    <div id="remote-video"></div>
+    <div id="remote-video" class="${isHost ? (cameraFacing === 'back' ? 'rear-camera' : 'front-camera') : ''}"></div>
     <div id="waiting-card" class="waiting-card" style="${isHost ? 'display: none !important;' : ''}">
       <div class="status-badge"><span class="pulse-dot"></span>D LIVE AGORA RTC</div>
       <div style="font-weight:700;font-size:16px;">실시간 라이브 신호 수신 중...</div>
@@ -162,6 +178,83 @@ export default function AgoraLivePlayer({
     let client = null;
     let remoteVideoTrack = null;
     let remoteAudioTrack = null;
+    let localVideoTrack = null;
+    let localAudioTrack = null;
+    let isPublisherHost = ${Boolean(isHost)};
+    let currentCameraFacing = '${cameraFacing || 'front'}';
+
+    async function applyCameraFlip(facing) {
+      if (!isPublisherHost) return;
+      currentCameraFacing = facing;
+      const isBack = facing === 'back';
+      const targetFacingMode = isBack ? 'environment' : 'user';
+
+      const container = document.getElementById('remote-video');
+      if (container) {
+        if (isBack) {
+          container.classList.remove('front-camera');
+          container.classList.add('rear-camera');
+        } else {
+          container.classList.remove('rear-camera');
+          container.classList.add('front-camera');
+        }
+      }
+
+      if (!client) return;
+
+      try {
+        // 1. 카메라 디바이스 목록에서 후면/전면 매칭 시도
+        try {
+          if (AgoraRTC && typeof AgoraRTC.getCameras === 'function') {
+            const cameras = await AgoraRTC.getCameras();
+            if (cameras && cameras.length > 1) {
+              const targetCam = cameras.find(function(c) {
+                const lbl = (c.label || '').toLowerCase();
+                return isBack
+                  ? (lbl.includes('back') || lbl.includes('rear') || lbl.includes('environment') || lbl.includes('0'))
+                  : (lbl.includes('front') || lbl.includes('user') || lbl.includes('1'));
+              });
+              if (targetCam && targetCam.deviceId && localVideoTrack && typeof localVideoTrack.setDevice === 'function') {
+                await localVideoTrack.setDevice(targetCam.deviceId);
+                sendState('camera_switched', { facing });
+                return;
+              }
+            }
+          }
+        } catch (devErr) {
+          console.warn('setDevice attempt failed, switching via recreate track:', devErr);
+        }
+
+        // 2. 새 트랙 생성 후 교체 (WebRTC 표준 facingMode 제약조건)
+        if (localVideoTrack) {
+          try {
+            await client.unpublish(localVideoTrack);
+          } catch (e) {}
+          try {
+            localVideoTrack.stop();
+            localVideoTrack.close();
+          } catch (e) {}
+          localVideoTrack = null;
+        }
+
+        localVideoTrack = await AgoraRTC.createCameraVideoTrack({
+          facingMode: targetFacingMode,
+          optimizationMode: 'detail',
+        });
+
+        if (localVideoTrack) {
+          const remoteContainer = document.getElementById('remote-video');
+          if (remoteContainer) {
+            remoteContainer.innerHTML = '';
+            localVideoTrack.play('remote-video', { fit: 'cover' });
+          }
+          await client.publish(localVideoTrack);
+          sendState('camera_switched', { facing });
+        }
+      } catch (switchErr) {
+        console.error('Camera switch error:', switchErr);
+      }
+    }
 
     async function initAgora() {
       const appId = '${safeAppId}';
@@ -248,9 +341,10 @@ export default function AgoraLivePlayer({
             if (waiting) waiting.style.display = 'none';
 
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-              const localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack().catch(function() { return null; });
-              const localVideoTrack = await AgoraRTC.createCameraVideoTrack({
-                facingMode: 'user',
+              const targetFacingMode = currentCameraFacing === 'back' ? 'environment' : 'user';
+              localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack().catch(function() { return null; });
+              localVideoTrack = await AgoraRTC.createCameraVideoTrack({
+                facingMode: targetFacingMode,
                 optimizationMode: 'detail',
               }).catch(function() { return null; });
 
@@ -288,7 +382,11 @@ export default function AgoraLivePlayer({
     window.addEventListener('message', (e) => {
       try {
         const data = JSON.parse(e.data);
-        if (data.type === 'SET_STREAM_CONFIG') {
+        if (data.type === 'SWITCH_CAMERA') {
+          if (data.cameraFacing) {
+            applyCameraFlip(data.cameraFacing);
+          }
+        } else if (data.type === 'SET_STREAM_CONFIG') {
           if (remoteVideoTrack) {
             if (data.isVideoSubscribed === false) {
               remoteVideoTrack.stop();
