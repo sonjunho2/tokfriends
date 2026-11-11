@@ -854,13 +854,55 @@ export default function HomeScreen({ navigation }) {
   // 6. [실시간수다] (동네실시간 수다 -> 실시간수다 이름 변경 & 3개 목록 순환 변경)
   // =================================================================
   const renderSudaSection = () => {
-    if (sudaListAll.length === 0) return null;
-    // 3개씩 롤링 순환
-    const active3 = [
+    // 3개씩 롤링 순환 (사용자 글이 3개 미만이어도 스탠바이 카드로 최소 3개 박스 유지)
+    const rawActive = sudaListAll.length > 0 ? [
       sudaListAll[sudaRollingIndex % sudaListAll.length],
-      sudaListAll[(sudaRollingIndex + 1) % sudaListAll.length],
-      sudaListAll[(sudaRollingIndex + 2) % sudaListAll.length],
-    ].filter(Boolean);
+      sudaListAll.length > 1 ? sudaListAll[(sudaRollingIndex + 1) % sudaListAll.length] : null,
+      sudaListAll.length > 2 ? sudaListAll[(sudaRollingIndex + 2) % sudaListAll.length] : null,
+    ].filter(Boolean) : [];
+
+    const standbyCards = [
+      {
+        isStandby: true,
+        type: 'WRITE',
+        title: '첫 번째 수다의 주인공이 되어보세요! ✍️',
+        sub: '오늘 하루 어떤 일이 있으셨나요? 이웃과 일상을 나눠보세요.',
+        btnText: '글쓰기',
+        icon: 'create-outline',
+        bgColor: '#FFF1F2',
+        borderColor: '#FECDD3',
+        btnColor: '#FF3B6B',
+      },
+      {
+        isStandby: true,
+        type: 'KEYWORD',
+        title: '오늘의 인기 수다 키워드 🏷️',
+        sub: '#강남역_맛집  #오늘_퇴근길  #반려견_산책  #주말_취미',
+        btnText: '키워드',
+        icon: 'sparkles',
+        bgColor: '#F5F3FF',
+        borderColor: '#DDD6FE',
+        btnColor: '#8B5CF6',
+      },
+      {
+        isStandby: true,
+        type: 'CHAT',
+        title: '동네 이웃과 1:1 따뜻한 커피 한 잔 ☕',
+        sub: '가까운 이웃과 편안하게 실시간 1:1 대화로 소통해보세요.',
+        btnText: '수다방',
+        icon: 'chatbubbles-outline',
+        bgColor: '#EFF6FF',
+        borderColor: '#BFDBFE',
+        btnColor: '#3B82F6',
+      },
+    ];
+
+    const active3 = [...rawActive];
+    let standbyIdx = 0;
+    while (active3.length < 3) {
+      active3.push(standbyCards[standbyIdx % standbyCards.length]);
+      standbyIdx++;
+    }
 
     return (
       <View style={styles.sectionWrap}>
@@ -883,42 +925,104 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         <View style={styles.homeSudaList}>
-          {active3.map((post, idx) => (
-            <TouchableOpacity
-              key={`${post.id}-${idx}`}
-              style={styles.homeSudaCard}
-              activeOpacity={0.88}
-              onPress={() => navigation.navigate('Chat', { screen: 'ChatsMain' })}
-            >
-              <View style={styles.homeSudaLeft}>
-                <Image
-                  source={{ uri: post.author?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100' }}
-                  style={styles.homeSudaAvatar}
-                />
-                <View style={styles.homeSudaMeta}>
-                  <View style={styles.homeSudaNameRow}>
-                    <Text style={styles.homeSudaAuthor}>{post.author?.nickname || '모꼬이웃'}</Text>
-                    <View style={styles.homeSudaBadge}>
-                      <Text style={styles.homeSudaBadgeText}>{post.neighborhood || '내 주변'}</Text>
+          {active3.map((post, idx) => {
+            if (post.isStandby) {
+              return (
+                <TouchableOpacity
+                  key={`suda-standby-${idx}`}
+                  style={[
+                    styles.homeSudaCard,
+                    {
+                      backgroundColor: post.bgColor,
+                      borderColor: post.borderColor,
+                      borderWidth: 1,
+                    },
+                  ]}
+                  activeOpacity={0.88}
+                  onPress={() => navigation.navigate('Chat', { screen: 'ChatsMain', params: { initialTab: 'SUDA' } })}
+                >
+                  <View style={styles.homeSudaLeft}>
+                    <View
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 18,
+                        backgroundColor: '#FFFFFF',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: 10,
+                        borderWidth: 1,
+                        borderColor: post.borderColor,
+                      }}
+                    >
+                      <Ionicons name={post.icon} size={18} color={post.btnColor} />
                     </View>
-                    <Text style={styles.homeSudaDistance}>{post.distanceKm || '0.5'}km</Text>
+                    <View style={styles.homeSudaMeta}>
+                      <View style={styles.homeSudaNameRow}>
+                        <Text style={[styles.homeSudaAuthor, { color: post.btnColor }]}>{post.title}</Text>
+                        <View style={[styles.homeSudaBadge, { backgroundColor: '#FFFFFF' }]}>
+                          <Text style={[styles.homeSudaBadgeText, { color: post.btnColor }]}>추천</Text>
+                        </View>
+                      </View>
+                      <Text style={[styles.homeSudaContent, { color: '#475569', fontSize: 11 }]} numberOfLines={1}>
+                        {post.sub}
+                      </Text>
+                    </View>
                   </View>
-                  <Text style={styles.homeSudaContent} numberOfLines={1}>
-                    {post.content}
-                  </Text>
-                </View>
-              </View>
 
+                  <View
+                    style={[
+                      styles.homeSudaDirectBtn,
+                      {
+                        backgroundColor: post.btnColor,
+                        borderColor: post.btnColor,
+                        paddingHorizontal: 10,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.homeSudaDirectText, { color: '#FFFFFF' }]}>{post.btnText}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            }
+
+            return (
               <TouchableOpacity
-                style={styles.homeSudaDirectBtn}
-                activeOpacity={0.8}
+                key={`${post.id}-${idx}`}
+                style={styles.homeSudaCard}
+                activeOpacity={0.88}
                 onPress={() => navigation.navigate('Chat', { screen: 'ChatsMain' })}
               >
-                <Ionicons name="chatbubble-ellipses" size={12} color="#FF3B6B" />
-                <Text style={styles.homeSudaDirectText}>답장</Text>
+                <View style={styles.homeSudaLeft}>
+                  <Image
+                    source={{ uri: post.author?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100' }}
+                    style={styles.homeSudaAvatar}
+                  />
+                  <View style={styles.homeSudaMeta}>
+                    <View style={styles.homeSudaNameRow}>
+                      <Text style={styles.homeSudaAuthor}>{post.author?.nickname || '모꼬이웃'}</Text>
+                      <View style={styles.homeSudaBadge}>
+                        <Text style={styles.homeSudaBadgeText}>{post.neighborhood || '내 주변'}</Text>
+                      </View>
+                      <Text style={styles.homeSudaDistance}>{post.distanceKm || '0.5'}km</Text>
+                    </View>
+                    <Text style={styles.homeSudaContent} numberOfLines={1}>
+                      {post.content}
+                    </Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.homeSudaDirectBtn}
+                  activeOpacity={0.8}
+                  onPress={() => navigation.navigate('Chat', { screen: 'ChatsMain' })}
+                >
+                  <Ionicons name="chatbubble-ellipses" size={12} color="#FF3B6B" />
+                  <Text style={styles.homeSudaDirectText}>답장</Text>
+                </TouchableOpacity>
               </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
+            );
+          })}
         </View>
       </View>
     );

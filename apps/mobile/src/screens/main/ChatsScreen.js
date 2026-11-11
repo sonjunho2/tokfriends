@@ -1196,11 +1196,180 @@ export default function ChatsScreen({ navigation }) {
               tintColor={tokens.colors.primary}
             />
           }
+          ListFooterComponent={
+            filteredSudaPosts.length > 0 && filteredSudaPosts.length <= 4 ? (
+              <View style={{ marginTop: 12, paddingBottom: 80, gap: 10 }}>
+                {/* ✍️ 첫 번째 수다 작성 참여 유도 카드 */}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#FFF1F2',
+                    borderColor: '#FECDD3',
+                    borderWidth: 1,
+                    borderRadius: 16,
+                    padding: 14,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                  activeOpacity={0.88}
+                  onPress={() => setShowCreateModal(true)}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10 }}>
+                    <View
+                      style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 19,
+                        backgroundColor: '#FFE4E6',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: 10,
+                      }}
+                    >
+                      <Ionicons name="create-outline" size={20} color="#FF3B6B" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '800', color: '#1E293B', marginBottom: 2 }}>
+                        이웃에게 일상을 공유해보세요! ✍️
+                      </Text>
+                      <Text style={{ fontSize: 11, color: '#64748B' }}>
+                        소소한 이야기나 궁금한 점을 편하게 남겨보세요.
+                      </Text>
+                    </View>
+                  </View>
+                  <View
+                    style={{
+                      backgroundColor: '#FF3B6B',
+                      paddingHorizontal: 12,
+                      paddingVertical: 7,
+                      borderRadius: 12,
+                    }}
+                  >
+                    <Text style={{ color: '#FFFFFF', fontSize: 11.5, fontWeight: '800' }}>수다 쓰기</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* 🏷️ 오늘의 인기 수다 키워드 카드 */}
+                <View
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    borderColor: '#E2E8F0',
+                    borderWidth: 1,
+                    borderRadius: 16,
+                    padding: 14,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                    <Ionicons name="sparkles" size={14} color="#F59E0B" style={{ marginRight: 5 }} />
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: '#334155' }}>
+                      오늘의 인기 수다 키워드
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                    {['#강남역_맛집 🍜', '#오늘_퇴근길 🏃', '#반려견_산책 🐶', '#주말_취미 🎨', '#소소한_일상 ☕'].map((kw) => (
+                      <TouchableOpacity
+                        key={kw}
+                        style={{
+                          backgroundColor: '#F1F5F9',
+                          borderColor: '#E2E8F0',
+                          borderWidth: 1,
+                          paddingHorizontal: 9,
+                          paddingVertical: 5,
+                          borderRadius: 8,
+                        }}
+                        onPress={() => setShowCreateModal(true)}
+                      >
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#475569' }}>{kw}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+            ) : null
+          }
           ListEmptyComponent={
-            <View style={styles.emptyBox}>
-              <Ionicons name="chatbubbles-outline" size={44} color="#CBD5E1" />
-              <Text style={styles.emptyTitle}>등록된 수다가 없습니다</Text>
-              <Text style={styles.emptySub}>새로운 수다를 가장 먼저 시작해보세요!</Text>
+            <View style={{ paddingVertical: 20, gap: 12 }}>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#FFF1F2',
+                  borderColor: '#FECDD3',
+                  borderWidth: 1,
+                  borderRadius: 18,
+                  padding: 16,
+                  alignItems: 'center',
+                }}
+                activeOpacity={0.88}
+                onPress={() => setShowCreateModal(true)}
+              >
+                <View
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                    backgroundColor: '#FFE4E6',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 10,
+                  }}
+                >
+                  <Ionicons name="chatbubbles" size={24} color="#FF3B6B" />
+                </View>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: '#1E293B', marginBottom: 4 }}>
+                  첫 번째 수다의 주인공이 되어보세요! ✍️
+                </Text>
+                <Text style={{ fontSize: 12, color: '#64748B', textAlign: 'center', marginBottom: 14 }}>
+                  오늘 어떤 하루를 보내셨나요? 가까운 동네 이웃들에게 따뜻한 이야기를 들려주세요.
+                </Text>
+                <View
+                  style={{
+                    backgroundColor: '#FF3B6B',
+                    paddingHorizontal: 16,
+                    paddingVertical: 9,
+                    borderRadius: 14,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Ionicons name="pencil" size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '800' }}>지금 수다글 쓰기</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* 🏷️ 인기 키워드 추천 */}
+              <View
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  borderColor: '#E2E8F0',
+                  borderWidth: 1,
+                  borderRadius: 16,
+                  padding: 14,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                  <Ionicons name="sparkles" size={14} color="#F59E0B" style={{ marginRight: 5 }} />
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#334155' }}>
+                    어떤 이야기를 나눌지 고민되시나요?
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {['#강남역_맛집 🍜', '#오늘_퇴근길 🏃', '#반려견_산책 🐶', '#주말_취미 🎨', '#소소한_일상 ☕'].map((kw) => (
+                    <TouchableOpacity
+                      key={kw}
+                      style={{
+                        backgroundColor: '#F1F5F9',
+                        borderColor: '#E2E8F0',
+                        borderWidth: 1,
+                        paddingHorizontal: 9,
+                        paddingVertical: 5,
+                        borderRadius: 8,
+                      }}
+                      onPress={() => setShowCreateModal(true)}
+                    >
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: '#475569' }}>{kw}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
             </View>
           }
         />

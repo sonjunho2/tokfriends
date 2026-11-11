@@ -4530,53 +4530,112 @@ export default function CustomerWebStorefrontPage() {
                   </div>
 
                   <div className="flex-1 bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-5 shadow-2xs divide-y divide-slate-100 flex flex-col justify-between">
-                    {friends.slice(0, 6).map((friend) => (
-                      <div
-                        key={friend.id}
-                        className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3 group"
-                      >
-                        <div onClick={() => openUserProfileModal(friend)} className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer group/avatar">
-                          {/* Round Avatar with Online Status */}
-                          <div className="relative shrink-0">
-                            <img
-                              src={friend.avatar}
-                              alt={friend.nickname}
-                              className="h-12 w-12 rounded-full object-cover border border-slate-100"
-                            />
-                            {friend.isOnline && (
-                              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white shadow-2xs" />
-                            )}
-                          </div>
+                    {(() => {
+                      const displayFriends = friends.slice(0, 6)
+                      const remainingCount = Math.max(0, 6 - displayFriends.length)
+                      return (
+                        <>
+                          {displayFriends.map((friend) => (
+                            <div
+                              key={friend.id}
+                              className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3 group"
+                            >
+                              <div onClick={() => openUserProfileModal(friend)} className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer group/avatar">
+                                {/* Round Avatar with Online Status */}
+                                <div className="relative shrink-0">
+                                  <img
+                                    src={friend.avatar}
+                                    alt={friend.nickname}
+                                    className="h-12 w-12 rounded-full object-cover border border-slate-100"
+                                  />
+                                  {friend.isOnline && (
+                                    <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white shadow-2xs" />
+                                  )}
+                                </div>
 
-                          {/* Info Block */}
-                          <div className="min-w-0 flex-1 space-y-1">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-bold text-sm text-slate-900 truncate">
-                                {friend.nickname}
-                              </span>
-                              <span className="bg-indigo-50 text-indigo-700 text-[11px] font-semibold px-2 py-0.5 rounded-md shrink-0">
-                                {friend.gender} · {friend.age}세
-                              </span>
-                              <span className="bg-slate-100 text-slate-600 text-[11px] font-medium px-2 py-0.5 rounded-md truncate">
-                                {friend.region}
-                              </span>
+                                {/* Info Block */}
+                                <div className="min-w-0 flex-1 space-y-1">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-bold text-sm text-slate-900 truncate">
+                                      {friend.nickname}
+                                    </span>
+                                    <span className="bg-indigo-50 text-indigo-700 text-[11px] font-semibold px-2 py-0.5 rounded-md shrink-0">
+                                      {friend.gender} · {friend.age}세
+                                    </span>
+                                    <span className="bg-slate-100 text-slate-600 text-[11px] font-medium px-2 py-0.5 rounded-md truncate">
+                                      {friend.region}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-slate-600 truncate">
+                                    {friend.statusMessage}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Pink Pill Chat Request Button */}
+                              <button
+                                onClick={() => handleStartNeighborChat(friend)}
+                                className="shrink-0 flex items-center gap-1.5 border border-rose-200 text-[#FF3B6B] bg-rose-50/70 hover:bg-rose-100 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all shadow-2xs"
+                              >
+                                <MessageCircle className="h-3.5 w-3.5 text-[#FF3B6B]" />
+                                대화신청
+                              </button>
                             </div>
-                            <p className="text-xs text-slate-600 truncate">
-                              {friend.statusMessage}
-                            </p>
-                          </div>
-                        </div>
+                          ))}
 
-                        {/* Pink Pill Chat Request Button */}
-                        <button
-                          onClick={() => handleStartNeighborChat(friend)}
-                          className="shrink-0 flex items-center gap-1.5 border border-rose-200 text-[#FF3B6B] bg-rose-50/70 hover:bg-rose-100 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all shadow-2xs"
-                        >
-                          <MessageCircle className="h-3.5 w-3.5 text-[#FF3B6B]" />
-                          대화신청
-                        </button>
-                      </div>
-                    ))}
+                          {/* 빈자리 슬롯 1: 동네 설정 반경 확대 카드 */}
+                          {remainingCount >= 2 && (
+                            <div className="py-2.5 flex items-center justify-between gap-3 group bg-slate-50/70 p-3 rounded-2xl border border-dashed border-slate-200">
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className="h-11 w-11 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold shrink-0">
+                                  <Users className="h-5 w-5" />
+                                </div>
+                                <div className="min-w-0 flex-1 space-y-0.5">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-bold text-sm text-slate-900">더 많은 동네 이웃 찾기</span>
+                                    <Badge className="bg-purple-50 text-purple-700 text-[10px] font-bold">반경 확대</Badge>
+                                  </div>
+                                  <p className="text-xs text-slate-500 truncate">동네 반경을 넓혀 새로운 이웃들을 만나보세요.</p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => toast({ title: '📍 동네 설정', description: '내 동네 반경이 최대 5km로 확장되었습니다.' })}
+                                className="shrink-0 border border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-full px-3 py-1.5 text-xs font-bold transition-all"
+                              >
+                                동네설정
+                              </button>
+                            </div>
+                          )}
+
+                          {/* 빈자리 슬롯 2: 모꼬 AI 챗봇 친구 */}
+                          {remainingCount >= 1 && (
+                            <div className="py-2.5 flex items-center justify-between gap-3 group bg-rose-50/40 p-3 rounded-2xl border border-dashed border-rose-200">
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className="h-11 w-11 rounded-full bg-rose-100 flex items-center justify-center text-[#FF3B6B] font-bold shrink-0">
+                                  <Sparkles className="h-5 w-5" />
+                                </div>
+                                <div className="min-w-0 flex-1 space-y-0.5">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-bold text-sm text-slate-900">모꼬 AI 챗봇 친구</span>
+                                    <Badge className="bg-rose-50 text-[#FF3B6B] text-[10px] font-bold">24시 대기</Badge>
+                                  </div>
+                                  <p className="text-xs text-slate-500 truncate">언제든 심심할 때 반갑게 맞아주는 따뜻한 AI 친구</p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  setActiveTab('CHAT')
+                                  setChatSubTab('CHATS')
+                                }}
+                                className="shrink-0 border border-rose-200 text-[#FF3B6B] bg-rose-50 hover:bg-rose-100 rounded-full px-3 py-1.5 text-xs font-bold transition-all"
+                              >
+                                대화하기
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )
+                    })()}
                   </div>
                 </div>
 
@@ -4608,49 +4667,180 @@ export default function CustomerWebStorefrontPage() {
 
                   {/* Suda Feed Cards (간격 및 카드 높이 균등 분할) */}
                   <div className="flex-1 flex flex-col justify-between gap-3">
-                    {sudaPosts.slice(0, 4).map((post) => (
-                      <div
-                        key={post.id}
-                        className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-2xs hover:border-rose-200 transition-colors space-y-2 flex-1 flex flex-col justify-center"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div onClick={() => openUserProfileModal(post)} className="flex items-center gap-2.5 min-w-0 cursor-pointer group/postuser">
-                            <img
-                              src={post.avatar}
-                              alt="avatar"
-                              className="h-10 w-10 rounded-full object-cover shrink-0 border border-slate-100"
-                            />
-                            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                              <span className="font-bold text-sm text-slate-900 truncate">
-                                {post.nickname}
-                              </span>
-                              <span className="bg-slate-100 text-slate-600 text-[11px] px-2 py-0.5 rounded-md font-medium">
-                                {post.region}
-                              </span>
-                              <span className="text-xs text-slate-400">
-                                · {post.distance || '0.6km'}
-                              </span>
-                              <span className="text-xs text-slate-400">
-                                {post.time}
-                              </span>
+                    {(() => {
+                      const displayPosts = sudaPosts.slice(0, 4)
+                      const remainingCount = Math.max(0, 4 - displayPosts.length)
+
+                      // 추천 수다 키워드 리스트
+                      const SUGGESTED_KEYWORDS = [
+                        '#강남역_맛집 🍜',
+                        '#오늘_퇴근길 🏃',
+                        '#반려견_산책 🐶',
+                        '#주말_취미 🎨',
+                        '#소소한_일상 ☕',
+                      ]
+
+                      return (
+                        <>
+                          {displayPosts.map((post) => (
+                            <div
+                              key={post.id}
+                              className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-2xs hover:border-rose-200 transition-colors space-y-2 flex-1 flex flex-col justify-center"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div onClick={() => openUserProfileModal(post)} className="flex items-center gap-2.5 min-w-0 cursor-pointer group/postuser">
+                                  <img
+                                    src={post.avatar}
+                                    alt="avatar"
+                                    className="h-10 w-10 rounded-full object-cover shrink-0 border border-slate-100"
+                                  />
+                                  <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                    <span className="font-bold text-sm text-slate-900 truncate">
+                                      {post.nickname}
+                                    </span>
+                                    <span className="bg-slate-100 text-slate-600 text-[11px] px-2 py-0.5 rounded-md font-medium">
+                                      {post.region}
+                                    </span>
+                                    <span className="text-xs text-slate-400">
+                                      · {post.distance || '0.6km'}
+                                    </span>
+                                    <span className="text-xs text-slate-400">
+                                      {post.time}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Pink Pill Chat Request Button */}
+                                <button
+                                  onClick={() => handleStartSudaChat(post)}
+                                  className="shrink-0 flex items-center gap-1.5 border border-rose-200 text-[#FF3B6B] bg-rose-50/70 hover:bg-rose-100 rounded-full px-3.5 py-1 text-xs font-bold transition-all shadow-2xs"
+                                >
+                                  <MessageCircle className="h-3.5 w-3.5 text-[#FF3B6B]" />
+                                  대화신청
+                                </button>
+                              </div>
+
+                              <p className="text-xs sm:text-sm text-slate-700 leading-relaxed pl-1">
+                                {post.content}
+                              </p>
                             </div>
-                          </div>
+                          ))}
 
-                          {/* Pink Pill Chat Request Button */}
-                          <button
-                            onClick={() => handleStartSudaChat(post)}
-                            className="shrink-0 flex items-center gap-1.5 border border-rose-200 text-[#FF3B6B] bg-rose-50/70 hover:bg-rose-100 rounded-full px-3.5 py-1 text-xs font-bold transition-all shadow-2xs"
-                          >
-                            <MessageCircle className="h-3.5 w-3.5 text-[#FF3B6B]" />
-                            대화신청
-                          </button>
-                        </div>
+                          {/* 슬롯 1: ✍️ 첫 번째 수다 작성 참여 유도 카드 */}
+                          {remainingCount >= 1 && (
+                            <div className="bg-gradient-to-r from-rose-50/60 to-pink-50/60 rounded-2xl border border-rose-200/70 p-3.5 shadow-2xs space-y-2 flex-1 flex flex-col justify-center">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="h-10 w-10 rounded-full bg-rose-100/90 flex items-center justify-center text-[#FF3B6B] shrink-0 font-black shadow-2xs">
+                                    ✍️
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-extrabold text-sm text-slate-900">
+                                        첫 번째 수다의 주인공이 되어보세요!
+                                      </span>
+                                      <Badge className="bg-rose-100 text-[#FF3B6B] border border-rose-200 text-[10px] font-bold">
+                                        추천
+                                      </Badge>
+                                    </div>
+                                    <p className="text-xs text-slate-600 truncate">
+                                      오늘 어떤 하루를 보내셨나요? 소소한 일상을 공유해보세요.
+                                    </p>
+                                  </div>
+                                </div>
 
-                        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed pl-1">
-                          {post.content}
-                        </p>
-                      </div>
-                    ))}
+                                <button
+                                  onClick={() => setIsCreateSudaRoomOpen(true)}
+                                  className="shrink-0 flex items-center gap-1.5 bg-[#FF3B6B] hover:bg-[#E02958] text-white rounded-full px-3.5 py-1.5 text-xs font-bold transition-all shadow-xs"
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                  수다글 쓰기
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* 슬롯 2: 🏷️ 오늘의 실시간 인기 수다 키워드 카드 */}
+                          {remainingCount >= 2 && (
+                            <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-2xs space-y-2 flex-1 flex flex-col justify-center">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  <Sparkles className="h-4 w-4 text-amber-500" />
+                                  <span className="font-extrabold text-xs text-slate-800">
+                                    오늘의 인기 수다 키워드 (클릭하여 바로 작성)
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-slate-400 font-medium">터치 시 자동 입력</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {SUGGESTED_KEYWORDS.map((tag) => (
+                                  <button
+                                    key={tag}
+                                    onClick={() => {
+                                      const cleanTag = tag.split(' ')[0]
+                                      setNewRoomTitle(`${cleanTag} 수다 나눌 이웃 구해요!`)
+                                      setIsCreateSudaRoomOpen(true)
+                                    }}
+                                    className="bg-slate-100 hover:bg-rose-50 hover:text-[#FF3B6B] hover:border-rose-200 border border-slate-200 text-slate-700 text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all"
+                                  >
+                                    {tag}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* 슬롯 3: ☕ 1:1 수다방 열기 카드 */}
+                          {remainingCount >= 3 && (
+                            <div className="bg-gradient-to-r from-indigo-50/60 to-purple-50/60 rounded-2xl border border-indigo-200/70 p-3.5 shadow-2xs space-y-2 flex-1 flex flex-col justify-center">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0 font-black shadow-2xs">
+                                    ☕
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-extrabold text-sm text-slate-900">
+                                        동네 이웃과 1:1 따뜻한 커피 한 잔
+                                      </span>
+                                      <Badge className="bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10px] font-bold">
+                                        1:1 소통
+                                      </Badge>
+                                    </div>
+                                    <p className="text-xs text-slate-600 truncate">
+                                      가까운 이웃과 편안하게 실시간 1:1 대화로 소통을 시작해보세요.
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <button
+                                  onClick={() => setIsCreateSudaRoomOpen(true)}
+                                  className="shrink-0 flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-3.5 py-1.5 text-xs font-bold transition-all shadow-xs"
+                                >
+                                  <MessageCircle className="h-3.5 w-3.5" />
+                                  수다방 열기
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* 슬롯 4: 🍯 모꼬 매너 수다 가이드 카드 */}
+                          {remainingCount >= 4 && (
+                            <div className="bg-amber-50/40 rounded-2xl border border-amber-200/60 p-3.5 shadow-2xs space-y-1.5 flex-1 flex flex-col justify-center">
+                              <div className="flex items-center gap-2">
+                                <span className="text-base">🍯</span>
+                                <span className="font-bold text-xs text-amber-900">
+                                  모꼬 매너 수다 꿀팁
+                                </span>
+                              </div>
+                              <p className="text-xs text-amber-800 leading-relaxed pl-6">
+                                서로를 존중하는 따뜻한 첫인사가 즐겁고 행복한 인연의 시작입니다 ✨
+                              </p>
+                            </div>
+                          )}
+                        </>
+                      )
+                    })()}
                   </div>
                 </div>
               </div>
