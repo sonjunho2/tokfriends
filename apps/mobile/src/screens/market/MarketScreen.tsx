@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   Linking,
   Share,
   TextInput,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -205,6 +206,47 @@ export default function MarketScreen({ navigation }: any) {
 
   // C2C 중고 & B2C 공구 렌더 아이템
   const renderProductItem = ({ item }: { item: MarketProduct }) => {
+    if ((item as any).isStandby) {
+      const isGroup = (item as any).type === 'B2C_GROUP' || selectedType === 'B2C_GROUP';
+      return (
+        <TouchableOpacity
+          style={styles.standbyProductCard}
+          activeOpacity={0.88}
+          onPress={() => {
+            Alert.alert(
+              isGroup ? '🏷️ 공구 상품 준비중입니다.' : '🎁 상품 준비중입니다.',
+              '새로운 특가 상품이 등록될 예정입니다. 조금만 기다려 주세요! ✨'
+            );
+          }}
+        >
+          {/* 상단 준비중 안내 영역 (위 이미지 1 & 3 테마 반영) */}
+          <View style={styles.standbyProductImgWrap}>
+            <View style={[styles.standbyProductIconCircle, isGroup && { backgroundColor: '#FEE2E2' }]}>
+              <Ionicons name="alert-circle" size={26} color={isGroup ? '#FF3B6B' : '#64748B'} />
+            </View>
+            <Text style={styles.standbyProductMainText}>
+              {isGroup ? '공구 준비중입니다.' : '상품 준비중입니다.'}
+            </Text>
+            <Text style={styles.standbyProductSubText}>새로운 상품이 등록될 예정입니다.</Text>
+            <Text style={styles.standbyProductWaitText}>조금만 기다려 주세요!</Text>
+          </View>
+
+          {/* 하단 정보 영역 */}
+          <View style={styles.standbyProductContent}>
+            <Text style={styles.standbyProductSeller}>
+              {isGroup ? '모꼬 파격공구관' : '모꼬 이웃안전장터'}
+            </Text>
+            <Text style={styles.standbyProductTitle} numberOfLines={1}>
+              {isGroup ? `[공구 대기] 특가 핫딜 #${(item as any).standbyIndex}` : `[등록 대기] 이웃 상품 #${(item as any).standbyIndex}`}
+            </Text>
+            <View style={styles.standbyProductPriceRow}>
+              <Text style={[styles.standbyProductComing, isGroup && { color: '#FF3B6B' }]}>COMING SOON</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      );
+    }
+
     const isB2C = item.type === 'B2C_GROUP';
     const discountRate =
       isB2C && item.originalPrice && item.originalPrice > item.price
@@ -335,6 +377,42 @@ export default function MarketScreen({ navigation }: any) {
 
   // B2C 일반 브랜드 상품 렌더 아이템
   const renderNormalProductItem = ({ item }: { item: NormalProduct }) => {
+    if ((item as any).isStandby) {
+      return (
+        <TouchableOpacity
+          style={styles.standbyProductCard}
+          activeOpacity={0.88}
+          onPress={() => {
+            Alert.alert(
+              '🎁 상품 준비중입니다.',
+              '새로운 브랜드 정품 상품이 곧 등록될 예정입니다. 조금만 기다려 주세요! ✨'
+            );
+          }}
+        >
+          {/* 상단 준비중 안내 영역 (위 이미지 1 & 3 테마 반영) */}
+          <View style={styles.standbyProductImgWrap}>
+            <View style={[styles.standbyProductIconCircle, { backgroundColor: '#EDE9FE' }]}>
+              <Ionicons name="alert-circle" size={26} color="#8B5CF6" />
+            </View>
+            <Text style={styles.standbyProductMainText}>상품 준비중입니다.</Text>
+            <Text style={styles.standbyProductSubText}>새로운 상품이 등록될 예정입니다.</Text>
+            <Text style={styles.standbyProductWaitText}>조금만 기다려 주세요!</Text>
+          </View>
+
+          {/* 하단 정보 영역 */}
+          <View style={styles.standbyProductContent}>
+            <Text style={styles.standbyProductSeller}>모꼬 본사 공식관</Text>
+            <Text style={styles.standbyProductTitle} numberOfLines={1}>
+              [입점 대기] 프리미엄 신상품 #${(item as any).standbyIndex}
+            </Text>
+            <View style={styles.standbyProductPriceRow}>
+              <Text style={[styles.standbyProductComing, { color: '#8B5CF6' }]}>COMING SOON</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      );
+    }
+
     const isOutOfStock = item.stock <= 0 || item.status === 'OUT_OF_STOCK';
     const originalPrice = item.priceKrw;
     const finalPrice = item.salePriceKrw || item.priceKrw;
@@ -560,6 +638,39 @@ export default function MarketScreen({ navigation }: any) {
     return matchName || matchDesc || matchMerchant;
   });
 
+  // 상품 슬롯이 비어있거나 짝수가 아닐 때 모꼬 스탠바이 카드로 자동 패딩 (기존 상품 100% 보존 & 신규 상품 등록 시 자동 교체)
+  const displayNormalProducts = useMemo(() => {
+    const list = [...filteredNormalProducts] as any[];
+    const minSlots = 6;
+    const targetCount = Math.max(minSlots, Math.ceil(list.length / 2) * 2);
+    const needed = Math.max(0, targetCount - list.length);
+    for (let i = 0; i < needed; i++) {
+      list.push({
+        id: `standby-normal-prod-${i}`,
+        isStandby: true,
+        standbyIndex: list.length + 1,
+        name: '상품 준비중입니다.',
+      });
+    }
+    return list;
+  }, [filteredNormalProducts]);
+
+  const displayProducts = useMemo(() => {
+    const list = [...filteredProducts] as any[];
+    const minSlots = 6;
+    const targetCount = Math.max(minSlots, Math.ceil(list.length / 2) * 2);
+    const needed = Math.max(0, targetCount - list.length);
+    for (let i = 0; i < needed; i++) {
+      list.push({
+        id: `standby-prod-${i}`,
+        isStandby: true,
+        standbyIndex: list.length + 1,
+        title: selectedType === 'B2C_GROUP' ? '공구 상품 준비중입니다.' : '상품 준비중입니다.',
+      });
+    }
+    return list;
+  }, [filteredProducts, selectedType]);
+
   const currentListCount = selectedType === 'B2C_NORMAL' ? filteredNormalProducts.length : filteredProducts.length;
 
   return (
@@ -766,7 +877,7 @@ export default function MarketScreen({ navigation }: any) {
         </View>
       ) : (
         <FlatList
-          data={selectedType === 'B2C_NORMAL' ? (filteredNormalProducts as any[]) : (filteredProducts as any[])}
+          data={selectedType === 'B2C_NORMAL' ? (displayNormalProducts as any[]) : (displayProducts as any[])}
           keyExtractor={(item) => item.id}
           numColumns={2}
           contentContainerStyle={styles.gridContent}
@@ -1448,5 +1559,86 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
+  },
+  // 모꼬 마켓 상품 스탠바이 카드 (유저 제공 알림 원 + 준비중 태그 테마)
+  standbyProductCard: {
+    width: CARD_WIDTH,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 5,
+    elevation: 2,
+    marginBottom: CARD_GAP,
+  },
+  standbyProductImgWrap: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+  },
+  standbyProductIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  standbyProductMainText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#1E293B',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  standbyProductSubText: {
+    fontSize: 8.5,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 11,
+  },
+  standbyProductWaitText: {
+    fontSize: 8.5,
+    fontWeight: '700',
+    color: '#0F172A',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  standbyProductContent: {
+    padding: 10,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  standbyProductSeller: {
+    fontSize: 9.5,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginBottom: 2,
+  },
+  standbyProductTitle: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 4,
+  },
+  standbyProductPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  standbyProductComing: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FF3B6B',
+    letterSpacing: 0.5,
   },
 });

@@ -224,6 +224,22 @@ export default function LiveScreen({ navigation }) {
     return rooms.filter((r) => r.category === selectedCategory || (r.category && r.category.includes(selectedCategory)));
   }, [rooms, selectedCategory]);
 
+  // 방송 슬롯이 비어있거나 짝수가 아닐 때 모꼬 스탠바이 카드로 자동 패딩 (기존 방송 100% 보존 & 신규 방송 시작 시 자동 교체)
+  const displayRooms = useMemo(() => {
+    const list = [...filteredRooms];
+    const minSlots = 6;
+    const targetCount = Math.max(minSlots, Math.ceil(list.length / 2) * 2);
+    const needed = Math.max(0, targetCount - list.length);
+    for (let i = 0; i < needed; i++) {
+      list.push({
+        id: `standby-live-${i}`,
+        isStandby: true,
+        standbyIndex: list.length + 1,
+      });
+    }
+    return list;
+  }, [filteredRooms]);
+
   const handleStartLive = async () => {
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
@@ -297,6 +313,55 @@ export default function LiveScreen({ navigation }) {
   };
 
   const renderRoomItem = ({ item }) => {
+    if (item.isStandby) {
+      return (
+        <TouchableOpacity
+          style={styles.standbyRoomCard}
+          onPress={() => {
+            Alert.alert(
+              '🎙️ 스트리머가 방송을 준비 중이에요!',
+              '새로운 모꼬 라이브 방송이 곧 시작됩니다. 채널을 고정하고 조금만 기다려 주세요! ✨'
+            );
+          }}
+          activeOpacity={0.88}
+        >
+          {/* Top: Retro TV SMPTE Color Bars Ribbon (위 이미지 2 반영) */}
+          <View style={styles.standbyColorBars}>
+            <View style={{ flex: 1, backgroundColor: '#c0c0c0' }} />
+            <View style={{ flex: 1, backgroundColor: '#d4d400' }} />
+            <View style={{ flex: 1, backgroundColor: '#00d4d4' }} />
+            <View style={{ flex: 1, backgroundColor: '#00d400' }} />
+            <View style={{ flex: 1, backgroundColor: '#d400d4' }} />
+            <View style={{ flex: 1, backgroundColor: '#d40000' }} />
+            <View style={{ flex: 1, backgroundColor: '#0000d4' }} />
+          </View>
+
+          {/* Center: Camera/Standby icon & text (위 이미지 4 반영) */}
+          <View style={styles.standbyCenterWrap}>
+            <View style={styles.standbyRadioRing}>
+              <Ionicons name="radio" size={20} color="#FF3B6B" />
+            </View>
+            <Text style={styles.standbySeeYou}>- See you next time -</Text>
+            <Text style={styles.standbyMainTitle}>스트리머가</Text>
+            <Text style={[styles.standbyMainTitle, { color: '#FF3B6B' }]}>방송을 준비중</Text>
+            <Text style={styles.standbyMainTitle}>이에요!</Text>
+            <Text style={styles.standbySubText} numberOfLines={1}>
+              그대의 행복마저 나의 행복이길 ✨
+            </Text>
+          </View>
+
+          {/* Bottom Badge Bar */}
+          <View style={styles.standbyBottomBar}>
+            <View style={styles.standbyBadgePill}>
+              <View style={styles.standbyPingDot} />
+              <Text style={styles.standbyBadgeText}>ON-AIR 준비중</Text>
+            </View>
+            <Text style={styles.standbyIdxText}>STANDBY #{item.standbyIndex}</Text>
+          </View>
+        </TouchableOpacity>
+      );
+    }
+
     const host = item.host || {};
     const coverImage =
       item.coverUri ||
@@ -639,16 +704,16 @@ export default function LiveScreen({ navigation }) {
         </View>
       ) : (
         <FlatList
-          data={filteredRooms}
+          data={displayRooms}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderRoomItem}
           numColumns={2}
           onScroll={handleScroll}
           scrollEventThrottle={16}
           contentContainerStyle={
-            filteredRooms.length > 0 ? styles.roomList : styles.emptyList
+            displayRooms.length > 0 ? styles.roomList : styles.emptyList
           }
-          columnWrapperStyle={filteredRooms.length > 0 ? styles.columnWrap : undefined}
+          columnWrapperStyle={displayRooms.length > 0 ? styles.columnWrap : undefined}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -1942,6 +2007,101 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#94A3B8',
     marginTop: 2,
+  },
+  // 모꼬 LIVE 스탠바이 카드 스타일 (유저 제공 TV 컬러바 + 우주 밤하늘 감성 테마)
+  standbyRoomCard: {
+    width: '48%',
+    height: 220,
+    backgroundColor: '#0a0f1d',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 59, 107, 0.25)',
+    justifyContent: 'space-between',
+    padding: 10,
+  },
+  standbyColorBars: {
+    flexDirection: 'row',
+    height: 4,
+    width: '100%',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  standbyCenterWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    marginVertical: 'auto',
+  },
+  standbyRadioRing: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 59, 107, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 59, 107, 0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  standbySeeYou: {
+    fontSize: 8,
+    color: '#94A3B8',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  standbyMainTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  standbySubText: {
+    fontSize: 8.5,
+    color: '#94A3B8',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  standbyBottomBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  standbyBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+    gap: 3,
+  },
+  standbyPingDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#F59E0B',
+  },
+  standbyBadgeText: {
+    fontSize: 8.5,
+    fontWeight: '700',
+    color: '#F1F5F9',
+  },
+  standbyIdxText: {
+    fontSize: 8,
+    color: '#64748B',
+    fontWeight: '600',
   },
 });
 

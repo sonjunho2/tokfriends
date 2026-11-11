@@ -1386,6 +1386,216 @@ const LEGAL_DOCUMENTS = {
   },
 }
 
+/**
+ * 🎙️ 모꼬 LIVE 방송 준비중 스탠바이 카드 (유저 제공 TV 컬러바 + 우주 밤하늘 감성 테마)
+ * 실시간 방송이 비어있을 때 슬롯을 채우고, 방송이 시작되면 자동으로 교체됨
+ */
+function MoccoLiveStandbyCard({ index = 1 }: { index?: number }) {
+  const { toast } = useToast()
+  return (
+    <div
+      onClick={() => {
+        toast({
+          title: '🎙️ 스트리머가 방송을 준비 중이에요!',
+          description: '새로운 라이브가 곧 시작됩니다. 채널을 고정하고 조금만 기다려 주세요! ✨',
+        })
+      }}
+      className="group relative flex flex-col overflow-hidden rounded-2xl bg-slate-950 border border-slate-800/80 shadow-2xs hover:shadow-lg hover:border-pink-500/50 transition-all cursor-pointer"
+    >
+      {/* Aspect-square Cover area with starry night + TV test pattern ribbon */}
+      <div className="relative aspect-square w-full bg-[#0a0f1d] overflow-hidden flex flex-col justify-between p-3 select-none">
+        {/* Background Starry Night Gradient with glowing nebula */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950/70 via-slate-950 to-black pointer-events-none" />
+        <div className="absolute inset-0 opacity-25 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
+
+        {/* Top: Retro TV SMPTE Color Bars Ribbon (위 이미지 2 반영) */}
+        <div className="relative z-10 flex h-1.5 w-full rounded-full overflow-hidden shadow-xs opacity-90 group-hover:opacity-100 transition-opacity">
+          <div className="flex-1 bg-[#c0c0c0]" />
+          <div className="flex-1 bg-[#d4d400]" />
+          <div className="flex-1 bg-[#00d4d4]" />
+          <div className="flex-1 bg-[#00d400]" />
+          <div className="flex-1 bg-[#d400d4]" />
+          <div className="flex-1 bg-[#d40000]" />
+          <div className="flex-1 bg-[#0000d4]" />
+        </div>
+
+        {/* Center: Camera/Standby icon & text (위 이미지 4 반영) */}
+        <div className="relative z-10 flex flex-col items-center justify-center text-center my-auto px-2">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-1.5 sm:mb-2 group-hover:scale-110 group-hover:border-pink-500/40 group-hover:bg-pink-500/10 transition-all duration-300">
+            <Radio className="h-4 w-4 sm:h-5 sm:w-5 text-pink-400 animate-pulse" />
+          </div>
+          <span className="text-[9px] tracking-widest text-slate-400 font-medium uppercase mb-0.5">
+            See you next time
+          </span>
+          <h5 className="text-xs sm:text-sm font-black text-white leading-tight">
+            스트리머가<br /><span className="text-pink-400">방송을 준비중</span>이에요!
+          </h5>
+          <p className="text-[9px] sm:text-[10px] text-slate-400 mt-1 line-clamp-1">
+            그대의 행복마저 나의 행복이길 ✨
+          </p>
+        </div>
+
+        {/* Bottom: Next On-Air Badge */}
+        <div className="relative z-10 flex items-center justify-between text-[10px]">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-900/80 border border-slate-700/60 text-slate-300 font-semibold backdrop-blur-xs text-[9px] sm:text-[10px]">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping" />
+            ON-AIR 준비중
+          </span>
+          <span className="text-[9px] text-slate-500 font-mono">STANDBY #{index}</span>
+        </div>
+      </div>
+
+      {/* Info panel underneath */}
+      <div className="p-2.5 space-y-1 bg-slate-900/90 border-t border-slate-800">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
+            <span className="text-xs">🎙️</span>
+          </div>
+          <span className="text-xs font-bold text-slate-300 truncate">
+            모꼬 크리에이터
+          </span>
+        </div>
+        <h4 className="font-bold text-xs text-slate-400 line-clamp-1 group-hover:text-pink-400 transition-colors">
+          새로운 라이브 방송이 곧 시작됩니다
+        </h4>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * 🎁 모꼬마켓 상품 준비중 스탠바이 카드 (유저 제공 알림 원형 아이콘 + 준비중 태그 감성 테마)
+ * 상품 그리드의 빈 공간을 채우고, 새 상품이 등록되면 자동으로 교체됨
+ */
+function MoccoMarketStandbyCard({ index = 1 }: { index?: number }) {
+  const { toast } = useToast()
+  return (
+    <div
+      onClick={() => {
+        toast({
+          title: '🎁 상품 준비중입니다.',
+          description: '새로운 모꼬 특가 상품이 등록될 예정입니다. 조금만 기다려 주세요! ✨',
+        })
+      }}
+      className="bg-white rounded-2xl border border-dashed border-slate-300 p-3 shadow-2xs hover:shadow-md hover:border-pink-300 transition-all cursor-pointer flex flex-col justify-between group select-none"
+    >
+      <div>
+        {/* Aspect-square Image area (위 이미지 1 & 이미지 3 반영) */}
+        <div className="aspect-square w-full rounded-xl overflow-hidden bg-gradient-to-b from-slate-50 to-slate-100/80 relative mb-2.5 flex flex-col items-center justify-center p-3 text-center border border-slate-100">
+          {/* Top hanger tag style badge (이미지 3 반영) */}
+          <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800 text-white text-[9px] font-extrabold shadow-2xs">
+            <span>🏷️ 준비중</span>
+          </div>
+
+          {/* Center Exclamation Circle (이미지 1 반영) */}
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-slate-200/90 flex items-center justify-center text-slate-600 mb-1.5 sm:mb-2 group-hover:scale-110 group-hover:bg-pink-100 group-hover:text-pink-600 transition-all duration-300">
+            <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+          </div>
+
+          <h5 className="font-extrabold text-xs sm:text-sm text-slate-800 leading-tight">
+            상품 준비중입니다.
+          </h5>
+          <p className="text-[9px] sm:text-[10px] text-slate-500 mt-1 leading-snug">
+            새로운 상품이 등록될 예정입니다.<br />
+            <span className="text-slate-600 font-medium">조금만 기다려 주세요!</span>
+          </p>
+        </div>
+
+        {/* Title area */}
+        <div className="flex items-start gap-1.5">
+          <span className="text-xs font-black text-slate-400 shrink-0 leading-tight">
+            NEW
+          </span>
+          <h5 className="font-bold text-xs text-slate-600 line-clamp-1 group-hover:text-pink-600 transition-colors">
+            [입고 대기] 모꼬 추천 프리미엄 상품
+          </h5>
+        </div>
+
+        <div className="flex items-baseline gap-1.5 pt-1">
+          <span className="font-extrabold text-xs text-pink-500">
+            COMING SOON
+          </span>
+          <span className="text-[10px] sm:text-[11px] text-slate-400 font-semibold">
+            특가 오픈 예정 #{index}
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+        <span className="font-medium">모꼬 검증 셀러</span>
+        <span className="text-pink-500 font-bold">입고 준비중 ✨</span>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * 🏷️ 모꼬 공동구매 준비중 스탠바이 카드
+ */
+function MoccoGroupBuyStandbyCard({ index = 1 }: { index?: number }) {
+  const { toast } = useToast()
+  return (
+    <Card
+      onClick={() => {
+        toast({
+          title: '🏷️ 공동구매 준비중입니다.',
+          description: '곧 새로운 파격 공동구매 핫딜이 오픈됩니다! 조금만 기다려 주세요. ✨',
+        })
+      }}
+      className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-dashed border-slate-300 bg-white flex flex-col justify-between select-none"
+    >
+      <div>
+        <div className="aspect-square w-full bg-gradient-to-b from-rose-50/60 to-purple-50/60 overflow-hidden relative flex flex-col items-center justify-center p-4 text-center">
+          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+            <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs">
+              공구 준비중
+            </span>
+            <span className="bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+              NEXT 핫딜
+            </span>
+          </div>
+
+          <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center text-[#FF3B6B] mb-2 group-hover:scale-110 transition-transform">
+            <AlertCircle className="w-6 h-6 stroke-[2.5]" />
+          </div>
+          <h5 className="font-extrabold text-xs sm:text-sm text-slate-800 leading-tight">
+            공구 상품 준비중입니다.
+          </h5>
+          <p className="text-[10px] text-slate-500 mt-1">
+            모꼬 본사 검증 파격 특가 공구 오픈 예정!
+          </p>
+        </div>
+
+        <CardContent className="p-4 space-y-2">
+          <span className="text-[10px] text-muted-foreground font-semibold block truncate">
+            모꼬 본사 공식 공구관
+          </span>
+          <h4 className="font-bold text-xs sm:text-sm text-slate-700 line-clamp-1 group-hover:text-[#FF3B6B] transition-colors">
+            [공구 오픈 예정] 프리미엄 핫딜 #{index}
+          </h4>
+          <div className="flex items-baseline gap-2">
+            <span className="font-extrabold text-sm text-[#FF3B6B]">
+              COMING SOON
+            </span>
+            <span className="text-xs text-slate-400">
+              최대 70% 할인 예정
+            </span>
+          </div>
+        </CardContent>
+      </div>
+
+      <div className="p-4 pt-0">
+        <Button
+          size="sm"
+          className="w-full h-9 text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200 hover:bg-rose-50 hover:text-[#FF3B6B] rounded-xl transition-all"
+        >
+          오픈 알림받기
+        </Button>
+      </div>
+    </Card>
+  )
+}
+
 // 5 Mobile App Equivalent Tabs
 type ActiveTab = 'HOME' | 'MARKET' | 'LIVE' | 'CHAT' | 'MY'
 
@@ -3617,7 +3827,7 @@ export default function CustomerWebStorefrontPage() {
                       </Button>
                     </div>
 
-                    {/* 8-Card Live Grid (2 rows x 4 cols) */}
+                    {/* 8-Card Live Grid (2 rows x 4 cols) - 실시간 방송이 부족할 경우 모꼬 방송 준비중 카드로 슬롯을 채워 균형 유지 */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5 flex-1">
                       {lives.slice(0, 8).map((live) => (
                         <div
@@ -3698,6 +3908,10 @@ export default function CustomerWebStorefrontPage() {
                             </h4>
                           </div>
                         </div>
+                      ))}
+                      {/* 방송 개수가 8개 미만일 때 모꼬 방송 준비중 카드로 슬롯을 채움 */}
+                      {Array.from({ length: Math.max(0, 8 - lives.slice(0, 8).length) }).map((_, idx) => (
+                        <MoccoLiveStandbyCard key={`standby-live-home-${idx}`} index={lives.slice(0, 8).length + idx + 1} />
                       ))}
                     </div>
                   </div>
@@ -3925,6 +4139,14 @@ export default function CustomerWebStorefrontPage() {
                         </Card>
                       )
                     })}
+                  {/* 공구 상품 부족 시 공구 준비중 스탠바이 카드로 4개 채움 */}
+                  {(() => {
+                    const groupItems = marketProducts.filter((p) => p.type === 'B2C_GROUP').slice(0, 4)
+                    const needed = Math.max(0, 4 - groupItems.length)
+                    return Array.from({ length: needed }).map((_, idx) => (
+                      <MoccoGroupBuyStandbyCard key={`standby-group-${idx}`} index={groupItems.length + idx + 1} />
+                    ))
+                  })()}
                 </div>
               </section>
 
@@ -4355,88 +4577,98 @@ export default function CustomerWebStorefrontPage() {
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
-                    {marketProducts
-                      .filter((p) => p.type === 'B2C_NORMAL')
-                      .sort((a, b) => {
-                        const scoreA = (a.orderCount || 0) * 0.5 + (a.salesCount || 0) * 0.3 + (a.rating || 0) * 20
-                        const scoreB = (b.orderCount || 0) * 0.5 + (b.salesCount || 0) * 0.3 + (b.rating || 0) * 20
-                        return scoreB - scoreA
-                      })
-                      .slice(0, 5)
-                      .map((item, idx) => {
-                        const rank = idx + 1
-                        const discountRate = item.originalPrice
-                          ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
-                          : 20
-                        const badges = [
-                          '🔥 실시간 주문 1위',
-                          '⭐ 재구매 BEST',
-                          '🚚 당일 신선출고',
-                          '💬 리뷰 만족도 99%',
-                          '🎁 모꼬 단독특가',
-                        ]
-                        const badgeText = badges[idx] || '인기 마켓'
+                    {(() => {
+                      const top5 = marketProducts
+                        .filter((p) => p.type === 'B2C_NORMAL')
+                        .sort((a, b) => {
+                          const scoreA = (a.orderCount || 0) * 0.5 + (a.salesCount || 0) * 0.3 + (a.rating || 0) * 20
+                          const scoreB = (b.orderCount || 0) * 0.5 + (b.salesCount || 0) * 0.3 + (b.rating || 0) * 20
+                          return scoreB - scoreA
+                        })
+                        .slice(0, 5)
+                      const needed = Math.max(0, 5 - top5.length)
+                      return (
+                        <>
+                          {top5.map((item, idx) => {
+                            const rank = idx + 1
+                            const discountRate = item.originalPrice
+                              ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
+                              : 20
+                            const badges = [
+                              '🔥 실시간 주문 1위',
+                              '⭐ 재구매 BEST',
+                              '🚚 당일 신선출고',
+                              '💬 리뷰 만족도 99%',
+                              '🎁 모꼬 단독특가',
+                            ]
+                            const badgeText = badges[idx] || '인기 마켓'
 
-                        return (
-                          <div
-                            key={item.id}
-                            onClick={() => router.push('/market/' + item.id)}
-                            className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs hover:shadow-md hover:border-purple-300 transition-all cursor-pointer flex flex-col justify-between group"
-                          >
-                            <div>
-                              <div className="aspect-square w-full rounded-xl overflow-hidden bg-slate-100 relative mb-2.5">
-                                <img
-                                  src={item.images[0]}
-                                  alt={item.title}
-                                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                />
-                                <span className={`absolute top-2 left-2 text-white text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded-md shadow-2xs ${
-                                  idx === 0 ? 'bg-[#FF3B6B]' : 'bg-[#8B5CF6]'
-                                }`}>
-                                  {badgeText}
-                                </span>
+                            return (
+                              <div
+                                key={item.id}
+                                onClick={() => router.push('/market/' + item.id)}
+                                className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs hover:shadow-md hover:border-purple-300 transition-all cursor-pointer flex flex-col justify-between group"
+                              >
+                                <div>
+                                  <div className="aspect-square w-full rounded-xl overflow-hidden bg-slate-100 relative mb-2.5">
+                                    <img
+                                      src={item.images[0]}
+                                      alt={item.title}
+                                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    />
+                                    <span className={`absolute top-2 left-2 text-white text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded-md shadow-2xs ${
+                                      idx === 0 ? 'bg-[#FF3B6B]' : 'bg-[#8B5CF6]'
+                                    }`}>
+                                      {badgeText}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-start gap-1.5">
+                                    <span className={`text-lg sm:text-xl font-black shrink-0 leading-tight ${
+                                      idx === 0 ? 'text-[#FF3B6B]' : 'text-slate-900'
+                                    }`}>
+                                      {rank}
+                                    </span>
+                                    <h5 className="font-bold text-xs text-slate-800 line-clamp-2 leading-snug group-hover:text-[#FF3B6B] transition-colors">
+                                      {item.title}
+                                    </h5>
+                                  </div>
+
+                                  <div className="flex items-baseline gap-1.5 pt-1 pl-4">
+                                    <span className="font-extrabold text-xs sm:text-sm text-[#FF3B6B]">
+                                      {discountRate}%
+                                    </span>
+                                    <span className="font-extrabold text-xs sm:text-sm text-slate-900">
+                                      {item.price.toLocaleString()}원
+                                    </span>
+                                  </div>
+
+                                  {/* 실 서비스 메트릭: 주문건수 및 평점 */}
+                                  <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
+                                    <span>주문 {item.orderCount ? item.orderCount.toLocaleString() : '800+'}건</span>
+                                    <span className="text-amber-500 font-bold">★ {item.rating || '4.9'}</span>
+                                  </div>
+                                </div>
+
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    router.push('/market/' + item.id)
+                                  }}
+                                  className="w-full mt-3 py-1.5 rounded-xl border border-slate-200 hover:border-purple-300 hover:bg-purple-50 text-[11px] font-bold text-slate-700 flex items-center justify-center gap-1 transition-all"
+                                >
+                                  <ShoppingBag className="h-3 w-3 text-slate-500 group-hover:text-purple-600" />
+                                  <span>담기</span>
+                                </button>
                               </div>
-
-                              <div className="flex items-start gap-1.5">
-                                <span className={`text-lg sm:text-xl font-black shrink-0 leading-tight ${
-                                  idx === 0 ? 'text-[#FF3B6B]' : 'text-slate-900'
-                                }`}>
-                                  {rank}
-                                </span>
-                                <h5 className="font-bold text-xs text-slate-800 line-clamp-2 leading-snug group-hover:text-[#FF3B6B] transition-colors">
-                                  {item.title}
-                                </h5>
-                              </div>
-
-                              <div className="flex items-baseline gap-1.5 pt-1 pl-4">
-                                <span className="font-extrabold text-xs sm:text-sm text-[#FF3B6B]">
-                                  {discountRate}%
-                                </span>
-                                <span className="font-extrabold text-xs sm:text-sm text-slate-900">
-                                  {item.price.toLocaleString()}원
-                                </span>
-                              </div>
-
-                              {/* 실 서비스 메트릭: 주문건수 및 평점 */}
-                              <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
-                                <span>주문 {item.orderCount ? item.orderCount.toLocaleString() : '800+'}건</span>
-                                <span className="text-amber-500 font-bold">★ {item.rating || '4.9'}</span>
-                              </div>
-                            </div>
-
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                router.push('/market/' + item.id)
-                              }}
-                              className="w-full mt-3 py-1.5 rounded-xl border border-slate-200 hover:border-purple-300 hover:bg-purple-50 text-[11px] font-bold text-slate-700 flex items-center justify-center gap-1 transition-all"
-                            >
-                              <ShoppingBag className="h-3 w-3 text-slate-500 group-hover:text-purple-600" />
-                              <span>담기</span>
-                            </button>
-                          </div>
-                        )
-                      })}
+                            )
+                          })}
+                          {Array.from({ length: needed }).map((_, idx) => (
+                            <MoccoMarketStandbyCard key={`standby-top5-market-${idx}`} index={top5.length + idx + 1} />
+                          ))}
+                        </>
+                      )
+                    })()}
                   </div>
                 </section>
               )}
@@ -4465,94 +4697,104 @@ export default function CustomerWebStorefrontPage() {
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
-                    {marketProducts
-                      .filter((p) => p.type === 'B2C_GROUP')
-                      .sort((a, b) => {
-                        const rateA = (a.currentQuantity || 0) / (a.targetQuantity || 1)
-                        const rateB = (b.currentQuantity || 0) / (b.targetQuantity || 1)
-                        return rateB - rateA
-                      })
-                      .slice(0, 5)
-                      .map((item, idx) => {
-                        const rank = idx + 1
-                        const discountRate = item.originalPrice
-                          ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
-                          : 35
-                        const target = item.targetQuantity || 50
-                        const current = item.currentQuantity || 45
-                        const progress = Math.min(100, Math.round((current / target) * 100))
+                    {(() => {
+                      const top5Group = marketProducts
+                        .filter((p) => p.type === 'B2C_GROUP')
+                        .sort((a, b) => {
+                          const rateA = (a.currentQuantity || 0) / (a.targetQuantity || 1)
+                          const rateB = (b.currentQuantity || 0) / (b.targetQuantity || 1)
+                          return rateB - rateA
+                        })
+                        .slice(0, 5)
+                      const needed = Math.max(0, 5 - top5Group.length)
+                      return (
+                        <>
+                          {top5Group.map((item, idx) => {
+                            const rank = idx + 1
+                            const discountRate = item.originalPrice
+                              ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
+                              : 35
+                            const target = item.targetQuantity || 50
+                            const current = item.currentQuantity || 45
+                            const progress = Math.min(100, Math.round((current / target) * 100))
 
-                        return (
-                          <div
-                            key={item.id}
-                            onClick={() => router.push('/market/' + item.id)}
-                            className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs hover:shadow-md hover:border-rose-300 transition-all cursor-pointer flex flex-col justify-between group"
-                          >
-                            <div>
-                              <div className="aspect-square w-full rounded-xl overflow-hidden bg-slate-100 relative mb-2.5">
-                                <img
-                                  src={item.images[0]}
-                                  alt={item.title}
-                                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                />
-                                <div className="absolute top-2 left-2 flex flex-col gap-1">
-                                  <span className="bg-[#FF3B6B] text-white text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded-md shadow-2xs">
-                                    {item.deadline || '마감임박'}
-                                  </span>
+                            return (
+                              <div
+                                key={item.id}
+                                onClick={() => router.push('/market/' + item.id)}
+                                className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs hover:shadow-md hover:border-rose-300 transition-all cursor-pointer flex flex-col justify-between group"
+                              >
+                                <div>
+                                  <div className="aspect-square w-full rounded-xl overflow-hidden bg-slate-100 relative mb-2.5">
+                                    <img
+                                      src={item.images[0]}
+                                      alt={item.title}
+                                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    />
+                                    <div className="absolute top-2 left-2 flex flex-col gap-1">
+                                      <span className="bg-[#FF3B6B] text-white text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded-md shadow-2xs">
+                                        {item.deadline || '마감임박'}
+                                      </span>
+                                    </div>
+                                    <span className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                                      {progress}% 달성
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-start gap-1.5">
+                                    <span className={`text-lg sm:text-xl font-black shrink-0 leading-tight ${
+                                      idx === 0 ? 'text-[#FF3B6B]' : 'text-slate-900'
+                                    }`}>
+                                      {rank}
+                                    </span>
+                                    <h5 className="font-bold text-xs text-slate-800 line-clamp-2 leading-snug group-hover:text-[#FF3B6B] transition-colors">
+                                      {item.title}
+                                    </h5>
+                                  </div>
+
+                                  <div className="flex items-baseline gap-1.5 pt-1 pl-4">
+                                    <span className="font-extrabold text-xs sm:text-sm text-[#FF3B6B]">
+                                      {discountRate}%
+                                    </span>
+                                    <span className="font-extrabold text-xs sm:text-sm text-slate-900">
+                                      {item.price.toLocaleString()}원
+                                    </span>
+                                  </div>
+
+                                  {/* 실 서비스 공구 달성률 프로그레스 바 */}
+                                  <div className="mt-2.5 space-y-1">
+                                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                      <div
+                                        className="bg-gradient-to-r from-orange-400 to-[#FF3B6B] h-full rounded-full transition-all duration-500"
+                                        style={{ width: `${progress}%` }}
+                                      />
+                                    </div>
+                                    <div className="flex justify-between text-[10px] font-semibold text-slate-500">
+                                      <span>{current}/{target}명 참여</span>
+                                      <span className="text-[#FF3B6B] font-extrabold">{progress}%</span>
+                                    </div>
+                                  </div>
                                 </div>
-                                <span className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
-                                  {progress}% 달성
-                                </span>
-                              </div>
 
-                              <div className="flex items-start gap-1.5">
-                                <span className={`text-lg sm:text-xl font-black shrink-0 leading-tight ${
-                                  idx === 0 ? 'text-[#FF3B6B]' : 'text-slate-900'
-                                }`}>
-                                  {rank}
-                                </span>
-                                <h5 className="font-bold text-xs text-slate-800 line-clamp-2 leading-snug group-hover:text-[#FF3B6B] transition-colors">
-                                  {item.title}
-                                </h5>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    router.push('/market/' + item.id)
+                                  }}
+                                  className="w-full mt-3 py-1.5 rounded-xl bg-rose-50 text-[#FF3B6B] border border-rose-200 hover:bg-gradient-to-r hover:from-[#FF3B6B] hover:to-[#8B5CF6] hover:text-white hover:border-transparent text-[11px] font-bold flex items-center justify-center gap-1 transition-all duration-300 shadow-2xs hover:shadow-md"
+                                >
+                                  <Flame className="h-3 w-3" />
+                                  <span>공구 참여</span>
+                                </button>
                               </div>
-
-                              <div className="flex items-baseline gap-1.5 pt-1 pl-4">
-                                <span className="font-extrabold text-xs sm:text-sm text-[#FF3B6B]">
-                                  {discountRate}%
-                                </span>
-                                <span className="font-extrabold text-xs sm:text-sm text-slate-900">
-                                  {item.price.toLocaleString()}원
-                                </span>
-                              </div>
-
-                              {/* 실 서비스 공구 달성률 프로그레스 바 */}
-                              <div className="mt-2.5 space-y-1">
-                                <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                                  <div
-                                    className="bg-gradient-to-r from-orange-400 to-[#FF3B6B] h-full rounded-full transition-all duration-500"
-                                    style={{ width: `${progress}%` }}
-                                  />
-                                </div>
-                                <div className="flex justify-between text-[10px] font-semibold text-slate-500">
-                                  <span>{current}/{target}명 참여</span>
-                                  <span className="text-[#FF3B6B] font-extrabold">{progress}%</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                router.push('/market/' + item.id)
-                              }}
-                              className="w-full mt-3 py-1.5 rounded-xl bg-rose-50 text-[#FF3B6B] border border-rose-200 hover:bg-gradient-to-r hover:from-[#FF3B6B] hover:to-[#8B5CF6] hover:text-white hover:border-transparent text-[11px] font-bold flex items-center justify-center gap-1 transition-all duration-300 shadow-2xs hover:shadow-md"
-                            >
-                              <Flame className="h-3 w-3" />
-                              <span>공구 참여</span>
-                            </button>
-                          </div>
-                        )
-                      })}
+                            )
+                          })}
+                          {Array.from({ length: needed }).map((_, idx) => (
+                            <MoccoGroupBuyStandbyCard key={`standby-top5-group-${idx}`} index={top5Group.length + idx + 1} />
+                          ))}
+                        </>
+                      )
+                    })()}
                   </div>
                 </section>
               )}
@@ -4608,170 +4850,194 @@ export default function CustomerWebStorefrontPage() {
                     ))}
                 </div>
               ) : marketSubTab === 'B2C_GROUP' ? (
-                /* 2) 🔥 공동구매 그리드 (홈 화면의 특가공구 프리미엄 박스 디자인과 100% 동일한 완성도) */
+                /* 2) 🔥 공동구매 그리드 (홈 화면의 특가공구 프리미엄 박스 디자인과 100% 동일한 완성도) - 공구 상품 부족 시 스탠바이 카드로 자동 패딩 */
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {marketProducts
-                    .filter((p) => p.type === 'B2C_GROUP')
-                    .filter((p) => {
-                      const matchCategory = marketCategoryFilter === '전체' ? true : p.category.includes(marketCategoryFilter)
-                      const matchSearch = !searchQuery.trim() ? true : (p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.description.toLowerCase().includes(searchQuery.toLowerCase()) || p.sellerName.toLowerCase().includes(searchQuery.toLowerCase()))
-                      return matchCategory && matchSearch
-                    })
-                    .map((item) => {
-                      const target = item.targetQuantity || 30
-                      const current = item.currentQuantity || 22
-                      const rate = Math.round((current / target) * 100)
-                      const discountRate = item.originalPrice
-                        ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
-                        : 35
+                  {(() => {
+                    const filteredGroup = marketProducts
+                      .filter((p) => p.type === 'B2C_GROUP')
+                      .filter((p) => {
+                        const matchCategory = marketCategoryFilter === '전체' ? true : p.category.includes(marketCategoryFilter)
+                        const matchSearch = !searchQuery.trim() ? true : (p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.description.toLowerCase().includes(searchQuery.toLowerCase()) || p.sellerName.toLowerCase().includes(searchQuery.toLowerCase()))
+                        return matchCategory && matchSearch
+                      })
+                    const targetCount = Math.max(8, Math.ceil(filteredGroup.length / 4) * 4)
+                    const needed = Math.max(0, targetCount - filteredGroup.length)
 
-                      return (
-                        <Card
-                          key={item.id}
-                          onClick={() => router.push('/market/' + item.id)}
-                          className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80 bg-white flex flex-col justify-between"
-                        >
-                          <div>
-                            <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
-                              <img
-                                src={item.images[0]}
-                                alt={item.title}
-                                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                              <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                                <span className="bg-[#FF3B6B] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs">
-                                  공구특가
-                                </span>
-                                <span className="bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                  {discountRate}% OFF
-                                </span>
-                              </div>
-                            </div>
-                            <CardContent className="p-4 space-y-2">
-                              <span className="text-[10px] text-muted-foreground font-semibold block truncate">
-                                {item.sellerName}
-                              </span>
-                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-[#FF3B6B] transition-colors">
-                                {item.title}
-                              </h4>
-                              <div className="flex items-baseline gap-2">
-                                <span className="font-extrabold text-base text-slate-900">
-                                  {item.price.toLocaleString()}원
-                                </span>
-                                {item.originalPrice && (
-                                  <span className="text-xs text-slate-400 line-through">
-                                    {item.originalPrice.toLocaleString()}원
-                                  </span>
-                                )}
-                              </div>
+                    return (
+                      <>
+                        {filteredGroup.map((item) => {
+                          const target = item.targetQuantity || 30
+                          const current = item.currentQuantity || 22
+                          const rate = Math.round((current / target) * 100)
+                          const discountRate = item.originalPrice
+                            ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
+                            : 35
 
-                              {/* Progress bar */}
-                              <div className="space-y-1 pt-1">
-                                <div className="flex items-center justify-between text-[11px] font-semibold">
-                                  <span className="text-slate-500">
-                                    목표 {target}개 중 {current}개
-                                  </span>
-                                  <span className="text-[#FF3B6B] font-bold">
-                                    {rate}% 달성
-                                  </span>
-                                </div>
-                                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] rounded-full transition-all duration-500"
-                                    style={{ width: `${Math.min(100, rate)}%` }}
-                                  />
-                                </div>
-                              </div>
-                            </CardContent>
-                          </div>
-
-                          <div className="p-4 pt-0">
-                            <Button
-                              size="sm"
-                              className="w-full h-9 text-xs font-bold bg-rose-50 text-[#FF3B6B] border border-rose-200 hover:bg-gradient-to-r hover:from-[#FF3B6B] hover:to-[#8B5CF6] hover:text-white hover:border-transparent rounded-xl shadow-2xs hover:shadow-md transition-all duration-300"
+                          return (
+                            <Card
+                              key={item.id}
+                              onClick={() => router.push('/market/' + item.id)}
+                              className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80 bg-white flex flex-col justify-between"
                             >
-                              공구 참여하기
-                            </Button>
-                          </div>
-                        </Card>
-                      )
-                    })}
+                              <div>
+                                <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
+                                  <img
+                                    src={item.images[0]}
+                                    alt={item.title}
+                                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  />
+                                  <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                                    <span className="bg-[#FF3B6B] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs">
+                                      공구특가
+                                    </span>
+                                    <span className="bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                      {discountRate}% OFF
+                                    </span>
+                                  </div>
+                                </div>
+                                <CardContent className="p-4 space-y-2">
+                                  <span className="text-[10px] text-muted-foreground font-semibold block truncate">
+                                    {item.sellerName}
+                                  </span>
+                                  <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-[#FF3B6B] transition-colors">
+                                    {item.title}
+                                  </h4>
+                                  <div className="flex items-baseline gap-2">
+                                    <span className="font-extrabold text-base text-slate-900">
+                                      {item.price.toLocaleString()}원
+                                    </span>
+                                    {item.originalPrice && (
+                                      <span className="text-xs text-slate-400 line-through">
+                                        {item.originalPrice.toLocaleString()}원
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Progress bar */}
+                                  <div className="space-y-1 pt-1">
+                                    <div className="flex items-center justify-between text-[11px] font-semibold">
+                                      <span className="text-slate-500">
+                                        목표 {target}개 중 {current}개
+                                      </span>
+                                      <span className="text-[#FF3B6B] font-bold">
+                                        {rate}% 달성
+                                      </span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full bg-gradient-to-r from-[#FF3B6B] to-[#8B5CF6] rounded-full transition-all duration-500"
+                                        style={{ width: `${Math.min(100, rate)}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </div>
+
+                              <div className="p-4 pt-0">
+                                <Button
+                                  size="sm"
+                                  className="w-full h-9 text-xs font-bold bg-rose-50 text-[#FF3B6B] border border-rose-200 hover:bg-gradient-to-r hover:from-[#FF3B6B] hover:to-[#8B5CF6] hover:text-white hover:border-transparent rounded-xl shadow-2xs hover:shadow-md transition-all duration-300"
+                                >
+                                  공구 참여하기
+                                </Button>
+                              </div>
+                            </Card>
+                          )
+                        })}
+                        {Array.from({ length: needed }).map((_, idx) => (
+                          <MoccoGroupBuyStandbyCard key={`standby-market-group-grid-${idx}`} index={filteredGroup.length + idx + 1} />
+                        ))}
+                      </>
+                    )
+                  })()}
                 </div>
               ) : (
-                /* 3) 🛍️ 일반 마켓상품 그리드 (B2C_NORMAL) */
+                /* 3) 🛍️ 일반 마켓상품 그리드 (B2C_NORMAL) - 상품 부족 시 모꼬 마켓 스탠바이 카드로 자동 패딩 */
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {marketProducts
-                    .filter((p) => p.type === 'B2C_NORMAL')
-                    .filter((p) => {
-                      const matchCategory = marketCategoryFilter === '전체' ? true : p.category.includes(marketCategoryFilter)
-                      const matchSearch = !searchQuery.trim() ? true : (p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.description.toLowerCase().includes(searchQuery.toLowerCase()) || p.sellerName.toLowerCase().includes(searchQuery.toLowerCase()))
-                      return matchCategory && matchSearch
-                    })
-                    .map((item) => {
-                      const discountRate = item.originalPrice
-                        ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
-                        : 20
+                  {(() => {
+                    const filteredNormal = marketProducts
+                      .filter((p) => p.type === 'B2C_NORMAL')
+                      .filter((p) => {
+                        const matchCategory = marketCategoryFilter === '전체' ? true : p.category.includes(marketCategoryFilter)
+                        const matchSearch = !searchQuery.trim() ? true : (p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.description.toLowerCase().includes(searchQuery.toLowerCase()) || p.sellerName.toLowerCase().includes(searchQuery.toLowerCase()))
+                        return matchCategory && matchSearch
+                      })
+                    const targetCount = Math.max(8, Math.ceil(filteredNormal.length / 4) * 4)
+                    const needed = Math.max(0, targetCount - filteredNormal.length)
 
-                      return (
-                        <Card
-                          key={item.id}
-                          onClick={() => router.push('/market/' + item.id)}
-                          className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80 bg-white flex flex-col justify-between"
-                        >
-                          <div>
-                            <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
-                              <img
-                                src={item.images[0]}
-                                alt={item.title}
-                                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                              <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                                <span className="bg-[#8B5CF6] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs">
-                                  모꼬특가
-                                </span>
-                                {discountRate > 0 && (
-                                  <span className="bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                    {discountRate}% OFF
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <CardContent className="p-4 space-y-2">
-                              <span className="text-[10px] text-muted-foreground font-semibold block truncate">
-                                {item.sellerName}
-                              </span>
-                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-[#FF3B6B] transition-colors">
-                                {item.title}
-                              </h4>
-                              <div className="flex items-baseline gap-2">
-                                <span className="font-extrabold text-base text-slate-900">
-                                  {item.price.toLocaleString()}원
-                                </span>
-                                {item.originalPrice && (
-                                  <span className="text-xs text-slate-400 line-through">
-                                    {item.originalPrice.toLocaleString()}원
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-                                <span>주문 {item.orderCount || 500}+건</span>
-                                <span className="text-amber-500 font-bold">★ {item.rating || '4.9'}</span>
-                              </div>
-                            </CardContent>
-                          </div>
+                    return (
+                      <>
+                        {filteredNormal.map((item) => {
+                          const discountRate = item.originalPrice
+                            ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
+                            : 20
 
-                          <div className="p-4 pt-0">
-                            <Button
-                              size="sm"
-                              className="w-full h-9 text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5"
+                          return (
+                            <Card
+                              key={item.id}
+                              onClick={() => router.push('/market/' + item.id)}
+                              className="group overflow-hidden rounded-3xl cursor-pointer hover:shadow-lg transition-all border border-slate-200/80 bg-white flex flex-col justify-between"
                             >
-                              <ShoppingBag className="h-3.5 w-3.5" />
-                              <span>장바구니 담기</span>
-                            </Button>
-                          </div>
-                        </Card>
-                      )
-                    })}
+                              <div>
+                                <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
+                                  <img
+                                    src={item.images[0]}
+                                    alt={item.title}
+                                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  />
+                                  <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                                    <span className="bg-[#8B5CF6] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs">
+                                      모꼬특가
+                                    </span>
+                                    {discountRate > 0 && (
+                                      <span className="bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                        {discountRate}% OFF
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <CardContent className="p-4 space-y-2">
+                                  <span className="text-[10px] text-muted-foreground font-semibold block truncate">
+                                    {item.sellerName}
+                                  </span>
+                                  <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-[#FF3B6B] transition-colors">
+                                    {item.title}
+                                  </h4>
+                                  <div className="flex items-baseline gap-2">
+                                    <span className="font-extrabold text-base text-slate-900">
+                                      {item.price.toLocaleString()}원
+                                    </span>
+                                    {item.originalPrice && (
+                                      <span className="text-xs text-slate-400 line-through">
+                                        {item.originalPrice.toLocaleString()}원
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                                    <span>주문 {item.orderCount || 500}+건</span>
+                                    <span className="text-amber-500 font-bold">★ {item.rating || '4.9'}</span>
+                                  </div>
+                                </CardContent>
+                              </div>
+
+                              <div className="p-4 pt-0">
+                                <Button
+                                  size="sm"
+                                  className="w-full h-9 text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5"
+                                >
+                                  <ShoppingBag className="h-3.5 w-3.5" />
+                                  <span>장바구니 담기</span>
+                                </Button>
+                              </div>
+                            </Card>
+                          )
+                        })}
+                        {Array.from({ length: needed }).map((_, idx) => (
+                          <MoccoMarketStandbyCard key={`standby-market-normal-grid-${idx}`} index={filteredNormal.length + idx + 1} />
+                        ))}
+                      </>
+                    )
+                  })()}
                 </div>
               )}
             </div>
@@ -5201,94 +5467,105 @@ export default function CustomerWebStorefrontPage() {
                       </div>
                     </div>
 
-                    {/* Live Rooms Grid: 옆으로 퍼져보이지 않도록 4칸(grid-cols-2 sm:grid-cols-3 xl:grid-cols-4)으로 확대 & 이미지가 박스에 꽉 차는 aspect-square */}
+                    {/* Live Rooms Grid: 옆으로 퍼져보이지 않도록 4칸(grid-cols-2 sm:grid-cols-3 xl:grid-cols-4)으로 확대 & 방송 부족 시 스탠바이 카드로 자동 패딩 */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3.5">
-                      {lives
-                        .filter((live) => (liveCategoryFilter === '전체' ? true : live.category.includes(liveCategoryFilter)))
-                        .map((live) => (
-                          <Card
-                            key={live.id}
-                            onClick={() => requireAuth(() => setActiveLiveModal(live))}
-                            className="group overflow-hidden rounded-2xl cursor-pointer hover:shadow-xl transition-all border border-slate-200/80 bg-white flex flex-col"
-                          >
-                            {/* 이미지가 박스에 100% 꽉 차는 정사각형(aspect-square) 라이브 커버 */}
-                            <div className="aspect-square w-full bg-slate-950 overflow-hidden relative">
-                              <img
-                                src={live.coverUrl}
-                                alt={live.title}
-                                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+                      {(() => {
+                        const filteredLives = lives.filter((live) => (liveCategoryFilter === '전체' ? true : live.category.includes(liveCategoryFilter)))
+                        const targetCount = Math.max(8, Math.ceil(filteredLives.length / 4) * 4)
+                        const needed = Math.max(0, targetCount - filteredLives.length)
 
-                              {/* Live viewer count */}
-                              <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-white text-[10px] font-semibold">
-                                <span className="h-1.5 w-1.5 rounded-full bg-[#FF3B6B] animate-ping" />
-                                <Users className="h-3 w-3 text-slate-300" />
-                                <span>{live.viewerCount.toLocaleString()}</span>
-                              </div>
-
-                              {live.isOfficialCreator && (
-                                <Badge className="absolute top-2 left-2 bg-[#8B5CF6] text-white text-[9px] font-bold border-none px-1.5 py-0 shadow-xs">
-                                  🎙️ 크리에이터
-                                </Badge>
-                              )}
-
-                              {/* Pinned product preview */}
-                              {live.pinnedProduct && (
-                                <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5 rounded-xl bg-white/95 p-1 text-slate-900 shadow-xs backdrop-blur-xs">
+                        return (
+                          <>
+                            {filteredLives.map((live) => (
+                              <Card
+                                key={live.id}
+                                onClick={() => requireAuth(() => setActiveLiveModal(live))}
+                                className="group overflow-hidden rounded-2xl cursor-pointer hover:shadow-xl transition-all border border-slate-200/80 bg-white flex flex-col"
+                              >
+                                {/* 이미지가 박스에 100% 꽉 차는 정사각형(aspect-square) 라이브 커버 */}
+                                <div className="aspect-square w-full bg-slate-950 overflow-hidden relative">
                                   <img
-                                    src={live.pinnedProduct.image}
-                                    alt="pin"
-                                    className="h-5 w-5 rounded-md object-cover shrink-0"
+                                    src={live.coverUrl}
+                                    alt={live.title}
+                                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                                   />
-                                  <span className="text-[10px] font-bold text-[#FF3B6B] truncate">
-                                    {live.pinnedProduct.price.toLocaleString()}원
-                                  </span>
-                                </div>
-                              )}
-                            </div>
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
 
-                            {/* 하단 정보 패널 */}
-                            <div className="p-2.5 space-y-1">
-                              <div 
-    onClick={(e) => {
-      e.stopPropagation()
-      openUserProfileModal({
-        id: live.id,
-        nickname: live.hostNickname,
-        avatar: live.hostAvatar,
-        region: '서울 강남구',
-        isLive: true,
-        liveTitle: live.title,
-        headline: `모꼬 LIVE에서 "${live.title}" 방송 중입니다 🎙️`,
-      })
-    }}
-    className="flex items-center gap-2 cursor-pointer group/host hover:opacity-90"
-  >
-    <div className="relative shrink-0 w-9 h-9 rounded-full overflow-hidden border border-slate-200 bg-slate-100 shadow-2xs">
-      <img
-        src={live.hostAvatar}
-        alt={live.hostNickname}
-        className="w-full h-full object-cover block"
-        style={{ width: 36, height: 36, objectFit: 'cover' }}
-      />
-      <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 border border-white" />
-    </div>
-    <span className="text-xs font-bold text-slate-800 group-hover/host:text-[#FF3B6B] transition truncate">
-      {live.hostNickname}
-    </span>
-  </div>
-                              <h4 className="font-bold text-xs text-slate-900 line-clamp-1 group-hover:text-[#FF3B6B] transition-colors leading-tight">
-                                {live.title}
-                              </h4>
-                              <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5">
-                                <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium truncate max-w-[90px]">
-                                  {live.category}
-                                </span>
-                              </div>
-                            </div>
-                          </Card>
-                        ))}
+                                  {/* Live viewer count */}
+                                  <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-white text-[10px] font-semibold">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-[#FF3B6B] animate-ping" />
+                                    <Users className="h-3 w-3 text-slate-300" />
+                                    <span>{live.viewerCount.toLocaleString()}</span>
+                                  </div>
+
+                                  {live.isOfficialCreator && (
+                                    <Badge className="absolute top-2 left-2 bg-[#8B5CF6] text-white text-[9px] font-bold border-none px-1.5 py-0 shadow-xs">
+                                      🎙️ 크리에이터
+                                    </Badge>
+                                  )}
+
+                                  {/* Pinned product preview */}
+                                  {live.pinnedProduct && (
+                                    <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5 rounded-xl bg-white/95 p-1 text-slate-900 shadow-xs backdrop-blur-xs">
+                                      <img
+                                        src={live.pinnedProduct.image}
+                                        alt="pin"
+                                        className="h-5 w-5 rounded-md object-cover shrink-0"
+                                      />
+                                      <span className="text-[10px] font-bold text-[#FF3B6B] truncate">
+                                        {live.pinnedProduct.price.toLocaleString()}원
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* 하단 정보 패널 */}
+                                <div className="p-2.5 space-y-1">
+                                  <div 
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      openUserProfileModal({
+                                        id: live.id,
+                                        nickname: live.hostNickname,
+                                        avatar: live.hostAvatar,
+                                        region: '서울 강남구',
+                                        isLive: true,
+                                        liveTitle: live.title,
+                                        headline: `모꼬 LIVE에서 "${live.title}" 방송 중입니다 🎙️`,
+                                      })
+                                    }}
+                                    className="flex items-center gap-2 cursor-pointer group/host hover:opacity-90"
+                                  >
+                                    <div className="relative shrink-0 w-9 h-9 rounded-full overflow-hidden border border-slate-200 bg-slate-100 shadow-2xs">
+                                      <img
+                                        src={live.hostAvatar}
+                                        alt={live.hostNickname}
+                                        className="w-full h-full object-cover block"
+                                        style={{ width: 36, height: 36, objectFit: 'cover' }}
+                                      />
+                                      <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 border border-white" />
+                                    </div>
+                                    <span className="text-xs font-bold text-slate-800 group-hover/host:text-[#FF3B6B] transition truncate">
+                                      {live.hostNickname}
+                                    </span>
+                                  </div>
+                                  <h4 className="font-bold text-xs text-slate-900 line-clamp-1 group-hover:text-[#FF3B6B] transition-colors leading-tight">
+                                    {live.title}
+                                  </h4>
+                                  <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5">
+                                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium truncate max-w-[90px]">
+                                      {live.category}
+                                    </span>
+                                  </div>
+                                </div>
+                              </Card>
+                            ))}
+                            {Array.from({ length: needed }).map((_, idx) => (
+                              <MoccoLiveStandbyCard key={`standby-live-grid-${idx}`} index={filteredLives.length + idx + 1} />
+                            ))}
+                          </>
+                        )
+                      })()}
                     </div>
                   </section>
                 </div>

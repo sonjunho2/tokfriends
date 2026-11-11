@@ -597,13 +597,13 @@ export default function HomeScreen({ navigation }) {
   };
 
   // =================================================================
-  // 4. [실시간 LIVE] (어지럽지 않게 2개 박스 & 슬라이드 순환 변경)
+  // 4. [실시간 LIVE] (어지럽지 않게 2개 박스 & 슬라이드 순환 변경, 방송 부족 시 스탠바이 카드로 자동 패딩)
   // =================================================================
   const renderLiveDualSection = () => {
     if (liveRooms.length === 0) return null;
     const item1 = liveRooms[livePairIndex % liveRooms.length];
-    const item2 = liveRooms[(livePairIndex + 1) % liveRooms.length];
-    const pairItems = [item1, item2].filter(Boolean);
+    const item2 = liveRooms.length > 1 ? liveRooms[(livePairIndex + 1) % liveRooms.length] : null;
+    const pairItems = [item1, item2];
 
     return (
       <View style={styles.sectionWrap}>
@@ -628,6 +628,77 @@ export default function HomeScreen({ navigation }) {
         {/* 좌/우 2개 박스 슬라이드 배치 */}
         <View style={styles.dualBoxRow}>
           {pairItems.map((item, idx) => {
+            if (!item) {
+              return (
+                <TouchableOpacity
+                  key={`standby-dual-live-${idx}`}
+                  style={[
+                    styles.dualLiveCard,
+                    {
+                      backgroundColor: '#0a0f1d',
+                      borderWidth: 1,
+                      borderColor: 'rgba(255, 59, 107, 0.25)',
+                      padding: 10,
+                      justifyContent: 'space-between',
+                    },
+                  ]}
+                  activeOpacity={0.9}
+                  onPress={() => {
+                    Alert.alert(
+                      '🎙️ 스트리머가 방송을 준비 중이에요!',
+                      '새로운 모꼬 라이브가 곧 시작됩니다. 채널을 고정하고 조금만 기다려 주세요! ✨'
+                    );
+                  }}
+                >
+                  {/* Top: Retro TV SMPTE Color Bars */}
+                  <View style={{ flexDirection: 'row', height: 4, width: '100%', borderRadius: 2, overflow: 'hidden' }}>
+                    <View style={{ flex: 1, backgroundColor: '#c0c0c0' }} />
+                    <View style={{ flex: 1, backgroundColor: '#d4d400' }} />
+                    <View style={{ flex: 1, backgroundColor: '#00d4d4' }} />
+                    <View style={{ flex: 1, backgroundColor: '#00d400' }} />
+                    <View style={{ flex: 1, backgroundColor: '#d400d4' }} />
+                    <View style={{ flex: 1, backgroundColor: '#d40000' }} />
+                    <View style={{ flex: 1, backgroundColor: '#0000d4' }} />
+                  </View>
+
+                  <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                    <View
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: 'rgba(255, 59, 107, 0.12)',
+                        borderWidth: 1,
+                        borderColor: 'rgba(255, 59, 107, 0.35)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: 4,
+                      }}
+                    >
+                      <Ionicons name="radio" size={16} color="#FF3B6B" />
+                    </View>
+                    <Text style={{ fontSize: 7.5, color: '#94A3B8', letterSpacing: 0.8, textTransform: 'uppercase' }}>
+                      See you next time
+                    </Text>
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#FFFFFF', textAlign: 'center', marginTop: 1 }}>
+                      스트리머가 <Text style={{ color: '#FF3B6B' }}>방송 준비중</Text>이에요!
+                    </Text>
+                    <Text style={{ fontSize: 8, color: '#94A3B8', marginTop: 2, textAlign: 'center' }}>
+                      그대의 행복마저 나의 행복이길 ✨
+                    </Text>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: 4 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 4, paddingVertical: 1.5, borderRadius: 3 }}>
+                      <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#F59E0B' }} />
+                      <Text style={{ fontSize: 7.5, color: '#F1F5F9', fontWeight: '700' }}>ON-AIR 준비중</Text>
+                    </View>
+                    <Text style={{ fontSize: 7.5, color: '#64748B' }}>STANDBY</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            }
+
             const viewerFormatted =
               item.viewerCount >= 1000
                 ? `${(item.viewerCount / 1000).toFixed(1)}k`
