@@ -2058,6 +2058,8 @@ export default function CustomerWebStorefrontPage() {
   const modalRemoteVideoTrackRef = useRef<any>(null)
   const modalVideoRef = useRef<HTMLVideoElement>(null)
   const [isAgoraStreaming, setIsAgoraStreaming] = useState(false)
+  const [isLiveEnded, setIsLiveEnded] = useState(false)
+  const [liveEndedReason, setLiveEndedReason] = useState('')
 
   // ==========================================
   // 마이모꼬 (MY) 모바일 완전 동기화 상태들
@@ -2201,7 +2203,7 @@ export default function CustomerWebStorefrontPage() {
         comments: post.commentCount ?? 0,
       }
       setSudaPosts((prev) => {
-        if (prev.some((p) => p.id === mappedPost.id)) return prev
+        if (prev.some((p) => p.id === mappedPost.id || (p.nickname === mappedPost.nickname && p.title === mappedPost.title && p.content === mappedPost.content))) return prev
         return [mappedPost, ...prev]
       })
     })
@@ -3066,7 +3068,17 @@ export default function CustomerWebStorefrontPage() {
 
           setSudaPosts((prev) => {
             const combined = [...serverPosts, ...prev].filter((p) => !deletedSuda.has(p.id))
-            const unique = Array.from(new Map(combined.map((m) => [m.id, m])).values())
+            const seenKeys = new Set<string>()
+            const seenIds = new Set<string>()
+            const unique: SudaPostItem[] = []
+            for (const item of combined) {
+              const dedupeKey = `${item.nickname}_${item.title || ''}_${item.content || ''}`.trim()
+              if (!seenIds.has(item.id) && !seenKeys.has(dedupeKey)) {
+                seenIds.add(item.id)
+                seenKeys.add(dedupeKey)
+                unique.push(item)
+              }
+            }
             return unique
           })
         }
@@ -3166,10 +3178,43 @@ export default function CustomerWebStorefrontPage() {
         modalAgoraClientRef.current = null
       }
       setIsAgoraStreaming(false)
+      setIsLiveEnded(false)
       return
     }
 
     setIsPinnedProductMinimized(false)
+    setIsLiveEnded(false)
+    setLiveEndedReason('')
+
+    // 📡 라이브 방송 시청자 방 입장 및 실시간 종료/입장메시지 소켓 등록
+    if (socketRef.current) {
+      const viewerNickname = user?.nickname || '테스터02(시청자)'
+      socketRef.current.emit('live:join', { roomId: activeLiveModal.id, nickname: viewerNickname, isHost: false })
+
+      const handleLiveEndedSocket = (data: any) => {
+        setIsLiveEnded(true)
+        setIsAgoraStreaming(false)
+        setLiveEndedReason(data?.reason || '호스트가 라이브 방송을 종료했습니다.')
+      }
+
+      const handleLiveMessageSocket = (msg: any) => {
+        if (msg && (msg.type === 'SYSTEM' || msg.systemType === 'USER_JOIN')) {
+          setLiveChatMessages((prev) => [
+            ...prev,
+            {
+              sender: msg.sender || '시스템',
+              text: msg.text || `✨ ${msg.nickname || '시청자'}님이 입장했습니다.`,
+              isSystem: true,
+              time: msg.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            },
+          ])
+        }
+      }
+
+      socketRef.current.on('live:ended', handleLiveEndedSocket)
+      socketRef.current.on('live:room_ended', handleLiveEndedSocket)
+      socketRef.current.on('live:message', handleLiveMessageSocket)
+    }
 
     if (modalVideoRef.current) {
       modalVideoRef.current.muted = true
@@ -6810,7 +6855,7 @@ export default function CustomerWebStorefrontPage() {
                                   </span>
 
                                   {/* 1:1 수다 입장 버튼 또는 내 개설방인 경우 삭제 버튼 */}
-                                  {Boolean(room.nickname === user?.nickname || room.nickname === '테스터01' || room.nickname === '나') ? (
+                                  {Boolean(user?.nickname && (room.nickname === user.nickname || (user?.id && (room as any).authorId === user.id))) ? (
                                     <Button
                                       size="sm"
                                       variant="outline"
@@ -10427,6 +10472,29 @@ export default function CustomerWebStorefrontPage() {
                 onTouchStart={resumeLiveMediaPlayback}
                 className="relative h-full aspect-[9/16] max-w-full flex items-center justify-center overflow-hidden bg-slate-950 shadow-2xl ring-1 ring-white/10 cursor-pointer"
               >
+                {/* 📺 방송 종료 시 안내 오버레이 */}
+                {isLiveEnded && (
+                  <div className="absolute inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center text-white space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="h-20 w-20 rounded-full bg-rose-500/20 border-2 border-rose-500/40 flex items-center justify-center text-4xl shadow-xl shadow-rose-950">
+                      📺
+                    </div>
+                    <div className="space-y-1.5 max-w-sm">
+                      <h3 className="font-black text-xl text-white">라이브 방송이 종료되었습니다</h3>
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        {liveEndedReason || '호스트가 방송을 종료했습니다. 시청해 주셔서 감사합니다.'}
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        setIsLiveEnded(false)
+                        setActiveLiveModal(null)
+                      }}
+                      className="bg-[#FF3B6B] hover:bg-[#E02958] text-white font-extrabold text-sm px-7 py-2.5 rounded-full shadow-lg transition-transform active:scale-95"
+                    >
+                      확인 (홈으로 이동)
+                    </Button>
+                  </div>
+                )}
                 {/* Agora Remote WebRTC Live Video Layer (원격 호스트 카메라 영상 실시간 바인딩) */}
                 <div
                   ref={modalAgoraContainerRef}

@@ -192,7 +192,7 @@ export class ChatGateway
   @SubscribeMessage('live:join')
   handleLiveJoin(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() data: { roomId: string; viewerKey?: string },
+    @MessageBody() data: { roomId: string; viewerKey?: string; nickname?: string; isHost?: boolean },
   ) {
     const roomId = data?.roomId;
     if (!roomId) return { ok: false };
@@ -210,6 +210,25 @@ export class ChatGateway
     const viewerCount = Math.max(1, viewerSet.size);
     this.server.to(`live_room_${roomId}`).emit('live:viewer_count', { roomId, viewerCount });
     this.logger.log(`Live Room ${roomId}: socket ${socket.id} joined (viewers: ${viewerCount})`);
+
+    // 🎉 시청자 입장 시스템 알림 및 채팅 메시지 브로드캐스트
+    const nickname = data?.nickname || (socket.data as any)?.user?.nickname || '모꼬이웃';
+    if (!data?.isHost) {
+      const enterMsg = {
+        id: `sys-enter-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        type: 'SYSTEM',
+        systemType: 'USER_JOIN',
+        sender: '시스템',
+        text: `✨ ${nickname}님이 입장했습니다.`,
+        nickname,
+        roomId,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: Date.now(),
+      };
+      this.server.to(`live_room_${roomId}`).emit('live:message', enterMsg);
+      this.server.to(`live_room_${roomId}`).emit('live:user_joined', { roomId, nickname, viewerCount });
+    }
+
     return { ok: true, roomId, viewerCount };
   }
 
@@ -234,6 +253,20 @@ export class ChatGateway
       this.server.to(`live_room_${roomId}`).emit('live:viewer_count', { roomId, viewerCount });
       this.logger.log(`Live Room ${roomId}: socket ${socket.id} left (viewers: ${viewerCount})`);
     }
+    return { ok: true };
+  }
+
+  /**
+   * 호스트가 클라이언트에서 직접 방송 종료 요청
+   */
+  @SubscribeMessage('live:end')
+  handleLiveEnd(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { roomId: string; reason?: string },
+  ) {
+    const roomId = data?.roomId || this.socketLiveRooms.get(socket.id);
+    if (!roomId) return { ok: false };
+    this.emitLiveRoomEnded(roomId, data?.reason || '호스트가 라이브 방송을 종료했습니다.');
     return { ok: true };
   }
 

@@ -154,6 +154,8 @@ export default function LiveRoomScreen({ navigation, route }) {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
   const [blocking, setBlocking] = useState(false);
+  const [isRoomEnded, setIsRoomEnded] = useState(false);
+  const [roomEndedReason, setRoomEndedReason] = useState('');
 
   // 3D Gift & Animated Reaction States
   const flatListRef = useRef(null);
@@ -711,11 +713,11 @@ export default function LiveRoomScreen({ navigation, route }) {
       socketRef.current = socket;
 
       socket.on('connect', () => {
-        socket.emit(LIVE_SOCKET_EVENTS.JOIN, { roomId, viewerKey });
+        socket.emit(LIVE_SOCKET_EVENTS.JOIN, { roomId, viewerKey, nickname: currentUser?.nickname || '모꼬이웃', isHost });
       });
 
       socket.on(LIVE_SOCKET_EVENTS.AUTH_READY, () => {
-        socket.emit(LIVE_SOCKET_EVENTS.JOIN, { roomId, viewerKey });
+        socket.emit(LIVE_SOCKET_EVENTS.JOIN, { roomId, viewerKey, nickname: currentUser?.nickname || '모꼬이웃', isHost });
       });
 
       socket.on(LIVE_SOCKET_EVENTS.MESSAGE, (msg) => {
@@ -899,9 +901,8 @@ export default function LiveRoomScreen({ navigation, route }) {
       socket.on(LIVE_SOCKET_EVENTS.ROOM_ENDED, (data) => {
         setIsCameraOff(true);
         setIsMicMuted(true);
-        Alert.alert('방송 종료', data?.reason || '라이브 방송이 종료되었습니다.', [
-          { text: '확인', onPress: () => navigation.goBack() },
-        ]);
+        setIsRoomEnded(true);
+        setRoomEndedReason(data?.reason || '라이브 방송이 종료되었습니다.');
       });
 
       socket.connect();
@@ -1179,6 +1180,7 @@ export default function LiveRoomScreen({ navigation, route }) {
             agoraStreamController.muteLocalAudio(true);
             if (socketRef.current?.connected) {
               socketRef.current.emit(LIVE_SOCKET_EVENTS.LEAVE, { roomId, viewerKey });
+              socketRef.current.emit('live:end', { roomId, reason: '호스트가 라이브 방송을 종료했습니다.' });
             }
             await apiClient.endLiveRoom(roomId);
           } catch (e) {
@@ -1373,7 +1375,17 @@ export default function LiveRoomScreen({ navigation, route }) {
       item?.sender?.name ||
       '시청자';
 
-    const displayContent = item?.content || '';
+    const displayContent = item?.content || item?.text || '';
+
+    if (item?.type === 'SYSTEM' || item?.systemType === 'USER_JOIN' || item?.isSystem) {
+      return (
+        <View style={styles.systemEnterBadge}>
+          <Text style={styles.systemEnterText}>
+            {displayContent || `✨ ${authorName}님이 입장했습니다.`}
+          </Text>
+        </View>
+      );
+    }
 
     return (
       <TouchableOpacity
@@ -1419,12 +1431,12 @@ export default function LiveRoomScreen({ navigation, route }) {
               hasCameraPermission ? (
                 isFocused && !isCameraOff ? (
                   <View style={styles.cameraFillWrapper}>
-                    {agoraTokenData?.appId && !useNativeCameraFallback ? (
+                    {!useNativeCameraFallback ? (
                       <AgoraLivePlayer
-                        appId={agoraTokenData?.appId}
-                        token={agoraTokenData?.token}
+                        appId={agoraTokenData?.appId || 'mocco_agora_live'}
+                        token={agoraTokenData?.token || ''}
                         channelName={agoraTokenData?.channelName || roomId}
-                        uid={agoraTokenData?.uid}
+                        uid={agoraTokenData?.uid || 0}
                         isHost={true}
                         isVideoSubscribed={!isCameraOff}
                         isSpeakerMuted={isMicMuted}
@@ -1954,6 +1966,25 @@ export default function LiveRoomScreen({ navigation, route }) {
         onCallVideo={handleStartCallFromProfile}
         onStartChat={handleStartDMFromProfile}
       />
+      {/* 라이브 방송 종료 전체화면 안내 오버레이 */}
+      {isRoomEnded && (
+        <View style={styles.roomEndedFullOverlay}>
+          <View style={styles.roomEndedIconCircle}>
+            <Ionicons name="tv-outline" size={48} color="#FF3B6B" />
+          </View>
+          <Text style={styles.roomEndedTitle}>라이브 방송이 종료되었습니다</Text>
+          <Text style={styles.roomEndedDesc}>
+            {roomEndedReason || '호스트가 방송을 종료했습니다. 시청해 주셔서 감사합니다.'}
+          </Text>
+          <TouchableOpacity
+            style={styles.roomEndedHomeBtn}
+            activeOpacity={0.8}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.roomEndedHomeBtnText}>확인 (홈으로 이동)</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -2802,5 +2833,70 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '900',
+  },
+  systemEnterBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 59, 107, 0.25)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 59, 107, 0.45)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 16,
+    marginVertical: 3,
+  },
+  systemEnterText: {
+    color: '#FFE4E6',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  roomEndedFullOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(5, 8, 17, 0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    zIndex: 9999,
+  },
+  roomEndedIconCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: 'rgba(255, 59, 107, 0.15)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 59, 107, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  roomEndedTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '900',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  roomEndedDesc: {
+    color: '#94A3B8',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  roomEndedHomeBtn: {
+    backgroundColor: '#FF3B6B',
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 30,
+    shadowColor: '#FF3B6B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  roomEndedHomeBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
   },
 });

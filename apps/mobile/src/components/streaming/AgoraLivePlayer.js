@@ -237,17 +237,25 @@ export default function AgoraLivePlayer({
           localVideoTrack = null;
         }
 
-        localVideoTrack = await AgoraRTC.createCameraVideoTrack({
-          facingMode: targetFacingMode,
-          optimizationMode: 'motion',
-          encoderConfig: {
-            width: { ideal: 720, max: 1280 },
-            height: { ideal: 1280, max: 1920 },
-            frameRate: { ideal: 24, max: 30 },
-            bitrateMin: 400,
-            bitrateMax: 1200,
-          },
-        });
+        localVideoTrack = null;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            localVideoTrack = await AgoraRTC.createCameraVideoTrack({
+              facingMode: targetFacingMode,
+              optimizationMode: 'motion',
+              encoderConfig: {
+                width: { ideal: 720, max: 1280 },
+                height: { ideal: 1280, max: 1920 },
+                frameRate: { ideal: 24, max: 30 },
+                bitrateMin: 600,
+                bitrateMax: 1500,
+              },
+            });
+            if (localVideoTrack) break;
+          } catch (camErr) {
+            await new Promise(function(resolve) { setTimeout(resolve, 600); });
+          }
+        }
 
         if (localVideoTrack) {
           const remoteContainer = document.getElementById('remote-video');
@@ -354,18 +362,34 @@ export default function AgoraLivePlayer({
 
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
               const targetFacingMode = currentCameraFacing === 'back' ? 'environment' : 'user';
-              localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack().catch(function() { return null; });
-              localVideoTrack = await AgoraRTC.createCameraVideoTrack({
-                facingMode: targetFacingMode,
-                optimizationMode: 'motion',
-                encoderConfig: {
-                  width: { ideal: 720, max: 1280 },
-                  height: { ideal: 1280, max: 1920 },
-                  frameRate: { ideal: 24, max: 30 },
-                  bitrateMin: 400,
-                  bitrateMax: 1200,
-                },
-              }).catch(function() { return null; });
+
+              // 1) 마이크 오디오 트랙 생성
+              try {
+                localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+              } catch (micErr) {
+                console.warn('Microphone track error:', micErr);
+              }
+
+              // 2) 카메라 비디오 트랙 생성 (하드웨어 락 대기 및 최대 3회 재시도)
+              for (let attempt = 1; attempt <= 3; attempt++) {
+                try {
+                  localVideoTrack = await AgoraRTC.createCameraVideoTrack({
+                    facingMode: targetFacingMode,
+                    optimizationMode: 'motion',
+                    encoderConfig: {
+                      width: { ideal: 720, max: 1280 },
+                      height: { ideal: 1280, max: 1920 },
+                      frameRate: { ideal: 24, max: 30 },
+                      bitrateMin: 600,
+                      bitrateMax: 1500,
+                    },
+                  });
+                  if (localVideoTrack) break;
+                } catch (camErr) {
+                  console.warn('Camera create attempt ' + attempt + ' failed:', camErr);
+                  await new Promise(function(resolve) { setTimeout(resolve, 800); });
+                }
+              }
 
               if (localVideoTrack) {
                 const remoteContainer = document.getElementById('remote-video');
@@ -378,6 +402,7 @@ export default function AgoraLivePlayer({
               const tracks = [localAudioTrack, localVideoTrack].filter(Boolean);
               if (tracks.length > 0) {
                 await client.publish(tracks);
+                sendState('broadcasting', { hasVideo: Boolean(localVideoTrack), hasAudio: Boolean(localAudioTrack) });
               }
               sendState('playing');
             } else {
@@ -446,6 +471,11 @@ export default function AgoraLivePlayer({
         javaScriptEnabled={true}
         domStorageEnabled={true}
         mixedContentMode="always"
+        scalesPageToFit={false}
+        textZoom={100}
+        setBuiltInZoomControls={false}
+        showsHorizontalScrollIndicator={false}
+        showsVerticalScrollIndicator={false}
         onMessage={handleMessage}
         renderError={() => (
           !isHost ? (
