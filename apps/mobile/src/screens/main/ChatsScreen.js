@@ -315,6 +315,18 @@ export default function ChatsScreen({ navigation }) {
       });
     });
 
+    socket.on('chat:incoming', () => {
+      fetchChatRooms(activeChatSubTab).then((rooms) => {
+        if (rooms) setChatRooms(rooms);
+      });
+    });
+
+    socket.on('chat:message', () => {
+      fetchChatRooms(activeChatSubTab).then((rooms) => {
+        if (rooms) setChatRooms(rooms);
+      });
+    });
+
     socket.connect();
     return () => {
       socket.disconnect();
@@ -596,19 +608,12 @@ export default function ChatsScreen({ navigation }) {
         </View>
       </View>
 
-      {/* 1:1 수다 대기방 제목 & 본문 */}
-      {item.title ? (
-        <View style={{ marginTop: 6, gap: 2 }}>
-          <Text style={{ fontSize: 14, fontWeight: '800', color: '#0F172A' }}>
-            {item.title}
-          </Text>
-          {item.content ? (
-            <Text style={styles.sudaContent}>{item.content}</Text>
-          ) : null}
-        </View>
-      ) : (
-        <Text style={styles.sudaContent}>{item.content}</Text>
-      )}
+      {/* 1:1 수다 대기방 제목 (단일 라인 표출) */}
+      <View style={{ marginTop: 6 }}>
+        <Text style={{ fontSize: 14, fontWeight: '800', color: '#0F172A' }}>
+          {item.title || item.content}
+        </Text>
+      </View>
     </View>
   );
 

@@ -82,6 +82,7 @@ import {
   RotateCcw,
   AlertTriangle,
   AlertCircle,
+  Menu,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -260,6 +261,7 @@ export interface ChatMessageItem {
 export interface ChatRoomItem {
   id: string
   type: 'SUDA' | 'MARKET'
+  targetUserId?: string
   targetNickname: string
   targetAvatar: string
   lastMessage: string
@@ -2305,34 +2307,65 @@ export default function CustomerWebStorefrontPage() {
       )
     })
 
-    // 3) 같은 방 참가자 간 메시지 수신
+    // 3) 같은 방 참가자 간 메시지 수신 (웹 본인 메시지 에코/복제 방지 및 선물 수신 완벽 처리)
     socket.on('chat:message', (data: any) => {
       if (!data) return
-      const senderName = data.senderNickname || data.sender?.nickname || '상대방'
-      const isMyMessage = data.senderId === user?.id || (user?.nickname && senderName === user.nickname)
+      const senderId = data.senderAccountId || data.senderId || data.sender?.id
+      const senderName = data.senderName || data.senderNickname || data.sender?.nickname || '상대방'
+
+      // 내가 보낸 메시지인지 엄격히 검증 (ID 및 닉네임 일치 시 무시하여 에코/복제 완전 차단)
+      const isMyMessage =
+        (user?.id && (senderId === user.id || data.senderAccountId === user.id || data.senderId === user.id)) ||
+        (user?.nickname && (senderName === user.nickname || data.senderName === user.nickname || data.senderNickname === user.nickname)) ||
+        (data.sender?.nickname && user?.nickname && data.sender.nickname === user.nickname)
+
       if (isMyMessage) return
 
       playMoccoSoundWeb()
 
+      const isGift = data.type === 'gift' || data.backendType === 'gift' || Boolean(data.gift)
+      const giftData = isGift ? (data.gift || {
+        id: data.giftId || 'gift',
+        name: data.giftName || '선물',
+        amount: Number(data.giftPoints || data.points || 0),
+        description: data.content || '선물을 받았습니다 ✨',
+        icon: data.icon || data.giftIcon || '🎁',
+      }) : undefined
+
       const newMsg: ChatMessageItem = {
         id: data.id || 'msg-' + Date.now(),
-        senderId: data.senderId || 'target',
+        senderId: senderId || 'target',
         senderNickname: senderName,
         text: data.content || data.text || '',
         time: '방금',
         isMe: false,
+        gift: giftData,
       }
 
-      if (activeChatRoomRef.current && activeChatRoomRef.current.id === data.chatId) {
+      if (activeChatRoomRef.current && (activeChatRoomRef.current.id === data.chatId || data.chatId?.includes(activeChatRoomRef.current.targetNickname))) {
         setActiveChatRoom((prev) => {
           if (!prev) return null
+          // 이미 추가된 동일 ID 메시지 중복 방지
+          if (prev.messages.some((m) => m.id === newMsg.id)) return prev
           return {
             ...prev,
-            lastMessage: newMsg.text,
+            lastMessage: isGift ? `🎁 ${newMsg.gift?.name || '선물'}을 받았습니다!` : newMsg.text,
             lastTime: '방금',
             messages: [...prev.messages, newMsg],
           }
         })
+
+        // 선물 수신 시 3D 이펙트 웹 화면에도 발동
+        if (isGift && newMsg.gift) {
+          setActiveGiftEffect({
+            name: newMsg.gift.name,
+            icon: newMsg.gift.icon || '🎁',
+            text: `${senderName}님이 ${newMsg.gift.name}을 선물하셨습니다!`,
+          })
+          setTimeout(() => {
+            setActiveGiftEffect(null)
+          }, 3500)
+        }
       }
     })
 
@@ -3841,6 +3874,14 @@ export default function CustomerWebStorefrontPage() {
 
       if (socketRef.current) {
         socketRef.current.emit('chat:join', { chatId: roomId })
+        // 상대방에게 입장 환영 및 새 방 개설 알림 브로드캐스트 -> 상대방 모바일 앱 대화함에 실시간 생성 & '모꼬' 알림음 울림
+        socketRef.current.emit('chat:message', {
+          chatId: roomId,
+          content: `안녕하세요! "${room.title || room.content}" 보고 입장했습니다 😊`,
+          targetUserId: room.nickname,
+          senderAccountId: user?.id,
+          senderName: user?.nickname || '모꼬이웃',
+        })
       }
 
       // 1:1 대화방 개설 및 연결
@@ -4040,6 +4081,35 @@ export default function CustomerWebStorefrontPage() {
 
       setActiveChatRoom(updatedRoom)
       setChatRooms((prev) => prev.map((r) => (r.id === updatedRoom.id ? updatedRoom : r)))
+
+      // 실시간 소켓으로 선물 이벤트 전파 -> 모바일 앱에서 GIFT_OVERLAY_TRIGGER 및 3D 선물 이펙트 즉시 실행
+      if (socketRef.current) {
+        socketRef.current.emit('chat:message', {
+          chatId: activeChatRoom.id,
+          type: 'gift',
+          content: `🎁 [선물] ${gift.name} (${gift.pricePoints.toLocaleString()} 꿀떡)`,
+          giftName: gift.name,
+          giftPoints: gift.pricePoints,
+          gift: {
+            id: gift.id,
+            name: gift.name,
+            amount: gift.pricePoints,
+            description: gift.description,
+            icon: gift.icon,
+          },
+          senderAccountId: user?.id,
+          senderName: user?.nickname || '나',
+          targetUserId: activeChatRoom.targetUserId || activeChatRoom.targetNickname,
+        })
+      }
+
+      // 백엔드 API에 선물 전송 기록 영속화
+      sendChatMessage(activeChatRoom.id, `🎁 [선물] ${gift.name} (${gift.pricePoints.toLocaleString()} 꿀떡)`, {
+        type: 'gift',
+        giftName: gift.name,
+        giftPoints: gift.pricePoints,
+        targetUserId: activeChatRoom.targetUserId || activeChatRoom.targetNickname,
+      }).catch((e) => console.warn('sendChatMessage gift fallback:', e))
 
       // 화려한 3D 축제 이펙트 발동!
       setActiveGiftEffect({
@@ -6878,16 +6948,11 @@ export default function CustomerWebStorefrontPage() {
                                 </div>
                               </div>
 
-                              {/* 방 제목 (강조된 볼드 텍스트) */}
-                              <div className="bg-slate-50/80 p-3 rounded-xl border border-slate-100 space-y-1">
+                              {/* 방 제목 (중복 없이 단일 제목만 깔끔하게 표출) */}
+                              <div className="bg-slate-50/80 p-3 rounded-xl border border-slate-100">
                                 <h4 className="font-black text-sm text-slate-900 leading-snug">
                                   {room.title || room.content}
                                 </h4>
-                                {room.title && room.content && (
-                                  <p className="text-xs text-slate-600 leading-relaxed">
-                                    {room.content}
-                                  </p>
-                                )}
                               </div>
                             </div>
                           ))}
@@ -7011,115 +7076,86 @@ export default function CustomerWebStorefrontPage() {
                   )}
                 </div>
 
-                {/* [우측 영역: lg:col-span-5 xl:col-span-5] 📱 휴대폰 모양 디바이스 & 앱 채팅방 (선물기능 포함) */}
+                {/* [우측 영역: lg:col-span-5 xl:col-span-5] 📱 휴대폰 모양 디바이스 & 모꼬 앱 채팅방 (슬림 베젤 & 100% 동일 테마) */}
                 <div className="lg:col-span-5 xl:col-span-5 flex flex-col items-center sticky top-20">
-                  {/* 스마트폰 목업 프레임 */}
-                  <div className="relative w-full max-w-[380px] h-[720px] rounded-[48px] bg-slate-950 p-2.5 shadow-2xl ring-1 ring-slate-800/80 border-[5px] border-slate-700/80 flex flex-col overflow-hidden">
-                    {/* 상단 다이나믹 아일랜드 노치 */}
-                    <div className="w-24 h-4.5 rounded-full bg-black mx-auto mt-1 mb-1 flex items-center justify-center shrink-0">
-                      <span className="h-2.5 w-2.5 rounded-full bg-slate-900 border border-slate-800" />
+                  {/* 스마트폰 목업 프레임 (슬림 베젤 & 미니 물방울 노치 & 물리 버튼) */}
+                  <div className="relative w-full max-w-[370px] h-[730px] rounded-[44px] bg-slate-950 p-[5px] shadow-2xl ring-1 ring-slate-900 border-[3.5px] border-slate-900 flex flex-col overflow-hidden">
+                    {/* 좌측 볼륨 물리 버튼 디테일 */}
+                    <span className="absolute -left-[5px] top-28 w-[3.5px] h-9 bg-slate-800 rounded-l-sm" />
+                    <span className="absolute -left-[5px] top-40 w-[3.5px] h-9 bg-slate-800 rounded-l-sm" />
+                    {/* 우측 전원 물리 버튼 디테일 */}
+                    <span className="absolute -right-[5px] top-32 w-[3.5px] h-12 bg-slate-800 rounded-r-sm" />
+
+                    {/* 상단 미니 물방울 카메라 노치 */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-3 bg-slate-950 rounded-b-full flex items-center justify-center z-40">
+                      <span className="h-2 w-2 rounded-full bg-slate-900 border border-slate-800" />
                     </div>
 
-                    {/* 스마트폰 내부 스크린 */}
-                    <div className="rounded-[36px] bg-white flex-1 flex flex-col overflow-hidden relative border border-slate-200/40">
+                    {/* 스마트폰 내부 풀스크린 (배경색: 모바일 앱과 100% 동일한 부드러운 스카이블루 #B2C7D9) */}
+                    <div className="rounded-[36px] bg-[#B2C7D9] flex-1 flex flex-col overflow-hidden relative">
                       {/* (A) 상단 모바일 상태바 */}
-                      <div className="h-6 bg-slate-900 text-white px-5 flex items-center justify-between text-[10px] font-semibold shrink-0">
-                        <span>14:44</span>
-                        <div className="flex items-center gap-1.5 text-slate-300">
+                      <div className="h-7 bg-[#B2C7D9] text-slate-800 px-6 pt-1 flex items-center justify-between text-[11px] font-bold shrink-0 z-30">
+                        <span>16:44</span>
+                        <div className="flex items-center gap-1.5 text-slate-700">
                           <span className="text-[9px]">5G</span>
                           <Wifi className="h-3 w-3" />
                           <Battery className="h-3.5 w-3.5" />
                         </div>
                       </div>
 
-                      {/* (B) 앱 채팅방 헤더 (뒤로가기, 프로필, 온라인 표시, 통화 아이콘) */}
+                      {/* (B) 앱 채팅방 헤더 (뒤로가기, 닉네임, 즐겨찾기 별, 세줄 메뉴 - 통화 버튼 제거됨) */}
                       {activeChatRoom ? (
                         <>
-                          <div className="p-2.5 px-3 border-b bg-white flex items-center justify-between shrink-0 shadow-2xs">
-                            <div className="flex items-center gap-2">
+                          <div className="p-2.5 px-3 bg-[#B2C7D9] border-b border-slate-300/60 flex items-center justify-between shrink-0">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
                               <button
                                 onClick={() => {
                                   setActiveChatRoom(null)
                                   setChatSubTab('CHATS')
                                 }}
-                                className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-slate-100 text-slate-700"
+                                className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-slate-300/40 text-slate-800 transition"
                                 title="대화 목록으로 돌아가기"
                               >
-                                <ArrowLeft className="h-4 w-4" />
+                                <ArrowLeft className="h-5 w-5" />
                               </button>
-                              <div 
-                                onClick={() => openUserProfileModal({
-                                  id: activeChatRoom.id,
-                                  nickname: activeChatRoom.targetNickname,
-                                  avatar: activeChatRoom.targetAvatar,
-                                  region: '서울 강남구 역삼동',
-                                  headline: activeChatRoom.lastMessage || '모꼬 1:1 대화 상대입니다 ✨',
-                                })}
-                                className="relative cursor-pointer group/phoneavatar"
-                              >
-                                <img
-                                  src={activeChatRoom.targetAvatar}
-                                  alt={activeChatRoom.targetNickname}
-                                  className="h-8 w-8 rounded-full object-cover border border-slate-200 group-hover/phoneavatar:ring-2 group-hover/phoneavatar:ring-blue-400 transition"
-                                />
-                                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 border border-white" />
-                              </div>
-                              <div className="min-w-0">
-                                <h4 
-                                  onClick={() => openUserProfileModal({
-                                    id: activeChatRoom.id,
-                                    nickname: activeChatRoom.targetNickname,
-                                    avatar: activeChatRoom.targetAvatar,
-                                    region: '서울 강남구 역삼동',
-                                    headline: activeChatRoom.lastMessage || '모꼬 1:1 대화 상대입니다 ✨',
-                                  })}
-                                  className="font-bold text-xs text-slate-900 truncate max-w-[130px] cursor-pointer hover:text-blue-600 transition"
-                                >
+                              <div className="min-w-0 flex-1 cursor-pointer" onClick={() => openUserProfileModal({
+                                id: activeChatRoom.id,
+                                nickname: activeChatRoom.targetNickname,
+                                avatar: activeChatRoom.targetAvatar,
+                                region: '서울 강남구 역삼동',
+                                headline: activeChatRoom.lastMessage || '모꼬 1:1 대화 상대입니다 ✨',
+                              })}>
+                                <h4 className="font-black text-sm text-slate-900 truncate">
                                   {activeChatRoom.targetNickname}
                                 </h4>
-                                <span className="text-[9px] text-emerald-600 flex items-center gap-1 leading-tight">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
-                                  실시간 온라인
-                                </span>
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-1 text-slate-600">
+                            <div className="flex items-center gap-1.5 text-slate-700 shrink-0">
                               <button
-                                onClick={() => {
-                                  requireAuth(() => {
-                                    const requiredCallRate = 1500 // 분당 기본 1,500 꿀떡
-                                    if (myPoints < requiredCallRate) {
-                                      toast({
-                                        title: '🍯 통화 꿀떡이 부족합니다',
-                                        description: `1:1 안심통화 기본 요금은 분당 ${requiredCallRate.toLocaleString()} 꿀떡입니다. (보유: ${myPoints.toLocaleString()}개) 충전 후 다시 시도해 주세요.`,
-                                        variant: 'destructive',
-                                      })
-                                      setIsPointChargeModalOpen(true)
-                                      return
-                                    }
-                                    toast({
-                                      title: '📞 1:1 안심통화 연결 요청',
-                                      description: `${activeChatRoom.targetNickname}님께 안심통화를 요청했습니다. (분당 ${requiredCallRate.toLocaleString()} 꿀떡 차감 정책)`,
-                                    })
+                                onClick={() =>
+                                  toast({
+                                    title: '⭐ 즐겨찾기 등록',
+                                    description: `${activeChatRoom.targetNickname}님이 대화 즐겨찾기에 등록되었습니다.`,
                                   })
-                                }}
-                                className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-slate-100 text-blue-600"
-                                title="1:1 안심 보이스톡 (분당 1,500 꿀떡)"
+                                }
+                                className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-slate-300/40 text-slate-700 transition"
+                                title="즐겨찾기"
                               >
-                                <Phone className="h-3.5 w-3.5" />
+                                <Star className="h-4.5 w-4.5" />
                               </button>
+
                               <div className="relative">
                                 <button
                                   onClick={() => setIsChatMenuOpen((prev) => !prev)}
-                                  className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-slate-100 text-slate-500 transition"
+                                  className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-slate-300/40 text-slate-800 transition"
                                   title="대화방 메뉴"
                                 >
-                                  <MoreVertical className="h-4 w-4" />
+                                  <Menu className="h-5 w-5" />
                                 </button>
 
                                 {isChatMenuOpen && (
-                                  <div className="absolute top-9 right-0 z-50 w-40 bg-white rounded-2xl shadow-xl border border-slate-200/80 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-150">
+                                  <div className="absolute top-8 right-0 z-50 w-36 bg-white rounded-2xl shadow-xl border border-slate-200/80 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-150">
                                     <button
                                       onClick={() => {
                                         setIsChatMenuOpen(false)
@@ -7136,7 +7172,7 @@ export default function CustomerWebStorefrontPage() {
                                     <button
                                       onClick={() => {
                                         setIsChatMenuOpen(false)
-                                        if (confirm(`${activeChatRoom.targetNickname}님을 차단하시겠습니까? 차단 시 더 이상 메시지를 주고받을 수 없습니다.`)) {
+                                        if (confirm(`${activeChatRoom.targetNickname}님을 차단하시겠습니까?`)) {
                                           toast({
                                             title: '🚫 사용자 차단 완료',
                                             description: `${activeChatRoom.targetNickname}님이 차단되었습니다.`,
@@ -7164,7 +7200,7 @@ export default function CustomerWebStorefrontPage() {
 
                           {/* 거래 물품 상단 바 (MARKET 톡인 경우) */}
                           {activeChatRoom.productInfo && (
-                            <div className="flex items-center justify-between p-2 bg-orange-50/80 border-b text-xs shrink-0">
+                            <div className="flex items-center justify-between p-2 bg-white/90 backdrop-blur-xs border-b border-slate-200 text-xs shrink-0">
                               <div className="flex items-center gap-2 min-w-0">
                                 <img
                                   src={activeChatRoom.productInfo.image}
@@ -7199,14 +7235,14 @@ export default function CustomerWebStorefrontPage() {
                             </div>
                           )}
 
-                          {/* (C) 모바일 채팅 메시지 스트림 */}
+                          {/* (C) 모바일 앱 100% 동일 스타일 채팅 메시지 스트림 */}
                           <div
                             ref={chatScrollRef}
-                            className="flex-1 p-3 overflow-y-auto space-y-2.5 bg-[#F4F6F9]"
+                            className="flex-1 p-3 overflow-y-auto space-y-3 bg-[#B2C7D9]"
                           >
                             {/* 날짜 구분선 */}
-                            <div className="flex items-center justify-center my-1">
-                              <span className="bg-slate-200/80 text-slate-600 text-[9px] px-2.5 py-0.5 rounded-full font-semibold">
+                            <div className="flex items-center justify-center my-1.5">
+                              <span className="bg-slate-400/35 text-slate-800 text-[10px] px-3 py-0.5 rounded-full font-medium">
                                 2026년 10월 29일 목요일
                               </span>
                             </div>
@@ -7216,71 +7252,111 @@ export default function CustomerWebStorefrontPage() {
                                 key={msg.id}
                                 className={`flex flex-col ${msg.isMe ? 'items-end' : 'items-start'}`}
                               >
-                                {/* 선물 메시지인 경우: 화려한 3D 모꼬 선물 카드 */}
-                                {msg.gift ? (
-                                  <div
-                                    className={`max-w-[85%] rounded-2xl p-3 border shadow-md space-y-1.5 ${
-                                      msg.isMe
-                                        ? 'bg-gradient-to-br from-pink-500 via-rose-500 to-amber-500 text-white border-pink-300 rounded-tr-none'
-                                        : 'bg-white text-slate-900 border-amber-300 rounded-tl-none'
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-2xl">{msg.gift.icon || '🎁'}</span>
-                                      <div className="min-w-0">
-                                        <span className="text-[10px] uppercase font-bold tracking-wider opacity-90 block">
-                                          MOCCO 3D GIFT
-                                        </span>
-                                        <h5 className="font-extrabold text-xs truncate">
-                                          {msg.gift.name}
-                                        </h5>
+                                {msg.isMe ? (
+                                  /* [내 메시지: 오른쪽 카카오톡 옐로우 말풍선 & 노란색 1] */
+                                  <div className="flex items-end gap-1.5 max-w-[85%] justify-end">
+                                    <div className="flex flex-col items-end text-[9px] text-slate-600 shrink-0 mb-0.5">
+                                      <span className="text-amber-500 font-extrabold text-[10px] leading-tight">1</span>
+                                      <span>{msg.time}</span>
+                                    </div>
+                                    {msg.gift ? (
+                                      <div className="bg-gradient-to-br from-pink-500 via-rose-500 to-amber-500 text-white rounded-2xl rounded-tr-xs p-3 shadow-md space-y-1.5 border border-pink-300">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-2xl">{msg.gift.icon || '🎁'}</span>
+                                          <div>
+                                            <span className="text-[9px] uppercase font-bold tracking-wider opacity-90 block">
+                                              MOCCO 3D GIFT
+                                            </span>
+                                            <h5 className="font-extrabold text-xs">{msg.gift.name}</h5>
+                                          </div>
+                                        </div>
+                                        <div className="pt-1 border-t border-white/20 flex items-center justify-between text-[10px] font-black">
+                                          <span>후원 꿀떡</span>
+                                          <span className="bg-white/25 px-1.5 py-0.5 rounded text-white">
+                                            {msg.gift.amount.toLocaleString()} 꿀떡
+                                          </span>
+                                        </div>
                                       </div>
-                                    </div>
-                                    <p className="text-[10px] leading-snug opacity-95">
-                                      {msg.gift.description}
-                                    </p>
-                                    <div className="pt-1 border-t border-white/20 flex items-center justify-between text-[10px] font-black">
-                                      <span>후원 꿀떡</span>
-                                      <span className="bg-white/25 px-1.5 py-0.5 rounded text-white">
-                                        {msg.gift.amount.toLocaleString()} 꿀떡
-                                      </span>
-                                    </div>
+                                    ) : (
+                                      <div className="bg-[#FEE500] text-slate-900 rounded-2xl rounded-tr-xs px-3.5 py-2 text-xs shadow-xs leading-relaxed break-words font-medium">
+                                        {msg.text}
+                                      </div>
+                                    )}
                                   </div>
                                 ) : (
-                                  /* 일반 텍스트 말풍선 */
-                                  <div
-                                    className={`max-w-[78%] rounded-2xl px-3 py-1.5 text-xs leading-relaxed ${
-                                      msg.isMe
-                                        ? 'bg-blue-600 text-white rounded-tr-none shadow-xs'
-                                        : 'bg-white text-slate-900 border border-slate-200/80 rounded-tl-none shadow-2xs'
-                                    }`}
-                                  >
-                                    {msg.text}
+                                  /* [상대방 메시지: 왼쪽 핑크 아바타 + 닉네임 + 흰색 말풍선] */
+                                  <div className="flex items-start gap-2 max-w-[85%]">
+                                    <div 
+                                      onClick={() => openUserProfileModal({
+                                        id: activeChatRoom.id,
+                                        nickname: activeChatRoom.targetNickname,
+                                        avatar: activeChatRoom.targetAvatar,
+                                        region: '서울 강남구 역삼동',
+                                        headline: activeChatRoom.lastMessage || '모꼬 1:1 대화 상대입니다 ✨',
+                                      })}
+                                      className="h-8 w-8 rounded-full bg-[#FFD1DC] text-[#FF3B6B] font-black text-xs flex items-center justify-center shrink-0 border border-pink-200 overflow-hidden shadow-2xs cursor-pointer"
+                                    >
+                                      {activeChatRoom.targetAvatar ? (
+                                        <img src={activeChatRoom.targetAvatar} alt="" className="h-full w-full object-cover" />
+                                      ) : (
+                                        '대상'
+                                      )}
+                                    </div>
+                                    <div className="flex flex-col items-start min-w-0">
+                                      <span className="text-[11px] font-bold text-slate-700 mb-0.5">
+                                        {activeChatRoom.targetNickname}
+                                      </span>
+                                      <div className="flex items-end gap-1.5">
+                                        {msg.gift ? (
+                                          <div className="bg-white text-slate-900 rounded-2xl rounded-tl-xs p-3 shadow-md space-y-1.5 border border-amber-300">
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-2xl">{msg.gift.icon || '🎁'}</span>
+                                              <div>
+                                                <span className="text-[9px] uppercase font-bold tracking-wider text-amber-600 block">
+                                                  MOCCO 3D GIFT
+                                                </span>
+                                                <h5 className="font-extrabold text-xs">{msg.gift.name}</h5>
+                                              </div>
+                                            </div>
+                                            <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-[10px] font-black">
+                                              <span>선물 꿀떡</span>
+                                              <span className="bg-amber-100 px-1.5 py-0.5 rounded text-amber-800">
+                                                {msg.gift.amount.toLocaleString()} 꿀떡
+                                              </span>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div className="bg-white text-slate-900 rounded-2xl rounded-tl-xs px-3.5 py-2 text-xs shadow-xs leading-relaxed break-words">
+                                            {msg.text}
+                                          </div>
+                                        )}
+                                        <span className="text-[9px] text-slate-600 shrink-0 mb-0.5">
+                                          {msg.time}
+                                        </span>
+                                      </div>
+                                    </div>
                                   </div>
                                 )}
-                                <span className="text-[9px] text-muted-foreground mt-0.5 px-1">
-                                  {msg.time} {msg.isMe && <span className="text-blue-600 font-bold">1</span>}
-                                </span>
                               </div>
                             ))}
                           </div>
 
-                          {/* (D) 모바일 채팅 입력 툴바 (사진, 선물, 텍스트, 전송) */}
-                          <div className="p-2 border-t bg-white flex items-center gap-1.5 shrink-0">
-                            {/* 사진 첨부 버튼 */}
+                          {/* (D) 모바일 채팅 입력 툴바 (+ 버튼, 텍스트 입력창, 🎁 선물, 전송) */}
+                          <div className="p-2 px-2.5 border-t border-slate-200/60 bg-white flex items-center gap-1.5 shrink-0">
+                            {/* 추가 첨부 버튼 (+) */}
                             <button
                               onClick={() =>
                                 toast({
-                                  title: '📷 사진 전송',
+                                  title: '📷 미디어 첨부',
                                   description: '채팅 사진/이미지 첨부 창이 열립니다.',
                                 })
                               }
                               className="h-8 w-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 shrink-0"
                             >
-                              <PlusCircle className="h-4 w-4" />
+                              <PlusCircle className="h-5 w-5" />
                             </button>
 
-                            {/* 🎁 선물하기 버튼 (핑크/골드 네온 버튼) */}
+                            {/* 🎁 선물하기 버튼 (모바일 앱 선물 아이콘과 동일) */}
                             <button
                               onClick={() => setIsGiftPickerOpen(true)}
                               className="h-8 px-2.5 rounded-full flex items-center gap-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-[10px] shadow-xs hover:from-pink-600 hover:to-rose-600 shrink-0 transition-transform active:scale-95"
@@ -7306,7 +7382,7 @@ export default function CustomerWebStorefrontPage() {
                               disabled={!chatInputText.trim()}
                               className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition-all ${
                                 chatInputText.trim()
-                                  ? 'bg-blue-600 text-white shadow-xs'
+                                  ? 'bg-[#FF3B6B] text-white shadow-xs'
                                   : 'bg-slate-200 text-slate-400'
                               }`}
                             >

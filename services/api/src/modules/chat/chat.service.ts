@@ -362,12 +362,24 @@ export class ChatService implements OnModuleInit {
       return sorted;
     }
 
+    let userNickname = '';
+    try {
+      const u = await this.prisma.user.findFirst({
+        where: { OR: [{ id: userId }, { nickname: userId }] },
+      });
+      if (u?.nickname) userNickname = u.nickname;
+    } catch {}
+
     // Filter to rooms where user is participant, host, or counterpart, or mock rooms
     const userRooms = sorted.filter((r) =>
       r.participantIds?.includes(userId) ||
+      (userNickname && r.participantIds?.includes(userNickname)) ||
       r.hostId === userId ||
+      (userNickname && r.hostId === userNickname) ||
       r.creatorId === userId ||
       r.counterpart?.id === userId ||
+      (userNickname && (r.counterpart?.id === userNickname || r.counterpart?.displayName === userNickname)) ||
+      (userNickname && (r.host?.id === userNickname || r.host?.displayName === userNickname)) ||
       r.id.startsWith('chat-mock-')
     );
 
@@ -376,8 +388,12 @@ export class ChatService implements OnModuleInit {
       let otherUser = r.counterpart;
       let title = r.title;
 
+      const isCurrentCounterpart =
+        r.counterpart?.id === userId ||
+        (userNickname &&
+          (r.counterpart?.id === userNickname || r.counterpart?.displayName === userNickname));
       // If the requesting user is the counterpart, then for them the other user is host!
-      if (r.counterpart?.id === userId && r.host) {
+      if (isCurrentCounterpart && r.host) {
         otherUser = {
           id: r.host.id,
           displayName: r.host.displayName,
@@ -421,8 +437,9 @@ export class ChatService implements OnModuleInit {
 
     let hostName = '나';
     let hostAvatar: string | null = null;
+    let dbHost: any = null;
     try {
-      const dbHost = await this.prisma.user.findFirst({
+      dbHost = await this.prisma.user.findFirst({
         where: {
           OR: [
             { id: userId },
@@ -440,8 +457,9 @@ export class ChatService implements OnModuleInit {
     let targetName = '대화 상대';
     let targetAvatar: string | null = null;
     let entryFee = 0;
+    let u: any = null;
     try {
-      const u = await this.prisma.user.findFirst({
+      u = await this.prisma.user.findFirst({
         where: {
           OR: [
             { id: targetUserId },
@@ -457,22 +475,35 @@ export class ChatService implements OnModuleInit {
       }
     } catch {}
 
+    const participants = Array.from(
+      new Set(
+        [
+          userId,
+          ...(dbHost?.id ? [dbHost.id] : []),
+          ...(dbHost?.nickname ? [dbHost.nickname] : []),
+          targetUserId,
+          ...(u?.id ? [u.id] : []),
+          ...(u?.nickname ? [u.nickname] : []),
+        ].filter(Boolean),
+      ),
+    );
+
     const newRoom: ChatRoomItem = {
       id: `chat-direct-${Date.now()}`,
       title: targetName,
       category: '1:1',
       entryFee,
       isGroup: false,
-      participantIds: [userId, targetUserId],
+      participantIds: participants,
       hostId: userId,
       creatorId: userId,
       host: {
-        id: userId,
+        id: dbHost?.id || userId,
         displayName: hostName,
         avatarUrl: hostAvatar,
       },
       counterpart: {
-        id: targetUserId,
+        id: u?.id || targetUserId,
         displayName: targetName,
         avatarUrl: targetAvatar,
         online: true,
@@ -498,7 +529,7 @@ export class ChatService implements OnModuleInit {
     this.saveToDisk();
 
     // Broadcast room created event to participants
-    this.chatGateway.emitChatRoomUpdated([userId, targetUserId], newRoom);
+    this.chatGateway.emitChatRoomUpdated(participants, newRoom);
 
     return newRoom;
   }
