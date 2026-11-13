@@ -23,9 +23,14 @@ export class ChatController {
 
   @Public()
   @Get()
-  async getChats(@CurrentUser() user?: any) {
-    const userId = user?.id || user?.sub || 'guest';
-    const list = await this.chatService.getChats(userId);
+  async getChats(
+    @CurrentUser() user?: any,
+    @Query('userId') queryUserId?: string,
+    @Query('nickname') queryNickname?: string,
+  ) {
+    const userId = user?.id || user?.sub || queryUserId || 'guest';
+    const nickname = user?.nickname || user?.displayName || queryNickname;
+    const list = await this.chatService.getChats(userId, nickname);
     return { ok: true, data: list, items: list };
   }
 
@@ -78,8 +83,11 @@ export class ChatController {
     @Body() body: any,
   ) {
     const userId = user?.id || user?.sub || body.senderAccountId || body.senderId || body.userId || 'guest';
+    const senderNickname = body.senderNickname || body.senderName || user?.nickname || user?.displayName;
     const payload = {
       ...body,
+      senderNickname,
+      senderName: senderNickname,
       chatId: routeChatId || body.chatId,
     };
     const msg = await this.chatService.sendMessage(userId, payload);

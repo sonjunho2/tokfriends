@@ -2846,9 +2846,9 @@ export async function deleteChatRoom(chatId: string): Promise<any> {
   }
 }
 
-export async function createDirectChat(targetUserId: string, title?: string, entryFee?: number): Promise<any> {
+export async function createDirectChat(targetUserId: string, title?: string, entryFee?: number, extra?: any): Promise<any> {
   try {
-    const res = await api.post('/chats/direct', { targetUserId, title, entryFee })
+    const res = await api.post('/chats/direct', { targetUserId, title, entryFee, ...(extra || {}) })
     return res?.data?.room || res?.data?.data || res?.data || res
   } catch (err) {
     console.warn('createDirectChat error:', err)

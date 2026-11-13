@@ -491,6 +491,25 @@ export class ChatGateway
   }
 
   /**
+   * 클라이언트 연결 후 유저 ID / 닉네임 개인 알림 룸 바인딩
+   */
+  @SubscribeMessage('connected')
+  handleConnected(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { userId?: string; nickname?: string },
+  ) {
+    if (data?.userId) {
+      socket.join(`user_${data.userId}`);
+      this.logger.log(`Socket ${socket.id} joined notification room: user_${data.userId}`);
+    }
+    if (data?.nickname) {
+      socket.join(`user_${data.nickname}`);
+      this.logger.log(`Socket ${socket.id} joined notification room: user_${data.nickname}`);
+    }
+    return { ok: true };
+  }
+
+  /**
    * 실시간 채팅 메시지 수신 및 중계
    */
   @SubscribeMessage('chat:message')

@@ -2175,6 +2175,7 @@ export default function CustomerWebStorefrontPage() {
   const socketRef = useRef<any>(null)
   const activeChatRoomRef = useRef<ChatRoomItem | null>(null)
   const chatRoomsRef = useRef<ChatRoomItem[]>([])
+  const mySentMessageIdsRef = useRef<Set<string>>(new Set())
   activeChatRoomRef.current = activeChatRoom
   chatRoomsRef.current = chatRooms
 
@@ -2191,6 +2192,7 @@ export default function CustomerWebStorefrontPage() {
 
     socket.on('connect', () => {
       console.log('Web socket connected to MOCCO server:', socket.id)
+      socket.emit('connected', { userId: user?.id, nickname: user?.nickname })
       if (user?.id) {
         socket.emit('chat:join', { userId: user.id })
       }
@@ -2338,13 +2340,26 @@ export default function CustomerWebStorefrontPage() {
       const senderId = data.senderAccountId || data.senderId || data.sender?.id
       const senderName = data.senderName || data.senderNickname || data.sender?.nickname || '상대방'
 
-      // 내가 보낸 메시지인지 엄격히 검증 (ID 및 닉네임 일치 시 무시하여 에코/복제 완전 차단)
+      // 내가 보낸 메시지인지 엄격히 검증 (ID, 닉네임, clientMessageId 일치 시 무시하여 에코/복제 완전 차단)
       const isMyMessage =
+        (data.clientMessageId && mySentMessageIdsRef.current.has(data.clientMessageId)) ||
+        (data.id && mySentMessageIdsRef.current.has(data.id)) ||
         (user?.id && (senderId === user.id || data.senderAccountId === user.id || data.senderId === user.id)) ||
         (user?.nickname && (senderName === user.nickname || data.senderName === user.nickname || data.senderNickname === user.nickname)) ||
         (data.sender?.nickname && user?.nickname && data.sender.nickname === user.nickname)
 
       if (isMyMessage) return
+
+      // 활성 대화방에서 상대방이 보낸 메시지인지 엄격 확인 (내가 아닌 상대방 메시지만 수신)
+      if (activeChatRoomRef.current) {
+        const isTargetMatch =
+          senderName === activeChatRoomRef.current.targetNickname ||
+          (activeChatRoomRef.current.targetUserId && (senderId === activeChatRoomRef.current.targetUserId || data.senderAccountId === activeChatRoomRef.current.targetUserId))
+        // 상대방이 보낸 게 아니라면 무시하여 상대방 말풍선 복제 원천 차단!
+        if (!isTargetMatch && (senderName === user?.nickname || senderId === user?.id || senderId === 'me')) {
+          return
+        }
+      }
 
       playMoccoSoundWeb()
 
@@ -3906,7 +3921,11 @@ export default function CustomerWebStorefrontPage() {
       // 서버 1:1 채팅방 생성 및 실시간 동기화
       let serverRoom: any = null
       try {
-        serverRoom = await createDirectChat(room.nickname, room.title, room.entryFee)
+        serverRoom = await createDirectChat(room.nickname, room.title, room.entryFee, {
+          senderNickname: user?.nickname || '테스터02',
+          senderAccountId: user?.id || 'u-tester-02',
+          targetNickname: room.nickname,
+        })
       } catch (e) {
         console.warn('createDirectChat fallback:', e)
       }
@@ -3916,12 +3935,17 @@ export default function CustomerWebStorefrontPage() {
       if (socketRef.current) {
         socketRef.current.emit('chat:join', { chatId: roomId })
         // 상대방에게 입장 환영 및 새 방 개설 알림 브로드캐스트 -> 상대방 모바일 앱 대화함에 실시간 생성 & '모꼬' 알림음 울림
+        const welcomeClientMsgId = 'm-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7)
+        mySentMessageIdsRef.current.add(welcomeClientMsgId)
         socketRef.current.emit('chat:message', {
+          id: welcomeClientMsgId,
+          clientMessageId: welcomeClientMsgId,
           chatId: roomId,
           content: `안녕하세요! "${room.title || room.content}" 보고 입장했습니다 😊`,
           targetUserId: room.nickname,
-          senderAccountId: user?.id,
-          senderName: user?.nickname || '모꼬이웃',
+          senderAccountId: user?.id || 'u-tester-02',
+          senderName: user?.nickname || '테스터02',
+          senderNickname: user?.nickname || '테스터02',
         })
       }
 
@@ -4019,16 +4043,19 @@ export default function CustomerWebStorefrontPage() {
   const handleSendMessage = async () => {
     if (!chatInputText.trim() || !activeChatRoom) return
     const text = chatInputText.trim()
-    const senderNickname = user?.nickname || '테스터02(시청자)'
-    const senderId = user?.id || 'me'
+    const senderNickname = user?.nickname || '테스터02'
+    const senderId = user?.id || 'u-tester-02'
+    const clientMsgId = 'm-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7)
+    mySentMessageIdsRef.current.add(clientMsgId)
 
     const newMsg: ChatMessageItem = {
-      id: 'm-' + Date.now(),
+      id: clientMsgId,
       senderId: senderId,
       senderNickname: senderNickname,
       text: text,
       time: '방금',
       isMe: true,
+      unread: true,
     }
     const updatedRoom: ChatRoomItem = {
       ...activeChatRoom,
@@ -4049,6 +4076,7 @@ export default function CustomerWebStorefrontPage() {
     // 백엔드 REST API 및 Socket.io 실시간 전송
     try {
       await sendChatMessage(activeChatRoom.id, text, {
+        clientMessageId: clientMsgId,
         targetUserId: activeChatRoom.targetNickname,
         senderNickname: senderNickname,
         senderId: senderId,
@@ -4059,6 +4087,8 @@ export default function CustomerWebStorefrontPage() {
 
     if (socketRef.current) {
       socketRef.current.emit('chat:message', {
+        id: clientMsgId,
+        clientMessageId: clientMsgId,
         chatId: activeChatRoom.id,
         content: text,
         targetUserId: activeChatRoom.targetNickname,

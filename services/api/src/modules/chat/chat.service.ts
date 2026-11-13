@@ -354,75 +354,108 @@ export class ChatService implements OnModuleInit {
     }
   }
 
-  async getChats(userId?: string): Promise<ChatRoomItem[]> {
+  async getChats(userId?: string, requestedNickname?: string): Promise<ChatRoomItem[]> {
     const sorted = [...this.rooms].sort(
       (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime(),
     );
 
-    if (!userId || userId === 'guest') {
-      return sorted;
+    let userNickname = requestedNickname || '';
+    if (userId && userId !== 'guest') {
+      try {
+        const u = await this.prisma.user.findFirst({
+          where: { OR: [{ id: userId }, { nickname: userId }] },
+        });
+        if (u?.nickname) userNickname = u.nickname;
+      } catch {}
     }
 
-    let userNickname = '';
-    try {
-      const u = await this.prisma.user.findFirst({
-        where: { OR: [{ id: userId }, { nickname: userId }] },
-      });
-      if (u?.nickname) userNickname = u.nickname;
-    } catch {}
+    // Helper: is this id or name referring to ME?
+    const isMe = (val?: string | null) => {
+      if (!val) return false;
+      const v = String(val).trim();
+      return (
+        (userId && userId !== 'guest' && v === userId) ||
+        (userNickname && v === userNickname) ||
+        v === '나' ||
+        v === 'me'
+      );
+    };
 
-    // Filter to rooms where user is participant, host, or counterpart, or mock rooms
-    const userRooms = sorted.filter((r) =>
-      r.participantIds?.includes(userId) ||
-      (userNickname && r.participantIds?.includes(userNickname)) ||
-      r.hostId === userId ||
-      (userNickname && r.hostId === userNickname) ||
-      r.creatorId === userId ||
-      r.counterpart?.id === userId ||
-      (userNickname && (r.counterpart?.id === userNickname || r.counterpart?.displayName === userNickname)) ||
-      (userNickname && (r.host?.id === userNickname || r.host?.displayName === userNickname)) ||
-      r.id.startsWith('chat-mock-')
-    );
+    const userRooms = sorted.filter((r) => {
+      if ((!userId || userId === 'guest') && !userNickname) {
+        return true;
+      }
+      return (
+        r.participantIds?.some((pid) => isMe(pid)) ||
+        isMe(r.hostId) ||
+        isMe(r.creatorId) ||
+        isMe(r.host?.id) ||
+        isMe(r.host?.displayName) ||
+        isMe(r.counterpart?.id) ||
+        isMe(r.counterpart?.displayName) ||
+        r.id.startsWith('chat-mock-')
+      );
+    });
 
     // Compute counterpart perspective for this user
     return userRooms.map((r) => {
       let otherUser = r.counterpart;
       let title = r.title;
 
-      const isCurrentCounterpart =
-        r.counterpart?.id === userId ||
-        (userNickname &&
-          (r.counterpart?.id === userNickname || r.counterpart?.displayName === userNickname));
-      // If the requesting user is the counterpart, then for them the other user is host!
-      if (isCurrentCounterpart && r.host) {
-        let hostName = r.host.displayName;
-        if (!hostName || hostName === '나' || hostName === userNickname || hostName === userId) {
-          hostName = r.host.id && r.host.id !== userId ? r.host.id : '대화 상대';
-        }
+      const hostIsMe = isMe(r.host?.id) || isMe(r.host?.displayName) || isMe(r.hostId);
+      const counterpartIsMe = isMe(r.counterpart?.id) || isMe(r.counterpart?.displayName);
+
+      if (counterpartIsMe && r.host && !hostIsMe) {
+        // 내가 counterpart이면 상대방은 host!
         otherUser = {
           id: r.host.id,
-          displayName: hostName,
+          displayName: r.host.displayName,
           avatarUrl: r.host.avatarUrl,
           online: true,
         };
-        title = hostName;
+        title = r.host.displayName;
+      } else if (hostIsMe && r.counterpart && !counterpartIsMe) {
+        // 내가 host이면 상대방은 counterpart!
+        otherUser = {
+          id: r.counterpart.id,
+          displayName: r.counterpart.displayName,
+          avatarUrl: r.counterpart.avatarUrl,
+          online: true,
+        };
+        title = r.counterpart.displayName;
+      } else {
+        // 호스트나 카운터파트 중 내가 아닌 사람을 participantIds에서 직접 조회
+        const peerId = r.participantIds?.find((pid) => !isMe(pid));
+        if (peerId) {
+          otherUser = {
+            id: peerId,
+            displayName: peerId,
+            avatarUrl: null,
+            online: true,
+          };
+          title = peerId;
+        }
       }
 
-      if (otherUser && (!otherUser.displayName || otherUser.displayName === '나')) {
-        const altId = r.participantIds?.find((id) => id !== userId && id !== userNickname);
-        otherUser = {
-          ...otherUser,
-          displayName: altId || '대화 상대',
-        };
-        title = otherUser.displayName;
+      // 방어 로직: 만약 displayName이 '나'이거나 본인 이름이면 상대방으로 교체
+      if (otherUser && (isMe(otherUser.displayName) || isMe(otherUser.id))) {
+        const peerId = r.participantIds?.find((pid) => !isMe(pid)) || (hostIsMe ? r.counterpart?.id : r.host?.id);
+        if (peerId && !isMe(peerId)) {
+          otherUser = {
+            ...otherUser,
+            id: peerId,
+            displayName: peerId,
+          };
+          title = peerId;
+        }
       }
 
       // Compute dynamic unreadCount for current user
       const msgs = this.messagesStore[r.id] || [];
       const computedUnread = msgs.filter(
         (m) =>
-          m.senderAccountId !== userId &&
-          (!userNickname || m.senderAccountId !== userNickname) &&
+          !isMe(m.senderAccountId) &&
+          !isMe(m.senderName) &&
           m.senderAccountId !== 'system' &&
           !m.readAt,
       ).length;
@@ -736,6 +769,9 @@ export class ChatService implements OnModuleInit {
       content: string;
       clientMessageId?: string;
       type?: string;
+      senderNickname?: string;
+      senderName?: string;
+      senderAvatar?: string;
       giftPoints?: number;
       giftName?: string;
       giftIcon?: string;
@@ -743,29 +779,33 @@ export class ChatService implements OnModuleInit {
   ): Promise<ChatMessageItem> {
     const { chatId, content, type = 'text', giftPoints, giftName, giftIcon } = dto;
 
-    let senderName = userId === 'guest' ? '나' : undefined;
-    let senderAvatar: string | undefined;
-    if (userId && userId !== 'guest') {
+    let senderName = dto.senderNickname || dto.senderName;
+    let senderAvatar: string | undefined = dto.senderAvatar;
+    if (!senderName && userId && userId !== 'guest') {
       try {
-        const u = await this.prisma.user.findUnique({
-          where: { id: userId },
+        const u = await this.prisma.user.findFirst({
+          where: { OR: [{ id: userId }, { nickname: userId }] },
           select: { nickname: true, displayName: true, avatarUrl: true },
         });
         if (u) {
-          senderName = u.nickname || u.displayName || '대화 상대';
-          senderAvatar = u.avatarUrl || undefined;
+          senderName = u.nickname || u.displayName;
+          if (!senderAvatar) senderAvatar = u.avatarUrl || undefined;
         }
       } catch {}
     }
+    if (!senderName) {
+      senderName = userId === 'guest' ? '나' : userId;
+    }
 
     const msg: ChatMessageItem = {
-      id: dto.clientMessageId || `msg-${Date.now()}`,
+      id: dto.clientMessageId || `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       chatId,
       senderAccountId: userId,
       senderName,
       senderAvatar,
       content,
       type,
+      readAt: null,
       giftPoints: giftPoints !== undefined ? Number(giftPoints) : null,
       giftName: giftName || null,
       giftIcon: giftIcon || null,
@@ -1046,32 +1086,41 @@ export class ChatService implements OnModuleInit {
         avatarUrl: openRoom.hostAvatar,
       },
       counterpart: {
-        id: openRoom.hostId === guestUserId ? 'u-host' : openRoom.hostId,
-        displayName: openRoom.hostName,
-        avatarUrl: openRoom.hostAvatar,
+        id: guestUserId,
+        displayName: guestName,
+        avatarUrl: guestAvatar,
         online: true,
       },
       isWaiting: false,
       lastMessage: `${guestName}님이 대화방에 입장했습니다.`,
       lastMessageAt: new Date().toISOString(),
-      unreadCount: 0,
+      unreadCount: 1,
+      createdAt: new Date().toISOString(),
+    };
+
+    const welcomeMsg: ChatMessageItem = {
+      id: `msg-welcome-${newChatId}`,
+      chatId: newChatId,
+      senderAccountId: guestUserId,
+      senderName: guestName,
+      senderAvatar: guestAvatar || undefined,
+      content: `🎉 '${openRoom.title}' 대화방이 매칭되었습니다! (${guestName}님이 입장료 ${fee > 0 ? `${fee} ON을 지불하고` : '무료로'} 입장)`,
+      type: 'text',
+      readAt: null,
       createdAt: new Date().toISOString(),
     };
 
     this.rooms.unshift(newRoom);
-    this.messagesStore[newChatId] = [
-      {
-        id: `msg-welcome-${newChatId}`,
-        chatId: newChatId,
-        senderAccountId: 'system',
-        content: `🎉 '${openRoom.title}' 대화방이 매칭되었습니다! (${guestName}님이 입장료 ${fee > 0 ? `${fee} ON을 지불하고` : '무료로'} 입장)`,
-        type: 'text',
-        createdAt: new Date().toISOString(),
-      },
-    ];
+    this.messagesStore[newChatId] = [welcomeMsg];
 
     openRoom.matchedCount = (openRoom.matchedCount || 0) + 1;
     this.saveToDisk();
+
+    // 호스트에게 대화방 개설 실시간 전파 및 알림 트리거 ("모꼬" 사운드)
+    try {
+      this.chatGateway.emitChatMessage(newChatId, welcomeMsg, openRoom.hostId);
+      this.chatGateway.emitChatRoomUpdated([openRoom.hostId, guestUserId], newRoom);
+    } catch {}
 
     return {
       ok: true,

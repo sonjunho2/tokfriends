@@ -1,7 +1,7 @@
 /**
  * MOCCO Suda (실시간 1줄 동네 토크 & 듀얼 대화함) Service
  */
-import client from '../api/client';
+import client, { getStoredUser } from '../api/client';
 
 export interface SudaPostItem {
   id: string;
@@ -292,26 +292,63 @@ export async function likeSudaPost(postId: string): Promise<number> {
 
 export async function fetchChatRooms(type?: 'SUDA' | 'MARKET'): Promise<ChatRoomItem[]> {
   try {
-    const res = await client.get('/chats');
+    let currentUserId: string | undefined;
+    let currentUserNickname: string | undefined;
+    try {
+      const u = await getStoredUser();
+      if (u) {
+        currentUserId = u.id || u.sub;
+        currentUserNickname = u.nickname || u.name;
+      }
+    } catch {}
+
+    const res = await client.get('/chats', {
+      params: {
+        userId: currentUserId,
+        nickname: currentUserNickname,
+      },
+    });
     const items = res?.data?.items || res?.data?.data || res?.data;
     if (Array.isArray(items) && items.length > 0) {
-      const serverRooms: ChatRoomItem[] = items.map((r: any) => ({
-        id: r.id,
-        type: r.category === 'MARKET' ? 'MARKET' : 'SUDA',
-        peer: {
-          id: r.counterpart?.id || r.participantIds?.[1] || 'peer',
-          nickname: r.counterpart?.displayName || r.title || '대화 상대',
-          avatarUrl:
-            r.counterpart?.avatarUrl ||
-            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
-          isOnline: Boolean(r.counterpart?.online),
-        },
-        lastMessage: r.lastMessage || '대화가 시작되었습니다.',
-        lastMessageTime: r.lastMessageAt
-          ? new Date(r.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          : '방금',
-        unreadCount: Number(r.unreadCount || 0),
-      }));
+      const serverRooms: ChatRoomItem[] = items.map((r: any) => {
+        // 상대방 닉네임이 본인이 되지 않도록 철저한 2중 방어
+        const isCounterpartMe =
+          (currentUserNickname && (r.counterpart?.displayName === currentUserNickname || r.counterpart?.id === currentUserNickname)) ||
+          (currentUserId && r.counterpart?.id === currentUserId) ||
+          r.counterpart?.displayName === '나';
+
+        let peerNickname = isCounterpartMe
+          ? (r.host?.displayName && r.host.displayName !== currentUserNickname && r.host.displayName !== '나'
+              ? r.host.displayName
+              : (r.title && r.title !== currentUserNickname && r.title !== '나' ? r.title : '대화 상대'))
+          : (r.counterpart?.displayName || r.title || '대화 상대');
+
+        if (peerNickname === '나') {
+          peerNickname = '대화 상대';
+        }
+
+        let peerAvatar = isCounterpartMe
+          ? (r.host?.avatarUrl || r.counterpart?.avatarUrl)
+          : (r.counterpart?.avatarUrl || r.host?.avatarUrl);
+
+        return {
+          id: r.id,
+          type: r.category === 'MARKET' ? 'MARKET' : 'SUDA',
+          peer: {
+            id: isCounterpartMe ? (r.host?.id || 'peer') : (r.counterpart?.id || 'peer'),
+            nickname: peerNickname,
+            avatarUrl:
+              peerAvatar ||
+              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+            isOnline: Boolean(r.counterpart?.online ?? true),
+          },
+          lastMessage: r.lastMessage || '대화가 시작되었습니다.',
+          lastMessageTime: r.lastMessageAt
+            ? new Date(r.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : '방금',
+          unreadCount: Number(r.unreadCount || 0),
+        };
+      });
 
       // Combine with in-memory market demo items if needed
       const marketRooms = inMemoryChatRooms.filter((r) => r.type === 'MARKET');
