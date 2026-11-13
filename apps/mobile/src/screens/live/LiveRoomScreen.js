@@ -862,6 +862,34 @@ export default function LiveRoomScreen({ navigation, route }) {
       socket.on(LIVE_SOCKET_EVENTS.GIFT, onDirectGiftReceived);
       socket.on('GIFT_OVERLAY_TRIGGER', onDirectGiftReceived);
 
+      // 🎉 시청자 입장 이벤트: 공지 배너 대신 채팅창에 선물 카드처럼 입장 메시지 실시간 렌더링
+      socket.on('live:user_joined', (data) => {
+        if (data?.nickname) {
+          const joinMsg = {
+            id: `join-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            type: 'SYSTEM',
+            systemType: 'USER_JOIN',
+            nickname: data.nickname,
+            senderName: data.nickname,
+            text: `✨ ${data.nickname}님이 입장했습니다.`,
+            createdAt: new Date().toISOString(),
+            timestamp: Date.now(),
+          };
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === joinMsg.id || (m.systemType === 'USER_JOIN' && m.nickname === data.nickname && Date.now() - (m.timestamp || 0) < 2500))) {
+              return prev;
+            }
+            return [...prev, joinMsg];
+          });
+          setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }, 80);
+        }
+        if (typeof data?.viewerCount === 'number') {
+          setViewerCount(data.viewerCount);
+        }
+      });
+
       socket.on(LIVE_SOCKET_EVENTS.VIEWER_COUNT, (data) => {
         if (typeof data?.viewerCount === 'number') {
           setViewerCount(data.viewerCount);
@@ -1357,8 +1385,8 @@ export default function LiveRoomScreen({ navigation, route }) {
   const chatMessages = useMemo(() => {
     return messages.filter((m) => {
       const type = String(m?.type || '').toLowerCase();
-      // 시스템 안내문, 선물, 하트는 일반 채팅창에서 제외하여 순수 유저 대화만 깔끔하게 표시
-      return type !== 'like' && type !== 'gift' && type !== 'system';
+      // 하트(like)만 플로팅 애니메이션으로 빼고, 선물(gift)과 시청자 입장(USER_JOIN)은 채팅창 피드에 표시
+      return type !== 'like';
     });
   }, [messages]);
 
@@ -1377,7 +1405,49 @@ export default function LiveRoomScreen({ navigation, route }) {
 
     const displayContent = item?.content || item?.text || '';
 
-    if (item?.type === 'SYSTEM' || item?.systemType === 'USER_JOIN' || item?.isSystem) {
+    // 1. 🎉 시청자 입장 메시지 (선물 카드처럼 예쁜 하이라이트 카드 스타일로 채팅창에 렌더링)
+    if (item?.type === 'SYSTEM' && item?.systemType === 'USER_JOIN' || item?.systemType === 'USER_JOIN' || item?.type === 'join' || item?.isJoin) {
+      const enterUser = item?.nickname || item?.senderName || authorName;
+      return (
+        <View style={styles.chatJoinCard}>
+          <View style={styles.chatJoinIconBox}>
+            <Text style={styles.chatJoinIconEmoji}>👋</Text>
+          </View>
+          <Text style={styles.chatJoinText} numberOfLines={1}>
+            <Text style={styles.chatJoinNick}>{enterUser}</Text>
+            <Text style={styles.chatJoinSub}> 님이 입장하셨습니다 ✨</Text>
+          </Text>
+        </View>
+      );
+    }
+
+    // 2. 🎁 선물 후원 메시지 (채팅창 전용 선물 카드)
+    if (item?.type === 'gift' || item?.isGift) {
+      let giftMeta = {};
+      try {
+        giftMeta = typeof item?.content === 'string' ? JSON.parse(item.content) : (item?.content || {});
+      } catch {}
+      const gName = item?.giftName || giftMeta?.giftName || '모꼬 선물';
+      const gPoints = item?.giftPoints || giftMeta?.pricePoints || 0;
+      return (
+        <View style={styles.chatGiftItemCard}>
+          <View style={styles.chatGiftItemIconBox}>
+            <Text style={styles.chatGiftItemEmoji}>🎁</Text>
+          </View>
+          <View style={styles.chatGiftItemContentBox}>
+            <Text style={styles.chatGiftItemTitle} numberOfLines={1}>
+              <Text style={styles.chatGiftItemDonor}>{authorName}</Text>
+              <Text style={styles.chatGiftItemAction}> 님이 [{gName}] 선물!</Text>
+            </Text>
+            {gPoints > 0 && (
+              <Text style={styles.chatGiftItemBadge}>+{Number(gPoints).toLocaleString()} 꿀떡</Text>
+            )}
+          </View>
+        </View>
+      );
+    }
+
+    if (item?.type === 'SYSTEM' || item?.isSystem) {
       return (
         <View style={styles.systemEnterBadge}>
           <Text style={styles.systemEnterText}>
@@ -1391,22 +1461,22 @@ export default function LiveRoomScreen({ navigation, route }) {
       <TouchableOpacity
         style={[
           styles.chatBubble,
-          isMyReply && styles.myReplyBubble,
+          isHostMessage ? styles.hostChatBubble : (isMe && styles.myReplyBubble),
         ]}
         onPress={() => handleMessagePress(item)}
         activeOpacity={0.8}
       >
         <Text style={styles.chatInlineText}>
           {isHostMessage ? (
-            <Text style={styles.hostPrefixText}>[방장] </Text>
+            <Text style={styles.hostPrefixBadge}>[방장] </Text>
           ) : isMe ? (
             <Text style={styles.myPrefixText}>[나] </Text>
           ) : null}
-          <Text style={[styles.chatAuthor, isMyReply && styles.myReplyAuthor]}>
+          <Text style={[styles.chatAuthor, isHostMessage ? styles.hostChatAuthor : (isMyReply && styles.myReplyAuthor)]}>
             {authorName}
           </Text>
           <Text style={styles.colonText}> : </Text>
-          <Text style={[styles.chatContent, isMyReply && styles.myReplyContent]}>
+          <Text style={[styles.chatContent, isHostMessage ? styles.hostChatContent : (isMyReply && styles.myReplyContent)]}>
             {displayContent}
           </Text>
         </Text>
@@ -2847,6 +2917,106 @@ const styles = StyleSheet.create({
   systemEnterText: {
     color: '#FFE4E6',
     fontSize: 12,
+    fontWeight: '700',
+  },
+  // 🌟 시청자 입장 전용 채팅 카드 (선물 카드 스타일)
+  chatJoinCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(99, 102, 241, 0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(165, 180, 252, 0.45)',
+    paddingHorizontal: 10,
+    paddingVertical: 4.5,
+    borderRadius: 14,
+    marginVertical: 2.5,
+    maxWidth: '92%',
+  },
+  chatJoinIconBox: {
+    marginRight: 6,
+  },
+  chatJoinIconEmoji: {
+    fontSize: 14,
+  },
+  chatJoinContentBox: {
+    flexShrink: 1,
+  },
+  chatJoinText: {
+    fontSize: 12,
+    color: '#E0E7FF',
+  },
+  chatJoinNick: {
+    fontWeight: '800',
+    color: '#A5B4FC',
+  },
+  chatJoinSub: {
+    fontWeight: '600',
+    color: '#E0E7FF',
+  },
+  // 🎁 선물 전용 채팅 카드
+  chatGiftItemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 59, 107, 0.25)',
+    borderWidth: 1.2,
+    borderColor: 'rgba(255, 59, 107, 0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    marginVertical: 3,
+    maxWidth: '94%',
+  },
+  chatGiftItemIconBox: {
+    marginRight: 6,
+  },
+  chatGiftItemEmoji: {
+    fontSize: 16,
+  },
+  chatGiftItemContentBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  chatGiftItemTitle: {
+    fontSize: 12,
+  },
+  chatGiftItemDonor: {
+    fontWeight: '800',
+    color: '#FFD1DC',
+  },
+  chatGiftItemAction: {
+    fontWeight: '700',
+    color: '#FDE047',
+  },
+  chatGiftItemBadge: {
+    backgroundColor: 'rgba(255, 59, 107, 0.4)',
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 8,
+  },
+  // 👑 방장(호스트) 채팅 강조 스타일
+  hostChatBubble: {
+    backgroundColor: 'rgba(255, 59, 107, 0.24)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 59, 107, 0.65)',
+  },
+  hostPrefixBadge: {
+    color: '#FF3B6B',
+    fontWeight: '900',
+    fontSize: 12.5,
+  },
+  hostChatAuthor: {
+    color: '#FFA1B8',
+    fontWeight: '900',
+  },
+  hostChatContent: {
+    color: '#FFFFFF',
     fontWeight: '700',
   },
   roomEndedFullOverlay: {

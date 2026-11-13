@@ -934,6 +934,45 @@ export class LiveController {
   }
 
   /**
+   * 라이브 룸 실시간 채팅 메시지 등록 (웹/앱 크로스 플랫폼 브로드캐스트)
+   */
+  @Public()
+  @Post('rooms/:roomId/messages')
+  async createLiveMessage(
+    @Param('roomId') roomId: string,
+    @Body() body: { type?: string; content?: string; text?: string; senderName?: string; senderId?: string; isHost?: boolean },
+  ) {
+    const text = body.content || body.text || '';
+    const sender = body.senderName || '시청자';
+    const newMsg = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      roomId,
+      type: body.type || 'chat',
+      content: text,
+      text,
+      senderName: sender,
+      sender: { id: body.senderId || 'user', name: sender },
+      senderId: body.senderId || 'user',
+      isHost: Boolean(body.isHost),
+      createdAt: new Date().toISOString(),
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    const list = this.getRoomMessages(roomId);
+    list.push(newMsg);
+    if (list.length > 80) list.shift();
+
+    try {
+      this.chatGateway.emitLiveMessage(roomId, newMsg);
+    } catch {}
+
+    return {
+      ok: true,
+      data: newMsg,
+    };
+  }
+
+  /**
    * 관리자 라이브 송출 아키텍처 설정 조회
    */
   @Public()

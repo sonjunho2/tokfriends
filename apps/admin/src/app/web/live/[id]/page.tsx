@@ -36,6 +36,9 @@ interface ChatMessage {
   text: string
   isHost?: boolean
   isSystem?: boolean
+  isJoin?: boolean
+  isGift?: boolean
+  gift?: { name: string; amount?: number; icon?: string }
   time: string
 }
 
@@ -291,7 +294,45 @@ export default function WebLivePlayerPage() {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Periodic random chat simulator
+  // 서버 실시간 채팅/입장 메시지 2.5초 주기 동기화
+  useEffect(() => {
+    const fetchServerMessages = async () => {
+      try {
+        const res: any = await api.get(`/live/rooms/${liveId}/messages`)
+        const list = res?.data || res
+        if (Array.isArray(list) && list.length > 0) {
+          setMessages((prev) => {
+            const existingIds = new Set(prev.map((m) => m.id))
+            const newItems: ChatMessage[] = []
+            for (const item of list) {
+              if (!existingIds.has(item.id)) {
+                const isEnter = item.systemType === 'USER_JOIN' || item.type === 'USER_JOIN' || (item.type === 'SYSTEM' && (item.content || item.text || '').includes('입장'))
+                const isGift = item.type === 'gift' || Boolean(item.gift)
+                newItems.push({
+                  id: item.id,
+                  sender: item.senderName || item.sender?.name || item.sender || '시청자',
+                  text: item.content || item.text || '',
+                  isHost: Boolean(item.isHost),
+                  isSystem: Boolean(item.type === 'SYSTEM' || item.isSystem),
+                  isJoin: isEnter,
+                  isGift,
+                  time: item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                })
+              }
+            }
+            if (newItems.length === 0) return prev
+            return [...prev, ...newItems]
+          })
+        }
+      } catch {}
+    }
+
+    fetchServerMessages()
+    const interval = setInterval(fetchServerMessages, 2500)
+    return () => clearInterval(interval)
+  }, [liveId])
+
+  // Periodic random chat & join simulator
   useEffect(() => {
     const timer = setInterval(() => {
       const randomNicknames = ['캠핑매니아', '맛스타그램', '서울러', '요리왕', '제주도민']
@@ -303,16 +344,22 @@ export default function WebLivePlayerPage() {
         '1세트 더 구매 완료했습니다!',
       ]
       const randomNick = randomNicknames[Math.floor(Math.random() * randomNicknames.length)]
-      const randomTxt = randomTexts[Math.floor(Math.random() * randomTexts.length)]
+      const isJoinMock = Math.random() < 0.25
 
-      const newMsg: ChatMessage = {
+      const newMsg: ChatMessage = isJoinMock ? {
+        id: `m-join-${Date.now()}`,
+        sender: randomNick,
+        text: '입장',
+        isJoin: true,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      } : {
         id: `m-${Date.now()}`,
         sender: randomNick,
-        text: randomTxt,
+        text: randomTexts[Math.floor(Math.random() * randomTexts.length)],
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }
       setMessages((prev) => [...prev.slice(-40), newMsg])
-    }, 4500)
+    }, 5500)
 
     return () => clearInterval(timer)
   }, [])
@@ -322,15 +369,23 @@ export default function WebLivePlayerPage() {
     e.preventDefault()
     if (!chatInput.trim()) return
 
+    const trimmed = chatInput.trim()
     const newMsg: ChatMessage = {
       id: `m-${Date.now()}`,
       sender: '나 (웹 시청자)',
-      text: chatInput.trim(),
+      text: trimmed,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     }
 
     setMessages((prev) => [...prev, newMsg])
     setChatInput('')
+
+    // 서버로 실시간 전송 (앱 스트리머 화면에 도달)
+    api.post(`/live/rooms/${liveId}/messages`, {
+      type: 'chat',
+      content: trimmed,
+      senderName: '나 (웹 시청자)',
+    }).catch(() => {})
   }
 
   // Submit Instant Buy
@@ -549,26 +604,95 @@ export default function WebLivePlayerPage() {
 
           {/* Messages Feed */}
           <div className="flex-1 overflow-y-auto p-3 space-y-2.5 text-xs">
-            {messages.map((m) => (
-              <div
-                key={m.id}
-                className={`p-2 rounded-lg leading-relaxed ${
-                  m.isSystem
-                    ? 'bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[11px]'
-                    : m.isHost
-                    ? 'bg-indigo-600/20 border border-indigo-500/30 text-indigo-200'
-                    : 'bg-slate-800/60 text-slate-200'
-                }`}
-              >
-                <div className="flex items-center justify-between text-[10px] mb-0.5 opacity-70">
-                  <span className={`font-bold ${m.isHost ? 'text-indigo-400' : 'text-slate-400'}`}>
-                    {m.sender}
-                  </span>
-                  <span>{m.time}</span>
+            {messages.map((m) => {
+              // 1. 시청자 입장 메시지 (선물 카드처럼 예쁜 하이라이트 카드 스타일)
+              if (m.isJoin || (m.isSystem && m.text.includes('입장'))) {
+                return (
+                  <div
+                    key={m.id}
+                    className="rounded-xl p-2.5 bg-gradient-to-r from-purple-950/70 via-indigo-950/60 to-slate-900 border border-purple-500/40 text-white shadow-sm flex items-center gap-2.5 my-1 animate-in fade-in duration-200"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-purple-500/20 border border-purple-400/40 flex items-center justify-center shrink-0 text-xs">
+                      👋
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="font-black text-purple-300 mr-1.5">{m.sender}</span>
+                      <span className="text-slate-300 text-[11px]">님이 입장하셨습니다 ✨</span>
+                    </div>
+                  </div>
+                )
+              }
+
+              // 2. 선물 후원 메시지
+              if (m.isGift) {
+                return (
+                  <div
+                    key={m.id}
+                    className="rounded-xl p-2.5 bg-gradient-to-r from-pink-950/80 via-rose-950/80 to-slate-900 border border-pink-500/50 text-white shadow-md flex items-center justify-between gap-2 my-1 animate-in fade-in duration-200"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xl shrink-0">{m.gift?.icon || '🎁'}</span>
+                      <div className="min-w-0">
+                        <span className="text-[11px] text-pink-300 font-bold block truncate">
+                          {m.sender} 님이 선물 후원!
+                        </span>
+                        <span className="text-xs font-black text-amber-300 block truncate">
+                          {m.gift?.name || m.text}
+                        </span>
+                      </div>
+                    </div>
+                    {m.gift?.amount && (
+                      <span className="text-[10px] font-black bg-pink-500/30 text-pink-200 px-2 py-0.5 rounded-full shrink-0 border border-pink-400/30">
+                        +{m.gift.amount.toLocaleString()} 꿀떡
+                      </span>
+                    )}
+                  </div>
+                )
+              }
+
+              // 3. 시스템 공지
+              if (m.isSystem) {
+                return (
+                  <div
+                    key={m.id}
+                    className="bg-blue-950/40 border border-blue-800/40 rounded-xl p-2 text-blue-300 text-[11px] leading-relaxed"
+                  >
+                    <span className="font-bold text-blue-400 mr-1.5">[공지]</span>
+                    {m.text}
+                  </div>
+                )
+              }
+
+              // 4. 일반 채팅 (스트리머 vs 시청자 명확한 색상 및 배지 구분)
+              const isStreamer = m.isHost || m.sender?.includes('호스트') || m.sender?.includes('방장') || m.sender?.includes('제주흑돈직영')
+              return (
+                <div
+                  key={m.id}
+                  className={`p-2.5 rounded-xl leading-relaxed transition-all ${
+                    isStreamer
+                      ? 'bg-gradient-to-r from-rose-950/70 via-pink-950/60 to-slate-900 border border-rose-500/60 shadow-md text-white'
+                      : 'bg-slate-800/80 border border-slate-700/60 text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-[10px] mb-1 opacity-90">
+                    <div className="flex items-center gap-1.5">
+                      {isStreamer && (
+                        <span className="bg-rose-500 text-white font-black text-[9px] px-1.5 py-0.5 rounded shadow-sm">
+                          👑 방장
+                        </span>
+                      )}
+                      <span className={`font-black ${isStreamer ? 'text-rose-400 text-xs' : 'text-sky-300 font-bold'}`}>
+                        {m.sender}
+                      </span>
+                    </div>
+                    <span className="text-slate-500 font-mono text-[9px]">{m.time}</span>
+                  </div>
+                  <div className={`break-words ${isStreamer ? 'text-white font-semibold' : 'text-slate-200'}`}>
+                    {m.text}
+                  </div>
                 </div>
-                <div>{m.text}</div>
-              </div>
-            ))}
+              )
+            })}
             <div ref={chatBottomRef} />
           </div>
 

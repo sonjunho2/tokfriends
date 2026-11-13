@@ -11307,6 +11307,17 @@ export default function CustomerWebStorefrontPage() {
                           +{m.gift.amount.toLocaleString()} 꿀떡
                         </span>
                       </div>
+                    ) : m.isSystem && (m.text?.includes('입장') || (m as any).systemType === 'USER_JOIN' || (m as any).isJoin) ? (
+                      /* 시청자 입장 카드 (선물 카드처럼 예쁜 하이라이트 카드 스타일) */
+                      <div className="rounded-xl p-2 bg-gradient-to-r from-purple-950/70 via-indigo-950/60 to-slate-900 border border-purple-500/40 text-white shadow-sm flex items-center gap-2 my-1 animate-in fade-in duration-200">
+                        <div className="w-5 h-5 rounded-full bg-purple-500/20 border border-purple-400/40 flex items-center justify-center shrink-0 text-xs">
+                          👋
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="font-extrabold text-purple-300 mr-1 text-xs">{(m as any).nickname || m.sender}</span>
+                          <span className="text-slate-300 text-[11px]">님이 입장하셨습니다 ✨</span>
+                        </div>
+                      </div>
                     ) : m.isSystem ? (
                       /* 시스템 공지 */
                       <div className="bg-blue-950/40 border border-blue-800/40 rounded-xl p-2 text-blue-300 text-[11px] leading-relaxed">
@@ -11314,12 +11325,32 @@ export default function CustomerWebStorefrontPage() {
                         {m.text}
                       </div>
                     ) : (
-                      /* 일반 유저 채팅 */
-                      <div className="flex items-start gap-1.5 leading-snug">
-                        <span className="font-bold text-pink-400 shrink-0">{m.sender}:</span>
-                        <span className="text-slate-200 break-all">{m.text}</span>
-                        {m.time && <span className="text-[9px] text-slate-500 shrink-0 ml-auto">{m.time}</span>}
-                      </div>
+                      /* 일반 유저 및 스트리머 채팅 구분 */
+                      (() => {
+                        const isStreamer = m.isHost || m.sender?.includes('호스트') || m.sender?.includes('방장') || (activeLiveModal?.hostNickname && m.sender === activeLiveModal.hostNickname) || ((activeLiveModal as any)?.host?.name && m.sender === (activeLiveModal as any).host.name) || ((activeLiveModal as any)?.host?.nickname && m.sender === (activeLiveModal as any).host.nickname)
+                        return (
+                          <div className={`p-2 rounded-xl leading-snug transition-all ${
+                            isStreamer
+                              ? 'bg-gradient-to-r from-rose-950/70 via-pink-950/60 to-slate-900 border border-rose-500/60 shadow-md text-white my-1'
+                              : 'bg-slate-900/60 border border-slate-800/60 text-slate-200 my-0.5'
+                          }`}>
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              {isStreamer && (
+                                <span className="bg-rose-500 text-white font-black text-[9px] px-1.5 py-0.5 rounded shadow-sm">
+                                  👑 방장
+                                </span>
+                              )}
+                              <span className={`font-black ${isStreamer ? 'text-rose-400 text-xs' : 'text-sky-400 font-bold'}`}>
+                                {m.sender}:
+                              </span>
+                              {m.time && <span className="text-[9px] text-slate-500 shrink-0 ml-auto">{m.time}</span>}
+                            </div>
+                            <div className={`break-words ${isStreamer ? 'text-white font-bold' : 'text-slate-200'}`}>
+                              {m.text}
+                            </div>
+                          </div>
+                        )
+                      })()
                     )}
                   </div>
                 ))}
