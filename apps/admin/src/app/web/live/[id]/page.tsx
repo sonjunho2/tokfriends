@@ -663,31 +663,31 @@ export default function WebLivePlayerPage() {
                 )
               }
 
-              // 4. 일반 채팅 (스트리머 vs 시청자 명확한 색상 및 배지 구분)
+              // 4. 일반 채팅 (스트리머 vs 시청자 명확한 색상 및 배지 구분: 방장은 황금빛 앰버/골드, 선물은 핑크/로즈로 100% 구분)
               const isStreamer = m.isHost || m.sender?.includes('호스트') || m.sender?.includes('방장') || m.sender?.includes('제주흑돈직영')
               return (
                 <div
                   key={m.id}
                   className={`p-2.5 rounded-xl leading-relaxed transition-all ${
                     isStreamer
-                      ? 'bg-gradient-to-r from-rose-950/70 via-pink-950/60 to-slate-900 border border-rose-500/60 shadow-md text-white'
+                      ? 'bg-gradient-to-r from-amber-950/80 via-yellow-950/60 to-slate-900 border border-amber-500/70 shadow-lg text-white'
                       : 'bg-slate-800/80 border border-slate-700/60 text-slate-200'
                   }`}
                 >
                   <div className="flex items-center justify-between text-[10px] mb-1 opacity-90">
                     <div className="flex items-center gap-1.5">
                       {isStreamer && (
-                        <span className="bg-rose-500 text-white font-black text-[9px] px-1.5 py-0.5 rounded shadow-sm">
+                        <span className="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[9px] px-1.5 py-0.5 rounded shadow-sm">
                           👑 방장
                         </span>
                       )}
-                      <span className={`font-black ${isStreamer ? 'text-rose-400 text-xs' : 'text-sky-300 font-bold'}`}>
+                      <span className={`font-black ${isStreamer ? 'text-amber-300 text-xs' : 'text-sky-300 font-bold'}`}>
                         {m.sender}
                       </span>
                     </div>
-                    <span className="text-slate-500 font-mono text-[9px]">{m.time}</span>
+                    <span className={isStreamer ? 'text-amber-400/60 font-mono text-[9px]' : 'text-slate-500 font-mono text-[9px]'}>{m.time}</span>
                   </div>
-                  <div className={`break-words ${isStreamer ? 'text-white font-semibold' : 'text-slate-200'}`}>
+                  <div className={`break-words ${isStreamer ? 'text-amber-50 font-semibold' : 'text-slate-200'}`}>
                     {m.text}
                   </div>
                 </div>

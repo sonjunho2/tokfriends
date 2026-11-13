@@ -82,8 +82,10 @@ export class ChatGateway
     }
   }
 
-  private readonly liveRoomViewers = new Map<string, Set<string>>();
-  private readonly socketLiveRooms = new Map<string, string>();
+  // roomId -> Map<viewerIdentity, Set<socketId>>
+  private readonly liveRoomViewers = new Map<string, Map<string, Set<string>>>();
+  // socketId -> { roomId: string; identity: string; isHost: boolean }
+  private readonly socketLiveRooms = new Map<string, { roomId: string; identity: string; isHost: boolean }>();
 
   handleDisconnect(socket: Socket) {
     const user = socket.data?.user;
@@ -91,14 +93,20 @@ export class ChatGateway
       this.logger.log(`User disconnected from WS: ${user.nickname}`);
     }
 
-    const roomId = this.socketLiveRooms.get(socket.id);
-    if (roomId) {
+    const session = this.socketLiveRooms.get(socket.id);
+    if (session) {
       this.socketLiveRooms.delete(socket.id);
-      const set = this.liveRoomViewers.get(roomId);
-      if (set) {
-        set.delete(socket.id);
-        const count = Math.max(1, set.size);
-        this.server.to(`live_room_${roomId}`).emit('live:viewer_count', { roomId, viewerCount: count });
+      const roomViewersMap = this.liveRoomViewers.get(session.roomId);
+      if (roomViewersMap && !session.isHost) {
+        const socketSet = roomViewersMap.get(session.identity);
+        if (socketSet) {
+          socketSet.delete(socket.id);
+          if (socketSet.size === 0) {
+            roomViewersMap.delete(session.identity);
+          }
+        }
+        const count = roomViewersMap.size;
+        this.server.to(`live_room_${session.roomId}`).emit('live:viewer_count', { roomId: session.roomId, viewerCount: count });
       }
     }
   }
@@ -197,23 +205,38 @@ export class ChatGateway
     const roomId = data?.roomId;
     if (!roomId) return { ok: false };
 
-    socket.join(`live_room_${roomId}`);
-    this.socketLiveRooms.set(socket.id, roomId);
-
-    let viewerSet = this.liveRoomViewers.get(roomId);
-    if (!viewerSet) {
-      viewerSet = new Set<string>();
-      this.liveRoomViewers.set(roomId, viewerSet);
-    }
-    viewerSet.add(socket.id);
-
-    const viewerCount = Math.max(1, viewerSet.size);
-    this.server.to(`live_room_${roomId}`).emit('live:viewer_count', { roomId, viewerCount });
-    this.logger.log(`Live Room ${roomId}: socket ${socket.id} joined (viewers: ${viewerCount})`);
-
-    // 🎉 시청자 입장 시스템 알림 및 채팅 메시지 브로드캐스트
+    const isHost = Boolean(data?.isHost);
     const nickname = data?.nickname || (socket.data as any)?.user?.nickname || '모꼬이웃';
-    if (!data?.isHost) {
+    const rawIdentity = (socket.data as any)?.user?.id
+      ? `uid_${(socket.data as any).user.id}`
+      : (data?.viewerKey || (nickname && nickname !== '모꼬이웃' ? `nick_${nickname}` : socket.id));
+    const identity = String(rawIdentity).trim();
+
+    socket.join(`live_room_${roomId}`);
+    this.socketLiveRooms.set(socket.id, { roomId, identity, isHost });
+
+    let roomViewersMap = this.liveRoomViewers.get(roomId);
+    if (!roomViewersMap) {
+      roomViewersMap = new Map<string, Set<string>>();
+      this.liveRoomViewers.set(roomId, roomViewersMap);
+    }
+
+    // 💡 호스트(방송자)는 시청자(관객) 카운트에 포함하지 않음
+    if (!isHost) {
+      let socketSet = roomViewersMap.get(identity);
+      if (!socketSet) {
+        socketSet = new Set<string>();
+        roomViewersMap.set(identity, socketSet);
+      }
+      socketSet.add(socket.id);
+    }
+
+    const viewerCount = roomViewersMap.size;
+    this.server.to(`live_room_${roomId}`).emit('live:viewer_count', { roomId, viewerCount });
+    this.logger.log(`Live Room ${roomId}: socket ${socket.id} joined (isHost: ${isHost}, unique viewers: ${viewerCount})`);
+
+    // 🎉 시청자 입장 시스템 알림 및 채팅 메시지 브로드캐스트 (호스트 입장 시 제외)
+    if (!isHost) {
       const enterMsg = {
         id: `sys-enter-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         type: 'SYSTEM',
@@ -240,18 +263,26 @@ export class ChatGateway
     @ConnectedSocket() socket: Socket,
     @MessageBody() data: { roomId: string },
   ) {
-    const roomId = data?.roomId || this.socketLiveRooms.get(socket.id);
+    const session = this.socketLiveRooms.get(socket.id);
+    const roomId = data?.roomId || session?.roomId;
     if (!roomId) return { ok: false };
 
     socket.leave(`live_room_${roomId}`);
-    this.socketLiveRooms.delete(socket.id);
-
-    const viewerSet = this.liveRoomViewers.get(roomId);
-    if (viewerSet) {
-      viewerSet.delete(socket.id);
-      const viewerCount = Math.max(1, viewerSet.size);
-      this.server.to(`live_room_${roomId}`).emit('live:viewer_count', { roomId, viewerCount });
-      this.logger.log(`Live Room ${roomId}: socket ${socket.id} left (viewers: ${viewerCount})`);
+    if (session) {
+      this.socketLiveRooms.delete(socket.id);
+      const roomViewersMap = this.liveRoomViewers.get(roomId);
+      if (roomViewersMap && !session.isHost) {
+        const socketSet = roomViewersMap.get(session.identity);
+        if (socketSet) {
+          socketSet.delete(socket.id);
+          if (socketSet.size === 0) {
+            roomViewersMap.delete(session.identity);
+          }
+        }
+        const viewerCount = roomViewersMap.size;
+        this.server.to(`live_room_${roomId}`).emit('live:viewer_count', { roomId, viewerCount });
+        this.logger.log(`Live Room ${roomId}: socket ${socket.id} left (viewers: ${viewerCount})`);
+      }
     }
     return { ok: true };
   }
@@ -264,7 +295,8 @@ export class ChatGateway
     @ConnectedSocket() socket: Socket,
     @MessageBody() data: { roomId: string; reason?: string },
   ) {
-    const roomId = data?.roomId || this.socketLiveRooms.get(socket.id);
+    const session = this.socketLiveRooms.get(socket.id);
+    const roomId = data?.roomId || session?.roomId;
     if (!roomId) return { ok: false };
     this.emitLiveRoomEnded(roomId, data?.reason || '호스트가 라이브 방송을 종료했습니다.');
     return { ok: true };

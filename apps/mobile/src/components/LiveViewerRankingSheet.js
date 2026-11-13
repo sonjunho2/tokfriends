@@ -83,52 +83,78 @@ export default function LiveViewerRankingSheet({
   const [activeTab, setActiveTab] = useState('viewers'); // 'viewers' | 'ranking' | 'vip'
   const [periodTab, setPeriodTab] = useState('daily'); // 'daily' | 'weekly' | 'monthly' | 'fan' | 'total'
 
-  // Dynamic merged viewer list (호스트 본인 및 시스템 계정 제외 - 순수 시청자만 표시)
+  // Dynamic merged viewer list (호스트 본인 및 시스템 계정 제외 - 순수 시청자만 표시 및 중복 방지)
   const mergedViewers = useMemo(() => {
     const list = [];
-    const seen = new Set();
+    const seenIds = new Set();
+    const seenNames = new Set();
     const effectiveHostId = hostId ? String(hostId) : (isHost && currentUser?.id ? String(currentUser.id) : null);
+    const hostNickname = (isHost ? (currentUser?.nickname || currentUser?.displayName || currentUser?.name) : null) || '';
+
+    const isHostName = (name) => {
+      if (!name) return true;
+      const lower = String(name).trim().toLowerCase();
+      if (lower === '시스템' || lower.includes('방장') || lower.includes('호스트')) return true;
+      if (hostNickname && lower === hostNickname.toLowerCase()) return true;
+      return false;
+    };
 
     // 1. Current user (호스트인 경우 시청자가 아니므로 제외)
     if (currentUser?.id && !isHost && String(currentUser.id) !== effectiveHostId) {
-      seen.add(String(currentUser.id));
-      list.push({
-        id: String(currentUser.id),
-        name: currentUser.name || currentUser.displayName || `ID:${String(currentUser.id).slice(0, 8)}`,
-        avatar: currentUser.avatar || currentUser.profileImage,
-        gender: currentUser.gender || 'male',
-        level: currentUser.level || 1,
-        isMe: true,
-      });
+      const uName = currentUser.name || currentUser.displayName || currentUser.nickname || `ID:${String(currentUser.id).slice(0, 8)}`;
+      if (!isHostName(uName)) {
+        seenIds.add(String(currentUser.id));
+        seenNames.add(uName.toLowerCase());
+        list.push({
+          id: String(currentUser.id),
+          name: uName,
+          avatar: currentUser.avatar || currentUser.profileImage || currentUser.avatarUrl,
+          gender: currentUser.gender || 'male',
+          level: currentUser.level || 1,
+          isMe: true,
+        });
+      }
     }
 
     // 2. Chat participants (호스트 및 시스템 계정 제외)
     if (Array.isArray(messages)) {
       for (const m of messages) {
         const sid = String(m?.senderId || m?.sender?.id || '');
+        const sName = (m?.senderName || m?.sender?.nickname || m?.sender?.name || m?.nickname || '').trim();
+
         if (
-          sid &&
-          !seen.has(sid) &&
-          sid !== effectiveHostId &&
-          sid !== 'system' &&
-          m?.senderName !== '시스템'
+          !sName ||
+          isHostName(sName) ||
+          (m?.type === 'SYSTEM' && m?.systemType !== 'USER_JOIN') ||
+          (effectiveHostId && sid === effectiveHostId) ||
+          sid === 'system'
         ) {
-          seen.add(sid);
-          list.push({
-            id: sid,
-            name: m?.senderName || m?.sender?.name || `ID:${sid.slice(0, 8)}`,
-            avatar: m?.senderAvatar || m?.sender?.avatar,
-            gender: m?.sender?.gender || 'male',
-            level: m?.sender?.level || 12,
-          });
+          continue;
         }
+
+        // 중복 방지: ID 또는 닉네임이 이미 등록되었으면 완벽 스킵
+        if ((sid && seenIds.has(sid)) || seenNames.has(sName.toLowerCase())) {
+          continue;
+        }
+
+        if (sid) seenIds.add(sid);
+        seenNames.add(sName.toLowerCase());
+
+        list.push({
+          id: sid || `viewer-${sName}`,
+          name: sName,
+          avatar: m?.senderAvatar || m?.sender?.avatar || m?.sender?.avatarUrl,
+          gender: m?.sender?.gender || 'male',
+          level: m?.sender?.level || 12,
+        });
       }
     }
 
-    // 3. Fallback active viewers (호스트 제외)
+    // 3. Fallback active viewers (호스트 제외 및 중복 제외)
     for (const v of DEFAULT_VIEWERS) {
-      if (!seen.has(v.id) && v.id !== effectiveHostId) {
-        seen.add(v.id);
+      if (!seenIds.has(v.id) && !seenNames.has(v.name.toLowerCase()) && v.id !== effectiveHostId && !isHostName(v.name)) {
+        seenIds.add(v.id);
+        seenNames.add(v.name.toLowerCase());
         list.push(v);
       }
     }

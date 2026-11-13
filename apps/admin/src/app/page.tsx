@@ -3352,9 +3352,17 @@ export default function CustomerWebStorefrontPage() {
         }
       }
 
+      const handleViewerCountSocket = (data: any) => {
+        if (typeof data?.viewerCount === 'number') {
+          setActiveLiveModal((prev) => (prev ? { ...prev, viewerCount: data.viewerCount } : prev))
+        }
+      }
+
       socketRef.current.on('live:ended', handleLiveEndedSocket)
       socketRef.current.on('live:room_ended', handleLiveEndedSocket)
       socketRef.current.on('live:message', handleLiveMessageSocket)
+      socketRef.current.on('live:viewer_count', handleViewerCountSocket)
+      socketRef.current.on('live:user_joined', handleViewerCountSocket)
     }
 
     if (modalVideoRef.current) {
@@ -11325,27 +11333,27 @@ export default function CustomerWebStorefrontPage() {
                         {m.text}
                       </div>
                     ) : (
-                      /* 일반 유저 및 스트리머 채팅 구분 */
+                      /* 일반 유저 및 스트리머 채팅 구분 (방장은 황금빛 앰버/골드, 선물은 핑크/로즈로 100% 구분) */
                       (() => {
                         const isStreamer = m.isHost || m.sender?.includes('호스트') || m.sender?.includes('방장') || (activeLiveModal?.hostNickname && m.sender === activeLiveModal.hostNickname) || ((activeLiveModal as any)?.host?.name && m.sender === (activeLiveModal as any).host.name) || ((activeLiveModal as any)?.host?.nickname && m.sender === (activeLiveModal as any).host.nickname)
                         return (
                           <div className={`p-2 rounded-xl leading-snug transition-all ${
                             isStreamer
-                              ? 'bg-gradient-to-r from-rose-950/70 via-pink-950/60 to-slate-900 border border-rose-500/60 shadow-md text-white my-1'
+                              ? 'bg-gradient-to-r from-amber-950/80 via-yellow-950/60 to-slate-900 border border-amber-500/70 shadow-lg text-white my-1'
                               : 'bg-slate-900/60 border border-slate-800/60 text-slate-200 my-0.5'
                           }`}>
                             <div className="flex items-center gap-1.5 mb-0.5">
                               {isStreamer && (
-                                <span className="bg-rose-500 text-white font-black text-[9px] px-1.5 py-0.5 rounded shadow-sm">
+                                <span className="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[9px] px-1.5 py-0.5 rounded shadow-sm">
                                   👑 방장
                                 </span>
                               )}
-                              <span className={`font-black ${isStreamer ? 'text-rose-400 text-xs' : 'text-sky-400 font-bold'}`}>
+                              <span className={`font-black ${isStreamer ? 'text-amber-300 text-xs' : 'text-sky-400 font-bold'}`}>
                                 {m.sender}:
                               </span>
-                              {m.time && <span className="text-[9px] text-slate-500 shrink-0 ml-auto">{m.time}</span>}
+                              {m.time && <span className={`text-[9px] shrink-0 ml-auto ${isStreamer ? 'text-amber-400/60' : 'text-slate-500'}`}>{m.time}</span>}
                             </div>
-                            <div className={`break-words ${isStreamer ? 'text-white font-bold' : 'text-slate-200'}`}>
+                            <div className={`break-words ${isStreamer ? 'text-amber-50 font-semibold' : 'text-slate-200'}`}>
                               {m.text}
                             </div>
                           </div>

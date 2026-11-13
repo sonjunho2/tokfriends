@@ -537,15 +537,21 @@ export class LiveController {
   async joinLiveRoom(@CurrentUser() user: any, @Param('id') id: string, @Query('viewerKey') qViewerKey?: string, @Body() body?: any) {
     const room = MOCK_LIVE_ROOMS.find((r) => r.id === id);
     const userId = user?.id || user?.sub;
-    const viewerKey = qViewerKey || body?.viewerKey || userId || `v_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const isHost = Boolean(body?.isHost || (userId && room && ((room as any).hostId === userId || room.host?.id === userId)));
 
     let vSet = this.roomActiveViewers.get(id);
     if (!vSet) {
       vSet = new Set<string>();
       this.roomActiveViewers.set(id, vSet);
     }
-    vSet.add(viewerKey);
-    const currentViewerCount = Math.max(1, vSet.size);
+
+    // 💡 호스트는 시청자가 아니므로 시청자 카운트에 추가하지 않음
+    if (!isHost) {
+      const viewerKey = userId ? `u_${userId}` : (qViewerKey || body?.viewerKey || `v_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`);
+      vSet.add(viewerKey);
+    }
+
+    const currentViewerCount = vSet.size;
     if (room) {
       room.viewerCount = currentViewerCount;
     }

@@ -150,7 +150,7 @@ export default function LiveRoomScreen({ navigation, route }) {
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
   const [likeCount, setLikeCount] = useState(initialRoom?.totalLikes || 0);
-  const [viewerCount, setViewerCount] = useState(initialRoom?.viewerCount || 1);
+  const [viewerCount, setViewerCount] = useState(typeof initialRoom?.viewerCount === 'number' ? initialRoom.viewerCount : 0);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
   const [blocking, setBlocking] = useState(false);
@@ -582,19 +582,24 @@ export default function LiveRoomScreen({ navigation, route }) {
     if (!roomId) return;
     let mounted = true;
 
-    apiClient.joinLiveRoom(roomId, viewerKey).then((res) => {
-      if (mounted && res?.viewerCount) {
-        setViewerCount(res.viewerCount);
-      }
-    }).catch((e) => {
-      console.warn('joinLiveRoom non-critical error:', e?.message);
-    });
+    // 💡 호스트(방송자)는 시청자(관객) 등록을 하지 않고, 순수 시청자만 API로 입장 카운트에 등록
+    if (!isHost) {
+      apiClient.joinLiveRoom(roomId, viewerKey).then((res) => {
+        if (mounted && typeof res?.viewerCount === 'number') {
+          setViewerCount(res.viewerCount);
+        }
+      }).catch((e) => {
+        console.warn('joinLiveRoom non-critical error:', e?.message);
+      });
+    }
 
     loadRoomDetails();
 
     return () => {
       mounted = false;
-      apiClient.leaveLiveRoom(roomId, viewerKey).catch(() => {});
+      if (!isHost) {
+        apiClient.leaveLiveRoom(roomId, viewerKey).catch(() => {});
+      }
     };
   }, [roomId, viewerKey, loadRoomDetails]);
 
@@ -3000,23 +3005,23 @@ const styles = StyleSheet.create({
     paddingVertical: 1.5,
     borderRadius: 8,
   },
-  // 👑 방장(호스트) 채팅 강조 스타일
+  // 👑 방장(호스트) 채팅 강조 스타일 - 황금빛 골드/앰버 톤 (선물 핑크와 100% 명확히 구분)
   hostChatBubble: {
-    backgroundColor: 'rgba(255, 59, 107, 0.24)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 59, 107, 0.65)',
+    backgroundColor: 'rgba(245, 158, 11, 0.22)',
+    borderWidth: 1.2,
+    borderColor: 'rgba(245, 158, 11, 0.75)',
   },
   hostPrefixBadge: {
-    color: '#FF3B6B',
+    color: '#F59E0B',
     fontWeight: '900',
     fontSize: 12.5,
   },
   hostChatAuthor: {
-    color: '#FFA1B8',
+    color: '#FBBF24',
     fontWeight: '900',
   },
   hostChatContent: {
-    color: '#FFFFFF',
+    color: '#FFFBEB',
     fontWeight: '700',
   },
   roomEndedFullOverlay: {
