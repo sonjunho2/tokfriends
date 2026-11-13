@@ -96,17 +96,13 @@ export default function AgoraLivePlayer({
       top: 0;
       left: 0;
       z-index: 10;
+      overflow: hidden;
     }
+    #remote-video .agora_video_player,
     #remote-video video {
-      object-fit: cover !important;
       width: 100% !important;
       height: 100% !important;
-    }
-    #remote-video.front-camera video {
-      transform: scaleX(-1) !important;
-    }
-    #remote-video.rear-camera video {
-      transform: none !important;
+      object-fit: cover !important;
     }
     .waiting-card {
       position: absolute;
@@ -244,11 +240,11 @@ export default function AgoraLivePlayer({
               facingMode: targetFacingMode,
               optimizationMode: 'motion',
               encoderConfig: {
-                width: { ideal: 720, max: 1280 },
-                height: { ideal: 1280, max: 1920 },
-                frameRate: { ideal: 24, max: 30 },
-                bitrateMin: 600,
-                bitrateMax: 1500,
+                width: 720,
+                height: 1280,
+                frameRate: 30,
+                bitrateMin: 800,
+                bitrateMax: 2000,
               },
             });
             if (localVideoTrack) break;
@@ -261,7 +257,10 @@ export default function AgoraLivePlayer({
           const remoteContainer = document.getElementById('remote-video');
           if (remoteContainer) {
             remoteContainer.innerHTML = '';
-            localVideoTrack.play('remote-video', { fit: 'cover' });
+            localVideoTrack.play('remote-video', {
+              fit: 'cover',
+              mirror: currentCameraFacing !== 'back',
+            });
           }
           await client.publish(localVideoTrack);
           sendState('camera_switched', { facing });
@@ -294,11 +293,6 @@ export default function AgoraLivePlayer({
 
         if (isPublisherHost) {
           await client.setClientRole('host');
-          try {
-            if (typeof client.enableDualStream === 'function') {
-              await client.enableDualStream();
-            }
-          } catch (dsErr) {}
         } else {
           await client.setClientRole('audience', { level: 1 });
 
@@ -354,6 +348,33 @@ export default function AgoraLivePlayer({
 
         sendState('connected', { joinedUid });
 
+        // 시청자인 경우: 이미 채널에 참여중인 호스트 스트림 즉시 확인 및 구독
+        if (!isPublisherHost && client.remoteUsers && client.remoteUsers.length > 0) {
+          for (const rUser of client.remoteUsers) {
+            if (rUser.hasVideo) {
+              try {
+                await client.subscribe(rUser, 'video');
+                remoteVideoTrack = rUser.videoTrack;
+                const remoteContainer = document.getElementById('remote-video');
+                if (remoteContainer) {
+                  remoteContainer.innerHTML = '';
+                  remoteVideoTrack.play('remote-video', { fit: 'cover' });
+                }
+                const waiting = document.getElementById('waiting-card');
+                if (waiting) waiting.style.display = 'none';
+                sendState('playing');
+              } catch (e) {}
+            }
+            if (rUser.hasAudio) {
+              try {
+                await client.subscribe(rUser, 'audio');
+                remoteAudioTrack = rUser.audioTrack;
+                remoteAudioTrack.play();
+              } catch (e) {}
+            }
+          }
+        }
+
         // 2. 호스트인 경우: 채널 접속 성공 후 카메라/마이크 생성 및 퍼블리시
         if (isPublisherHost) {
           try {
@@ -377,11 +398,11 @@ export default function AgoraLivePlayer({
                     facingMode: targetFacingMode,
                     optimizationMode: 'motion',
                     encoderConfig: {
-                      width: { ideal: 720, max: 1280 },
-                      height: { ideal: 1280, max: 1920 },
-                      frameRate: { ideal: 24, max: 30 },
-                      bitrateMin: 600,
-                      bitrateMax: 1500,
+                      width: 720,
+                      height: 1280,
+                      frameRate: 30,
+                      bitrateMin: 800,
+                      bitrateMax: 2000,
                     },
                   });
                   if (localVideoTrack) break;
@@ -395,7 +416,10 @@ export default function AgoraLivePlayer({
                 const remoteContainer = document.getElementById('remote-video');
                 if (remoteContainer) {
                   remoteContainer.innerHTML = '';
-                  localVideoTrack.play('remote-video', { fit: 'cover' });
+                  localVideoTrack.play('remote-video', {
+                    fit: 'cover',
+                    mirror: currentCameraFacing !== 'back',
+                  });
                 }
               }
 

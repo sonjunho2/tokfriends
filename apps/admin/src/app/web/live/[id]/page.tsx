@@ -105,12 +105,15 @@ export default function WebLivePlayerPage() {
             await client.subscribe(user, mediaType)
             if (mediaType === 'video') {
               remoteVideoTrackRef.current = user.videoTrack
+              setStreamPlaying(true)
+              setStreamConnecting(false)
               if (videoContainerRef.current) {
                 videoContainerRef.current.innerHTML = ''
                 try {
                   user.videoTrack.play(videoContainerRef.current, { fit: 'cover' })
                   const vid = videoContainerRef.current.querySelector('video')
                   if (vid) {
+                    vid.muted = true
                     vid.setAttribute('playsinline', 'true')
                     vid.setAttribute('webkit-playsinline', 'true')
                     vid.play().catch(() => {})
@@ -119,8 +122,6 @@ export default function WebLivePlayerPage() {
                   console.warn('Video play warning:', playErr)
                 }
               }
-              setStreamPlaying(true)
-              setStreamConnecting(false)
             }
             if (mediaType === 'audio') {
               remoteAudioTrackRef.current = user.audioTrack
@@ -149,6 +150,39 @@ export default function WebLivePlayerPage() {
           tokenData.token && tokenData.token.length > 5 ? tokenData.token : null,
           tokenData.uid || null
         )
+
+        // 이미 방송 중인 호스트(remoteUsers) 트랙 자동 구독
+        if (client.remoteUsers && client.remoteUsers.length > 0) {
+          for (const rUser of client.remoteUsers) {
+            if (rUser.hasVideo) {
+              try {
+                await client.subscribe(rUser, 'video')
+                remoteVideoTrackRef.current = rUser.videoTrack
+                setStreamPlaying(true)
+                if (videoContainerRef.current) {
+                  videoContainerRef.current.innerHTML = ''
+                  rUser.videoTrack.play(videoContainerRef.current, { fit: 'cover' })
+                  const vid = videoContainerRef.current.querySelector('video')
+                  if (vid) {
+                    vid.muted = true
+                    vid.setAttribute('playsinline', 'true')
+                    vid.setAttribute('webkit-playsinline', 'true')
+                    vid.play().catch(() => {})
+                  }
+                }
+              } catch (e) {}
+            }
+            if (rUser.hasAudio) {
+              try {
+                await client.subscribe(rUser, 'audio')
+                remoteAudioTrackRef.current = rUser.audioTrack
+                if (!isMutedRef.current) {
+                  try { rUser.audioTrack.play() } catch {}
+                }
+              } catch (e) {}
+            }
+          }
+        }
 
         setStreamConnecting(false)
       } catch (err: any) {
@@ -397,41 +431,31 @@ export default function WebLivePlayerPage() {
           onTouchStart={resumePlayback}
           className="flex-1 relative bg-black flex flex-col justify-between overflow-hidden min-h-[420px] lg:min-h-0 cursor-pointer"
         >
-          {/* Agora Remote WebRTC Video Layer */}
+          {/* Agora Remote WebRTC Live Video Layer */}
           <div
             ref={videoContainerRef}
             className={`absolute inset-0 z-10 w-full h-full overflow-hidden [&_video]:w-full [&_video]:h-full [&_video]:object-cover ${
-              streamPlaying ? 'opacity-100' : 'opacity-0'
+              streamPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'
             } transition-opacity duration-300`}
           />
 
-          {/* Live Video Stream Motion Player */}
-          <video
-            src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
-            autoPlay
-            loop
-            muted={isMuted}
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover opacity-80"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/50 pointer-events-none" />
-
-          {/* Center Live Ambient Graphic */}
+          {/* Center Live Ambient Graphic / Waiting Screen */}
           {!streamPlaying && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-10 pointer-events-none">
+            <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 text-center z-10 pointer-events-none">
               <div className="w-20 h-20 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 mb-4 animate-pulse">
                 <Radio className="w-10 h-10" />
               </div>
               <h1 className="text-xl md:text-2xl font-black tracking-tight text-white max-w-lg">
-                [산지직송] 제주도 특급 흑돼지 & 한라봉 실시간 특별 할인전
+                실시간 라이브 방송 신호 수신 중
               </h1>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-400 mt-2">
                 {streamConnecting
                   ? 'Agora 실시간 고화질 스트림 연결 중...'
-                  : '호스트: 제주푸드 본사 직영 | 실시간 에스크로 결제 가동 중'}
+                  : '호스트 방송 신호 수신 대기 중입니다.'}
               </p>
             </div>
           )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/50 pointer-events-none z-10" />
 
           {/* Top Overlay Controls */}
           <div className="relative z-20 p-4 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent">

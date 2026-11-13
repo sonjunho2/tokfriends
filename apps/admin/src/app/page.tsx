@@ -3512,6 +3512,7 @@ export default function CustomerWebStorefrontPage() {
                   user.videoTrack.play(modalAgoraContainerRef.current, { fit: 'cover' })
                   const vid = modalAgoraContainerRef.current.querySelector('video')
                   if (vid) {
+                    vid.muted = true
                     vid.setAttribute('playsinline', 'true')
                     vid.setAttribute('webkit-playsinline', 'true')
                     vid.play().catch(() => {})
@@ -3548,6 +3549,39 @@ export default function CustomerWebStorefrontPage() {
           tokenData.token && tokenData.token.length > 5 ? tokenData.token : null,
           tokenData.uid || null
         )
+
+        // 이미 방송 중인 호스트(remoteUsers) 트랙 자동 구독
+        if (client.remoteUsers && client.remoteUsers.length > 0) {
+          for (const rUser of client.remoteUsers) {
+            if (rUser.hasVideo) {
+              try {
+                await client.subscribe(rUser, 'video')
+                modalRemoteVideoTrackRef.current = rUser.videoTrack
+                setIsAgoraStreaming(true)
+                if (modalAgoraContainerRef.current) {
+                  modalAgoraContainerRef.current.innerHTML = ''
+                  rUser.videoTrack.play(modalAgoraContainerRef.current, { fit: 'cover' })
+                  const vid = modalAgoraContainerRef.current.querySelector('video')
+                  if (vid) {
+                    vid.muted = true
+                    vid.setAttribute('playsinline', 'true')
+                    vid.setAttribute('webkit-playsinline', 'true')
+                    vid.play().catch(() => {})
+                  }
+                }
+              } catch (e) {}
+            }
+            if (rUser.hasAudio) {
+              try {
+                await client.subscribe(rUser, 'audio')
+                modalRemoteAudioTrackRef.current = rUser.audioTrack
+                if (!isLiveMuted) {
+                  try { rUser.audioTrack.play() } catch {}
+                }
+              } catch (e) {}
+            }
+          }
+        }
       } catch (err: any) {
         console.warn('Modal AgoraRTC init:', err?.message || err)
         setIsAgoraStreaming(false)
