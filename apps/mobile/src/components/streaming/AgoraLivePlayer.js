@@ -179,49 +179,63 @@ export default function AgoraLivePlayer({
     let isPublisherHost = ${Boolean(isHost)};
     let currentCameraFacing = '${cameraFacing || 'front'}';
 
+    // 📱 모바일 안드로이드 전/후면 카메라를 9:16 Portrait 세로 표준 화각으로 생성
+    // 안드로이드 WebView에서 createCameraVideoTrack이 4:3 센서 기본값으로 열려 극단적으로 확대(Zoom-in/Crop)되는 문제를 근본 차단
+    async function createPortraitCameraTrack(facing) {
+      const isBack = facing === 'back';
+      const targetFacingMode = isBack ? 'environment' : 'user';
+
+      // 1. 네이티브 getUserMedia로 명시적인 세로 9:16 (720x1280) 고화각 스트림 획득
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+          const constraints = {
+            audio: false,
+            video: {
+              facingMode: targetFacingMode,
+              width: { ideal: 720, min: 480, max: 1080 },
+              height: { ideal: 1280, min: 854, max: 1920 },
+              aspectRatio: { ideal: 9 / 16 },
+              frameRate: { ideal: 30, max: 30 },
+            },
+          };
+          const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+          const rawVideoTrack = mediaStream.getVideoTracks()[0];
+          if (rawVideoTrack) {
+            const customTrack = AgoraRTC.createCustomVideoTrack({
+              mediaStreamTrack: rawVideoTrack,
+              frameRate: 30,
+              bitrateMin: 800,
+              bitrateMax: 2000,
+            });
+            return customTrack;
+          }
+        } catch (nativeErr) {
+          console.warn('Native 9:16 getUserMedia fallback to createCameraVideoTrack:', nativeErr);
+        }
+      }
+
+      // 2. Fallback: AgoraRTC.createCameraVideoTrack
+      return await AgoraRTC.createCameraVideoTrack({
+        facingMode: targetFacingMode,
+        optimizationMode: 'motion',
+        encoderConfig: {
+          width: 720,
+          height: 1280,
+          frameRate: 30,
+          bitrateMin: 800,
+          bitrateMax: 2000,
+        },
+      });
+    }
+
     async function applyCameraFlip(facing) {
       if (!isPublisherHost) return;
       currentCameraFacing = facing;
       const isBack = facing === 'back';
-      const targetFacingMode = isBack ? 'environment' : 'user';
-
-      const container = document.getElementById('remote-video');
-      if (container) {
-        if (isBack) {
-          container.classList.remove('front-camera');
-          container.classList.add('rear-camera');
-        } else {
-          container.classList.remove('rear-camera');
-          container.classList.add('front-camera');
-        }
-      }
 
       if (!client) return;
 
       try {
-        // 1. 카메라 디바이스 목록에서 후면/전면 매칭 시도
-        try {
-          if (AgoraRTC && typeof AgoraRTC.getCameras === 'function') {
-            const cameras = await AgoraRTC.getCameras();
-            if (cameras && cameras.length > 1) {
-              const targetCam = cameras.find(function(c) {
-                const lbl = (c.label || '').toLowerCase();
-                return isBack
-                  ? (lbl.includes('back') || lbl.includes('rear') || lbl.includes('environment') || lbl.includes('0'))
-                  : (lbl.includes('front') || lbl.includes('user') || lbl.includes('1'));
-              });
-              if (targetCam && targetCam.deviceId && localVideoTrack && typeof localVideoTrack.setDevice === 'function') {
-                await localVideoTrack.setDevice(targetCam.deviceId);
-                sendState('camera_switched', { facing });
-                return;
-              }
-            }
-          }
-        } catch (devErr) {
-          console.warn('setDevice attempt failed, switching via recreate track:', devErr);
-        }
-
-        // 2. 새 트랙 생성 후 교체 (WebRTC 표준 facingMode 제약조건)
         if (localVideoTrack) {
           try {
             await client.unpublish(localVideoTrack);
@@ -233,25 +247,7 @@ export default function AgoraLivePlayer({
           localVideoTrack = null;
         }
 
-        localVideoTrack = null;
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          try {
-            localVideoTrack = await AgoraRTC.createCameraVideoTrack({
-              facingMode: targetFacingMode,
-              optimizationMode: 'motion',
-              encoderConfig: {
-                width: 720,
-                height: 1280,
-                frameRate: 30,
-                bitrateMin: 800,
-                bitrateMax: 2000,
-              },
-            });
-            if (localVideoTrack) break;
-          } catch (camErr) {
-            await new Promise(function(resolve) { setTimeout(resolve, 600); });
-          }
-        }
+        localVideoTrack = await createPortraitCameraTrack(facing);
 
         if (localVideoTrack) {
           const remoteContainer = document.getElementById('remote-video');
@@ -259,7 +255,7 @@ export default function AgoraLivePlayer({
             remoteContainer.innerHTML = '';
             localVideoTrack.play('remote-video', {
               fit: 'cover',
-              mirror: currentCameraFacing !== 'back',
+              mirror: facing !== 'back',
             });
           }
           await client.publish(localVideoTrack);
@@ -391,20 +387,10 @@ export default function AgoraLivePlayer({
                 console.warn('Microphone track error:', micErr);
               }
 
-              // 2) 카메라 비디오 트랙 생성 (하드웨어 락 대기 및 최대 3회 재시도)
+              // 2) 카메라 비디오 트랙 생성 (9:16 Portrait 세로 표준 화각)
               for (let attempt = 1; attempt <= 3; attempt++) {
                 try {
-                  localVideoTrack = await AgoraRTC.createCameraVideoTrack({
-                    facingMode: targetFacingMode,
-                    optimizationMode: 'motion',
-                    encoderConfig: {
-                      width: 720,
-                      height: 1280,
-                      frameRate: 30,
-                      bitrateMin: 800,
-                      bitrateMax: 2000,
-                    },
-                  });
+                  localVideoTrack = await createPortraitCameraTrack(currentCameraFacing);
                   if (localVideoTrack) break;
                 } catch (camErr) {
                   console.warn('Camera create attempt ' + attempt + ' failed:', camErr);
