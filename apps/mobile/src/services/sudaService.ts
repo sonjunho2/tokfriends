@@ -326,6 +326,12 @@ export async function fetchChatRooms(type?: 'SUDA' | 'MARKET'): Promise<ChatRoom
         if (peerNickname === '나') {
           peerNickname = '대화 상대';
         }
+        if (peerNickname === 'Super Admin' || peerNickname === 'admin') {
+          peerNickname = '테스터02';
+        }
+        if (peerNickname === 'guest') {
+          peerNickname = r.title && r.title !== 'guest' ? r.title : '대화 상대';
+        }
 
         let peerAvatar = isCounterpartMe
           ? (r.host?.avatarUrl || r.counterpart?.avatarUrl)

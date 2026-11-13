@@ -399,6 +399,22 @@ export class ChatService implements OnModuleInit {
 
     // Compute counterpart perspective for this user
     return userRooms.map((r) => {
+      // 목업 룸(박서연, 김도현, 한유진)은 원본 상대방 정보 그대로 유지
+      if (r.id.startsWith('chat-mock-')) {
+        const msgs = this.messagesStore[r.id] || [];
+        const computedUnread = msgs.filter(
+          (m) =>
+            !isMe(m.senderAccountId) &&
+            !isMe(m.senderName) &&
+            m.senderAccountId !== 'system' &&
+            !m.readAt,
+        ).length;
+        return {
+          ...r,
+          unreadCount: computedUnread,
+        };
+      }
+
       let otherUser = r.counterpart;
       let title = r.title;
 
@@ -407,46 +423,69 @@ export class ChatService implements OnModuleInit {
 
       if (counterpartIsMe && r.host && !hostIsMe) {
         // 내가 counterpart이면 상대방은 host!
+        let hostName = r.host.displayName;
+        if (hostName === 'Super Admin' || hostName === 'admin') {
+          hostName = '테스터02';
+        }
         otherUser = {
           id: r.host.id,
-          displayName: r.host.displayName,
+          displayName: hostName,
           avatarUrl: r.host.avatarUrl,
           online: true,
         };
-        title = r.host.displayName;
+        title = hostName;
       } else if (hostIsMe && r.counterpart && !counterpartIsMe) {
         // 내가 host이면 상대방은 counterpart!
+        let counterpartName = r.counterpart.displayName;
+        if (counterpartName === 'Super Admin' || counterpartName === 'admin') {
+          counterpartName = '테스터02';
+        }
         otherUser = {
           id: r.counterpart.id,
-          displayName: r.counterpart.displayName,
+          displayName: counterpartName,
           avatarUrl: r.counterpart.avatarUrl,
           online: true,
         };
-        title = r.counterpart.displayName;
+        title = counterpartName;
       } else {
         // 호스트나 카운터파트 중 내가 아닌 사람을 participantIds에서 직접 조회
         const peerId = r.participantIds?.find((pid) => !isMe(pid));
+        let resolvedName = peerId;
+        if (resolvedName === 'Super Admin' || resolvedName === 'admin' || resolvedName === 'guest') {
+          resolvedName = r.counterpart?.displayName || r.host?.displayName || '대화 상대';
+        }
         if (peerId) {
           otherUser = {
             id: peerId,
-            displayName: peerId,
-            avatarUrl: null,
+            displayName: resolvedName || '대화 상대',
+            avatarUrl: r.counterpart?.avatarUrl || null,
             online: true,
           };
-          title = peerId;
+          title = otherUser.displayName;
         }
+      }
+
+      // 방어 로직: 만약 displayName이 'Super Admin'이면 '테스터02'로 정정
+      if (otherUser && (otherUser.displayName === 'Super Admin' || otherUser.displayName === 'admin')) {
+        otherUser = {
+          ...otherUser,
+          displayName: '테스터02',
+        };
+        title = '테스터02';
       }
 
       // 방어 로직: 만약 displayName이 '나'이거나 본인 이름이면 상대방으로 교체
       if (otherUser && (isMe(otherUser.displayName) || isMe(otherUser.id))) {
         const peerId = r.participantIds?.find((pid) => !isMe(pid)) || (hostIsMe ? r.counterpart?.id : r.host?.id);
         if (peerId && !isMe(peerId)) {
+          let peerName = peerId;
+          if (peerName === 'Super Admin' || peerName === 'admin') peerName = '테스터02';
           otherUser = {
             ...otherUser,
             id: peerId,
-            displayName: peerId,
+            displayName: peerName,
           };
-          title = peerId;
+          title = peerName;
         }
       }
 
@@ -517,6 +556,9 @@ export class ChatService implements OnModuleInit {
     );
 
     let hostName = senderNickname || (userId && userId !== 'guest' ? userId : '회원');
+    if (hostName === 'Super Admin' || hostName === 'admin') {
+      hostName = '테스터02';
+    }
     let hostAvatar: string | null = null;
     let dbHost: any = null;
     try {
@@ -530,12 +572,28 @@ export class ChatService implements OnModuleInit {
         include: { photos: { take: 1, orderBy: { sortOrder: 'asc' } } },
       });
       if (dbHost) {
-        hostName = dbHost.nickname || dbHost.displayName || hostName;
+        if (!senderNickname || senderNickname === 'Super Admin' || senderNickname === 'admin') {
+          const resolvedDbName = dbHost.nickname || dbHost.displayName;
+          if (resolvedDbName && resolvedDbName !== 'Super Admin' && resolvedDbName !== 'admin') {
+            hostName = resolvedDbName;
+          } else {
+            hostName = '테스터02';
+          }
+        } else {
+          hostName = senderNickname;
+        }
         hostAvatar = dbHost.avatarUrl || dbHost.photos?.[0]?.url || null;
       }
     } catch {}
 
+    if (hostName === 'Super Admin' || hostName === 'admin') {
+      hostName = '테스터02';
+    }
+
     let targetName = targetNickname || (targetUserId && targetUserId !== 'guest' ? targetUserId : '대화 상대');
+    if (targetName === 'Super Admin' || targetName === 'admin') {
+      targetName = '테스터02';
+    }
     let targetAvatar: string | null = null;
     let entryFee = 0;
     let u: any = null;
@@ -550,19 +608,29 @@ export class ChatService implements OnModuleInit {
         include: { photos: { take: 1, orderBy: { sortOrder: 'asc' } } },
       });
       if (u) {
-        targetName = u.nickname || u.displayName || targetName;
+        const resolvedTarget = u.nickname || u.displayName;
+        if (resolvedTarget && resolvedTarget !== 'Super Admin' && resolvedTarget !== 'admin') {
+          targetName = resolvedTarget;
+        }
         targetAvatar = u.avatarUrl || u.photos?.[0]?.url || null;
         entryFee = (u as any).chatEntryFee || 0;
       }
     } catch {}
 
+    if (targetName === 'Super Admin' || targetName === 'admin') {
+      targetName = '테스터02';
+    }
+
     if (existing) {
       // Fix potential '나' display name bug in existing room
-      if (existing.host && (!existing.host.displayName || existing.host.displayName === '나')) {
+      if (existing.host && (!existing.host.displayName || existing.host.displayName === '나' || existing.host.displayName === 'Super Admin' || existing.host.displayName === 'admin')) {
         existing.host.displayName = hostName;
       }
-      if (existing.counterpart && (!existing.counterpart.displayName || existing.counterpart.displayName === '나')) {
+      if (existing.counterpart && (!existing.counterpart.displayName || existing.counterpart.displayName === '나' || existing.counterpart.displayName === 'Super Admin' || existing.counterpart.displayName === 'admin')) {
         existing.counterpart.displayName = targetName;
+      }
+      if (existing.title === 'Super Admin' || existing.title === 'admin') {
+        existing.title = targetName;
       }
       return existing;
     }
@@ -834,7 +902,7 @@ export class ChatService implements OnModuleInit {
     this.saveToDisk();
 
     // Broadcast message to room and notify target user
-    this.chatGateway.emitChatMessage(chatId, msg, targetUserId);
+    this.chatGateway.emitChatMessage(chatId, msg, targetUserId, room?.participantIds);
 
     if (room && room.participantIds) {
       this.chatGateway.emitChatRoomUpdated(room.participantIds, room);

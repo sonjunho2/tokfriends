@@ -522,10 +522,20 @@ export class ChatGateway
     const chatId = data?.chatId;
     if (!chatId) return { ok: false };
 
+    let senderName = data.senderNickname || data.senderName;
+    if (!senderName || senderName === 'Super Admin' || senderName === 'admin') {
+      const userNick = user?.nickname || user?.displayName;
+      if (userNick && userNick !== 'Super Admin' && userNick !== 'admin') {
+        senderName = userNick;
+      } else {
+        senderName = data.senderNickname || data.senderName || '테스터02';
+      }
+    }
+
     const payload = {
       ...data,
       senderAccountId: userId,
-      senderName: user?.nickname || user?.displayName || data.senderName || '대화 상대',
+      senderName,
       senderAvatar: user?.avatarUrl || data.senderAvatar || null,
       createdAt: data.createdAt || new Date().toISOString(),
     };
@@ -534,8 +544,12 @@ export class ChatGateway
     this.server.to(`chat_room_${chatId}`).emit('chat:message', payload);
 
     // 2) 대화 상대방(외부 화면/목록/타 탭)에게 실시간 인앱 알림 & "모꼬" 사운드 트리거 브로드캐스트
-    if (data?.targetUserId && data.targetUserId !== userId) {
-      this.server.to(`user_${data.targetUserId}`).emit('chat:incoming', {
+    const targets = new Set<string>();
+    if (data?.targetUserId && data.targetUserId !== userId) targets.add(data.targetUserId);
+    if (data?.targetNickname && data.targetNickname !== senderName) targets.add(data.targetNickname);
+
+    targets.forEach((target) => {
+      this.server.to(`user_${target}`).emit('chat:incoming', {
         chatId,
         sender: {
           id: userId,
@@ -544,9 +558,12 @@ export class ChatGateway
         },
         content: data.content,
         type: data.type || 'text',
+        gift: data.type === 'gift' ? data.gift : undefined,
         createdAt: payload.createdAt,
       });
-    }
+      // 대화방 밖에서도 실시간 메시지 동기화를 위해 chat:message도 함께 전파
+      this.server.to(`user_${target}`).emit('chat:message', payload);
+    });
 
     return { ok: true, data: payload };
   }
@@ -558,21 +575,41 @@ export class ChatGateway
   /**
    * 대화방 메시지 브로드캐스트 및 수신자에게 팝업 알림("모꼬" 사운드) 전송
    */
-  emitChatMessage(chatId: string, message: any, targetUserId?: string) {
+  emitChatMessage(chatId: string, message: any, targetUserId?: string, participantIds?: string[]) {
     this.server.to(`chat_room_${chatId}`).emit('chat:message', message);
-    if (targetUserId) {
-      this.server.to(`user_${targetUserId}`).emit('chat:incoming', {
-        chatId,
-        sender: {
-          id: message.senderAccountId,
-          nickname: message.senderName || '대화 상대',
-          avatarUrl: message.senderAvatar || null,
-        },
-        content: message.content,
-        type: message.type || 'text',
-        createdAt: message.createdAt || new Date().toISOString(),
+
+    const targets = new Set<string>();
+    if (targetUserId) targets.add(targetUserId);
+    if (participantIds && Array.isArray(participantIds)) {
+      participantIds.forEach((id) => {
+        if (id && id !== message.senderAccountId && id !== message.senderName) {
+          targets.add(id);
+        }
       });
     }
+
+    const incomingPayload = {
+      chatId,
+      sender: {
+        id: message.senderAccountId,
+        nickname: message.senderName || '대화 상대',
+        avatarUrl: message.senderAvatar || null,
+      },
+      content: message.content,
+      type: message.type || 'text',
+      createdAt: message.createdAt || new Date().toISOString(),
+      gift: message.type === 'gift' ? {
+        id: message.id,
+        name: message.giftName || '선물',
+        amount: message.giftPoints || 0,
+        icon: message.giftIcon || '🎁',
+      } : undefined,
+    };
+
+    targets.forEach((targetId) => {
+      this.server.to(`user_${targetId}`).emit('chat:incoming', incomingPayload);
+      this.server.to(`user_${targetId}`).emit('chat:message', message);
+    });
   }
 
   /**

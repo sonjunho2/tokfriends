@@ -2386,7 +2386,14 @@ export default function CustomerWebStorefrontPage() {
         gift: giftData,
       }
 
-      if (activeChatRoomRef.current && (activeChatRoomRef.current.id === data.chatId || data.chatId?.includes(activeChatRoomRef.current.targetNickname))) {
+      const isCurrentActive = Boolean(
+        activeChatRoomRef.current &&
+          (activeChatRoomRef.current.id === data.chatId ||
+            data.chatId?.includes(activeChatRoomRef.current.targetNickname) ||
+            activeChatRoomRef.current.targetNickname === senderName)
+      )
+
+      if (isCurrentActive && activeChatRoomRef.current) {
         // 상대방이 새 메시지를 보냈으므로 내 기존 메시지들의 '1' 즉시 삭제 및 읽음 이벤트 전송
         socket.emit('chat:read', {
           chatId: data.chatId || activeChatRoomRef.current.id,
@@ -2423,6 +2430,51 @@ export default function CustomerWebStorefrontPage() {
           }, 3500)
         }
       }
+
+      // 🌟 활성 방이든 아니든, 대화함 목록(chatRooms)의 해당 방에 메시지와 unreadCount를 즉시 동기화!
+      setChatRooms((prev) => {
+        let roomFound = false;
+        const updated = prev.map((r) => {
+          if (r.id === data.chatId || r.targetNickname === senderName) {
+            roomFound = true;
+            const existingMessages = r.messages || [];
+            const msgExists = existingMessages.some((m) => m.id === newMsg.id);
+            const nextMessages = msgExists ? existingMessages : [...existingMessages, newMsg];
+            return {
+              ...r,
+              lastMessage: isGift ? `🎁 ${newMsg.gift?.name || '선물'}을 받았습니다!` : (isMedia ? '📷 사진' : newMsg.text),
+              lastTime: '방금',
+              unreadCount: isCurrentActive ? 0 : (r.unreadCount || 0) + 1,
+              messages: nextMessages,
+            };
+          }
+          return r;
+        });
+
+        if (!roomFound && data.chatId) {
+          // 목록에 없던 새로운 상대방의 메시지인 경우 방을 새로 생성하여 맨 위에 등록
+          const brandNewRoom: ChatRoomItem = {
+            id: data.chatId,
+            type: 'SUDA',
+            targetNickname: senderName,
+            targetAvatar: data.senderAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+            lastMessage: isGift ? `🎁 ${newMsg.gift?.name || '선물'}을 받았습니다!` : (isMedia ? '📷 사진' : newMsg.text),
+            lastTime: '방금',
+            unreadCount: isCurrentActive ? 0 : 1,
+            messages: [newMsg],
+          };
+          const finalList = [brandNewRoom, ...prev];
+          try {
+            localStorage.setItem('mocco_custom_chat_rooms', JSON.stringify(finalList));
+          } catch (e) {}
+          return finalList;
+        }
+
+        try {
+          localStorage.setItem('mocco_custom_chat_rooms', JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
     })
 
     return () => {
@@ -7088,6 +7140,7 @@ export default function CustomerWebStorefrontPage() {
                                   setActiveChatRoom({ ...room, unreadCount: 0 });
                                   setChatRooms((prev) => prev.map((r) => r.id === room.id ? { ...r, unreadCount: 0 } : r));
                                   if (socketRef.current) {
+                                    socketRef.current.emit('chat:join', { chatId: room.id });
                                     socketRef.current.emit('chat:read', {
                                       chatId: room.id,
                                       readerId: user?.id,
@@ -7098,6 +7151,46 @@ export default function CustomerWebStorefrontPage() {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ userId: user?.id, readerId: user?.id }),
+                                  }).catch(() => {});
+
+                                  // 서버로부터 최신 대화 내역 즉시 동기화
+                                  getChatMessages(room.id).then((serverMsgs) => {
+                                    if (Array.isArray(serverMsgs) && serverMsgs.length > 0) {
+                                      const mapped = serverMsgs
+                                        .filter((m: any) => m && m.content)
+                                        .map((m: any) => {
+                                          const isMe = Boolean(
+                                            (user?.id && (m.senderAccountId === user.id || m.senderId === user.id)) ||
+                                            (user?.nickname && (m.senderName === user.nickname || m.senderNickname === user.nickname))
+                                          );
+                                          return {
+                                            id: m.id || 'msg-' + Math.random().toString(36).slice(2, 7),
+                                            senderId: isMe ? 'me' : 'target',
+                                            senderNickname: m.senderName || m.senderNickname || room.targetNickname,
+                                            text: m.content || m.text || '',
+                                            time: m.createdAt
+                                              ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                              : '방금',
+                                            isMe,
+                                            type: m.type || 'text',
+                                            gift: m.type === 'gift' ? {
+                                              id: m.id || 'gift-' + Date.now(),
+                                              name: m.giftName || '선물',
+                                              amount: Number(m.giftPoints || 0),
+                                              description: m.content || `${m.giftName || '선물'}을 받았습니다!`,
+                                              icon: m.giftIcon || '🎁',
+                                            } : undefined,
+                                          };
+                                        });
+
+                                      setActiveChatRoom((prev) => {
+                                        if (!prev || prev.id !== room.id) return prev;
+                                        return { ...prev, messages: mapped };
+                                      });
+                                      setChatRooms((prev) =>
+                                        prev.map((r) => (r.id === room.id ? { ...r, messages: mapped } : r))
+                                      );
+                                    }
                                   }).catch(() => {});
                                 }}
                                 className={`p-3.5 flex items-start gap-3.5 transition-all cursor-pointer ${

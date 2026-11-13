@@ -162,19 +162,25 @@ export function InAppNotificationProvider({ children }: { children: React.ReactN
   // Global socket listener for incoming chat messages & notifications
   useEffect(() => {
     const normToken = typeof token === 'string' && token.trim() ? token.trim() : '';
-    if (!normToken || !user?.id) return;
+    const currentUserId = user?.id || (user as any)?.sub || 'guest';
+    const currentUserNickname = user?.nickname || (user as any)?.name || '테스터01';
 
     const socket = createChatSocket(normToken);
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      socket.emit('connected', { userId: user.id });
+      socket.emit('connected', { userId: currentUserId, nickname: currentUserNickname });
     });
 
     socket.on('chat:incoming', (payload: any) => {
       if (!payload) return;
       // Don't notify if sent by me
-      if (payload.sender?.id && String(payload.sender.id) === String(user.id)) return;
+      if (
+        (payload.sender?.id && String(payload.sender.id) === String(currentUserId)) ||
+        (payload.sender?.nickname && String(payload.sender.nickname) === String(currentUserNickname))
+      ) {
+        return;
+      }
 
       // Don't show popup notification if user is currently inside this chat room
       if (currentActiveChatRoomId && String(currentActiveChatRoomId) === String(payload.chatId)) {
@@ -210,7 +216,7 @@ export function InAppNotificationProvider({ children }: { children: React.ReactN
     return () => {
       socket.disconnect();
     };
-  }, [token, user?.id, showNotification]);
+  }, [token, user?.id, user?.nickname, showNotification]);
 
   const handleBannerPress = () => {
     if (!notification) return;
