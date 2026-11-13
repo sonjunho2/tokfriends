@@ -120,39 +120,98 @@ export class SudaService {
 
     const seedPosts = [
       {
-        id: 'post-1',
-        title: '오늘 저녁 한강공원 산책 🌿',
-        content: '오늘 날씨가 너무 좋아서 한강공원 산책 나왔어요 🌿 산책이나 피크닉 좋아하시는 동네 친구 계신가요?',
+        id: 'suda-sua',
+        title: '양재천 산책 커피 타임 ☕',
+        content: '선선해서 양재천 산책하기 딱 좋은 날씨네요! 같이 가벼운 커피 한잔 하실 이웃 계실까요? ☕🌿',
         neighborhood: '역삼1동',
         entryFee: 0,
+        category: '일상',
         latitude: 37.5006,
         longitude: 127.0365,
-        likesCount: 15,
-        repliesCount: 2,
-        createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
+        likesCount: 14,
+        repliesCount: 6,
+        createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
         author: {
-          id: 'u101',
-          nickname: '이지수',
-          avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+          id: 'user-suda-1',
+          nickname: '수아',
+          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
           trustScore: 99.2,
         },
       },
       {
-        id: 'post-2',
-        title: '주말 어쿠스틱 기타 소모임 🎸',
-        content: '주말에 어쿠스틱 기타 소모임이나 가벼운 음악 세션 함께하실 분 구해요! 초보자분들도 환영합니다 🎸',
-        neighborhood: '서초2동',
-        entryFee: 500,
+        id: 'suda-dohyun',
+        title: '야식 메뉴 골라주세요 🍗',
+        content: '오늘 야식 메뉴 고민인데 치킨 vs 매운 떡볶이 골라주세요! 추천해주시면 감사해요 🍗🔥',
+        neighborhood: '역삼2동',
+        entryFee: 100,
+        category: '동네질문',
         latitude: 37.4912,
         longitude: 127.0234,
         likesCount: 22,
-        repliesCount: 5,
-        createdAt: new Date(Date.now() - 75 * 60 * 1000).toISOString(),
+        repliesCount: 15,
+        createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
         author: {
-          id: 'u102',
-          nickname: '김도현',
-          avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200',
+          id: 'user-suda-2',
+          nickname: '도현',
+          avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300',
           trustScore: 97.5,
+        },
+      },
+      {
+        id: 'suda-yujin',
+        title: '매봉산 강아지 산책로 🐶',
+        content: '강아지랑 매봉산 둘레길 가려고 하는데 오늘 산책로 상태 괜찮은가요? 댕댕이 친구 환영! 🐶',
+        neighborhood: '도곡동',
+        entryFee: 200,
+        category: '반려동물',
+        latitude: 37.4882,
+        longitude: 127.0421,
+        likesCount: 9,
+        repliesCount: 4,
+        createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+        author: {
+          id: 'user-suda-3',
+          nickname: '유진',
+          avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300',
+          trustScore: 98.8,
+        },
+      },
+      {
+        id: 'suda-jiwoo',
+        title: '퇴근길 예쁜 노을 사진 🌇',
+        content: '퇴근길에 예쁜 노을 사진 찍었어요 🌇 다들 오늘 하루도 고생 많으셨습니다 화이팅!',
+        neighborhood: '논현1동',
+        entryFee: 0,
+        category: '취미',
+        latitude: 37.5112,
+        longitude: 127.0289,
+        likesCount: 31,
+        repliesCount: 8,
+        createdAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+        author: {
+          id: 'user-suda-4',
+          nickname: '지우',
+          avatarUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300',
+          trustScore: 96.0,
+        },
+      },
+      {
+        id: 'suda-jisoo',
+        title: '오늘 저녁 한강공원 산책 🌿',
+        content: '오늘 날씨가 너무 좋아서 한강공원 산책 나왔어요 🌿 산책이나 피크닉 좋아하시는 동네 친구 계신가요?',
+        neighborhood: '역삼1동',
+        entryFee: 0,
+        category: '일상',
+        latitude: 37.5006,
+        longitude: 127.0365,
+        likesCount: 15,
+        repliesCount: 2,
+        createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+        author: {
+          id: 'u101',
+          nickname: '이지수',
+          avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
+          trustScore: 99.2,
         },
       },
     ];
@@ -317,24 +376,29 @@ export class SudaService {
   }
 
   /**
-   * 1줄 수다 토크 삭제
+   * 1줄 수다 토크 삭제 (DB 및 인메모리 영구 삭제 + 실시간 소켓 브로드캐스트)
    */
   async deletePost(userId: string, postId: string) {
-    const post = await this.prisma.sudaPost.findUnique({
-      where: { id: postId },
-    });
-
-    if (!post) {
-      throw new NotFoundException('수다 글을 찾을 수 없습니다.');
+    try {
+      const post = await this.prisma.sudaPost.findUnique({
+        where: { id: postId },
+      });
+      if (post) {
+        if (userId && userId !== 'guest' && post.authorId !== userId) {
+          throw new ForbiddenException('본인의 글만 삭제할 수 있습니다.');
+        }
+        await this.prisma.sudaPost.delete({ where: { id: postId } });
+      }
+    } catch (err: any) {
+      if (err instanceof ForbiddenException) throw err;
     }
 
-    if (post.authorId !== userId) {
-      throw new ForbiddenException('본인의 글만 삭제할 수 있습니다.');
-    }
+    this.inMemoryPosts = this.inMemoryPosts.filter((p) => p.id !== postId);
+    this.saveToDisk();
 
-    await this.prisma.sudaPost.delete({
-      where: { id: postId },
-    });
+    try {
+      this.chatGateway.emitSudaDelete(postId);
+    } catch {}
 
     return { ok: true, deletedId: postId };
   }

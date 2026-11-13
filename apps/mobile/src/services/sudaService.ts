@@ -46,14 +46,16 @@ export interface ChatRoomItem {
 
 export const INITIAL_SUDA_POSTS: SudaPostItem[] = [
   {
-    id: 'suda-1',
+    id: 'suda-sua',
     author: {
       id: 'user-suda-1',
       nickname: '수아',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
       trustScore: 99.2,
     },
+    title: '양재천 산책 커피 타임 ☕',
     content: '선선해서 양재천 산책하기 딱 좋은 날씨네요! 같이 가벼운 커피 한잔 하실 이웃 계실까요? ☕🌿',
+    entryFee: 0,
     neighborhood: '역삼1동',
     distanceKm: 0.6,
     likesCount: 14,
@@ -61,14 +63,16 @@ export const INITIAL_SUDA_POSTS: SudaPostItem[] = [
     createdAt: '5분 전',
   },
   {
-    id: 'suda-2',
+    id: 'suda-dohyun',
     author: {
       id: 'user-suda-2',
       nickname: '도현',
-      avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200',
+      avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300',
       trustScore: 97.5,
     },
+    title: '야식 메뉴 골라주세요 🍗',
     content: '오늘 야식 메뉴 고민인데 치킨 vs 매운 떡볶이 골라주세요! 추천해주시면 감사해요 🍗🔥',
+    entryFee: 100,
     neighborhood: '역삼2동',
     distanceKm: 1.1,
     likesCount: 22,
@@ -76,14 +80,16 @@ export const INITIAL_SUDA_POSTS: SudaPostItem[] = [
     createdAt: '12분 전',
   },
   {
-    id: 'suda-3',
+    id: 'suda-yujin',
     author: {
       id: 'user-suda-3',
       nickname: '유진',
-      avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200',
+      avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300',
       trustScore: 98.8,
     },
+    title: '매봉산 강아지 산책로 🐶',
     content: '강아지랑 매봉산 둘레길 가려고 하는데 오늘 산책로 상태 괜찮은가요? 댕댕이 친구 환영! 🐶',
+    entryFee: 200,
     neighborhood: '도곡동',
     distanceKm: 1.8,
     likesCount: 9,
@@ -91,19 +97,38 @@ export const INITIAL_SUDA_POSTS: SudaPostItem[] = [
     createdAt: '25분 전',
   },
   {
-    id: 'suda-4',
+    id: 'suda-jiwoo',
     author: {
       id: 'user-suda-4',
       nickname: '지우',
-      avatarUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=200',
+      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
       trustScore: 96.0,
     },
+    title: '금요일 저녁 신사 가로수길 와인바 🍷',
     content: '퇴근길에 예쁜 노을 사진 찍었어요 🌇 다들 오늘 하루도 고생 많으셨습니다 화이팅!',
+    entryFee: 1000,
     neighborhood: '논현1동',
     distanceKm: 2.2,
     likesCount: 31,
     repliesCount: 8,
     createdAt: '42분 전',
+  },
+  {
+    id: 'suda-jisoo',
+    author: {
+      id: 'user-suda-5',
+      nickname: '지수',
+      avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300',
+      trustScore: 98.0,
+    },
+    title: '주말 한강 라이딩 하실 분 🚴‍♀️',
+    content: '반포 한강공원에서 여의도까지 가볍게 라이딩해요! 초보자도 환영합니다 ✨',
+    entryFee: 0,
+    neighborhood: '반포본동',
+    distanceKm: 3.1,
+    likesCount: 18,
+    repliesCount: 5,
+    createdAt: '1시간 전',
   },
 ];
 
@@ -188,10 +213,48 @@ export async function fetchSudaPosts(neighborhood?: string): Promise<SudaPostIte
   try {
     const res = await client.get('/suda/posts', {
       params: { neighborhood },
-      timeout: 3000,
+      timeout: 4000,
     });
-    if (res?.data?.items && Array.isArray(res.data.items) && res.data.items.length > 0) {
-      return res.data.items.filter((p: any) => !deletedSudaIds.has(p.id));
+    const raw = res?.data;
+    const items = Array.isArray(raw?.data)
+      ? raw.data
+      : Array.isArray(raw?.items)
+      ? raw.items
+      : Array.isArray(raw)
+      ? raw
+      : Array.isArray(res?.items)
+      ? res.items
+      : [];
+
+    if (items.length > 0) {
+      const mapped = items
+        .filter((p: any) => !deletedSudaIds.has(p.id))
+        .map((p: any) => ({
+          id: p.id,
+          title: p.title || p.content?.slice(0, 30),
+          content: p.content,
+          entryFee: Number(p.entryFee || 0),
+          neighborhood: p.neighborhood || '역삼1동',
+          distanceKm: typeof p.distanceKm === 'number' ? p.distanceKm : 0.8,
+          likesCount: Number(p.likesCount || p.likeCount || 0),
+          repliesCount: Number(p.repliesCount || p.commentCount || 0),
+          isLiked: Boolean(p.isLiked),
+          createdAt: p.createdAt
+            ? typeof p.createdAt === 'string' && p.createdAt.includes('분')
+              ? p.createdAt
+              : '최근'
+            : '방금 전',
+          author: {
+            id: p.author?.id || 'author',
+            nickname: p.author?.nickname || p.author?.displayName || '이웃',
+            avatarUrl:
+              p.author?.avatarUrl ||
+              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+            trustScore: Number(p.author?.trustScore || 99.0),
+          },
+        }));
+      inMemorySudaPosts = mapped;
+      return mapped;
     }
   } catch (err) {
     // Offline or server unreachable fallback

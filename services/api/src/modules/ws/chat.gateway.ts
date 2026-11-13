@@ -669,7 +669,17 @@ export class ChatGateway
    */
   emitSudaPost(post: any) {
     this.server.emit('suda:new_post', post);
+    this.server.emit('SUDA_POST_CREATED', post);
     this.logger.log(`[WS Suda Broadcast] New Suda post: ${post.id}`);
+  }
+
+  /**
+   * 1줄 수다 토크 삭제 브로드캐스트 (전체 사용자 실시간 피드 반영)
+   */
+  emitSudaDelete(postId: string) {
+    this.server.emit('suda:delete_post', { postId, id: postId });
+    this.server.emit('suda:deleted', { postId, id: postId });
+    this.logger.log(`[WS Suda Broadcast] Deleted Suda post: ${postId}`);
   }
 }
 

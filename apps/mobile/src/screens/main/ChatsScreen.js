@@ -100,68 +100,123 @@ const INITIAL_FRIENDS = [
   },
   {
     id: 'friend-7',
-    nickname: '수진',
+    nickname: '지수',
     gender: '여성',
-    age: 38,
+    age: 25,
     region: '대전',
     subRegion: '유성구',
     avatarUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300',
-    statusMessage: '책 읽고 소소하게 이야기 나누는 것 좋아해요 📚',
+    statusMessage: '주말 과학공원 산책 & 디저트 카페 탐방 🍰',
     isOnline: true,
   },
   {
     id: 'friend-8',
     nickname: '현우',
     gender: '남성',
-    age: 23,
+    age: 30,
     region: '광주',
     subRegion: '상무지구',
     avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300',
-    statusMessage: '대학생 일상 소통! 편하게 대화해요 🎧',
+    statusMessage: '상무지구 맛집 공유 & 저녁 가벼운 맥주 친구 🍻',
     isOnline: false,
   },
   {
     id: 'friend-9',
-    nickname: '미숙',
+    nickname: '다은',
     gender: '여성',
-    age: 52,
-    region: '강원',
-    subRegion: '춘천시',
-    avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300',
-    statusMessage: '자연과 꽃 가꾸기 좋아하는 편안한 이웃입니다 🌸',
+    age: 28,
+    region: '대구',
+    subRegion: '수성구',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+    statusMessage: '수성못 산책길 러닝 & 사진 찍기 📸',
     isOnline: true,
   },
   {
     id: 'friend-10',
-    nickname: '재원',
+    nickname: '시우',
     gender: '남성',
-    age: 55,
-    region: '제주',
-    subRegion: '제주시',
-    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300',
-    statusMessage: '제주 라이프 5년차, 여행 꿀팁 알려드려요 🍊',
+    age: 32,
+    region: '울산',
+    subRegion: '남구',
+    avatarUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=300',
+    statusMessage: '태화강 십리대숲 자전거 라이딩 좋아해요 🚴',
     isOnline: true,
   },
   {
     id: 'friend-11',
-    nickname: '영호',
-    gender: '남성',
-    age: 36,
-    region: '대구',
-    subRegion: '수성구',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
-    statusMessage: '주말 러닝 크루 메이트 구합니다 🏃‍♂️',
+    nickname: '유나',
+    gender: '여성',
+    age: 27,
+    region: '세종',
+    subRegion: '보람동',
+    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300',
+    statusMessage: '금강 보행교 야경 보면서 커피 한잔 어때요? 🌉',
     isOnline: true,
   },
   {
     id: 'friend-12',
-    nickname: '유리',
+    nickname: '동현',
+    gender: '남성',
+    age: 33,
+    region: '강원',
+    subRegion: '춘천시',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
+    statusMessage: '공지천 피크닉 & 주말 캠핑 메이트 찾아요 ⛺',
+    isOnline: true,
+  },
+  {
+    id: 'friend-13',
+    nickname: '서연',
     gender: '여성',
+    age: 26,
+    region: '충북',
+    subRegion: '청주시',
+    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
+    statusMessage: '수암골 벽화마을 야경 투어 & 전시회 관람 🎨',
+    isOnline: false,
+  },
+  {
+    id: 'friend-14',
+    nickname: '민재',
+    gender: '남성',
     age: 28,
     region: '충남',
     subRegion: '천안시',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
-    statusMessage: '반려견 산책 같이 할 친구 환영해요 🐶',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300',
+    statusMessage: '불당동 카페거리에서 책 읽고 공부하기 📖',
+    isOnline: true,
+  },
+  {
+    id: 'friend-15',
+    nickname: '수빈',
+    gender: '여성',
+    age: 29,
+    region: '경북',
+    subRegion: '포항시',
+    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300',
+    statusMessage: '영일대 해수욕장 모닝 산책 & 맛있는 회 🐟',
+    isOnline: true,
+  },
+  {
+    id: 'friend-16',
+    nickname: '정우',
+    gender: '남성',
+    age: 31,
+    region: '경남',
+    subRegion: '창원시',
+    avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300',
+    statusMessage: '용지호수 음악분수 보며 가벼운 운동해요 🏃',
+    isOnline: false,
+  },
+  {
+    id: 'friend-17',
+    nickname: '예린',
+    gender: '여성',
+    age: 27,
+    region: '제주',
+    subRegion: '제주시',
+    avatarUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300',
+    statusMessage: '함덕 에메랄드빛 바다 보며 힐링 수다 나눌 분 🌊',
     isOnline: true,
   },
 ];
@@ -247,15 +302,24 @@ export default function ChatsScreen({ navigation }) {
           const items = Array.isArray(res) ? res : res?.items || res?.data;
           if (Array.isArray(items) && items.length > 0) {
             const mapped = items.map((u, idx) => ({
-              id: u.id || `user-${idx}`,
-              nickname: u.displayName || u.profile?.nickname || `모꼬이웃${idx + 1}`,
-              gender: u.gender === 'female' ? '여성' : u.gender === 'male' ? '남성' : (idx % 2 === 0 ? '여성' : '남성'),
-              age: typeof u.age === 'number' ? u.age : (22 + (idx * 3) % 35),
-              region: u.region1 || REGION_OPTIONS[(idx % 16) + 1] || '서울',
-              subRegion: u.region2 || '',
-              avatarUrl: u.avatar || u.profile?.avatarUri || INITIAL_FRIENDS[idx % INITIAL_FRIENDS.length].avatarUrl,
-              statusMessage: u.headline || u.profile?.headline || '새로운 모꼬 인연을 기다려요 ✨',
-              isOnline: Boolean(u.profile?.lastSeenAt) || idx % 2 === 0,
+              id: u.id || `friend-${idx + 1}`,
+              nickname: u.nickname || u.displayName || u.profile?.nickname || `모꼬이웃${idx + 1}`,
+              gender:
+                u.gender === 'female' || u.gender === '여' || u.gender === '여성'
+                  ? '여성'
+                  : u.gender === 'male' || u.gender === '남' || u.gender === '남성'
+                  ? '남성'
+                  : idx % 2 === 0
+                  ? '여성'
+                  : '남성',
+              age: typeof u.age === 'number' ? u.age : 22 + ((idx * 3) % 35),
+              region: u.region1 || (u.region ? u.region.split(' ')[0] : REGION_OPTIONS[(idx % 16) + 1] || '서울'),
+              subRegion: u.region2 || (u.region ? u.region.split(' ')[1] || '' : ''),
+              avatarUrl:
+                u.avatar || u.avatarUrl || u.profile?.avatarUri || INITIAL_FRIENDS[idx % INITIAL_FRIENDS.length]?.avatarUrl,
+              statusMessage: u.statusMessage || u.headline || u.profile?.headline || '새로운 모꼬 인연을 기다려요 ✨',
+              isOnline:
+                u.isOnline !== undefined ? Boolean(u.isOnline) : Boolean(u.profile?.lastSeenAt) || idx % 2 === 0,
             }));
             setFriendsList(mapped);
           }
@@ -307,6 +371,20 @@ export default function ChatsScreen({ navigation }) {
         if (prev.some((p) => p.id === newPost.id)) return prev;
         return [newPost, ...prev];
       });
+    });
+
+    socket.on('suda:delete_post', (data) => {
+      const postId = typeof data === 'string' ? data : data?.id || data?.postId;
+      if (postId) {
+        setSudaPosts((prev) => prev.filter((p) => p.id !== postId));
+      }
+    });
+
+    socket.on('suda:deleted', (data) => {
+      const postId = typeof data === 'string' ? data : data?.id || data?.postId;
+      if (postId) {
+        setSudaPosts((prev) => prev.filter((p) => p.id !== postId));
+      }
     });
 
     socket.on('chat:room_updated', () => {

@@ -17,12 +17,12 @@ import { Public } from '../auth/public.decorator';
 
 @ApiTags('chats')
 @ApiBearerAuth()
-@Controller('chats')
+@Controller(['chats', 'chat'])
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
   @Public()
-  @Get()
+  @Get(['', 'rooms'])
   async getChats(
     @CurrentUser() user?: any,
     @Query('userId') queryUserId?: string,

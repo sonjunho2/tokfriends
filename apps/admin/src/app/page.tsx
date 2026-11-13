@@ -1176,7 +1176,7 @@ const INITIAL_FRIENDS: NeighborFriendItem[] = [
     region: '서울 강남구',
     distance: '0.4km',
     mannerTemp: 39.2,
-    statusMessage: '오늘 날씨 너무 좋아요 ☀️ 실시간 소통 환영...',
+    statusMessage: '오늘 날씨 너무 좋아요 ☀️ 실시간 소통 환영해요!',
     isOnline: true,
     gender: '여',
     age: 26,
@@ -1188,7 +1188,7 @@ const INITIAL_FRIENDS: NeighborFriendItem[] = [
     region: '전남 여수시',
     distance: '1.2km',
     mannerTemp: 38.5,
-    statusMessage: '여수 밤바다 보며 일상 수다 나눌 친구 찾아요 ...',
+    statusMessage: '여수 밤바다 보며 일상 수다 나눌 친구 찾아요 🌊',
     isOnline: true,
     gender: '남',
     age: 29,
@@ -1220,7 +1220,7 @@ const INITIAL_FRIENDS: NeighborFriendItem[] = [
   {
     id: 'friend-5',
     nickname: '하은',
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300',
     region: '경기 성남시 분당',
     distance: '2.5km',
     mannerTemp: 37.2,
@@ -1231,15 +1231,147 @@ const INITIAL_FRIENDS: NeighborFriendItem[] = [
   },
   {
     id: 'friend-6',
-    nickname: '승우',
-    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300',
+    nickname: '태우',
+    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300',
+    region: '인천 송도',
+    distance: '4.8km',
+    mannerTemp: 36.8,
+    statusMessage: '골프 & 등산 취미 나누실 분 계신가요 ⛳',
+    isOnline: false,
+    gender: '남',
+    age: 42,
+  },
+  {
+    id: 'friend-7',
+    nickname: '지수',
+    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300',
+    region: '대전 유성구',
+    distance: '5.2km',
+    mannerTemp: 38.0,
+    statusMessage: '주말 과학공원 산책 & 디저트 카페 탐방 🍰',
+    isOnline: true,
+    gender: '여',
+    age: 25,
+  },
+  {
+    id: 'friend-8',
+    nickname: '현우',
+    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300',
+    region: '광주 상무지구',
+    distance: '6.1km',
+    mannerTemp: 37.5,
+    statusMessage: '상무지구 맛집 공유 & 저녁 가벼운 맥주 친구 🍻',
+    isOnline: false,
+    gender: '남',
+    age: 30,
+  },
+  {
+    id: 'friend-9',
+    nickname: '다은',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
     region: '대구 수성구',
     distance: '3.4km',
     mannerTemp: 38.2,
-    statusMessage: '주말 테니스 & 러닝 함께할 운동 메이트 구해요 🎾',
+    statusMessage: '수성못 산책길 러닝 & 사진 찍기 📸',
+    isOnline: true,
+    gender: '여',
+    age: 28,
+  },
+  {
+    id: 'friend-10',
+    nickname: '시우',
+    avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=300',
+    region: '울산 남구',
+    distance: '7.0km',
+    mannerTemp: 36.9,
+    statusMessage: '태화강 십리대숲 자전거 라이딩 좋아해요 🚴',
+    isOnline: true,
+    gender: '남',
+    age: 32,
+  },
+  {
+    id: 'friend-11',
+    nickname: '유나',
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300',
+    region: '세종 보람동',
+    distance: '8.3km',
+    mannerTemp: 38.7,
+    statusMessage: '금강 보행교 야경 보면서 커피 한잔 어때요? 🌉',
+    isOnline: true,
+    gender: '여',
+    age: 27,
+  },
+  {
+    id: 'friend-12',
+    nickname: '동현',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
+    region: '강원 춘천시',
+    distance: '9.5km',
+    mannerTemp: 37.1,
+    statusMessage: '공지천 피크닉 & 주말 캠핑 메이트 찾아요 ⛺',
+    isOnline: true,
+    gender: '남',
+    age: 33,
+  },
+  {
+    id: 'friend-13',
+    nickname: '서연',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300',
+    region: '충북 청주시',
+    distance: '10.2km',
+    mannerTemp: 37.9,
+    statusMessage: '수암골 벽화마을 야경 투어 & 전시회 관람 🎨',
+    isOnline: false,
+    gender: '여',
+    age: 26,
+  },
+  {
+    id: 'friend-14',
+    nickname: '민재',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300',
+    region: '충남 천안시',
+    distance: '11.0km',
+    mannerTemp: 36.6,
+    statusMessage: '불당동 카페거리에서 책 읽고 공부하기 📖',
     isOnline: true,
     gender: '남',
     age: 28,
+  },
+  {
+    id: 'friend-15',
+    nickname: '수빈',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300',
+    region: '경북 포항시',
+    distance: '12.5km',
+    mannerTemp: 38.4,
+    statusMessage: '영일대 해수욕장 모닝 산책 & 맛있는 회 🐟',
+    isOnline: true,
+    gender: '여',
+    age: 29,
+  },
+  {
+    id: 'friend-16',
+    nickname: '정우',
+    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300',
+    region: '경남 창원시',
+    distance: '13.1km',
+    mannerTemp: 37.0,
+    statusMessage: '용지호수 음악분수 보며 가벼운 운동해요 🏃',
+    isOnline: false,
+    gender: '남',
+    age: 31,
+  },
+  {
+    id: 'friend-17',
+    nickname: '예린',
+    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300',
+    region: '제주 제주시',
+    distance: '15.0km',
+    mannerTemp: 39.5,
+    statusMessage: '함덕 에메랄드빛 바다 보며 힐링 수다 나눌 분 🌊',
+    isOnline: true,
+    gender: '여',
+    age: 27,
   },
 ]
 
@@ -1908,6 +2040,68 @@ export default function CustomerWebStorefrontPage() {
       } catch (e) {
         console.warn('Failed to load HQ direct products', e)
       }
+
+      // 💬 5) 서버 실시간 수다방 및 친구들 목록 동기화
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || 'https://tok-friends-api.onrender.com/v1'
+        const deletedSuda = getDeletedSudaIds()
+
+        fetch(`${apiBase}/suda/posts`)
+          .then((r) => r.json())
+          .then((data) => {
+            const items = Array.isArray(data?.items) ? data.items : (Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []))
+            if (items.length > 0) {
+              const mapped = items
+                .filter((p: any) => !deletedSuda.has(p.id))
+                .map((p: any) => ({
+                  id: p.id,
+                  nickname: p.author?.nickname || p.author?.displayName || p.nickname || '모꼬이웃',
+                  avatar: p.author?.avatarUrl || p.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+                  region: p.neighborhood || p.region || '역삼1동',
+                  distance: typeof p.distanceKm === 'number' ? `${p.distanceKm}km` : (p.distance || '0.8km'),
+                  time: p.createdAt ? (typeof p.createdAt === 'string' && p.createdAt.includes('분') ? p.createdAt : '최근') : '방금 전',
+                  title: p.title || p.content?.slice(0, 30) || '수다글',
+                  content: p.content || '',
+                  entryFee: Number(p.entryFee || 0),
+                  category: p.category || '일상',
+                  likes: Number(p.likesCount || p.likeCount || 0),
+                  comments: Number(p.repliesCount || p.commentCount || 0),
+                }))
+              if (mapped.length > 0) {
+                setSudaPosts((prev) => {
+                  const existingIds = new Set(mapped.map((m: any) => m.id))
+                  const userCreated = prev.filter((p) => p.id.startsWith('suda-room-') && !existingIds.has(p.id) && !deletedSuda.has(p.id))
+                  return [...userCreated, ...mapped]
+                })
+              }
+            }
+          })
+          .catch((err) => console.warn('Failed to sync suda posts from server:', err))
+
+        fetch(`${apiBase}/discover`)
+          .then((r) => r.json())
+          .then((data) => {
+            const items = Array.isArray(data?.data) ? data.data : (Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []))
+            if (items.length > 0) {
+              const mapped = items.map((u: any, idx: number) => ({
+                id: u.id || `friend-${idx + 1}`,
+                nickname: u.nickname || u.displayName || u.name || `이웃${idx + 1}`,
+                avatar: u.avatar || u.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+                region: u.region || (u.region1 ? `${u.region1} ${u.region2 || ''}`.trim() : '서울 강남구'),
+                distance: typeof u.distance === 'number' ? `${u.distance}km` : (u.distance || '0.5km'),
+                mannerTemp: Number(u.mannerTemp || 36.5),
+                statusMessage: u.statusMessage || u.headline || u.bio || '모꼬에서 만나요!',
+                isOnline: u.isOnline !== undefined ? Boolean(u.isOnline) : true,
+                gender: u.gender === 'female' || u.gender === '여' ? '여' : '남',
+                age: Number(u.age || 26),
+              }))
+              setFriends(mapped)
+            }
+          })
+          .catch((err) => console.warn('Failed to sync friends from server:', err))
+      } catch (err) {
+        console.warn('Failed to initialize server sync:', err)
+      }
     }
   }, [])
 
@@ -2221,6 +2415,20 @@ export default function CustomerWebStorefrontPage() {
         if (prev.some((p) => p.id === mappedPost.id || (p.nickname === mappedPost.nickname && p.title === mappedPost.title && p.content === mappedPost.content))) return prev
         return [mappedPost, ...prev]
       })
+    })
+
+    // 1-1) 실시간 수다방 삭제 브로드캐스트 수신
+    socket.on('suda:delete_post', (data: any) => {
+      const postId = typeof data === 'string' ? data : (data?.id || data?.postId)
+      if (postId) {
+        setSudaPosts((prev) => prev.filter((p) => p.id !== postId))
+      }
+    })
+    socket.on('suda:deleted', (data: any) => {
+      const postId = typeof data === 'string' ? data : (data?.id || data?.postId)
+      if (postId) {
+        setSudaPosts((prev) => prev.filter((p) => p.id !== postId))
+      }
     })
 
     // 2) 실시간 1:1 채팅 도착 알림 ("모꼬" 사운드 + 팝업 배너)
