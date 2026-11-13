@@ -616,7 +616,9 @@ export default function WebLivePlayerPage() {
                       👋
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className="font-black text-purple-300 mr-1.5">{m.sender}</span>
+                      <span className="font-black text-purple-300 mr-1.5">
+                        {((m as any).nickname || (m.sender !== '시스템' ? m.sender : '') || m.text?.replace(/^[✨👋\s]+/, '').replace(/님이.*$/, '').trim() || '시청자').replace(/\(시청자\)$/, '').trim()}
+                      </span>
                       <span className="text-slate-300 text-[11px]">님이 입장하셨습니다 ✨</span>
                     </div>
                   </div>

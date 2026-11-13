@@ -3328,41 +3328,56 @@ export default function CustomerWebStorefrontPage() {
     setLiveEndedReason('')
 
     // 📡 라이브 방송 시청자 방 입장 및 실시간 종료/입장메시지 소켓 등록
-    if (socketRef.current) {
-      const viewerNickname = user?.nickname || '테스터02(시청자)'
-      socketRef.current.emit('live:join', { roomId: activeLiveModal.id, nickname: viewerNickname, isHost: false })
+    let handleLiveEndedSocket: any = null
+    let handleLiveMessageSocket: any = null
+    let handleViewerCountSocket: any = null
 
-      const handleLiveEndedSocket = (data: any) => {
+    if (socketRef.current) {
+      const socket = socketRef.current
+      const viewerNickname = (user?.nickname || '테스터02').replace(/\(시청자\)$/, '').trim()
+      socket.emit('live:join', { roomId: activeLiveModal.id, nickname: viewerNickname, isHost: false })
+
+      handleLiveEndedSocket = (data: any) => {
         setIsLiveEnded(true)
         setIsAgoraStreaming(false)
         setLiveEndedReason(data?.reason || '호스트가 라이브 방송을 종료했습니다.')
       }
 
-      const handleLiveMessageSocket = (msg: any) => {
-        if (msg && (msg.type === 'SYSTEM' || msg.systemType === 'USER_JOIN')) {
-          setLiveChatMessages((prev) => [
-            ...prev,
-            {
-              sender: msg.sender || '시스템',
-              text: msg.text || `✨ ${msg.nickname || '시청자'}님이 입장했습니다.`,
-              isSystem: true,
-              time: msg.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            },
-          ])
+      handleLiveMessageSocket = (msg: any) => {
+        if (msg && (msg.type === 'SYSTEM' || msg.systemType === 'USER_JOIN' || msg.isJoin)) {
+          const rawNick = msg.nickname || (msg.sender && msg.sender !== '시스템' ? msg.sender : '') || (msg.text ? msg.text.replace(/^[✨👋\s]+/, '').replace(/님이.*$/, '').trim() : '') || '시청자'
+          const cleanNick = rawNick.replace(/\(시청자\)$/, '').trim()
+          setLiveChatMessages((prev) => {
+            // 중복 방지: 이미 해당 유저의 입장 메시지가 최근에 등록되었으면 무시
+            if (prev.some((m) => ((m as any).nickname === cleanNick || m.sender === cleanNick) && ((m as any).isJoin || m.text?.includes(cleanNick)))) {
+              return prev
+            }
+            return [
+              ...prev,
+              {
+                sender: cleanNick,
+                nickname: cleanNick,
+                text: `${cleanNick}님이 입장했습니다.`,
+                isSystem: true,
+                isJoin: true,
+                time: msg.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              },
+            ]
+          })
         }
       }
 
-      const handleViewerCountSocket = (data: any) => {
+      handleViewerCountSocket = (data: any) => {
         if (typeof data?.viewerCount === 'number') {
           setActiveLiveModal((prev) => (prev ? { ...prev, viewerCount: data.viewerCount } : prev))
         }
       }
 
-      socketRef.current.on('live:ended', handleLiveEndedSocket)
-      socketRef.current.on('live:room_ended', handleLiveEndedSocket)
-      socketRef.current.on('live:message', handleLiveMessageSocket)
-      socketRef.current.on('live:viewer_count', handleViewerCountSocket)
-      socketRef.current.on('live:user_joined', handleViewerCountSocket)
+      socket.on('live:ended', handleLiveEndedSocket)
+      socket.on('live:room_ended', handleLiveEndedSocket)
+      socket.on('live:message', handleLiveMessageSocket)
+      socket.on('live:viewer_count', handleViewerCountSocket)
+      socket.on('live:user_joined', handleViewerCountSocket)
     }
 
     if (modalVideoRef.current) {
@@ -3652,6 +3667,20 @@ export default function CustomerWebStorefrontPage() {
       window.removeEventListener('mocco_live_chat_broadcast', onLiveChatReceived)
       window.removeEventListener('storage', onLiveGiftReceived)
       window.removeEventListener('storage', onLiveChatReceived)
+      if (socketRef.current) {
+        if (handleLiveEndedSocket) {
+          socketRef.current.off('live:ended', handleLiveEndedSocket)
+          socketRef.current.off('live:room_ended', handleLiveEndedSocket)
+        }
+        if (handleLiveMessageSocket) {
+          socketRef.current.off('live:message', handleLiveMessageSocket)
+        }
+        if (handleViewerCountSocket) {
+          socketRef.current.off('live:viewer_count', handleViewerCountSocket)
+          socketRef.current.off('live:user_joined', handleViewerCountSocket)
+        }
+        socketRef.current.emit('live:leave', { roomId: activeLiveModal.id })
+      }
       if (modalAgoraClientRef.current) {
         try { modalAgoraClientRef.current.leave() } catch {}
         modalAgoraClientRef.current = null
@@ -3660,7 +3689,7 @@ export default function CustomerWebStorefrontPage() {
       modalRemoteAudioTrackRef.current = null
       setIsAgoraStreaming(false)
     }
-  }, [activeLiveModal])
+  }, [activeLiveModal?.id])
 
   // 🎬 라이브 오디오 & 비디오 동시 재생 잠금 해제 (모바일/사파리 WebRTC Autoplay 브라우저 정책 준수)
   const resumeLiveMediaPlayback = () => {
@@ -11322,7 +11351,9 @@ export default function CustomerWebStorefrontPage() {
                           👋
                         </div>
                         <div className="flex-1 min-w-0">
-                          <span className="font-extrabold text-purple-300 mr-1 text-xs">{(m as any).nickname || m.sender}</span>
+                          <span className="font-extrabold text-purple-300 mr-1 text-xs">
+                            {((m as any).nickname || (m.sender !== '시스템' ? m.sender : '') || m.text?.replace(/^[✨👋\s]+/, '').replace(/님이.*$/, '').trim() || '시청자').replace(/\(시청자\)$/, '').trim()}
+                          </span>
                           <span className="text-slate-300 text-[11px]">님이 입장하셨습니다 ✨</span>
                         </div>
                       </div>

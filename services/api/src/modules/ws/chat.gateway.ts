@@ -222,11 +222,13 @@ export class ChatGateway
     }
 
     // 💡 호스트(방송자)는 시청자(관객) 카운트에 포함하지 않음
+    let isNewViewer = false;
     if (!isHost) {
       let socketSet = roomViewersMap.get(identity);
       if (!socketSet) {
         socketSet = new Set<string>();
         roomViewersMap.set(identity, socketSet);
+        isNewViewer = true;
       }
       socketSet.add(socket.id);
     }
@@ -235,15 +237,17 @@ export class ChatGateway
     this.server.to(`live_room_${roomId}`).emit('live:viewer_count', { roomId, viewerCount });
     this.logger.log(`Live Room ${roomId}: socket ${socket.id} joined (isHost: ${isHost}, unique viewers: ${viewerCount})`);
 
-    // 🎉 시청자 입장 시스템 알림 및 채팅 메시지 브로드캐스트 (호스트 입장 시 제외)
-    if (!isHost) {
+    // 🎉 시청자 최초 입장 시에만 시스템 알림 및 입장 브로드캐스트 (다중소켓/새로고침 중복 방지)
+    if (isNewViewer) {
       const enterMsg = {
         id: `sys-enter-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         type: 'SYSTEM',
         systemType: 'USER_JOIN',
-        sender: '시스템',
-        text: `✨ ${nickname}님이 입장했습니다.`,
+        isJoin: true,
+        sender: nickname,
+        senderName: nickname,
         nickname,
+        text: `✨ ${nickname}님이 입장했습니다.`,
         roomId,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         timestamp: Date.now(),
