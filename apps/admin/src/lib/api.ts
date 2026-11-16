@@ -2811,18 +2811,46 @@ export async function getSudaPosts(params?: any): Promise<any[]> {
 }
 
 export async function createSudaPost(payload: any): Promise<any> {
-  const res = await api.post('/suda/posts', payload)
-  return res?.data ?? res
+  try {
+    const res = await api.post('/suda/posts', payload)
+    return res?.data ?? res
+  } catch (err) {
+    try {
+      const apiBase = typeof window !== 'undefined'
+        ? (process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || 'https://tok-friends-api.onrender.com/v1')
+        : 'https://tok-friends-api.onrender.com/v1'
+      const fallback = await fetch(`${apiBase}/suda/posts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (fallback.ok) return await fallback.json()
+    } catch {}
+    console.warn('createSudaPost error:', err)
+    return null
+  }
 }
 
 export async function deleteSudaPost(postId: string): Promise<any> {
   try {
     const res = await api.delete(`/suda/posts/${postId}`)
-    return res?.data ?? res
+    if (res?.data || (res as any)?.ok || res?.status === 200) return res?.data ?? res
   } catch (err) {
-    console.warn('deleteSudaPost error:', err)
-    return null
+    console.warn('deleteSudaPost proxy error, trying direct backend...', err)
   }
+
+  try {
+    const apiBase = typeof window !== 'undefined'
+      ? (process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || 'https://tok-friends-api.onrender.com/v1')
+      : 'https://tok-friends-api.onrender.com/v1'
+    const fallback = await fetch(`${apiBase}/suda/posts/${postId}`, {
+      method: 'DELETE',
+    })
+    if (fallback.ok) return await fallback.json()
+  } catch (directErr) {
+    console.warn('deleteSudaPost direct backend error:', directErr)
+  }
+  return null
 }
 
 export async function getChatRooms(): Promise<any[]> {

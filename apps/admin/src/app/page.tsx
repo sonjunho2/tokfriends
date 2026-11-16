@@ -2153,6 +2153,60 @@ export default function CustomerWebStorefrontPage() {
     }
   }, [])
 
+  // 💬 전체수다 탭 진입 시 실시간 최신 목록 동기화
+  useEffect(() => {
+    if (chatSubTab === 'SUDA') {
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || 'https://tok-friends-api.onrender.com/v1'
+      const deletedSuda = getDeletedSudaIds()
+      fetch(`${apiBase}/suda/posts`)
+        .then((r) => r.json())
+        .then((data) => {
+          const items = Array.isArray(data?.items)
+            ? data.items
+            : Array.isArray(data?.data)
+            ? data.data
+            : Array.isArray(data)
+            ? data
+            : []
+          if (items.length > 0) {
+            const mapped = items
+              .filter((p: any) => !deletedSuda.has(p.id))
+              .map((p: any) => ({
+                id: p.id,
+                nickname: p.author?.nickname || p.author?.displayName || p.nickname || '모꼬이웃',
+                avatar:
+                  p.author?.avatarUrl ||
+                  p.avatar ||
+                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+                region: p.neighborhood || p.region || '역삼1동',
+                distance: typeof p.distanceKm === 'number' ? `${p.distanceKm}km` : p.distance || '0.8km',
+                time: p.createdAt
+                  ? typeof p.createdAt === 'string' && p.createdAt.includes('분')
+                    ? p.createdAt
+                    : '최근'
+                  : '방금 전',
+                title: p.title || p.content?.slice(0, 30) || '수다글',
+                content: p.content || '',
+                entryFee: Number(p.entryFee || 0),
+                category: p.category || '일상',
+                likes: Number(p.likesCount || p.likeCount || 0),
+                comments: Number(p.repliesCount || p.commentCount || 0),
+              }))
+            if (mapped.length > 0) {
+              setSudaPosts((prev) => {
+                const existingIds = new Set(mapped.map((m: any) => m.id))
+                const userCreated = prev.filter(
+                  (p) => p.id.startsWith('suda-room-') && !existingIds.has(p.id) && !deletedSuda.has(p.id)
+                )
+                return [...userCreated, ...mapped]
+              })
+            }
+          }
+        })
+        .catch(() => {})
+    }
+  }, [chatSubTab])
+
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
 
   const updateCartQuantity = (id: string, delta: number) => {
