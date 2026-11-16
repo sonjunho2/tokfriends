@@ -2811,24 +2811,44 @@ export async function getSudaPosts(params?: any): Promise<any[]> {
 }
 
 export async function createSudaPost(payload: any): Promise<any> {
+  const apiBase = typeof window !== 'undefined'
+    ? (process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || 'https://tok-friends-api.onrender.com/v1')
+    : 'https://tok-friends-api.onrender.com/v1'
+
+  // 1차 시도: Next.js API 프록시
   try {
     const res = await api.post('/suda/posts', payload)
-    return res?.data ?? res
+    const data = res?.data ?? res
+    if (data && (data.id || data.ok)) return data
+  } catch (err) {}
+
+  // 2차 시도: 백엔드 직접 호출
+  try {
+    const fallback = await fetch(`${apiBase}/suda/posts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (fallback.ok) {
+      return await fallback.json()
+    }
+  } catch {}
+
+  // 3차 시도: DTO 호환 fallback (category 제외 클린 페이로드)
+  try {
+    const { category, ...cleanPayload } = payload
+    const safeFallback = await fetch(`${apiBase}/suda/posts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cleanPayload),
+    })
+    if (safeFallback.ok) {
+      return await safeFallback.json()
+    }
   } catch (err) {
-    try {
-      const apiBase = typeof window !== 'undefined'
-        ? (process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || 'https://tok-friends-api.onrender.com/v1')
-        : 'https://tok-friends-api.onrender.com/v1'
-      const fallback = await fetch(`${apiBase}/suda/posts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (fallback.ok) return await fallback.json()
-    } catch {}
-    console.warn('createSudaPost error:', err)
-    return null
+    console.warn('createSudaPost final error:', err)
   }
+  return null
 }
 
 export async function deleteSudaPost(postId: string): Promise<any> {
