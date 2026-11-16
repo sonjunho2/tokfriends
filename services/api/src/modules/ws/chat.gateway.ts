@@ -510,18 +510,26 @@ export class ChatGateway
   @SubscribeMessage('chat:read')
   handleChatRead(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() data: { chatId: string; readerId?: string; readerAccountId?: string },
+    @MessageBody() data: { chatId: string; readerId?: string; readerAccountId?: string; participantIds?: string[] },
   ) {
     if (data?.chatId) {
       const user = socket.data?.user;
       const readerId = data?.readerId || data?.readerAccountId || user?.id || (user as any)?.nickname;
       const readAt = new Date().toISOString();
-      socket.to(`chat_room_${data.chatId}`).emit('chat:read', {
+      const payload = {
         chatId: data.chatId,
         readerId,
         readerAccountId: readerId,
         readAt,
-      });
+      };
+      socket.to(`chat_room_${data.chatId}`).emit('chat:read', payload);
+      if (Array.isArray(data.participantIds)) {
+        data.participantIds.forEach((pid) => {
+          if (pid !== readerId) {
+            this.server.to(`user_${pid}`).emit('chat:read', payload);
+          }
+        });
+      }
     }
     return { ok: true };
   }
@@ -646,6 +654,27 @@ export class ChatGateway
       this.server.to(`user_${targetId}`).emit('chat:incoming', incomingPayload);
       this.server.to(`user_${targetId}`).emit('chat:message', message);
     });
+  }
+
+  /**
+   * 실시간 읽음 처리 브로드캐스트 (대화방 및 참여자 유저 룸 동시 전송)
+   */
+  emitChatRead(chatId: string, readerId: string, participantIds?: string[]) {
+    const readAt = new Date().toISOString();
+    const payload = {
+      chatId,
+      readerId,
+      readerAccountId: readerId,
+      readAt,
+    };
+    this.server.to(`chat_room_${chatId}`).emit('chat:read', payload);
+    if (participantIds && Array.isArray(participantIds)) {
+      participantIds.forEach((pid) => {
+        if (pid && pid !== readerId) {
+          this.server.to(`user_${pid}`).emit('chat:read', payload);
+        }
+      });
+    }
   }
 
   /**

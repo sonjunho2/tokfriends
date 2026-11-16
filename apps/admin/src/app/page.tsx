@@ -7499,6 +7499,7 @@ export default function CustomerWebStorefrontPage() {
                                               ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                                               : '방금',
                                             isMe,
+                                            unread: isMe ? !m.readAt : false,
                                             type: m.type || 'text',
                                             gift: m.type === 'gift' ? {
                                               id: m.id || 'gift-' + Date.now(),
@@ -7769,7 +7770,7 @@ export default function CustomerWebStorefrontPage() {
                               </span>
                             </div>
 
-                            {activeChatRoom.messages.map((msg) => (
+                            {activeChatRoom.messages.map((msg, msgIdx) => (
                               <div
                                 key={msg.id}
                                 className={`flex flex-col ${msg.isMe ? 'items-end' : 'items-start'}`}
@@ -7778,9 +7779,17 @@ export default function CustomerWebStorefrontPage() {
                                   /* [내 메시지: 오른쪽 카카오톡 옐로우 말풍선 & 노란색 1 / 사진 첨부] */
                                   <div className="flex items-end gap-1.5 max-w-[85%] justify-end">
                                     <div className="flex flex-col items-end text-[9px] text-slate-600 shrink-0 mb-0.5">
-                                      {msg.unread !== false && (
-                                        <span className="text-amber-500 font-extrabold text-[10px] leading-tight">1</span>
-                                      )}
+                                      {(() => {
+                                        if (!msg.unread) return null;
+                                        // 카카오톡 규칙: 내 메시지 이후에 상대방의 답장이 존재하면 읽은 것으로 1 즉시 제거
+                                        const hasLaterReply = activeChatRoom?.messages.slice(msgIdx + 1).some(
+                                          (later) => !later.isMe
+                                        );
+                                        if (hasLaterReply) return null;
+                                        return (
+                                          <span className="text-amber-500 font-extrabold text-[10px] leading-tight">1</span>
+                                        );
+                                      })()}
                                       <span>{msg.time}</span>
                                     </div>
                                     {msg.media?.uri ? (

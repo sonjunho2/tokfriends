@@ -522,6 +522,7 @@ export class ChatService implements OnModuleInit {
 
   markAsRead(chatId: string, userId: string): void {
     const msgs = this.messagesStore[chatId];
+    const room = this.rooms.find((r) => r.id === chatId);
     if (Array.isArray(msgs)) {
       let changed = false;
       const now = new Date().toISOString();
@@ -531,7 +532,6 @@ export class ChatService implements OnModuleInit {
           changed = true;
         }
       }
-      const room = this.rooms.find((r) => r.id === chatId);
       if (room) {
         room.unreadCount = 0;
       }
@@ -539,6 +539,8 @@ export class ChatService implements OnModuleInit {
         this.saveToDisk();
       }
     }
+    // 실시간 웹소켓으로 상대방에게 읽음 처리(1 숫자 제거) 브로드캐스트
+    this.chatGateway.emitChatRead(chatId, userId, room?.participantIds);
   }
 
   async ensureDirectRoom(
@@ -824,8 +826,22 @@ export class ChatService implements OnModuleInit {
         createdAt: new Date().toISOString(),
       },
     ];
+
+    // 카카오톡 규칙: 상대방이 답장한 이전의 모든 메시지는 상대방이 이미 읽은 상태(readAt 부여)
+    const normalizedList = list.map((m, idx) => {
+      if (!m.readAt && m.senderAccountId !== 'system') {
+        const hasLaterReply = list.slice(idx + 1).some(
+          (later) => later.senderAccountId !== m.senderAccountId && later.senderAccountId !== 'system'
+        );
+        if (hasLaterReply) {
+          return { ...m, readAt: list[list.length - 1]?.createdAt || new Date().toISOString() };
+        }
+      }
+      return m;
+    });
+
     return {
-      items: list,
+      items: normalizedList,
       pageInfo: { nextCursor: null },
     };
   }
@@ -865,6 +881,7 @@ export class ChatService implements OnModuleInit {
       senderName = userId === 'guest' ? '나' : userId;
     }
 
+    const now = new Date().toISOString();
     const msg: ChatMessageItem = {
       id: dto.clientMessageId || `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       chatId,
@@ -877,12 +894,22 @@ export class ChatService implements OnModuleInit {
       giftPoints: giftPoints !== undefined ? Number(giftPoints) : null,
       giftName: giftName || null,
       giftIcon: giftIcon || null,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
     };
 
     if (!this.messagesStore[chatId]) {
       this.messagesStore[chatId] = [];
     }
+
+    // 답장을 보낸 경우, 이 방의 이전 상대방 메시지들은 내가 모두 읽은 것으로 처리 (readAt 소급 갱신)
+    let readChanged = false;
+    for (const prevMsg of this.messagesStore[chatId]) {
+      if (prevMsg.senderAccountId !== userId && !prevMsg.readAt) {
+        prevMsg.readAt = now;
+        readChanged = true;
+      }
+    }
+
     this.messagesStore[chatId].push(msg);
 
     const room = this.rooms.find((r) => r.id === chatId);
@@ -890,6 +917,7 @@ export class ChatService implements OnModuleInit {
     if (room) {
       room.lastMessage = content;
       room.lastMessageAt = msg.createdAt;
+      room.unreadCount = 0;
       targetUserId = room.participantIds?.find((id) => id !== userId);
       if (!targetUserId && room.counterpart?.id && room.counterpart.id !== userId) {
         targetUserId = room.counterpart.id;
@@ -900,6 +928,11 @@ export class ChatService implements OnModuleInit {
     }
 
     this.saveToDisk();
+
+    // 내가 답장을 보냄으로써 상대방의 이전 메시지가 모두 읽혔음을 상대방에게 실시간 전파! (1 숫자 즉시 제거)
+    if (readChanged) {
+      this.chatGateway.emitChatRead(chatId, userId, room?.participantIds);
+    }
 
     // Broadcast message to room and notify target user
     this.chatGateway.emitChatMessage(chatId, msg, targetUserId, room?.participantIds);

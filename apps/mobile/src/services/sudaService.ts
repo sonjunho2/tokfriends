@@ -253,8 +253,21 @@ export async function fetchSudaPosts(neighborhood?: string): Promise<SudaPostIte
             trustScore: Number(p.author?.trustScore || 99.0),
           },
         }));
-      inMemorySudaPosts = mapped;
-      return mapped;
+      const uniqueList: SudaPostItem[] = [];
+      const seenIds = new Set<string>();
+      const seenContentKeys = new Set<string>();
+
+      for (const p of mapped) {
+        const contentKey = `${p.author?.nickname || p.author?.id || ''}_${(p.content || '').trim()}`;
+        if (!seenIds.has(p.id) && !seenContentKeys.has(contentKey)) {
+          seenIds.add(p.id);
+          seenContentKeys.add(contentKey);
+          uniqueList.push(p);
+        }
+      }
+
+      inMemorySudaPosts = uniqueList;
+      return uniqueList;
     }
   } catch (err) {
     // Offline or server unreachable fallback
@@ -295,14 +308,24 @@ export async function createSudaPost(
     });
     const postData = res?.data?.data || res?.data;
     if (postData?.id) {
-      inMemorySudaPosts = [postData, ...inMemorySudaPosts];
+      const exists = inMemorySudaPosts.some(
+        (p) => p.id === postData.id || (p.author?.id === postData.author?.id && p.content === postData.content)
+      );
+      if (!exists) {
+        inMemorySudaPosts = [postData, ...inMemorySudaPosts];
+      }
       return postData;
     }
   } catch (err) {
     // Local fallback
   }
 
-  inMemorySudaPosts = [newPost, ...inMemorySudaPosts];
+  const exists = inMemorySudaPosts.some(
+    (p) => p.id === newPost.id || (p.content === newPost.content)
+  );
+  if (!exists) {
+    inMemorySudaPosts = [newPost, ...inMemorySudaPosts];
+  }
   return newPost;
 }
 

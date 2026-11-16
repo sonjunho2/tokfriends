@@ -1297,7 +1297,7 @@ export default function ChatRoomScreen({ route, navigation }) {
     }
   };
 
-  const renderMessage = ({ item }) => {
+  const renderMessage = ({ item, index }) => {
         if (item.type === 'date') {
       return (
         <View style={styles.daySeparator}>
@@ -1318,6 +1318,17 @@ export default function ChatRoomScreen({ route, navigation }) {
 
     if (item.type === 'gift') {
       bubbleStyles.push(styles.giftMessageBubble);
+    }
+
+    // 카카오톡 규칙: 상대방이 이후에 답장을 보냈다면 이전 내 글은 100% 읽음 처리 ('1' 제거)
+    let isUnread = isMe && !item.readAt;
+    if (isUnread && Array.isArray(messages)) {
+      const hasLaterOtherReply = messages.slice(index + 1).some(
+        (laterMsg) => laterMsg && (laterMsg.sender === 'other' || (!laterMsg.isMe && laterMsg.sender !== 'me' && laterMsg.type !== 'date'))
+      );
+      if (hasLaterOtherReply) {
+        isUnread = false;
+      }
     }
 
     const renderBubbleContent = () => {
@@ -1409,7 +1420,7 @@ export default function ChatRoomScreen({ route, navigation }) {
       return (
         <View style={styles.myMessageContainer}>
           <View style={styles.myTimeBadgeCol}>
-            {!item.readAt && (
+            {isUnread && (
               <Text style={styles.kakaoUnreadNum}>1</Text>
             )}
             <Text style={styles.kakaoTimeText}>{item.timestamp}</Text>

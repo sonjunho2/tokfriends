@@ -373,7 +373,16 @@ export default function ChatsScreen({ navigation }) {
     socket.on('suda:new_post', (newPost) => {
       if (!newPost?.id) return;
       setSudaPosts((prev) => {
-        if (prev.some((p) => p.id === newPost.id)) return prev;
+        if (
+          prev.some(
+            (p) =>
+              p.id === newPost.id ||
+              (p.author?.nickname === newPost.author?.nickname &&
+                p.content?.trim() === newPost.content?.trim())
+          )
+        ) {
+          return prev;
+        }
         return [newPost, ...prev];
       });
     });

@@ -29,7 +29,22 @@ export class SudaService {
     try {
       if (fs.existsSync(this.sudaFilePath)) {
         const raw = fs.readFileSync(this.sudaFilePath, 'utf-8');
-        this.inMemoryPosts = JSON.parse(raw);
+        const list = JSON.parse(raw);
+        if (Array.isArray(list)) {
+          const unique: any[] = [];
+          const seenIds = new Set<string>();
+          const seenKeys = new Set<string>();
+          for (const item of list) {
+            if (!item || !item.id) continue;
+            const contentKey = `${item.author?.id || item.authorId || ''}_${(item.content || '').trim()}`;
+            if (!seenIds.has(item.id) && !seenKeys.has(contentKey)) {
+              seenIds.add(item.id);
+              seenKeys.add(contentKey);
+              unique.push(item);
+            }
+          }
+          this.inMemoryPosts = unique;
+        }
       }
     } catch {
       this.inMemoryPosts = [];
@@ -109,12 +124,16 @@ export class SudaService {
       console.warn('[SudaService] DB query notice, using seed posts:', (err as any)?.message);
     }
 
-    // Merge in-memory/disk posts (newest first)
+    // Merge in-memory/disk posts (newest first) with robust deduplication
     const combined = [...this.inMemoryPosts, ...dbItems];
     const uniqueMap = new Map<string, any>();
+    const seenContentKeys = new Set<string>();
+
     combined.forEach((item) => {
-      if (!uniqueMap.has(item.id)) {
+      const contentKey = `${item.author?.nickname || item.author?.id || ''}_${(item.title || '').trim()}_${(item.content || '').trim()}`;
+      if (!uniqueMap.has(item.id) && !seenContentKeys.has(contentKey)) {
         uniqueMap.set(item.id, item);
+        seenContentKeys.add(contentKey);
       }
     });
 
@@ -304,8 +323,9 @@ export class SudaService {
       } catch {}
     }
 
+    const postId = `suda-post-${Date.now()}`;
     const postItem = {
-      id: `suda-post-${Date.now()}`,
+      id: postId,
       title: dto.title?.trim() || dto.content.trim(),
       content: dto.content.trim(),
       neighborhood: dto.neighborhood.trim(),
@@ -325,10 +345,11 @@ export class SudaService {
       },
     };
 
-    // Try DB insertion if available
+    // Try DB insertion if available (use same ID for 100% DB-memory consistency)
     try {
       await this.prisma.sudaPost.create({
         data: {
+          id: postId,
           authorId: authorId || 'usr_guest',
           content: dto.content.trim(),
           neighborhood: dto.neighborhood.trim(),
@@ -340,6 +361,10 @@ export class SudaService {
       console.warn('[SudaService] DB create notice, using resilient store:', (err as any)?.message);
     }
 
+    // Deduplicate against existing in-memory posts with identical author + content
+    this.inMemoryPosts = this.inMemoryPosts.filter(
+      (p) => !(p.author?.id === postItem.author.id && p.content === postItem.content)
+    );
     this.inMemoryPosts.unshift(postItem);
     this.saveToDisk();
 
