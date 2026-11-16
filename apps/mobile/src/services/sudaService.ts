@@ -267,6 +267,7 @@ export async function fetchSudaPosts(neighborhood?: string): Promise<SudaPostIte
       const seenContentKeys = new Set<string>();
 
       for (const p of mapped) {
+        if (deletedSudaIds.has(p.id)) continue;
         const contentKey = `${p.author?.nickname || p.author?.id || ''}_${(p.content || '').trim()}`;
         if (!seenIds.has(p.id) && !seenContentKeys.has(contentKey)) {
           seenIds.add(p.id);

@@ -182,8 +182,14 @@ export class NotificationsController {
   }
 
   @Public()
-  @Post(['device-token', 'device-tokens'])
+  @Post(['device-token', 'device-tokens', 'token'])
   async registerDeviceToken(@CurrentUser() user: any, @Body() body: any) {
+    return { ok: true, success: true };
+  }
+
+  @Public()
+  @Delete(['token/:token', 'device-token/:token'])
+  async unregisterDeviceToken(@Param('token') token: string) {
     return { ok: true, success: true };
   }
 }
