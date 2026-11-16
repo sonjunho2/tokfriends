@@ -10,6 +10,7 @@
     "build:api": "cd services/api && npm run build",
     "build:admin": "cd apps/admin && npm run build",
     "build:mobile": "cd apps/mobile && npx expo export -p android --no-bytecode",
+    "build:apk": "cd apps/mobile/android && .\\gradlew assembleRelease && cd ../../.. && powershell -Command \"Copy-Item 'apps/mobile/android/app/build/outputs/apk/release/app-release.apk' 'build_output/mocco-release.apk' -Force\"",
     "build:all": "npm run build:api && npm run build:admin",
     "check:api": "cd apps/mobile && node scripts/checkApi.js"
   }
