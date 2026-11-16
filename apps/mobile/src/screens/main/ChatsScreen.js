@@ -598,116 +598,130 @@ export default function ChatsScreen({ navigation }) {
   );
 
   // 2. [전체수다] 항목 렌더링
-  const renderSudaItem = ({ item }) => (
-    <View style={styles.sudaCard}>
-      <View style={styles.sudaHeader}>
-        <TouchableOpacity
-          style={styles.sudaAuthorLeft}
-          activeOpacity={0.85}
-          onPress={() => {
-            setSelectedProfileUser({
-              id: item.author.id,
-              nickname: item.author.nickname,
-              avatarUrl: item.author.avatarUrl,
-              region: item.neighborhood,
-              subRegion: '',
-              gender: '회원',
-              age: 26,
-              statusMessage: item.content,
-              isOnline: true,
-            });
-            setProfileModalVisible(true);
-          }}
-        >
-          <Image source={{ uri: item.author.avatarUrl }} style={styles.authorAvatar} />
-          <View style={styles.authorInfo}>
-            <View style={styles.nameRow}>
-              <Text style={styles.authorName}>{item.author.nickname}</Text>
-              <View style={styles.neighborhoodBadge}>
-                <Text style={styles.neighborhoodText}>{item.neighborhood}</Text>
-              </View>
-              <Text style={styles.distanceText}>· {item.distanceKm}km</Text>
-            </View>
-            <Text style={styles.timeText}>{item.createdAt}</Text>
-          </View>
-        </TouchableOpacity>
+  const renderSudaItem = ({ item }) => {
+    if (!item) return null;
+    const author = item.author || {};
+    const authorName = author.nickname || author.name || '이웃';
+    const authorAvatar = author.avatarUrl || author.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200';
+    const isMyPost = Boolean(
+      (user?.id && (author.id === user.id || author.id === 'my-user-id')) ||
+      (user?.nickname && (authorName === user.nickname || authorName === '나')) ||
+      author.id === 'my-user-id' ||
+      authorName === '나'
+    );
 
-        {/* 우측 입장 단가 & [입장하기] 버튼 */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <View
-            style={{
-              backgroundColor: item.entryFee ? '#FEF3C7' : '#DCFCE7',
-              paddingHorizontal: 8,
-              paddingVertical: 3,
-              borderRadius: 8,
-              borderWidth: 1,
-              borderColor: item.entryFee ? '#FDE68A' : '#BBF7D0',
+    return (
+      <View style={styles.sudaCard}>
+        <View style={styles.sudaHeader}>
+          <TouchableOpacity
+            style={styles.sudaAuthorLeft}
+            activeOpacity={0.85}
+            onPress={() => {
+              setSelectedProfileUser({
+                id: author.id || 'author',
+                nickname: authorName,
+                avatarUrl: authorAvatar,
+                region: item.neighborhood || '역삼1동',
+                subRegion: '',
+                gender: '회원',
+                age: 26,
+                statusMessage: item.content || item.title,
+                isOnline: true,
+              });
+              setProfileModalVisible(true);
             }}
           >
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: '900',
-                color: item.entryFee ? '#92400E' : '#166534',
-              }}
-            >
-              {item.entryFee ? `💰 ${item.entryFee} 꿀떡` : '✨ 무료'}
-            </Text>
-          </View>
+            <Image source={{ uri: authorAvatar }} style={styles.authorAvatar} />
+            <View style={styles.authorInfo}>
+              <View style={styles.nameRow}>
+                <Text style={styles.authorName}>{authorName}</Text>
+                <View style={styles.neighborhoodBadge}>
+                  <Text style={styles.neighborhoodText}>{item.neighborhood || '역삼1동'}</Text>
+                </View>
+                <Text style={styles.distanceText}>· {item.distanceKm || 0.8}km</Text>
+              </View>
+              <Text style={styles.timeText}>{item.createdAt || '방금 전'}</Text>
+            </View>
+          </TouchableOpacity>
 
-          {Boolean((user?.id && item.author?.id === user.id) || item.author?.id === 'my-user-id' || (user?.nickname && item.author?.nickname === user.nickname) || item.author?.nickname === '나') ? (
-            <TouchableOpacity
-              style={[styles.applyChatBtn, { borderColor: '#FECDD3', backgroundColor: '#FFF1F2' }]}
-              activeOpacity={0.8}
-              onPress={() => {
-                Alert.alert('수다방 삭제', '내가 개설한 수다방을 삭제하시겠습니까?', [
-                  { text: '취소', style: 'cancel' },
-                  {
-                    text: '삭제',
-                    style: 'destructive',
-                    onPress: async () => {
-                      try {
-                        await deleteSudaPost(item.id);
-                        loadData();
-                      } catch (e) {
-                        Alert.alert('오류', '수다방 삭제에 실패했습니다.');
-                      }
-                    },
-                  },
-                ]);
+          {/* 우측 입장 단가 & [입장하기] 버튼 */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View
+              style={{
+                backgroundColor: item.entryFee ? '#FEF3C7' : '#DCFCE7',
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: item.entryFee ? '#FDE68A' : '#BBF7D0',
               }}
             >
-              <Ionicons name="trash-outline" size={12} color="#E11D48" />
-              <Text style={[styles.applyChatBtnText, { color: '#E11D48' }]}>삭제</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={styles.applyChatBtn}
-              activeOpacity={0.8}
-              onPress={() =>
-                handleStartDirectChat({
-                  id: item.author.id,
-                  nickname: item.author.nickname,
-                  avatarUrl: item.author.avatarUrl,
-                  region: item.neighborhood,
-                })
-              }
-            >
-              <Ionicons name="chatbubble-ellipses" size={12} color="#E11D48" />
-              <Text style={styles.applyChatBtnText}>입장하기</Text>
-            </TouchableOpacity>
-          )}
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: '900',
+                  color: item.entryFee ? '#92400E' : '#166534',
+                }}
+              >
+                {item.entryFee ? `💰 ${item.entryFee} 꿀떡` : '✨ 무료'}
+              </Text>
+            </View>
+
+            {isMyPost ? (
+              <TouchableOpacity
+                style={[styles.applyChatBtn, { borderColor: '#FECDD3', backgroundColor: '#FFF1F2' }]}
+                activeOpacity={0.8}
+                onPress={() => {
+                  Alert.alert('수다방 삭제', '내가 개설한 수다방을 삭제하시겠습니까?', [
+                    { text: '취소', style: 'cancel' },
+                    {
+                      text: '삭제',
+                      style: 'destructive',
+                      onPress: async () => {
+                        setSudaPosts((prev) => prev.filter((p) => p.id !== item.id));
+                        try {
+                          await deleteSudaPost(item.id);
+                          loadData();
+                        } catch (e) {
+                          setSudaPosts((prev) => prev.filter((p) => p.id !== item.id));
+                        }
+                      },
+                    },
+                  ]);
+                }}
+              >
+                <Ionicons name="trash-outline" size={12} color="#E11D48" />
+                <Text style={[styles.applyChatBtnText, { color: '#E11D48' }]}>삭제</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.applyChatBtn}
+                activeOpacity={0.8}
+                onPress={() =>
+                  handleStartDirectChat({
+                    id: author.id || item.id,
+                    nickname: authorName,
+                    avatarUrl: authorAvatar,
+                    region: item.neighborhood || '역삼1동',
+                  })
+                }
+              >
+                <Ionicons name="chatbubble-ellipses" size={12} color="#E11D48" />
+                <Text style={styles.applyChatBtnText}>입장하기</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {/* 1:1 수다 대기방 제목 (단일 라인 표출) */}
+        <View style={{ marginTop: 6 }}>
+          <Text style={{ fontSize: 14, fontWeight: '800', color: '#0F172A' }}>
+            {item.title || item.content}
+          </Text>
         </View>
       </View>
-
-      {/* 1:1 수다 대기방 제목 (단일 라인 표출) */}
-      <View style={{ marginTop: 6 }}>
-        <Text style={{ fontSize: 14, fontWeight: '800', color: '#0F172A' }}>
-          {item.title || item.content}
-        </Text>
-      </View>
-    </View>
-  );
+    );
+  };
 
   // 3. [대화함] 항목 렌더링
   const renderChatRoomItem = ({ item }) => {

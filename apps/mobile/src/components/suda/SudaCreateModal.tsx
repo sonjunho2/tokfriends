@@ -10,6 +10,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Keyboard,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '../../theme/tokens';
@@ -31,6 +33,26 @@ export default function SudaCreateModal({
   const [title, setTitle] = useState('');
   const [entryFee, setEntryFee] = useState<number>(300);
   const [submitting, setSubmitting] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (visible && user?.chatEntryFee !== undefined) {
@@ -47,6 +69,7 @@ export default function SudaCreateModal({
   ];
 
   const handleSubmit = async () => {
+    Keyboard.dismiss();
     if (!title.trim()) {
       Alert.alert('알림', '방 제목을 입력해주세요.');
       return;
@@ -78,9 +101,24 @@ export default function SudaCreateModal({
         <TouchableOpacity
           style={styles.backdrop}
           activeOpacity={1}
-          onPress={onClose}
+          onPress={() => {
+            Keyboard.dismiss();
+            onClose();
+          }}
         />
-        <View style={styles.sheetCard}>
+        <View
+          style={[
+            styles.sheetCard,
+            Platform.OS === 'android' && keyboardHeight > 0
+              ? { marginBottom: keyboardHeight }
+              : null,
+          ]}
+        >
+          <ScrollView
+            bounces={false}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
           <View style={styles.headerRow}>
             <View style={styles.badgeRow}>
               <Ionicons name="chatbubbles" size={18} color="#FF3B6B" />
@@ -200,6 +238,7 @@ export default function SudaCreateModal({
               )}
             </TouchableOpacity>
           </View>
+          </ScrollView>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -221,6 +260,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: Platform.OS === 'ios' ? 36 : 24,
+    maxHeight: '85%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,

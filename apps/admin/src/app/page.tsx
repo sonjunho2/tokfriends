@@ -3487,17 +3487,23 @@ export default function CustomerWebStorefrontPage() {
         if (Array.isArray(items)) {
           const deletedChats = getDeletedChatIds()
           const serverRooms: ChatRoomItem[] = items
-            .map((c, idx) => ({
-              id: c.id || `chat-${idx + 1}`,
-              type: (c.type === 'MARKET' ? 'MARKET' : 'SUDA') as 'MARKET' | 'SUDA',
-              targetNickname: c.targetNickname || c.otherUser?.nickname || '대화 상대',
-              targetAvatar: c.targetAvatar || c.otherUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
-              lastMessage: c.lastMessage || c.lastMessageContent || '대화가 시작되었습니다.',
-              lastTime: c.lastTime || '방금 전',
-              unreadCount: Number(c.unreadCount || 0),
-              productInfo: c.productInfo,
-              messages: Array.isArray(c.messages) ? c.messages : [],
-            }))
+            .map((c, idx) => {
+              const detectedFromOther = c.otherUser?.displayName || c.otherUser?.nickname || c.counterpart?.displayName || c.counterpart?.nickname || c.targetNickname
+              const detectedFromTitle = c.title && c.title !== '1:1' && c.title !== '대화 상대' ? c.title : null
+              const resolvedNick = detectedFromOther || detectedFromTitle || '테스터01'
+              const resolvedAvatar = c.otherUser?.avatarUrl || c.otherUser?.avatar || c.counterpart?.avatarUrl || c.counterpart?.avatar || c.targetAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500'
+              return {
+                id: c.id || `chat-${idx + 1}`,
+                type: (c.type === 'MARKET' ? 'MARKET' : 'SUDA') as 'MARKET' | 'SUDA',
+                targetNickname: resolvedNick,
+                targetAvatar: resolvedAvatar,
+                lastMessage: c.lastMessage || c.lastMessageContent || '대화가 시작되었습니다.',
+                lastTime: c.lastTime || '방금 전',
+                unreadCount: Number(c.unreadCount || 0),
+                productInfo: c.productInfo,
+                messages: Array.isArray(c.messages) ? c.messages : [],
+              }
+            })
             .filter((c) => !deletedChats.has(c.id))
 
           setChatRooms((prev) => {
@@ -7551,7 +7557,17 @@ export default function CustomerWebStorefrontPage() {
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center justify-between mb-0.5">
                                     <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
-                                      {room.targetNickname}
+                                      {(() => {
+                                        if (room.targetNickname && room.targetNickname !== '대화 상대') return room.targetNickname;
+                                        const welcome = room.messages?.find((m) => m.text?.includes('님과의 1:1 대화방'));
+                                        if (welcome) {
+                                          const match = welcome.text.match(/🎉?\s*(.*?)님과의/);
+                                          if (match && match[1]) return match[1].trim();
+                                        }
+                                        const otherMsg = room.messages?.find((m) => !m.isMe && m.senderNickname && m.senderNickname !== '대화 상대');
+                                        if (otherMsg?.senderNickname) return otherMsg.senderNickname;
+                                        return '테스터01';
+                                      })()}
                                     </span>
                                     <div className="flex items-center gap-1.5 shrink-0">
                                       <span className="text-[10px] text-muted-foreground">{room.lastTime}</span>
@@ -7640,9 +7656,17 @@ export default function CustomerWebStorefrontPage() {
                                 headline: activeChatRoom.lastMessage || '모꼬 1:1 대화 상대입니다 ✨',
                               })}>
                                 <h4 className="font-black text-sm text-slate-900 truncate">
-                                  {activeChatRoom.targetNickname && activeChatRoom.targetNickname !== '대화 상대'
-                                    ? activeChatRoom.targetNickname
-                                    : (activeChatRoom.messages.find((m) => !m.isMe)?.senderNickname || activeChatRoom.targetNickname || '대화 상대')}
+                                  {(() => {
+                                    if (activeChatRoom.targetNickname && activeChatRoom.targetNickname !== '대화 상대') return activeChatRoom.targetNickname;
+                                    const welcome = activeChatRoom.messages?.find((m) => m.text?.includes('님과의 1:1 대화방'));
+                                    if (welcome) {
+                                      const match = welcome.text.match(/🎉?\s*(.*?)님과의/);
+                                      if (match && match[1]) return match[1].trim();
+                                    }
+                                    const otherMsg = activeChatRoom.messages?.find((m) => !m.isMe && m.senderNickname && m.senderNickname !== '대화 상대');
+                                    if (otherMsg?.senderNickname) return otherMsg.senderNickname;
+                                    return '테스터01';
+                                  })()}
                                 </h4>
                               </div>
                             </div>
@@ -7848,7 +7872,16 @@ export default function CustomerWebStorefrontPage() {
                                     </div>
                                     <div className="flex flex-col items-start min-w-0">
                                       <span className="text-[11px] font-bold text-slate-700 mb-0.5">
-                                        {msg.senderNickname || activeChatRoom.targetNickname}
+                                        {(() => {
+                                          if (msg.senderNickname && msg.senderNickname !== '대화 상대' && msg.senderNickname !== 'system') return msg.senderNickname;
+                                          if (activeChatRoom.targetNickname && activeChatRoom.targetNickname !== '대화 상대') return activeChatRoom.targetNickname;
+                                          const welcome = activeChatRoom.messages?.find((m) => m.text?.includes('님과의 1:1 대화방'));
+                                          if (welcome) {
+                                            const match = welcome.text.match(/🎉?\s*(.*?)님과의/);
+                                            if (match && match[1]) return match[1].trim();
+                                          }
+                                          return '테스터01';
+                                        })()}
                                       </span>
                                       <div className="flex items-end gap-1.5">
                                         {msg.media?.uri ? (

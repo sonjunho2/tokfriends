@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 /**
  * MOCCO Suda (실시간 1줄 동네 토크 & 듀얼 대화함) Service
  */
@@ -207,6 +208,14 @@ export const INITIAL_CHAT_ROOMS: ChatRoomItem[] = [
 let inMemorySudaPosts = [...INITIAL_SUDA_POSTS];
 let inMemoryChatRooms = [...INITIAL_CHAT_ROOMS];
 const deletedSudaIds = new Set<string>();
+AsyncStorage.getItem('mocco_deleted_suda_ids').then((raw) => {
+  if (raw) {
+    try {
+      const ids = JSON.parse(raw);
+      if (Array.isArray(ids)) ids.forEach((id: string) => deletedSudaIds.add(id));
+    } catch {}
+  }
+}).catch(() => {});
 const deletedChatIds = new Set<string>();
 
 export async function fetchSudaPosts(neighborhood?: string): Promise<SudaPostItem[]> {
@@ -331,6 +340,10 @@ export async function createSudaPost(
 
 export async function deleteSudaPost(postId: string): Promise<boolean> {
   deletedSudaIds.add(postId);
+  try {
+    const list = Array.from(deletedSudaIds);
+    AsyncStorage.setItem('mocco_deleted_suda_ids', JSON.stringify(list)).catch(() => {});
+  } catch {}
   try {
     await client.delete(`/suda/posts/${postId}`);
   } catch (err) {}

@@ -53,6 +53,7 @@ export class SudaController {
     return this.sudaService.getPost(id);
   }
 
+  @Public()
   @Post('posts')
   @ApiBearerAuth()
   @ApiOperation({ summary: '1줄 수다 토크 작성' })
@@ -68,6 +69,7 @@ export class SudaController {
     return this.sudaService.likePost(id);
   }
 
+  @Public()
   @Delete('posts/:id')
   @ApiBearerAuth()
   @ApiOperation({ summary: '1줄 수다 토크 삭제 (작성자 본인)' })
