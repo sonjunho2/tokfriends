@@ -82,8 +82,8 @@ export class ChatController {
     @Param('id') routeChatId: string | undefined,
     @Body() body: any,
   ) {
-    const userId = user?.id || user?.sub || body.senderAccountId || body.senderId || body.userId || 'guest';
-    const senderNickname = body.senderNickname || body.senderName || user?.nickname || user?.displayName;
+    const userId = body.senderAccountId || body.senderId || body.userId || (user?.nickname !== 'Super Admin' && user?.id ? user.id : (user?.id || 'guest'));
+    const senderNickname = body.senderNickname || body.senderName || (user?.nickname !== 'Super Admin' && user?.nickname ? user.nickname : undefined);
     const payload = {
       ...body,
       senderNickname,
@@ -105,7 +105,8 @@ export class ChatController {
   @Public()
   @Post('gift')
   async sendChatGift(@CurrentUser() user: any, @Body() body: any) {
-    const userId = user?.id || user?.sub || body.senderAccountId || body.senderId || body.userId || 'guest';
+    const userId = body.senderAccountId || body.senderId || body.userId || (user?.nickname !== 'Super Admin' && user?.id ? user.id : (user?.id || 'guest'));
+    const senderNickname = body.senderNickname || body.senderName || (user?.nickname !== 'Super Admin' && user?.nickname ? user.nickname : undefined);
     const points = Number(body.points || body.amount || body.pricePoints || 100);
     const giftName = body.giftName || body.name || '선물';
     const giftIcon = body.icon || body.thumbnailUrl || null;
@@ -135,12 +136,14 @@ export class ChatController {
 
     const msg = await this.chatService.sendMessage(userId, {
       chatId: body.chatId,
-      content: `🎁 [선물] ${giftName} (${points} ON)을 보냈습니다!`,
+      content: `🎁 [선물] ${giftName} (${points} 꿀떡)을 보냈습니다!`,
       type: 'gift',
       clientMessageId: body.clientMessageId,
       giftPoints: points,
       giftName,
       giftIcon,
+      senderNickname,
+      senderName: senderNickname,
     });
     return {
       ok: true,

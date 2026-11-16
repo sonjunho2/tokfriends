@@ -119,6 +119,7 @@ import {
   deleteChatRoom,
   createDirectChat,
   sendChatMessage,
+  sendChatGift,
   getChatMessages,
 } from '@/lib/api'
 import { io } from 'socket.io-client'
@@ -4608,19 +4609,25 @@ export default function CustomerWebStorefrontPage() {
             icon: gift.icon,
           },
           senderAccountId: user?.id,
+          senderNickname: user?.nickname || '나',
           senderName: user?.nickname || '나',
           targetUserId: activeChatRoom.targetUserId || activeChatRoom.targetNickname,
         })
       }
 
       // 백엔드 API에 선물 전송 기록 영속화
-      sendChatMessage(activeChatRoom.id, `🎁 [선물] ${gift.name} (${gift.pricePoints.toLocaleString()} 꿀떡)`, {
-        type: 'gift',
+      // 백엔드 REST API에 정식 선물 전송 (본인 꿀떡 차감 + 상대방 꿀떡 적립 + 선물 메시지 영속화)
+      sendChatGift({
+        chatId: activeChatRoom.id,
+        points: gift.pricePoints,
         giftName: gift.name,
-        giftPoints: gift.pricePoints,
+        giftId: gift.id,
+        senderAccountId: user?.id,
+        senderNickname: user?.nickname || '나',
+        receiverId: activeChatRoom.targetUserId || activeChatRoom.targetNickname,
         targetUserId: activeChatRoom.targetUserId || activeChatRoom.targetNickname,
-      }).catch((e) => console.warn('sendChatMessage gift fallback:', e))
-
+        icon: gift.icon,
+      }).catch((e) => console.warn('sendChatGift error:', e))
       // 화려한 3D 축제 이펙트 발동!
       setActiveGiftEffect({
         name: gift.name,

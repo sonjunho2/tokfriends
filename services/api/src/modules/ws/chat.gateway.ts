@@ -562,7 +562,7 @@ export class ChatGateway
     @MessageBody() data: any,
   ) {
     const user = socket.data?.user;
-    const userId = user?.id || data?.senderAccountId || 'guest';
+    const userId = data?.senderAccountId || data?.senderId || (user?.nickname !== 'Super Admin' && user?.id ? user.id : (user?.id || 'guest'));
     const chatId = data?.chatId;
     if (!chatId) return { ok: false };
 
@@ -572,7 +572,7 @@ export class ChatGateway
       if (userNick && userNick !== 'Super Admin' && userNick !== 'admin') {
         senderName = userNick;
       } else {
-        senderName = data.senderNickname || data.senderName || '테스터02';
+        senderName = (data.senderNickname && data.senderNickname !== 'Super Admin' ? data.senderNickname : (data.senderName && data.senderName !== 'Super Admin' ? data.senderName : '테스터02'));
       }
     }
 

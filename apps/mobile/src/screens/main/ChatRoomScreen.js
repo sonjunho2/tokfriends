@@ -1132,6 +1132,7 @@ export default function ChatRoomScreen({ route, navigation }) {
           icon: giftIcon,
           clientMessageId,
           senderAccountId: currentActivityAccountId,
+          senderNickname: authUser?.nickname || authUser?.name || '나',
           receiverId: targetReceiverId,
           targetUserId: targetReceiverId,
         });

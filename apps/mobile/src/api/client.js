@@ -2250,7 +2250,7 @@ export const apiClient = {
     return data;
   },
 
-  async sendChatGift({ chatId, giftId, clientMessageId, giftName, points, icon, senderAccountId, receiverId, targetUserId } = {}) {
+  async sendChatGift({ chatId, giftId, clientMessageId, giftName, points, icon, senderAccountId, senderNickname, receiverId, targetUserId } = {}) {
     if (!chatId || !giftId) {
       throw normalizeError(new Error('채팅방 및 선물 정보가 필요합니다.'));
     }
@@ -2262,6 +2262,7 @@ export const apiClient = {
       ...(icon ? { icon: String(icon).trim() } : {}),
       ...(clientMessageId ? { clientMessageId: String(clientMessageId).trim() } : {}),
       ...(senderAccountId ? { senderAccountId: String(senderAccountId).trim() } : {}),
+      ...(senderNickname ? { senderNickname: String(senderNickname).trim(), senderName: String(senderNickname).trim() } : {}),
       ...(receiverId ? { receiverId: String(receiverId).trim() } : {}),
       ...(targetUserId ? { targetUserId: String(targetUserId).trim() } : {}),
     });

@@ -2885,8 +2885,58 @@ export async function createDirectChat(targetUserId: string, title?: string, ent
 }
 
 export async function sendChatMessage(chatId: string, content: string, extra?: any): Promise<any> {
-  const res = await api.post('/chats/message', { chatId, content, ...(extra || {}) })
-  return res?.data?.message || res?.data?.data || res?.data || res
+  try {
+    const res = await api.post('/chats/message', { chatId, content, ...(extra || {}) })
+    return res?.data?.message || res?.data?.data || res?.data || res
+  } catch (err) {
+    try {
+      const apiBase = typeof window !== 'undefined'
+        ? (process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || 'https://tok-friends-api.onrender.com/v1')
+        : 'https://tok-friends-api.onrender.com/v1'
+      const fallback = await fetch(`${apiBase}/chats/message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId, content, ...(extra || {}) }),
+      })
+      if (fallback.ok) {
+        const d = await fallback.json()
+        return d?.message || d?.data || d
+      }
+    } catch {}
+    console.warn('sendChatMessage error:', err)
+    return null
+  }
+}
+
+export async function sendChatGift(payload: {
+  chatId: string
+  points: number
+  giftName: string
+  giftId?: string
+  senderAccountId?: string
+  senderNickname?: string
+  receiverId?: string
+  targetUserId?: string
+  icon?: string
+}): Promise<any> {
+  try {
+    const res = await api.post('/chats/gift', payload)
+    return res?.data ?? res
+  } catch (err) {
+    try {
+      const apiBase = typeof window !== 'undefined'
+        ? (process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || 'https://tok-friends-api.onrender.com/v1')
+        : 'https://tok-friends-api.onrender.com/v1'
+      const fallback = await fetch(`${apiBase}/chats/gift`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (fallback.ok) return await fallback.json()
+    } catch {}
+    console.warn('sendChatGift error:', err)
+    return null
+  }
 }
 
 export async function getChatMessages(chatId: string): Promise<any[]> {
