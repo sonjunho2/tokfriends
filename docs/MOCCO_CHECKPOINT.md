@@ -103,3 +103,4 @@
   - `build_output/MOCCO_LiveTest_v1.2.0.apk` (104.8 MB)
 - **에뮬레이터 설치 상태**: `emulator-5554`에 최신 빌드 설치 및 전체수다 화면 정상 동작 중
 - **웹 스토어프론트**: `https://tokfriends.vercel.app` (Vercel 최신 배포 연동)
+

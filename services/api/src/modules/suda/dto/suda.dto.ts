@@ -32,4 +32,19 @@ export class CreateSudaPostDto {
   @IsOptional()
   @IsNumber()
   longitude?: number;
+
+  @ApiPropertyOptional({ description: '작성자 닉네임', example: '테스터02' })
+  @IsOptional()
+  @IsString()
+  authorNickname?: string;
+
+  @ApiPropertyOptional({ description: '작성자 아바타 URL' })
+  @IsOptional()
+  @IsString()
+  authorAvatar?: string;
+
+  @ApiPropertyOptional({ description: '작성자 고유 ID' })
+  @IsOptional()
+  @IsString()
+  authorId?: string;
 }

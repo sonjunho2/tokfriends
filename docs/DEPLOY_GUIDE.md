@@ -77,3 +77,4 @@ adb shell monkey -p com.sonjunho.ddakchin -c android.intent.category.LAUNCHER 1
   - `DATABASE_URL`: PostgreSQL 접속 문자열
   - `JWT_SECRET`: JWT 토큰 암호화 키
   - `AGORA_APP_ID` & `AGORA_APP_CERTIFICATE`: Agora RTC 연동 키
+

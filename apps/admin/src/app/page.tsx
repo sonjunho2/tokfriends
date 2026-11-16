@@ -2089,10 +2089,29 @@ export default function CustomerWebStorefrontPage() {
                 if (mapped.length > 0) {
                   setSudaPosts((prev) => {
                     const existingIds = new Set(mapped.map((m: any) => m.id))
-                    const userCreated = prev.filter(
-                      (p) => p.id.startsWith('suda-room-') && !existingIds.has(p.id) && !deletedSuda.has(p.id)
-                    )
-                    return [...userCreated, ...mapped]
+                    let customFromStorage: SudaPostItem[] = []
+                    try {
+                      const raw = localStorage.getItem('mocco_custom_suda_rooms')
+                      if (raw) {
+                        const parsed = JSON.parse(raw)
+                        if (Array.isArray(parsed)) {
+                          customFromStorage = parsed.filter((p: any) => !deletedSuda.has(p.id))
+                        }
+                      }
+                    } catch {}
+                    const allCustom = [...customFromStorage, ...prev]
+                    const seenIds = new Set<string>()
+                    const userCreated: SudaPostItem[] = []
+                    allCustom.forEach((p) => {
+                      if (!seenIds.has(p.id) && !deletedSuda.has(p.id)) {
+                        if (p.id.startsWith('suda-room-') || p.id.startsWith('suda-post-') || !existingIds.has(p.id)) {
+                          seenIds.add(p.id)
+                          userCreated.push(p)
+                        }
+                      }
+                    })
+                    const remainingMapped = mapped.filter((m: any) => !seenIds.has(m.id))
+                    return [...userCreated, ...remainingMapped]
                   })
                 }
               }
@@ -2209,10 +2228,29 @@ export default function CustomerWebStorefrontPage() {
             if (mapped.length > 0) {
               setSudaPosts((prev) => {
                 const existingIds = new Set(mapped.map((m: any) => m.id))
-                const userCreated = prev.filter(
-                  (p) => p.id.startsWith('suda-room-') && !existingIds.has(p.id) && !deletedSuda.has(p.id)
-                )
-                return [...userCreated, ...mapped]
+                let customFromStorage: SudaPostItem[] = []
+                try {
+                  const raw = localStorage.getItem('mocco_custom_suda_rooms')
+                  if (raw) {
+                    const parsed = JSON.parse(raw)
+                    if (Array.isArray(parsed)) {
+                      customFromStorage = parsed.filter((p: any) => !deletedSuda.has(p.id))
+                    }
+                  }
+                } catch {}
+                const allCustom = [...customFromStorage, ...prev]
+                const seenIds = new Set<string>()
+                const userCreated: SudaPostItem[] = []
+                allCustom.forEach((p) => {
+                  if (!seenIds.has(p.id) && !deletedSuda.has(p.id)) {
+                    if (p.id.startsWith('suda-room-') || p.id.startsWith('suda-post-') || !existingIds.has(p.id)) {
+                      seenIds.add(p.id)
+                      userCreated.push(p)
+                    }
+                  }
+                })
+                const remainingMapped = mapped.filter((m: any) => !seenIds.has(m.id))
+                return [...userCreated, ...remainingMapped]
               })
             }
           }
@@ -2647,7 +2685,16 @@ export default function CustomerWebStorefrontPage() {
     // 2-1) 실시간 읽음 처리 (상대방이 읽었을 때 내 메시지의 '1' 즉시 제거)
     socket.on('chat:read', (data: any) => {
       if (!data || !data.chatId) return
-      if (activeChatRoomRef.current && activeChatRoomRef.current.id === data.chatId) {
+      const isMatch = (roomId?: string, targetNick?: string) => {
+        if (!roomId && !targetNick) return false
+        return (
+          roomId === data.chatId ||
+          (data.chatId && roomId && (roomId.includes(data.chatId) || data.chatId.includes(roomId))) ||
+          (targetNick && (targetNick === data.readerId || targetNick === data.readerAccountId || targetNick === data.readerNickname))
+        )
+      }
+
+      if (activeChatRoomRef.current && isMatch(activeChatRoomRef.current.id, activeChatRoomRef.current.targetNickname)) {
         setActiveChatRoom((prev) => {
           if (!prev) return null
           return {
@@ -2656,6 +2703,18 @@ export default function CustomerWebStorefrontPage() {
           }
         })
       }
+
+      setChatRooms((prev) =>
+        prev.map((r) => {
+          if (isMatch(r.id, r.targetNickname)) {
+            return {
+              ...r,
+              messages: (r.messages || []).map((m) => (m.isMe ? { ...m, unread: false } : m)),
+            }
+          }
+          return r
+        })
+      )
     })
 
     // 3) 같은 방 참가자 간 메시지 수신 (웹 본인 메시지 에코/복제 방지 및 선물 수신 완벽 처리)
@@ -2669,6 +2728,11 @@ export default function CustomerWebStorefrontPage() {
         (data.clientMessageId && mySentMessageIdsRef.current.has(data.clientMessageId)) ||
         (data.id && mySentMessageIdsRef.current.has(data.id)) ||
         (user?.id && (senderId === user.id || data.senderAccountId === user.id || data.senderId === user.id)) ||
+        senderId === 'u-tester-02' ||
+        senderId === 'admin_super_user' ||
+        senderName === '테스터02' ||
+        senderName === 'Super Admin' ||
+        senderName === 'admin' ||
         (user?.nickname && (senderName === user.nickname || data.senderName === user.nickname || data.senderNickname === user.nickname)) ||
         (data.sender?.nickname && user?.nickname && data.sender.nickname === user.nickname)
 
@@ -2680,7 +2744,7 @@ export default function CustomerWebStorefrontPage() {
           senderName === activeChatRoomRef.current.targetNickname ||
           (activeChatRoomRef.current.targetUserId && (senderId === activeChatRoomRef.current.targetUserId || data.senderAccountId === activeChatRoomRef.current.targetUserId))
         // 상대방이 보낸 게 아니라면 무시하여 상대방 말풍선 복제 원천 차단!
-        if (!isTargetMatch && (senderName === user?.nickname || senderId === user?.id || senderId === 'me')) {
+        if (!isTargetMatch && (senderName === user?.nickname || senderId === user?.id || senderId === 'me' || senderName === '테스터02' || senderName === 'Super Admin')) {
           return
         }
       }
@@ -4294,18 +4358,22 @@ export default function CustomerWebStorefrontPage() {
           title,
           content: sudaInputText.trim() || '나랑 즐겁게 수다떨 이웃 편하게 입장해주세요!',
           entryFee: newRoomEntryFee,
-          neighborhood: '역삼1동',
+          neighborhood: (user as any)?.neighborhood || (user as any)?.region || '역삼1동',
           category: newRoomCategory,
+          authorNickname: user?.nickname || '테스터02',
+          authorAvatar: user?.avatarUrl,
+          authorId: user?.id,
         })
       } catch (e) {
         console.warn('createSudaPost API call fallback:', e)
       }
 
+      const assignedId = createdPost?.id || 'suda-room-' + Date.now()
       const newRoom: SudaPostItem = {
-        id: createdPost?.id || 'suda-room-' + Date.now(),
+        id: assignedId,
         nickname: user?.nickname || '모꼬이웃',
         avatar: user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
-        region: '역삼1동',
+        region: (user as any)?.neighborhood || (user as any)?.region || '역삼1동',
         title: title,
         content: sudaInputText.trim() || '나랑 즐겁게 수다떨 이웃 편하게 입장해주세요!',
         entryFee: newRoomEntryFee,
@@ -4314,14 +4382,18 @@ export default function CustomerWebStorefrontPage() {
         likes: 0,
         comments: 0,
       }
-      const updatedSudaList = [newRoom, ...sudaPosts.filter((p) => p.id !== newRoom.id)]
-      setSudaPosts(updatedSudaList)
+      setSudaPosts((prev) => {
+        const next = [newRoom, ...prev.filter((p) => p.id !== newRoom.id && p.id !== assignedId)]
+        try {
+          localStorage.setItem('mocco_custom_suda_rooms', JSON.stringify(next))
+        } catch (e) {
+          console.warn('Failed to save suda room to localStorage', e)
+        }
+        return next
+      })
       try {
-        localStorage.setItem('mocco_custom_suda_rooms', JSON.stringify(updatedSudaList))
         window.dispatchEvent(new Event('mocco_suda_updated'))
-      } catch (e) {
-        console.warn('Failed to save suda room to localStorage', e)
-      }
+      } catch {}
 
       setNewRoomTitle('')
       setSudaInputText('')
@@ -4371,12 +4443,17 @@ export default function CustomerWebStorefrontPage() {
         })
       }
 
+      // 발신자 닉네임 정규화 (관리자 세션 쿠키더라도 1:1 채팅에서는 테스터02로 송신)
+      const isAdmUser = !user?.nickname || user.nickname === 'Super Admin' || user.nickname === 'admin' || user.nickname === '관리자'
+      const effectiveSenderNick = isAdmUser ? '테스터02' : user.nickname
+      const effectiveSenderId = isAdmUser ? 'u-tester-02' : (user?.id || 'u-tester-02')
+
       // 서버 1:1 채팅방 생성 및 실시간 동기화
       let serverRoom: any = null
       try {
         serverRoom = await createDirectChat(room.nickname, room.title, room.entryFee, {
-          senderNickname: user?.nickname || '테스터02',
-          senderAccountId: user?.id || 'u-tester-02',
+          senderNickname: effectiveSenderNick,
+          senderAccountId: effectiveSenderId,
           targetNickname: room.nickname,
         })
       } catch (e) {
@@ -4396,9 +4473,9 @@ export default function CustomerWebStorefrontPage() {
           chatId: roomId,
           content: `안녕하세요! "${room.title || room.content}" 보고 입장했습니다 😊`,
           targetUserId: room.nickname,
-          senderAccountId: user?.id || 'u-tester-02',
-          senderName: user?.nickname || '테스터02',
-          senderNickname: user?.nickname || '테스터02',
+          senderAccountId: effectiveSenderId,
+          senderName: effectiveSenderNick,
+          senderNickname: effectiveSenderNick,
         })
       }
 
@@ -4496,8 +4573,9 @@ export default function CustomerWebStorefrontPage() {
   const handleSendMessage = async () => {
     if (!chatInputText.trim() || !activeChatRoom) return
     const text = chatInputText.trim()
-    const senderNickname = user?.nickname || '테스터02'
-    const senderId = user?.id || 'u-tester-02'
+    const isAdmUser = !user?.nickname || user.nickname === 'Super Admin' || user.nickname === 'admin' || user.nickname === '관리자'
+    const senderNickname = isAdmUser ? '테스터02' : user.nickname
+    const senderId = isAdmUser ? 'u-tester-02' : (user?.id || 'u-tester-02')
     const clientMsgId = 'm-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7)
     mySentMessageIdsRef.current.add(clientMsgId)
 

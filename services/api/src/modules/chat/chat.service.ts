@@ -397,10 +397,40 @@ export class ChatService implements OnModuleInit {
       );
     });
 
+    // Helper: is this an admin account name?
+    const isAdminAccount = (val?: string | null) => {
+      if (!val) return false;
+      const v = String(val).trim().toLowerCase();
+      return v === 'super admin' || v === 'admin' || v === 'admin_super_user' || v === '관리자' || v === '슈퍼어드민';
+    };
+
+    // Helper: is this a guest/me placeholder?
+    const isGuestOrMePlaceholder = (val?: string | null) => {
+      if (!val) return false;
+      const v = String(val).trim().toLowerCase();
+      return v === 'guest' || v === '나' || v === 'me' || v === '대화 상대';
+    };
+
+    const mockRoomDetails: Record<string, { name: string; avatar: string }> = {
+      'chat-mock-1': {
+        name: '박서연',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+      },
+      'chat-mock-2': {
+        name: '김도현',
+        avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300',
+      },
+      'chat-mock-3': {
+        name: '한유진',
+        avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300',
+      },
+    };
+
     // Compute counterpart perspective for this user
     return userRooms.map((r) => {
-      // 목업 룸(박서연, 김도현, 한유진)은 원본 상대방 정보 그대로 유지
+      // 목업 룸(박서연, 김도현, 한유진)은 원본 상대방 정보 확고하게 보존
       if (r.id.startsWith('chat-mock-')) {
+        const mockInfo = mockRoomDetails[r.id] || { name: r.title || '친구', avatar: r.counterpart?.avatarUrl || '' };
         const msgs = this.messagesStore[r.id] || [];
         const computedUnread = msgs.filter(
           (m) =>
@@ -411,6 +441,13 @@ export class ChatService implements OnModuleInit {
         ).length;
         return {
           ...r,
+          title: mockInfo.name,
+          counterpart: {
+            id: r.counterpart?.id || `user-${r.id}`,
+            displayName: mockInfo.name,
+            avatarUrl: mockInfo.avatar,
+            online: true,
+          },
           unreadCount: computedUnread,
         };
       }
@@ -424,7 +461,7 @@ export class ChatService implements OnModuleInit {
       if (counterpartIsMe && r.host && !hostIsMe) {
         // 내가 counterpart이면 상대방은 host!
         let hostName = r.host.displayName;
-        if (hostName === 'Super Admin' || hostName === 'admin') {
+        if (isAdminAccount(hostName)) {
           hostName = '테스터02';
         }
         otherUser = {
@@ -437,7 +474,7 @@ export class ChatService implements OnModuleInit {
       } else if (hostIsMe && r.counterpart && !counterpartIsMe) {
         // 내가 host이면 상대방은 counterpart!
         let counterpartName = r.counterpart.displayName;
-        if (counterpartName === 'Super Admin' || counterpartName === 'admin') {
+        if (isAdminAccount(counterpartName)) {
           counterpartName = '테스터02';
         }
         otherUser = {
@@ -451,13 +488,17 @@ export class ChatService implements OnModuleInit {
         // 호스트나 카운터파트 중 내가 아닌 사람을 participantIds에서 직접 조회
         const peerId = r.participantIds?.find((pid) => !isMe(pid));
         let resolvedName = peerId;
-        if (resolvedName === 'Super Admin' || resolvedName === 'admin' || resolvedName === 'guest') {
-          resolvedName = r.counterpart?.displayName || r.host?.displayName || '대화 상대';
+        if (isAdminAccount(resolvedName) || isGuestOrMePlaceholder(resolvedName)) {
+          resolvedName = (!isAdminAccount(r.counterpart?.displayName) && !isGuestOrMePlaceholder(r.counterpart?.displayName))
+            ? r.counterpart?.displayName
+            : ((!isAdminAccount(r.host?.displayName) && !isGuestOrMePlaceholder(r.host?.displayName))
+                ? r.host?.displayName
+                : '테스터02');
         }
         if (peerId) {
           otherUser = {
             id: peerId,
-            displayName: resolvedName || '대화 상대',
+            displayName: resolvedName || '테스터02',
             avatarUrl: r.counterpart?.avatarUrl || null,
             online: true,
           };
@@ -465,8 +506,8 @@ export class ChatService implements OnModuleInit {
         }
       }
 
-      // 방어 로직: 만약 displayName이 'Super Admin'이면 '테스터02'로 정정
-      if (otherUser && (otherUser.displayName === 'Super Admin' || otherUser.displayName === 'admin')) {
+      // 방어 로직: 만약 displayName이 관리자 계정이면 '테스터02'로 정정
+      if (otherUser && isAdminAccount(otherUser.displayName)) {
         otherUser = {
           ...otherUser,
           displayName: '테스터02',
@@ -479,7 +520,7 @@ export class ChatService implements OnModuleInit {
         const peerId = r.participantIds?.find((pid) => !isMe(pid)) || (hostIsMe ? r.counterpart?.id : r.host?.id);
         if (peerId && !isMe(peerId)) {
           let peerName = peerId;
-          if (peerName === 'Super Admin' || peerName === 'admin') peerName = '테스터02';
+          if (isAdminAccount(peerName)) peerName = '테스터02';
           otherUser = {
             ...otherUser,
             id: peerId,
@@ -682,7 +723,7 @@ export class ChatService implements OnModuleInit {
         id: `msg-welcome-${Date.now()}`,
         chatId: newRoom.id,
         senderAccountId: 'system',
-        content: `🎉 ${targetName}님과의 1:1 대화방이 열렸습니다. (입장료: ${entryFee > 0 ? `${entryFee} 꿀떡` : '무료'})`,
+        content: `🎉 ${hostName && hostName !== '회원' ? `${hostName}님 & ${targetName}님의` : `${targetName}님과의`} 1:1 대화방이 열렸습니다. (입장료: ${entryFee > 0 ? `${entryFee} 꿀떡` : '무료'})`,
         type: 'text',
         createdAt: new Date().toISOString(),
       },

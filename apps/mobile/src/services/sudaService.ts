@@ -408,9 +408,56 @@ export async function fetchChatRooms(type?: 'SUDA' | 'MARKET'): Promise<ChatRoom
         nickname: currentUserNickname,
       },
     });
+    const MOCK_PEERS: Record<string, { nickname: string; avatarUrl: string }> = {
+      'chat-mock-1': {
+        nickname: '박서연',
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+      },
+      'chat-mock-2': {
+        nickname: '김도현',
+        avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300',
+      },
+      'chat-mock-3': {
+        nickname: '한유진',
+        avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300',
+      },
+    };
+
+    const isAdminNick = (name?: string | null) => {
+      if (!name) return false;
+      const n = String(name).trim().toLowerCase();
+      return n === 'super admin' || n === 'admin' || n === 'admin_super_user' || n === '관리자' || n === '슈퍼어드민';
+    };
+
+    const isGuestOrSelf = (name?: string | null) => {
+      if (!name) return false;
+      const n = String(name).trim().toLowerCase();
+      return n === 'guest' || n === '나' || n === 'me' || n === '대화 상대' || (currentUserNickname && n === currentUserNickname.toLowerCase());
+    };
+
     const items = res?.data?.items || res?.data?.data || res?.data;
     if (Array.isArray(items) && items.length > 0) {
       const serverRooms: ChatRoomItem[] = items.map((r: any) => {
+        // 목업 방(박서연, 김도현, 한유진)은 절대 guest나 admin이 되지 않도록 고정
+        if (r.id && MOCK_PEERS[r.id]) {
+          const mock = MOCK_PEERS[r.id];
+          return {
+            id: r.id,
+            type: 'SUDA',
+            peer: {
+              id: `user-${r.id}`,
+              nickname: mock.nickname,
+              avatarUrl: mock.avatarUrl,
+              isOnline: true,
+            },
+            lastMessage: r.lastMessage || '대화가 시작되었습니다.',
+            lastMessageTime: r.lastMessageAt
+              ? new Date(r.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : '방금',
+            unreadCount: Number(r.unreadCount || 0),
+          };
+        }
+
         // 상대방 닉네임이 본인이 되지 않도록 철저한 2중 방어
         const isCounterpartMe =
           (currentUserNickname && (r.counterpart?.displayName === currentUserNickname || r.counterpart?.id === currentUserNickname)) ||
@@ -418,24 +465,28 @@ export async function fetchChatRooms(type?: 'SUDA' | 'MARKET'): Promise<ChatRoom
           r.counterpart?.displayName === '나';
 
         let peerNickname = isCounterpartMe
-          ? (r.host?.displayName && r.host.displayName !== currentUserNickname && r.host.displayName !== '나'
+          ? (r.host?.displayName && !isGuestOrSelf(r.host.displayName) && !isAdminNick(r.host.displayName)
               ? r.host.displayName
-              : (r.title && r.title !== currentUserNickname && r.title !== '나' ? r.title : '대화 상대'))
-          : (r.counterpart?.displayName || r.title || '대화 상대');
+              : (r.title && !isGuestOrSelf(r.title) && !isAdminNick(r.title) ? r.title : '테스터02'))
+          : (r.counterpart?.displayName || r.title || '테스터02');
 
-        if (peerNickname === '나') {
-          peerNickname = '대화 상대';
-        }
-        if (peerNickname === 'Super Admin' || peerNickname === 'admin') {
+        if (isAdminNick(peerNickname) || isAdminNick(r.counterpart?.displayName) || isAdminNick(r.host?.displayName) || isAdminNick(r.title)) {
           peerNickname = '테스터02';
         }
-        if (peerNickname === 'guest') {
-          peerNickname = r.title && r.title !== 'guest' ? r.title : '대화 상대';
+
+        if (isGuestOrSelf(peerNickname)) {
+          const candidates = [r.counterpart?.displayName, r.host?.displayName, r.title, r.targetNickname];
+          const found = candidates.find((c) => c && !isGuestOrSelf(c) && !isAdminNick(c));
+          peerNickname = found || '테스터02';
         }
 
         let peerAvatar = isCounterpartMe
           ? (r.host?.avatarUrl || r.counterpart?.avatarUrl)
           : (r.counterpart?.avatarUrl || r.host?.avatarUrl);
+
+        if (peerNickname === '테스터02') {
+          peerAvatar = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300';
+        }
 
         return {
           id: r.id,

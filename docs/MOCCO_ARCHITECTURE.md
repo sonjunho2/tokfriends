@@ -104,3 +104,4 @@ sequenceDiagram
     
     Note over App,Web: 새로고침(Pull-to-refresh)을 해도 DB에서 영구 삭제되어 다시 나타나지 않음
 ```
+

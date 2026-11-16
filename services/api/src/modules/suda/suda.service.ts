@@ -307,20 +307,24 @@ export class SudaService {
    * 1줄 수다 토크 작성
    */
   async createPost(authorId: string, dto: CreateSudaPostDto) {
-    let authorName = '나 (이웃)';
-    let authorAvatar: string | null = null;
+    let authorName = dto.authorNickname?.trim() || '나 (이웃)';
+    let authorAvatar: string | null = dto.authorAvatar || null;
 
     if (authorId && authorId !== 'usr_guest') {
       try {
-        const u = await this.prisma.user.findUnique({
-          where: { id: authorId },
+        const u = await this.prisma.user.findFirst({
+          where: { OR: [{ id: authorId }, { nickname: authorId }] },
           select: { nickname: true, displayName: true, avatarUrl: true },
         });
         if (u) {
-          authorName = u.nickname || u.displayName || authorName;
-          authorAvatar = u.avatarUrl || null;
+          authorName = dto.authorNickname || u.nickname || u.displayName || authorName;
+          authorAvatar = u.avatarUrl || authorAvatar;
         }
       } catch {}
+    }
+
+    if (authorName === 'Super Admin' || authorName === 'admin') {
+      authorName = dto.authorNickname || '테스터02';
     }
 
     const postId = `suda-post-${Date.now()}`;
@@ -336,7 +340,7 @@ export class SudaService {
       repliesCount: 0,
       createdAt: new Date().toISOString(),
       author: {
-        id: authorId || 'usr_guest',
+        id: authorId || dto.authorId || 'usr_guest',
         nickname: authorName,
         avatarUrl:
           authorAvatar ||

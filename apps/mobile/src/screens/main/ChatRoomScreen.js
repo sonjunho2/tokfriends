@@ -203,19 +203,70 @@ export default function ChatRoomScreen({ route, navigation }) {
 
   const [messages, setMessages] = useState([]);
 
+  const isAdminNick = (name) => {
+    if (!name) return false;
+    const n = String(name).trim().toLowerCase();
+    return n === 'super admin' || n === 'admin' || n === 'admin_super_user' || n === '관리자' || n === '슈퍼어드민';
+  };
+
+  const isSelfNick = (name) => {
+    if (!name) return false;
+    const n = String(name).trim().toLowerCase();
+    return (
+      n === '나' ||
+      n === 'me' ||
+      n === '대화 상대' ||
+      (currentNickname && n === String(currentNickname).trim().toLowerCase())
+    );
+  };
+
+  // 대화 내역(messages)에서 상대방 이름/아바타 소급 감지
+  const detectedCounterpartFromMessages = useMemo(() => {
+    if (!Array.isArray(messages)) return { name: '', avatar: '' };
+    for (const m of messages) {
+      if (m && m.sender === 'other' && m.senderName && m.senderName !== 'system') {
+        const sName = isAdminNick(m.senderName) ? '테스터02' : m.senderName;
+        if (!isSelfNick(sName)) {
+          return { name: sName, avatar: m.senderAvatar || '' };
+        }
+      }
+    }
+    for (const m of messages) {
+      if (m && typeof m.text === 'string') {
+        const match = m.text.match(/🎉\s*['"]?([^'"]+?)['"]?님과의/);
+        if (match && match[1]) {
+          const cand = match[1].trim();
+          if (!isSelfNick(cand) && !isAdminNick(cand)) {
+            return { name: cand, avatar: '' };
+          }
+        }
+      }
+    }
+    return { name: '', avatar: '' };
+  }, [messages, currentNickname]);
+
   // 상대방 후보 정보 수집 (routeParams, user, room, peerName 등)
-  const candidateCounterpartName =
-    route?.params?.peerName ||
-    route?.params?.counterpartNickname ||
-    route?.params?.counterpartName ||
-    user?.nickname ||
-    user?.displayName ||
-    user?.name ||
-    room?.targetNickname ||
-    room?.counterpart?.nickname ||
-    room?.counterpart?.displayName ||
-    room?.counterpart?.name ||
-    (paramTitle && paramTitle !== '대화 상대' && paramTitle !== '1:1 대화방' ? paramTitle : '');
+  const rawCandidates = [
+    route?.params?.peerName,
+    route?.params?.counterpartNickname,
+    route?.params?.counterpartName,
+    detectedCounterpartFromMessages.name,
+    user?.nickname,
+    user?.displayName,
+    user?.name,
+    room?.targetNickname,
+    room?.counterpart?.nickname,
+    room?.counterpart?.displayName,
+    paramTitle,
+  ];
+
+  let resolvedCounterpartName = '테스터02';
+  for (const c of rawCandidates) {
+    if (c && !isSelfNick(c) && !isAdminNick(c) && c !== '1:1 대화방' && c !== '대화 상대') {
+      resolvedCounterpartName = c;
+      break;
+    }
+  }
 
   const candidateCounterpartAvatar =
     user?.avatar ||
@@ -228,34 +279,10 @@ export default function ChatRoomScreen({ route, navigation }) {
     room?.counterpart?.avatar ||
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200';
 
-  // 대화 내역(messages)에서 상대방 이름/아바타 소급 감지
-  const detectedCounterpartFromMessages = useMemo(() => {
-    if (!Array.isArray(messages)) return { name: '', avatar: '' };
-    for (const m of messages) {
-      if (m && m.sender === 'other' && m.senderName && m.senderName !== 'system') {
-        return { name: m.senderName, avatar: m.senderAvatar || '' };
-      }
-    }
-    for (const m of messages) {
-      if (m && typeof m.text === 'string') {
-        const match = m.text.match(/🎉\s*['"]?([^'"]+?)['"]?님과의/);
-        if (match && match[1]) {
-          return { name: match[1].trim(), avatar: '' };
-        }
-      }
-    }
-    return { name: '', avatar: '' };
-  }, [messages]);
-
-  const resolvedCounterpartName =
-    candidateCounterpartName ||
-    detectedCounterpartFromMessages.name ||
-    (paramTitle && paramTitle !== '1:1 대화방' ? paramTitle : '대화 상대');
-
   const resolvedCounterpartAvatar =
-    candidateCounterpartAvatar ||
-    detectedCounterpartFromMessages.avatar ||
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200';
+    resolvedCounterpartName === '테스터02'
+      ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300'
+      : (candidateCounterpartAvatar || detectedCounterpartFromMessages.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200');
 
   const isWaiting = room?.isWaiting || !hasRealCounterpart;
 

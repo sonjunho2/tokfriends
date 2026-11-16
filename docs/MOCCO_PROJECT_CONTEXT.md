@@ -105,3 +105,4 @@ tokfriends/
 | **웹 & 관리자** | Vercel (Next.js) | `https://tokfriends.vercel.app` | GitHub `main` push 시 자동 배포 |
 | **백엔드 API** | Render (Docker/Node) | `https://tok-friends-api.onrender.com/v1` | PostgreSQL + Redis 연동 |
 | **실시간 소켓** | Render (Socket.io) | `wss://tok-friends-api.onrender.com` | 실시간 채팅, 선물, 수다 동기화 |
+

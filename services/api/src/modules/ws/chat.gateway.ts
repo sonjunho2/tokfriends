@@ -457,15 +457,22 @@ export class ChatGateway
   @SubscribeMessage('chat:join')
   handleChatJoin(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() data: { chatId: string },
+    @MessageBody() data: { chatId?: string; userId?: string; nickname?: string },
   ) {
     if (data?.chatId) {
       const channel = `chat_room_${data.chatId}`;
       socket.join(channel);
       this.logger.log(`Socket ${socket.id} joined chat room: ${data.chatId}`);
-      return { ok: true, chatId: data.chatId };
     }
-    return { ok: false };
+    if (data?.userId) {
+      socket.join(`user_${data.userId}`);
+      this.logger.log(`Socket ${socket.id} joined notification room: user_${data.userId}`);
+    }
+    if (data?.nickname) {
+      socket.join(`user_${data.nickname}`);
+      this.logger.log(`Socket ${socket.id} joined notification room: user_${data.nickname}`);
+    }
+    return { ok: true, data };
   }
 
   /**
@@ -562,19 +569,16 @@ export class ChatGateway
     @MessageBody() data: any,
   ) {
     const user = socket.data?.user;
-    const userId = data?.senderAccountId || data?.senderId || (user?.nickname !== 'Super Admin' && user?.id ? user.id : (user?.id || 'guest'));
+    let userId = data?.senderAccountId || data?.senderId || user?.id || 'u-tester-02';
+    if (userId === 'admin_super_user') {
+      userId = 'u-tester-02';
+    }
     const chatId = data?.chatId;
     if (!chatId) return { ok: false };
 
-    let senderName = data.senderNickname || data.senderName;
-    if (!senderName || senderName === 'Super Admin' || senderName === 'admin') {
-      const userNick = user?.nickname || user?.displayName;
-      if (userNick && userNick !== 'Super Admin' && userNick !== 'admin') {
-        senderName = userNick;
-      } else {
-        senderName = (data.senderNickname && data.senderNickname !== 'Super Admin' ? data.senderNickname : (data.senderName && data.senderName !== 'Super Admin' ? data.senderName : '테스터02'));
-      }
-    }
+    const rawSender = String(data.senderNickname || data.senderName || user?.nickname || '').trim();
+    const isSenderAdmin = ['super admin', 'admin', '관리자', 'admin_super_user', '슈퍼어드민'].includes(rawSender.toLowerCase());
+    let senderName = isSenderAdmin ? '테스터02' : (rawSender || '테스터02');
 
     const payload = {
       ...data,
