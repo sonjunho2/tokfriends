@@ -7640,7 +7640,9 @@ export default function CustomerWebStorefrontPage() {
                                 headline: activeChatRoom.lastMessage || '모꼬 1:1 대화 상대입니다 ✨',
                               })}>
                                 <h4 className="font-black text-sm text-slate-900 truncate">
-                                  {activeChatRoom.targetNickname}
+                                  {activeChatRoom.targetNickname && activeChatRoom.targetNickname !== '대화 상대'
+                                    ? activeChatRoom.targetNickname
+                                    : (activeChatRoom.messages.find((m) => !m.isMe)?.senderNickname || activeChatRoom.targetNickname || '대화 상대')}
                                 </h4>
                               </div>
                             </div>
@@ -7838,15 +7840,15 @@ export default function CustomerWebStorefrontPage() {
                                       })}
                                       className="h-8 w-8 rounded-full bg-[#FFD1DC] text-[#FF3B6B] font-black text-xs flex items-center justify-center shrink-0 border border-pink-200 overflow-hidden shadow-2xs cursor-pointer"
                                     >
-                                      {activeChatRoom.targetAvatar ? (
-                                        <img src={activeChatRoom.targetAvatar} alt="" className="h-full w-full object-cover" />
-                                      ) : (
-                                        '대상'
-                                      )}
+                                      <img
+                                        src={activeChatRoom.targetAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200'}
+                                        alt={msg.senderNickname || activeChatRoom.targetNickname}
+                                        className="h-full w-full object-cover"
+                                      />
                                     </div>
                                     <div className="flex flex-col items-start min-w-0">
                                       <span className="text-[11px] font-bold text-slate-700 mb-0.5">
-                                        {activeChatRoom.targetNickname}
+                                        {msg.senderNickname || activeChatRoom.targetNickname}
                                       </span>
                                       <div className="flex items-end gap-1.5">
                                         {msg.media?.uri ? (

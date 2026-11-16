@@ -22,10 +22,10 @@ export default function Avatar({
   const fontSize = Math.round(size * 0.36);
 
   const getInitials = (n) => {
-    if (!n) return '다';
-    const parts = String(n).trim().split(/\s+/);
-    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-    return n.substring(0, 2);
+    if (!n) return '친구';
+    const clean = String(n).trim();
+    if (!clean) return '친구';
+    return clean.substring(0, 1);
   };
 
   const imageSource = source || (uri ? { uri } : null);

@@ -718,13 +718,27 @@ export default function ChatsScreen({ navigation }) {
         style={styles.chatRoomCard}
         activeOpacity={0.8}
         onPress={() => {
+          const peerNick = item.peer?.nickname || item.peer?.name || '친구';
+          const peerAvatar = item.peer?.avatarUrl || item.peer?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200';
           navigation.navigate('ChatRoom', {
             id: item.id,
             chatId: item.id,
-            peerId: item.peer.id,
-            peerName: item.peer.nickname,
+            peerId: item.peer?.id,
+            peerName: peerNick,
+            title: peerNick,
+            counterpartAccountId: item.peer?.id,
+            counterpartNickname: peerNick,
+            counterpartAvatar: peerAvatar,
             marketOrder: item.marketOrder,
-            user: item.peer,
+            user: {
+              ...item.peer,
+              id: item.peer?.id,
+              name: peerNick,
+              displayName: peerNick,
+              nickname: peerNick,
+              avatar: peerAvatar,
+              avatarUrl: peerAvatar,
+            },
           });
         }}
       >

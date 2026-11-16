@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -132,6 +132,8 @@ const normalizeHistoryMessage = (message, currentActivityAccountId) => {
     media: isMedia ? { uri: message.content } : null,
     gift: giftData,
     backendType,
+    senderName: message.senderName || message.senderNickname || null,
+    senderAvatar: message.senderAvatar || message.avatarUrl || message.avatar || null,
   };
 };
 
@@ -199,17 +201,70 @@ export default function ChatRoomScreen({ route, navigation }) {
     (counterpartAccountId && counterpartAccountId !== currentActivityAccountId)
   );
 
+  const [messages, setMessages] = useState([]);
+
+  // 상대방 후보 정보 수집 (routeParams, user, room, peerName 등)
+  const candidateCounterpartName =
+    route?.params?.peerName ||
+    route?.params?.counterpartNickname ||
+    route?.params?.counterpartName ||
+    user?.nickname ||
+    user?.displayName ||
+    user?.name ||
+    room?.targetNickname ||
+    room?.counterpart?.nickname ||
+    room?.counterpart?.displayName ||
+    room?.counterpart?.name ||
+    (paramTitle && paramTitle !== '대화 상대' && paramTitle !== '1:1 대화방' ? paramTitle : '');
+
+  const candidateCounterpartAvatar =
+    user?.avatar ||
+    user?.avatarUrl ||
+    user?.profileImageUrl ||
+    route?.params?.counterpartAvatar ||
+    route?.params?.peerAvatar ||
+    room?.targetAvatar ||
+    room?.counterpart?.avatarUrl ||
+    room?.counterpart?.avatar ||
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200';
+
+  // 대화 내역(messages)에서 상대방 이름/아바타 소급 감지
+  const detectedCounterpartFromMessages = useMemo(() => {
+    if (!Array.isArray(messages)) return { name: '', avatar: '' };
+    for (const m of messages) {
+      if (m && m.sender === 'other' && m.senderName && m.senderName !== 'system') {
+        return { name: m.senderName, avatar: m.senderAvatar || '' };
+      }
+    }
+    for (const m of messages) {
+      if (m && typeof m.text === 'string') {
+        const match = m.text.match(/🎉\s*['"]?([^'"]+?)['"]?님과의/);
+        if (match && match[1]) {
+          return { name: match[1].trim(), avatar: '' };
+        }
+      }
+    }
+    return { name: '', avatar: '' };
+  }, [messages]);
+
+  const resolvedCounterpartName =
+    candidateCounterpartName ||
+    detectedCounterpartFromMessages.name ||
+    (paramTitle && paramTitle !== '1:1 대화방' ? paramTitle : '대화 상대');
+
+  const resolvedCounterpartAvatar =
+    candidateCounterpartAvatar ||
+    detectedCounterpartFromMessages.avatar ||
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200';
+
   const isWaiting = room?.isWaiting || !hasRealCounterpart;
 
   // 헤더에 표시할 이름 및 부제목
-  const headerDisplayName = hasRealCounterpart
-    ? (user?.displayName || user?.name || paramTitle || '대화 상대')
-    : (room?.rawTitle || room?.title || paramTitle || '1:1 대화방');
+  const headerDisplayName = resolvedCounterpartName || '대화 상대';
 
   const headerSubText = !hasRealCounterpart
     ? (isMyCreatedRoom ? '내가 개설한 방 (상대방 대기 중 ⏳)' : '상대방 대기 중 ⏳')
     : (isCounterpartTyping ? '입력 중...' : (user?.location || ''));
-  const [messages, setMessages] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState('');
   const [nextCursor, setNextCursor] = useState(null);
@@ -1197,6 +1252,7 @@ export default function ChatRoomScreen({ route, navigation }) {
       pendingMessageRef.current = null;
       setInputText('');
       inputTextRef.current = '';
+      Keyboard.dismiss();
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -1461,10 +1517,10 @@ export default function ChatRoomScreen({ route, navigation }) {
           }}
         >
           <Avatar
-            name={user.name}
+            name={item.senderName || resolvedCounterpartName}
             size={38}
             shape="circle"
-            uri={user.avatar}
+            uri={item.senderAvatar || resolvedCounterpartAvatar}
             style={styles.messageAvatar}
           />
         </TouchableOpacity>
@@ -1478,8 +1534,8 @@ export default function ChatRoomScreen({ route, navigation }) {
                     id: user.id || counterpartAccountId,
                     targetUserId: user.id || counterpartAccountId,
                     targetAccountId: counterpartAccountId,
-                    name: user.name,
-                    avatar: user.avatar,
+                    name: item.senderName || resolvedCounterpartName,
+                    avatar: item.senderAvatar || resolvedCounterpartAvatar,
                     location: user.location,
                     headline: user.headline,
                   },
@@ -1487,7 +1543,7 @@ export default function ChatRoomScreen({ route, navigation }) {
               }
             }}
           >
-            <Text style={styles.otherAuthorName}>{user.name}</Text>
+            <Text style={styles.otherAuthorName}>{item.senderName || resolvedCounterpartName}</Text>
           </TouchableOpacity>
           <View style={styles.otherBubbleRow}>
             {item.type === 'gift' ? (
@@ -1636,7 +1692,7 @@ export default function ChatRoomScreen({ route, navigation }) {
         )}
 
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.chatContainer}
           keyboardVerticalOffset={Platform.OS === 'ios' ? (headerHeight + insets.top) : 0}
         >
