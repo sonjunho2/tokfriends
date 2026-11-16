@@ -3275,12 +3275,14 @@ export interface AdminGiftItem {
   description?: string | null;
   thumbnailUrl?: string | null;
   animationUrl?: string | null;
+  icon?: string | null;
   animationType: string;
   category: string;
   sortOrder: number;
   amount: number;
   points: number;
   pricePoints: number;
+  tier?: number;
   isActive: boolean;
   chatEnabled: boolean;
   liveEnabled: boolean;

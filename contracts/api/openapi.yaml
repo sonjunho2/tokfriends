@@ -540,11 +540,25 @@ components:
       properties:
         id:
           type: "string"
+        code:
+          type: "string"
         name:
           type: "string"
         description:
           type: "string"
+        thumbnailUrl:
+          type: "string"
         imageUrl:
+          type: "string"
+        icon:
+          type: "string"
+        pricePoints:
+          type: "integer"
+        amount:
+          type: "integer"
+        category:
+          type: "string"
+        animationType:
           type: "string"
         priceCents:
           type: "integer"

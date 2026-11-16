@@ -152,50 +152,139 @@ export interface MoccoChatGiftItem {
   name: string
   description: string
   pricePoints: number
-  icon: string
-  category: 'all' | 'mocco_special' | 'mocco_vip'
+  amount?: number
+  points?: number
+  thumbnailUrl?: string | null
+  icon?: string
+  category: string
+  animationType?: string
 }
 
 const MOCCO_CHAT_GIFTS: MoccoChatGiftItem[] = [
   {
     id: 'gift-mocco-1',
-    name: '볼빨간 모꼬',
+    name: '볼빨간 모꼬 (소형)',
     description: '모꼬가 부끄러워하며 화면에 핑크빛 하트 구름 방울을 퐁퐁 뿜어냅니다 ☁️💖',
     pricePoints: 1000,
+    amount: 1000,
+    thumbnailUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
     icon: '☁️💖',
     category: 'mocco_special',
+    animationType: 'BLUSHING_MOCCO',
   },
   {
     id: 'gift-mocco-2',
-    name: '구름카 탄 모꼬',
+    name: '구름카 탄 모꼬 (중형)',
     description: '모꼬가 핑크빛 오픈카를 타고 화면을 가로지르며 꽃가루 폭죽을 쏘아 올립니다 🚗🎉',
     pricePoints: 5000,
+    amount: 5000,
+    thumbnailUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
     icon: '🚗🎉',
     category: 'mocco_special',
+    animationType: 'CLOUD_CAR_MOCCO',
   },
   {
     id: 'gift-mocco-3',
-    name: '골든 킹 모꼬의 축제',
+    name: '골든 킹 모꼬의 축제 (VIP 대형)',
     description: '황금 왕관을 쓴 거대 황금 모꼬가 나타나 화면 전체에 골드 코인과 축제 폭죽을 쏟아붓습니다 👑🪙🎆',
     pricePoints: 30000,
+    amount: 30000,
+    thumbnailUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=200',
     icon: '👑🪙',
     category: 'mocco_vip',
+    animationType: 'GOLDEN_KING_MOCCO',
   },
   {
     id: 'gift-cafe-1',
     name: '달콤 마카롱 세트',
     description: '따뜻한 대화에 달콤한 활력을 주는 5색 프리미엄 마카롱 세트 🍬',
     pricePoints: 3000,
+    amount: 3000,
+    thumbnailUrl: 'https://images.unsplash.com/photo-1569864358642-9d1684040f43?w=200',
     icon: '🍬',
-    category: 'all',
+    category: 'general',
   },
   {
     id: 'gift-cafe-2',
     name: '스타벅스 아메리카노',
     description: '기분 좋은 하루를 응원하는 모바일 커피 쿠폰 ☕',
     pricePoints: 4500,
+    amount: 4500,
+    thumbnailUrl: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=200',
     icon: '☕',
-    category: 'all',
+    category: 'general',
+  },
+  {
+    id: 'gift-special-1',
+    name: '따뜻한 커피',
+    description: '친구에게 마음을 전하는 따뜻한 커피 한 잔',
+    pricePoints: 100,
+    amount: 100,
+    thumbnailUrl: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=200',
+    icon: '☕',
+    category: 'general',
+  },
+  {
+    id: 'gift-special-2',
+    name: '달콤한 아이스크림',
+    description: '기분 좋은 시원하고 달콤한 선물',
+    pricePoints: 300,
+    amount: 300,
+    thumbnailUrl: 'https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?w=200',
+    icon: '🍦',
+    category: 'general',
+  },
+  {
+    id: 'gift-special-3',
+    name: '조각 케이크',
+    description: '특별한 날을 축하하는 달콤한 케이크',
+    pricePoints: 500,
+    amount: 500,
+    thumbnailUrl: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=200',
+    icon: '🍰',
+    category: 'general',
+  },
+  {
+    id: 'gift-special-4',
+    name: '아름다운 꽃다발',
+    description: '진심 어린 감동을 전하는 꽃다발 선물',
+    pricePoints: 1000,
+    amount: 1000,
+    thumbnailUrl: 'https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=200',
+    icon: '💐',
+    category: 'general',
+  },
+  {
+    id: 'gift-special-5',
+    name: '영롱한 다이아몬드',
+    description: '최고의 찬사를 보내는 영롱한 보석',
+    pricePoints: 5000,
+    amount: 5000,
+    thumbnailUrl: 'https://images.unsplash.com/photo-1599707367072-cd6ada2bc375?w=200',
+    icon: '💎',
+    category: 'general',
+  },
+  {
+    id: 'gift-vip-1',
+    name: '네온 슈퍼카 (3D)',
+    description: '화려한 라이브를 수놓는 3D 슈퍼카 이펙트',
+    pricePoints: 10000,
+    amount: 10000,
+    thumbnailUrl: 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=200',
+    icon: '🏎️',
+    category: 'mocco_vip',
+    animationType: 'alpha_video',
+  },
+  {
+    id: 'gift-vip-2',
+    name: '골든 드래곤 (3D)',
+    description: '화면 전체를 압도하는 헐리우드급 3D 황금 드래곤',
+    pricePoints: 50000,
+    amount: 50000,
+    thumbnailUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=200',
+    icon: '🐉',
+    category: 'mocco_vip',
+    animationType: 'alpha_video',
   },
 ]
 
@@ -2409,6 +2498,27 @@ export default function CustomerWebStorefrontPage() {
   const [isLiveGiftPickerOpen, setIsLiveGiftPickerOpen] = useState(false)
   const [liveGiftCategory, setLiveGiftCategory] = useState<'all' | 'mocco_special' | 'mocco_vip'>('all')
   const [adminGifts, setAdminGifts] = useState<MoccoChatGiftItem[]>(MOCCO_CHAT_GIFTS)
+
+  // 관리자 등록 선물 목록 실시간 동기화
+  useEffect(() => {
+    getAdminGifts()
+      .then((items) => {
+        if (Array.isArray(items) && items.length > 0) {
+          const mapped: MoccoChatGiftItem[] = items.map((item) => ({
+            id: item.id || item.code,
+            name: item.name,
+            description: item.description || '',
+            pricePoints: item.pricePoints || item.points || item.amount || 1000,
+            thumbnailUrl: item.thumbnailUrl,
+            icon: item.icon || (item.animationType === 'GOLDEN_KING_MOCCO' ? '👑🪙' : item.animationType === 'CLOUD_CAR_MOCCO' ? '🚗🎉' : item.animationType === 'BLUSHING_MOCCO' ? '☁️💖' : '🎁'),
+            category: item.category || 'all',
+            animationType: item.animationType,
+          }))
+          setAdminGifts(mapped)
+        }
+      })
+      .catch(() => {})
+  }, [])
   const [isLiveMuted, setIsLiveMuted] = useState(false)
   const [floatingHearts, setFloatingHearts] = useState<{ id: number; color: string; left: number }[]>([])
   const [isPinnedProductMinimized, setIsPinnedProductMinimized] = useState(false)
@@ -4215,8 +4325,8 @@ export default function CustomerWebStorefrontPage() {
       // 3D Gift Effect Overlay on Video Player
       setLiveGiftEffect({
         name: gift.name,
-        icon: gift.icon,
-        description: gift.description,
+        icon: gift.icon || '🎁',
+        description: gift.description || '',
         sender: senderName,
         amount: gift.pricePoints,
       })
@@ -4230,8 +4340,8 @@ export default function CustomerWebStorefrontPage() {
           msg: giftMsg,
           effect: {
             name: gift.name,
-            icon: gift.icon,
-            description: gift.description,
+            icon: gift.icon || '🎁',
+            description: gift.description || '',
             sender: senderName,
             amount: gift.pricePoints,
           },
@@ -4649,8 +4759,8 @@ export default function CustomerWebStorefrontPage() {
       // 3D Gift Effect 재생
       setLiveGiftEffect({
         name: gift.name,
-        icon: gift.icon,
-        description: gift.description,
+        icon: gift.icon || '🎁',
+        description: gift.description || '',
         sender: user?.nickname || '나',
         amount: gift.pricePoints,
       })
@@ -4718,13 +4828,13 @@ export default function CustomerWebStorefrontPage() {
         senderNickname: user?.nickname || '나',
         receiverId: activeChatRoom.targetUserId || activeChatRoom.targetNickname,
         targetUserId: activeChatRoom.targetUserId || activeChatRoom.targetNickname,
-        icon: gift.icon,
+        icon: gift.icon || '🎁',
       }).catch((e) => console.warn('sendChatGift error:', e))
       // 화려한 3D 축제 이펙트 발동!
       setActiveGiftEffect({
         name: gift.name,
-        icon: gift.icon,
-        text: gift.description,
+        icon: gift.icon || '🎁',
+        text: gift.description || '',
       })
       setTimeout(() => {
         setActiveGiftEffect(null)
@@ -8366,8 +8476,13 @@ export default function CustomerWebStorefrontPage() {
 
                                 {/* 선물 그리드 리스트 */}
                                 <div className="grid grid-cols-2 gap-2 overflow-y-auto max-h-[260px] pr-1">
-                                  {MOCCO_CHAT_GIFTS
-                                    .filter((g) => (activeGiftCategory === 'all' ? true : g.category === activeGiftCategory))
+                                  {adminGifts
+                                    .filter((g) => {
+                                      if (activeGiftCategory === 'all') return true
+                                      if (activeGiftCategory === 'mocco_special') return g.category === 'mocco_special' || g.category === 'special'
+                                      if (activeGiftCategory === 'mocco_vip') return g.category === 'mocco_vip' || g.category === 'vip'
+                                      return g.category === activeGiftCategory
+                                    })
                                     .map((gift) => (
                                       <div
                                         key={gift.id}
@@ -8375,7 +8490,11 @@ export default function CustomerWebStorefrontPage() {
                                         className="group p-2.5 rounded-2xl border border-slate-200/80 bg-slate-50/60 hover:bg-pink-50/60 hover:border-pink-300 transition-all cursor-pointer text-left space-y-1 flex flex-col justify-between"
                                       >
                                         <div className="flex items-center justify-between">
-                                          <span className="text-2xl group-hover:scale-110 transition-transform">{gift.icon}</span>
+                                          {gift.thumbnailUrl && (gift.thumbnailUrl.startsWith('http://') || gift.thumbnailUrl.startsWith('https://')) ? (
+                                            <img src={gift.thumbnailUrl} alt={gift.name} className="h-7 w-7 rounded-full object-cover group-hover:scale-110 transition-transform shadow-xs" />
+                                          ) : (
+                                            <span className="text-2xl group-hover:scale-110 transition-transform">{gift.icon || '🎁'}</span>
+                                          )}
                                           <span className="text-[10px] font-black text-pink-600 bg-pink-100 px-1.5 py-0.2 rounded">
                                             {gift.pricePoints.toLocaleString()} 꿀떡
                                           </span>
@@ -11904,7 +12023,12 @@ export default function CustomerWebStorefrontPage() {
                   {/* 선물 그리드 */}
                   <div className="grid grid-cols-2 gap-2 overflow-y-auto max-h-[220px] pr-1">
                     {adminGifts
-                      .filter((g) => (liveGiftCategory === 'all' ? true : g.category === liveGiftCategory))
+                      .filter((g) => {
+                        if (liveGiftCategory === 'all') return true
+                        if (liveGiftCategory === 'mocco_special') return g.category === 'mocco_special' || g.category === 'special'
+                        if (liveGiftCategory === 'mocco_vip') return g.category === 'mocco_vip' || g.category === 'vip'
+                        return g.category === liveGiftCategory
+                      })
                       .map((gift) => (
                         <div
                           key={gift.id}
@@ -11912,7 +12036,11 @@ export default function CustomerWebStorefrontPage() {
                           className="group p-2.5 rounded-2xl border border-slate-800 bg-slate-900/80 hover:bg-pink-950/40 hover:border-pink-500/60 transition-all cursor-pointer text-left space-y-1 flex flex-col justify-between"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-2xl group-hover:scale-110 transition-transform">{gift.icon}</span>
+                            {gift.thumbnailUrl && (gift.thumbnailUrl.startsWith('http://') || gift.thumbnailUrl.startsWith('https://')) ? (
+                              <img src={gift.thumbnailUrl} alt={gift.name} className="h-7 w-7 rounded-full object-cover group-hover:scale-110 transition-transform shadow-xs" />
+                            ) : (
+                              <span className="text-2xl group-hover:scale-110 transition-transform">{gift.icon || '🎁'}</span>
+                            )}
                             <span className="text-[10px] font-black text-amber-300 bg-amber-950/60 px-1.5 py-0.2 rounded border border-amber-500/20">
                               {gift.pricePoints.toLocaleString()} 꿀떡
                             </span>
