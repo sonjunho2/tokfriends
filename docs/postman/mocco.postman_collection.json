@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "TokFriends API",
+    "name": "MOCCO API",
     "_postman_id": "8e6b0bfc-2a8e-4f7d-91a5-53f1f9b7a0a1",
-    "description": "TokFriends 기본 엔드포인트 컬렉션",
+    "description": "MOCCO 기본 엔드포인트 컬렉션",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [

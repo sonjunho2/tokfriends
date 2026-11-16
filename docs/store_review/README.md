@@ -1,8 +1,19 @@
-# Store Review Package
-- **Demo Account**: email `demo@example.com` / password `demopass` (no PII; test-only)
-- **Sign in with Apple**: available via `/auth/apple` (test token accepted if JWKS not configured)
-- **Safety Features**: report/block, bad-words filter, rate limit, age gate policy
-- **Data Safety**: Minimal PII (email); phone hash optional; deletion/export endpoints TBD
-- **Contact**: support@example.com
+# 모꼬 (MOCCO) 스토어 심사 안내 패키지
 
-Include the **Privacy Policy** below link in app listing.
+### 1. 테스트 심사용 계정
+- **테스터 계정 1**: `tester01@test.com` (닉네임: `테스터01`)
+- **테스터 계정 2**: `tester02@test.com` (닉네임: `테스터02`)
+- **패스워드**: `Test1234!` (앱/웹 공통 간편 로그인 지원)
+
+### 2. 주요 안전 및 보안 정책 (Safety & Security)
+- **신고 및 차단 기능**: 1:1 대화방 및 프로필 화면에서 3초 이내 즉시 차단 및 관리자 신고 처리 (마이모꼬 차단 목록 관리).
+- **유해 콘텐츠 필터링**: 비속어/욕설 자동 마스킹 및 실시간 24시간 모니터링 관리자 콘솔 연동.
+- **안전 에스크로 결제**: 거래 완료 구매확정 전까지 결제 대금을 안전하게 보호.
+- **데이터 최소 수집 원칙**: 불필요한 민감정보(주민등록번호, 실명 등)를 수집하지 않음.
+
+### 3. 주요 기능 명세
+- 실시간 동네 라이브 방송 (Agora WebRTC 기반 고화질 저지연 스트리밍)
+- 실시간 1줄 전체수다 타임라인 및 1:1 모꼬챗
+- 3D 알파 선물 및 꿀떡 후원 시스템
+- 모꼬마켓 (안전결제 중고 직거래 & 본사 인증 명품 산지직송)
+- 마이모꼬 (꿀떡 지갑, 프로필, 활동 내역 관리)
