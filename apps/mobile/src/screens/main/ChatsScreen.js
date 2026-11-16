@@ -524,16 +524,23 @@ export default function ChatsScreen({ navigation }) {
     });
   }, [friendsList, filterRegion, filterGender, isAgeAll, minAge, maxAge]);
 
-  // 필터링된 전체수다 목록
+  // 필터링 및 최신순/내 방 최우선 정렬된 전체수다 목록
   const filteredSudaPosts = useMemo(() => {
-    return sudaPosts.filter((post) => {
-      if (filterRegion !== '전체') {
-        const postReg = post.neighborhood || post.author?.neighborhood || '';
-        if (!postReg.includes(filterRegion)) return false;
-      }
-      return true;
-    });
-  }, [sudaPosts, filterRegion]);
+    return sudaPosts
+      .filter((post) => {
+        if (filterRegion !== '전체') {
+          const postReg = post.neighborhood || post.author?.neighborhood || '';
+          if (!postReg.includes(filterRegion)) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        const isMineA = (user?.nickname && (a.author?.nickname === user.nickname || a.nickname === user.nickname)) ? 1 : 0;
+        const isMineB = (user?.nickname && (b.author?.nickname === user.nickname || b.nickname === user.nickname)) ? 1 : 0;
+        if (isMineA !== isMineB) return isMineB - isMineA; // 내가 개설한 방 1순위 최상단!
+        return 0;
+      });
+  }, [sudaPosts, filterRegion, user?.nickname]);
 
   // 슬라이더 트랙 터치 처리
   const handleSliderTrackTouch = (evt) => {

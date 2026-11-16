@@ -4397,6 +4397,7 @@ export default function CustomerWebStorefrontPage() {
 
       setNewRoomTitle('')
       setSudaInputText('')
+      setSudaCategoryFilter('전체')
       setIsCreateSudaRoomOpen(false)
       toast({
         title: '🎉 1:1 수다방 개설 완료!',
@@ -7475,6 +7476,14 @@ export default function CustomerWebStorefrontPage() {
                       <div className="space-y-3 max-h-[580px] overflow-y-auto pr-1">
                         {sudaPosts
                           .filter((p) => (sudaCategoryFilter === '전체' ? true : p.category === sudaCategoryFilter))
+                          .sort((a, b) => {
+                            const isMineA = (user?.nickname && a.nickname === user.nickname) ? 1 : 0
+                            const isMineB = (user?.nickname && b.nickname === user.nickname) ? 1 : 0
+                            if (isMineA !== isMineB) return isMineB - isMineA // 내가 개설한 방 무조건 1등 최상단 고정!
+                            if (a.time === '방금 전' && b.time !== '방금 전') return -1
+                            if (b.time === '방금 전' && a.time !== '방금 전') return 1
+                            return 0
+                          })
                           .map((room) => (
                             <div
                               key={room.id}
