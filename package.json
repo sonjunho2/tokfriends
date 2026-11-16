@@ -1,0 +1,16 @@
+{
+  "name": "mocco-workspace",
+  "version": "1.2.0",
+  "private": true,
+  "description": "MOCCO (모꼬) 멀티 플랫폼 통합 워크스페이스",
+  "scripts": {
+    "dev:api": "cd services/api && npm run start:dev",
+    "dev:admin": "cd apps/admin && npm run dev",
+    "dev:mobile": "cd apps/mobile && npm run start",
+    "build:api": "cd services/api && npm run build",
+    "build:admin": "cd apps/admin && npm run build",
+    "build:mobile": "cd apps/mobile && npx expo export -p android --no-bytecode",
+    "build:all": "npm run build:api && npm run build:admin",
+    "check:api": "cd apps/mobile && node scripts/checkApi.js"
+  }
+}

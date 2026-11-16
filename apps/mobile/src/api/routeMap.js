@@ -9,6 +9,14 @@
 export const PATH_MAP = [
   { from: /^\/auth\/otp\/request\/?$/, to: '/auth/phone/request-otp' },
   { from: /^\/auth\/otp\/verify\/?$/,  to: '/auth/phone/verify' },
+  { from: /^\/auth\/phone\/confirm\/?$/, to: '/auth/phone/verify' },
+  { from: /^\/otp\/verify\/?$/,         to: '/auth/phone/verify' },
+  { from: /^\/chat\/direct\/?$/,        to: '/chats/direct' },
+  { from: /^\/chat\/rooms\/direct\/?$/, to: '/chats/direct' },
+  { from: /^\/conversations\/direct\/?$/, to: '/chats/direct' },
+  { from: /^\/cms\/pages\/([a-zA-Z0-9_-]+)\/?$/, to: '/legal-documents/$1' },
+  { from: /^\/policies\/([a-zA-Z0-9_-]+)\/?$/,   to: '/legal-documents/$1' },
+  { from: /^\/legal\/([a-zA-Z0-9_-]+)\/?$/,      to: '/legal-documents/$1' },
   { from: /^\/live(\/.*)?$/,           to: '/v1/live$1' },
 ];
 
