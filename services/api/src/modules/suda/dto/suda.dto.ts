@@ -18,6 +18,11 @@ export class CreateSudaPostDto {
   @IsNumber()
   entryFee?: number;
 
+  @ApiPropertyOptional({ description: '수다방 카테고리/테마', example: '술 한잔/맛집' })
+  @IsOptional()
+  @IsString()
+  category?: string;
+
   @ApiProperty({ description: '작성자 동네 (예: 역삼동)', example: '역삼1동' })
   @IsString()
   @IsNotEmpty()
