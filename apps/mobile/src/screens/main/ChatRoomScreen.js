@@ -188,6 +188,7 @@ export default function ChatRoomScreen({ route, navigation }) {
     : routeCounterpartAccountId || userCounterpartAccountId;
   const { user: authUser, token: authToken } = useAuth();
   const currentActivityAccountId = authUser?.activityAccountId || authUser?.id || 'dummy-user';
+  const currentNickname = authUser?.nickname || authUser?.displayName || authUser?.name || '';
 
   // 내가 개설한 방 여부 및 상대방 대기 여부
   const isMyCreatedRoom = Boolean(
