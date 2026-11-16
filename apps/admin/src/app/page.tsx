@@ -2114,13 +2114,26 @@ export default function CustomerWebStorefrontPage() {
             }
             if (res && res.ok) {
               const data = await res.json()
-              const items = Array.isArray(data?.data)
+              const rawItems = Array.isArray(data?.data)
                 ? data.data
                 : Array.isArray(data?.items)
                 ? data.items
                 : Array.isArray(data)
                 ? data
                 : []
+              const items = rawItems.filter((u: any) => {
+                const nick = String(u.nickname || u.displayName || u.name || '').toLowerCase()
+                const role = String(u.role || '').toUpperCase()
+                return (
+                  u.id !== 'admin_super_user' &&
+                  role !== 'ADMIN' &&
+                  role !== 'SUPERADMIN' &&
+                  !nick.includes('super admin') &&
+                  !nick.includes('슈퍼어드민') &&
+                  nick !== 'admin' &&
+                  nick !== '관리자'
+                )
+              })
               if (items.length > 0) {
                 const mapped = items.map((u: any, idx: number) => ({
                   id: u.id || `friend-${idx + 1}`,

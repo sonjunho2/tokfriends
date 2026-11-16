@@ -300,8 +300,23 @@ export default function ChatsScreen({ navigation }) {
       if (activeMainTab === 'FRIENDS') {
         try {
           const res = await apiClient.getDiscover();
-          const items = Array.isArray(res) ? res : res?.items || res?.data;
-          if (Array.isArray(items) && items.length > 0) {
+          const rawItems = Array.isArray(res) ? res : res?.items || res?.data;
+          const items = Array.isArray(rawItems)
+            ? rawItems.filter((u) => {
+                const nick = String(u.nickname || u.displayName || u.name || '').toLowerCase();
+                const role = String(u.role || '').toUpperCase();
+                return (
+                  u.id !== 'admin_super_user' &&
+                  role !== 'ADMIN' &&
+                  role !== 'SUPERADMIN' &&
+                  !nick.includes('super admin') &&
+                  !nick.includes('슈퍼어드민') &&
+                  nick !== 'admin' &&
+                  nick !== '관리자'
+                );
+              })
+            : [];
+          if (items.length > 0) {
             const mapped = items.map((u, idx) => ({
               id: u.id || `friend-${idx + 1}`,
               nickname: u.nickname || u.displayName || u.profile?.nickname || `모꼬이웃${idx + 1}`,

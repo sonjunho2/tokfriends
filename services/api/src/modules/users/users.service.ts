@@ -697,9 +697,14 @@ export class UsersService implements OnModuleInit {
       await this.ensureRepresentativeUsers();
     } catch {}
 
+    const excludeIds = new Set(['admin_super_user']);
+    if (currentUserId) excludeIds.add(currentUserId);
+
     const dbUsers = await this.prisma.user.findMany({
       where: {
-        ...(currentUserId ? { id: { not: currentUserId } } : {}),
+        id: { notIn: Array.from(excludeIds) },
+        role: { notIn: ['ADMIN', 'SUPERADMIN', 'admin'] },
+        nickname: { notIn: ['Super Admin', 'admin', '슈퍼어드민', '관리자'] },
         status: { in: ['active', 'ACTIVE'] },
       },
       orderBy: { createdAt: 'desc' },
@@ -710,7 +715,18 @@ export class UsersService implements OnModuleInit {
       },
     });
 
-    return dbUsers.map((u, i) => {
+    return dbUsers
+      .filter((u) => {
+        const nick = (u.nickname || u.displayName || '').toLowerCase();
+        return (
+          u.id !== 'admin_super_user' &&
+          u.role !== 'ADMIN' &&
+          u.role !== 'SUPERADMIN' &&
+          !nick.includes('super admin') &&
+          !nick.includes('슈퍼어드민')
+        );
+      })
+      .map((u, i) => {
       const ext = this.extendedProfiles[u.id] || {};
       const nickname = u.nickname || u.displayName || ext.nickname || '모꼬이웃';
       const displayName = u.displayName || u.nickname || ext.displayName || nickname;
