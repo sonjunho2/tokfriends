@@ -305,19 +305,24 @@ export default function ChatsScreen({ navigation }) {
               id: u.id || `friend-${idx + 1}`,
               nickname: u.nickname || u.displayName || u.profile?.nickname || `모꼬이웃${idx + 1}`,
               gender:
-                u.gender === 'female' || u.gender === '여' || u.gender === '여성'
+                u.genderKo ||
+                (u.gender === 'female' || u.gender === '여' || u.gender === '여성'
                   ? '여성'
                   : u.gender === 'male' || u.gender === '남' || u.gender === '남성'
                   ? '남성'
                   : idx % 2 === 0
                   ? '여성'
-                  : '남성',
+                  : '남성'),
               age: typeof u.age === 'number' ? u.age : 22 + ((idx * 3) % 35),
               region: u.region1 || (u.region ? u.region.split(' ')[0] : REGION_OPTIONS[(idx % 16) + 1] || '서울'),
               subRegion: u.region2 || (u.region ? u.region.split(' ')[1] || '' : ''),
               avatarUrl:
-                u.avatar || u.avatarUrl || u.profile?.avatarUri || INITIAL_FRIENDS[idx % INITIAL_FRIENDS.length]?.avatarUrl,
-              statusMessage: u.statusMessage || u.headline || u.profile?.headline || '새로운 모꼬 인연을 기다려요 ✨',
+                u.avatarUrl ||
+                u.avatar ||
+                u.profile?.avatarUri ||
+                `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(u.nickname || u.id)}`,
+              statusMessage:
+                u.statusMessage || u.headline || u.bio || u.profile?.headline || '새로운 모꼬 인연을 기다려요 ✨',
               isOnline:
                 u.isOnline !== undefined ? Boolean(u.isOnline) : Boolean(u.profile?.lastSeenAt) || idx % 2 === 0,
             }));

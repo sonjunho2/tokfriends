@@ -32,6 +32,8 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
   const incomingAuth = request.headers.get('authorization')
   const isPublicEndpoint =
     path === 'health' ||
+    path === 'discover' ||
+    path.startsWith('discover') ||
     path.startsWith('auth/') ||
     path.startsWith('live') ||
     path.startsWith('streaming') ||

@@ -2046,59 +2046,107 @@ export default function CustomerWebStorefrontPage() {
         const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || 'https://tok-friends-api.onrender.com/v1'
         const deletedSuda = getDeletedSudaIds()
 
-        fetch(`${apiBase}/suda/posts`)
-          .then((r) => r.json())
-          .then((data) => {
-            const items = Array.isArray(data?.items) ? data.items : (Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []))
-            if (items.length > 0) {
-              const mapped = items
-                .filter((p: any) => !deletedSuda.has(p.id))
-                .map((p: any) => ({
-                  id: p.id,
-                  nickname: p.author?.nickname || p.author?.displayName || p.nickname || '모꼬이웃',
-                  avatar: p.author?.avatarUrl || p.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
-                  region: p.neighborhood || p.region || '역삼1동',
-                  distance: typeof p.distanceKm === 'number' ? `${p.distanceKm}km` : (p.distance || '0.8km'),
-                  time: p.createdAt ? (typeof p.createdAt === 'string' && p.createdAt.includes('분') ? p.createdAt : '최근') : '방금 전',
-                  title: p.title || p.content?.slice(0, 30) || '수다글',
-                  content: p.content || '',
-                  entryFee: Number(p.entryFee || 0),
-                  category: p.category || '일상',
-                  likes: Number(p.likesCount || p.likeCount || 0),
-                  comments: Number(p.repliesCount || p.commentCount || 0),
-                }))
-              if (mapped.length > 0) {
-                setSudaPosts((prev) => {
-                  const existingIds = new Set(mapped.map((m: any) => m.id))
-                  const userCreated = prev.filter((p) => p.id.startsWith('suda-room-') && !existingIds.has(p.id) && !deletedSuda.has(p.id))
-                  return [...userCreated, ...mapped]
-                })
+        const fetchSuda = async () => {
+          try {
+            let res = await fetch('/api/backend/suda/posts').catch(() => null)
+            if (!res || !res.ok) {
+              res = await fetch(`${apiBase}/suda/posts`).catch(() => null)
+            }
+            if (res && res.ok) {
+              const data = await res.json()
+              const items = Array.isArray(data?.items)
+                ? data.items
+                : Array.isArray(data?.data)
+                ? data.data
+                : Array.isArray(data)
+                ? data
+                : []
+              if (items.length > 0) {
+                const mapped = items
+                  .filter((p: any) => !deletedSuda.has(p.id))
+                  .map((p: any) => ({
+                    id: p.id,
+                    nickname: p.author?.nickname || p.author?.displayName || p.nickname || '모꼬이웃',
+                    avatar:
+                      p.author?.avatarUrl ||
+                      p.avatar ||
+                      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+                    region: p.neighborhood || p.region || '역삼1동',
+                    distance: typeof p.distanceKm === 'number' ? `${p.distanceKm}km` : p.distance || '0.8km',
+                    time: p.createdAt
+                      ? typeof p.createdAt === 'string' && p.createdAt.includes('분')
+                        ? p.createdAt
+                        : '최근'
+                      : '방금 전',
+                    title: p.title || p.content?.slice(0, 30) || '수다글',
+                    content: p.content || '',
+                    entryFee: Number(p.entryFee || 0),
+                    category: p.category || '일상',
+                    likes: Number(p.likesCount || p.likeCount || 0),
+                    comments: Number(p.repliesCount || p.commentCount || 0),
+                  }))
+                if (mapped.length > 0) {
+                  setSudaPosts((prev) => {
+                    const existingIds = new Set(mapped.map((m: any) => m.id))
+                    const userCreated = prev.filter(
+                      (p) => p.id.startsWith('suda-room-') && !existingIds.has(p.id) && !deletedSuda.has(p.id)
+                    )
+                    return [...userCreated, ...mapped]
+                  })
+                }
               }
             }
-          })
-          .catch((err) => console.warn('Failed to sync suda posts from server:', err))
+          } catch (err) {
+            console.warn('Failed to sync suda posts from server:', err)
+          }
+        }
+        void fetchSuda()
 
-        fetch(`${apiBase}/discover`)
-          .then((r) => r.json())
-          .then((data) => {
-            const items = Array.isArray(data?.data) ? data.data : (Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []))
-            if (items.length > 0) {
-              const mapped = items.map((u: any, idx: number) => ({
-                id: u.id || `friend-${idx + 1}`,
-                nickname: u.nickname || u.displayName || u.name || `이웃${idx + 1}`,
-                avatar: u.avatar || u.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
-                region: u.region || (u.region1 ? `${u.region1} ${u.region2 || ''}`.trim() : '서울 강남구'),
-                distance: typeof u.distance === 'number' ? `${u.distance}km` : (u.distance || '0.5km'),
-                mannerTemp: Number(u.mannerTemp || 36.5),
-                statusMessage: u.statusMessage || u.headline || u.bio || '모꼬에서 만나요!',
-                isOnline: u.isOnline !== undefined ? Boolean(u.isOnline) : true,
-                gender: u.gender === 'female' || u.gender === '여' ? '여' : '남',
-                age: Number(u.age || 26),
-              }))
-              setFriends(mapped)
+        const fetchDiscover = async () => {
+          try {
+            let res = await fetch('/api/backend/discover').catch(() => null)
+            if (!res || !res.ok) {
+              res = await fetch('/api/backend/users/discover').catch(() => null)
             }
-          })
-          .catch((err) => console.warn('Failed to sync friends from server:', err))
+            if (!res || !res.ok) {
+              res = await fetch(`${apiBase}/discover`).catch(() => null)
+            }
+            if (res && res.ok) {
+              const data = await res.json()
+              const items = Array.isArray(data?.data)
+                ? data.data
+                : Array.isArray(data?.items)
+                ? data.items
+                : Array.isArray(data)
+                ? data
+                : []
+              if (items.length > 0) {
+                const mapped = items.map((u: any, idx: number) => ({
+                  id: u.id || `friend-${idx + 1}`,
+                  nickname: u.nickname || u.displayName || u.name || `이웃${idx + 1}`,
+                  avatar:
+                    u.avatar ||
+                    u.avatarUrl ||
+                    `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(u.nickname || u.id)}`,
+                  region: u.region || (u.region1 ? `${u.region1} ${u.region2 || ''}`.trim() : '서울 강남구'),
+                  distance: typeof u.distance === 'number' ? `${u.distance}km` : u.distance || '0.5km',
+                  mannerTemp: Number(u.mannerTemp || 36.5),
+                  statusMessage: u.statusMessage || u.headline || u.bio || '모꼬에서 만나요!',
+                  isOnline: u.isOnline !== undefined ? Boolean(u.isOnline) : true,
+                  gender:
+                    u.gender === 'female' || u.gender === '여' || u.gender === '여성' || u.genderKo === '여성'
+                      ? '여'
+                      : '남',
+                  age: Number(u.age || 26),
+                }))
+                setFriends(mapped)
+              }
+            }
+          } catch (err) {
+            console.warn('Failed to sync friends from server:', err)
+          }
+        }
+        void fetchDiscover()
       } catch (err) {
         console.warn('Failed to initialize server sync:', err)
       }

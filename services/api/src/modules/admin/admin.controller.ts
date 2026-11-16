@@ -210,20 +210,35 @@ export class AdminController {
     ]);
 
     return {
-      items: users.map((u) => ({
-        id: u.id,
-        nickname: u.nickname || u.displayName || (u.email ? u.email.split('@')[0] : '회원'),
-        displayName: u.displayName || u.nickname,
-        email: u.email,
-        provider: u.provider || 'email',
-        avatarUrl: u.avatarUrl || u.photos?.[0]?.url || null,
-        pointBalance: u.pointBalance ?? 0,
-        callRatePerMinute: u.callRatePerMinute,
-        status: (u.status || 'ACTIVE').toUpperCase(),
-        role: (u.role || 'USER').toUpperCase(),
-        createdAt: u.createdAt.toISOString(),
-        updatedAt: u.updatedAt.toISOString(),
-      })),
+      items: users.map((u, i) => {
+        let region = '서울 강남구';
+        let age = 23 + ((i * 2) % 15);
+        let gender = i % 2 === 0 ? '여' : '남';
+        if (u.bio && (u.bio.includes('시') || u.bio.includes('도') || u.bio.includes('구'))) {
+          const match = u.bio.match(/([가-힣]+[시|도|군|구](\s+[가-힣]+[시|군|구])?)/);
+          if (match) region = match[1];
+        }
+        return {
+          id: u.id,
+          nickname: u.nickname || u.displayName || (u.email ? u.email.split('@')[0] : '회원'),
+          displayName: u.displayName || u.nickname,
+          email: u.email,
+          provider: u.provider || 'email',
+          avatarUrl:
+            u.avatarUrl ||
+            u.photos?.[0]?.url ||
+            `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(u.nickname || u.id)}`,
+          pointBalance: u.pointBalance ?? 0,
+          callRatePerMinute: u.callRatePerMinute,
+          status: (u.status || 'ACTIVE').toUpperCase(),
+          role: (u.role || 'USER').toUpperCase(),
+          region,
+          gender,
+          age,
+          createdAt: u.createdAt.toISOString(),
+          updatedAt: u.updatedAt.toISOString(),
+        };
+      }),
       total,
       page,
       limit,
