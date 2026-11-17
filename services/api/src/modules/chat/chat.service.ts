@@ -1226,6 +1226,16 @@ export class ChatService implements OnModuleInit {
       }
     }
 
+    const isMediaContent =
+      type === 'media' ||
+      type === 'image' ||
+      type === 'video' ||
+      (typeof processedContent === 'string' &&
+        (processedContent.includes('/media/files/') ||
+          processedContent.startsWith('data:image/') ||
+          /\.(jpeg|jpg|png|gif|webp|mp4|mov)(\?.*)?$/i.test(processedContent)));
+    const resolvedType = type === 'gift' ? 'gift' : (isMediaContent ? 'image' : type);
+
     const now = new Date().toISOString();
     const msg: ChatMessageItem = {
       id: dto.clientMessageId || `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -1234,7 +1244,7 @@ export class ChatService implements OnModuleInit {
       senderName,
       senderAvatar,
       content: processedContent,
-      type,
+      type: resolvedType,
       readAt: null,
       giftPoints: giftPoints !== undefined ? Number(giftPoints) : null,
       giftName: giftName || null,
@@ -1249,9 +1259,14 @@ export class ChatService implements OnModuleInit {
     }
 
     // 답장을 보낸 경우, 이 방의 이전 상대방 메시지들은 내가 모두 읽은 것으로 처리 (readAt 소급 갱신)
+    // 🛡️ 내가 보낸 메시지(effectiveUserId, userId, senderName)는 절대로 읽음 처리하지 않음!
     let readChanged = false;
     for (const prevMsg of this.messagesStore[chatId]) {
-      if (prevMsg.senderAccountId !== userId && !prevMsg.readAt) {
+      const isMyPrev =
+        prevMsg.senderAccountId === effectiveUserId ||
+        prevMsg.senderAccountId === userId ||
+        (senderName && prevMsg.senderName === senderName);
+      if (!isMyPrev && !prevMsg.readAt && prevMsg.senderAccountId !== 'system') {
         prevMsg.readAt = now;
         readChanged = true;
       }
@@ -1262,7 +1277,8 @@ export class ChatService implements OnModuleInit {
     const room = this.rooms.find((r) => r.id === chatId);
     let targetUserId: string | undefined;
     if (room) {
-      room.lastMessage = processedContent;
+      room.lastMessage = isMediaContent ? '📷 사진' : processedContent;
+      room.lastMessageAt = msg.createdAt;
       room.lastMessageAt = msg.createdAt;
       room.unreadCount = 0;
       if (isFlagged) {
@@ -1447,13 +1463,21 @@ export class ChatService implements OnModuleInit {
           if (typeof cleanContent === 'string' && cleanContent.includes('admin_super_user')) {
             cleanContent = cleanContent.replace(/admin_super_user/g, '테스터02');
           }
+          const isMediaMsg =
+            m.type === 'image' ||
+            m.type === 'media' ||
+            (typeof cleanContent === 'string' &&
+              (cleanContent.includes('/media/files/') ||
+                cleanContent.startsWith('data:image/') ||
+                /\.(jpeg|jpg|png|gif|webp|mp4|mov)(\?.*)?$/i.test(cleanContent)));
+          const resolvedAdminType = m.type === 'gift' ? 'GIFT' : (isMediaMsg ? 'IMAGE' : 'TEXT');
           return {
             id: m.id,
             senderId: isAdminAccount(m.senderAccountId) ? 'u-tester-02' : m.senderAccountId,
             senderName: sName,
             text: cleanContent,
             time: m.createdAt,
-            type: m.type === 'gift' ? 'GIFT' : 'TEXT',
+            type: resolvedAdminType,
             giftName: m.giftName,
             isFlagged: Boolean(m.isFlagged),
             flagNotice: m.flagNotice || undefined,

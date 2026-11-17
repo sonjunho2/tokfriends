@@ -1,7 +1,8 @@
 'use client'
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { io } from 'socket.io-client'
 import Link from 'next/link'
 import {
   AlertTriangle,
@@ -60,7 +61,7 @@ interface MessageItem {
   id: string
   senderId: string
   senderName: string
-  type?: 'TEXT' | 'GIFT' | 'IMAGE'
+  type?: 'TEXT' | 'GIFT' | 'IMAGE' | 'media' | 'image' | 'text' | string
   text?: string
   giftName?: string
   time: string
@@ -351,6 +352,63 @@ export default function ChatsPage() {
 
   useEffect(() => {
     void loadSnapshot()
+
+    const wsUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/v1', '') || 'https://tok-friends-api.onrender.com'
+    const socket = io(wsUrl, {
+      transports: ['websocket', 'polling'],
+      query: {
+        userId: 'admin_super_user',
+        nickname: '슈퍼어드민',
+      },
+    })
+
+    socket.on('chat:message', (data: any) => {
+      if (!data) return
+      const targetRoomId = data.chatId || data.roomId
+      const msgContent = data.content || data.text || data.message || ''
+      const isMedia =
+        data.type === 'media' ||
+        data.type === 'image' ||
+        data.type === 'IMAGE' ||
+        (typeof msgContent === 'string' &&
+          (msgContent.includes('/media/files/') ||
+            msgContent.startsWith('data:image/') ||
+            /\.(jpeg|jpg|png|gif|webp|mp4|mov)(\?.*)?$/i.test(msgContent)))
+
+      const newMsgItem: MessageItem = {
+        id: data.id || `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        senderId: data.senderAccountId || data.senderId || 'user',
+        senderName: data.senderName || data.senderNickname || '회원',
+        text: msgContent,
+        time: data.createdAt
+          ? new Date(data.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : '방금',
+        type: data.type === 'gift' ? 'GIFT' : (isMedia ? 'IMAGE' : 'TEXT'),
+        giftName: data.giftName,
+        isFlagged: Boolean(data.isFlagged),
+        flagNotice: data.flagNotice,
+      }
+
+      setRooms((prev) =>
+        prev.map((r) => {
+          if (r.id === targetRoomId) {
+            const existing = r.messages || []
+            if (existing.some((m) => m.id === newMsgItem.id)) return r
+            return {
+              ...r,
+              lastMessage: isMedia ? '📷 사진' : msgContent,
+              lastMessageAt: '방금',
+              messages: [...existing, newMsgItem],
+            }
+          }
+          return r
+        })
+      )
+    })
+
+    return () => {
+      socket.disconnect()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -1132,7 +1190,34 @@ export default function ChatsPage() {
                                     : 'rounded-tr-xs bg-amber-400 text-amber-950 font-medium dark:bg-amber-500 dark:text-black'
                                 }`}
                               >
-                                <div>{sanitizeAdminText(msg.text)}</div>
+                                {(() => {
+                                  const rawText = msg.text || '';
+                                  const isMedia =
+                                    msg.type === 'IMAGE' ||
+                                    msg.type === 'media' ||
+                                    msg.type === 'image' ||
+                                    rawText.includes('/media/files/') ||
+                                    rawText.startsWith('data:image/') ||
+                                    /\.(jpeg|jpg|png|gif|webp)(\?.*)?$/i.test(rawText);
+
+                                  if (isMedia) {
+                                    return (
+                                      <div className="space-y-1">
+                                        <div className="text-[10px] opacity-80 font-medium flex items-center gap-1 mb-1">
+                                          <span>📷 사진 첨부</span>
+                                        </div>
+                                        <img
+                                          src={rawText}
+                                          alt="대화 사진"
+                                          className="max-h-48 max-w-[220px] rounded-lg object-cover cursor-pointer hover:opacity-90 transition border border-black/10 dark:border-white/20 shadow-xs"
+                                          onClick={() => window.open(rawText, '_blank')}
+                                        />
+                                      </div>
+                                    );
+                                  }
+
+                                  return <div>{sanitizeAdminText(rawText)}</div>;
+                                })()}
 
                                 {/* AI 유해 키워드 감지 경고 칩 */}
                                 {msg.isFlagged && (

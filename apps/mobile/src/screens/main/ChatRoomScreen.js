@@ -90,14 +90,21 @@ const normalizeHistoryMessage = (message, currentActivityAccountId) => {
         : 'unknown';
 
   const backendType = message.type || 'text';
+  const rawContent = typeof message.content === 'string' ? message.content : (typeof message.text === 'string' ? message.text : '');
+  const isUrlMedia =
+    typeof rawContent === 'string' &&
+    (rawContent.includes('/media/files/') ||
+      rawContent.startsWith('data:image/') ||
+      /\.(jpeg|jpg|png|gif|webp|mp4|mov)(\?.*)?$/i.test(rawContent));
+  const isVideo =
+    backendType === 'video' ||
+    (typeof rawContent === 'string' &&
+      (rawContent.includes('.mp4') || rawContent.includes('.mov')));
   const isMedia =
     backendType === 'media' ||
     backendType === 'image' ||
-    backendType === 'video';
-  const isVideo =
     backendType === 'video' ||
-    (typeof message.content === 'string' &&
-      (message.content.includes('.mp4') || message.content.includes('.mov')));
+    isUrlMedia;
   const isGift = backendType === 'gift';
   let giftData = null;
   if (isGift) {
@@ -124,12 +131,12 @@ const normalizeHistoryMessage = (message, currentActivityAccountId) => {
     chatId: message.chatId,
     sender,
     senderAccountId: senderAccountId ?? null,
-    text: isMedia || isGift ? '' : message.content,
+    text: isMedia || isGift ? '' : (rawContent || message.content),
     timestamp: formatMessageTime(message.createdAt),
     readAt: message.readAt ?? null,
     type: resolvedType,
     mediaType,
-    media: isMedia ? { uri: message.content } : null,
+    media: isMedia ? { uri: rawContent || message.content } : null,
     gift: giftData,
     backendType,
     senderName: message.senderName || message.senderNickname || null,
@@ -1463,11 +1470,11 @@ export default function ChatRoomScreen({ route, navigation }) {
       bubbleStyles.push(styles.giftMessageBubble);
     }
 
-    // 카카오톡 규칙: 상대방이 이후에 답장을 보냈다면 이전 내 글은 100% 읽음 처리 ('1' 제거)
+    // 카카오톡 규칙: 상대방이 이후에 직접 답장을 보냈다면 이전 내 글은 100% 읽음 처리 ('1' 제거)
     let isUnread = isMe && !item.readAt;
     if (isUnread && Array.isArray(messages)) {
       const hasLaterOtherReply = messages.slice(index + 1).some(
-        (laterMsg) => laterMsg && (laterMsg.sender === 'other' || (!laterMsg.isMe && laterMsg.sender !== 'me' && laterMsg.type !== 'date'))
+        (laterMsg) => laterMsg && (laterMsg.sender === 'other' || (!laterMsg.isMe && laterMsg.sender !== 'me' && laterMsg.type !== 'date' && laterMsg.sender !== 'system'))
       );
       if (hasLaterOtherReply) {
         isUnread = false;

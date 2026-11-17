@@ -2952,6 +2952,35 @@ export async function sendChatMessage(chatId: string, content: string, extra?: a
   }
 }
 
+export async function uploadChatMedia(file: File): Promise<{ ok: boolean; url: string }> {
+  const formData = new FormData()
+  formData.append('file', file)
+  try {
+    const res = await api.post('/media/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    const url = res.data?.url || res.data?.data?.url
+    if (url) return { ok: true, url }
+  } catch (err) {
+    try {
+      const apiBase = typeof window !== 'undefined'
+        ? (process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || 'https://tok-friends-api.onrender.com/v1')
+        : 'https://tok-friends-api.onrender.com/v1'
+      const fallback = await fetch(`${apiBase}/media/upload`, {
+        method: 'POST',
+        body: formData,
+      })
+      if (fallback.ok) {
+        const d = await fallback.json()
+        const url = d?.url || d?.data?.url
+        if (url) return { ok: true, url }
+      }
+    } catch {}
+    console.warn('uploadChatMedia error:', err)
+  }
+  return { ok: false, url: '' }
+}
+
 export async function sendChatGift(payload: {
   chatId: string
   points: number

@@ -121,6 +121,7 @@ import {
   sendChatMessage,
   sendChatGift,
   getChatMessages,
+  uploadChatMedia,
 } from '@/lib/api'
 import { io } from 'socket.io-client'
 import { ToastAction } from '@/components/ui/toast'
@@ -2767,21 +2768,6 @@ export default function CustomerWebStorefrontPage() {
           ),
         })
       }
-
-      // 채팅방 목록 최신화
-      setChatRooms((prev) =>
-        prev.map((r) => {
-          if (r.id === targetRoomId || r.targetNickname === senderName) {
-            return {
-              ...r,
-              lastMessage: previewText,
-              lastTime: '방금',
-              unreadCount: activeChatRoomRef.current?.id === r.id ? 0 : (r.unreadCount || 0) + 1,
-            }
-          }
-          return r
-        })
-      )
     })
 
     // 2-1) 실시간 읽음 처리 (상대방이 읽었을 때 내 메시지의 '1' 즉시 제거)
@@ -2995,7 +2981,7 @@ export default function CustomerWebStorefrontPage() {
               ...r,
               lastMessage: isGift ? `🎁 ${newMsg.gift?.name || '선물'}을 받았습니다!` : (isMedia ? '📷 사진' : newMsg.text),
               lastTime: '방금',
-              unreadCount: isCurrentActive ? 0 : (r.unreadCount || 0) + 1,
+              unreadCount: isCurrentActive ? 0 : nextMessages.filter((m) => !m.isMe && m.unread !== false).length,
               messages: nextMessages,
             };
           }
@@ -3098,21 +3084,35 @@ export default function CustomerWebStorefrontPage() {
             const mapped = serverMsgs
               .filter((m: any) => m && m.content)
               .map((m: any) => {
+                const isAdmUser = !user?.nickname || ['super admin', 'admin', 'admin_super_user', '관리자', '슈퍼어드민'].includes(String(user.nickname).trim().toLowerCase())
+                const myNick = isAdmUser ? '테스터02' : user?.nickname
+                const myId = isAdmUser ? 'u-tester-02' : user?.id
                 const isMe = Boolean(
+                  (myId && (m.senderAccountId === myId || m.senderId === myId)) ||
+                  (myNick && (m.senderName === myNick || m.senderNickname === myNick)) ||
                   (user?.id && (m.senderAccountId === user.id || m.senderId === user.id)) ||
                   (user?.nickname && (m.senderName === user.nickname || m.senderNickname === user.nickname))
                 )
+                const rawContent = m.content || m.text || ''
+                const isMediaMsg =
+                  m.type === 'media' ||
+                  m.type === 'image' ||
+                  (typeof rawContent === 'string' &&
+                    (rawContent.includes('/media/files/') ||
+                      rawContent.startsWith('data:image/') ||
+                      /\.(jpeg|jpg|png|gif|webp)(\?.*)?$/i.test(rawContent)))
                 return {
                   id: m.id || 'msg-' + Math.random().toString(36).slice(2, 7),
                   senderId: isMe ? 'me' : 'target',
                   senderNickname: m.senderName || m.senderNickname || target.nickname,
-                  text: m.content || m.text || '',
+                  text: rawContent,
                   time: m.createdAt
                     ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                     : '방금',
                   isMe,
                   unread: isMe ? !m.readAt : false,
-                  type: m.type || 'text',
+                  type: isMediaMsg ? 'media' : (m.type || 'text'),
+                  media: isMediaMsg ? { uri: rawContent } : undefined,
                 }
               })
             setActiveChatRoom((prev) => (prev && prev.id === existing.id ? { ...prev, messages: mapped } : prev))
@@ -7875,21 +7875,35 @@ export default function CustomerWebStorefrontPage() {
                                       const mapped = serverMsgs
                                         .filter((m: any) => m && m.content)
                                         .map((m: any) => {
+                                          const isAdmUser = !user?.nickname || ['super admin', 'admin', 'admin_super_user', '관리자', '슈퍼어드민'].includes(String(user.nickname).trim().toLowerCase())
+                                          const myNick = isAdmUser ? '테스터02' : user?.nickname
+                                          const myId = isAdmUser ? 'u-tester-02' : user?.id
                                           const isMe = Boolean(
+                                            (myId && (m.senderAccountId === myId || m.senderId === myId)) ||
+                                            (myNick && (m.senderName === myNick || m.senderNickname === myNick)) ||
                                             (user?.id && (m.senderAccountId === user.id || m.senderId === user.id)) ||
                                             (user?.nickname && (m.senderName === user.nickname || m.senderNickname === user.nickname))
                                           );
+                                          const rawContent = m.content || m.text || '';
+                                          const isMediaMsg =
+                                            m.type === 'media' ||
+                                            m.type === 'image' ||
+                                            (typeof rawContent === 'string' &&
+                                              (rawContent.includes('/media/files/') ||
+                                                rawContent.startsWith('data:image/') ||
+                                                /\.(jpeg|jpg|png|gif|webp)(\?.*)?$/i.test(rawContent)));
                                           return {
                                             id: m.id || 'msg-' + Math.random().toString(36).slice(2, 7),
                                             senderId: isMe ? 'me' : 'target',
                                             senderNickname: m.senderName || m.senderNickname || room.targetNickname,
-                                            text: m.content || m.text || '',
+                                            text: rawContent,
                                             time: m.createdAt
                                               ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                                               : '방금',
                                             isMe,
                                             unread: isMe ? !m.readAt : false,
-                                            type: m.type || 'text',
+                                            type: isMediaMsg ? 'media' : (m.type || 'text'),
+                                            media: isMediaMsg ? { uri: rawContent } : undefined,
                                             gift: m.type === 'gift' ? {
                                               id: m.id || 'gift-' + Date.now(),
                                               name: m.giftName || '선물',
@@ -8316,49 +8330,77 @@ export default function CustomerWebStorefrontPage() {
                             type="file"
                             accept="image/*"
                             className="hidden"
-                            onChange={(e) => {
+                            onChange={async (e) => {
                               const file = e.target.files?.[0]
                               if (!file || !activeChatRoom) return
-                              const reader = new FileReader()
-                              reader.onload = () => {
-                                const dataUrl = reader.result as string
-                                if (!dataUrl) return
-                                const newMsg: ChatMessageItem = {
-                                  id: 'msg-img-' + Date.now(),
-                                  senderId: user?.id || 'me',
-                                  senderNickname: user?.nickname || '나',
-                                  text: '[사진]',
-                                  time: '방금',
-                                  isMe: true,
-                                  type: 'media',
-                                  media: { uri: dataUrl },
-                                }
-                                const updatedRoom: ChatRoomItem = {
-                                  ...activeChatRoom,
-                                  lastMessage: '📷 사진을 보냈습니다',
-                                  lastTime: '방금',
-                                  messages: [...activeChatRoom.messages, newMsg],
-                                }
-                                setActiveChatRoom(updatedRoom)
-                                setChatRooms((prev) => prev.map((r) => (r.id === updatedRoom.id ? updatedRoom : r)))
+                              setIsAttachSheetOpen(false)
 
-                                if (socketRef.current) {
-                                  socketRef.current.emit('chat:message', {
-                                    chatId: activeChatRoom.id,
-                                    type: 'media',
-                                    content: dataUrl,
-                                    targetUserId: activeChatRoom.targetUserId || activeChatRoom.targetNickname,
-                                    senderAccountId: user?.id,
-                                    senderName: user?.nickname || '나',
-                                  })
+                              const isAdmUser = !user?.nickname || ['super admin', 'admin', 'admin_super_user', '관리자', '슈퍼어드민'].includes(String(user.nickname).trim().toLowerCase())
+                              const senderNickname = isAdmUser ? '테스터02' : (user?.nickname || '나')
+                              const senderId = isAdmUser ? 'u-tester-02' : (user?.id || 'me')
+
+                              // 1) 백엔드 /v1/media/upload 로 정식 파일 업로드 수행
+                              let mediaUrl = ''
+                              try {
+                                const uploadRes = await uploadChatMedia(file)
+                                if (uploadRes.ok && uploadRes.url) {
+                                  mediaUrl = uploadRes.url
                                 }
-                                sendChatMessage(activeChatRoom.id, dataUrl, {
-                                  type: 'media',
-                                  targetUserId: activeChatRoom.targetUserId || activeChatRoom.targetNickname,
-                                }).catch((err) => console.warn('send photo fallback:', err))
-                                setIsAttachSheetOpen(false)
+                              } catch {}
+
+                              // 실패 시 브라우저 FileReader dataURL fallback
+                              if (!mediaUrl) {
+                                const readPromise = new Promise<string>((resolve) => {
+                                  const reader = new FileReader()
+                                  reader.onload = () => resolve(reader.result as string || '')
+                                  reader.onerror = () => resolve('')
+                                  reader.readAsDataURL(file)
+                                })
+                                mediaUrl = await readPromise
                               }
-                              reader.readAsDataURL(file)
+                              if (!mediaUrl) return
+
+                              const clientMsgId = 'msg-img-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6)
+                              const newMsg: ChatMessageItem = {
+                                id: clientMsgId,
+                                senderId: senderId,
+                                senderNickname: senderNickname,
+                                text: mediaUrl,
+                                time: '방금',
+                                isMe: true,
+                                unread: true,
+                                type: 'media',
+                                media: { uri: mediaUrl },
+                              }
+
+                              const updatedRoom: ChatRoomItem = {
+                                ...activeChatRoom,
+                                lastMessage: '📷 사진을 보냈습니다',
+                                lastTime: '방금',
+                                messages: [...activeChatRoom.messages, newMsg],
+                              }
+                              setActiveChatRoom(updatedRoom)
+                              setChatRooms((prev) => prev.map((r) => (r.id === updatedRoom.id ? updatedRoom : r)))
+
+                              if (socketRef.current) {
+                                socketRef.current.emit('chat:message', {
+                                  chatId: activeChatRoom.id,
+                                  type: 'media',
+                                  content: mediaUrl,
+                                  targetUserId: activeChatRoom.targetUserId || activeChatRoom.targetNickname,
+                                  senderAccountId: senderId,
+                                  senderName: senderNickname,
+                                })
+                              }
+
+                              sendChatMessage(activeChatRoom.id, mediaUrl, {
+                                type: 'media',
+                                clientMessageId: clientMsgId,
+                                senderAccountId: senderId,
+                                senderNickname: senderNickname,
+                                targetUserId: activeChatRoom.targetUserId || activeChatRoom.targetNickname,
+                              }).catch((err) => console.warn('send photo fallback:', err))
+
                               e.target.value = ''
                             }}
                           />
