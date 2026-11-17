@@ -134,6 +134,8 @@ const normalizeHistoryMessage = (message, currentActivityAccountId) => {
     backendType,
     senderName: message.senderName || message.senderNickname || null,
     senderAvatar: message.senderAvatar || message.avatarUrl || message.avatar || null,
+    isFlagged: Boolean(message.isFlagged),
+    flagNotice: message.flagNotice || null,
   };
 };
 
@@ -837,11 +839,31 @@ export default function ChatRoomScreen({ route, navigation }) {
       }
     };
 
+    const handleRoomDeleted = (payload) => {
+      const deletedId = payload?.chatId || payload?.id;
+      if (deletedId && String(deletedId) === String(chatId)) {
+        Alert.alert(
+          '🚪 대화방 종료',
+          '대화 상대방이 퇴장하여 1:1 대화방이 종료되었습니다.',
+          [
+            {
+              text: '확인',
+              onPress: () => {
+                removeChatRoom(chatId);
+                navigation.goBack();
+              },
+            },
+          ]
+        );
+      }
+    };
+
     socket.on('connect', handleConnect);
     socket.on(CHAT_SOCKET_EVENTS.AUTH_READY, handleAuthReady);
     socket.on(CHAT_SOCKET_EVENTS.MESSAGE, handleRealtimeMessage);
     socket.on(CHAT_SOCKET_EVENTS.TYPING, handleRealtimeTyping);
     socket.on(CHAT_SOCKET_EVENTS.READ, handleRealtimeRead);
+    socket.on(CHAT_SOCKET_EVENTS.ROOM_DELETED, handleRoomDeleted);
     socket.connect();
 
     return () => {
@@ -883,6 +905,10 @@ export default function ChatRoomScreen({ route, navigation }) {
       socket.off(
         CHAT_SOCKET_EVENTS.READ,
         handleRealtimeRead,
+      );
+      socket.off(
+        CHAT_SOCKET_EVENTS.ROOM_DELETED,
+        handleRoomDeleted,
       );
       socket.disconnect();
       if (socketRef.current === socket) {

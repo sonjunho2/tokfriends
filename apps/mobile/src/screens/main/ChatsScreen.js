@@ -423,6 +423,14 @@ export default function ChatsScreen({ navigation }) {
       });
     });
 
+    socket.on('chat:room_deleted', (data) => {
+      const deletedId = typeof data === 'string' ? data : data?.chatId || data?.id;
+      if (deletedId) {
+        removeChatRoom(deletedId);
+        setChatRooms((prev) => prev.filter((r) => r.id !== deletedId));
+      }
+    });
+
     socket.on('chat:incoming', () => {
       fetchChatRooms(activeChatSubTab).then((rooms) => {
         if (rooms) setChatRooms(rooms);

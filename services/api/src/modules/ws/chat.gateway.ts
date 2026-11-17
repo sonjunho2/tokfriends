@@ -698,6 +698,16 @@ export class ChatGateway
   }
 
   /**
+   * 1:1 대화방 종료/삭제 이벤트 (어느 한쪽이 퇴장 시 양쪽 모두 실시간 종료 전파)
+   */
+  emitChatRoomDeleted(participantIds: string[], chatId: string) {
+    participantIds.forEach((pid) => {
+      this.server.to(`user_${pid}`).emit('chat:room_deleted', { chatId, id: chatId });
+    });
+    this.server.emit('chat:room_deleted', { chatId, id: chatId });
+  }
+
+  /**
    * 신규 1줄 수다 토크 브로드캐스트 (전체 사용자 실시간 피드 반영)
    */
   emitSudaPost(post: any) {

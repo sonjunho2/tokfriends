@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { ChatGateway } from '../ws/chat.gateway';
+import { OrchestratorService } from '../ai-staff/orchestrator.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -17,6 +18,8 @@ export interface ChatMessageItem {
   giftPoints?: number | null;
   giftName?: string | null;
   giftIcon?: string | null;
+  isFlagged?: boolean;
+  flagNotice?: string | null;
 }
 
 export interface ChatRoomItem {
@@ -45,6 +48,32 @@ export interface ChatRoomItem {
   lastMessageAt: string;
   unreadCount: number;
   createdAt: string;
+  status?: 'ACTIVE' | 'ARCHIVED' | 'NEEDS_REVIEW' | 'FLAGGED' | 'CLOSED';
+  deletedAt?: string | null;
+  retentionUntil?: string | null;
+  retentionBasis?: string | null;
+  flaggedReason?: string | null;
+}
+
+export interface ChatSafetyPolicyRule {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  autoAction: string;
+}
+
+export interface ChatSafetyReport {
+  id: string;
+  roomId: string;
+  roomTitle: string;
+  reporterName: string;
+  targetUserName: string;
+  reason: string;
+  status: 'PENDING' | 'RESOLVED' | 'DISMISSED';
+  createdAt: string;
+  resolvedAt?: string;
+  actionTaken?: string;
 }
 
 export interface OpenChatRoomItem {
@@ -82,9 +111,11 @@ export class ChatService implements OnModuleInit {
   private readonly logger = new Logger(ChatService.name);
   private readonly dataDir = path.resolve(process.cwd(), 'data');
   private readonly chatsFilePath = path.join(this.dataDir, 'chats.json');
+  private readonly archivedChatsFilePath = path.join(this.dataDir, 'chats-archive.json');
   private readonly messagesFilePath = path.join(this.dataDir, 'chat-messages.json');
   private readonly openRoomsFilePath = path.join(this.dataDir, 'open-rooms.json');
   private readonly chatRequestsFilePath = path.join(this.dataDir, 'chat-requests.json');
+  private readonly safetyPolicyFilePath = path.join(this.dataDir, 'chat-safety-policy.json');
 
   private openRooms: OpenChatRoomItem[] = [
     {
@@ -292,10 +323,87 @@ export class ChatService implements OnModuleInit {
     ],
   };
 
+  private archivedRooms: ChatRoomItem[] = [];
+
+  private policyRules: ChatSafetyPolicyRule[] = [
+    {
+      id: 'rule-keyword',
+      name: '금칙어 및 욕설 자동 감지',
+      description: '비속어, 성희롱 키워드 감지 시 실시간 마스킹(***) 및 경고 발송',
+      enabled: true,
+      autoAction: '자동 마스킹 + AI 경고 알림',
+    },
+    {
+      id: 'rule-contact-leak',
+      name: '외부 연락처/메신저 유도 차단',
+      description: '카카오톡, 라인, 텔레그램, 전화번호 등 플랫폼 이탈 유도 감지 시 관리자 큐 전송',
+      enabled: true,
+      autoAction: '경고 발송 및 관리자 검토 큐 등록',
+    },
+    {
+      id: 'rule-fraud-money',
+      name: '금전 요구 및 조건만남 사기 방지',
+      description: '계좌번호, 입금 유도, 대출, 조건만남 관련 이상 대화 즉시 플래깅',
+      enabled: true,
+      autoAction: '대화 일시 정지 및 AI 안전 심사',
+    },
+    {
+      id: 'rule-media-scan',
+      name: '첨부 미디어 AI 유해성 스캔',
+      description: '사진 전송 시 Vision API를 통해 음란물/불법 콘텐츠 자동 차단',
+      enabled: true,
+      autoAction: '유해 이미지 즉시 블러 및 관리자 알림',
+    },
+  ];
+
+  private bannedKeywords: string[] = [
+    '카톡',
+    '카카오톡',
+    '오픈톡',
+    '오픈채팅',
+    '라인',
+    '텔레',
+    '텔레그램',
+    '010-',
+    '계좌',
+    '입금',
+    '송금',
+    '비트코인',
+    '코인',
+    '대출',
+    '사설',
+    '토토',
+    '조건만남',
+    '스폰',
+    '성매매',
+    '원나잇',
+    '씨발',
+    '개새끼',
+    '병신',
+    '좆',
+  ];
+
+  private safetyMemo = '2026-11-17: 본사 AI 안전 정책 가동 중 (통신비밀보호법 3개월 및 전자상거래법 3년 법정 보존 적용)';
+
+  private safetyReports: ChatSafetyReport[] = [
+    {
+      id: 'REP-1001',
+      roomId: 'chat-mock-1',
+      roomTitle: '박서연 ↔ 게스트',
+      reporterName: 'AI 안전 감시관 (Zev)',
+      targetUserName: '게스트',
+      reason: '외부 연락처(메신저 ID) 유도 의심 패턴 감지',
+      status: 'PENDING',
+      createdAt: new Date(Date.now() - 1000 * 3600 * 2).toISOString(),
+    },
+  ];
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => ChatGateway))
     private readonly chatGateway: ChatGateway,
+    @Inject(forwardRef(() => OrchestratorService))
+    private readonly orchestratorService: OrchestratorService,
   ) {}
 
   onModuleInit() {
@@ -312,6 +420,13 @@ export class ChatService implements OnModuleInit {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
           this.rooms = parsed;
+        }
+      }
+      if (fs.existsSync(this.archivedChatsFilePath)) {
+        const raw = fs.readFileSync(this.archivedChatsFilePath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.archivedRooms = parsed;
         }
       }
       if (fs.existsSync(this.messagesFilePath)) {
@@ -335,6 +450,24 @@ export class ChatService implements OnModuleInit {
           this.chatRequests = parsed;
         }
       }
+      if (fs.existsSync(this.safetyPolicyFilePath)) {
+        const raw = fs.readFileSync(this.safetyPolicyFilePath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          if (Array.isArray(parsed.policyRules) && parsed.policyRules.length > 0) {
+            this.policyRules = parsed.policyRules;
+          }
+          if (Array.isArray(parsed.bannedKeywords) && parsed.bannedKeywords.length > 0) {
+            this.bannedKeywords = parsed.bannedKeywords;
+          }
+          if (typeof parsed.safetyMemo === 'string' && parsed.safetyMemo) {
+            this.safetyMemo = parsed.safetyMemo;
+          }
+          if (Array.isArray(parsed.safetyReports) && parsed.safetyReports.length > 0) {
+            this.safetyReports = parsed.safetyReports;
+          }
+        }
+      }
     } catch (e: any) {
       this.logger.warn(`Failed to load chat data from disk: ${e?.message}`);
     }
@@ -346,9 +479,24 @@ export class ChatService implements OnModuleInit {
         fs.mkdirSync(this.dataDir, { recursive: true });
       }
       fs.writeFileSync(this.chatsFilePath, JSON.stringify(this.rooms, null, 2), 'utf-8');
+      fs.writeFileSync(this.archivedChatsFilePath, JSON.stringify(this.archivedRooms, null, 2), 'utf-8');
       fs.writeFileSync(this.messagesFilePath, JSON.stringify(this.messagesStore, null, 2), 'utf-8');
       fs.writeFileSync(this.openRoomsFilePath, JSON.stringify(this.openRooms, null, 2), 'utf-8');
       fs.writeFileSync(this.chatRequestsFilePath, JSON.stringify(this.chatRequests, null, 2), 'utf-8');
+      fs.writeFileSync(
+        this.safetyPolicyFilePath,
+        JSON.stringify(
+          {
+            policyRules: this.policyRules,
+            bannedKeywords: this.bannedKeywords,
+            safetyMemo: this.safetyMemo,
+            safetyReports: this.safetyReports,
+          },
+          null,
+          2,
+        ),
+        'utf-8',
+      );
     } catch (e: any) {
       this.logger.warn(`Failed to save chat data to disk: ${e?.message}`);
     }
@@ -922,6 +1070,49 @@ export class ChatService implements OnModuleInit {
       senderName = userId === 'guest' ? '나' : userId;
     }
 
+    // 🛡️ AI 안전 심사관 및 금칙어 정책 검사
+    let processedContent = String(content || '');
+    let isFlagged = false;
+    let flagNotice: string | null = null;
+
+    const keywordRule = this.policyRules.find((r) => r.id === 'rule-keyword');
+    const contactRule = this.policyRules.find((r) => r.id === 'rule-contact-leak');
+    const fraudRule = this.policyRules.find((r) => r.id === 'rule-fraud-money');
+
+    // 1) 금칙어 및 욕설 자동 감지 & 실시간 마스킹
+    if (keywordRule?.enabled && typeof processedContent === 'string') {
+      for (const kw of this.bannedKeywords) {
+        if (kw && processedContent.toLowerCase().includes(kw.toLowerCase())) {
+          isFlagged = true;
+          flagNotice = `[AI 심사관 감지] 금칙어("${kw}") 탐지됨`;
+          const reg = new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+          processedContent = processedContent.replace(reg, '*'.repeat(kw.length));
+        }
+      }
+    }
+
+    // 2) 외부 연락처/전화번호 패턴 감지
+    if (contactRule?.enabled && typeof processedContent === 'string') {
+      const phoneRegex = /01[016789][-.\s]?\d{3,4}[-.\s]?\d{4}/g;
+      if (phoneRegex.test(processedContent)) {
+        isFlagged = true;
+        flagNotice = '[AI 심사관 감지] 외부 연락처(전화번호) 유출 패턴 탐지';
+        processedContent = processedContent.replace(phoneRegex, '***-****-****');
+      }
+    }
+
+    // 3) 금전 요구 및 사기 의심 단어 감지
+    if (fraudRule?.enabled && typeof processedContent === 'string') {
+      const fraudKeywords = ['계좌', '입금', '송금', '비트코인', '코인', '대출', '조건만남', '스폰'];
+      for (const fKw of fraudKeywords) {
+        if (processedContent.includes(fKw)) {
+          isFlagged = true;
+          flagNotice = `[AI 심사관 감지] 금전/사기 의심 키워드("${fKw}") 감지`;
+          break;
+        }
+      }
+    }
+
     const now = new Date().toISOString();
     const msg: ChatMessageItem = {
       id: dto.clientMessageId || `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -929,12 +1120,14 @@ export class ChatService implements OnModuleInit {
       senderAccountId: userId,
       senderName,
       senderAvatar,
-      content,
+      content: processedContent,
       type,
       readAt: null,
       giftPoints: giftPoints !== undefined ? Number(giftPoints) : null,
       giftName: giftName || null,
       giftIcon: giftIcon || null,
+      isFlagged,
+      flagNotice,
       createdAt: now,
     };
 
@@ -956,15 +1149,50 @@ export class ChatService implements OnModuleInit {
     const room = this.rooms.find((r) => r.id === chatId);
     let targetUserId: string | undefined;
     if (room) {
-      room.lastMessage = content;
+      room.lastMessage = processedContent;
       room.lastMessageAt = msg.createdAt;
       room.unreadCount = 0;
+      if (isFlagged) {
+        room.status = 'NEEDS_REVIEW';
+        room.flaggedReason = flagNotice || '유해 키워드 또는 외부 연락처 유도 감지';
+      }
       targetUserId = room.participantIds?.find((id) => id !== userId);
       if (!targetUserId && room.counterpart?.id && room.counterpart.id !== userId) {
         targetUserId = room.counterpart.id;
       }
       if (!targetUserId && room.hostId && room.hostId !== userId) {
         targetUserId = room.hostId;
+      }
+    }
+
+    // 🚨 위반 플래그 감지 시 AI 직원 의사결정 큐 및 관리자 안전 리포트 자동 발행
+    if (isFlagged) {
+      const newReport: ChatSafetyReport = {
+        id: `REP-${Date.now().toString().slice(-4)}`,
+        roomId: chatId,
+        roomTitle: room?.title || `${senderName} 1:1 대화`,
+        reporterName: 'AI 안전 감시관 (Zev)',
+        targetUserName: senderName,
+        reason: flagNotice || '금칙어 및 안전 정책 위반 의심',
+        status: 'PENDING',
+        createdAt: now,
+      };
+      this.safetyReports.unshift(newReport);
+
+      // AI 직원 오케스트레이터 에스컬레이션 큐 비동기 등록
+      try {
+        if (this.orchestratorService?.escalateViolation) {
+          this.orchestratorService.escalateViolation({
+            domain: 'REPORT_SAFETY',
+            targetId: chatId,
+            targetUserId: userId !== 'guest' ? userId : undefined,
+            riskScore: 78,
+            violationTags: ['1:1 대화 정책 위반', flagNotice || '금칙어 감지'],
+            preliminaryRationale: `발신자 [${senderName}] 대화 내용에서 정책 위반 감지: "${content}"`,
+          }).catch(() => {});
+        }
+      } catch (err) {
+        this.logger.warn(`AI Orchestrator escalation failed: ${err}`);
       }
     }
 
@@ -985,58 +1213,218 @@ export class ChatService implements OnModuleInit {
     return msg;
   }
 
+  /**
+   * 1:1 대화방 나가기/삭제 처리
+   * - 참여자 한쪽이라도 나가기를 하면 사용자 앱/웹 목록에서는 완전히 제거
+   * - 대한민국 법규 준수를 위해 본사 관리자 아카이브(통비법 3개월, 전자상거래법 3년)로 자동 격리 보관
+   */
   async deleteChat(userId: string, chatId: string): Promise<{ ok: boolean }> {
-    // 1:1 대화방이므로 어느 한쪽이라도 삭제하면 방을 완전히 삭제하여 양쪽 모두에서 사라짐
     const idx = this.rooms.findIndex((r) => r.id === chatId);
-    if (idx !== -1) {
+    const room = idx !== -1 ? this.rooms[idx] : null;
+
+    if (room) {
+      const msgs = this.messagesStore[chatId] || [];
+      const hasTransactions = Boolean(
+        room.entryFee > 0 || msgs.some((m) => m.type === 'gift' || (m.giftPoints && m.giftPoints > 0)),
+      );
+
+      // 대한민국 법정 보존 기한 산출
+      // 1) 전자상거래 등에서의 소비자보호에 관한 법률 제6조: 결제/선물 분쟁 보존 3년 (1,095일)
+      // 2) 통신비밀보호법 제15조의2: 인터넷 접속 및 통신 로그 최소 3개월 (90일) 보존
+      const now = new Date();
+      const retentionDays = hasTransactions ? 365 * 3 : 90;
+      const retentionUntil = new Date(now.getTime() + retentionDays * 24 * 3600 * 1000).toISOString();
+      const retentionBasis = hasTransactions
+        ? '전자상거래 등에서의 소비자보호에 관한 법률 제6조 (선물/결제 분쟁 기록 3년 보존)'
+        : '통신비밀보호법 제15조의2 (로그기록 3개월 보존)';
+
+      const archivedRoom: ChatRoomItem = {
+        ...room,
+        status: 'ARCHIVED',
+        deletedAt: now.toISOString(),
+        retentionUntil,
+        retentionBasis,
+        lastMessage: '[종료된 대화] 사용자가 퇴장하여 대화방이 종료되었습니다.',
+      };
+
+      this.archivedRooms.unshift(archivedRoom);
       this.rooms.splice(idx, 1);
+
+      // 실시간 웹소켓으로 상대방 및 참여자에게 대화방 종료 이벤트 즉시 브로드캐스트
+      try {
+        this.chatGateway.emitChatRoomDeleted(room.participantIds || [userId], chatId);
+      } catch {}
+
+      this.saveToDisk();
+      this.logger.log(`Chat room [${chatId}] archived for legal compliance until ${retentionUntil} (${retentionBasis})`);
     }
-    delete this.messagesStore[chatId];
-    this.saveToDisk();
+
     return { ok: true };
   }
 
   getAllRoomsForAdmin(): any[] {
-    return this.rooms.map((room) => ({
-      id: room.id,
-      title: room.title,
-      category: room.category,
-      region: '서울 강남구',
-      distanceKm: 1.5,
-      unread: room.unreadCount,
-      newMessages: (this.messagesStore[room.id] || []).length,
-      participants: 2,
-      status: 'ACTIVE',
-      createdAt: room.createdAt,
-      lastMessageAt: room.lastMessageAt,
-      lastMessage: room.lastMessage,
-      userA: {
-        id: room.participantIds[0] || 'user-1',
-        nickname: '나',
-        age: 26,
-        gender: '남',
+    const mapToAdmin = (room: ChatRoomItem, isArchived: boolean) => {
+      const msgs = this.messagesStore[room.id] || [];
+      const hasFlaggedMsg = msgs.some((m) => m.isFlagged);
+      const computedStatus = isArchived
+        ? 'CLOSED'
+        : room.status === 'NEEDS_REVIEW' || hasFlaggedMsg
+        ? 'NEEDS_REVIEW'
+        : room.status === 'FLAGGED'
+        ? 'FLAGGED'
+        : 'ACTIVE';
+
+      return {
+        id: room.id,
+        title: room.title,
+        category: room.category,
         region: '서울 강남구',
-        avatar: null,
+        distanceKm: 1.5,
+        unread: room.unreadCount,
+        newMessages: msgs.length,
+        participants: room.participantIds?.length || 2,
+        status: computedStatus,
+        createdAt: room.createdAt,
+        lastMessageAt: room.lastMessageAt,
+        lastMessage: room.lastMessage,
+        flaggedReason: room.flaggedReason || (hasFlaggedMsg ? 'AI 유해/금칙어 감지됨' : undefined),
+        isArchived,
+        deletedAt: room.deletedAt || null,
+        retentionUntil: room.retentionUntil || null,
+        retentionBasis: room.retentionBasis || null,
+        userA: {
+          id: room.participantIds?.[0] || 'user-1',
+          nickname: room.host?.displayName || '호스트',
+          age: 26,
+          gender: '남',
+          region: '서울 강남구',
+          avatar: room.host?.avatarUrl || null,
+        },
+        userB: {
+          id: room.counterpart?.id || room.participantIds?.[1] || 'user-2',
+          nickname: room.counterpart?.displayName || room.title,
+          age: 26,
+          gender: '여',
+          region: '서울시',
+          avatar: room.counterpart?.avatarUrl || null,
+        },
+        messages: msgs.map((m) => ({
+          id: m.id,
+          senderId: m.senderAccountId,
+          senderName: m.senderName || (m.senderAccountId === 'system' ? '시스템' : '참여자'),
+          text: m.content,
+          time: m.createdAt,
+          type: m.type === 'gift' ? 'GIFT' : 'TEXT',
+          giftName: m.giftName,
+          isFlagged: Boolean(m.isFlagged),
+          flagNotice: m.flagNotice || undefined,
+        })),
+      };
+    };
+
+    const activeList = this.rooms.map((r) => mapToAdmin(r, false));
+    const archivedList = this.archivedRooms.map((r) => mapToAdmin(r, true));
+    return [...activeList, ...archivedList];
+  }
+
+  // =========================================================================
+  // 🛡️ 1:1 대화 관리 및 AI 안전 정책 컨트롤 패널 API
+  // =========================================================================
+  async getChatSafetySnapshot() {
+    const allRooms = this.getAllRoomsForAdmin();
+    const activeCount = this.rooms.length;
+    const archivedCount = this.archivedRooms.length;
+    const flaggedCount = allRooms.filter((r) => r.status === 'NEEDS_REVIEW' || r.status === 'FLAGGED').length;
+
+    return {
+      ok: true,
+      rooms: allRooms,
+      reports: this.safetyReports,
+      policyRules: this.policyRules,
+      bannedKeywords: this.bannedKeywords,
+      safetyMemo: this.safetyMemo,
+      meta: {
+        activeCount,
+        archivedCount,
+        flaggedCount,
+        legalNotice: '「통신비밀보호법」 제15조의2 (로그기록 최소 3개월 보존) 및 「전자상거래법」 제6조 (분쟁처리 및 결제/선물 3~5년 보존) 준수',
+        legalRetentionStats: {
+          electronicCommerceLawCount: this.archivedRooms.filter((r) => (r.retentionBasis || '').includes('전자상거래')).length,
+          telecomSecretProtectionLawCount: this.archivedRooms.filter((r) => (r.retentionBasis || '').includes('통신비밀보호법')).length,
+        },
       },
-      userB: {
-        id: room.counterpart?.id || 'user-2',
-        nickname: room.counterpart?.displayName || room.title,
-        age: 26,
-        gender: '여',
-        region: '서울시',
-        avatar: room.counterpart?.avatarUrl || null,
-      },
-      messages: (this.messagesStore[room.id] || []).map((m) => ({
-        id: m.id,
-        senderId: m.senderAccountId,
-        senderName: m.senderName || (m.senderAccountId === 'system' ? '시스템' : '참여자'),
-        text: m.content,
-        time: m.createdAt,
-        type: m.type === 'gift' ? 'GIFT' : 'TEXT',
-        giftName: m.giftName,
-        isFlagged: false,
-      })),
-    }));
+    };
+  }
+
+  async updateChatPolicyRule(ruleId: string, payload: { enabled?: boolean; autoAction?: string }) {
+    const rule = this.policyRules.find((r) => r.id === ruleId);
+    if (!rule) {
+      throw new NotFoundException(`정책 규칙 [${ruleId}]을 찾을 수 없습니다.`);
+    }
+    if (typeof payload.enabled === 'boolean') {
+      rule.enabled = payload.enabled;
+    }
+    if (typeof payload.autoAction === 'string' && payload.autoAction) {
+      rule.autoAction = payload.autoAction;
+    }
+    this.saveToDisk();
+    return rule;
+  }
+
+  async saveChatSafetyMemo(memo: string) {
+    this.safetyMemo = memo;
+    this.saveToDisk();
+    return { ok: true, memo: this.safetyMemo };
+  }
+
+  async updateBannedKeywords(keywords: string[]) {
+    if (Array.isArray(keywords)) {
+      this.bannedKeywords = Array.from(new Set(keywords.map((k) => String(k).trim()).filter(Boolean)));
+      this.saveToDisk();
+    }
+    return { ok: true, bannedKeywords: this.bannedKeywords };
+  }
+
+  async resolveChatReport(reportId: string, payload: { action?: string; reason?: string }) {
+    const report = this.safetyReports.find((r) => r.id === reportId);
+    if (!report) {
+      throw new NotFoundException(`해당 안전 리포트 [${reportId}]를 찾을 수 없습니다.`);
+    }
+    report.status = payload.action === 'DISMISS' ? 'DISMISSED' : 'RESOLVED';
+    report.resolvedAt = new Date().toISOString();
+    report.actionTaken = payload.reason || payload.action || '조치 완료';
+    this.saveToDisk();
+    return report;
+  }
+
+  async updateRoomByAdmin(roomId: string, payload: { status?: 'ACTIVE' | 'CLOSED' | 'FLAGGED' | 'NEEDS_REVIEW'; memo?: string }) {
+    let room = this.rooms.find((r) => r.id === roomId);
+    if (!room) {
+      room = this.archivedRooms.find((r) => r.id === roomId);
+    }
+    if (!room) {
+      throw new NotFoundException(`대화방 [${roomId}]을 찾을 수 없습니다.`);
+    }
+    if (payload.status) {
+      room.status = payload.status;
+      if (payload.status === 'CLOSED') {
+        // 관리자에 의한 강제 종료 및 아카이빙
+        const idx = this.rooms.findIndex((r) => r.id === roomId);
+        if (idx !== -1) {
+          const removed = this.rooms.splice(idx, 1)[0];
+          removed.status = 'ARCHIVED';
+          removed.deletedAt = new Date().toISOString();
+          removed.retentionUntil = new Date(Date.now() + 365 * 3 * 24 * 3600 * 1000).toISOString();
+          removed.retentionBasis = '관리자 강제 조치 및 전자상거래/통비법 분쟁 보존';
+          this.archivedRooms.unshift(removed);
+          try {
+            this.chatGateway.emitChatRoomDeleted(removed.participantIds, roomId);
+          } catch {}
+        }
+      }
+    }
+    this.saveToDisk();
+    return room;
   }
 
   async deductPoints(userId: string, points: number): Promise<number | null> {

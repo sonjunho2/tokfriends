@@ -38,6 +38,7 @@ import {
   getChatSafetySnapshot,
   resolveChatReport,
   saveChatSafetyMemo,
+  updateChatBannedKeywords,
   updateChatPolicyRule,
   updateChatRoom,
   type ChatPolicyRule,
@@ -362,6 +363,10 @@ export default function ChatsPage() {
         setPolicyRules(FALLBACK_RULES)
       }
 
+      if (Array.isArray(snapshot.bannedKeywords) && snapshot.bannedKeywords.length > 0) {
+        setBannedKeywords(snapshot.bannedKeywords)
+      }
+
       if (typeof snapshot.memo === 'string') {
         setSafetyMemo(snapshot.memo)
         setInitialMemo(snapshot.memo)
@@ -381,7 +386,7 @@ export default function ChatsPage() {
       // 탭 필터
       if (filterTab === 'FLAGGED' && room.status !== 'NEEDS_REVIEW' && !room.flaggedReason) return false
       if (filterTab === 'ACTIVE' && room.status !== 'ACTIVE') return false
-      if (filterTab === 'ARCHIVED' && room.status !== 'ARCHIVED') return false
+      if (filterTab === 'ARCHIVED' && room.status !== 'ARCHIVED' && room.status !== 'CLOSED' && !room.isArchived) return false
 
       // 검색어 필터 (닉네임, 메시지, 지역, 방ID)
       if (searchKeyword.trim()) {
@@ -578,22 +583,34 @@ export default function ChatsPage() {
   }
 
   // 금칙어 추가
-  const handleAddKeyword = () => {
+  const handleAddKeyword = async () => {
     if (!newKeywordInput.trim()) return
     const kw = newKeywordInput.trim()
     if (bannedKeywords.includes(kw)) {
       toast({ title: '이미 등록된 금칙어입니다.', variant: 'destructive' })
       return
     }
-    setBannedKeywords([...bannedKeywords, kw])
+    const nextList = [...bannedKeywords, kw]
+    setBannedKeywords(nextList)
     setNewKeywordInput('')
-    toast({ title: '금칙어 등록 완료', description: `[${kw}] 단어가 실시간 필터 목록에 추가되었습니다.` })
+    try {
+      await updateChatBannedKeywords({ keywords: nextList })
+      toast({ title: '금칙어 등록 완료', description: `[${kw}] 단어가 서버 실시간 필터 목록에 반영되었습니다.` })
+    } catch {
+      toast({ title: '금칙어 등록 완료 (로컬 반영)', description: `[${kw}] 단어가 추가되었습니다.` })
+    }
   }
 
   // 금칙어 삭제
-  const handleRemoveKeyword = (target: string) => {
-    setBannedKeywords(bannedKeywords.filter((k) => k !== target))
-    toast({ title: '금칙어 삭제 완료', description: `[${target}] 단어가 제거되었습니다.` })
+  const handleRemoveKeyword = async (target: string) => {
+    const nextList = bannedKeywords.filter((k) => k !== target)
+    setBannedKeywords(nextList)
+    try {
+      await updateChatBannedKeywords({ keywords: nextList })
+      toast({ title: '금칙어 삭제 완료', description: `[${target}] 단어가 서버 필터에서 제거되었습니다.` })
+    } catch {
+      toast({ title: '금칙어 삭제 완료', description: `[${target}] 단어가 제거되었습니다.` })
+    }
   }
 
   // 안전 운영 메모 저장
@@ -760,7 +777,7 @@ export default function ChatsPage() {
                       filterTab === 'ARCHIVED' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
                     }`}
                   >
-                    완료 ({rooms.filter((r) => r.status === 'ARCHIVED').length})
+                    법정 보존 ({rooms.filter((r) => r.status === 'ARCHIVED' || r.status === 'CLOSED' || r.isArchived).length})
                   </button>
                 </div>
 
@@ -847,11 +864,18 @@ export default function ChatsPage() {
                               <AlertTriangle className="h-3 w-3" />
                               {room.flaggedReason || '이상 대화 의심'}
                             </span>
-                          ) : room.status === 'ARCHIVED' ? (
-                            <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                              <Lock className="h-3 w-3" />
-                              조치 완료/종료
-                            </span>
+                          ) : (room.status === 'ARCHIVED' || room.status === 'CLOSED' || room.isArchived) ? (
+                            <div className="flex flex-col gap-0.5 w-full">
+                              <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                <Lock className="h-3 w-3" />
+                                🏛️ 법정 보존 보관 (종료 대화)
+                              </span>
+                              {Boolean(room.retentionUntil) && (
+                                <span className="text-[10px] text-blue-600 font-mono">
+                                  ⏳ {new Date(room.retentionUntil as string).toLocaleDateString()}까지 보존 ({room.retentionBasis?.includes('전자상거래') ? '전자상거래법 3년' : '통비법 3개월'})
+                                </span>
+                              )}
+                            </div>
                           ) : (
                             <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
                               <CheckCircle2 className="h-3 w-3" />

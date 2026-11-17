@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -20,6 +21,51 @@ import { Public } from '../auth/public.decorator';
 @Controller(['chats', 'chat'])
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
+
+  // =========================================================================
+  // 🛡️ 1:1 대화 관리 및 AI 안전 정책 컨트롤 패널 API (정적 라우트 우선 선언)
+  // =========================================================================
+  @Public()
+  @Get('control-panel')
+  async getChatSafetySnapshot() {
+    const snapshot = await this.chatService.getChatSafetySnapshot();
+    return snapshot;
+  }
+
+  @Public()
+  @Post('control-panel/memo')
+  async saveChatSafetyMemo(@Body() body: { memo: string }) {
+    const res = await this.chatService.saveChatSafetyMemo(body.memo || '');
+    return res;
+  }
+
+  @Public()
+  @Post('control-panel/keywords')
+  async updateBannedKeywords(@Body() body: { keywords: string[] }) {
+    const res = await this.chatService.updateBannedKeywords(body.keywords || []);
+    return res;
+  }
+
+  @Public()
+  @Patch('policy-rules/:id')
+  async updateChatPolicyRule(@Param('id') id: string, @Body() body: any) {
+    const res = await this.chatService.updateChatPolicyRule(id, body);
+    return res;
+  }
+
+  @Public()
+  @Post('reports/:id/resolve')
+  async resolveChatReport(@Param('id') id: string, @Body() body: any) {
+    const res = await this.chatService.resolveChatReport(id, body);
+    return res;
+  }
+
+  @Public()
+  @Patch('rooms/:id')
+  async updateRoomByAdmin(@Param('id') id: string, @Body() body: any) {
+    const res = await this.chatService.updateRoomByAdmin(id, body);
+    return res;
+  }
 
   @Public()
   @Get(['', 'rooms'])

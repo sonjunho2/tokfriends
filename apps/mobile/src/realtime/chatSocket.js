@@ -8,6 +8,7 @@ export const CHAT_SOCKET_EVENTS = Object.freeze({
   TYPING: 'chat:typing',
   MESSAGE: 'chat:message',
   READ: 'chat:read',
+  ROOM_DELETED: 'chat:room_deleted',
 });
 
 export const LIVE_SOCKET_EVENTS = Object.freeze({

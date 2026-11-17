@@ -1492,6 +1492,72 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/ChatDirectRequest"
+  /chats/control-panel:
+    get:
+      summary: "Get 1:1 chat safety control panel snapshot"
+      tags:
+        - "chats"
+      responses:
+        200:
+          description: "Chat safety snapshot"
+  /chats/control-panel/memo:
+    post:
+      summary: "Save chat safety memo"
+      tags:
+        - "chats"
+      responses:
+        200:
+          description: "Updated memo"
+  /chats/control-panel/keywords:
+    post:
+      summary: "Update banned keywords"
+      tags:
+        - "chats"
+      responses:
+        200:
+          description: "Updated keywords"
+  /chats/policy-rules/{id}:
+    patch:
+      summary: "Update chat policy rule"
+      tags:
+        - "chats"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        200:
+          description: "Updated rule"
+  /chats/reports/{id}/resolve:
+    post:
+      summary: "Resolve chat safety report"
+      tags:
+        - "chats"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        200:
+          description: "Resolved report"
+  /chats/rooms/{id}:
+    patch:
+      summary: "Update chat room by admin"
+      tags:
+        - "chats"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        200:
+          description: "Updated room"
   /store/point-products:
     get:
       summary: "List point products"

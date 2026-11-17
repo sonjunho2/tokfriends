@@ -2827,6 +2827,23 @@ export default function CustomerWebStorefrontPage() {
       )
     })
 
+    // 2-B) 상대방이 1:1 대화방 나가기 시 실시간 방 종료 동기화
+    socket.on('chat:room_deleted', (data: any) => {
+      const deletedId = data?.chatId || data?.id
+      if (!deletedId) return
+      setChatRooms((prev) => prev.filter((r) => r.id !== deletedId))
+      setActiveChatRoom((prev) => {
+        if (prev && prev.id === deletedId) {
+          toast({
+            title: '🚪 대화방 종료',
+            description: '대화 상대방이 퇴장하여 1:1 대화방이 종료되었습니다.',
+          })
+          return null
+        }
+        return prev
+      })
+    })
+
     // 3) 같은 방 참가자 간 메시지 수신 (웹 본인 메시지 에코/복제 방지 및 선물 수신 완벽 처리)
     socket.on('chat:message', (data: any) => {
       if (!data) return
@@ -3009,20 +3026,60 @@ export default function CustomerWebStorefrontPage() {
   }
 
   // 1:1 대화 시작 범용 헬퍼 (채팅방 자동 생성 및 CHAT 탭 연결)
-  const handleStartDirectChat = (target: {
+  const handleStartDirectChat = async (target: {
     id?: string
     nickname: string
     avatar: string
     region?: string
     intro?: string
   }) => {
-    requireAuth(() => {
-      const existing = chatRooms.find((r) => r.targetNickname === target.nickname)
+    requireAuth(async () => {
+      let resolvedRoomId = 'chat-u-' + (target.id || Date.now())
+      try {
+        const serverRoom = await createDirectChat(target.id || target.nickname, target.nickname, 0, {
+          targetNickname: target.nickname,
+          senderNickname: user?.nickname || '나',
+        })
+        if (serverRoom?.id) {
+          resolvedRoomId = serverRoom.id
+        }
+      } catch (err) {
+        console.warn('createDirectChat error:', err)
+      }
+
+      const existing = chatRooms.find((r) => r.id === resolvedRoomId || r.targetNickname === target.nickname)
       if (existing) {
         setActiveChatRoom(existing)
+        // 서버로부터 최신 대화 내역 즉시 동기화
+        getChatMessages(existing.id).then((serverMsgs) => {
+          if (Array.isArray(serverMsgs) && serverMsgs.length > 0) {
+            const mapped = serverMsgs
+              .filter((m: any) => m && m.content)
+              .map((m: any) => {
+                const isMe = Boolean(
+                  (user?.id && (m.senderAccountId === user.id || m.senderId === user.id)) ||
+                  (user?.nickname && (m.senderName === user.nickname || m.senderNickname === user.nickname))
+                )
+                return {
+                  id: m.id || 'msg-' + Math.random().toString(36).slice(2, 7),
+                  senderId: isMe ? 'me' : 'target',
+                  senderNickname: m.senderName || m.senderNickname || target.nickname,
+                  text: m.content || m.text || '',
+                  time: m.createdAt
+                    ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    : '방금',
+                  isMe,
+                  unread: isMe ? !m.readAt : false,
+                  type: m.type || 'text',
+                }
+              })
+            setActiveChatRoom((prev) => (prev && prev.id === existing.id ? { ...prev, messages: mapped } : prev))
+            setChatRooms((prev) => prev.map((r) => (r.id === existing.id ? { ...r, messages: mapped } : r)))
+          }
+        }).catch(() => {})
       } else {
         const newRoom: ChatRoomItem = {
-          id: 'chat-u-' + (target.id || Date.now()),
+          id: resolvedRoomId,
           type: 'SUDA',
           targetNickname: target.nickname,
           targetAvatar: target.avatar,
@@ -3749,7 +3806,15 @@ export default function CustomerWebStorefrontPage() {
             .filter((c) => !deletedChats.has(c.id))
 
           setChatRooms((prev) => {
-            const combined = [...serverRooms, ...prev].filter((r) => !deletedChats.has(r.id))
+            const prevMap = new Map(prev.map((r) => [r.id, r]))
+            const mergedServerRooms = serverRooms.map((sr) => {
+              const local = prevMap.get(sr.id)
+              if (local && Array.isArray(local.messages) && local.messages.length > 0) {
+                return { ...sr, messages: local.messages }
+              }
+              return sr
+            })
+            const combined = [...mergedServerRooms, ...prev].filter((r) => !deletedChats.has(r.id))
             const unique = Array.from(new Map(combined.map((m) => [m.id, m])).values())
             return unique
           })

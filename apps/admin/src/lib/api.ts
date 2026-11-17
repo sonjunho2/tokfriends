@@ -1285,6 +1285,10 @@ export interface ChatRoomSummary {
   isFallback?: boolean
   createdAt?: string
   lastMessageAt?: string
+  isArchived?: boolean
+  deletedAt?: string
+  retentionUntil?: string
+  retentionBasis?: string
   [key: string]: unknown
 }
 
@@ -1312,6 +1316,7 @@ export interface ChatSafetySnapshot {
   reports: ChatSafetyReport[]
   policyRules: ChatPolicyRule[]
   cannedResponses?: string[]
+  bannedKeywords?: string[]
   memo?: string
   [key: string]: unknown
 }
@@ -1339,6 +1344,10 @@ function normalizeChatSnapshot(payload: unknown): ChatSafetySnapshot {
       lastMessageAt: typeof item.lastMessageAt === 'string' ? item.lastMessageAt : (item.last_message_at as string | undefined),
       lastMessage: typeof item.lastMessage === 'string' ? item.lastMessage : undefined,
       flaggedReason: typeof item.flaggedReason === 'string' ? item.flaggedReason : undefined,
+      isArchived: Boolean(item.isArchived ?? item.archived ?? false),
+      deletedAt: typeof item.deletedAt === 'string' ? item.deletedAt : undefined,
+      retentionUntil: typeof item.retentionUntil === 'string' ? item.retentionUntil : undefined,
+      retentionBasis: typeof item.retentionBasis === 'string' ? item.retentionBasis : undefined,
       userA: item.userA,
       userB: item.userB,
       messages: item.messages,
@@ -1371,12 +1380,14 @@ function normalizeChatSnapshot(payload: unknown): ChatSafetySnapshot {
   })
 
   const cannedResponses = normalizeMatchArray(raw.cannedResponses, ['cannedResponses'], (value) => String(value))
+  const bannedKeywords = Array.isArray(raw.bannedKeywords) ? raw.bannedKeywords.map(String) : undefined
 
   return {
     rooms,
     reports,
     policyRules,
     cannedResponses: cannedResponses.length > 0 ? cannedResponses : undefined,
+    bannedKeywords,
     memo: typeof raw.memo === 'string' ? raw.memo : (raw.safetyMemo as string | undefined),
   }
 }
@@ -1418,6 +1429,11 @@ export async function updateChatPolicyRule(ruleId: string, payload: Record<strin
 export async function saveChatSafetyMemo(payload: { memo: string }) {
   const response = await api.post('/chats/control-panel/memo', payload)
   return (response.data as { memo?: string } | undefined)?.memo ?? payload.memo
+}
+
+export async function updateChatBannedKeywords(payload: { keywords: string[] }) {
+  const response = await api.post('/chats/control-panel/keywords', payload)
+  return (response.data as { bannedKeywords?: string[] } | undefined)?.bannedKeywords ?? payload.keywords
 }
 
 // ---------------------------------------------------------------------------
