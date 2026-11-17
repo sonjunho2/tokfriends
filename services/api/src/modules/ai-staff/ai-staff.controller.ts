@@ -8,23 +8,47 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { IsString, IsOptional, IsIn, IsNumber, IsArray } from 'class-validator';
 import { OrchestratorService } from './orchestrator.service';
 import { AdminGateway } from './admin.gateway';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
 export class ReviewDecisionDto {
+  @IsString()
+  @IsIn(['APPROVED', 'REJECTED', 'MODIFIED'])
   action: 'APPROVED' | 'REJECTED' | 'MODIFIED';
+
+  @IsOptional()
+  @IsString()
   overrideAction?: string;
+
+  @IsOptional()
+  @IsString()
   adminMemo?: string;
 }
 
 export class TestTriggerDto {
+  @IsString()
   channelId: string;
+
+  @IsString()
   hostId: string;
+
+  @IsOptional()
+  @IsNumber()
   riskScore?: number;
+
+  @IsOptional()
+  @IsArray()
   violationTags?: string[];
+
+  @IsOptional()
+  @IsString()
   rationale?: string;
+
+  @IsOptional()
+  @IsString()
   snapshotUrl?: string;
 }
 

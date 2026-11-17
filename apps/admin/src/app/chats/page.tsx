@@ -46,6 +46,7 @@ import {
   type ChatRoomSummary,
   type ChatSafetyReport,
 } from '@/lib/api'
+import { resolveDisplayImageUrl } from '@/lib/normalize'
 import type { AxiosError } from 'axios'
 
 interface ChatUser {
@@ -1207,10 +1208,10 @@ export default function ChatsPage() {
                                           <span>📷 사진 첨부</span>
                                         </div>
                                         <img
-                                          src={rawText}
+                                          src={resolveDisplayImageUrl(rawText)}
                                           alt="대화 사진"
                                           className="max-h-48 max-w-[220px] rounded-lg object-cover cursor-pointer hover:opacity-90 transition border border-black/10 dark:border-white/20 shadow-xs"
-                                          onClick={() => window.open(rawText, '_blank')}
+                                          onClick={() => window.open(resolveDisplayImageUrl(rawText), '_blank')}
                                         />
                                       </div>
                                     );

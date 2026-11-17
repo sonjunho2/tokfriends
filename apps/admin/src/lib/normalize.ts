@@ -184,3 +184,19 @@ export function normalizeAdminUserDetail(payload: unknown, fallbackId: string): 
     notes,
   }
 }
+
+/**
+ * 미디어 파일 URL을 브라우저 보안(CORS/CORP) 제약 없이 로드할 수 있도록 프록시 또는 원본으로 변환
+ */
+export function resolveDisplayImageUrl(url: string | null | undefined): string {
+  if (!url || typeof url !== 'string') return ''
+  const trimmed = url.trim()
+  if (trimmed.startsWith('data:image/') || trimmed.startsWith('blob:')) return trimmed
+  if (trimmed.includes('/v1/media/files/')) {
+    const filename = trimmed.split('/v1/media/files/')[1]
+    if (filename) {
+      return `/api/backend/media/files/${filename}`
+    }
+  }
+  return trimmed
+}

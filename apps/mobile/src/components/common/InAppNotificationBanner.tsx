@@ -8,6 +8,7 @@ import {
   Animated,
   Dimensions,
   Platform,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -209,6 +210,16 @@ export function InAppNotificationProvider({ children }: { children: React.ReactN
         type: payload.type || 'text',
         createdAt: payload.createdAt,
       });
+    });
+
+    socket.on('chat:admin_warning', (payload: any) => {
+      const msg = payload?.message || '운영 정책 위반으로 주의 경고 조치가 내려졌습니다.';
+      Alert.alert('⚠️ 관리자 주의 경고', msg, [{ text: '확인' }]);
+    });
+
+    socket.on('chat:user_restricted', (payload: any) => {
+      const msg = payload?.message || '운영 정책 위반으로 1:1 대화가 24시간 동안 제한되었습니다.';
+      Alert.alert('🚫 계정 이용 제한 안내', msg, [{ text: '확인' }]);
     });
 
     socket.connect();

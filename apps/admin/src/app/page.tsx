@@ -123,6 +123,7 @@ import {
   getChatMessages,
   uploadChatMedia,
 } from '@/lib/api'
+import { resolveDisplayImageUrl } from '@/lib/normalize'
 import { io } from 'socket.io-client'
 import { ToastAction } from '@/components/ui/toast'
 import {
@@ -2890,7 +2891,18 @@ export default function CustomerWebStorefrontPage() {
       playMoccoSoundWeb()
 
       const isGift = data.type === 'gift' || data.backendType === 'gift' || Boolean(data.gift)
-      const isMedia = data.type === 'media' || Boolean(data.media) || (typeof data.content === 'string' && data.content.startsWith('data:image/'))
+      const rawMsgContent = typeof data.content === 'string' ? data.content : (typeof data.text === 'string' ? data.text : '')
+      const isMedia =
+        data.type === 'media' ||
+        data.type === 'image' ||
+        data.type === 'IMAGE' ||
+        data.backendType === 'media' ||
+        data.backendType === 'image' ||
+        Boolean(data.media) ||
+        (typeof rawMsgContent === 'string' &&
+          (rawMsgContent.includes('/media/files/') ||
+            rawMsgContent.startsWith('data:image/') ||
+            /\.(jpeg|jpg|png|gif|webp|mp4|mov)(\?.*)?$/i.test(rawMsgContent)))
       const giftData = isGift ? (data.gift || {
         id: data.giftId || 'gift',
         name: data.giftName || '선물',
@@ -2898,7 +2910,8 @@ export default function CustomerWebStorefrontPage() {
         description: data.content || '선물을 받았습니다 ✨',
         icon: data.icon || data.giftIcon || '🎁',
       }) : undefined
-      const mediaData = isMedia ? (data.media || { uri: data.content }) : undefined
+      const mediaUri = data.media?.uri || (isMedia ? rawMsgContent : undefined)
+      const mediaData = isMedia && mediaUri ? { uri: mediaUri } : undefined
 
       const newMsg: ChatMessageItem = {
         id: data.id || 'msg-' + Date.now(),
@@ -8218,10 +8231,10 @@ export default function CustomerWebStorefrontPage() {
                                     {msg.media?.uri ? (
                                       <div className="rounded-2xl rounded-tr-xs overflow-hidden shadow-xs border border-white/50 bg-slate-900/10 max-w-[210px]">
                                         <img
-                                          src={msg.media.uri}
+                                          src={resolveDisplayImageUrl(msg.media.uri)}
                                           alt="내 전송 사진"
                                           className="w-full h-auto max-h-48 object-cover cursor-pointer hover:opacity-95 transition"
-                                          onClick={() => window.open(msg.media?.uri, '_blank')}
+                                          onClick={() => window.open(resolveDisplayImageUrl(msg.media?.uri), '_blank')}
                                         />
                                       </div>
                                     ) : msg.gift ? (
@@ -8284,10 +8297,10 @@ export default function CustomerWebStorefrontPage() {
                                         {msg.media?.uri ? (
                                           <div className="rounded-2xl rounded-tl-xs overflow-hidden shadow-xs border border-white/50 bg-slate-900/10 max-w-[210px]">
                                             <img
-                                              src={msg.media.uri}
+                                              src={resolveDisplayImageUrl(msg.media.uri)}
                                               alt="상대방 전송 사진"
                                               className="w-full h-auto max-h-48 object-cover cursor-pointer hover:opacity-95 transition"
-                                              onClick={() => window.open(msg.media?.uri, '_blank')}
+                                              onClick={() => window.open(resolveDisplayImageUrl(msg.media?.uri), '_blank')}
                                             />
                                           </div>
                                         ) : msg.gift ? (

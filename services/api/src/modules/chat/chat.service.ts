@@ -401,6 +401,7 @@ export class ChatService implements OnModuleInit {
   // 🛡️ 운영자 제재 회원 인메모리 관리
   private suspendedUsers: Record<string, number> = {}; // userId / nickname -> 만료 timestamp
   private bannedUsers: Set<string> = new Set();
+  private violationCounts: Record<string, number> = {}; // userId / nickname -> 누적 위반 횟수 (3진 아웃 점진적 제재)
 
   constructor(
     private readonly prisma: PrismaService,
@@ -1214,7 +1215,18 @@ export class ChatService implements OnModuleInit {
       }
     }
 
-    // 3) 금전 요구 및 사기 의심 단어 감지
+    // 3) 계좌번호 및 직거래 송금 유도 패턴 감지 (타사 벤치마킹: 당근마켓/번개장터 안전장치)
+    if (fraudRule?.enabled && typeof processedContent === 'string') {
+      // 10~16자리 연속 숫자 또는 하이픈 포함 계좌번호 패턴
+      const accountRegex = /\b\d{3,6}[-\s]\d{2,6}[-\s]\d{3,8}\b|\b\d{11,16}\b/g;
+      if (accountRegex.test(processedContent)) {
+        isFlagged = true;
+        flagNotice = '[AI 심사관 감지] 직거래 계좌번호 패턴 감지';
+        processedContent = processedContent.replace(accountRegex, '***-***-******');
+      }
+    }
+
+    // 4) 금전 요구 및 사기 의심 단어 감지
     if (fraudRule?.enabled && typeof processedContent === 'string') {
       const fraudKeywords = ['계좌', '입금', '송금', '비트코인', '코인', '대출', '조건만남', '스폰'];
       for (const fKw of fraudKeywords) {
@@ -1296,13 +1308,19 @@ export class ChatService implements OnModuleInit {
 
     // 🚨 위반 플래그 감지 시 AI 직원 의사결정 큐 및 관리자 안전 리포트 자동 발행
     if (isFlagged) {
+      const violatorKey = String(effectiveUserId || userId || senderName).trim();
+      const currentViolationCount = (this.violationCounts[violatorKey] || 0) + 1;
+      this.violationCounts[violatorKey] = currentViolationCount;
+
+      this.logger.warn(`User [${violatorKey}] violation #${currentViolationCount} detected: ${flagNotice}`);
+
       const newReport: ChatSafetyReport = {
         id: `REP-${Date.now().toString().slice(-4)}`,
         roomId: chatId,
         roomTitle: room?.title || `${senderName} 1:1 대화`,
         reporterName: 'AI 안전 감시관 (Zev)',
         targetUserName: senderName,
-        reason: flagNotice || '금칙어 및 안전 정책 위반 의심',
+        reason: `${flagNotice || '금칙어 및 안전 정책 위반 의심'} (${currentViolationCount}차)`,
         status: 'PENDING',
         createdAt: now,
       };
@@ -1315,13 +1333,74 @@ export class ChatService implements OnModuleInit {
             domain: 'REPORT_SAFETY',
             targetId: chatId,
             targetUserId: userId !== 'guest' ? userId : undefined,
-            riskScore: 78,
-            violationTags: ['1:1 대화 정책 위반', flagNotice || '금칙어 감지'],
-            preliminaryRationale: `발신자 [${senderName}] 대화 내용에서 정책 위반 감지: "${content}"`,
+            riskScore: currentViolationCount >= 3 ? 95 : (currentViolationCount === 2 ? 80 : 60),
+            violationTags: ['1:1 대화 정책 위반', flagNotice || '금칙어 감지', `${currentViolationCount}차 위반`],
+            preliminaryRationale: `발신자 [${senderName}] 대화 내용에서 정책 위반 감지 (${currentViolationCount}회차 누적): "${content}"`,
           }).catch(() => {});
         }
       } catch (err) {
         this.logger.warn(`AI Orchestrator escalation failed: ${err}`);
+      }
+
+      // 🛡️ 타사(당근마켓/번개장터) 벤치마킹: 3진 아웃 점진적 자동 안전 장치
+      if (currentViolationCount === 1) {
+        // [1차 위반: 유도리 있는 안전 안내] 대화창 내에 시스템 안전 알림 메시지 자동 발행 (채팅 차단 X)
+        const noticeMsg: ChatMessageItem = {
+          id: `sys-notice-${Date.now()}`,
+          chatId,
+          senderAccountId: 'system',
+          senderName: '시스템',
+          content: '⚠️ [MOCCO 안전 알림] 외부 연락처(카톡, 번호) 유도나 계좌 직거래 요구는 사기 피해의 위험이 있습니다. 안전한 대화를 위해 서비스 내 기능을 이용해 주세요. (주의 1/3)',
+          type: 'text',
+          createdAt: new Date().toISOString(),
+        };
+        this.messagesStore[chatId].push(noticeMsg);
+        setTimeout(() => {
+          this.chatGateway.emitChatMessage(chatId, noticeMsg, undefined, room?.participantIds);
+        }, 150);
+      } else if (currentViolationCount === 2) {
+        // [2차 위반: 강력 경고] 대화창 경고 안내 + 실시간 주의 팝업 알림 발송
+        const warnMsg: ChatMessageItem = {
+          id: `sys-warn-${Date.now()}`,
+          chatId,
+          senderAccountId: 'system',
+          senderName: '시스템',
+          content: '⚠️ [MOCCO 운영 경고] 비정상적인 연락처 또는 금융 정보 공유가 반복 감지되었습니다. 1회 추가 위반 시 1:1 대화 이용이 24시간 동안 제한됩니다. (경고 2/3)',
+          type: 'text',
+          createdAt: new Date().toISOString(),
+        };
+        this.messagesStore[chatId].push(warnMsg);
+        setTimeout(() => {
+          this.chatGateway.emitChatMessage(chatId, warnMsg, undefined, room?.participantIds);
+          this.chatGateway.emitAdminWarning(chatId, warnMsg, effectiveUserId || senderName);
+        }, 150);
+      } else if (currentViolationCount >= 3) {
+        // [3차 이상 위반: 24시간 대화 제한 자동 집행 및 강제 퇴장]
+        const suspendMsg: ChatMessageItem = {
+          id: `sys-suspend-${Date.now()}`,
+          chatId,
+          senderAccountId: 'system',
+          senderName: '시스템',
+          content: `🚫 [제재 적용] 1:1 대화 안전 가이드라인 3회 위반으로 인해 ${senderName} 회원의 대화 권한이 24시간 동안 정지되었습니다.`,
+          type: 'text',
+          createdAt: new Date().toISOString(),
+        };
+        this.messagesStore[chatId].push(suspendMsg);
+        this.suspendedUsers[violatorKey] = Date.now() + 24 * 3600 * 1000;
+        if (room) {
+          room.status = 'ARCHIVED';
+          room.flaggedReason = '안전 정책 3회 반복 위반으로 24시간 대화 제한 자동 집행';
+        }
+        setTimeout(() => {
+          this.chatGateway.emitChatMessage(chatId, suspendMsg, undefined, room?.participantIds);
+          this.chatGateway.emitAdminSanction(
+            chatId,
+            'SUSPEND_24H',
+            suspendMsg,
+            effectiveUserId || senderName,
+            room?.participantIds,
+          );
+        }, 150);
       }
     }
 

@@ -731,6 +731,8 @@ export default function ChatRoomScreen({ route, navigation }) {
       localTypingSentRef.current = false;
       socket.emit(CHAT_SOCKET_EVENTS.JOIN, {
         chatId,
+        userId: currentActivityAccountId,
+        nickname: currentNickname,
       });
 
       if (localTypingActiveRef.current && emitTyping(true)) {
@@ -740,7 +742,11 @@ export default function ChatRoomScreen({ route, navigation }) {
 
     const handleConnect = () => {
       if (chatId) {
-        socket.emit(CHAT_SOCKET_EVENTS.JOIN, { chatId });
+        socket.emit(CHAT_SOCKET_EVENTS.JOIN, {
+          chatId,
+          userId: currentActivityAccountId,
+          nickname: currentNickname,
+        });
         socket.emit(CHAT_SOCKET_EVENTS.READ, {
           chatId,
           readerId: currentActivityAccountId,

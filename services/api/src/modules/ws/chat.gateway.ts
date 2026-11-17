@@ -663,13 +663,20 @@ export class ChatGateway
    * 관리자 경고장 발송 실시간 브로드캐스트 (대화방 시스템 메시지 + 대상자 경고 팝업)
    */
   emitAdminWarning(chatId: string, warningMessage: any, targetUserId?: string) {
-    // 1) 대화방 내부 전체에 경고 시스템 메시지 실시간 전파
+    // 1) 대화방 내부 전체에 경고 시스템 메시지 및 실시간 경고 팝업 전파
     this.server.to(`chat_room_${chatId}`).emit('chat:message', warningMessage);
+    this.server.to(`chat_room_${chatId}`).emit('chat:admin_warning', {
+      chatId,
+      targetUserId,
+      message: warningMessage.content,
+      createdAt: warningMessage.createdAt,
+    });
 
-    // 2) 피신고자 개인 룸에 경고장 팝업 이벤트 전송
+    // 2) 피신고자 개인 룸에 경고장 팝업 이벤트 전송 (방 밖에 있어도 수신)
     if (targetUserId) {
       this.server.to(`user_${targetUserId}`).emit('chat:admin_warning', {
         chatId,
+        targetUserId,
         message: warningMessage.content,
         createdAt: warningMessage.createdAt,
       });
@@ -693,13 +700,21 @@ export class ChatGateway
     targetUserId?: string,
     participantIds?: string[],
   ) {
-    // 대화방 내부에 제재 시스템 메시지 전파
+    // 대화방 내부에 제재 시스템 메시지 및 퇴장 이벤트 전파
     this.server.to(`chat_room_${chatId}`).emit('chat:message', sanctionMessage);
+    this.server.to(`chat_room_${chatId}`).emit('chat:user_restricted', {
+      chatId,
+      actionType,
+      targetUserId,
+      message: sanctionMessage.content,
+      createdAt: sanctionMessage.createdAt,
+    });
 
     if (targetUserId) {
       this.server.to(`user_${targetUserId}`).emit('chat:user_restricted', {
         chatId,
         actionType,
+        targetUserId,
         message: sanctionMessage.content,
         createdAt: sanctionMessage.createdAt,
       });
@@ -707,6 +722,11 @@ export class ChatGateway
 
     // 대화 정지 또는 영구 정지 시 방 종료 브로드캐스트
     if (actionType === 'SUSPEND_24H' || actionType === 'BAN_PERMANENT') {
+      this.server.to(`chat_room_${chatId}`).emit('chat:room_deleted', {
+        chatId,
+        reason: actionType,
+        message: sanctionMessage.content,
+      });
       const targets = participantIds || [];
       targets.forEach((pid) => {
         this.server.to(`user_${pid}`).emit('chat:room_deleted', {

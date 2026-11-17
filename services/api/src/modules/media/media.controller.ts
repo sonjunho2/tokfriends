@@ -74,6 +74,9 @@ export class MediaController {
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ ok: false, message: '파일을 찾을 수 없습니다.' });
     }
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     return res.sendFile(filePath);
   }
 }
