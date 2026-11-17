@@ -3035,10 +3035,16 @@ export default function CustomerWebStorefrontPage() {
   }) => {
     requireAuth(async () => {
       let resolvedRoomId = 'chat-u-' + (target.id || Date.now())
+      const isAdmUser = !user?.nickname || ['super admin', 'admin', 'admin_super_user', '관리자', '슈퍼어드민'].includes(String(user.nickname).trim().toLowerCase())
+      const effectiveSenderNick = isAdmUser ? '테스터02' : user.nickname
+      const effectiveSenderId = isAdmUser ? 'u-tester-02' : (user?.id || 'u-tester-02')
+
       try {
         const serverRoom = await createDirectChat(target.id || target.nickname, target.nickname, 0, {
           targetNickname: target.nickname,
-          senderNickname: user?.nickname || '나',
+          senderNickname: effectiveSenderNick,
+          senderAccountId: effectiveSenderId,
+          userId: effectiveSenderId,
         })
         if (serverRoom?.id) {
           resolvedRoomId = serverRoom.id
@@ -4620,7 +4626,7 @@ export default function CustomerWebStorefrontPage() {
       }
 
       // 발신자 닉네임 정규화 (관리자 세션 쿠키더라도 1:1 채팅에서는 테스터02로 송신)
-      const isAdmUser = !user?.nickname || user.nickname === 'Super Admin' || user.nickname === 'admin' || user.nickname === '관리자'
+      const isAdmUser = !user?.nickname || ['super admin', 'admin', 'admin_super_user', '관리자', '슈퍼어드민'].includes(String(user.nickname).trim().toLowerCase())
       const effectiveSenderNick = isAdmUser ? '테스터02' : user.nickname
       const effectiveSenderId = isAdmUser ? 'u-tester-02' : (user?.id || 'u-tester-02')
 
@@ -4630,6 +4636,7 @@ export default function CustomerWebStorefrontPage() {
         serverRoom = await createDirectChat(room.nickname, room.title, room.entryFee, {
           senderNickname: effectiveSenderNick,
           senderAccountId: effectiveSenderId,
+          userId: effectiveSenderId,
           targetNickname: room.nickname,
         })
       } catch (e) {
@@ -4749,7 +4756,7 @@ export default function CustomerWebStorefrontPage() {
   const handleSendMessage = async () => {
     if (!chatInputText.trim() || !activeChatRoom) return
     const text = chatInputText.trim()
-    const isAdmUser = !user?.nickname || user.nickname === 'Super Admin' || user.nickname === 'admin' || user.nickname === '관리자'
+    const isAdmUser = !user?.nickname || ['super admin', 'admin', 'admin_super_user', '관리자', '슈퍼어드민'].includes(String(user.nickname).trim().toLowerCase())
     const senderNickname = isAdmUser ? '테스터02' : user.nickname
     const senderId = isAdmUser ? 'u-tester-02' : (user?.id || 'u-tester-02')
     const clientMsgId = 'm-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7)
@@ -4834,10 +4841,14 @@ export default function CustomerWebStorefrontPage() {
       }, 4000)
       setIsGiftPickerOpen(false)
 
+      const isAdmUser = !user?.nickname || ['super admin', 'admin', 'admin_super_user', '관리자', '슈퍼어드민'].includes(String(user.nickname).trim().toLowerCase())
+      const effectiveSenderNick = isAdmUser ? '테스터02' : user.nickname
+      const effectiveSenderId = isAdmUser ? 'u-tester-02' : (user?.id || 'u-tester-02')
+
       const giftMsg: ChatMessageItem = {
         id: 'msg-gift-' + Date.now(),
-        senderId: user?.id || 'me',
-        senderNickname: user?.nickname || '나',
+        senderId: effectiveSenderId,
+        senderNickname: effectiveSenderNick,
         text: `🎁 [선물] ${gift.name} (${gift.pricePoints.toLocaleString()} P)`,
         time: '방금',
         isMe: true,
@@ -4875,9 +4886,9 @@ export default function CustomerWebStorefrontPage() {
             description: gift.description,
             icon: gift.icon,
           },
-          senderAccountId: user?.id,
-          senderNickname: user?.nickname || '나',
-          senderName: user?.nickname || '나',
+          senderAccountId: effectiveSenderId,
+          senderNickname: effectiveSenderNick,
+          senderName: effectiveSenderNick,
           targetUserId: activeChatRoom.targetUserId || activeChatRoom.targetNickname,
         })
       }
@@ -4889,8 +4900,8 @@ export default function CustomerWebStorefrontPage() {
         points: gift.pricePoints,
         giftName: gift.name,
         giftId: gift.id,
-        senderAccountId: user?.id,
-        senderNickname: user?.nickname || '나',
+        senderAccountId: effectiveSenderId,
+        senderNickname: effectiveSenderNick,
         receiverId: activeChatRoom.targetUserId || activeChatRoom.targetNickname,
         targetUserId: activeChatRoom.targetUserId || activeChatRoom.targetNickname,
         icon: gift.icon || '🎁',

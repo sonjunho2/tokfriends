@@ -298,6 +298,20 @@ const FALLBACK_RULES: ChatPolicyRule[] = [
   },
 ]
 
+const sanitizeAdminDisplayNick = (nick?: string) => {
+  if (!nick) return '회원'
+  const n = String(nick).trim().toLowerCase()
+  if (['super admin', 'admin', 'admin_super_user', '관리자', '슈퍼어드민'].includes(n)) {
+    return '테스터02'
+  }
+  return nick
+}
+
+const sanitizeAdminText = (text?: string) => {
+  if (!text) return ''
+  return text.replace(/admin_super_user/gi, '테스터02')
+}
+
 type FilterTab = 'ALL' | 'FLAGGED' | 'ACTIVE' | 'ARCHIVED'
 
 export default function ChatsPage() {
@@ -839,11 +853,11 @@ export default function ChatsPage() {
                             <div>
                               <div className="flex items-center gap-1.5">
                                 <span className="font-semibold text-xs text-foreground">
-                                  {room.userA?.nickname ?? '회원A'}
+                                  {sanitizeAdminDisplayNick(room.userA?.nickname)}
                                 </span>
                                 <span className="text-[10px] text-muted-foreground">↔</span>
                                 <span className="font-semibold text-xs text-foreground">
-                                  {room.userB?.nickname ?? '회원B'}
+                                  {sanitizeAdminDisplayNick(room.userB?.nickname)}
                                 </span>
                               </div>
                               <div className="text-[11px] text-muted-foreground">
@@ -926,7 +940,7 @@ export default function ChatsPage() {
                         />
                         <div>
                           <div className="flex items-center gap-1 font-bold text-sm">
-                            <span>{selectedRoom.userA?.nickname}</span>
+                            <span>{sanitizeAdminDisplayNick(selectedRoom.userA?.nickname)}</span>
                             <span className="text-xs text-muted-foreground font-normal">
                               ({selectedRoom.userA?.age}세·{selectedRoom.userA?.gender})
                             </span>
@@ -952,7 +966,7 @@ export default function ChatsPage() {
                         />
                         <div>
                           <div className="flex items-center gap-1 font-bold text-sm">
-                            <span>{selectedRoom.userB?.nickname}</span>
+                            <span>{sanitizeAdminDisplayNick(selectedRoom.userB?.nickname)}</span>
                             <span className="text-xs text-muted-foreground font-normal">
                               ({selectedRoom.userB?.age}세·{selectedRoom.userB?.gender})
                             </span>
@@ -1031,7 +1045,7 @@ export default function ChatsPage() {
                           return (
                             <div key={msg.id} className="flex justify-center">
                               <div className="rounded-lg border border-red-200 bg-red-100/70 px-4 py-2 text-center text-xs font-semibold text-red-800 shadow-xs dark:border-red-900 dark:bg-red-950/50 dark:text-red-200">
-                                {msg.text}
+                                {sanitizeAdminText(msg.text)}
                               </div>
                             </div>
                           )
@@ -1044,7 +1058,7 @@ export default function ChatsPage() {
                               <div className="flex items-center gap-2 rounded-full border border-amber-300 bg-amber-100/80 px-4 py-1.5 text-xs font-bold text-amber-900 shadow-xs dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-200">
                                 <Gift className="h-4 w-4 text-amber-600 animate-bounce" />
                                 <span>
-                                  🎁 <b>[{msg.senderName}]</b> 님이 <b>[{msg.giftName}]</b> 을 선물했습니다!
+                                  🎁 <b>[{sanitizeAdminDisplayNick(msg.senderName)}]</b> 님이 <b>[{msg.giftName}]</b> 을 선물했습니다!
                                 </span>
                                 <span className="text-[10px] text-amber-700 font-normal">{msg.time}</span>
                               </div>
@@ -1077,7 +1091,7 @@ export default function ChatsPage() {
                             <div className="max-w-[75%] space-y-1">
                               {/* 발신자 닉네임 */}
                               <div className={`text-[11px] text-muted-foreground font-medium ${isUserA ? 'text-left' : 'text-right'}`}>
-                                {msg.senderName}
+                                {sanitizeAdminDisplayNick(msg.senderName)}
                               </div>
 
                               {/* 말풍선 본체 */}
@@ -1090,7 +1104,7 @@ export default function ChatsPage() {
                                     : 'rounded-tr-xs bg-amber-400 text-amber-950 font-medium dark:bg-amber-500 dark:text-black'
                                 }`}
                               >
-                                <div>{msg.text}</div>
+                                <div>{sanitizeAdminText(msg.text)}</div>
 
                                 {/* AI 유해 키워드 감지 경고 칩 */}
                                 {msg.isFlagged && (

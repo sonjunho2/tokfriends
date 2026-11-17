@@ -16,6 +16,12 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { Public } from '../auth/public.decorator';
 
+const isAdminAccount = (idOrName?: string) => {
+  if (!idOrName) return false;
+  const s = String(idOrName).trim().toLowerCase();
+  return ['super admin', 'admin', 'admin_super_user', '관리자', '슈퍼어드민'].includes(s);
+};
+
 @ApiTags('chats')
 @ApiBearerAuth()
 @Controller(['chats', 'chat'])
@@ -83,9 +89,19 @@ export class ChatController {
   @Public()
   @Post('direct')
   async ensureDirectRoom(@CurrentUser() user: any, @Body() body: any) {
-    const userId = user?.id || user?.sub || body.userId || body.senderAccountId || 'guest';
+    const isCallerAdmin = user?.id === 'admin_super_user' || user?.role === 'SUPER_ADMIN' || isAdminAccount(user?.nickname);
+    let userId = body.userId || body.senderAccountId;
+    if (!userId || (isCallerAdmin && isAdminAccount(userId))) {
+      userId = isCallerAdmin ? 'u-tester-02' : (user?.id || user?.sub || 'u-tester-02');
+    }
     const targetUserId = body.targetUserId || body.targetAccountId;
-    const senderNickname = body.senderNickname || user?.nickname || user?.displayName;
+    let senderNickname = body.senderNickname || body.senderName;
+    if (!senderNickname || isAdminAccount(senderNickname)) {
+      senderNickname = isCallerAdmin ? '테스터02' : (user?.nickname || user?.displayName || '테스터02');
+      if (isAdminAccount(senderNickname)) {
+        senderNickname = '테스터02';
+      }
+    }
     const targetNickname = body.targetNickname || body.targetName;
     const room = await this.chatService.ensureDirectRoom(userId, targetUserId, senderNickname, targetNickname);
     return { ok: true, data: room, room };
@@ -128,10 +144,22 @@ export class ChatController {
     @Param('id') routeChatId: string | undefined,
     @Body() body: any,
   ) {
-    const userId = body.senderAccountId || body.senderId || body.userId || (user?.nickname !== 'Super Admin' && user?.id ? user.id : (user?.id || 'guest'));
-    const senderNickname = body.senderNickname || body.senderName || (user?.nickname !== 'Super Admin' && user?.nickname ? user.nickname : undefined);
+    const isCallerAdmin = user?.id === 'admin_super_user' || user?.role === 'SUPER_ADMIN' || isAdminAccount(user?.nickname);
+    let userId = body.senderAccountId || body.senderId || body.userId;
+    if (!userId || (isCallerAdmin && isAdminAccount(userId))) {
+      userId = isCallerAdmin ? 'u-tester-02' : (user?.id || 'u-tester-02');
+    }
+    let senderNickname = body.senderNickname || body.senderName;
+    if (!senderNickname || isAdminAccount(senderNickname)) {
+      senderNickname = isCallerAdmin ? '테스터02' : (user?.nickname || user?.displayName || '테스터02');
+      if (isAdminAccount(senderNickname)) {
+        senderNickname = '테스터02';
+      }
+    }
     const payload = {
       ...body,
+      senderAccountId: userId,
+      senderId: userId,
       senderNickname,
       senderName: senderNickname,
       chatId: routeChatId || body.chatId,
@@ -151,8 +179,18 @@ export class ChatController {
   @Public()
   @Post('gift')
   async sendChatGift(@CurrentUser() user: any, @Body() body: any) {
-    const userId = body.senderAccountId || body.senderId || body.userId || (user?.nickname !== 'Super Admin' && user?.id ? user.id : (user?.id || 'guest'));
-    const senderNickname = body.senderNickname || body.senderName || (user?.nickname !== 'Super Admin' && user?.nickname ? user.nickname : undefined);
+    const isCallerAdmin = user?.id === 'admin_super_user' || user?.role === 'SUPER_ADMIN' || isAdminAccount(user?.nickname);
+    let userId = body.senderAccountId || body.senderId || body.userId;
+    if (!userId || (isCallerAdmin && isAdminAccount(userId))) {
+      userId = isCallerAdmin ? 'u-tester-02' : (user?.id || 'u-tester-02');
+    }
+    let senderNickname = body.senderNickname || body.senderName;
+    if (!senderNickname || isAdminAccount(senderNickname)) {
+      senderNickname = isCallerAdmin ? '테스터02' : (user?.nickname || user?.displayName || '테스터02');
+      if (isAdminAccount(senderNickname)) {
+        senderNickname = '테스터02';
+      }
+    }
     const points = Number(body.points || body.amount || body.pricePoints || 100);
     const giftName = body.giftName || body.name || '선물';
     const giftIcon = body.icon || body.thumbnailUrl || null;

@@ -468,6 +468,69 @@ export class ChatService implements OnModuleInit {
           }
         }
       }
+
+      // 🛡️ 기존 디스크 파일에 혹시 admin_super_user / Super Admin으로 기록된 1:1 대화방/메시지 데이터 일괄 정규화
+      const isAdminAccount = (idOrName?: string) => {
+        if (!idOrName) return false;
+        const s = String(idOrName).trim().toLowerCase();
+        return ['super admin', 'admin', 'admin_super_user', '관리자', '슈퍼어드민'].includes(s);
+      };
+
+      let hasCleaned = false;
+      const cleanRoom = (r: any) => {
+        if (!r) return;
+        if (isAdminAccount(r.host?.displayName)) {
+          r.host.displayName = '테스터02';
+          hasCleaned = true;
+        }
+        if (isAdminAccount(r.host?.id)) {
+          r.host.id = 'u-tester-02';
+          hasCleaned = true;
+        }
+        if (isAdminAccount(r.counterpart?.displayName)) {
+          r.counterpart.displayName = '테스터02';
+          hasCleaned = true;
+        }
+        if (isAdminAccount(r.counterpart?.id)) {
+          r.counterpart.id = 'u-tester-02';
+          hasCleaned = true;
+        }
+        if (isAdminAccount(r.title)) {
+          r.title = '테스터02';
+          hasCleaned = true;
+        }
+        if (Array.isArray(r.participantIds)) {
+          r.participantIds = r.participantIds.map((pid: string) => (isAdminAccount(pid) ? 'u-tester-02' : pid));
+        }
+      };
+
+      this.rooms.forEach(cleanRoom);
+      this.archivedRooms.forEach(cleanRoom);
+
+      for (const cId in this.messagesStore) {
+        if (Array.isArray(this.messagesStore[cId])) {
+          this.messagesStore[cId].forEach((m: any) => {
+            if (!m) return;
+            if (isAdminAccount(m.senderName) || isAdminAccount(m.senderNickname)) {
+              m.senderName = '테스터02';
+              if (m.senderNickname) m.senderNickname = '테스터02';
+              hasCleaned = true;
+            }
+            if (isAdminAccount(m.senderAccountId)) {
+              m.senderAccountId = 'u-tester-02';
+              hasCleaned = true;
+            }
+            if (typeof m.content === 'string' && m.content.includes('admin_super_user')) {
+              m.content = m.content.replace(/admin_super_user/g, '테스터02');
+              hasCleaned = true;
+            }
+          });
+        }
+      }
+
+      if (hasCleaned) {
+        this.saveToDisk();
+      }
     } catch (e: any) {
       this.logger.warn(`Failed to load chat data from disk: ${e?.message}`);
     }
@@ -746,26 +809,39 @@ export class ChatService implements OnModuleInit {
           (r.participantIds?.includes(userId) && r.participantIds?.includes(targetUserId))),
     );
 
+    const isAdminAccount = (idOrName?: string) => {
+      if (!idOrName) return false;
+      const s = String(idOrName).trim().toLowerCase();
+      return ['super admin', 'admin', 'admin_super_user', '관리자', '슈퍼어드민'].includes(s);
+    };
+
+    let effectiveUserId = userId;
+    if (isAdminAccount(effectiveUserId)) {
+      effectiveUserId = 'u-tester-02';
+    }
+
     let hostName = senderNickname || (userId && userId !== 'guest' ? userId : '회원');
-    if (hostName === 'Super Admin' || hostName === 'admin') {
+    if (isAdminAccount(hostName) || isAdminAccount(userId)) {
       hostName = '테스터02';
     }
     let hostAvatar: string | null = null;
     let dbHost: any = null;
     try {
-      dbHost = await this.prisma.user.findFirst({
-        where: {
-          OR: [
-            { id: userId },
-            { nickname: userId },
-          ],
-        },
-        include: { photos: { take: 1, orderBy: { sortOrder: 'asc' } } },
-      });
+      if (!isAdminAccount(userId)) {
+        dbHost = await this.prisma.user.findFirst({
+          where: {
+            OR: [
+              { id: userId },
+              { nickname: userId },
+            ],
+          },
+          include: { photos: { take: 1, orderBy: { sortOrder: 'asc' } } },
+        });
+      }
       if (dbHost) {
-        if (!senderNickname || senderNickname === 'Super Admin' || senderNickname === 'admin') {
+        if (!senderNickname || isAdminAccount(senderNickname)) {
           const resolvedDbName = dbHost.nickname || dbHost.displayName;
-          if (resolvedDbName && resolvedDbName !== 'Super Admin' && resolvedDbName !== 'admin') {
+          if (resolvedDbName && !isAdminAccount(resolvedDbName)) {
             hostName = resolvedDbName;
           } else {
             hostName = '테스터02';
@@ -777,30 +853,32 @@ export class ChatService implements OnModuleInit {
       }
     } catch {}
 
-    if (hostName === 'Super Admin' || hostName === 'admin') {
+    if (isAdminAccount(hostName)) {
       hostName = '테스터02';
     }
 
     let targetName = targetNickname || (targetUserId && targetUserId !== 'guest' ? targetUserId : '대화 상대');
-    if (targetName === 'Super Admin' || targetName === 'admin') {
+    if (isAdminAccount(targetName) || isAdminAccount(targetUserId)) {
       targetName = '테스터02';
     }
     let targetAvatar: string | null = null;
     let entryFee = 0;
     let u: any = null;
     try {
-      u = await this.prisma.user.findFirst({
-        where: {
-          OR: [
-            { id: targetUserId },
-            { nickname: targetUserId },
-          ],
-        },
-        include: { photos: { take: 1, orderBy: { sortOrder: 'asc' } } },
-      });
+      if (!isAdminAccount(targetUserId)) {
+        u = await this.prisma.user.findFirst({
+          where: {
+            OR: [
+              { id: targetUserId },
+              { nickname: targetUserId },
+            ],
+          },
+          include: { photos: { take: 1, orderBy: { sortOrder: 'asc' } } },
+        });
+      }
       if (u) {
         const resolvedTarget = u.nickname || u.displayName;
-        if (resolvedTarget && resolvedTarget !== 'Super Admin' && resolvedTarget !== 'admin') {
+        if (resolvedTarget && !isAdminAccount(resolvedTarget)) {
           targetName = resolvedTarget;
         }
         targetAvatar = u.avatarUrl || u.photos?.[0]?.url || null;
@@ -808,19 +886,25 @@ export class ChatService implements OnModuleInit {
       }
     } catch {}
 
-    if (targetName === 'Super Admin' || targetName === 'admin') {
+    if (isAdminAccount(targetName)) {
       targetName = '테스터02';
     }
 
     if (existing) {
-      // Fix potential '나' display name bug in existing room
-      if (existing.host && (!existing.host.displayName || existing.host.displayName === '나' || existing.host.displayName === 'Super Admin' || existing.host.displayName === 'admin')) {
+      // Fix potential '나' or admin display name bug in existing room
+      if (existing.host && (!existing.host.displayName || existing.host.displayName === '나' || isAdminAccount(existing.host.displayName))) {
         existing.host.displayName = hostName;
       }
-      if (existing.counterpart && (!existing.counterpart.displayName || existing.counterpart.displayName === '나' || existing.counterpart.displayName === 'Super Admin' || existing.counterpart.displayName === 'admin')) {
+      if (isAdminAccount(existing.host?.id)) {
+        existing.host.id = 'u-tester-02';
+      }
+      if (existing.counterpart && (!existing.counterpart.displayName || existing.counterpart.displayName === '나' || isAdminAccount(existing.counterpart.displayName))) {
         existing.counterpart.displayName = targetName;
       }
-      if (existing.title === 'Super Admin' || existing.title === 'admin') {
+      if (isAdminAccount(existing.counterpart?.id)) {
+        existing.counterpart.id = 'u-tester-02';
+      }
+      if (isAdminAccount(existing.title)) {
         existing.title = targetName;
       }
       return existing;
@@ -829,12 +913,12 @@ export class ChatService implements OnModuleInit {
     const participants = Array.from(
       new Set(
         [
-          userId,
-          ...(dbHost?.id ? [dbHost.id] : []),
-          ...(dbHost?.nickname ? [dbHost.nickname] : []),
+          effectiveUserId,
+          ...(dbHost?.id && !isAdminAccount(dbHost.id) ? [dbHost.id] : []),
+          ...(dbHost?.nickname && !isAdminAccount(dbHost.nickname) ? [dbHost.nickname] : []),
           targetUserId,
-          ...(u?.id ? [u.id] : []),
-          ...(u?.nickname ? [u.nickname] : []),
+          ...(u?.id && !isAdminAccount(u.id) ? [u.id] : []),
+          ...(u?.nickname && !isAdminAccount(u.nickname) ? [u.nickname] : []),
         ].filter(Boolean),
       ),
     );
@@ -846,10 +930,10 @@ export class ChatService implements OnModuleInit {
       entryFee,
       isGroup: false,
       participantIds: participants,
-      hostId: userId,
-      creatorId: userId,
+      hostId: effectiveUserId,
+      creatorId: effectiveUserId,
       host: {
-        id: dbHost?.id || userId,
+        id: dbHost?.id && !isAdminAccount(dbHost.id) ? dbHost.id : effectiveUserId,
         displayName: hostName,
         avatarUrl: hostAvatar,
       },
@@ -1052,9 +1136,20 @@ export class ChatService implements OnModuleInit {
   ): Promise<ChatMessageItem> {
     const { chatId, content, type = 'text', giftPoints, giftName, giftIcon } = dto;
 
+    const isAdminAccount = (idOrName?: string) => {
+      if (!idOrName) return false;
+      const s = String(idOrName).trim().toLowerCase();
+      return ['super admin', 'admin', 'admin_super_user', '관리자', '슈퍼어드민'].includes(s);
+    };
+
+    let effectiveUserId = userId;
+    if (isAdminAccount(effectiveUserId)) {
+      effectiveUserId = 'u-tester-02';
+    }
+
     let senderName = dto.senderNickname || dto.senderName;
     let senderAvatar: string | undefined = dto.senderAvatar;
-    if (!senderName && userId && userId !== 'guest') {
+    if (!senderName && userId && userId !== 'guest' && !isAdminAccount(userId)) {
       try {
         const u = await this.prisma.user.findFirst({
           where: { OR: [{ id: userId }, { nickname: userId }] },
@@ -1066,8 +1161,8 @@ export class ChatService implements OnModuleInit {
         }
       } catch {}
     }
-    if (!senderName) {
-      senderName = userId === 'guest' ? '나' : userId;
+    if (isAdminAccount(senderName) || !senderName) {
+      senderName = isAdminAccount(userId) || isAdminAccount(senderName) ? '테스터02' : (userId === 'guest' ? '나' : userId);
     }
 
     // 🛡️ AI 안전 심사관 및 금칙어 정책 검사
@@ -1117,7 +1212,7 @@ export class ChatService implements OnModuleInit {
     const msg: ChatMessageItem = {
       id: dto.clientMessageId || `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       chatId,
-      senderAccountId: userId,
+      senderAccountId: effectiveUserId,
       senderName,
       senderAvatar,
       content: processedContent,
@@ -1263,6 +1358,12 @@ export class ChatService implements OnModuleInit {
   }
 
   getAllRoomsForAdmin(): any[] {
+    const isAdminAccount = (idOrName?: string) => {
+      if (!idOrName) return false;
+      const s = String(idOrName).trim().toLowerCase();
+      return ['super admin', 'admin', 'admin_super_user', '관리자', '슈퍼어드민'].includes(s);
+    };
+
     const mapToAdmin = (room: ChatRoomItem, isArchived: boolean) => {
       const msgs = this.messagesStore[room.id] || [];
       const hasFlaggedMsg = msgs.some((m) => m.isFlagged);
@@ -1274,9 +1375,20 @@ export class ChatService implements OnModuleInit {
         ? 'FLAGGED'
         : 'ACTIVE';
 
+      const rawHost = room.host?.displayName || '호스트';
+      const displayHost = isAdminAccount(rawHost) || isAdminAccount(room.host?.id) ? '테스터02' : rawHost;
+
+      const rawCounterpart = room.counterpart?.displayName || room.title;
+      const displayCounterpart = isAdminAccount(rawCounterpart) || isAdminAccount(room.counterpart?.id) ? '테스터02' : rawCounterpart;
+
+      let cleanTitle = room.title;
+      if (isAdminAccount(cleanTitle)) {
+        cleanTitle = displayCounterpart;
+      }
+
       return {
         id: room.id,
-        title: room.title,
+        title: cleanTitle,
         category: room.category,
         region: '서울 강남구',
         distanceKm: 1.5,
@@ -1294,7 +1406,7 @@ export class ChatService implements OnModuleInit {
         retentionBasis: room.retentionBasis || null,
         userA: {
           id: room.participantIds?.[0] || 'user-1',
-          nickname: room.host?.displayName || '호스트',
+          nickname: displayHost,
           age: 26,
           gender: '남',
           region: '서울 강남구',
@@ -1302,23 +1414,33 @@ export class ChatService implements OnModuleInit {
         },
         userB: {
           id: room.counterpart?.id || room.participantIds?.[1] || 'user-2',
-          nickname: room.counterpart?.displayName || room.title,
-          age: 26,
+          nickname: displayCounterpart,
+          age: 28,
           gender: '여',
           region: '서울시',
           avatar: room.counterpart?.avatarUrl || null,
         },
-        messages: msgs.map((m) => ({
-          id: m.id,
-          senderId: m.senderAccountId,
-          senderName: m.senderName || (m.senderAccountId === 'system' ? '시스템' : '참여자'),
-          text: m.content,
-          time: m.createdAt,
-          type: m.type === 'gift' ? 'GIFT' : 'TEXT',
-          giftName: m.giftName,
-          isFlagged: Boolean(m.isFlagged),
-          flagNotice: m.flagNotice || undefined,
-        })),
+        messages: msgs.map((m) => {
+          let sName = m.senderName || (m.senderAccountId === 'system' ? '시스템' : '참여자');
+          if (isAdminAccount(sName) || isAdminAccount(m.senderAccountId)) {
+            sName = '테스터02';
+          }
+          let cleanContent = m.content;
+          if (typeof cleanContent === 'string' && cleanContent.includes('admin_super_user')) {
+            cleanContent = cleanContent.replace(/admin_super_user/g, '테스터02');
+          }
+          return {
+            id: m.id,
+            senderId: isAdminAccount(m.senderAccountId) ? 'u-tester-02' : m.senderAccountId,
+            senderName: sName,
+            text: cleanContent,
+            time: m.createdAt,
+            type: m.type === 'gift' ? 'GIFT' : 'TEXT',
+            giftName: m.giftName,
+            isFlagged: Boolean(m.isFlagged),
+            flagNotice: m.flagNotice || undefined,
+          };
+        }),
       };
     };
 

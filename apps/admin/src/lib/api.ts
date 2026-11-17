@@ -61,6 +61,14 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     config.headers['Accept'] = config.responseType === 'blob' ? 'application/octet-stream' : 'application/json'
   }
 
+  // 브라우저 클라이언트에서 로그인된 유저 토큰이 존재할 경우 Authorization 헤더에 자동 주입
+  if (typeof window !== 'undefined' && !config.headers['Authorization']) {
+    const token = localStorage.getItem('access_token') || localStorage.getItem(ACCESS_KEY) || localStorage.getItem(TOKEN_KEY)
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`
+    }
+  }
+
   return config
 })
 
