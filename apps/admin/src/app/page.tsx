@@ -341,7 +341,7 @@ export interface ChatMessageItem {
   time: string
   isMe?: boolean
   unread?: boolean
-  type?: 'text' | 'media' | 'gift'
+  type?: 'text' | 'media' | 'gift' | 'system'
   media?: {
     uri: string
   }
@@ -2634,6 +2634,7 @@ export default function CustomerWebStorefrontPage() {
   const activeChatRoomRef = useRef<ChatRoomItem | null>(null)
   const chatRoomsRef = useRef<ChatRoomItem[]>([])
   const mySentMessageIdsRef = useRef<Set<string>>(new Set())
+  const receivedMessageIdsRef = useRef<Set<string>>(new Set())
   activeChatRoomRef.current = activeChatRoom
   chatRoomsRef.current = chatRooms
 
@@ -2701,6 +2702,10 @@ export default function CustomerWebStorefrontPage() {
 
       const senderName = data.senderNickname || data.sender?.nickname || '모꼬이웃'
       const senderId = data.senderId || data.sender?.id
+      const rawText = data.content || data.text || data.message || ''
+      const previewText = data.type === 'gift' || data.backendType === 'gift'
+        ? `🎁 [선물 도착] ${data.gift?.name || '3D 선물'}`
+        : (rawText || '새로운 메시지가 도착했습니다.')
 
       // 🛡️ 내가 보낸 메시지의 에코 브로드캐스트인 경우 무시 (상대방 글로 복사되는 버그 완전 방지)
       const isMyMessage =
@@ -2708,71 +2713,58 @@ export default function CustomerWebStorefrontPage() {
         (user?.nickname && senderName === user.nickname)
       if (isMyMessage) return
 
-      playMoccoSoundWeb()
-      const previewText = data.content || data.text || '새로운 메시지가 도착했습니다.'
       const targetRoomId = data.chatId || data.roomId
       const deletedChats = getDeletedChatIds()
       if (targetRoomId && deletedChats.has(targetRoomId)) return
 
-      toast({
-        title: `🐱 모꼬! ${senderName}님의 새 메시지`,
-        description: previewText,
-        action: (
-          <ToastAction
-            altText="채팅방 입장"
-            onClick={() => {
-              if (targetRoomId) {
-                const targetRoom = chatRoomsRef.current.find((r) => r.id === targetRoomId || r.targetNickname === senderName)
-                if (targetRoom) {
-                  setActiveChatRoom(targetRoom)
-                } else {
-                  const newRoom: ChatRoomItem = {
-                    id: targetRoomId,
-                    type: 'SUDA',
-                    targetNickname: senderName,
-                    targetAvatar: data.senderAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
-                    lastMessage: previewText,
-                    lastTime: '방금',
-                    unreadCount: 0,
-                    messages: [
-                      {
-                        id: 'msg-' + Date.now(),
-                        senderId: data.senderId || 'target',
-                        senderNickname: senderName,
-                        text: previewText,
-                        time: '방금',
-                      },
-                    ],
-                  }
-                  setChatRooms((prev) => [newRoom, ...prev])
-                  setActiveChatRoom(newRoom)
-                }
-              }
-            }}
-          >
-            대화하기
-          </ToastAction>
-        ),
-      })
+      // 현재 해당 대화방을 보고 있는 중이면 토스트 생략 (chat:message에서 실시간 표시)
+      const isAlreadyInRoom = Boolean(
+        activeChatRoomRef.current &&
+          (activeChatRoomRef.current.id === targetRoomId ||
+            activeChatRoomRef.current.targetNickname === senderName)
+      )
 
-      // 활성 채팅방에 자동 반영
-      if (activeChatRoomRef.current && (activeChatRoomRef.current.id === targetRoomId || activeChatRoomRef.current.targetNickname === senderName)) {
-        const incomingMsg: ChatMessageItem = {
-          id: data.id || 'msg-' + Date.now(),
-          senderId: data.senderId || 'target',
-          senderNickname: senderName,
-          text: previewText,
-          time: '방금',
-          isMe: false,
-        }
-        setActiveChatRoom((prev) => {
-          if (!prev) return null
-          return {
-            ...prev,
-            lastMessage: previewText,
-            lastTime: '방금',
-            messages: [...prev.messages, incomingMsg],
-          }
+      if (!isAlreadyInRoom) {
+        playMoccoSoundWeb()
+        toast({
+          title: `🐱 모꼬! ${senderName}님의 새 메시지`,
+          description: previewText,
+          action: (
+            <ToastAction
+              altText="채팅방 입장"
+              onClick={() => {
+                if (targetRoomId) {
+                  const targetRoom = chatRoomsRef.current.find((r) => r.id === targetRoomId || r.targetNickname === senderName)
+                  if (targetRoom) {
+                    setActiveChatRoom(targetRoom)
+                  } else {
+                    const newRoom: ChatRoomItem = {
+                      id: targetRoomId,
+                      type: 'SUDA',
+                      targetNickname: senderName,
+                      targetAvatar: data.senderAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+                      lastMessage: previewText,
+                      lastTime: '방금',
+                      unreadCount: 0,
+                      messages: [
+                        {
+                          id: data.id || 'msg-' + Date.now(),
+                          senderId: data.senderId || 'target',
+                          senderNickname: senderName,
+                          text: previewText,
+                          time: '방금',
+                        },
+                      ],
+                    }
+                    setChatRooms((prev) => [newRoom, ...prev])
+                    setActiveChatRoom(newRoom)
+                  }
+                }
+              }}
+            >
+              대화하기
+            </ToastAction>
+          ),
         })
       }
 
@@ -2844,35 +2836,68 @@ export default function CustomerWebStorefrontPage() {
       })
     })
 
+    // 2-C) 관리자 경고장 실시간 수신 안내 팝업
+    socket.on('chat:admin_warning', (data: any) => {
+      playMoccoSoundWeb()
+      toast({
+        title: '⚠️ [관리자 주의 경고장 발송]',
+        description: data?.message || '외부 메신저 유도 및 금칙어 사용이 감지되었습니다. 건전한 대화 문화를 준수해 주세요.',
+        variant: 'destructive',
+      })
+    })
+
+    // 2-D) 관리자 계정 제한 실시간 통보
+    socket.on('chat:user_restricted', (data: any) => {
+      playMoccoSoundWeb()
+      toast({
+        title: '🚫 [운영자 이용 제재 조치]',
+        description: data?.message || '운영 정책 위반으로 인해 1:1 대화 기능이 제한되었습니다.',
+        variant: 'destructive',
+      })
+    })
+
     // 3) 같은 방 참가자 간 메시지 수신 (웹 본인 메시지 에코/복제 방지 및 선물 수신 완벽 처리)
     socket.on('chat:message', (data: any) => {
       if (!data) return
       const senderId = data.senderAccountId || data.senderId || data.sender?.id
       const senderName = data.senderName || data.senderNickname || data.sender?.nickname || '상대방'
+      const isSystem = data.type === 'system' || senderId === 'system' || senderName === '시스템' || String(data.content || '').startsWith('⚠️ [관리자 경고') || String(data.content || '').startsWith('🚫 [제재') || String(data.content || '').startsWith('⛔ [영구 정지') || String(data.content || '').startsWith('🟢 [안전 확인')
 
-      // 내가 보낸 메시지인지 엄격히 검증 (ID, 닉네임, clientMessageId 일치 시 무시하여 에코/복제 완전 차단)
-      const isMyMessage =
-        (data.clientMessageId && mySentMessageIdsRef.current.has(data.clientMessageId)) ||
-        (data.id && mySentMessageIdsRef.current.has(data.id)) ||
-        (user?.id && (senderId === user.id || data.senderAccountId === user.id || data.senderId === user.id)) ||
-        senderId === 'u-tester-02' ||
-        senderId === 'admin_super_user' ||
-        senderName === '테스터02' ||
-        senderName === 'Super Admin' ||
-        senderName === 'admin' ||
-        (user?.nickname && (senderName === user.nickname || data.senderName === user.nickname || data.senderNickname === user.nickname)) ||
-        (data.sender?.nickname && user?.nickname && data.sender.nickname === user.nickname)
+      // 메시지 중복 수신 원천 차단 (최근 수신 키 캐시 검사)
+      const msgDedupeKey = String(data.id || data.clientMessageId || `${data.chatId}_${senderName}_${data.content}`)
+      if (receivedMessageIdsRef.current.has(msgDedupeKey)) {
+        return
+      }
+      receivedMessageIdsRef.current.add(msgDedupeKey)
+      if (receivedMessageIdsRef.current.size > 500) {
+        const first = receivedMessageIdsRef.current.values().next().value
+        if (first) receivedMessageIdsRef.current.delete(first)
+      }
 
-      if (isMyMessage) return
+      // 내가 보낸 메시지인지 엄격히 검증 (시스템 메시지는 통과)
+      if (!isSystem) {
+        const isMyMessage =
+          (data.clientMessageId && mySentMessageIdsRef.current.has(data.clientMessageId)) ||
+          (data.id && mySentMessageIdsRef.current.has(data.id)) ||
+          (user?.id && (senderId === user.id || data.senderAccountId === user.id || data.senderId === user.id)) ||
+          senderId === 'u-tester-02' ||
+          senderId === 'admin_super_user' ||
+          senderName === '테스터02' ||
+          senderName === 'Super Admin' ||
+          senderName === 'admin' ||
+          (user?.nickname && (senderName === user.nickname || data.senderName === user.nickname || data.senderNickname === user.nickname)) ||
+          (data.sender?.nickname && user?.nickname && data.sender.nickname === user.nickname)
 
-      // 활성 대화방에서 상대방이 보낸 메시지인지 엄격 확인 (내가 아닌 상대방 메시지만 수신)
-      if (activeChatRoomRef.current) {
-        const isTargetMatch =
-          senderName === activeChatRoomRef.current.targetNickname ||
-          (activeChatRoomRef.current.targetUserId && (senderId === activeChatRoomRef.current.targetUserId || data.senderAccountId === activeChatRoomRef.current.targetUserId))
-        // 상대방이 보낸 게 아니라면 무시하여 상대방 말풍선 복제 원천 차단!
-        if (!isTargetMatch && (senderName === user?.nickname || senderId === user?.id || senderId === 'me' || senderName === '테스터02' || senderName === 'Super Admin')) {
-          return
+        if (isMyMessage) return
+
+        // 활성 대화방에서 상대방이 보낸 메시지인지 엄격 확인 (내가 아닌 상대방 메시지만 수신)
+        if (activeChatRoomRef.current) {
+          const isTargetMatch =
+            senderName === activeChatRoomRef.current.targetNickname ||
+            (activeChatRoomRef.current.targetUserId && (senderId === activeChatRoomRef.current.targetUserId || data.senderAccountId === activeChatRoomRef.current.targetUserId))
+          if (!isTargetMatch && (senderName === user?.nickname || senderId === user?.id || senderId === 'me' || senderName === '테스터02' || senderName === 'Super Admin')) {
+            return
+          }
         }
       }
 
@@ -2891,12 +2916,12 @@ export default function CustomerWebStorefrontPage() {
 
       const newMsg: ChatMessageItem = {
         id: data.id || 'msg-' + Date.now(),
-        senderId: senderId || 'target',
-        senderNickname: senderName,
+        senderId: isSystem ? 'system' : (senderId || 'target'),
+        senderNickname: isSystem ? '시스템' : senderName,
         text: isMedia ? '[사진]' : (data.content || data.text || ''),
         time: '방금',
         isMe: false,
-        type: isMedia ? 'media' : (isGift ? 'gift' : 'text'),
+        type: isSystem ? 'system' : (isMedia ? 'media' : (isGift ? 'gift' : 'text')),
         media: mediaData,
         gift: giftData,
       }
@@ -2905,26 +2930,37 @@ export default function CustomerWebStorefrontPage() {
         activeChatRoomRef.current &&
           (activeChatRoomRef.current.id === data.chatId ||
             data.chatId?.includes(activeChatRoomRef.current.targetNickname) ||
-            activeChatRoomRef.current.targetNickname === senderName)
+            activeChatRoomRef.current.targetNickname === senderName ||
+            isSystem)
       )
 
       if (isCurrentActive && activeChatRoomRef.current) {
-        // 상대방이 새 메시지를 보냈으므로 내 기존 메시지들의 '1' 즉시 삭제 및 읽음 이벤트 전송
-        socket.emit('chat:read', {
-          chatId: data.chatId || activeChatRoomRef.current.id,
-          readerId: user?.id,
-          readerAccountId: user?.id,
-        });
-        fetch('/api/v1/chats/' + (data.chatId || activeChatRoomRef.current.id) + '/read', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: user?.id, readerId: user?.id }),
-        }).catch(() => {});
+        if (!isSystem) {
+          // 상대방이 새 메시지를 보냈으므로 내 기존 메시지들의 '1' 즉시 삭제 및 읽음 이벤트 전송
+          socket.emit('chat:read', {
+            chatId: data.chatId || activeChatRoomRef.current.id,
+            readerId: user?.id,
+            readerAccountId: user?.id,
+          });
+          fetch('/api/v1/chats/' + (data.chatId || activeChatRoomRef.current.id) + '/read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: user?.id, readerId: user?.id }),
+          }).catch(() => {});
+        }
 
         setActiveChatRoom((prev) => {
           if (!prev) return null
-          // 이미 추가된 동일 ID 메시지 중복 방지
-          if (prev.messages.some((m) => m.id === newMsg.id)) return prev
+          // 이미 추가된 동일 ID 또는 동일 텍스트 메시지 중복 완벽 방지
+          if (
+            prev.messages.some(
+              (m) =>
+                (m.id && m.id === newMsg.id) ||
+                (m.text === newMsg.text && m.senderNickname === newMsg.senderNickname && m.isMe === newMsg.isMe)
+            )
+          ) {
+            return prev
+          }
           return {
             ...prev,
             lastMessage: isGift ? `🎁 ${newMsg.gift?.name || '선물'}을 받았습니다!` : (isMedia ? '📷 사진' : newMsg.text),

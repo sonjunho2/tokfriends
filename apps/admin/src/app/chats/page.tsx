@@ -432,19 +432,27 @@ export default function ChatsPage() {
     actionType: 'WARN' | 'SUSPEND_24H' | 'BAN_PERMANENT' | 'DISMISS_NORMAL'
   ) => {
     if (!selectedRoom) return
-    const targetNickname = selectedRoom.userB?.nickname ?? '피신고자'
+    const flaggedMsg = selectedRoom.messages?.find((m) => m.isFlagged)
+    const targetNickname = flaggedMsg?.senderName || selectedRoom.userB?.nickname || '피신고자'
+    const targetUserId = flaggedMsg?.senderId || selectedRoom.userB?.id
     setActionInProgress(actionType)
 
     try {
       if (actionType === 'WARN') {
         // 1. 주의 경고장 발송
-        await updateChatRoom(selectedRoom.id, {
-          cannedMessage: `[관리자 경고] ${targetNickname} 회원님, 외부 연락처 유도 및 불건전 대화 시 계정이 정지될 수 있습니다.`,
+        const warnText = `[관리자 경고] ${targetNickname} 회원님, 외부 연락처 유도 및 불건전 대화 시 계정이 정지될 수 있습니다.`
+        const updated = await updateChatRoom(selectedRoom.id, {
+          actionType: 'WARN',
+          targetNickname,
+          targetUserId,
+          cannedMessage: warnText,
           status: 'ACTIVE',
         })
         if (activeReport) {
-          await resolveChatReport(activeReport.id, { action: 'WARN_ISSUED', note: auditNote })
-          setReports((prev) => prev.map((r) => (r.id === activeReport.id ? { ...r, status: 'RESOLVED' } : r)))
+          try {
+            await resolveChatReport(activeReport.id, { action: 'WARN_ISSUED', note: auditNote })
+            setReports((prev) => prev.map((r) => (r.id === activeReport.id ? { ...r, status: 'RESOLVED' } : r)))
+          } catch {}
         }
         setRooms((prev) =>
           prev.map((r) =>
@@ -453,7 +461,7 @@ export default function ChatsPage() {
                   ...r,
                   status: 'ACTIVE',
                   flaggedReason: undefined,
-                  messages: [
+                  messages: Array.isArray(updated?.messages) ? (updated.messages as MessageItem[]) : [
                     ...(r.messages ?? []),
                     {
                       id: `sys-${Date.now()}`,
@@ -469,18 +477,24 @@ export default function ChatsPage() {
         )
         toast({
           title: '⚠️ 경고장 발송 완료',
-          description: `${targetNickname} 회원에게 주의 알림을 전송하고 상태를 정상으로 복귀했습니다.`,
+          description: `${targetNickname} 회원에게 주의 알림 및 대화방 경고를 성공적으로 발송했습니다.`,
         })
       } else if (actionType === 'SUSPEND_24H') {
         // 2. 24시간 1:1 대화 제한
-        await updateChatRoom(selectedRoom.id, {
+        const suspendText = `[이용 제한] ${targetNickname} 회원의 1:1 대화 기능이 24시간 동안 정지되었습니다.`
+        const updated = await updateChatRoom(selectedRoom.id, {
+          actionType: 'SUSPEND_24H',
+          targetNickname,
+          targetUserId,
           allowEntry: false,
           status: 'ARCHIVED',
-          cannedMessage: `[이용 제한] ${targetNickname} 회원의 1:1 대화 기능이 24시간 동안 정지되었습니다.`,
+          cannedMessage: suspendText,
         })
         if (activeReport) {
-          await resolveChatReport(activeReport.id, { action: 'SUSPEND_24H', note: auditNote })
-          setReports((prev) => prev.map((r) => (r.id === activeReport.id ? { ...r, status: 'RESOLVED' } : r)))
+          try {
+            await resolveChatReport(activeReport.id, { action: 'SUSPEND_24H', note: auditNote })
+            setReports((prev) => prev.map((r) => (r.id === activeReport.id ? { ...r, status: 'RESOLVED' } : r)))
+          } catch {}
         }
         setRooms((prev) =>
           prev.map((r) =>
@@ -489,7 +503,7 @@ export default function ChatsPage() {
                   ...r,
                   status: 'ARCHIVED',
                   flaggedReason: '24시간 1:1 대화 정지 조치 완료',
-                  messages: [
+                  messages: Array.isArray(updated?.messages) ? (updated.messages as MessageItem[]) : [
                     ...(r.messages ?? []),
                     {
                       id: `sys-${Date.now()}`,
@@ -510,14 +524,20 @@ export default function ChatsPage() {
         })
       } else if (actionType === 'BAN_PERMANENT') {
         // 3. 계정 영구 정지
-        await updateChatRoom(selectedRoom.id, {
+        const banText = `[계정 영구 정지] 불법 행위(사기/스캠)로 인해 ${targetNickname} 계정이 영구 정지되었습니다.`
+        const updated = await updateChatRoom(selectedRoom.id, {
+          actionType: 'BAN_PERMANENT',
+          targetNickname,
+          targetUserId,
           allowEntry: false,
           status: 'ARCHIVED',
-          cannedMessage: `[계정 영구 정지] 불법 행위(사기/스캠)로 인해 ${targetNickname} 계정이 영구 정지되었습니다.`,
+          cannedMessage: banText,
         })
         if (activeReport) {
-          await resolveChatReport(activeReport.id, { action: 'BAN_PERMANENT', note: auditNote })
-          setReports((prev) => prev.map((r) => (r.id === activeReport.id ? { ...r, status: 'RESOLVED' } : r)))
+          try {
+            await resolveChatReport(activeReport.id, { action: 'BAN_PERMANENT', note: auditNote })
+            setReports((prev) => prev.map((r) => (r.id === activeReport.id ? { ...r, status: 'RESOLVED' } : r)))
+          } catch {}
         }
         setRooms((prev) =>
           prev.map((r) =>
@@ -526,7 +546,7 @@ export default function ChatsPage() {
                   ...r,
                   status: 'ARCHIVED',
                   flaggedReason: '불법 사기/유도 행위로 영구 정지됨',
-                  messages: [
+                  messages: Array.isArray(updated?.messages) ? (updated.messages as MessageItem[]) : [
                     ...(r.messages ?? []),
                     {
                       id: `sys-${Date.now()}`,
@@ -547,10 +567,17 @@ export default function ChatsPage() {
         })
       } else if (actionType === 'DISMISS_NORMAL') {
         // 4. 정상 대화 종결 (무혐의)
-        await updateChatRoom(selectedRoom.id, { status: 'ACTIVE' })
+        const updated = await updateChatRoom(selectedRoom.id, {
+          actionType: 'DISMISS_NORMAL',
+          targetNickname,
+          targetUserId,
+          status: 'ACTIVE',
+        })
         if (activeReport) {
-          await resolveChatReport(activeReport.id, { action: 'DISMISSED_NORMAL', note: auditNote })
-          setReports((prev) => prev.map((r) => (r.id === activeReport.id ? { ...r, status: 'RESOLVED' } : r)))
+          try {
+            await resolveChatReport(activeReport.id, { action: 'DISMISSED_NORMAL', note: auditNote })
+            setReports((prev) => prev.map((r) => (r.id === activeReport.id ? { ...r, status: 'RESOLVED' } : r)))
+          } catch {}
         }
         setRooms((prev) =>
           prev.map((r) =>
@@ -559,6 +586,7 @@ export default function ChatsPage() {
                   ...r,
                   status: 'ACTIVE',
                   flaggedReason: undefined,
+                  messages: Array.isArray(updated?.messages) ? (updated.messages as MessageItem[]) : r.messages,
                 }
               : r
           )

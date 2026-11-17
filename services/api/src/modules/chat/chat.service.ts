@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { ChatGateway } from '../ws/chat.gateway';
 import { OrchestratorService } from '../ai-staff/orchestrator.service';
@@ -397,6 +397,10 @@ export class ChatService implements OnModuleInit {
       createdAt: new Date(Date.now() - 1000 * 3600 * 2).toISOString(),
     },
   ];
+
+  // 🛡️ 운영자 제재 회원 인메모리 관리
+  private suspendedUsers: Record<string, number> = {}; // userId / nickname -> 만료 timestamp
+  private bannedUsers: Set<string> = new Set();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -1165,6 +1169,20 @@ export class ChatService implements OnModuleInit {
       senderName = isAdminAccount(userId) || isAdminAccount(senderName) ? '테스터02' : (userId === 'guest' ? '나' : userId);
     }
 
+    // 🛡️ 운영자 제재(24시간 대화 제한 또는 영구 정지) 확인
+    const nowTs = Date.now();
+    const isSuspended =
+      (this.suspendedUsers[effectiveUserId] && this.suspendedUsers[effectiveUserId] > nowTs) ||
+      (senderName && this.suspendedUsers[senderName] && this.suspendedUsers[senderName] > nowTs);
+    if (isSuspended) {
+      throw new BadRequestException('운영 가이드라인 위반 조치로 인해 24시간 동안 1:1 대화 전송이 일시 정지되었습니다.');
+    }
+    const isBanned =
+      this.bannedUsers.has(effectiveUserId) || (senderName && this.bannedUsers.has(senderName));
+    if (isBanned) {
+      throw new BadRequestException('운영 정책 위반(불법/사기/스팸)으로 인해 계정이 영구 정지되었습니다.');
+    }
+
     // 🛡️ AI 안전 심사관 및 금칙어 정책 검사
     let processedContent = String(content || '');
     let isFlagged = false;
@@ -1507,30 +1525,207 @@ export class ChatService implements OnModuleInit {
     return { ok: true, bannedKeywords: this.bannedKeywords };
   }
 
-  async resolveChatReport(reportId: string, payload: { action?: string; reason?: string }) {
-    const report = this.safetyReports.find((r) => r.id === reportId);
+  async resolveChatReport(reportId: string, payload: { action?: string; reason?: string; note?: string }) {
+    let report = this.safetyReports.find((r) => r.id === reportId);
     if (!report) {
-      throw new NotFoundException(`해당 안전 리포트 [${reportId}]를 찾을 수 없습니다.`);
+      report = {
+        id: reportId,
+        roomId: 'unknown',
+        roomTitle: '1:1 대화',
+        reporterName: 'AI 심사관',
+        targetUserName: '피신고자',
+        reason: payload.reason || payload.action || '이상 대화 감지',
+        status: payload.action === 'DISMISS' || payload.action === 'DISMISSED_NORMAL' ? 'DISMISSED' : 'RESOLVED',
+        createdAt: new Date().toISOString(),
+      };
+      this.safetyReports.unshift(report);
+    } else {
+      report.status = payload.action === 'DISMISS' || payload.action === 'DISMISSED_NORMAL' ? 'DISMISSED' : 'RESOLVED';
+      report.resolvedAt = new Date().toISOString();
+      report.actionTaken = payload.note || payload.reason || payload.action || '조치 완료';
     }
-    report.status = payload.action === 'DISMISS' ? 'DISMISSED' : 'RESOLVED';
-    report.resolvedAt = new Date().toISOString();
-    report.actionTaken = payload.reason || payload.action || '조치 완료';
     this.saveToDisk();
     return report;
   }
 
-  async updateRoomByAdmin(roomId: string, payload: { status?: 'ACTIVE' | 'CLOSED' | 'FLAGGED' | 'NEEDS_REVIEW'; memo?: string }) {
+  async updateRoomByAdmin(
+    roomId: string,
+    payload: {
+      status?: 'ACTIVE' | 'CLOSED' | 'FLAGGED' | 'NEEDS_REVIEW' | 'ARCHIVED';
+      memo?: string;
+      actionType?: 'WARN' | 'SUSPEND_24H' | 'BAN_PERMANENT' | 'DISMISS_NORMAL';
+      cannedMessage?: string;
+      targetNickname?: string;
+      targetUserId?: string;
+      allowEntry?: boolean;
+    },
+  ) {
     let room = this.rooms.find((r) => r.id === roomId);
+    let isArchived = false;
     if (!room) {
       room = this.archivedRooms.find((r) => r.id === roomId);
+      if (room) isArchived = true;
     }
     if (!room) {
       throw new NotFoundException(`대화방 [${roomId}]을 찾을 수 없습니다.`);
     }
-    if (payload.status) {
+
+    if (!this.messagesStore[roomId]) {
+      this.messagesStore[roomId] = [];
+    }
+
+    const targetNick = payload.targetNickname || room.counterpart?.displayName || room.title || '회원';
+    const targetId = payload.targetUserId || room.counterpart?.id;
+
+    // 1) ⚠️ 주의 경고장 발송
+    if (payload.actionType === 'WARN' || (payload.cannedMessage && payload.status === 'ACTIVE')) {
+      room.status = 'ACTIVE';
+      delete room.flaggedReason;
+      const warnMsg: ChatMessageItem = {
+        id: `sys-warn-${Date.now()}`,
+        chatId: roomId,
+        senderAccountId: 'system',
+        senderName: '시스템',
+        content:
+          payload.cannedMessage ||
+          `⚠️ [관리자 경고 발송] ${targetNick} 회원님에게 1:1 대화 및 수다방 안전 가이드라인 준수 주의 조치가 전달되었습니다.`,
+        type: 'text',
+        createdAt: new Date().toISOString(),
+      };
+      this.messagesStore[roomId].push(warnMsg);
+      room.lastMessage = warnMsg.content;
+      room.lastMessageAt = warnMsg.createdAt;
+
+      try {
+        this.chatGateway.emitAdminWarning(roomId, warnMsg, targetId || targetNick);
+      } catch (e: any) {
+        this.logger.warn(`emitAdminWarning error: ${e?.message}`);
+      }
+    }
+    // 2) 👤 24시간 1:1 대화 정지
+    else if (
+      payload.actionType === 'SUSPEND_24H' ||
+      (payload.status === 'ARCHIVED' && payload.cannedMessage?.includes('24시간'))
+    ) {
+      room.status = 'ARCHIVED';
+      room.flaggedReason = '24시간 1:1 대화 정지 조치 완료';
+      const suspendMsg: ChatMessageItem = {
+        id: `sys-suspend-${Date.now()}`,
+        chatId: roomId,
+        senderAccountId: 'system',
+        senderName: '시스템',
+        content:
+          payload.cannedMessage ||
+          `🚫 [제재 적용] ${targetNick} 회원의 1:1 대화 전송 권한이 24시간 동안 차단되었습니다.`,
+        type: 'text',
+        createdAt: new Date().toISOString(),
+      };
+      this.messagesStore[roomId].push(suspendMsg);
+      room.lastMessage = suspendMsg.content;
+      room.lastMessageAt = suspendMsg.createdAt;
+
+      const expiry = Date.now() + 24 * 3600 * 1000;
+      if (targetId) this.suspendedUsers[targetId] = expiry;
+      if (targetNick) this.suspendedUsers[targetNick] = expiry;
+
+      const idx = this.rooms.findIndex((r) => r.id === roomId);
+      if (idx !== -1) {
+        const removed = this.rooms.splice(idx, 1)[0];
+        removed.status = 'ARCHIVED';
+        removed.deletedAt = new Date().toISOString();
+        removed.retentionUntil = new Date(Date.now() + 365 * 3 * 24 * 3600 * 1000).toISOString();
+        removed.retentionBasis = '관리자 24시간 제재 조치 및 법정 분쟁 보존';
+        this.archivedRooms.unshift(removed);
+        isArchived = true;
+      }
+
+      try {
+        this.chatGateway.emitAdminSanction(
+          roomId,
+          'SUSPEND_24H',
+          suspendMsg,
+          targetId || targetNick,
+          room.participantIds,
+        );
+      } catch (e: any) {
+        this.logger.warn(`emitAdminSanction error: ${e?.message}`);
+      }
+    }
+    // 3) 🚫 계정 영구 정지
+    else if (payload.actionType === 'BAN_PERMANENT' || payload.cannedMessage?.includes('영구 정지')) {
+      room.status = 'ARCHIVED';
+      room.flaggedReason = '불법 사기/유도 행위로 영구 정지됨';
+      const banMsg: ChatMessageItem = {
+        id: `sys-ban-${Date.now()}`,
+        chatId: roomId,
+        senderAccountId: 'system',
+        senderName: '시스템',
+        content:
+          payload.cannedMessage ||
+          `⛔ [영구 정지] ${targetNick} 계정이 영구 정지되어 모든 서비스 이용이 차단되었습니다.`,
+        type: 'text',
+        createdAt: new Date().toISOString(),
+      };
+      this.messagesStore[roomId].push(banMsg);
+      room.lastMessage = banMsg.content;
+      room.lastMessageAt = banMsg.createdAt;
+
+      if (targetId) this.bannedUsers.add(targetId);
+      if (targetNick) this.bannedUsers.add(targetNick);
+
+      const idx = this.rooms.findIndex((r) => r.id === roomId);
+      if (idx !== -1) {
+        const removed = this.rooms.splice(idx, 1)[0];
+        removed.status = 'ARCHIVED';
+        removed.deletedAt = new Date().toISOString();
+        removed.retentionUntil = new Date(Date.now() + 365 * 3 * 24 * 3600 * 1000).toISOString();
+        removed.retentionBasis = '관리자 영구 제재 조치 및 법정 분쟁 보존';
+        this.archivedRooms.unshift(removed);
+        isArchived = true;
+      }
+
+      try {
+        this.chatGateway.emitAdminSanction(
+          roomId,
+          'BAN_PERMANENT',
+          banMsg,
+          targetId || targetNick,
+          room.participantIds,
+        );
+      } catch (e: any) {
+        this.logger.warn(`emitAdminSanction error: ${e?.message}`);
+      }
+    }
+    // 4) 🟢 정상 대화 종결 (무혐의)
+    else if (
+      payload.actionType === 'DISMISS_NORMAL' ||
+      (payload.status === 'ACTIVE' && !payload.cannedMessage)
+    ) {
+      room.status = 'ACTIVE';
+      delete room.flaggedReason;
+      const dismissMsg: ChatMessageItem = {
+        id: `sys-dismiss-${Date.now()}`,
+        chatId: roomId,
+        senderAccountId: 'system',
+        senderName: '시스템',
+        content: `🟢 [안전 확인] 관리자 검토 결과 해당 대화방의 이상 징후가 해제되어 정상 대화로 확인되었습니다.`,
+        type: 'text',
+        createdAt: new Date().toISOString(),
+      };
+      this.messagesStore[roomId].push(dismissMsg);
+      room.lastMessage = dismissMsg.content;
+      room.lastMessageAt = dismissMsg.createdAt;
+
+      try {
+        this.chatGateway.emitChatMessage(roomId, dismissMsg, undefined, room.participantIds);
+      } catch (e: any) {
+        this.logger.warn(`emitChatMessage error: ${e?.message}`);
+      }
+    }
+    // 일반 상태 업데이트
+    else if (payload.status) {
       room.status = payload.status;
       if (payload.status === 'CLOSED') {
-        // 관리자에 의한 강제 종료 및 아카이빙
         const idx = this.rooms.findIndex((r) => r.id === roomId);
         if (idx !== -1) {
           const removed = this.rooms.splice(idx, 1)[0];
@@ -1539,14 +1734,19 @@ export class ChatService implements OnModuleInit {
           removed.retentionUntil = new Date(Date.now() + 365 * 3 * 24 * 3600 * 1000).toISOString();
           removed.retentionBasis = '관리자 강제 조치 및 전자상거래/통비법 분쟁 보존';
           this.archivedRooms.unshift(removed);
+          isArchived = true;
           try {
             this.chatGateway.emitChatRoomDeleted(removed.participantIds, roomId);
           } catch {}
         }
       }
     }
+
     this.saveToDisk();
-    return room;
+
+    const allAdminRooms = this.getAllRoomsForAdmin();
+    const adminRoom = allAdminRooms.find((r) => r.id === roomId);
+    return adminRoom || room;
   }
 
   async deductPoints(userId: string, points: number): Promise<number | null> {

@@ -609,8 +609,6 @@ export class ChatGateway
         gift: data.type === 'gift' ? data.gift : undefined,
         createdAt: payload.createdAt,
       });
-      // 대화방 밖에서도 실시간 메시지 동기화를 위해 chat:message도 함께 전파
-      this.server.to(`user_${target}`).emit('chat:message', payload);
     });
 
     return { ok: true, data: payload };
@@ -624,6 +622,7 @@ export class ChatGateway
    * 대화방 메시지 브로드캐스트 및 수신자에게 팝업 알림("모꼬" 사운드) 전송
    */
   emitChatMessage(chatId: string, message: any, targetUserId?: string, participantIds?: string[]) {
+    // 1) 대화방 룸에만 chat:message 1회 단독 전송 (중복 말풍선 방지)
     this.server.to(`chat_room_${chatId}`).emit('chat:message', message);
 
     const targets = new Set<string>();
@@ -654,10 +653,69 @@ export class ChatGateway
       } : undefined,
     };
 
+    // 2) 대화방 외부에 있는 사용자에게만 인앱 알림/사운드 트리거(chat:incoming) 전송
     targets.forEach((targetId) => {
       this.server.to(`user_${targetId}`).emit('chat:incoming', incomingPayload);
-      this.server.to(`user_${targetId}`).emit('chat:message', message);
     });
+  }
+
+  /**
+   * 관리자 경고장 발송 실시간 브로드캐스트 (대화방 시스템 메시지 + 대상자 경고 팝업)
+   */
+  emitAdminWarning(chatId: string, warningMessage: any, targetUserId?: string) {
+    // 1) 대화방 내부 전체에 경고 시스템 메시지 실시간 전파
+    this.server.to(`chat_room_${chatId}`).emit('chat:message', warningMessage);
+
+    // 2) 피신고자 개인 룸에 경고장 팝업 이벤트 전송
+    if (targetUserId) {
+      this.server.to(`user_${targetUserId}`).emit('chat:admin_warning', {
+        chatId,
+        message: warningMessage.content,
+        createdAt: warningMessage.createdAt,
+      });
+      this.server.to(`user_${targetUserId}`).emit('chat:incoming', {
+        chatId,
+        sender: { id: 'system', nickname: '운영관리자', avatarUrl: null },
+        content: warningMessage.content,
+        type: 'warning',
+        createdAt: warningMessage.createdAt,
+      });
+    }
+  }
+
+  /**
+   * 관리자 이용 제한 및 강제 퇴장 실시간 브로드캐스트
+   */
+  emitAdminSanction(
+    chatId: string,
+    actionType: 'SUSPEND_24H' | 'BAN_PERMANENT' | 'DISMISS_NORMAL',
+    sanctionMessage: any,
+    targetUserId?: string,
+    participantIds?: string[],
+  ) {
+    // 대화방 내부에 제재 시스템 메시지 전파
+    this.server.to(`chat_room_${chatId}`).emit('chat:message', sanctionMessage);
+
+    if (targetUserId) {
+      this.server.to(`user_${targetUserId}`).emit('chat:user_restricted', {
+        chatId,
+        actionType,
+        message: sanctionMessage.content,
+        createdAt: sanctionMessage.createdAt,
+      });
+    }
+
+    // 대화 정지 또는 영구 정지 시 방 종료 브로드캐스트
+    if (actionType === 'SUSPEND_24H' || actionType === 'BAN_PERMANENT') {
+      const targets = participantIds || [];
+      targets.forEach((pid) => {
+        this.server.to(`user_${pid}`).emit('chat:room_deleted', {
+          chatId,
+          reason: actionType,
+          message: sanctionMessage.content,
+        });
+      });
+    }
   }
 
   /**

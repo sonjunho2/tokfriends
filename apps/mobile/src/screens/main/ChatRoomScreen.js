@@ -858,12 +858,42 @@ export default function ChatRoomScreen({ route, navigation }) {
       }
     };
 
+    const handleAdminWarning = (payload) => {
+      if (payload?.message) {
+        Alert.alert(
+          '⚠️ 관리자 주의 경고',
+          payload.message,
+          [{ text: '확인' }]
+        );
+      }
+    };
+
+    const handleUserRestricted = (payload) => {
+      if (payload?.message) {
+        Alert.alert(
+          '🚫 계정 이용 제한 안내',
+          payload.message,
+          [
+            {
+              text: '확인',
+              onPress: () => {
+                removeChatRoom(chatId);
+                navigation.goBack();
+              },
+            },
+          ]
+        );
+      }
+    };
+
     socket.on('connect', handleConnect);
     socket.on(CHAT_SOCKET_EVENTS.AUTH_READY, handleAuthReady);
     socket.on(CHAT_SOCKET_EVENTS.MESSAGE, handleRealtimeMessage);
     socket.on(CHAT_SOCKET_EVENTS.TYPING, handleRealtimeTyping);
     socket.on(CHAT_SOCKET_EVENTS.READ, handleRealtimeRead);
     socket.on(CHAT_SOCKET_EVENTS.ROOM_DELETED, handleRoomDeleted);
+    socket.on('chat:admin_warning', handleAdminWarning);
+    socket.on('chat:user_restricted', handleUserRestricted);
     socket.connect();
 
     return () => {
@@ -910,6 +940,8 @@ export default function ChatRoomScreen({ route, navigation }) {
         CHAT_SOCKET_EVENTS.ROOM_DELETED,
         handleRoomDeleted,
       );
+      socket.off('chat:admin_warning', handleAdminWarning);
+      socket.off('chat:user_restricted', handleUserRestricted);
       socket.disconnect();
       if (socketRef.current === socket) {
         socketRef.current = null;
