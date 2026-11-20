@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
+import { tokens } from '../../theme/tokens';
 
 const PERMISSIONS = [
   {
@@ -160,7 +161,7 @@ export default function PermissionGuideScreen({ navigation }) {
           activeOpacity={0.88}
         >
           <LinearGradient
-            colors={['#FF5A36', '#FF3B6B']}
+            colors={['#FF4E78', '#FF3B6B']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.confirmBtnGradient}

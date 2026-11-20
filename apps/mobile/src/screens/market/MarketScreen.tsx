@@ -372,7 +372,10 @@ export default function MarketScreen({ navigation }: any) {
                 <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
               </View>
               <View style={styles.groupMetaRow}>
-                <Text style={styles.groupPercentText}>🔥 {progressPercent}% 달성</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Ionicons name="flame" size={12} color="#EF4444" />
+                  <Text style={styles.groupPercentText}>{progressPercent}% 달성</Text>
+                </View>
                 <Text style={styles.groupRemainingText}>
                   {Math.max(0, (item.targetQuantity || 0) - (item.currentQuantity || 0))}명 남음
                 </Text>
@@ -804,13 +807,19 @@ export default function MarketScreen({ navigation }: any) {
           onPress={() => setSelectedType('C2C_USED')}
           activeOpacity={0.8}
         >
+          <Ionicons
+            name="repeat"
+            size={13}
+            color={selectedType === 'C2C_USED' ? tokens.colors.primary : '#64748B'}
+            style={{ marginRight: 4 }}
+          />
           <Text
             style={[
               styles.segmentText,
               selectedType === 'C2C_USED' && styles.segmentTextActive,
             ]}
           >
-            🥕 중고거래
+            중고거래
           </Text>
         </TouchableOpacity>
 
@@ -820,13 +829,19 @@ export default function MarketScreen({ navigation }: any) {
           onPress={() => setSelectedType('B2C_NORMAL')}
           activeOpacity={0.8}
         >
+          <Ionicons
+            name="storefront-outline"
+            size={13}
+            color={selectedType === 'B2C_NORMAL' ? '#2563EB' : '#64748B'}
+            style={{ marginRight: 4 }}
+          />
           <Text
             style={[
               styles.segmentText,
               selectedType === 'B2C_NORMAL' && styles.segmentTextActiveBrand,
             ]}
           >
-            🏬 마켓상품
+            마켓상품
           </Text>
         </TouchableOpacity>
 
@@ -836,13 +851,19 @@ export default function MarketScreen({ navigation }: any) {
           onPress={() => setSelectedType('B2C_GROUP')}
           activeOpacity={0.8}
         >
+          <Ionicons
+            name="flame"
+            size={13}
+            color={selectedType === 'B2C_GROUP' ? '#EA580C' : '#64748B'}
+            style={{ marginRight: 4 }}
+          />
           <Text
             style={[
               styles.segmentText,
               selectedType === 'B2C_GROUP' && styles.segmentTextActiveGroup,
             ]}
           >
-            🔥 공동구매
+            공동구매
           </Text>
           <View style={styles.hotBadge}>
             <Text style={styles.hotBadgeText}>HOT</Text>
@@ -1150,10 +1171,10 @@ const styles = StyleSheet.create({
   segmentBtnActive: {
     backgroundColor: '#FFFFFF',
     borderColor: tokens.colors.primary,
-    shadowColor: tokens.colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
     elevation: 2,
   },
   segmentText: {
@@ -1340,11 +1361,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 6,
-    shadowColor: '#D97706',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
   },
   hqDirectBadgeText: {
     fontSize: 9,

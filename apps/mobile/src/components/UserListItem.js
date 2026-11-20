@@ -2,7 +2,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import colors from '../theme/colors';
+import { tokens } from '../theme/tokens';
 import Avatar from './Avatar';
 
 export default function UserListItem({
@@ -37,6 +37,8 @@ export default function UserListItem({
     placeItems.push(distanceKm < 1 ? `${Math.round(distanceKm * 1000)}m` : `${distanceKm.toFixed(1)}km`);
   }
 
+  const isOnline = lastSeenLabel === '방금' || online;
+
   return (
     <TouchableOpacity
       style={styles.card}
@@ -45,7 +47,7 @@ export default function UserListItem({
     >
       <View style={styles.cardHeader}>
         <Avatar
-          size={56}
+          size={52}
           source={avatar ? { uri: avatar } : undefined}
           name={name}
           shape="circle"
@@ -77,16 +79,17 @@ export default function UserListItem({
 
           <View style={styles.metaRow}>
             {!!lastSeenLabel && (
-              <View style={[styles.badgeTime, (lastSeenLabel === '방금' || online) && styles.badgeTimeOnline]}>
-                <Text style={[styles.badgeTimeText, (lastSeenLabel === '방금' || online) && styles.badgeTimeTextOnline]}>
-                  {lastSeenLabel === '방금' || online ? '🟢 접속 중' : lastSeenLabel}
+              <View style={[styles.badgeTime, isOnline && styles.badgeTimeOnline]}>
+                {isOnline && <View style={styles.onlineDot} />}
+                <Text style={[styles.badgeTimeText, isOnline && styles.badgeTimeTextOnline]}>
+                  {isOnline ? '접속 중' : lastSeenLabel}
                 </Text>
               </View>
             )}
 
             {placeItems.length > 0 && (
               <View style={styles.metaPlace}>
-                <Ionicons name="location-sharp" size={12} color="#6B7280" />
+                <Ionicons name="location-sharp" size={12} color={tokens.colors.textTertiary} />
                 <Text style={styles.metaText}>{placeItems.join(' · ')}</Text>
               </View>
             )}
@@ -100,10 +103,10 @@ export default function UserListItem({
               e?.stopPropagation?.();
               onChatPress(item);
             }}
-            hitSlop={6}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             activeOpacity={0.8}
           >
-            <Ionicons name="chatbubble-ellipses" size={13} color="#191919" />
+            <Ionicons name="chatbubble-ellipses" size={13} color={tokens.colors.primary} />
             <Text style={styles.chatActionBtnText}>대화</Text>
           </TouchableOpacity>
         )}
@@ -140,17 +143,13 @@ export default function UserListItem({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
+    backgroundColor: tokens.colors.surface,
+    borderRadius: tokens.radius.card,
+    padding: tokens.spacing.base,
+    marginBottom: tokens.spacing.sm,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: tokens.colors.borderLight,
+    ...tokens.shadows.card,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -158,8 +157,8 @@ const styles = StyleSheet.create({
   },
   infoCol: {
     flex: 1,
-    marginLeft: 12,
-    marginRight: 6,
+    marginLeft: tokens.spacing.md,
+    marginRight: tokens.spacing.xs,
   },
   titleRow: {
     flexDirection: 'row',
@@ -168,9 +167,9 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   title: {
-    fontSize: 16,
+    fontSize: tokens.typography.fontSize.base,
     fontWeight: '700',
-    color: '#111827',
+    color: tokens.colors.text,
   },
   matchBadge: {
     flexDirection: 'row',
@@ -178,7 +177,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF3C7',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: tokens.radius.xs,
     gap: 3,
   },
   matchBadgeText: {
@@ -189,13 +188,13 @@ const styles = StyleSheet.create({
   point: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.primary,
+    color: tokens.colors.primary,
     marginLeft: 'auto',
   },
   subtitle: {
     marginTop: 3,
-    fontSize: 13,
-    color: '#4B5563',
+    fontSize: tokens.typography.fontSize.sm,
+    color: tokens.colors.textSecondary,
   },
   metaRow: {
     flexDirection: 'row',
@@ -204,21 +203,30 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   badgeTime: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 6,
-    backgroundColor: '#F3F4F6',
+    borderRadius: tokens.radius.xs,
+    backgroundColor: tokens.colors.neutralSurface,
+    gap: 4,
   },
   badgeTimeOnline: {
     backgroundColor: '#ECFDF5',
   },
+  onlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: tokens.colors.success,
+  },
   badgeTimeText: {
     fontSize: 11,
-    color: '#6B7280',
-    fontWeight: '600',
+    color: tokens.colors.textSecondary,
+    fontWeight: '500',
   },
   badgeTimeTextOnline: {
-    color: '#059669',
+    color: tokens.colors.success,
     fontWeight: '700',
   },
   metaPlace: {
@@ -227,27 +235,24 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   metaText: {
-    fontSize: 12,
-    color: '#6B7280',
+    fontSize: tokens.typography.fontSize.xs,
+    color: tokens.colors.textTertiary,
   },
   chatActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEE500',
+    backgroundColor: tokens.colors.primaryLight,
     paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 18,
+    paddingVertical: 6,
+    borderRadius: tokens.radius.pill,
     gap: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: tokens.colors.primaryMuted,
   },
   chatActionBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#191919',
+    color: tokens.colors.primary,
   },
   chipsRow: {
     flexDirection: 'row',
@@ -257,13 +262,13 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#F9FAFB',
+    borderTopColor: tokens.colors.borderLight,
   },
   interestChip: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: tokens.colors.neutralSurface,
     paddingHorizontal: 7,
     paddingVertical: 2.5,
-    borderRadius: 6,
+    borderRadius: tokens.radius.xs,
   },
   interestChipMatched: {
     backgroundColor: '#FEF9C3',
@@ -272,7 +277,7 @@ const styles = StyleSheet.create({
   },
   interestChipText: {
     fontSize: 11.5,
-    color: '#4B5563',
+    color: tokens.colors.textSecondary,
   },
   interestChipTextMatched: {
     color: '#854D0E',
@@ -280,7 +285,7 @@ const styles = StyleSheet.create({
   },
   moreChipsText: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: tokens.colors.textTertiary,
     marginLeft: 2,
   },
 });

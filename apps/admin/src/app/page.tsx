@@ -5222,11 +5222,11 @@ export default function CustomerWebStorefrontPage() {
                   onClick={() => setActiveTab('MARKET')}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                     activeTab === 'MARKET'
-                      ? 'bg-white text-emerald-700 shadow-xs'
+                      ? 'bg-white text-[#FF3B6B] shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <Store className={`h-4 w-4 ${activeTab === 'MARKET' ? 'text-emerald-600' : 'text-slate-500'}`} />
+                  <Store className={`h-4 w-4 ${activeTab === 'MARKET' ? 'text-[#FF3B6B]' : 'text-slate-500'}`} />
                   <span>모꼬마켓</span>
                 </button>
 
@@ -5244,18 +5244,18 @@ export default function CustomerWebStorefrontPage() {
                   <span className={`flex h-2 w-2 rounded-full ${activeTab === 'LIVE' ? 'bg-white animate-ping' : 'bg-[#FF3B6B]'}`} />
                 </button>
 
-                {/* 4. 모꼬쳇 */}
+                {/* 4. 모꼬챗 */}
                 <button
                   onClick={() => setActiveTab('CHAT')}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                     activeTab === 'CHAT'
-                      ? 'bg-white text-blue-700 shadow-xs'
+                      ? 'bg-white text-[#FF3B6B] shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <MessageCircle className={`h-4 w-4 ${activeTab === 'CHAT' ? 'text-blue-600' : 'text-slate-500'}`} />
-                  <span>모꼬쳇</span>
-                  {isAuthenticated && <span className="rounded-full bg-blue-500 px-1 text-[9px] text-white">1</span>}
+                  <MessageCircle className={`h-4 w-4 ${activeTab === 'CHAT' ? 'text-[#FF3B6B]' : 'text-slate-500'}`} />
+                  <span>모꼬챗</span>
+                  {isAuthenticated && <span className="rounded-full bg-[#FF3B6B] px-1 text-[9px] text-white">1</span>}
                 </button>
 
                 {/* 5. 마이모꼬 */}
@@ -6117,15 +6117,15 @@ export default function CustomerWebStorefrontPage() {
                 </div>
               </div>
 
-              {/* 3) 🥕 중고거래 (4칸 - 실시간 서버 연동) */}
+              {/* 3) 중고거래 (4칸 - 실시간 서버 연동) */}
               <section className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Store className="h-5 w-5 text-orange-500" />
+                    <Store className="h-5 w-5 text-[#FF3B6B]" />
                     <h3 className="font-extrabold text-base sm:text-lg text-slate-900">
                       중고거래
                     </h3>
-                    <Badge className="bg-orange-50 text-orange-700 border border-orange-200 text-[10px] font-bold">
+                    <Badge className="bg-pink-50 text-[#FF3B6B] border border-pink-200 text-[10px] font-bold">
                       100% 에스크로 안전 직거래
                     </Badge>
                   </div>
@@ -6136,14 +6136,14 @@ export default function CustomerWebStorefrontPage() {
                     }}
                     variant="ghost"
                     size="sm"
-                    className="text-xs text-orange-700 hover:text-orange-900 hover:bg-orange-50 font-semibold"
+                    className="text-xs text-[#FF3B6B] hover:text-[#E02956] hover:bg-pink-50 font-semibold"
                   >
                     중고 더보기
                     <ArrowRight className="h-3.5 w-3.5 ml-1" />
                   </Button>
                 </div>
 
-                {/* 4-Card Used Market Grid (현재 3개이므로 4번째 슬롯을 '가지고 계신 중고 판매해 보세요' 카드로 채워 기본 4개 박스 유지) */}
+                {/* 4-Card Used Market Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {usedProducts.slice(0, 4).map((item) => (
                     <Card
@@ -6165,7 +6165,7 @@ export default function CustomerWebStorefrontPage() {
                         </Badge>
                       </div>
                       <CardContent className="p-3.5 space-y-1">
-                        <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-orange-600 transition-colors">
+                        <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-[#FF3B6B] transition-colors">
                           {item.title}
                         </h4>
                         <p className="font-extrabold text-sm sm:text-base text-slate-900">
@@ -6310,37 +6310,40 @@ export default function CustomerWebStorefrontPage() {
 
               {/* 2) Market Sub-nav Header (좌측 대형 탭: 중고거래 / 마켓상품 / 공동구매) */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
-                {/* 3 Subtabs on the Left (더 크고 직관적인 좌측 버튼) */}
+                {/* 3 Subtabs on the Left */}
                 <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/80">
                   <button
                     onClick={() => setMarketSubTab('C2C_USED')}
-                    className={`flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl text-sm sm:text-base font-extrabold transition-all ${
+                    className={`flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl text-sm sm:text-base font-extrabold transition-all ${
                       marketSubTab === 'C2C_USED'
-                        ? 'bg-white text-orange-600 shadow-sm'
+                        ? 'bg-white text-[#FF3B6B] shadow-sm'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>🥕 중고거래</span>
+                    <Store className="w-4 h-4" />
+                    <span>중고거래</span>
                   </button>
                   <button
                     onClick={() => setMarketSubTab('B2C_NORMAL')}
-                    className={`flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl text-sm sm:text-base font-extrabold transition-all ${
+                    className={`flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl text-sm sm:text-base font-extrabold transition-all ${
                       marketSubTab === 'B2C_NORMAL'
-                        ? 'bg-white text-emerald-600 shadow-sm'
+                        ? 'bg-white text-[#FF3B6B] shadow-sm'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>🛒 마켓상품</span>
+                    <ShoppingBag className="w-4 h-4" />
+                    <span>마켓상품</span>
                   </button>
                   <button
                     onClick={() => setMarketSubTab('B2C_GROUP')}
-                    className={`flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl text-sm sm:text-base font-extrabold transition-all ${
+                    className={`flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl text-sm sm:text-base font-extrabold transition-all ${
                       marketSubTab === 'B2C_GROUP'
-                        ? 'bg-white text-rose-600 shadow-sm'
+                        ? 'bg-white text-[#FF3B6B] shadow-sm'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>🔥 공동구매</span>
+                    <Flame className="w-4 h-4" />
+                    <span>공동구매</span>
                   </button>
                 </div>
 
@@ -6351,7 +6354,7 @@ export default function CustomerWebStorefrontPage() {
                       onClick={() => {
                         requireAuth(() => router.push('/market/used/new'))
                       }}
-                      className="bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm font-bold h-9 sm:h-10 px-4 shadow-sm rounded-xl"
+                      className="bg-[#FF3B6B] hover:bg-[#E02956] text-white text-xs sm:text-sm font-bold h-9 sm:h-10 px-4 shadow-sm rounded-xl transition-colors"
                     >
                       <PlusCircle className="h-4 w-4 mr-1.5" />
                       중고 물품 판매 등록
@@ -6655,15 +6658,15 @@ export default function CustomerWebStorefrontPage() {
                                 }}
                                 className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
-                              <Badge className="absolute top-2 left-2 bg-orange-600 text-white text-[10px] font-bold border-none">
-                                🥕 중고
+                              <Badge className="absolute top-2 left-2 bg-[#FF3B6B] text-white text-[10px] font-bold border-none">
+                                중고
                               </Badge>
                               <Badge className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] font-semibold border-none">
                                 {item.locationName}
                               </Badge>
                             </div>
                             <CardContent className="p-3.5 space-y-2">
-                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-orange-600 transition-colors">
+                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1 group-hover:text-[#FF3B6B] transition-colors">
                                 {item.title}
                               </h4>
                               <div className="flex items-baseline justify-between">
@@ -6675,8 +6678,8 @@ export default function CustomerWebStorefrontPage() {
                               <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
                                 <span className="font-semibold text-slate-700">매너 {item.mannerTemp}℃</span>
                                 <div className="flex items-center gap-2">
-                                  <span>♥ {item.likesCount}</span>
-                                  <span>💬 {item.chatsCount}</span>
+                                  <span className="flex items-center gap-0.5"><Heart className="w-3 h-3 text-[#FF3B6B]" /> {item.likesCount}</span>
+                                  <span className="flex items-center gap-0.5"><MessageCircle className="w-3 h-3 text-slate-400" /> {item.chatsCount}</span>
                                 </div>
                               </div>
                             </CardContent>
@@ -10125,7 +10128,7 @@ export default function CustomerWebStorefrontPage() {
         <button
           onClick={() => setActiveTab('MARKET')}
           className={`flex flex-col items-center gap-0.5 py-1 px-2 ${
-            activeTab === 'MARKET' ? 'text-emerald-600 font-bold' : 'text-slate-500'
+            activeTab === 'MARKET' ? 'text-[#FF3B6B] font-bold' : 'text-slate-500'
           }`}
         >
           <Store className="h-5 w-5" />
@@ -10149,11 +10152,11 @@ export default function CustomerWebStorefrontPage() {
         <button
           onClick={() => setActiveTab('CHAT')}
           className={`flex flex-col items-center gap-0.5 py-1 px-2 ${
-            activeTab === 'CHAT' ? 'text-blue-600 font-bold' : 'text-slate-500'
+            activeTab === 'CHAT' ? 'text-[#FF3B6B] font-bold' : 'text-slate-500'
           }`}
         >
           <MessageCircle className="h-5 w-5" />
-          <span className="text-[10px]">모꼬쳇</span>
+          <span className="text-[10px]">모꼬챗</span>
         </button>
 
         {/* 5. 마이 */}

@@ -20,10 +20,7 @@ interface ScrollExpandableFABProps {
 
 /**
  * ScrollExpandableFAB (가변 플로팅 액션 버튼)
- *
- * 규격:
- * - 상태 A (정지 및 최상단): 높이 52px, 모서리 26px 캡슐 형태 (아이콘 + 볼드 텍스트)
- * - 상태 B (스크롤 탐색 중): 가로 52px × 세로 52px 정원형 (텍스트 페이드아웃 후 아이콘 단독 노출)
+ * - 슬레이트 톤의 자연스러운 그림자 및 절제된 그라데이션 적용
  */
 export default function ScrollExpandableFAB({
   label,
@@ -43,13 +40,11 @@ export default function ScrollExpandableFAB({
     }).start();
   }, [isExpanded]);
 
-  // 너비: 원형(52px) ➔ 캡슐(132px)
   const widthAnim = animValue.interpolate({
     inputRange: [0, 1],
     outputRange: [52, 132],
   });
 
-  // 텍스트 투명도: 0 ➔ 1
   const textOpacityAnim = animValue.interpolate({
     inputRange: [0, 0.4, 1],
     outputRange: [0, 0, 1],
@@ -71,12 +66,12 @@ export default function ScrollExpandableFAB({
         style={styles.touchable}
       >
         <LinearGradient
-          colors={['#FF3B6B', '#FF6B8B']}
+          colors={['#FF4E78', '#FF3B6B']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradient}
         >
-          <Ionicons name={iconName} size={22} color="#FFFFFF" />
+          <Ionicons name={iconName} size={21} color="#FFFFFF" />
           <Animated.View
             style={[
               styles.textContainer,
@@ -102,11 +97,7 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 26,
     zIndex: 999,
-    shadowColor: '#FF3B6B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 8,
+    ...tokens.shadows.fab,
   },
   touchable: {
     flex: 1,
@@ -118,7 +109,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 15,
+    paddingHorizontal: 14,
   },
   textContainer: {
     marginLeft: 6,
@@ -127,7 +118,7 @@ const styles = StyleSheet.create({
   label: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
     letterSpacing: -0.3,
   },
 });

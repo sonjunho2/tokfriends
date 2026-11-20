@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
 import ButtonPrimary from '../../components/ButtonPrimary';
 import { apiClient } from '../../api/client';
@@ -95,7 +96,9 @@ export default function AgreementScreen({ navigation, route }) {
 
       <TouchableOpacity style={styles.all} onPress={toggleAll} activeOpacity={0.9}>
         <Text style={styles.allTxt}>네, 모두 동의합니다</Text>
-        <Text style={[styles.check, all && styles.checkOn]}>✓</Text>
+        <View style={[styles.check, all && styles.checkOn]}>
+          {all ? <Ionicons name="checkmark" size={16} color="#FFFFFF" /> : null}
+        </View>
       </TouchableOpacity>
 
       {TERMS.map((t) => {
@@ -108,7 +111,9 @@ export default function AgreementScreen({ navigation, route }) {
               activeOpacity={0.9}
             >
               <Text style={styles.rowTxt}>{t.label}</Text>
-              <Text style={[styles.check, on && styles.checkOn]}>✓</Text>
+              <View style={[styles.check, on && styles.checkOn]}>
+                {on ? <Ionicons name="checkmark" size={16} color="#FFFFFF" /> : null}
+              </View>
             </TouchableOpacity>
             <TouchableOpacity style={styles.linkBtn} onPress={() => openTerm(t)}>
               <Text style={styles.linkText}>내용 보기</Text>
@@ -177,20 +182,17 @@ const styles = StyleSheet.create({
   },
   rowTxt: { fontSize: 16, fontWeight: '700', color: colors.text || '#111827' },
   check: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     borderWidth: 2,
     borderColor: colors.border || '#E4E7EC',
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    color: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   checkOn: {
-    borderColor: colors.primary || '#F36C93',
-    backgroundColor: colors.primaryLight || '#FFD2DE',
-    color: colors.primary || '#F36C93',
-    fontWeight: '900',
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
   },
     linkBtn: { alignSelf: 'flex-end', marginTop: 6 },
   linkText: { fontSize: 13, color: colors.primary || '#F36C93', fontWeight: '700' },

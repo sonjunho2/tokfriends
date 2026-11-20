@@ -27,7 +27,7 @@ export default {
   primary: '#FF3B6B',           // 네온 코랄 핑크
   primaryDark: '#E02956',
   primaryLight: '#FFEBF0',
-  primaryMuted: 'rgba(255, 59, 107, 0.12)',
+  primaryMuted: 'rgba(255, 59, 107, 0.08)',
   
   // 카카오 및 액센트
   kakaoYellow: '#FEE500',

@@ -547,11 +547,11 @@ export default function ProfileRegistrationScreen({ navigation, route }) {
             activeOpacity={0.85}
           >
             {submitting ? (
-              <ActivityIndicator size="small" color="#191919" />
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
-                <Text style={styles.submitButtonText}>모꼬 시작하기 ✨</Text>
-                <Ionicons name="arrow-forward" size={18} color="#191919" />
+                <Text style={styles.submitButtonText}>모꼬 시작하기</Text>
+                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
               </>
             )}
           </TouchableOpacity>
@@ -898,17 +898,17 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     marginTop: 28,
-    backgroundColor: '#FEE500',
+    backgroundColor: '#FF3B6B',
     borderRadius: 18,
     paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: '#FEE500',
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
   submitButtonDisabled: {
@@ -919,7 +919,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#191919',
+    color: '#FFFFFF',
   },
   modalOverlay: {
     flex: 1,

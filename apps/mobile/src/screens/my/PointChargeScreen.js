@@ -600,8 +600,8 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   packageCardSelected: {
-    borderColor: '#FEE500',
-    backgroundColor: '#FFFDE7',
+    borderColor: colors.primary,
+    backgroundColor: '#FFF1F2',
   },
   packageLeft: {
     gap: 4,
@@ -755,17 +755,22 @@ const styles = StyleSheet.create({
   checkoutBtn: {
     height: 48,
     paddingHorizontal: 28,
-    backgroundColor: colors.primary || '#FEE500',
+    backgroundColor: colors.primary,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
   },
   checkoutBtnDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   checkoutBtnText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#191919',
+    color: '#FFFFFF',
   },
 });

@@ -2797,52 +2797,144 @@ export async function sendWebLiveGift(roomId: string, gift: { name: string; poin
 // ---------------------------------------------------------------------------
 
 export async function getMarketProducts(params?: any): Promise<any[]> {
+  const apiBase = typeof window !== 'undefined'
+    ? (process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || 'https://tok-friends-api.onrender.com/v1')
+    : 'https://tok-friends-api.onrender.com/v1'
+
+  // 1차 시도: Next.js API 프록시
   try {
     const res = await api.get('/market/products', { params })
     const data = res?.data ?? res
-    return Array.isArray(data) ? data : (data?.items || data?.products || [])
+    const list = Array.isArray(data) ? data : (data?.items || data?.products || [])
+    if (list.length > 0) return list
   } catch (err) {
-    console.warn('getMarketProducts error:', err)
-    return []
+    console.warn('getMarketProducts proxy error, trying direct backend...', err)
   }
+
+  // 2차 시도: 백엔드 직접 호출
+  try {
+    const query = params ? `?${new URLSearchParams(params).toString()}` : ''
+    const fallback = await fetch(`${apiBase}/market/products${query}`)
+    if (fallback.ok) {
+      const data = await fallback.json()
+      return Array.isArray(data) ? data : (data?.items || data?.products || [])
+    }
+  } catch (err) {
+    console.warn('getMarketProducts direct error:', err)
+  }
+  return []
 }
 
 export async function getMarketProductById(id: string): Promise<any> {
+  const apiBase = typeof window !== 'undefined'
+    ? (process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || 'https://tok-friends-api.onrender.com/v1')
+    : 'https://tok-friends-api.onrender.com/v1'
+
+  // 1차 시도: Next.js API 프록시
   try {
     const res = await api.get(`/market/products/${id}`)
     const data = res?.data ?? res
-    return data?.item || data?.product || data
+    const item = data?.item || data?.product || data
+    if (item && item.id) return item
   } catch (err) {
-    console.warn(`getMarketProductById(${id}) error:`, err)
-    return null
+    console.warn(`getMarketProductById(${id}) proxy error, trying direct backend...`, err)
   }
+
+  // 2차 시도: 백엔드 직접 호출
+  try {
+    const fallback = await fetch(`${apiBase}/market/products/${id}`)
+    if (fallback.ok) {
+      const data = await fallback.json()
+      return data?.item || data?.product || data
+    }
+  } catch (err) {
+    console.warn(`getMarketProductById(${id}) direct error:`, err)
+  }
+  return null
 }
 
 export async function getNormalProductById(id: string): Promise<any> {
+  const apiBase = typeof window !== 'undefined'
+    ? (process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || 'https://tok-friends-api.onrender.com/v1')
+    : 'https://tok-friends-api.onrender.com/v1'
+
+  // 1차 시도: Next.js API 프록시
   try {
     const res = await api.get(`/merchants/products/${id}`)
     const data = res?.data ?? res
-    return data?.item || data?.product || data
+    const item = data?.item || data?.product || data
+    if (item && item.id) return item
+  } catch (err) {}
+
+  // 2차 시도: 백엔드 직접 호출
+  try {
+    const fallback = await fetch(`${apiBase}/merchants/products/${id}`)
+    if (fallback.ok) {
+      const data = await fallback.json()
+      return data?.item || data?.product || data
+    }
   } catch (err) {
-    console.warn(`getNormalProductById(${id}) error:`, err)
-    return null
+    console.warn(`getNormalProductById(${id}) direct error:`, err)
   }
+  return null
 }
 
 export async function createMarketProduct(payload: any): Promise<any> {
-  const res = await api.post('/market/products', payload)
-  return res?.data ?? res
+  const apiBase = typeof window !== 'undefined'
+    ? (process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || 'https://tok-friends-api.onrender.com/v1')
+    : 'https://tok-friends-api.onrender.com/v1'
+
+  // 1차 시도: Next.js API 프록시
+  try {
+    const res = await api.post('/market/products', payload)
+    const data = res?.data ?? res
+    if (data && (data.id || data.ok)) return data
+  } catch (err) {}
+
+  // 2차 시도: 백엔드 직접 호출
+  try {
+    const fallback = await fetch(`${apiBase}/market/products`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (fallback.ok) {
+      return await fallback.json()
+    }
+  } catch (err) {
+    console.warn('createMarketProduct direct error:', err)
+  }
+  return null
 }
 
 export async function getNormalProducts(params?: any): Promise<any[]> {
+  const apiBase = typeof window !== 'undefined'
+    ? (process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') || 'https://tok-friends-api.onrender.com/v1')
+    : 'https://tok-friends-api.onrender.com/v1'
+
+  // 1차 시도: Next.js API 프록시
   try {
     const res = await api.get('/merchants/products', { params })
     const data = res?.data ?? res
-    return Array.isArray(data) ? data : (data?.items || data?.products || [])
+    const list = Array.isArray(data) ? data : (data?.items || data?.products || [])
+    if (list.length > 0) return list
+  } catch (err) {}
+
+  // 2차 시도: 백엔드 직접 호출 (market/normal-products 또는 merchants/products)
+  try {
+    const query = params ? `?${new URLSearchParams(params).toString()}` : ''
+    let fallback = await fetch(`${apiBase}/market/normal-products${query}`)
+    if (!fallback.ok) {
+      fallback = await fetch(`${apiBase}/merchants/products${query}`)
+    }
+    if (fallback.ok) {
+      const data = await fallback.json()
+      return Array.isArray(data) ? data : (data?.items || data?.products || [])
+    }
   } catch (err) {
-    console.warn('getNormalProducts error:', err)
-    return []
+    console.warn('getNormalProducts direct error:', err)
   }
+  return []
 }
 
 export async function getSudaPosts(params?: any): Promise<any[]> {

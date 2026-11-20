@@ -1,20 +1,20 @@
 // src/components/ChoiceButton.js
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
-import colors from '../theme/colors';
+import { tokens } from '../theme/tokens';
 
-export default function ChoiceButton({ label, selected, onPress, style }) {
+export default function ChoiceButton({ label, selected, onPress, style, textStyle }) {
   return (
     <TouchableOpacity
-      activeOpacity={0.9}
+      activeOpacity={0.85}
       onPress={onPress}
       style={[
         styles.box,
-        selected && { borderColor: colors.primary, backgroundColor: '#fff' },
+        selected && styles.selectedBox,
         style,
       ]}
     >
-      <Text style={[styles.label, selected && { color: '#111', fontWeight: '800' }]}>
+      <Text style={[styles.label, selected && styles.selectedLabel, textStyle]}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -23,13 +23,28 @@ export default function ChoiceButton({ label, selected, onPress, style }) {
 
 const styles = StyleSheet.create({
   box: {
-    height: 96,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#E6E8EC',
-    backgroundColor: '#F7F8FA',
+    minHeight: 56,
+    borderRadius: tokens.radius.card,
+    borderWidth: 1.5,
+    borderColor: tokens.colors.border,
+    backgroundColor: tokens.colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: tokens.spacing.lg,
+    paddingVertical: tokens.spacing.md,
   },
-  label: { fontSize: 22, color: '#A1A8B0', fontWeight: '700' },
+  selectedBox: {
+    borderColor: tokens.colors.primary,
+    backgroundColor: tokens.colors.primaryLight,
+  },
+  label: {
+    fontSize: 16,
+    color: tokens.colors.textSecondary,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+  },
+  selectedLabel: {
+    color: tokens.colors.primary,
+    fontWeight: '700',
+  },
 });

@@ -252,8 +252,8 @@ export default function UsedProductDetailPage() {
       if (isMounted) {
         setProduct({
           id: productId,
-          title: `[중고매물] 직거래 안심 중고물품 (${productId})`,
-          category: '디지털/생활',
+          title: `모꼬 직거래 안심 중고물품`,
+          category: '디지털/가전',
           price: 350000,
           originalPrice: 500000,
           locationName: '서울 강남구 역삼동',
@@ -267,7 +267,7 @@ export default function UsedProductDetailPage() {
           canProposePrice: false,
           tradeType: '직거래 / 안전택배',
           tradeLocationDetail: '역삼역 부근 협의',
-          images: [getCategoryFallbackImage('디지털/생활')],
+          images: ['https://images.unsplash.com/photo-1511707171634-5f897ff02560?w=800'],
           description: `상태 양호하며 직거래 또는 모꼬 에스크로 안전결제로 거래 가능합니다.\n궁금하신 점은 거래톡으로 편하게 문의주세요!`,
           likesCount: 12,
           chatsCount: 3,
@@ -410,8 +410,8 @@ export default function UsedProductDetailPage() {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div className="flex items-center gap-1.5">
-              <Badge className="bg-orange-500 text-white font-extrabold text-[11px] px-2 py-0.5 border-none shadow-xs">
-                🥕 C2C 중고거래
+              <Badge className="bg-[#FF3B6B] text-white font-bold text-[11px] px-2.5 py-0.5 border-none shadow-xs">
+                중고거래
               </Badge>
               <span className="text-xs font-bold text-slate-500 hidden sm:inline">
                 {product.locationName}
@@ -429,9 +429,9 @@ export default function UsedProductDetailPage() {
             </button>
             <Link
               href="/?tab=MARKET&sub=C2C_USED"
-              className="px-3 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 text-xs font-bold transition flex items-center gap-1"
+              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-1.5"
             >
-              <Store className="w-3.5 h-3.5" />
+              <Store className="w-3.5 h-3.5 text-[#FF3B6B]" />
               <span>중고마켓 홈</span>
             </Link>
           </div>
@@ -518,7 +518,7 @@ export default function UsedProductDetailPage() {
         {/* (2) 판매자 프로필 & 매너온도 카드 (아바타 48px 엄격 고정 및 비율 보정) */}
         <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs flex items-center justify-between gap-4">
           <div className="flex items-center gap-3.5 min-w-0">
-            {/* 48px 정원형 아바타 컨테이너 (어떤 원본 사진이라도 48px를 1픽셀도 벗어날 수 없도록 락킹) */}
+            {/* 48px 정원형 아바타 컨테이너 */}
             <div 
               className="relative shrink-0" 
               style={{ width: '48px', height: '48px', minWidth: '48px', minHeight: '48px', maxWidth: '48px', maxHeight: '48px' }}
@@ -534,7 +534,7 @@ export default function UsedProductDetailPage() {
                   style={{ width: '48px', height: '48px', minWidth: '48px', minHeight: '48px', objectFit: 'cover' }}
                 />
               </div>
-              {/* 온라인 상태 표시 녹색 인디케이터 (아바타 우측 하단에 정위치) */}
+              {/* 온라인 상태 표시 녹색 인디케이터 */}
               <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-xs z-10" />
             </div>
 
@@ -548,11 +548,11 @@ export default function UsedProductDetailPage() {
                 </Badge>
               </div>
               <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1 truncate">
-                <MapPin className="w-3 h-3 text-orange-500 shrink-0" />
+                <MapPin className="w-3 h-3 text-[#FF3B6B] shrink-0" />
                 <span className="truncate">{product.verifiedNeighborhood}</span>
               </p>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                ⚡ {product.responseRate}
+                응답 속도: {product.responseRate}
               </p>
             </div>
           </div>
@@ -560,14 +560,13 @@ export default function UsedProductDetailPage() {
           {/* 매너온도 게이지 */}
           <div className="text-right shrink-0">
             <div className="flex items-baseline justify-end gap-1">
-              <span className="text-lg sm:text-xl font-black text-orange-600">
+              <span className="text-lg sm:text-xl font-black text-[#FF3B6B]">
                 {product.mannerTemp}℃
               </span>
-              <span className="text-base">😄</span>
             </div>
             <div className="w-24 sm:w-28 bg-slate-100 rounded-full h-2 mt-1 overflow-hidden">
               <div
-                className="bg-gradient-to-r from-amber-400 to-orange-500 h-full rounded-full transition-all"
+                className="bg-gradient-to-r from-pink-400 to-[#FF3B6B] h-full rounded-full transition-all"
                 style={{ width: `${Math.min(100, (product.mannerTemp / 60) * 100)}%` }}
               />
             </div>
@@ -581,7 +580,7 @@ export default function UsedProductDetailPage() {
           {/* 타이틀 및 카테고리/시간 */}
           <div className="space-y-2 border-b border-slate-100 pb-5">
             <div className="flex items-center gap-2 text-xs text-slate-500">
-              <span className="font-semibold text-orange-600">{product.category}</span>
+              <span className="font-semibold text-[#FF3B6B]">{product.category}</span>
               <span>·</span>
               <span className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />
@@ -597,7 +596,7 @@ export default function UsedProductDetailPage() {
               </span>
               {product.canProposePrice ? (
                 <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-bold">
-                  가격 제안(네고) 가능
+                  가격 제안 가능
                 </Badge>
               ) : (
                 <span className="text-xs text-slate-400 font-medium">가격 제안 불가</span>
@@ -608,8 +607,8 @@ export default function UsedProductDetailPage() {
           {/* 중고 거래 속성 뱃지 그룹 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
-                ✨
+              <div className="w-9 h-9 rounded-xl bg-pink-50 text-[#FF3B6B] flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4" />
               </div>
               <div>
                 <span className="text-[11px] text-slate-400 font-bold block">상품 상태</span>
@@ -618,8 +617,8 @@ export default function UsedProductDetailPage() {
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-                🤝
+              <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-4 h-4" />
               </div>
               <div>
                 <span className="text-[11px] text-slate-400 font-bold block">거래 방식</span>
@@ -630,8 +629,8 @@ export default function UsedProductDetailPage() {
 
           {/* 직거래 희망 장소 */}
           {product.tradeLocationDetail && (
-            <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 flex items-start gap-3 text-xs">
-              <MapPin className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3 text-xs">
+              <MapPin className="w-4 h-4 text-[#FF3B6B] shrink-0 mt-0.5" />
               <div>
                 <span className="font-extrabold text-slate-900 block">직거래 희망 장소</span>
                 <span className="text-slate-600 mt-0.5 block">{product.tradeLocationDetail}</span>
@@ -754,18 +753,18 @@ export default function UsedProductDetailPage() {
             <Button
               onClick={handleStartTradeChat}
               variant="outline"
-              className="flex-1 h-11 sm:h-12 rounded-2xl border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-700 font-black text-xs sm:text-sm shadow-xs transition flex items-center justify-center gap-1.5"
+              className="flex-1 h-11 sm:h-12 rounded-2xl border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs sm:text-sm shadow-xs transition flex items-center justify-center gap-1.5"
             >
-              <MessageCircle className="w-4 h-4" />
+              <MessageCircle className="w-4 h-4 text-[#FF3B6B]" />
               <span>거래톡</span>
             </Button>
 
             {/* 3) 안전구매 버튼 (토스 에스크로 안전결제) */}
             <Button
               onClick={handleSafeBuy}
-              className="flex-1 h-11 sm:h-12 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white font-black text-xs sm:text-sm shadow-md shadow-orange-500/20 active:scale-98 transition flex items-center justify-center gap-1.5"
+              className="flex-1 h-11 sm:h-12 rounded-2xl bg-[#FF3B6B] hover:bg-[#E02956] text-white font-bold text-xs sm:text-sm shadow-sm active:scale-98 transition flex items-center justify-center gap-1.5"
             >
-              <ShieldCheck className="w-4 h-4 text-emerald-300" />
+              <ShieldCheck className="w-4 h-4" />
               <span>안전구매</span>
             </Button>
           </div>
@@ -787,8 +786,8 @@ export default function UsedProductDetailPage() {
             {safeBuyStep === 'CONFIRM' ? (
               <>
                 <div className="space-y-1">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl mb-2">
-                    🛡️
+                  <div className="w-10 h-10 rounded-2xl bg-pink-50 text-[#FF3B6B] flex items-center justify-center mb-2">
+                    <ShieldCheck className="w-6 h-6" />
                   </div>
                   <h3 className="text-base font-extrabold text-slate-900">
                     모꼬 안심 에스크로 안전결제
@@ -809,14 +808,14 @@ export default function UsedProductDetailPage() {
                   </div>
                   <div className="flex justify-between pt-2 border-t border-slate-200 text-sm font-black text-slate-900">
                     <span>안전결제 예치금액</span>
-                    <span className="text-orange-600">{product.price.toLocaleString()}원</span>
+                    <span className="text-[#FF3B6B]">{product.price.toLocaleString()}원</span>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Button
                     onClick={handleConfirmEscrowPayment}
-                    className="w-full h-11 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-600 hover:opacity-90 text-white font-extrabold text-sm shadow-md"
+                    className="w-full h-11 rounded-2xl bg-[#FF3B6B] hover:bg-[#E02956] text-white font-bold text-sm shadow-sm"
                   >
                     토스페이먼츠 안전결제 진행하기
                   </Button>
@@ -831,8 +830,8 @@ export default function UsedProductDetailPage() {
               </>
             ) : (
               <div className="text-center py-4 space-y-3">
-                <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl mx-auto">
-                  🎉
+                <div className="w-14 h-14 rounded-full bg-pink-50 text-[#FF3B6B] flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-8 h-8" />
                 </div>
                 <h3 className="text-base font-extrabold text-slate-900">
                   안전결제(에스크로) 예치 완료!
@@ -846,7 +845,7 @@ export default function UsedProductDetailPage() {
                     setIsSafeBuyModalOpen(false)
                     handleStartTradeChat()
                   }}
-                  className="w-full h-11 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-sm"
+                  className="w-full h-11 rounded-2xl bg-[#FF3B6B] hover:bg-[#E02956] text-white font-bold text-sm"
                 >
                   판매자와 거래톡으로 약속 잡기
                 </Button>

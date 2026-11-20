@@ -24,7 +24,7 @@ interface TabBarIconProps {
 }
 
 /**
- * 탭 아이콘 및 활성 인디케이터 바
+ * 탭 아이콘 및 텍스트 라벨 (상용 모바일 앱 표준 간격 및 위계)
  */
 function RegularTabItem({ name, focused, label }: TabBarIconProps) {
   return (
@@ -37,18 +37,21 @@ function RegularTabItem({ name, focused, label }: TabBarIconProps) {
       <Text
         style={[
           styles.tabLabel,
-          { color: focused ? tokens.colors.primary : tokens.colors.textTertiary },
+          {
+            color: focused ? tokens.colors.primary : tokens.colors.textTertiary,
+            fontWeight: focused ? '700' : '500',
+          },
         ]}
       >
         {label}
       </Text>
-      {focused ? <View style={styles.activeIndicator} /> : <View style={styles.inactiveIndicator} />}
+      {focused ? <View style={styles.activeDot} /> : <View style={styles.inactiveDot} />}
     </View>
   );
 }
 
 /**
- * 중앙 '라이브' 플로팅 액션 버튼(FAB)
+ * 중앙 '라이브' 플로팅 액션 버튼(FAB) - 절제된 프리미엄 그라데이션 및 그림자
  */
 function LiveFabButton({ children, onPress }: any) {
   return (
@@ -56,15 +59,15 @@ function LiveFabButton({ children, onPress }: any) {
       style={styles.fabWrapper}
       onPress={onPress}
       activeOpacity={0.88}
-      hitSlop={{ top: 12, bottom: 8, left: 12, right: 12 }}
+      hitSlop={{ top: 10, bottom: 8, left: 10, right: 10 }}
     >
       <LinearGradient
-        colors={tokens.colors.gradients.primaryPurple}
+        colors={['#FF4E78', '#FF3B6B']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.fabCircle}
       >
-        <Ionicons name="radio" size={24} color="#FFFFFF" />
+        <Ionicons name="radio" size={23} color="#FFFFFF" />
         <Text style={styles.fabLabel}>모꼬 LIVE</Text>
       </LinearGradient>
     </TouchableOpacity>
@@ -75,9 +78,9 @@ export default function TabNavigator() {
   const insets = useSafeAreaInsets();
   const bottomPadding = Math.max(
     insets.bottom,
-    Platform.OS === 'android' ? 14 : 20
+    Platform.OS === 'android' ? 12 : 16
   );
-  const tabHeight = 62 + bottomPadding;
+  const tabHeight = 60 + bottomPadding;
 
   const getTabBarStyle = (route: any) => {
     const routeName = getFocusedRouteNameFromRoute(route);
@@ -221,11 +224,15 @@ const styles = StyleSheet.create({
     borderTopColor: tokens.colors.borderLight,
     borderTopWidth: 1,
     paddingTop: 6,
-    ...tokens.shadows.card,
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 3,
   },
   tabItemContainer: {
     alignItems: 'center',
@@ -234,32 +241,33 @@ const styles = StyleSheet.create({
     minWidth: 54,
   },
   tabLabel: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 10.5,
     marginTop: 2,
+    letterSpacing: -0.2,
   },
-  activeIndicator: {
-    width: 14,
-    height: 3,
-    borderRadius: tokens.radius.full,
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: tokens.colors.primary,
     marginTop: 3,
   },
-  inactiveIndicator: {
-    width: 14,
-    height: 3,
+  inactiveDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: 'transparent',
     marginTop: 3,
   },
   fabWrapper: {
-    top: -18,
+    top: -16,
     justifyContent: 'center',
     alignItems: 'center',
   },
   fabCircle: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
@@ -269,8 +277,8 @@ const styles = StyleSheet.create({
   fabLabel: {
     color: '#FFFFFF',
     fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.5,
+    fontWeight: '800',
+    letterSpacing: -0.1,
     marginTop: 1,
   },
 });

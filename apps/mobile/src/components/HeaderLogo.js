@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Text } from 'react-native';
+import { tokens } from '../theme/tokens';
 
 export default function HeaderLogo({ size = 'medium', style }) {
   const height =
@@ -8,27 +9,43 @@ export default function HeaderLogo({ size = 'medium', style }) {
       : size === 'small'
       ? 20
       : size === 'large'
-      ? 40
-      : 28;
+      ? 36
+      : 26;
+
+  const fontSize = Math.round(height * 0.85);
 
   return (
     <View style={[styles.wrap, style]}>
-      {/* Snack에서 큰 이미지 업로드를 피하기 위해 텍스트 로고로 대체합니다 */}
       <Text
         accessible
         accessibilityRole="header"
-        style={{
-          fontSize: height * 0.8,
-          fontWeight: 'bold',
-          color: '#333',
-        }}
+        style={[styles.logoText, { fontSize }]}
       >
-        딱친
+        <Text style={styles.brand}>MOCCO</Text>
       </Text>
+      <View style={styles.dot} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flexDirection: 'row', alignItems: 'center' },
+  wrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logoText: {
+    fontWeight: '900',
+    letterSpacing: -0.6,
+  },
+  brand: {
+    color: tokens.colors.primary,
+  },
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: tokens.colors.secondary,
+    marginLeft: 3,
+    marginBottom: 4,
+  },
 });

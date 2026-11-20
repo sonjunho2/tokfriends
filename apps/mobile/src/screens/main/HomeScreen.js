@@ -389,7 +389,10 @@ export default function HomeScreen({ navigation }) {
                   <View style={styles.homeHeroAdBadge}>
                     <Text style={styles.homeHeroAdBadgeText}>SPONSORED</Text>
                   </View>
-                  <Text style={styles.homeHeroCategory}>✨ 모꼬 특별 혜택</Text>
+                  <View style={styles.homeHeroCategoryBadge}>
+                    <Ionicons name="sparkles" size={11} color="#F8FAFC" style={{ marginRight: 3 }} />
+                    <Text style={styles.homeHeroCategory}>모꼬 특별 혜택</Text>
+                  </View>
                 </View>
                 <Text style={styles.homeHeroTitle} numberOfLines={1}>
                   {item.title}
@@ -506,7 +509,7 @@ export default function HomeScreen({ navigation }) {
         {/* 상단 타이틀 행 (실시간 LIVE Top3) */}
         <View style={styles.top3HeaderRow}>
           <View style={styles.top3TitleGroup}>
-            <Text style={styles.top3FlameEmoji}>🔥</Text>
+            <Ionicons name="flame" size={19} color="#FF3B6B" />
             <Text style={styles.top3SectionTitle}>실시간 LIVE Top3</Text>
             <View style={styles.top3LiveDotBadge}>
               <View style={styles.top3LiveDot} />
@@ -865,7 +868,7 @@ export default function HomeScreen({ navigation }) {
       {
         isStandby: true,
         type: 'WRITE',
-        title: '첫 번째 수다의 주인공이 되어보세요! ✍️',
+        title: '첫 번째 수다의 주인공이 되어보세요!',
         sub: '오늘 하루 어떤 일이 있으셨나요? 이웃과 일상을 나눠보세요.',
         btnText: '글쓰기',
         icon: 'create-outline',
@@ -876,7 +879,7 @@ export default function HomeScreen({ navigation }) {
       {
         isStandby: true,
         type: 'KEYWORD',
-        title: '오늘의 인기 수다 키워드 🏷️',
+        title: '오늘의 인기 수다 키워드',
         sub: '#강남역_맛집  #오늘_퇴근길  #반려견_산책  #주말_취미',
         btnText: '키워드',
         icon: 'sparkles',
@@ -887,7 +890,7 @@ export default function HomeScreen({ navigation }) {
       {
         isStandby: true,
         type: 'CHAT',
-        title: '동네 이웃과 1:1 따뜻한 커피 한 잔 ☕',
+        title: '동네 이웃과 1:1 따뜻한 커피 한 잔',
         sub: '가까운 이웃과 편안하게 실시간 1:1 대화로 소통해보세요.',
         btnText: '수다방',
         icon: 'chatbubbles-outline',
@@ -1326,6 +1329,10 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '900',
   },
+  homeHeroCategoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   homeHeroCategory: {
     color: '#F8FAFC',
     fontSize: 11,
@@ -1452,16 +1459,18 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     zIndex: 20,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.7,
-    shadowRadius: 6,
-    elevation: 8,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   emblemContainerGold: {
-    top: -19,
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
-    elevation: 10,
+    top: -18,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.22,
+    shadowRadius: 5,
+    elevation: 4,
   },
   emblemOuterRing: {
     width: 38,

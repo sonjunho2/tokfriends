@@ -499,7 +499,7 @@ export default function CreateRoomModal({
                   activeOpacity={0.88}
                 >
                   <LinearGradient
-                    colors={tokens.colors.gradients.primaryPink || ['#FF3B6B', '#FF758C']}
+                    colors={['#FF4E78', '#FF3B6B']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.submitGradient}
@@ -508,8 +508,8 @@ export default function CreateRoomModal({
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
                       <>
-                        <Ionicons name="sparkles" size={18} color="#FFFFFF" />
-                        <Text style={styles.submitText}>✨ 대화방 개설하기</Text>
+                        <Ionicons name="chatbubbles" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                        <Text style={styles.submitText}>대화방 개설하기</Text>
                       </>
                     )}
                   </LinearGradient>

@@ -38,7 +38,7 @@ export default function ShareLiveLandingPage() {
 
     if (mobileCheck) {
       // Try native app deep link
-      window.location.href = `dagaon://live/${liveId}`
+      window.location.href = `mocco://live/${liveId}`
     } else {
       // PC Browser: direct to customer live web viewer
       const timer = setTimeout(() => {
@@ -49,49 +49,49 @@ export default function ShareLiveLandingPage() {
   }, [liveId, router])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-rose-950 text-white flex flex-col items-center justify-center p-4">
-      <div className="max-w-md w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-2xl backdrop-blur text-center space-y-6">
+    <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4">
+      <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-center space-y-6">
         {/* Header */}
         <div className="flex items-center justify-center gap-2">
-          <div className="w-10 h-10 rounded-2xl bg-rose-500 flex items-center justify-center text-white shadow-lg animate-pulse">
+          <div className="w-10 h-10 rounded-2xl bg-[#FF3B6B] flex items-center justify-center text-white shadow-md">
             <Radio className="w-5 h-5" />
           </div>
-          <span className="text-xl font-black tracking-tight text-white">D LIVE</span>
-          <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 text-[10px] font-bold">
-            실시간 방송 중
+          <span className="text-xl font-extrabold tracking-tight text-white">MOCCO LIVE</span>
+          <Badge className="bg-[#FF3B6B]/20 text-[#FF3B6B] border border-[#FF3B6B]/30 text-[10px] font-bold">
+            ON AIR
           </Badge>
         </div>
 
         {/* Live Preview Card */}
-        <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-800/50 text-left">
+        <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-800/60 text-left">
           <div className="aspect-video w-full overflow-hidden relative">
             <img src={live.thumbnail} alt={live.title} className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <div className="w-12 h-12 rounded-full bg-rose-500/90 flex items-center justify-center text-white shadow-xl">
+              <div className="w-12 h-12 rounded-full bg-[#FF3B6B] flex items-center justify-center text-white shadow-lg">
                 <Play className="w-5 h-5 fill-white ml-0.5" />
               </div>
             </div>
-            <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 text-[11px] font-mono font-bold">
-              <Users className="w-3 h-3 text-rose-400" />
+            <div className="absolute top-2 right-2 flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/70 text-[11px] font-mono font-bold text-white">
+              <Users className="w-3.5 h-3.5 text-[#FF3B6B]" />
               {live.viewers.toLocaleString()}명
             </div>
           </div>
           <div className="p-4 space-y-1">
-            <div className="text-xs text-rose-400 font-semibold">{live.hostName}</div>
+            <div className="text-xs text-[#FF3B6B] font-semibold">{live.hostName}</div>
             <h3 className="font-bold text-sm text-white line-clamp-2">{live.title}</h3>
           </div>
         </div>
 
         {/* Actions */}
         <div className="space-y-2.5">
-          <Button asChild className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold h-11 text-sm rounded-xl gap-2 shadow-lg">
-            <a href={`dagaon://live/${liveId}`}>
+          <Button asChild className="w-full bg-[#FF3B6B] hover:bg-[#E02956] text-white font-bold h-11 text-sm rounded-xl gap-2 shadow-sm transition-colors">
+            <a href={`mocco://live/${liveId}`}>
               <Smartphone className="w-4 h-4" />
               모꼬 앱으로 방송 시청
             </a>
           </Button>
 
-          <Button asChild variant="outline" className="w-full border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 h-11 text-sm rounded-xl gap-2">
+          <Button asChild variant="outline" className="w-full border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 h-11 text-sm rounded-xl gap-2 transition-colors">
             <Link href={`/web/live/${liveId}`}>
               <ExternalLink className="w-4 h-4" />
               PC 웹 플레이어로 바로 시청

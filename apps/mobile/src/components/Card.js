@@ -1,20 +1,22 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import colors from '../theme/colors';
+import { tokens } from '../theme/tokens';
 
 export default function Card({
   children,
   onPress,
-  padding = 16,
+  padding = tokens.spacing.lg,
   margin = 0,
-  borderRadius = 18,
+  borderRadius = tokens.radius.card,
   shadow = true,
+  bordered = true,
   style,
   ...props
 }) {
   const cardStyle = [
     styles.card,
-    shadow && styles.shadow,
+    bordered && styles.bordered,
+    shadow && tokens.shadows.card,
     {
       padding,
       margin,
@@ -22,20 +24,20 @@ export default function Card({
     },
     style,
   ];
-  
+
   if (onPress) {
     return (
       <TouchableOpacity
         style={cardStyle}
         onPress={onPress}
-        activeOpacity={0.92}
+        activeOpacity={0.88}
         {...props}
       >
         {children}
       </TouchableOpacity>
     );
   }
-  
+
   return (
     <View style={cardStyle} {...props}>
       {children}
@@ -45,18 +47,10 @@ export default function Card({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F2F4F6',
+    backgroundColor: tokens.colors.surface,
   },
-  shadow: {
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
+  bordered: {
+    borderWidth: 1,
+    borderColor: tokens.colors.borderLight,
   },
 });

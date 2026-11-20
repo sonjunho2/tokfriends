@@ -44,19 +44,19 @@ const PRESET_CONFIGS: Record<
   chats: {
     icon: 'chatbubbles-outline',
     title: '아직 대화 내역이 없습니다',
-    description: '설레는 첫 인사를 건네고 소중한 인연을 시작해보세요 ✨',
-    ctaLabel: '추천 인연 둘러보기',
+    description: '첫 인사를 건네고 새로운 이웃과의 대화를 시작해보세요.',
+    ctaLabel: '추천 이웃 둘러보기',
   },
   friends: {
     icon: 'people-outline',
     title: '아직 등록된 친구가 없습니다',
-    description: '마음에 드는 프로필에 친구 신청을 보내보세요!',
+    description: '마음에 드는 프로필에 친구 신청을 보내보세요.',
     ctaLabel: '새로운 친구 찾기',
   },
   live: {
     icon: 'radio-outline',
     title: '진행 중인 라이브 방송이 없습니다',
-    description: '지금 바로 첫 방송의 주인공이 되어보세요 🎙️',
+    description: '지금 바로 첫 라이브 방송을 시작해보세요.',
     ctaLabel: '라이브 방송 시작하기',
   },
   notifications: {
@@ -72,20 +72,20 @@ const PRESET_CONFIGS: Record<
   },
   favorites: {
     icon: 'heart-outline',
-    title: '찜한 친구가 없습니다',
-    description: '관심 있는 친구를 찜해두고 빠르게 소식을 받아보세요.',
-    ctaLabel: '인연 탐색하기',
+    title: '관심 등록된 내역이 없습니다',
+    description: '관심 있는 상품이나 친구를 찜해두고 빠르게 확인해보세요.',
+    ctaLabel: '마켓 둘러보기',
   },
   feed: {
     icon: 'chatbubble-ellipses-outline',
-    title: '우리 동네의 첫 번째 이야기 주인공이 되어보세요! ✨',
+    title: '우리 동네의 첫 번째 소식을 전해보세요',
     description: '이웃들과 나누고 싶은 소소한 일상이나 궁금한 점을 남겨보세요.',
-    ctaLabel: '✍️ 첫 동네 이야기 쓰기',
+    ctaLabel: '첫 동네 이야기 쓰기',
   },
   default: {
-    icon: 'sparkles-outline',
+    icon: 'document-text-outline',
     title: '표시할 내용이 없습니다',
-    description: '새로운 소식과 업데이트를 기대해 주세요!',
+    description: '새로운 소식과 업데이트를 기대해 주세요.',
   },
 };
 
@@ -111,14 +111,7 @@ export default function EmptyStateView({
     <View style={[styles.container, style]}>
       {/* 일러스트 서클 그래픽 */}
       <View style={styles.iconCircleOuter}>
-        <LinearGradient
-          colors={['#FFEBF0', '#F3E8FF']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.iconCircleInner}
-        >
-          <Ionicons name={displayIcon} size={42} color={tokens.colors.primary} />
-        </LinearGradient>
+        <Ionicons name={displayIcon} size={36} color={tokens.colors.primary} />
       </View>
 
       {/* 유도 문구 텍스트 */}
@@ -128,19 +121,12 @@ export default function EmptyStateView({
       {/* CTA 액션 버튼 */}
       {displayCta && onCtaPress && (
         <TouchableOpacity
-          style={styles.ctaButtonWrapper}
-          activeOpacity={0.88}
+          style={styles.ctaButton}
+          activeOpacity={0.85}
           onPress={onCtaPress}
         >
-          <LinearGradient
-            colors={tokens.colors.gradients.primaryPurple}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.ctaButton}
-          >
-            <Text style={styles.ctaText}>{displayCta}</Text>
-            <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
-          </LinearGradient>
+          <Text style={styles.ctaText}>{displayCta}</Text>
+          <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
         </TouchableOpacity>
       )}
 
@@ -150,6 +136,7 @@ export default function EmptyStateView({
           style={styles.secondaryBtn}
           onPress={onSecondaryPress}
           hitSlop={8}
+          activeOpacity={0.7}
         >
           <Text style={styles.secondaryText}>{secondaryLabel}</Text>
         </TouchableOpacity>
@@ -162,52 +149,47 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: tokens.spacing.xl,
     paddingVertical: 48,
   },
   iconCircleOuter: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: tokens.colors.surface,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: tokens.colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
-    ...tokens.shadows.soft,
-  },
-  iconCircleInner: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginBottom: tokens.spacing.lg,
+    borderWidth: 1,
+    borderColor: tokens.colors.borderLight,
   },
   title: {
-    ...tokens.typography.h3,
+    fontSize: 17,
+    fontWeight: '700',
     color: tokens.colors.text,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: tokens.spacing.xs,
+    letterSpacing: -0.3,
   },
   description: {
-    ...tokens.typography.body2,
+    fontSize: 13,
+    fontWeight: '400',
     color: tokens.colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 19,
     maxWidth: 280,
-    marginBottom: 24,
-  },
-  ctaButtonWrapper: {
-    borderRadius: tokens.radius.card,
-    overflow: 'hidden',
-    ...tokens.shadows.card,
+    marginBottom: tokens.spacing.xl,
+    letterSpacing: -0.1,
   },
   ctaButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 13,
-    paddingHorizontal: 24,
-    gap: 8,
+    backgroundColor: tokens.colors.primary,
+    borderRadius: tokens.radius.button,
+    minHeight: 46,
+    paddingHorizontal: tokens.spacing.xl,
+    gap: 6,
   },
   ctaText: {
     color: '#FFFFFF',
@@ -216,11 +198,12 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   secondaryBtn: {
-    marginTop: 14,
-    paddingVertical: 6,
+    marginTop: tokens.spacing.md,
+    paddingVertical: tokens.spacing.xs,
   },
   secondaryText: {
-    ...tokens.typography.caption,
+    fontSize: 12,
+    fontWeight: '500',
     color: tokens.colors.textTertiary,
     textDecorationLine: 'underline',
   },

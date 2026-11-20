@@ -272,8 +272,8 @@ export default function UsedItemRegisterPage() {
                 <h1 className="text-base sm:text-lg font-black text-slate-900">
                   내 중고물품 판매 등록
                 </h1>
-                <Badge className="bg-orange-50 text-orange-700 border border-orange-200 text-[10px] font-bold">
-                  🥕 C2C 안심 직거래 & 에스크로
+                <Badge className="bg-pink-50 text-[#FF3B6B] border border-pink-200 text-[10px] font-bold">
+                  안심 직거래 & 에스크로
                 </Badge>
               </div>
               <p className="text-[11px] text-slate-500 hidden sm:block">
@@ -284,9 +284,9 @@ export default function UsedItemRegisterPage() {
 
           <Link
             href="/?tab=MARKET&sub=C2C_USED"
-            className="text-xs text-slate-700 hover:text-slate-900 font-bold bg-slate-100 hover:bg-slate-200 border border-slate-200/80 px-3.5 py-1.5 rounded-xl transition flex items-center gap-1 shadow-2xs"
+            className="text-xs text-slate-700 hover:text-slate-900 font-bold bg-slate-100 hover:bg-slate-200 border border-slate-200/80 px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-2xs"
           >
-            <Store className="w-3.5 h-3.5 text-orange-600" />
+            <Store className="w-3.5 h-3.5 text-[#FF3B6B]" />
             <span>중고거래 목록으로</span>
           </Link>
         </div>
@@ -626,24 +626,24 @@ export default function UsedItemRegisterPage() {
             />
           </section>
 
-          {/* Section 6: ★ Mobile Live Streaming Pin Linkage (밝은 프리미엄 그라데이션) */}
-          <section className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 border border-indigo-200 rounded-3xl p-6 shadow-xs">
+          {/* Section 6: Mobile Live Streaming Pin Linkage */}
+          <section className="bg-slate-50 border border-slate-200 rounded-3xl p-6 shadow-xs">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3.5">
-                <div className="p-3 bg-red-600/10 text-rose-600 rounded-2xl border border-rose-200">
-                  <Radio className="w-6 h-6 animate-pulse" />
+                <div className="p-3 bg-pink-50 text-[#FF3B6B] rounded-2xl border border-pink-100">
+                  <Radio className="w-6 h-6" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-extrabold text-slate-900">
                       내 모바일 라이브 방송 판매 핀(PIN) 자동 연동
                     </h3>
-                    <Badge className="bg-rose-600 text-white text-[10px] font-bold">모꼬 특허 기능</Badge>
+                    <Badge className="bg-[#FF3B6B] text-white text-[10px] font-bold">모꼬 특허 기능</Badge>
                   </div>
                   <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                     모꼬에서는 일반 회원도 누구나 모바일 앱으로 실시간 방송을 켤 수 있습니다!
                     <br />이 옵션을 켜두시면 방송 진행 시{' '}
-                    <span className="text-indigo-700 font-bold">&apos;내 중고물품&apos;</span> 목록에서 이 상품을 화면에
+                    <span className="text-[#FF3B6B] font-bold">&apos;내 중고물품&apos;</span> 목록에서 이 상품을 화면에
                     핀으로 고정하여 시청자들과 실시간 소통 및 즉석 라이브 판매를 하실 수 있습니다.
                   </p>
                 </div>
@@ -655,14 +655,14 @@ export default function UsedItemRegisterPage() {
                   onChange={(e) => setEnableLivePin(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FF3B6B]"></div>
               </label>
             </div>
           </section>
 
           {/* Section 7: Safe Deal Notice */}
           <div className="bg-slate-100/80 border border-slate-200 rounded-2xl p-4 text-xs text-slate-600 flex items-start gap-2.5">
-            <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+            <Info className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
             <div className="leading-relaxed">
               모꼬는 전자상거래 등에서의 소비자보호에 관한 법률 및 안전거래 가이드를 준수합니다.
               주류, 담배, 의약품, 가품/위조품 등 관련 법령상 거래가 금지된 품목은 등록 시 통보 없이 즉시 삭제 및 계정 제한 조치될 수 있습니다.
@@ -681,7 +681,7 @@ export default function UsedItemRegisterPage() {
             </Button>
             <Button
               type="submit"
-              className="bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white font-extrabold px-8 h-11 rounded-2xl shadow-md shadow-orange-500/25"
+              className="bg-[#FF3B6B] hover:bg-[#E02956] text-white font-bold px-8 h-11 rounded-2xl shadow-sm transition-colors"
             >
               중고물품 등록 완료
             </Button>

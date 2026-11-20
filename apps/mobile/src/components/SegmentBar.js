@@ -1,7 +1,7 @@
 // src/components/SegmentBar.js
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import colors from '../theme/colors';
+import { tokens } from '../theme/tokens';
 
 export const DEFAULT_SEGMENTS = [
   '전체',
@@ -34,7 +34,7 @@ export default function SegmentBar({
           return (
             <TouchableOpacity
               key={label}
-              activeOpacity={0.9}
+              activeOpacity={0.85}
               onPress={() => onChange?.(label)}
               style={[styles.seg, on && styles.segOn]}
             >
@@ -48,22 +48,37 @@ export default function SegmentBar({
 }
 
 const styles = StyleSheet.create({
-  wrap: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 },
-  inner: { gap: 10, alignItems: 'center' },
+  wrap: {
+    paddingHorizontal: tokens.spacing.lg,
+    paddingVertical: tokens.spacing.sm,
+  },
+  inner: {
+    gap: tokens.spacing.xs + 2,
+    alignItems: 'center',
+  },
   seg: {
-    minHeight: 44,
-    paddingHorizontal: 18,
-    borderRadius: 20,
-    backgroundColor: colors.pillBg,
+    minHeight: 36,
+    paddingHorizontal: tokens.spacing.md,
+    borderRadius: tokens.radius.pill,
+    backgroundColor: tokens.colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
-        justifyContent: 'center',
+    borderColor: tokens.colors.border,
+    justifyContent: 'center',
     alignItems: 'center',
   },
   segOn: {
-    backgroundColor: colors.pillActiveBg,
-    borderColor: colors.pillActiveBorder,
+    backgroundColor: tokens.colors.text,
+    borderColor: tokens.colors.text,
   },
-  segTxt: { color: colors.textSecondary, fontWeight: '700', fontSize: 14, lineHeight: 20 },
-  segTxtOn: { color: colors.primary },
+  segTxt: {
+    color: tokens.colors.textSecondary,
+    fontWeight: '600',
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: -0.2,
+  },
+  segTxtOn: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
 });

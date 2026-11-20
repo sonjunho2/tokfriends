@@ -916,9 +916,12 @@ export default function ProfileEditScreen({ navigation, route }) {
                 <Text style={[styles.previewName, previewFontStyle]}>
                   {name || '닉네임 미설정'}
                 </Text>
-                <Text style={[styles.previewLocation, previewFontStyle]}>
-                  📍 {[region1, region2].filter(Boolean).join(' · ') || '지역 미설정'}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Ionicons name="location-sharp" size={12} color="#64748B" />
+                  <Text style={[styles.previewLocation, previewFontStyle]}>
+                    {[region1, region2].filter(Boolean).join(' · ') || '지역 미설정'}
+                  </Text>
+                </View>
               </View>
             </View>
 
@@ -949,10 +952,10 @@ export default function ProfileEditScreen({ navigation, route }) {
           disabled={saving}
         >
           {saving ? (
-            <ActivityIndicator size="small" color="#191919" />
+            <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <>
-              <Ionicons name="checkmark-done" size={20} color="#191919" />
+              <Ionicons name="checkmark-done" size={20} color="#FFFFFF" />
               <Text style={styles.saveButtonText}>변경사항 저장하기</Text>
             </>
           )}
@@ -1497,23 +1500,23 @@ const styles = StyleSheet.create({
   saveButton: {
     marginTop: 26,
     marginHorizontal: 16,
-    backgroundColor: '#FEE500',
+    backgroundColor: '#FF3B6B',
     borderRadius: 16,
     paddingVertical: 15,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    shadowColor: '#FEE500',
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
   saveButtonText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#191919',
+    color: '#FFFFFF',
   },
   modalBackdrop: {
     flex: 1,

@@ -8,6 +8,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { tokens } from '../theme/tokens';
 
 export default function Screen({
   children,
@@ -76,23 +77,23 @@ export default function Screen({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#111827',
+    backgroundColor: tokens.colors.background,
   },
   keyboardAvoid: {
     flex: 1,
   },
   container: {
     flex: 1,
-    backgroundColor: '#111827',
+    backgroundColor: tokens.colors.background,
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#111827',
+    backgroundColor: tokens.colors.background,
   },
   scrollContent: {
     flexGrow: 1,
   },
   padding: {
-    padding: 16,
+    padding: tokens.spacing.base,
   },
 });

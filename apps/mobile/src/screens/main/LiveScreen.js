@@ -581,7 +581,7 @@ export default function LiveScreen({ navigation }) {
         {/* 상단 타이틀 행 (실시간 Top3) */}
         <View style={styles.top3HeaderRow}>
           <View style={styles.top3TitleGroup}>
-            <Text style={styles.top3CrownEmoji}>👑</Text>
+            <FontAwesome5 name="crown" size={15} color="#F59E0B" style={{ marginRight: 2 }} />
             <Text style={styles.top3SectionTitle}>실시간 Top3</Text>
             <View style={styles.top3LiveDotBadge}>
               <View style={styles.top3LiveDot} />
@@ -1269,11 +1269,11 @@ const styles = StyleSheet.create({
   },
   top3CardInnerGold: {
     borderWidth: 2,
-    shadowColor: '#F59E0B',
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   top3CardOuterBronze: {
     width: TOP3_CARD_WIDTH,
@@ -1289,16 +1289,18 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     zIndex: 20,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.7,
-    shadowRadius: 6,
-    elevation: 8,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   emblemContainerGold: {
-    top: -19,
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
-    elevation: 10,
+    top: -18,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.22,
+    shadowRadius: 5,
+    elevation: 4,
   },
   emblemOuterRing: {
     width: 38,
@@ -1908,10 +1910,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 6,
-    shadowColor: '#FF3B6B',
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 3,
   },
   commerceNeonText: {
     color: '#FFFFFF',

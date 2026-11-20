@@ -1186,13 +1186,14 @@ const styles = StyleSheet.create({
   submitBtn: {
     marginTop: 8,
     height: 52,
-    backgroundColor: colors.primary || '#FEE500',
+    backgroundColor: colors.primary,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.1,
     shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
   submitBtnDisabled: {
@@ -1202,7 +1203,7 @@ const styles = StyleSheet.create({
   submitBtnText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#191919',
+    color: '#FFFFFF',
   },
   historyContainer: {
     margin: 16,

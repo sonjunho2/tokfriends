@@ -2258,7 +2258,10 @@ export default function MyPageScreen({ navigation }) {
                 colors={['transparent', 'rgba(15, 23, 42, 0.9)']}
                 style={styles.rewardAdVideoOverlay}
               >
-                <Text style={styles.rewardAdBrand}>✨ 모꼬 프리미엄 라이프</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Ionicons name="sparkles" size={11} color="#CBD5E1" />
+                  <Text style={styles.rewardAdBrand}>모꼬 프리미엄 라이프</Text>
+                </View>
                 <Text style={styles.rewardAdHeadline}>
                   새로운 이웃과 나누는 따뜻한 소통의 순간
                 </Text>
@@ -2588,11 +2591,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
     borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: '#4F46E5',
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    elevation: 2,
   },
   rewardBannerGradient: {
     flexDirection: 'row',
@@ -2833,10 +2836,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 24,
     width: '100%',
-    shadowColor: '#EF4444',
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
     elevation: 1,
   },
   logoutText: {

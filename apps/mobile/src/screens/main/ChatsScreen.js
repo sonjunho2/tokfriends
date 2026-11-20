@@ -1055,7 +1055,7 @@ export default function ChatsScreen({ navigation }) {
                         filterRegion === reg && styles.regionItemTextSelected,
                       ]}
                     >
-                      {reg === '전체' ? '🌐 전체 지역' : reg}
+                      {reg === '전체' ? '전체 지역' : reg}
                     </Text>
                     {filterRegion === reg && (
                       <Ionicons name="checkmark-sharp" size={18} color="#FF3B6B" />
@@ -1684,7 +1684,7 @@ export default function ChatsScreen({ navigation }) {
                   onPress={() => handleStartDirectChat(selectedProfileUser)}
                 >
                   <Ionicons name="chatbubble-ellipses" size={18} color="#FFFFFF" />
-                  <Text style={styles.chatActionBtnText}>💬 1:1 대화 신청하기</Text>
+                  <Text style={styles.chatActionBtnText}>1:1 대화 신청하기</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -2523,10 +2523,10 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 14,
     backgroundColor: '#FF3B6B',
-    shadowColor: '#FF3B6B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
     elevation: 3,
   },
   chatActionBtnText: {

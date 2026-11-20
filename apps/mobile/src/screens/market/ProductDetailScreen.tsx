@@ -742,7 +742,10 @@ export default function ProductDetailScreen({ route, navigation }: any) {
           {isB2C && (
             <View style={styles.groupDealCard}>
               <View style={styles.groupDealHeader}>
-                <Text style={styles.groupDealTitle}>🔥 마감임박 공동구매</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Ionicons name="flame" size={15} color="#EF4444" />
+                  <Text style={styles.groupDealTitle}>마감임박 공동구매</Text>
+                </View>
                 <Text style={styles.groupDealTimer}>마감 카운트다운</Text>
               </View>
               <View style={styles.groupDealProgressBarBg}>

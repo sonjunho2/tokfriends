@@ -301,6 +301,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundSecondary,
     borderRadius: 14,
     padding: 14,
+    borderWidth: 1,
+    borderColor: colors.borderLight || '#F1F5F9',
   },
   memberInfo: {
     flex: 1,

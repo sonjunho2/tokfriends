@@ -282,9 +282,9 @@ export default function OnboardingScreen({ navigation }) {
 
   return (
     <LinearGradient
-      colors={['#FFE6D5', '#FFF3EB', '#F2E8FF', '#EAE0FF']}
-      start={{ x: 0.1, y: 0 }}
-      end={{ x: 0.9, y: 1 }}
+      colors={['#FFF5F7', '#FFFFFF', '#F8FAFC']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
       style={styles.gradientContainer}
     >
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
@@ -329,7 +329,7 @@ export default function OnboardingScreen({ navigation }) {
             activeOpacity={0.88}
           >
             <LinearGradient
-              colors={['#FF6B4A', '#FF5533']}
+              colors={['#FF4E78', '#FF3B6B']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.ctaBtnGradient}
@@ -446,11 +446,13 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
-    shadowColor: '#8B5CF6',
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
   headphoneImg: {
     width: '100%',
@@ -537,13 +539,13 @@ const styles = StyleSheet.create({
     width: 210,
     height: 210,
     borderRadius: 105,
-    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#FF6445',
-    shadowOpacity: 0.15,
-    shadowRadius: 18,
-    elevation: 6,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
   marketMascotImg: {
     width: 170,
@@ -610,13 +612,13 @@ const styles = StyleSheet.create({
   // 메인 CTA 버튼
   ctaBtn: {
     width: '100%',
-    height: 56,
-    borderRadius: 28,
-    shadowColor: '#FF5533',
-    shadowOpacity: 0.38,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    height: 54,
+    borderRadius: 27,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
     marginBottom: 22,
   },
   ctaBtnGradient: {
