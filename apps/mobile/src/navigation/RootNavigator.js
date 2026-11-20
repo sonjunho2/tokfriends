@@ -22,6 +22,12 @@ import CommunityFeedScreen from '../screens/community/CommunityFeedScreen';
 import PostDetailScreen from '../screens/community/PostDetailScreen';
 import SettlementScreen from '../screens/my/SettlementScreen';
 import PointChargeScreen from '../screens/my/PointChargeScreen';
+import WishlistScreen from '../screens/my/WishlistScreen';
+import MySalesScreen from '../screens/my/MySalesScreen';
+import MyOrdersScreen from '../screens/my/MyOrdersScreen';
+import CartScreen from '../screens/my/CartScreen';
+import CustomerCenterScreen from '../screens/my/CustomerCenterScreen';
+import TermsScreen from '../screens/my/TermsScreen';
 
 // ===== 서브 =====
 import ChatRoomScreen from '../screens/main/ChatRoomScreen';
@@ -252,6 +258,36 @@ function MyPageStack() {
       <MyPageStackNav.Screen
         name="PointCharge"
         component={PointChargeScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="Wishlist"
+        component={WishlistScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="MySales"
+        component={MySalesScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="MyOrders"
+        component={MyOrdersScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="Cart"
+        component={CartScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="CustomerCenter"
+        component={CustomerCenterScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <MyPageStackNav.Screen
+        name="Terms"
+        component={TermsScreen}
         options={{ animation: 'slide_from_right' }}
       />
       <MyPageStackNav.Screen

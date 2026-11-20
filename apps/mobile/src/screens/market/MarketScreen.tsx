@@ -1296,7 +1296,7 @@ const styles = StyleSheet.create({
   // 2열 그리드 (배너와 100% 동일한 여백 일치)
   gridContent: {
     paddingHorizontal: SCREEN_PADDING,
-    paddingBottom: 100,
+    paddingBottom: 140,
   },
   gridRow: {
     justifyContent: 'space-between',
@@ -1400,6 +1400,8 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     padding: 10,
+    minHeight: 110,
+    justifyContent: 'space-between',
   },
   merchantBadge: {
     flexDirection: 'row',
@@ -1645,27 +1647,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 5,
     elevation: 2,
-    marginBottom: CARD_GAP,
   },
   standbyProductImgWrap: {
     width: '100%',
-    aspectRatio: 1,
+    height: CARD_WIDTH * 0.95,
     backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 10,
+    padding: 8,
   },
   standbyProductIconCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   standbyProductMainText: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: '800',
     color: '#1E293B',
     textAlign: 'center',
@@ -1686,6 +1687,8 @@ const styles = StyleSheet.create({
   },
   standbyProductContent: {
     padding: 10,
+    minHeight: 110,
+    justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
@@ -1697,9 +1700,11 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   standbyProductTitle: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '700',
     color: '#334155',
+    lineHeight: 18,
+    minHeight: 36,
     marginBottom: 4,
   },
   standbyProductPriceRow: {

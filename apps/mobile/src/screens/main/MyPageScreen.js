@@ -291,6 +291,7 @@ export default function MyPageScreen({ navigation }) {
   useFocusEffect(
     useCallback(() => {
       let isMounted = true;
+      loadCartItems();
       if (refreshMe) {
         refreshMe().catch(() => {});
       }
@@ -780,10 +781,7 @@ export default function MyPageScreen({ navigation }) {
             <TouchableOpacity
               style={styles.tradeActionBtn}
               activeOpacity={0.82}
-              onPress={() => {
-                loadCartItems();
-                setCartModalVisible(true);
-              }}
+              onPress={() => navigation.navigate('Cart')}
             >
               <View style={[styles.tradeIconWrap, { backgroundColor: '#EEF2FF' }]}>
                 <Ionicons name="cart" size={20} color="#4F46E5" />
@@ -796,7 +794,7 @@ export default function MyPageScreen({ navigation }) {
             <TouchableOpacity
               style={styles.tradeActionBtn}
               activeOpacity={0.82}
-              onPress={() => setWishlistModalVisible(true)}
+              onPress={() => navigation.navigate('Wishlist')}
             >
               <View style={[styles.tradeIconWrap, { backgroundColor: '#FFF1F2' }]}>
                 <Ionicons name="heart" size={20} color="#FF3B6B" />
@@ -809,7 +807,7 @@ export default function MyPageScreen({ navigation }) {
             <TouchableOpacity
               style={styles.tradeActionBtn}
               activeOpacity={0.82}
-              onPress={() => setSalesModalVisible(true)}
+              onPress={() => navigation.navigate('MySales')}
             >
               <View style={[styles.tradeIconWrap, { backgroundColor: '#EEF2FF' }]}>
                 <Ionicons name="pricetags" size={20} color="#4F46E5" />
@@ -822,7 +820,7 @@ export default function MyPageScreen({ navigation }) {
             <TouchableOpacity
               style={styles.tradeActionBtn}
               activeOpacity={0.82}
-              onPress={() => setOrdersModalVisible(true)}
+              onPress={() => navigation.navigate('MyOrders')}
             >
               <View style={[styles.tradeIconWrap, { backgroundColor: '#ECFDF5' }]}>
                 <Ionicons name="receipt" size={20} color="#059669" />
@@ -938,18 +936,36 @@ export default function MyPageScreen({ navigation }) {
 
             <View style={styles.menuDivider} />
 
-            {/* 📄 고객센터 & 약관 */}
+            {/* 📄 고객센터 & FAQ */}
             <TouchableOpacity
               style={styles.menuRow}
-              onPress={() => setTermsModalVisible(true)}
+              onPress={() => navigation.navigate('CustomerCenter')}
               activeOpacity={0.8}
             >
               <View style={[styles.menuIconBox, { backgroundColor: '#F1F5F9' }]}>
-                <Ionicons name="help-circle" size={18} color="#64748B" />
+                <Ionicons name="headset" size={18} color="#475569" />
               </View>
               <View style={styles.menuTextBox}>
-                <Text style={styles.menuTitle}>고객센터 & 약관</Text>
+                <Text style={styles.menuTitle}>고객센터 & FAQ</Text>
                 <Text style={styles.menuDesc}>자주 묻는 질문 및 1:1 고객 문의</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+            </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
+            {/* 📜 이용약관 및 정책 */}
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => navigation.navigate('Terms')}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.menuIconBox, { backgroundColor: '#F8FAFC' }]}>
+                <Ionicons name="document-text" size={18} color="#64748B" />
+              </View>
+              <View style={styles.menuTextBox}>
+                <Text style={styles.menuTitle}>이용약관 및 운영정책</Text>
+                <Text style={styles.menuDesc}>서비스 이용약관, 개인정보 처리방침, 전자금융거래</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
             </TouchableOpacity>

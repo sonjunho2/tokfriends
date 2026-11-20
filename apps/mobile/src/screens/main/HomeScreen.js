@@ -22,7 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { tokens } from '../../theme/tokens';
 import { UserAvatar } from '../../components/common';
 import { apiClient } from '../../api/client';
-import { fetchMarketProducts, resolveMobileImageUrl, INITIAL_MARKET_PRODUCTS } from '../../services/marketService';
+import { fetchMarketProducts, fetchNormalProducts, resolveMobileImageUrl, INITIAL_MARKET_PRODUCTS } from '../../services/marketService';
 import { fetchSudaPosts, INITIAL_SUDA_POSTS } from '../../services/sudaService';
 import {
   fetchAdsByPlacement,
@@ -168,6 +168,9 @@ export default function HomeScreen({ navigation }) {
   );
   const [sudaListAll, setSudaListAll] = useState(INITIAL_SUDA_POSTS);
   const [usedProducts, setUsedProducts] = useState(DEFAULT_USED_PRODUCTS);
+  const [b2cProducts, setB2cProducts] = useState(
+    INITIAL_MARKET_PRODUCTS.filter((p) => p.type !== 'C2C_USED')
+  );
   const [refreshing, setRefreshing] = useState(false);
 
   // 자동 슬라이드/롤링 인덱스 상태
@@ -222,9 +225,10 @@ export default function HomeScreen({ navigation }) {
 
       // 마켓 특가 공구 & 중고마켓 & 실시간 수다
       try {
-        const [marketDeals, marketUsed, sudaData] = await Promise.allSettled([
+        const [marketDeals, marketUsed, normalItems, sudaData] = await Promise.allSettled([
           fetchMarketProducts({ type: 'B2C_GROUP' }),
           fetchMarketProducts({ type: 'C2C' }),
+          fetchNormalProducts({ limit: 6 }),
           fetchSudaPosts(),
         ]);
         if (marketDeals.status === 'fulfilled' && Array.isArray(marketDeals.value) && marketDeals.value.length > 0) {
@@ -232,6 +236,9 @@ export default function HomeScreen({ navigation }) {
         }
         if (marketUsed.status === 'fulfilled' && Array.isArray(marketUsed.value) && marketUsed.value.length > 0) {
           setUsedProducts(marketUsed.value);
+        }
+        if (normalItems.status === 'fulfilled' && Array.isArray(normalItems.value) && normalItems.value.length > 0) {
+          setB2cProducts(normalItems.value);
         }
         if (sudaData.status === 'fulfilled' && Array.isArray(sudaData.value) && sudaData.value.length > 0) {
           setSudaListAll(sudaData.value);
@@ -1172,6 +1179,85 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
+  // =================================================================
+  // 8. [모꼬마켓] (웹과 동일한 공식 입점사/B2C 상품 2열 그리드 섹션)
+  // =================================================================
+  const renderMoccoMarketSection = () => {
+    const displayProducts = b2cProducts.slice(0, 4);
+    if (displayProducts.length === 0) return null;
+
+    return (
+      <View style={styles.sectionWrap}>
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>모꼬마켓</Text>
+            <View style={[styles.usedBadge, { backgroundColor: '#FDF2F8' }]}>
+              <Ionicons name="storefront" size={11} color="#FF3B6B" />
+              <Text style={[styles.usedBadgeText, { color: '#FF3B6B' }]}>공식 입점사</Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.sectionMoreBtn}
+            onPress={() => navigation.navigate('Market', { screen: 'MarketMain' })}
+            hitSlop={8}
+          >
+            <Text style={styles.sectionMoreText}>모꼬마켓 전체보기</Text>
+            <Ionicons name="chevron-forward" size={14} color={tokens.colors.textTertiary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* 2열 그리드 배치 */}
+        <View style={styles.moccoMarketGrid}>
+          {displayProducts.map((item) => {
+            const rawImg = Array.isArray(item.images) && item.images.length > 0
+              ? item.images[0]
+              : typeof item.images === 'string'
+              ? (item.images.startsWith('[') ? (JSON.parse(item.images)?.[0] || item.images) : item.images)
+              : item.image;
+            const thumbUri = resolveMobileImageUrl(rawImg);
+
+            return (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.moccoMarketCard}
+                activeOpacity={0.9}
+                onPress={() =>
+                  navigation.navigate('Market', {
+                    screen: 'ProductDetail',
+                    params: { productId: item.id, isNormalProduct: true },
+                  })
+                }
+              >
+                <View style={styles.moccoMarketThumbWrap}>
+                  <Image source={{ uri: thumbUri }} style={styles.moccoMarketThumb} resizeMode="cover" />
+                  <View style={styles.moccoMarketBadge}>
+                    <Text style={styles.moccoMarketBadgeText}>안심배송</Text>
+                  </View>
+                </View>
+                <View style={styles.moccoMarketInfo}>
+                  <Text style={styles.moccoMarketSellerName} numberOfLines={1}>
+                    {item.sellerName || item.brand || '모꼬 공식몰'}
+                  </Text>
+                  <Text style={styles.moccoMarketTitle} numberOfLines={2}>
+                    {item.title}
+                  </Text>
+                  <Text style={styles.moccoMarketPrice}>
+                    {Number(item.price || 0).toLocaleString()}원
+                  </Text>
+                  <View style={styles.moccoMarketTagRow}>
+                    <View style={styles.freeShipTag}>
+                      <Text style={styles.freeShipTagText}>무료배송</Text>
+                    </View>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -1214,6 +1300,9 @@ export default function HomeScreen({ navigation }) {
 
             {/* 6. 중고마켓 (2개 박스 슬라이드 신규 추가) */}
             {renderUsedMarketDualSection()}
+
+            {/* 7. 모꼬마켓 (공식 입점사/B2C 상품 2열 그리드 신규 추가) */}
+            {renderMoccoMarketSection()}
 
             {/* 하단 여백 (하단 탭 바 높이 고려) */}
             <View style={{ height: 90 }} />
@@ -2064,5 +2153,88 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#94A3B8',
     fontWeight: '600',
+  },
+  // 모꼬마켓 2열 그리드 섹션 스타일
+  moccoMarketGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  moccoMarketCard: {
+    width: (Dimensions.get('window').width - 32 - 10) / 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  moccoMarketThumbWrap: {
+    width: '100%',
+    height: ((Dimensions.get('window').width - 32 - 10) / 2) * 0.95,
+    position: 'relative',
+    backgroundColor: '#F8FAFC',
+  },
+  moccoMarketThumb: {
+    width: '100%',
+    height: '100%',
+  },
+  moccoMarketBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  moccoMarketBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '700',
+  },
+  moccoMarketInfo: {
+    padding: 10,
+  },
+  moccoMarketSellerName: {
+    fontSize: 10.5,
+    color: '#94A3B8',
+    marginBottom: 2,
+    fontWeight: '600',
+  },
+  moccoMarketTitle: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#0F172A',
+    lineHeight: 17,
+    minHeight: 34,
+    marginBottom: 4,
+  },
+  moccoMarketPrice: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  moccoMarketTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  freeShipTag: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 3,
+  },
+  freeShipTagText: {
+    fontSize: 9,
+    color: '#64748B',
+    fontWeight: '700',
   },
 });

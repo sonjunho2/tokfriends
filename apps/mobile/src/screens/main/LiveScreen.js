@@ -1548,7 +1548,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   roomList: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 160,
     gap: 14,
   },
   columnWrap: {
@@ -1558,6 +1560,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: 160,
   },
   roomCard: {
     width: '48%',
