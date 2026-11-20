@@ -36,6 +36,15 @@ export class SudaService {
           const seenKeys = new Set<string>();
           for (const item of list) {
             if (!item || !item.id) continue;
+            // '나 (이웃)' 또는 익명 작성자 보정
+            if (item.author) {
+              if (item.author.nickname === '나 (이웃)' || item.author.nickname === '나' || item.author.nickname === '이웃') {
+                item.author.nickname = '테스트01';
+              }
+              if (item.author.id === 'my-user-id' || item.author.id === 'usr_guest') {
+                item.author.id = 'u-tester-01';
+              }
+            }
             const contentKey = `${item.author?.id || item.authorId || ''}_${(item.content || '').trim()}`;
             if (!seenIds.has(item.id) && !seenKeys.has(contentKey)) {
               seenIds.add(item.id);
@@ -308,24 +317,35 @@ export class SudaService {
    * 1줄 수다 토크 작성
    */
   async createPost(authorId: string, dto: CreateSudaPostDto) {
-    let authorName = dto.authorNickname?.trim() || '나 (이웃)';
+    const effectiveAuthorId = authorId && authorId !== 'usr_guest' ? authorId : (dto.authorId || 'u-tester-01');
+    let authorName = dto.authorNickname?.trim() || '';
     let authorAvatar: string | null = dto.authorAvatar || null;
 
-    if (authorId && authorId !== 'usr_guest') {
+    if (!authorName || authorName === '나 (이웃)' || authorName === '나' || authorName === '이웃') {
+      authorName = effectiveAuthorId === 'u-tester-02' ? '테스터02' : '테스트01';
+    }
+
+    if (effectiveAuthorId && effectiveAuthorId !== 'usr_guest') {
       try {
         const u = await this.prisma.user.findFirst({
-          where: { OR: [{ id: authorId }, { nickname: authorId }] },
-          select: { nickname: true, displayName: true, avatarUrl: true },
+          where: { OR: [{ id: effectiveAuthorId }, { nickname: effectiveAuthorId }] },
+          select: { id: true, nickname: true, displayName: true, avatarUrl: true },
         });
         if (u) {
-          authorName = dto.authorNickname || u.nickname || u.displayName || authorName;
+          authorName =
+            dto.authorNickname && dto.authorNickname !== '나 (이웃)' && dto.authorNickname !== '나'
+              ? dto.authorNickname
+              : (u.nickname || u.displayName || authorName);
           authorAvatar = u.avatarUrl || authorAvatar;
         }
       } catch {}
     }
 
-    if (authorName === 'Super Admin' || authorName === 'admin') {
+    if (authorName === 'Super Admin' || authorName === 'admin' || authorName === 'admin_super_user') {
       authorName = dto.authorNickname || '테스터02';
+    }
+    if (!authorName || authorName === '나 (이웃)' || authorName === '나') {
+      authorName = effectiveAuthorId === 'u-tester-02' ? '테스터02' : '테스트01';
     }
 
     const postId = `suda-post-${Date.now()}`;
@@ -342,7 +362,7 @@ export class SudaService {
       repliesCount: 0,
       createdAt: new Date().toISOString(),
       author: {
-        id: authorId || dto.authorId || 'usr_guest',
+        id: effectiveAuthorId,
         nickname: authorName,
         avatarUrl:
           authorAvatar ||
@@ -356,7 +376,7 @@ export class SudaService {
       await this.prisma.sudaPost.create({
         data: {
           id: postId,
-          authorId: authorId || 'usr_guest',
+          authorId: effectiveAuthorId,
           content: dto.content.trim(),
           neighborhood: dto.neighborhood.trim(),
           latitude: dto.latitude,

@@ -58,7 +58,7 @@ export class SudaController {
   @ApiBearerAuth()
   @ApiOperation({ summary: '1줄 수다 토크 작성' })
   async createPost(@Req() req: any, @Body() dto: CreateSudaPostDto) {
-    const userId = req.user?.id || req.user?.sub || dto.authorId;
+    const userId = req.user?.id || req.user?.sub || dto.authorId || 'u-tester-01';
     return this.sudaService.createPost(userId, dto);
   }
 

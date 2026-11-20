@@ -2156,27 +2156,35 @@ export default function CustomerWebStorefrontPage() {
               if (items.length > 0) {
                 const mapped = items
                   .filter((p: any) => !deletedSuda.has(p.id))
-                  .map((p: any) => ({
-                    id: p.id,
-                    nickname: p.author?.nickname || p.author?.displayName || p.nickname || '모꼬이웃',
-                    avatar:
-                      p.author?.avatarUrl ||
-                      p.avatar ||
-                      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
-                    region: p.neighborhood || p.region || '역삼1동',
-                    distance: typeof p.distanceKm === 'number' ? `${p.distanceKm}km` : p.distance || '0.8km',
-                    time: p.createdAt
-                      ? typeof p.createdAt === 'string' && p.createdAt.includes('분')
-                        ? p.createdAt
-                        : '최근'
-                      : '방금 전',
-                    title: p.title || p.content?.slice(0, 30) || '수다글',
-                    content: p.content || '',
-                    entryFee: Number(p.entryFee || 0),
-                    category: p.category || '일상',
-                    likes: Number(p.likesCount || p.likeCount || 0),
-                    comments: Number(p.repliesCount || p.commentCount || 0),
-                  }))
+                  .map((p: any) => {
+                    const rawNick = p.author?.nickname || p.author?.displayName || p.nickname || '모꼬이웃'
+                    const isAnonymousOrSelf = !rawNick || rawNick === '나 (이웃)' || rawNick === '나' || rawNick === '이웃'
+                    const normalizedNick = isAnonymousOrSelf ? '테스트01' : rawNick
+                    const normalizedAuthorId = p.author?.id || (p as any).authorId || (normalizedNick === '테스트01' ? 'u-tester-01' : 'u-tester-02')
+
+                    return {
+                      id: p.id,
+                      authorId: normalizedAuthorId,
+                      nickname: normalizedNick,
+                      avatar:
+                        p.author?.avatarUrl ||
+                        p.avatar ||
+                        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+                      region: p.neighborhood || p.region || '역삼1동',
+                      distance: typeof p.distanceKm === 'number' ? `${p.distanceKm}km` : p.distance || '0.8km',
+                      time: p.createdAt
+                        ? typeof p.createdAt === 'string' && p.createdAt.includes('분')
+                          ? p.createdAt
+                          : '최근'
+                        : '방금 전',
+                      title: p.title || p.content?.slice(0, 30) || '수다글',
+                      content: p.content || '',
+                      entryFee: Number(p.entryFee || 0),
+                      category: p.category || '일상',
+                      likes: Number(p.likesCount || p.likeCount || 0),
+                      comments: Number(p.repliesCount || p.commentCount || 0),
+                    }
+                  })
                 if (mapped.length > 0) {
                   setSudaPosts((prev) => {
                     const existingIds = new Set(mapped.map((m: any) => m.id))
@@ -2295,27 +2303,35 @@ export default function CustomerWebStorefrontPage() {
           if (items.length > 0) {
             const mapped = items
               .filter((p: any) => !deletedSuda.has(p.id))
-              .map((p: any) => ({
-                id: p.id,
-                nickname: p.author?.nickname || p.author?.displayName || p.nickname || '모꼬이웃',
-                avatar:
-                  p.author?.avatarUrl ||
-                  p.avatar ||
-                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
-                region: p.neighborhood || p.region || '역삼1동',
-                distance: typeof p.distanceKm === 'number' ? `${p.distanceKm}km` : p.distance || '0.8km',
-                time: p.createdAt
-                  ? typeof p.createdAt === 'string' && p.createdAt.includes('분')
-                    ? p.createdAt
-                    : '최근'
-                  : '방금 전',
-                title: p.title || p.content?.slice(0, 30) || '수다글',
-                content: p.content || '',
-                entryFee: Number(p.entryFee || 0),
-                category: p.category || '일상',
-                likes: Number(p.likesCount || p.likeCount || 0),
-                comments: Number(p.repliesCount || p.commentCount || 0),
-              }))
+              .map((p: any) => {
+                const rawNick = p.author?.nickname || p.author?.displayName || p.nickname || '모꼬이웃'
+                const isAnonymousOrSelf = !rawNick || rawNick === '나 (이웃)' || rawNick === '나' || rawNick === '이웃'
+                const normalizedNick = isAnonymousOrSelf ? '테스트01' : rawNick
+                const normalizedAuthorId = p.author?.id || (p as any).authorId || (normalizedNick === '테스트01' ? 'u-tester-01' : 'u-tester-02')
+
+                return {
+                  id: p.id,
+                  authorId: normalizedAuthorId,
+                  nickname: normalizedNick,
+                  avatar:
+                    p.author?.avatarUrl ||
+                    p.avatar ||
+                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+                  region: p.neighborhood || p.region || '역삼1동',
+                  distance: typeof p.distanceKm === 'number' ? `${p.distanceKm}km` : p.distance || '0.8km',
+                  time: p.createdAt
+                    ? typeof p.createdAt === 'string' && p.createdAt.includes('분')
+                      ? p.createdAt
+                      : '최근'
+                    : '방금 전',
+                  title: p.title || p.content?.slice(0, 30) || '수다글',
+                  content: p.content || '',
+                  entryFee: Number(p.entryFee || 0),
+                  category: p.category || '일상',
+                  likes: Number(p.likesCount || p.likeCount || 0),
+                  comments: Number(p.repliesCount || p.commentCount || 0),
+                }
+              })
             if (mapped.length > 0) {
               setSudaPosts((prev) => {
                 const existingIds = new Set(mapped.map((m: any) => m.id))
@@ -4679,14 +4695,25 @@ export default function CustomerWebStorefrontPage() {
       const effectiveSenderNick = isAdmUser ? '테스터02' : user.nickname
       const effectiveSenderId = isAdmUser ? 'u-tester-02' : (user?.id || 'u-tester-02')
 
+      // 상대방 닉네임 및 ID 정규화 (절대로 '나 (이웃)'이나 '나'로 매핑되지 않도록 방어)
+      let targetNick = room.nickname
+      if (!targetNick || targetNick === '나 (이웃)' || targetNick === '나' || targetNick === '이웃') {
+        targetNick = effectiveSenderNick === '테스터02' ? '테스트01' : '테스터02'
+      }
+      let targetId = (room as any).authorId
+      if (!targetId || targetId === 'my-user-id' || targetId === 'usr_guest') {
+        targetId = targetNick === '테스트01' ? 'u-tester-01' : 'u-tester-02'
+      }
+
       // 서버 1:1 채팅방 생성 및 실시간 동기화
       let serverRoom: any = null
       try {
-        serverRoom = await createDirectChat(room.nickname, room.title, room.entryFee, {
+        serverRoom = await createDirectChat(targetNick, room.title, room.entryFee, {
           senderNickname: effectiveSenderNick,
           senderAccountId: effectiveSenderId,
           userId: effectiveSenderId,
-          targetNickname: room.nickname,
+          targetNickname: targetNick,
+          targetUserId: targetId,
         })
       } catch (e) {
         console.warn('createDirectChat fallback:', e)
@@ -4695,7 +4722,7 @@ export default function CustomerWebStorefrontPage() {
       const roomId = serverRoom?.id || (existing ? existing.id : 'chat-suda-' + room.id)
 
       if (socketRef.current) {
-        socketRef.current.emit('chat:join', { chatId: roomId })
+        socketRef.current.emit('chat:join', { chatId: roomId, userId: effectiveSenderId, nickname: effectiveSenderNick })
         // 상대방에게 입장 환영 및 새 방 개설 알림 브로드캐스트 -> 상대방 모바일 앱 대화함에 실시간 생성 & '모꼬' 알림음 울림
         const welcomeClientMsgId = 'm-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7)
         mySentMessageIdsRef.current.add(welcomeClientMsgId)
@@ -4704,7 +4731,8 @@ export default function CustomerWebStorefrontPage() {
           clientMessageId: welcomeClientMsgId,
           chatId: roomId,
           content: `안녕하세요! "${room.title || room.content}" 보고 입장했습니다 😊`,
-          targetUserId: room.nickname,
+          targetUserId: targetId,
+          targetNickname: targetNick,
           senderAccountId: effectiveSenderId,
           senderName: effectiveSenderNick,
           senderNickname: effectiveSenderNick,
@@ -4713,13 +4741,14 @@ export default function CustomerWebStorefrontPage() {
 
       // 1:1 대화방 개설 및 연결
       if (existing) {
-        const updated = { ...existing, id: roomId }
+        const updated = { ...existing, id: roomId, targetNickname: targetNick, targetUserId: targetId }
         setActiveChatRoom(updated)
       } else {
         const newRoomItem: ChatRoomItem = {
           id: roomId,
           type: 'SUDA',
-          targetNickname: room.nickname,
+          targetNickname: targetNick,
+          targetUserId: targetId,
           targetAvatar: room.avatar,
           lastMessage: room.title || room.content,
           lastTime: '방금',

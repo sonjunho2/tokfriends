@@ -289,14 +289,19 @@ export async function createSudaPost(
   content: string,
   title?: string,
   entryFee: number = 0,
-  neighborhood: string = '역삼1동'
+  neighborhood: string = '역삼1동',
+  author?: { id?: string; nickname?: string; avatarUrl?: string }
 ): Promise<SudaPostItem> {
+  const authorNickname = author?.nickname?.trim() || '테스트01';
+  const authorId = author?.id?.trim() || 'u-tester-01';
+  const authorAvatar = author?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200';
+
   const newPost: SudaPostItem = {
     id: `suda-${Date.now()}`,
     author: {
-      id: 'my-user-id',
-      nickname: '나',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+      id: authorId,
+      nickname: authorNickname,
+      avatarUrl: authorAvatar,
       trustScore: 99.0,
     },
     title,
@@ -315,6 +320,9 @@ export async function createSudaPost(
       content: content.trim(),
       entryFee,
       neighborhood,
+      authorId,
+      authorNickname,
+      authorAvatar,
     });
     const postData = res?.data?.data || res?.data;
     if (postData?.id) {

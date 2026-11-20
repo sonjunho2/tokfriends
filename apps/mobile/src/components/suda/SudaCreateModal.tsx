@@ -76,7 +76,14 @@ export default function SudaCreateModal({
     }
     setSubmitting(true);
     try {
-      await createSudaPost(title.trim(), title.trim(), entryFee);
+      const myNickname = user?.nickname || user?.displayName || (user as any)?.name || '테스트01';
+      const myId = user?.id || (user as any)?.activityAccountId || 'u-tester-01';
+      const myAvatar = user?.avatarUrl || (user as any)?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200';
+      await createSudaPost(title.trim(), title.trim(), entryFee, '역삼1동', {
+        id: myId,
+        nickname: myNickname,
+        avatarUrl: myAvatar,
+      });
       setTitle('');
       onCreated();
       onClose();

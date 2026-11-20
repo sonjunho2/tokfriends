@@ -862,9 +862,19 @@ export class ChatService implements OnModuleInit {
       hostName = '테스터02';
     }
 
+    const isAnonymousOrSelf = (name?: string) => {
+      if (!name) return true;
+      const s = String(name).trim().toLowerCase();
+      return s === '나' || s === '나 (이웃)' || s === '이웃' || s === '대화 상대' || s === 'usr_guest' || s === 'my-user-id';
+    };
+
     let targetName = targetNickname || (targetUserId && targetUserId !== 'guest' ? targetUserId : '대화 상대');
     if (isAdminAccount(targetName) || isAdminAccount(targetUserId)) {
       targetName = '테스터02';
+    }
+    if (isAnonymousOrSelf(targetName) || isAnonymousOrSelf(targetUserId)) {
+      targetName = hostName === '테스터02' || effectiveUserId === 'u-tester-02' ? '테스트01' : '테스터02';
+      targetUserId = targetName === '테스트01' ? 'u-tester-01' : 'u-tester-02';
     }
     let targetAvatar: string | null = null;
     let entryFee = 0;
