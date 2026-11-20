@@ -22,7 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { tokens } from '../../theme/tokens';
 import { UserAvatar } from '../../components/common';
 import { apiClient } from '../../api/client';
-import { fetchMarketProducts, INITIAL_MARKET_PRODUCTS } from '../../services/marketService';
+import { fetchMarketProducts, resolveMobileImageUrl, INITIAL_MARKET_PRODUCTS } from '../../services/marketService';
 import { fetchSudaPosts, INITIAL_SUDA_POSTS } from '../../services/sudaService';
 import {
   fetchAdsByPlacement,
@@ -1041,7 +1041,7 @@ export default function HomeScreen({ navigation }) {
       <View style={styles.sectionWrap}>
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
-            <Text style={styles.sectionTitle}>중고마켓</Text>
+            <Text style={styles.sectionTitle}>중고거래</Text>
             <View style={styles.usedBadge}>
               <Ionicons name="shield-checkmark" size={11} color="#059669" />
               <Text style={styles.usedBadgeText}>직거래·택배</Text>
@@ -1052,7 +1052,7 @@ export default function HomeScreen({ navigation }) {
             onPress={() => navigation.navigate('Market', { screen: 'MarketMain' })}
             hitSlop={8}
           >
-            <Text style={styles.sectionMoreText}>중고 전체보기</Text>
+            <Text style={styles.sectionMoreText}>중고거래 전체보기</Text>
             <Ionicons name="chevron-forward" size={14} color={tokens.colors.textTertiary} />
           </TouchableOpacity>
         </View>
@@ -1109,6 +1109,13 @@ export default function HomeScreen({ navigation }) {
               );
             }
 
+            const rawImg = Array.isArray(item.images) && item.images.length > 0
+              ? item.images[0]
+              : typeof item.images === 'string'
+              ? (item.images.startsWith('[') ? (JSON.parse(item.images)?.[0] || item.images) : item.images)
+              : item.image;
+            const thumbUri = resolveMobileImageUrl(rawImg);
+
             return (
               <TouchableOpacity
                 key={`${item.id}-${idx}`}
@@ -1123,7 +1130,7 @@ export default function HomeScreen({ navigation }) {
               >
                 <View style={styles.dualUsedThumbWrap}>
                   <Image
-                    source={{ uri: item.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400' }}
+                    source={{ uri: thumbUri }}
                     style={styles.dualUsedThumb}
                     resizeMode="cover"
                   />

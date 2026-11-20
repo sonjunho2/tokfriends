@@ -55,6 +55,51 @@ export class CreateMarketProductDto {
   @IsOptional()
   @IsNumber()
   longitude?: number;
+
+  @ApiPropertyOptional({ description: '배송비' })
+  @IsOptional()
+  @IsNumber()
+  shippingFee?: number;
+
+  @ApiPropertyOptional({ description: '재고' })
+  @IsOptional()
+  @IsNumber()
+  stock?: number;
+
+  @ApiPropertyOptional({ description: '소유자 유형' })
+  @IsOptional()
+  @IsString()
+  ownerType?: string;
+
+  @ApiPropertyOptional({ description: '상세 이미지 목록', type: [String] })
+  @IsOptional()
+  @IsArray()
+  detailImages?: string[];
+
+  @ApiPropertyOptional({ description: '상세 공지사항' })
+  @IsOptional()
+  @IsString()
+  detailNotice?: string;
+
+  @ApiPropertyOptional({ description: '제조사' })
+  @IsOptional()
+  @IsString()
+  manufacturer?: string;
+
+  @ApiPropertyOptional({ description: '원산지' })
+  @IsOptional()
+  @IsString()
+  origin?: string;
+
+  @ApiPropertyOptional({ description: '고객센터 연락처' })
+  @IsOptional()
+  @IsString()
+  csPhone?: string;
+
+  @ApiPropertyOptional({ description: '판매자 닉네임' })
+  @IsOptional()
+  @IsString()
+  sellerName?: string;
 }
 
 export class CreateEscrowOrderDto {

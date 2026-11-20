@@ -7,10 +7,37 @@ import {
 import { PrismaService } from 'nestjs-prisma';
 import { MarketProductType, ProductStatus, EscrowStatus } from '@prisma/client';
 import { CreateMarketProductDto, CreateEscrowOrderDto, DisputeOrderDto } from './dto/market.dto';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class MarketService {
-  constructor(private readonly prisma: PrismaService) {}
+  private cacheFilePath = path.join(process.cwd(), 'data', 'market-products.json');
+  private inMemoryProducts: any[] = [];
+
+  constructor(private readonly prisma: PrismaService) {
+    this.loadCacheFromDisk();
+  }
+
+  private loadCacheFromDisk() {
+    try {
+      if (fs.existsSync(this.cacheFilePath)) {
+        const raw = fs.readFileSync(this.cacheFilePath, 'utf-8');
+        const list = JSON.parse(raw);
+        if (Array.isArray(list)) {
+          this.inMemoryProducts = list;
+        }
+      }
+    } catch {}
+  }
+
+  private saveCacheToDisk() {
+    try {
+      const dir = path.dirname(this.cacheFilePath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(this.cacheFilePath, JSON.stringify(this.inMemoryProducts, null, 2), 'utf-8');
+    } catch {}
+  }
 
   /**
    * 상품 목록 조회 (필터 및 검색)
@@ -51,6 +78,9 @@ export class MarketService {
       ];
     }
 
+    let dbItems: any[] = [];
+    let dbTotal = 0;
+
     try {
       const [total, items] = await Promise.all([
         this.prisma.marketProduct.count({ where }),
@@ -70,17 +100,39 @@ export class MarketService {
           },
         }),
       ]);
-
-      if (items && items.length > 0) {
-        return {
-          items,
-          total,
-          page,
-          totalPages: Math.ceil(total / limit),
-        };
-      }
+      dbItems = items || [];
+      dbTotal = total || 0;
     } catch (err) {
       console.warn('[MarketService] DB query notice, using seed catalog:', (err as any)?.message);
+    }
+
+    // 메모리/디스크 캐시 상품 필터링
+    let cached = [...this.inMemoryProducts];
+    if (type) cached = cached.filter((p) => p.type === type);
+    if (category && category !== 'ALL') cached = cached.filter((p) => p.category === category);
+    if (sellerId) cached = cached.filter((p) => p.sellerId === sellerId || p.seller?.id === sellerId);
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      cached = cached.filter((p) => (p.title || '').toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q));
+    }
+
+    // DB 항목과 캐시 항목 병합 (캐시 우선 최상단 배치, ID 중복 제거)
+    const seenIds = new Set<string>();
+    const mergedItems: any[] = [];
+    for (const p of [...cached, ...dbItems]) {
+      if (p && p.id && !seenIds.has(p.id)) {
+        seenIds.add(p.id);
+        mergedItems.push(p);
+      }
+    }
+
+    if (mergedItems.length > 0) {
+      return {
+        items: mergedItems.slice(0, limit),
+        total: Math.max(mergedItems.length, dbTotal),
+        page,
+        totalPages: Math.ceil(Math.max(mergedItems.length, dbTotal) / limit),
+      };
     }
 
     const seedProducts = [
@@ -180,10 +232,27 @@ export class MarketService {
    * 상품 등록
    */
   async createProduct(userId: string, dto: CreateMarketProductDto) {
+    const effectiveUserId = userId || 'u-tester-01';
+    let savedProduct: any = null;
+
     try {
-      return await this.prisma.marketProduct.create({
+      // 판매자 유저 확인
+      let sellerUser = await this.prisma.user.findFirst({
+        where: { OR: [{ id: effectiveUserId }, { nickname: effectiveUserId }] },
+        select: { id: true, nickname: true, avatarUrl: true },
+      });
+
+      if (!sellerUser) {
+        sellerUser = await this.prisma.user.findFirst({
+          select: { id: true, nickname: true, avatarUrl: true },
+        });
+      }
+
+      const validSellerId = sellerUser ? sellerUser.id : effectiveUserId;
+
+      const created = await this.prisma.marketProduct.create({
         data: {
-          sellerId: userId,
+          sellerId: validSellerId,
           type: dto.type,
           title: dto.title,
           description: dto.description,
@@ -192,17 +261,23 @@ export class MarketService {
           originalPrice: dto.originalPrice,
           targetQuantity: dto.targetQuantity || 1,
           images: dto.images,
-          locationName: dto.locationName || '동네 인증 완료',
+          locationName: dto.locationName || '역삼1동',
           latitude: dto.latitude,
           longitude: dto.longitude,
           status: ProductStatus.ACTIVE,
         },
+        include: {
+          seller: {
+            select: { id: true, nickname: true, avatarUrl: true },
+          },
+        },
       });
+      savedProduct = created;
     } catch (err) {
       console.warn('[MarketService] DB create notice, using resilient fallback:', (err as any)?.message);
-      return {
+      savedProduct = {
         id: `prod-user-${Date.now()}`,
-        sellerId: userId || 'usr_guest',
+        sellerId: effectiveUserId,
         type: dto.type,
         title: dto.title,
         description: dto.description,
@@ -212,19 +287,26 @@ export class MarketService {
         targetQuantity: dto.targetQuantity || 1,
         currentQuantity: 0,
         images: dto.images,
-        locationName: dto.locationName || '동네 인증 완료',
+        locationName: dto.locationName || '역삼1동',
         latitude: dto.latitude,
         longitude: dto.longitude,
         status: ProductStatus.ACTIVE,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         seller: {
-          id: userId || 'usr_guest',
-          nickname: '나 (판매자)',
-          avatarUrl: null,
+          id: effectiveUserId,
+          nickname: dto.sellerName || (effectiveUserId === 'u-tester-02' ? '테스터02' : '테스터01'),
+          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
         },
       };
     }
+
+    if (savedProduct) {
+      this.inMemoryProducts.unshift(savedProduct);
+      this.saveCacheToDisk();
+    }
+
+    return savedProduct;
   }
 
   /**

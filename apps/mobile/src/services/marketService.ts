@@ -6,6 +6,77 @@
  */
 import client from '../api/client';
 
+/**
+ * 모바일 환경에서 미디어 이미지 URL을 안전하게 실서버 절대 주소로 정규화
+ */
+export function resolveMobileImageUrl(url?: string | null): string {
+  if (!url || typeof url !== 'string') return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600';
+  const trimmed = url.trim();
+  if (trimmed.startsWith('data:image/') || trimmed.startsWith('file://')) return trimmed;
+  // Next.js 프록시 경로 변환
+  if (trimmed.includes('/api/backend/media/files/')) {
+    const filename = trimmed.split('/api/backend/media/files/')[1];
+    return `https://tok-friends-api.onrender.com/v1/media/files/${filename}`;
+  }
+  // localhost 변환
+  if (trimmed.includes('localhost:') || trimmed.includes('127.0.0.1:')) {
+    const filePart = trimmed.split('/media/files/')[1];
+    if (filePart) {
+      return `https://tok-friends-api.onrender.com/v1/media/files/${filePart}`;
+    }
+  }
+  // 상대 경로 변환
+  if (trimmed.startsWith('/v1/media/files/')) {
+    return `https://tok-friends-api.onrender.com${trimmed}`;
+  }
+  if (trimmed.startsWith('/media/files/')) {
+    return `https://tok-friends-api.onrender.com/v1${trimmed}`;
+  }
+  return trimmed;
+}
+
+export function normalizeMarketProductItem(p: any): MarketProduct {
+  let images: string[] = [];
+  if (Array.isArray(p.images)) {
+    images = p.images.map((img: string) => resolveMobileImageUrl(img));
+  } else if (typeof p.images === 'string') {
+    try {
+      const parsed = JSON.parse(p.images);
+      images = Array.isArray(parsed) ? parsed.map((img: string) => resolveMobileImageUrl(img)) : [resolveMobileImageUrl(p.images)];
+    } catch {
+      images = [resolveMobileImageUrl(p.images)];
+    }
+  } else if (p.image) {
+    images = [resolveMobileImageUrl(p.image)];
+  } else {
+    images = ['https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600'];
+  }
+
+  return {
+    ...p,
+    id: String(p.id),
+    type: p.type || 'C2C_USED',
+    title: p.title || p.name || '상품',
+    description: p.description || '',
+    category: p.category || '기타',
+    price: Number(p.price || p.salePriceKrw || 0),
+    originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
+    images,
+    status: p.status || 'ACTIVE',
+    locationName: p.locationName || '역삼1동',
+    distanceKm: typeof p.distanceKm === 'number' ? p.distanceKm : 0.8,
+    seller: p.seller || {
+      id: p.sellerId || 'seller_default',
+      nickname: p.sellerName || '모꼬이웃',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+      trustScore: 98.5,
+    },
+    likesCount: Number(p.likesCount || 0),
+    chatsCount: Number(p.chatsCount || 0),
+    createdAt: p.createdAt || '방금 전',
+  };
+}
+
 export interface MarketProduct {
   id: string;
   type: 'C2C_USED' | 'B2C_GROUP';
@@ -216,10 +287,16 @@ export async function fetchMarketProducts(params?: {
         category: params?.category,
         search: params?.query,
       },
-      timeout: 3000,
+      timeout: 4000,
     });
-    if (res?.data?.items && Array.isArray(res.data.items) && res.data.items.length > 0) {
-      return res.data.items;
+    const rawList = res?.data?.items || res?.items || res?.data || (Array.isArray(res) ? res : []);
+    if (Array.isArray(rawList) && rawList.length > 0) {
+      const mapped = rawList.map(normalizeMarketProductItem);
+      // inMemoryProducts 동기화 (최신 등록 데이터 보존)
+      const seen = new Set(mapped.map((m: any) => m.id));
+      const remainingInMemory = inMemoryProducts.filter((m) => !seen.has(m.id));
+      inMemoryProducts = [...mapped, ...remainingInMemory];
+      return mapped;
     }
   } catch (err) {
     // Fallback to offline in-memory data
@@ -290,16 +367,19 @@ export async function createMarketProduct(
       latitude: 37.4979,
       longitude: 127.0276,
     });
-    if (res?.data?.id) {
-      inMemoryProducts = [res.data, ...inMemoryProducts];
-      return res.data;
+    const createdItem = res?.data?.id ? res.data : (res?.id ? res : null);
+    if (createdItem) {
+      const normalized = normalizeMarketProductItem(createdItem);
+      inMemoryProducts = [normalized, ...inMemoryProducts];
+      return normalized;
     }
   } catch (err) {
     // Fallback
   }
 
-  inMemoryProducts = [newProduct, ...inMemoryProducts];
-  return newProduct;
+  const normalizedFallback = normalizeMarketProductItem(newProduct);
+  inMemoryProducts = [normalizedFallback, ...inMemoryProducts];
+  return normalizedFallback;
 }
 
 // ==========================================

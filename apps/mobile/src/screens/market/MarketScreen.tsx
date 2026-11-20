@@ -29,6 +29,7 @@ import {
   fetchMarketProducts,
   fetchNormalProducts,
   toggleProductLike,
+  resolveMobileImageUrl,
 } from '../../services/marketService';
 import {
   AdvertisementItem,
@@ -304,6 +305,13 @@ export default function MarketScreen({ navigation }: any) {
 
     const isLiked = likedProductIds.has(item.id) || !!item.isLiked;
 
+    const rawImg = Array.isArray(item.images) && item.images.length > 0
+      ? item.images[0]
+      : typeof item.images === 'string'
+      ? (item.images.startsWith('[') ? (JSON.parse(item.images)?.[0] || item.images) : item.images)
+      : (item as any).image;
+    const thumbUri = resolveMobileImageUrl(rawImg);
+
     return (
       <TouchableOpacity
         style={styles.card}
@@ -312,7 +320,7 @@ export default function MarketScreen({ navigation }: any) {
       >
         {/* 상품 이미지 */}
         <View style={styles.imageWrapper}>
-          <Image source={{ uri: item.images[0] }} style={styles.cardImage} resizeMode="cover" />
+          <Image source={{ uri: thumbUri }} style={styles.cardImage} resizeMode="cover" />
           <View style={styles.topLeftBadges}>
             {(item as any).isHqDirect && (
               <LinearGradient
@@ -483,7 +491,7 @@ export default function MarketScreen({ navigation }: any) {
         {/* 상품 이미지 */}
         <View style={styles.imageWrapper}>
           <Image
-            source={{ uri: item.images?.[0] || 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600' }}
+            source={{ uri: resolveMobileImageUrl(item.images?.[0] || (item as any).image) }}
             style={[styles.cardImage, isOutOfStock && styles.dimmedImage]}
             resizeMode="cover"
           />
@@ -765,10 +773,10 @@ export default function MarketScreen({ navigation }: any) {
             style={styles.searchInput}
             placeholder={
               selectedType === 'C2C_USED'
-                ? '중고마켓 상품명, 설명, 지역 검색...'
+                ? '중고거래 상품명, 설명, 지역 검색...'
                 : selectedType === 'B2C_NORMAL'
-                ? '브랜드 상품명, 입점사 검색...'
-                : '특가 공구 상품 검색...'
+                ? '마켓상품명, 입점사 검색...'
+                : '공동구매 상품 검색...'
             }
             placeholderTextColor="#94A3B8"
             value={searchQuery}
@@ -788,9 +796,9 @@ export default function MarketScreen({ navigation }: any) {
         </View>
       )}
 
-      {/* 2. 상단 3대 서브 탭 캡슐 바: [중고마켓] / [브랜드 쇼핑] / [특가 공구] */}
+      {/* 2. 상단 3대 서브 탭 캡슐 바: [중고거래] / [마켓상품] / [공동구매] (웹 명칭과 100% 일치) */}
       <View style={styles.segmentContainer}>
-        {/* 1) 중고마켓 (C2C) */}
+        {/* 1) 중고거래 (C2C) */}
         <TouchableOpacity
           style={[styles.segmentBtn, selectedType === 'C2C_USED' && styles.segmentBtnActive]}
           onPress={() => setSelectedType('C2C_USED')}
@@ -802,11 +810,11 @@ export default function MarketScreen({ navigation }: any) {
               selectedType === 'C2C_USED' && styles.segmentTextActive,
             ]}
           >
-            🏷️ 중고마켓
+            🥕 중고거래
           </Text>
         </TouchableOpacity>
 
-        {/* 2) 브랜드 쇼핑 (B2C) */}
+        {/* 2) 마켓상품 (B2C) */}
         <TouchableOpacity
           style={[styles.segmentBtn, selectedType === 'B2C_NORMAL' && styles.segmentBtnActive]}
           onPress={() => setSelectedType('B2C_NORMAL')}
@@ -818,11 +826,11 @@ export default function MarketScreen({ navigation }: any) {
               selectedType === 'B2C_NORMAL' && styles.segmentTextActiveBrand,
             ]}
           >
-            🛍️ 브랜드 쇼핑
+            🏬 마켓상품
           </Text>
         </TouchableOpacity>
 
-        {/* 3) 특가 공구 (B2C) */}
+        {/* 3) 공동구매 (B2C) */}
         <TouchableOpacity
           style={[styles.segmentBtn, selectedType === 'B2C_GROUP' && styles.segmentBtnActive]}
           onPress={() => setSelectedType('B2C_GROUP')}
@@ -834,7 +842,7 @@ export default function MarketScreen({ navigation }: any) {
               selectedType === 'B2C_GROUP' && styles.segmentTextActiveGroup,
             ]}
           >
-            🔥 특가 공구
+            🔥 공동구매
           </Text>
           <View style={styles.hotBadge}>
             <Text style={styles.hotBadgeText}>HOT</Text>
@@ -966,10 +974,10 @@ export default function MarketScreen({ navigation }: any) {
         />
       )}
 
-      {/* 6. 우측 하단 가변 FAB: + 물품등록 (오직 중고마켓에서만 노출, 특가공구/브랜드쇼핑은 미노출) */}
+      {/* 6. 우측 하단 가변 FAB: + 중고 등록 (중고거래 탭에서 노출) */}
       {selectedType === 'C2C_USED' && (
         <ScrollExpandableFAB
-          label="물품등록"
+          label="중고 등록"
           iconName="add"
           isExpanded={isFabExpanded}
           onPress={() => navigation.navigate('MarketCreate')}

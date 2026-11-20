@@ -3549,7 +3549,10 @@ export default function CustomerWebStorefrontPage() {
         type: 'C2C_USED',
         images: payload.images,
         shippingFee: 3000,
-      }).catch((e) => console.warn('createMarketProduct error:', e))
+        sellerName: user?.nickname || '테스터02',
+      })
+        .then(() => refreshMarketData())
+        .catch((e) => console.warn('createMarketProduct error:', e))
       toast({
         title: '🎉 중고 물품 등록 완료!',
         description: '내 중고물품이 등록되었으며, 모바일 라이브 방송 시 핀 상품으로 실시간 판매할 수 있습니다.',
@@ -3591,7 +3594,10 @@ export default function CustomerWebStorefrontPage() {
         shippingFee: payload.shippingFee,
         detailNotice: payload.detailNotice,
         detailImages: payload.detailImages,
-      }).catch((e) => console.warn('createMarketProduct error:', e))
+        sellerName: user?.nickname || '(주)모꼬 파트너사',
+      })
+        .then(() => refreshMarketData())
+        .catch((e) => console.warn('createMarketProduct error:', e))
 
       // LocalStorage 캐싱 동기화
       try {
