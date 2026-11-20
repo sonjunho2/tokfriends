@@ -51,6 +51,13 @@ module.exports = ({ config }) => {
         'android.permission.MODIFY_AUDIO_SETTINGS',
         'android.permission.INTERNET',
         'android.permission.ACCESS_NETWORK_STATE',
+        'android.permission.POST_NOTIFICATIONS',
+        'android.permission.READ_MEDIA_IMAGES',
+        'android.permission.READ_MEDIA_VIDEO',
+        'android.permission.READ_EXTERNAL_STORAGE',
+        'android.permission.WRITE_EXTERNAL_STORAGE',
+        'android.permission.ACCESS_FINE_LOCATION',
+        'android.permission.ACCESS_COARSE_LOCATION',
       ],
     },
     androidNavigationBar: {
@@ -65,6 +72,7 @@ module.exports = ({ config }) => {
         NSCameraUsageDescription: '모꼬 프로필 사진 등록 및 라이브 영상 방송 진행을 위해 카메라 권한이 필요합니다.',
         NSMicrophoneUsageDescription: '모꼬 라이브 방송 시 음성을 전달하기 위해 마이크 권한이 필요합니다.',
         NSPhotoLibraryUsageDescription: '모꼬 프로필 사진 등록 및 채팅 사진 전송을 위해 사진 보관함 접근 권한이 필요합니다.',
+        NSLocationWhenInUseUsageDescription: '내 주변 동네 기반 라이브 방송 탐색 및 안심 중고 직거래를 위해 위치 권한이 필요합니다.',
       },
     },
     updates: {

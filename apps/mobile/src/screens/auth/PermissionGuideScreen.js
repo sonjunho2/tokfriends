@@ -8,6 +8,7 @@ import {
   ScrollView,
   StatusBar,
   Platform,
+  PermissionsAndroid,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -68,17 +69,68 @@ export default function PermissionGuideScreen({ navigation }) {
   const handleConfirm = async () => {
     setRequesting(true);
     try {
-      // 1. 카메라 권한 사전 요청
-      if (requestCameraPermission) {
-        await requestCameraPermission().catch(() => {});
-      }
-      // 2. 마이크 권한 사전 요청
-      if (requestMicrophonePermission) {
-        await requestMicrophonePermission().catch(() => {});
-      }
-      // 3. 미디어 앨범 권한 사전 요청
-      if (ImagePicker?.requestMediaLibraryPermissionsAsync) {
-        await ImagePicker.requestMediaLibraryPermissionsAsync().catch(() => {});
+      if (Platform.OS === 'android') {
+        const androidVersion = Platform.constants?.Version || Platform.Version || 30;
+
+        // 1. 카메라 권한
+        await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.CAMERA,
+          {
+            title: '카메라 권한 안내',
+            message: '라이브 방송 및 프로필 사진 촬영을 위해 카메라 권한이 필요합니다.',
+            buttonPositive: '확인',
+          }
+        ).catch(() => {});
+
+        // 2. 사진 / 앨범 / 저장공간 권한
+        if (androidVersion >= 33) {
+          await PermissionsAndroid.request('android.permission.READ_MEDIA_IMAGES').catch(() => {});
+        } else {
+          await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+            {
+              title: '사진 보관함 권한 안내',
+              message: '프로필 사진 등록 및 상품 사진 첨부를 위해 저장공간 접근 권한이 필요합니다.',
+              buttonPositive: '확인',
+            }
+          ).catch(() => {});
+        }
+
+        // 3. 마이크 / 음성 권한
+        await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+          {
+            title: '마이크 권한 안내',
+            message: '실시간 라이브 방송 음성 송출 및 보이스 소통을 위해 마이크 권한이 필요합니다.',
+            buttonPositive: '확인',
+          }
+        ).catch(() => {});
+
+        // 4. 알림 권한 (Android 13+ / API 33+)
+        if (androidVersion >= 33) {
+          await PermissionsAndroid.request('android.permission.POST_NOTIFICATIONS').catch(() => {});
+        }
+
+        // 5. 위치 정보 권한
+        await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
+            title: '위치 정보 권한 안내',
+            message: '우리 동네 기반 라이브 방송 및 안심 직거래 마켓 추천을 위해 위치 권한이 필요합니다.',
+            buttonPositive: '확인',
+          }
+        ).catch(() => {});
+      } else {
+        // iOS
+        if (requestCameraPermission) {
+          await requestCameraPermission().catch(() => {});
+        }
+        if (requestMicrophonePermission) {
+          await requestMicrophonePermission().catch(() => {});
+        }
+        if (ImagePicker?.requestMediaLibraryPermissionsAsync) {
+          await ImagePicker.requestMediaLibraryPermissionsAsync().catch(() => {});
+        }
       }
     } catch (e) {
       console.warn('Permission request error during guide:', e);
