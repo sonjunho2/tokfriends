@@ -153,9 +153,9 @@ export default function SellerDashboardPage() {
       <SellerNav />
 
       {/* Top Notice Banner */}
-      <div className="rounded-xl bg-gradient-to-r from-emerald-500/10 via-primary/10 to-indigo-500/10 border border-emerald-500/20 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-500 shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0">
             <CheckCircle2 className="w-5 h-5" />
           </div>
           <div>

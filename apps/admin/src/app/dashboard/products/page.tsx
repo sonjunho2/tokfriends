@@ -450,7 +450,7 @@ export default function HqProductsPage() {
       setIsCreateModalOpen(false)
       setEditingProduct(null)
       toast({
-        title: '✏️ 직영 상품 정보 수정 완료',
+        title: '직영 상품 정보 수정 완료',
         description: `[${formData.name}] 상품의 정보가 성공적으로 변경되었습니다.`,
       })
     } else {
@@ -498,7 +498,7 @@ export default function HqProductsPage() {
       setEditingProduct(null)
 
       toast({
-        title: '👑 본사 직영 상품 기획 등록 완료',
+        title: '본사 직영 상품 기획 등록 완료',
         description: `[${newProduct.name}]이 본사 직영 마켓 및 스트리머 제휴 센터에 즉시 노출됩니다.`,
       })
     }
@@ -567,15 +567,15 @@ export default function HqProductsPage() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-border">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 flex items-center justify-center text-black shadow-md">
-              <Crown className="w-5 h-5 font-black" />
+            <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800 shadow-xs">
+              <Crown className="w-5 h-5 text-amber-600" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-bold tracking-tight text-foreground">
                   본사 직영 상품 기획 및 관리 (HQ Direct PB & Deals)
                 </h1>
-                <Badge className="bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-extrabold text-[11px] shadow-xs">
+                <Badge className="bg-amber-50 text-amber-700 border border-amber-200 font-semibold text-[11px]">
                   플랫폼 핵심 수익원
                 </Badge>
               </div>
@@ -589,7 +589,7 @@ export default function HqProductsPage() {
         <div className="flex items-center flex-wrap gap-2">
           <Button
             onClick={handleOpenCreateModal}
-            className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-bold gap-1.5 shadow-sm"
+            className="bg-slate-900 hover:bg-slate-800 text-white font-semibold gap-1.5 shadow-xs"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             + 본사 직영 상품 기획 등록
@@ -718,9 +718,9 @@ export default function HqProductsPage() {
             className="h-9 px-2.5 rounded-lg border border-border bg-background text-xs font-medium focus:outline-hidden"
           >
             <option value="ALL">기획 유형 (전체)</option>
-            <option value="PB">👑 본사 PB 브랜드</option>
-            <option value="SPECIAL_DEAL">🔥 타임 기획 특가</option>
-            <option value="GROUP_BUY">🤝 공식 공동구매</option>
+            <option value="PB">본사 PB 브랜드</option>
+            <option value="SPECIAL_DEAL">타임 기획 특가</option>
+            <option value="GROUP_BUY">공식 공동구매</option>
           </select>
 
           {/* Category Filter */}
@@ -814,8 +814,9 @@ export default function HqProductsPage() {
                           />
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-black bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-2xs">
-                                👑 본사직영
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                <Crown className="w-3 h-3 text-amber-600" />
+                                본사직영
                               </span>
                               <span className="text-[11px] text-muted-foreground">
                                 {p.category} · ID: {p.id}
@@ -836,19 +837,19 @@ export default function HqProductsPage() {
                       {/* 2. 기획 유형 */}
                       <td className="px-5 py-3.5 text-center whitespace-nowrap">
                         {p.planType === 'PB' && (
-                          <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30 text-[11px] font-bold">
-                            👑 PB 브랜드
+                          <Badge className="bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-semibold">
+                            PB 브랜드
                           </Badge>
                         )}
                         {p.planType === 'SPECIAL_DEAL' && (
-                          <Badge className="bg-rose-500/15 text-rose-600 border-rose-500/30 text-[11px] font-bold">
-                            🔥 기획 특가
+                          <Badge className="bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-semibold">
+                            기획 특가
                           </Badge>
                         )}
                         {p.planType === 'GROUP_BUY' && (
                           <div className="space-y-0.5">
-                            <Badge className="bg-blue-500/15 text-blue-600 border-blue-500/30 text-[11px] font-bold">
-                              🤝 공식 공구
+                            <Badge className="bg-sky-50 text-sky-700 border border-sky-200 text-[11px] font-semibold">
+                              공식 공구
                             </Badge>
                             <p className="text-[10px] text-muted-foreground font-mono">
                               {p.groupCurrentCount}/{p.groupTargetCount}명
@@ -918,7 +919,7 @@ export default function HqProductsPage() {
                         {p.allowAffiliate ? (
                           <div className="space-y-0.5">
                             <Badge className="bg-rose-500/10 text-rose-600 border-rose-500/30 text-[10px] font-bold">
-                              🎙️ 제휴 {p.affiliateCommissionRate}%
+                              제휴 {p.affiliateCommissionRate}%
                             </Badge>
                             <div className="text-[10px] text-muted-foreground font-mono">
                               수수료 ₩{Math.floor((p.salePriceKrw * p.affiliateCommissionRate) / 100).toLocaleString()}
@@ -1015,17 +1016,17 @@ export default function HqProductsPage() {
           <div className="bg-card border border-border rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5 animate-in fade-in-50 zoom-in-95 my-8">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-black shadow">
-                  <Crown className="w-5 h-5 font-black" />
+                <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800 shadow-xs">
+                  <Crown className="w-5 h-5 text-amber-600" />
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-foreground">
-                    {editingProduct ? '👑 본사 직영 상품 정보 수정' : '신규 본사 직영 상품 기획 등록'}
+                    {editingProduct ? '본사 직영 상품 정보 수정' : '신규 본사 직영 상품 기획 등록'}
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     {editingProduct
                       ? '등록된 직영 상품의 이미지, 상세 설명, 가격, 재고 및 제휴 수수료를 실시간 수정합니다.'
-                      : '골드 메탈릭 뱃지와 함께 본사 직영관 및 라이브 쇼핑백에 등록됩니다.'}
+                      : '본사 직영관 및 라이브 쇼핑백에 등록됩니다.'}
                   </p>
                 </div>
               </div>
@@ -1321,7 +1322,7 @@ export default function HqProductsPage() {
               {/* 가격 및 수익성 설정 */}
               <div className="p-3 bg-muted/40 rounded-xl border border-border space-y-3">
                 <div className="font-bold text-foreground flex items-center justify-between">
-                  <span>💰 가격 및 본사 수익성 시뮬레이션</span>
+                  <span>가격 및 본사 수익성 시뮬레이션</span>
                   <Badge variant="outline" className="text-[10px] text-indigo-700 bg-indigo-50 border-indigo-200">
                     실시간 계산
                   </Badge>
@@ -1421,7 +1422,7 @@ export default function HqProductsPage() {
                     }
                     className="rounded border-rose-500 text-rose-600 w-4 h-4"
                   />
-                  <span>🎙️ 스트리머 라이브 방송 제휴 위탁 판매 허용 (라이브 쇼핑백 연동)</span>
+                  <span>스트리머 라이브 방송 제휴 위탁 판매 허용 (라이브 쇼핑백 연동)</span>
                 </label>
 
                 {formData.allowAffiliate && (

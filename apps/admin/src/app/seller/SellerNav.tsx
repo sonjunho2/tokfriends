@@ -39,9 +39,10 @@ export function SellerNav() {
             <Button
               onClick={openMerchantModal}
               size="sm"
-              className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold h-8"
+              className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold h-8 flex items-center gap-1.5"
             >
-              🏪 지금 입점 신청하기
+              <Store className="w-3.5 h-3.5" />
+              <span>지금 입점 신청하기</span>
             </Button>
             <Button asChild variant="outline" size="sm" className="text-xs h-8 bg-white">
               <Link href="/">홈으로 가기</Link>
@@ -71,17 +72,17 @@ export function SellerNav() {
         <div className="flex items-center gap-2">
           <Link
             href="/"
-            className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/10 hover:bg-primary/20 transition-colors shadow-sm"
+            className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/10 hover:bg-primary/20 transition-colors shadow-2xs"
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            🛒 고객 웹 스토어
+            <span>고객 웹 스토어</span>
           </Link>
           <Link
             href="/streamer"
             className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
           >
             <Radio className="w-3.5 h-3.5 text-rose-500" />
-            🎙️ 스트리머 스튜디오
+            <span>스트리머 스튜디오</span>
           </Link>
           {role === 'ADMIN' && (
             <Link
@@ -89,7 +90,7 @@ export function SellerNav() {
               className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              👑 본사 총괄 관리자
+              <span>본사 총괄 관리자</span>
             </Link>
           )}
         </div>

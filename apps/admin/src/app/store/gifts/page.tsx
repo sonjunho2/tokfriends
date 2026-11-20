@@ -11,6 +11,7 @@ import {
   Edit2,
   Film,
   Gift,
+  Heart,
   HelpCircle,
   Image as ImageIcon,
   Info,
@@ -601,7 +602,7 @@ export default function AdminGiftsPage() {
         >
           <div className="flex items-center gap-2 text-primary font-semibold text-sm">
             <Info className="h-4 w-4" />
-            💡 신입 운영자를 위한 선물 마스터 &amp; 3D 이펙트 3단계 실무 가이드
+            신입 운영자를 위한 선물 마스터 &amp; 3D 이펙트 3단계 실무 가이드
           </div>
           <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary">
             {guideExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -805,11 +806,11 @@ export default function AdminGiftsPage() {
                         </Badge>
                       ) : gift.animationType === 'fireworks' ? (
                         <Badge className="bg-amber-500 text-white flex items-center gap-1 w-fit text-[11px]">
-                          🎆 3D 폭죽
+                          <Sparkles className="h-3 w-3" /> 3D 폭죽
                         </Badge>
                       ) : gift.animationType === '3d_heart' ? (
                         <Badge className="bg-rose-500 text-white flex items-center gap-1 w-fit text-[11px]">
-                          💖 3D 하트
+                          <Heart className="h-3 w-3" /> 3D 하트
                         </Badge>
                       ) : gift.animationType === 'lottie' ? (
                         <Badge variant="secondary" className="text-[11px]">Lottie</Badge>
@@ -1068,7 +1069,7 @@ export default function AdminGiftsPage() {
                   ) : (
                     <Upload className="h-3 w-3" />
                   )}
-                  {uploadingVideo ? '비디오 업로드 중...' : '🎥 3D MP4 비디오 파일 업로드'}
+                  {uploadingVideo ? '비디오 업로드 중...' : '3D MP4 비디오 파일 업로드'}
                 </Button>
               </div>
 

@@ -623,7 +623,7 @@ function SellerProductRegisterForm() {
 
     if (isEditMode) {
       toast({
-        title: '✏️ 상품 정보 수정 완료',
+        title: '상품 정보 수정 완료',
         description: '변경된 상품 정보, 대표 사진 및 상세페이지가 즉시 반영되었습니다.',
       })
       setTimeout(() => {
@@ -631,7 +631,7 @@ function SellerProductRegisterForm() {
       }, 500)
     } else {
       toast({
-        title: '🎉 상품이 정식 승인 등록되었습니다!',
+        title: '상품이 정식 승인 등록되었습니다!',
         description: '대한민국 전자상거래 규격에 맞게 상세페이지가 즉시 오픈됩니다.',
       })
       setTimeout(() => {
@@ -1228,7 +1228,7 @@ function SellerProductRegisterForm() {
                 onClick={() => setShowUrlInput(!showUrlInput)}
                 className="text-xs text-slate-500 hover:text-indigo-600 flex items-center gap-1.5 font-medium transition"
               >
-                <span>{showUrlInput ? '▲ 링크 입력창 접기' : '🔗 웹 이미지 URL 주소로 직접 추가하기'}</span>
+                <span>{showUrlInput ? '링크 입력창 접기' : '웹 이미지 URL 주소로 직접 추가하기'}</span>
               </button>
 
               {showUrlInput && (
@@ -1278,7 +1278,7 @@ function SellerProductRegisterForm() {
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  ✏️ 상세페이지 편집
+                  상세페이지 편집
                 </button>
                 <button
                   type="button"
@@ -1565,7 +1565,7 @@ function SellerProductRegisterForm() {
             )}
           </section>
 
-          {/* Section 6: ★ 공정위 전자상거래 상품정보제공고시 */}
+          {/* Section 6: 공정위 전자상거래 상품정보제공고시 */}
           <section className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <div>

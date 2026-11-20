@@ -240,7 +240,7 @@ const FALLBACK_1ON1_ROOMS: DetailedChatRoom[] = [
         id: 'm402',
         senderId: 'system',
         senderName: '시스템',
-        text: '🚨 운영 원칙 위반으로 인해 해당 계정의 1:1 대화 전송이 24시간 동안 정지되었습니다.',
+        text: '[시스템 안내] 운영 원칙 위반으로 인해 해당 계정의 1:1 대화 전송이 24시간 동안 정지되었습니다.',
         time: '14:20',
         isFlagged: false,
       },
@@ -397,7 +397,7 @@ export default function ChatsPage() {
             if (existing.some((m) => m.id === newMsgItem.id)) return r
             return {
               ...r,
-              lastMessage: isMedia ? '📷 사진' : msgContent,
+              lastMessage: isMedia ? '[사진]' : msgContent,
               lastMessageAt: '방금',
               messages: [...existing, newMsgItem],
             }
@@ -526,7 +526,7 @@ export default function ChatsPage() {
                       id: `sys-${Date.now()}`,
                       senderId: 'system',
                       senderName: '시스템',
-                      text: `⚠️ [관리자 경고 발송] ${targetNickname} 회원님에게 1:1 대화 및 수다방 안전 가이드라인 준수 주의 조치가 전달되었습니다.`,
+                      text: `[관리자 경고 발송] ${targetNickname} 회원님에게 1:1 대화 및 수다방 안전 가이드라인 준수 주의 조치가 전달되었습니다.`,
                       time: '방금',
                     },
                   ],
@@ -535,7 +535,7 @@ export default function ChatsPage() {
           )
         )
         toast({
-          title: '⚠️ 경고장 발송 완료',
+          title: '경고장 발송 완료',
           description: `${targetNickname} 회원에게 주의 알림 및 대화방 경고를 성공적으로 발송했습니다.`,
         })
       } else if (actionType === 'SUSPEND_24H') {
@@ -568,7 +568,7 @@ export default function ChatsPage() {
                       id: `sys-${Date.now()}`,
                       senderId: 'system',
                       senderName: '시스템',
-                      text: `🚫 [제재 적용] ${targetNickname} 회원의 1:1 대화 전송 권한이 24시간 동안 차단되었습니다.`,
+                      text: `[제재 적용] ${targetNickname} 회원의 1:1 대화 전송 권한이 24시간 동안 차단되었습니다.`,
                       time: '방금',
                     },
                   ],
@@ -577,7 +577,7 @@ export default function ChatsPage() {
           )
         )
         toast({
-          title: '🚫 24시간 채팅 정지 적용',
+          title: '24시간 채팅 정지 적용',
           description: `${targetNickname} 회원의 1:1 대화 전송 기능이 즉시 정지되었습니다.`,
           variant: 'destructive',
         })
@@ -611,7 +611,7 @@ export default function ChatsPage() {
                       id: `sys-${Date.now()}`,
                       senderId: 'system',
                       senderName: '시스템',
-                      text: `⛔ [영구 정지] ${targetNickname} 계정이 영구 정지되어 모든 서비스 이용이 차단되었습니다.`,
+                      text: `[영구 정지] ${targetNickname} 계정이 영구 정지되어 모든 서비스 이용이 차단되었습니다.`,
                       time: '방금',
                     },
                   ],
@@ -620,7 +620,7 @@ export default function ChatsPage() {
           )
         )
         toast({
-          title: '⛔ 계정 영구 정지 완료',
+          title: '계정 영구 정지 완료',
           description: `${targetNickname} 회원의 계정이 영구 제재 처리되었습니다.`,
           variant: 'destructive',
         })
@@ -651,7 +651,7 @@ export default function ChatsPage() {
           )
         )
         toast({
-          title: '✅ 무혐의 종결 완료',
+          title: '무혐의 종결 완료',
           description: `정상 대화로 확인되어 심사 대기 상태를 해제했습니다.`,
         })
       }
@@ -783,7 +783,7 @@ export default function ChatsPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            💡 신입 운영자를 위한 1:1 대화 검토 3단계 실무 가이드
+            신입 운영자를 위한 1:1 대화 검토 3단계 실무 가이드
           </div>
           <Button
             variant="ghost"
@@ -802,7 +802,7 @@ export default function ChatsPage() {
                 1단계: 이상 대화 선택
               </span>
               <p className="mt-1.5 text-muted-foreground">
-                좌측 목록에서 <b>[🚨 이상/신고]</b> 탭을 클릭하여 빨간색/주황색 의심 배지가 달린 1:1 대화 세션을 확인합니다.
+                좌측 목록에서 <b>[이상/신고]</b> 탭을 클릭하여 빨간색/주황색 의심 배지가 달린 1:1 대화 세션을 확인합니다.
               </p>
             </div>
             <div className="rounded-md border border-amber-200/80 bg-white/60 p-3 shadow-sm dark:border-amber-900/40 dark:bg-black/20">
@@ -859,7 +859,7 @@ export default function ChatsPage() {
                       filterTab === 'FLAGGED' ? 'bg-destructive/15 text-destructive font-bold shadow-sm' : 'text-muted-foreground'
                     }`}
                   >
-                    <span>🚨</span>
+                    <AlertTriangle className="h-3 w-3" />
                     <span>이상 ({rooms.filter((r) => r.status === 'NEEDS_REVIEW' || r.flaggedReason).length})</span>
                   </button>
                   <button
@@ -969,11 +969,11 @@ export default function ChatsPage() {
                             <div className="flex flex-col gap-0.5 w-full">
                               <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                                 <Lock className="h-3 w-3" />
-                                🏛️ 법정 보존 보관 (종료 대화)
+                                법정 보존 보관 (종료 대화)
                               </span>
                               {Boolean(room.retentionUntil) && (
-                                <span className="text-[10px] text-blue-600 font-mono">
-                                  ⏳ {new Date(room.retentionUntil as string).toLocaleDateString()}까지 보존 ({room.retentionBasis?.includes('전자상거래') ? '전자상거래법 3년' : '통비법 3개월'})
+                                <span className="text-[10px] text-slate-600 font-mono">
+                                  {new Date(room.retentionUntil as string).toLocaleDateString()}까지 보존 ({room.retentionBasis?.includes('전자상거래') ? '전자상거래법 3년' : '통비법 3개월'})
                                 </span>
                               )}
                             </div>
@@ -986,7 +986,7 @@ export default function ChatsPage() {
 
                           {relatedReport && (
                             <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-950 dark:text-amber-200">
-                              🚨 신고 접수 #{relatedReport.id}
+                              신고 접수 #{relatedReport.id}
                             </span>
                           )}
                         </div>
@@ -1075,11 +1075,11 @@ export default function ChatsPage() {
                         <span className="text-xs text-muted-foreground">세션 ID: {selectedRoom.id}</span>
                         {selectedRoom.status === 'NEEDS_REVIEW' ? (
                           <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                            ⚠️ 심사 대기
+                            심사 대기
                           </span>
                         ) : selectedRoom.status === 'ARCHIVED' ? (
                           <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                            🔒 조치 완료
+                            조치 완료
                           </span>
                         ) : (
                           <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
@@ -1105,7 +1105,7 @@ export default function ChatsPage() {
                           </span>
                         </div>
                         <div className="mt-0.5">
-                          신고자: <b>{String(activeReport.reporter ?? '')}</b> ➡️ 피신고자: <b>{String(activeReport.target ?? selectedRoom.userB?.nickname ?? '')}</b>
+                          신고자: <b>{String(activeReport.reporter ?? '')}</b> ➔ 피신고자: <b>{String(activeReport.target ?? selectedRoom.userB?.nickname ?? '')}</b>
                         </div>
                         <div className="mt-0.5 text-red-700 dark:text-red-300 font-medium">
                           신고 사유: &quot;{String(activeReport.reason ?? '')}&quot;
@@ -1145,7 +1145,7 @@ export default function ChatsPage() {
                               <div className="flex items-center gap-2 rounded-full border border-amber-300 bg-amber-100/80 px-4 py-1.5 text-xs font-bold text-amber-900 shadow-xs dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-200">
                                 <Gift className="h-4 w-4 text-amber-600 animate-bounce" />
                                 <span>
-                                  🎁 <b>[{sanitizeAdminDisplayNick(msg.senderName)}]</b> 님이 <b>[{msg.giftName}]</b> 을 선물했습니다!
+                                  <b>[{sanitizeAdminDisplayNick(msg.senderName)}]</b> 님이 <b>[{msg.giftName}]</b> 을 선물했습니다!
                                 </span>
                                 <span className="text-[10px] text-amber-700 font-normal">{msg.time}</span>
                               </div>
@@ -1205,7 +1205,7 @@ export default function ChatsPage() {
                                     return (
                                       <div className="space-y-1">
                                         <div className="text-[10px] opacity-80 font-medium flex items-center gap-1 mb-1">
-                                          <span>📷 사진 첨부</span>
+                                          <span>사진 첨부</span>
                                         </div>
                                         <img
                                           src={resolveDisplayImageUrl(rawText)}

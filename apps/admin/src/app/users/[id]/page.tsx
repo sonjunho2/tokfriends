@@ -383,7 +383,7 @@ export default function UserDetailPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            💡 신입 운영자를 위한 회원 상세 검토 3단계 실무 가이드
+            신입 운영자를 위한 회원 상세 검토 3단계 실무 가이드
           </div>
           <Button
             variant="ghost"

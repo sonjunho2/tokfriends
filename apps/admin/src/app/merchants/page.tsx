@@ -315,7 +315,7 @@ export default function MerchantsPage() {
     })
 
     toast({
-      title: newStatus === 'APPROVED' ? '✅ 입점사 심사 승인 완료' : '🚫 입점 신청 반려 처리',
+      title: newStatus === 'APPROVED' ? '입점사 심사 승인 완료' : '입점 신청 반려 처리',
       description: `[${selectedMerchant.businessName}] 상태가 ${newStatus}으로 확정되었습니다. (수수료율: ${feeRateInput}%)`,
     })
 
@@ -348,7 +348,7 @@ export default function MerchantsPage() {
       return updated
     })
     toast({
-      title: newStatus === 'APPROVED' ? '🎙️ 크리에이터 라이브 자격 승인' : '❌ 크리에이터 자격 반려',
+      title: newStatus === 'APPROVED' ? '크리에이터 라이브 자격 승인' : '크리에이터 자격 반려',
       description: `[${selectedCreatorApp.channelName}] 상태가 ${newStatus}으로 확정되었습니다. (제휴 요율: ${creatorCommissionInput}%)`,
     })
     setIsCreatorReviewOpen(false)
@@ -398,13 +398,13 @@ export default function MerchantsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'PENDING_REVIEW':
-        return <Badge className="bg-amber-500/15 text-amber-500 border-amber-500/30">⏳ 심사 대기</Badge>
+        return <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30">심사 대기</Badge>
       case 'APPROVED':
-        return <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/30">✅ 승인 완료</Badge>
+        return <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30">승인 완료</Badge>
       case 'REJECTED':
-        return <Badge className="bg-rose-500/15 text-rose-500 border-rose-500/30">❌ 심사 반려</Badge>
+        return <Badge className="bg-rose-500/15 text-rose-600 border-rose-500/30">심사 반려</Badge>
       case 'SUSPENDED':
-        return <Badge className="bg-muted text-muted-foreground">⛔ 운영 정지</Badge>
+        return <Badge className="bg-muted text-muted-foreground">운영 정지</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -530,10 +530,10 @@ export default function MerchantsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ALL">전체 상태 보기</SelectItem>
-                      <SelectItem value="PENDING_REVIEW">⏳ 심사 대기중</SelectItem>
-                      <SelectItem value="APPROVED">✅ 승인 완료</SelectItem>
-                      <SelectItem value="REJECTED">❌ 심사 반려</SelectItem>
-                      <SelectItem value="SUSPENDED">⛔ 운영 정지</SelectItem>
+                      <SelectItem value="PENDING_REVIEW">심사 대기중</SelectItem>
+                      <SelectItem value="APPROVED">승인 완료</SelectItem>
+                      <SelectItem value="REJECTED">심사 반려</SelectItem>
+                      <SelectItem value="SUSPENDED">운영 정지</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -711,9 +711,9 @@ export default function MerchantsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ALL">전체 크리에이터 보기</SelectItem>
-                      <SelectItem value="PENDING_REVIEW">⏳ 심사 대기중</SelectItem>
-                      <SelectItem value="APPROVED">✅ 활동 승인</SelectItem>
-                      <SelectItem value="REJECTED">❌ 심사 반려</SelectItem>
+                      <SelectItem value="PENDING_REVIEW">심사 대기중</SelectItem>
+                      <SelectItem value="APPROVED">활동 승인</SelectItem>
+                      <SelectItem value="REJECTED">심사 반려</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

@@ -171,7 +171,7 @@ export default function StreamerStudioPage() {
     {
       id: 'comm-101',
       date: '2026-11-04 20:30',
-      liveTitle: '🔥 제주 특산물 초특가 먹방 & 라이브 특가',
+      liveTitle: '제주 특산물 초특가 먹방 & 라이브 특가',
       orderNumber: 'ORD-20261104-5892',
       productName: '[본사직영] 제주 프리미엄 1등급 흑돼지 오겹살 1kg',
       quantity: 3,
@@ -184,7 +184,7 @@ export default function StreamerStudioPage() {
     {
       id: 'comm-102',
       date: '2026-11-03 21:15',
-      liveTitle: '🎧 음향기기 덕후의 소니 헤드폰 실사용 리뷰',
+      liveTitle: '음향기기 덕후의 소니 헤드폰 실사용 리뷰',
       orderNumber: 'ORD-20261103-1024',
       productName: '소니 WH-1000XM5 프리미엄 무선 노이즈캔슬링 헤드폰',
       quantity: 1,
@@ -197,7 +197,7 @@ export default function StreamerStudioPage() {
     {
       id: 'comm-103',
       date: '2026-10-30 19:00',
-      liveTitle: '🍎 제철 과일 산지직송 달콤 과일 라이브',
+      liveTitle: '제철 과일 산지직송 달콤 과일 라이브',
       orderNumber: 'ORD-20261030-8812',
       productName: '[본사공구] 프리미엄 나주 특등급 햇배 5kg',
       quantity: 5,
@@ -370,7 +370,7 @@ export default function StreamerStudioPage() {
         }
       }
       toast({
-        title: '🎉 제휴 상품 바구니 담기 완료',
+        title: '제휴 상품 바구니 담기 완료',
         description: `'${product.name}' 상품이 내 방송 판매 목록에 등록되었습니다. 모꼬 LIVE 방송 시 핀 목록에 우선 노출됩니다.`,
       })
     } catch {
@@ -481,7 +481,7 @@ export default function StreamerStudioPage() {
     setSettledCommission((prev) => prev - amount)
     setIsWithdrawModalOpen(false)
     toast({
-      title: '🎉 출금 신청이 성공적으로 접수되었습니다!',
+      title: '출금 신청이 성공적으로 접수되었습니다!',
       description: `원천세(3.3%) ₩${taxAmount.toLocaleString()} 공제 후 실수령액 ₩${netPayout.toLocaleString()}이 ${creatorBank.bankName} 계좌로 익일 송금됩니다.`,
     })
   }
@@ -530,7 +530,7 @@ export default function StreamerStudioPage() {
       {!isAuthorized && (
         <div className="border-b border-amber-300 bg-amber-50 px-6 py-3 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-2">
-            <span className="text-base">🎙️</span>
+            <Radio className="w-4 h-4 text-purple-600" />
             <div>
               <p className="text-xs font-bold">크리에이터(Streamer) 전용 스튜디오입니다.</p>
               <p className="text-[11px] text-amber-700">현재 일반 회원 권한입니다. 크리에이터 신청을 완료하면 즉시 방송 및 제휴 판매 권한이 활성화됩니다.</p>
@@ -542,7 +542,7 @@ export default function StreamerStudioPage() {
               size="sm"
               className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold h-8"
             >
-              🎙️ 지금 크리에이터 신청하기
+              지금 크리에이터 신청하기
             </Button>
             <Button asChild variant="outline" size="sm" className="text-xs h-8 bg-white">
               <Link href="/">홈으로 가기</Link>
@@ -582,7 +582,7 @@ export default function StreamerStudioPage() {
             >
               <Link href="/">
                 <ShoppingBag className="w-4 h-4" />
-                🛒 고객 웹 스토어
+                고객 웹 스토어
               </Link>
             </Button>
             <Button
@@ -593,7 +593,7 @@ export default function StreamerStudioPage() {
             >
               <Link href="/seller">
                 <Truck className="w-4 h-4 text-emerald-600" />
-                🏪 입점사 셀러 센터
+                입점사 셀러 센터
               </Link>
             </Button>
             {role === 'ADMIN' && (
@@ -604,7 +604,8 @@ export default function StreamerStudioPage() {
                 asChild
               >
                 <Link href="/dashboard">
-                  👑 본사 총괄 관리자
+                  <Crown className="w-4 h-4 text-amber-600" />
+                  본사 총괄 관리자
                 </Link>
               </Button>
             )}
@@ -616,7 +617,7 @@ export default function StreamerStudioPage() {
             >
               <Link href="/web/live/live-101">
                 <Radio className="w-4 h-4" />
-                🔴 모꼬 LIVE 방송 시작 & 핀 연결
+                모꼬 LIVE 방송 시작 & 핀 연결
               </Link>
             </Button>
           </div>
@@ -758,7 +759,7 @@ export default function StreamerStudioPage() {
               }`}
             >
               <Coins className="w-4 h-4 text-amber-500" />
-              💰 커머스 정산 & 계좌 관리
+              커머스 정산 & 계좌 관리
             </button>
           </div>
 
@@ -806,11 +807,11 @@ export default function StreamerStudioPage() {
                         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
                           {item.isHqDirect ? (
                             <Badge className="bg-indigo-600 text-white font-bold text-[10px]">
-                              👑 본사 직영
+                              본사 직영
                             </Badge>
                           ) : (
                             <Badge className="bg-emerald-600 text-white font-bold text-[10px]">
-                              🏪 입점사 상품
+                              입점사 상품
                             </Badge>
                           )}
                           <Badge className="bg-rose-500 text-white font-bold text-[10px]">
@@ -881,8 +882,8 @@ export default function StreamerStudioPage() {
               <div className="flex items-center gap-1.5">
                 {[
                   { key: 'ALL', label: '전체 상품' },
-                  { key: 'HEADQUARTERS', label: '👑 본사 직영 상품' },
-                  { key: 'MERCHANT', label: '🏪 공식 입점사 상품' },
+                  { key: 'HEADQUARTERS', label: '본사 직영 상품' },
+                  { key: 'MERCHANT', label: '공식 입점사 상품' },
                 ].map((f) => (
                   <button
                     key={f.key}
@@ -926,11 +927,11 @@ export default function StreamerStudioPage() {
                         <div className="absolute top-2 left-2 flex items-center gap-1">
                           {product.isHqDirect ? (
                             <Badge className="bg-indigo-600 text-white font-bold text-[10px]">
-                              👑 본사직영
+                              본사직영
                             </Badge>
                           ) : (
                             <Badge className="bg-emerald-600 text-white font-bold text-[10px]">
-                              🏪 입점사
+                              입점사
                             </Badge>
                           )}
                           <Badge className="bg-rose-500 text-white font-bold text-[10px]">

@@ -294,7 +294,7 @@ export default function UsersPage() {
   // 빠른 경고 발송
   const handleSendWarning = (user: ExtendedUserSummary) => {
     toast({
-      title: '⚠️ 주의 경고장 발송 완료',
+      title: '주의 경고장 발송 완료',
       description: `[${user.nickname}] 회원에게 모꼬 서비스 운영 및 안전 가이드라인 준수 인앱 팝업 푸시를 발송했습니다.`,
     })
   }
@@ -383,7 +383,7 @@ export default function UsersPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            💡 신입 운영자를 위한 회원 관리 3단계 실무 가이드
+            신입 운영자를 위한 회원 관리 3단계 실무 가이드
           </div>
           <Button
             variant="ghost"
@@ -402,7 +402,7 @@ export default function UsersPage() {
                 1단계: 회원 검색 & 세그먼트 필터
               </span>
               <p className="mt-1.5 text-muted-foreground">
-                닉네임, 전화번호, 이메일로 검색하거나 상단 탭에서 <b>[🚨 심사 대기]</b> 또는 <b>[본인인증 대기]</b>를 선택해 집중 모니터링합니다.
+                닉네임, 전화번호, 이메일로 검색하거나 상단 탭에서 <b>[심사 대기]</b> 또는 <b>[본인인증 대기]</b>를 선택해 집중 모니터링합니다.
               </p>
             </div>
             <div className="rounded-md border border-amber-200/80 bg-white/60 p-3 shadow-sm dark:border-amber-900/40 dark:bg-black/20">
@@ -418,7 +418,7 @@ export default function UsersPage() {
                 3단계: 신속 제재 & 상세 보기
               </span>
               <p className="mt-1.5 text-muted-foreground">
-                경미한 위반 시 <b>[경고 발송]</b>, 중대 위반 시 <b>[상태 변경 ➡️ 이용 정지]</b>를 원클릭 집행하며, 필요 시 <b>[상세 보기]</b>로 이동합니다.
+                경미한 위반 시 <b>[경고 발송]</b>, 중대 위반 시 <b>[상태 변경 ➔ 이용 정지]</b>를 원클릭 집행하며, 필요 시 <b>[상세 보기]</b>로 이동합니다.
               </p>
             </div>
           </div>
@@ -579,7 +579,7 @@ export default function UsersPage() {
               className="h-7 text-xs flex items-center gap-1 border-amber-300 text-amber-800 dark:border-amber-800 dark:text-amber-200"
             >
               <AlertTriangle className="h-3 w-3 text-amber-600" />
-              🚨 심사 대기 ({users.filter((u) => (u.status || '').toUpperCase() === 'UNDER_REVIEW').length})
+              심사 대기 ({users.filter((u) => (u.status || '').toUpperCase() === 'UNDER_REVIEW').length})
             </Button>
             <Button
               variant={statusFilter === 'PENDING_VERIFICATION' ? 'default' : 'outline'}
@@ -692,7 +692,7 @@ export default function UsersPage() {
                           </span>
                           {(user.reportsCount ?? 0) > 0 && (
                             <span className="text-[10px] text-red-600 font-bold">
-                              🚨 신고 누적 {user.reportsCount}건
+                              신고 누적 {user.reportsCount}건
                             </span>
                           )}
                         </div>
@@ -828,10 +828,10 @@ export default function UsersPage() {
                 <label className="font-semibold text-foreground">변경할 상태 선택</label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { value: 'ACTIVE', label: '🟢 정상 활동 (ACTIVE)' },
-                    { value: 'UNDER_REVIEW', label: '🚨 심사 대기 (UNDER_REVIEW)' },
-                    { value: 'PENDING_VERIFICATION', label: '📱 본인인증 대기' },
-                    { value: 'SUSPENDED', label: '⛔ 이용 정지 (SUSPENDED)' },
+                    { value: 'ACTIVE', label: '정상 활동 (ACTIVE)' },
+                    { value: 'UNDER_REVIEW', label: '심사 대기 (UNDER_REVIEW)' },
+                    { value: 'PENDING_VERIFICATION', label: '본인인증 대기' },
+                    { value: 'SUSPENDED', label: '이용 정지 (SUSPENDED)' },
                   ].map((item) => (
                     <button
                       key={item.value}
@@ -851,7 +851,7 @@ export default function UsersPage() {
               </div>
 
               <div className="rounded-md bg-amber-50 p-2.5 text-[11px] text-amber-900 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-900">
-                ⚠️ [이용 정지] 적용 시 해당 회원은 즉시 앱 로그아웃되며 1:1 수다방, 라이브 방송, 마켓 거래가 모두 차단됩니다.
+                [이용 정지] 적용 시 해당 회원은 즉시 앱 로그아웃되며 1:1 수다방, 라이브 방송, 마켓 거래가 모두 차단됩니다.
               </div>
             </div>
 

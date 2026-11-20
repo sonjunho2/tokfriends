@@ -458,7 +458,7 @@ export default function StoreProductsPage() {
         >
           <div className="flex items-center gap-2 text-primary font-semibold text-sm">
             <Info className="h-4 w-4" />
-            💡 신입 운영자를 위한 모꼬 꿀떡 상점 &amp; 선물 연동 체계 실무 가이드
+            신입 운영자를 위한 모꼬 꿀떡 상점 &amp; 선물 연동 체계 실무 가이드
           </div>
           <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary">
             {guideExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -806,7 +806,7 @@ export default function StoreProductsPage() {
 
           <div className="space-y-4 py-2 text-xs">
             <div className="p-3 bg-muted/30 rounded-md border text-muted-foreground leading-relaxed">
-              💡 <b>꿀떡 상점 상품 등록 안내:</b> 유저가 현금으로 구매할 모꼬 꿀떡 패키지를 생성합니다. 선물 후원 시 꿀떡이 부족한 유저가 이 상품을 충전하게 됩니다.
+              <b>꿀떡 상점 상품 등록 안내:</b> 유저가 현금으로 구매할 모꼬 꿀떡 패키지를 생성합니다. 선물 후원 시 꿀떡이 부족한 유저가 이 상품을 충전하게 됩니다.
             </div>
 
             <div className="space-y-1.5">

@@ -569,7 +569,7 @@ export default function SettlementPage() {
     URL.revokeObjectURL(url)
 
     toast({
-      title: '📥 대량 이체 엑셀 다운로드 완료',
+      title: '대량 이체 엑셀 다운로드 완료',
       description: `총 ${targetList.length}건의 이체 데이터가 다운로드되었습니다. 기업 인터넷 뱅킹에서 일괄 등록하세요.`,
     })
   }
@@ -622,7 +622,7 @@ export default function SettlementPage() {
     setBulkApproveMemo('')
 
     toast({
-      title: '🎉 일괄 송금 승인 완료',
+      title: '일괄 송금 승인 완료',
       description: `성공: ${successCount}건${failCount > 0 ? `, 실패: ${failCount}건` : ''}의 출금 처리가 완료되었습니다.`,
     })
 
@@ -725,7 +725,7 @@ export default function SettlementPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold text-indigo-900 dark:text-indigo-300">
             <Info className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-            💡 신입 운영자를 위한 정산 & 환불 관리 3단계 실무 가이드
+            신입 운영자를 위한 정산 & 환불 관리 3단계 실무 가이드
           </div>
           <Button
             variant="ghost"

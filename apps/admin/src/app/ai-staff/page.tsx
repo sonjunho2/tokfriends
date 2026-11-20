@@ -134,9 +134,9 @@ const FALLBACK_PENDING_DECISIONS: AiDecisionItem[] = [
     ],
     directorReview: '[대표님 3초 요약]\n1. 사안: 라이브 방송 중 고위험 유해물 실시간 송출 감지\n2. AI 합의: Safety(95점), Zev(92점 - 44조의7 위반 확정), CS(피해 시청자 격리 필요)\n3. 추천 조치: 즉시 방송 강제종료 및 계정 30일 이용정지(SUSPEND_30D) 집행 승인을 요청합니다.',
     collaborationLog: [
-      { timestamp: '10:32:01', sender: 'Safety AI', role: '안전관', avatar: '👁️', message: '스냅샷 채증 완료: 유해 비전 스코어 95점 산출', status: 'TRIGGERED' },
-      { timestamp: '10:32:02', sender: 'Zev AI', role: '수석판정관', avatar: '⚖️', message: '정보통신망법 제44조의7 불법정보 조항 기계적 매칭 완료', status: 'VERIFIED' },
-      { timestamp: '10:32:03', sender: 'Director AI', role: '총괄팀장', avatar: '🤖', message: '6인 교차 검증 종합: 대표님 원클릭 승인 안건 상신', status: 'ESCALATED' },
+      { timestamp: '10:32:01', sender: 'Safety AI', role: '안전관', avatar: 'S', message: '스냅샷 채증 완료: 유해 비전 스코어 95점 산출', status: 'TRIGGERED' },
+      { timestamp: '10:32:02', sender: 'Zev AI', role: '수석판정관', avatar: 'Z', message: '정보통신망법 제44조의7 불법정보 조항 기계적 매칭 완료', status: 'VERIFIED' },
+      { timestamp: '10:32:03', sender: 'Director AI', role: '총괄팀장', avatar: 'D', message: '6인 교차 검증 종합: 대표님 원클릭 승인 안건 상신', status: 'ESCALATED' },
     ],
     recommendedAction: 'SUSPEND_30D',
     rationale: '플랫폼 운영 안전 가이드라인 및 방송통신심의위원회 인터넷 유해물 심의기준 3차 위반',
@@ -160,8 +160,8 @@ const FALLBACK_PENDING_DECISIONS: AiDecisionItem[] = [
     evidence: '동일 기기 식별자(Device Fingerprint)에서 10분 내 5회 분할 결제 및 즉시 에스크로 환전 요청 접수',
     directorReview: '[대표님 3초 요약]\n1. 사안: 카드 깡 / 에스크로 자전거래 어뷰징 패턴 감지\n2. AI 합의: Auditor(84점 - 비정상 패턴 확정), Director(78점)\n3. 추천 조치: 에스크로 대금 지급 보류 및 본인 소명 요구(HOLD_PAYOUT)',
     collaborationLog: [
-      { timestamp: '10:28:15', sender: 'Auditor AI', role: '감사관', avatar: '💰', message: '자전거래 패턴 감지: 10분간 분할 결제 연속 5회', status: 'FLAGGED' },
-      { timestamp: '10:28:18', sender: 'Director AI', role: '총괄팀장', avatar: '🤖', message: '이상 징후 점수 78점: 출금 정지 및 정밀 감사 상신', status: 'ESCALATED' },
+      { timestamp: '10:28:15', sender: 'Auditor AI', role: '감사관', avatar: 'A', message: '자전거래 패턴 감지: 10분간 분할 결제 연속 5회', status: 'FLAGGED' },
+      { timestamp: '10:28:18', sender: 'Director AI', role: '총괄팀장', avatar: 'D', message: '이상 징후 점수 78점: 출금 정지 및 정밀 감사 상신', status: 'ESCALATED' },
     ],
     recommendedAction: 'HOLD_PAYOUT',
     rationale: '전자금융거래법 위반 우려 및 부정 결제 방지 정책에 의거한 예방적 지급 보류',
@@ -270,7 +270,7 @@ export default function AiStaffConsolePage() {
 
     socket.on('AI_DECISION_NEW', (newDecision: AiDecisionItem) => {
       toast({
-        title: '🚨 긴급 AI 결재 안건 접수',
+        title: '긴급 AI 결재 안건 접수',
         description: `[${newDecision.recommendedAction}] 위험도 ${newDecision.riskScore}점 안건이 도착했습니다.`,
       });
       setDecisions((prev) => [newDecision, ...prev.filter((d) => d.id !== newDecision.id)]);
@@ -510,7 +510,7 @@ export default function AiStaffConsolePage() {
           }`}
         >
           <Sliders className="w-4 h-4" />
-          ⚙️ AI 직원 업무 정책 제어 (API 키 & 모델 & 민감도)
+          AI 직원 업무 정책 제어 (API 키 & 모델 & 민감도)
           {!hasApiKey && (
             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
               API 키 필요
@@ -608,7 +608,7 @@ export default function AiStaffConsolePage() {
                         timestamp: '10:14',
                         sender: '안전 심사관',
                         role: 'SAFETY',
-                        avatar: '🛡️',
+                        avatar: 'S',
                         message: `유저 위반 감지 (위험도 ${item.riskScore}점) → 제브 AI 이관`,
                         status: 'DETECTED',
                       },
@@ -616,7 +616,7 @@ export default function AiStaffConsolePage() {
                         timestamp: '10:14',
                         sender: '제브 AI',
                         role: 'ZEV',
-                        avatar: '⚖️',
+                        avatar: 'Z',
                         message: `정산 감사관, 대상 유저 최근 환전/꿀떡·모꼬 머니 이상 여부 조회 요청`,
                         status: 'INVESTIGATING',
                       },
@@ -624,7 +624,7 @@ export default function AiStaffConsolePage() {
                         timestamp: '10:15',
                         sender: '정산 감사관',
                         role: 'SETTLEMENT',
-                        avatar: '💰',
+                        avatar: 'A',
                         message: `최근 충전 건 있음. 즉시 차단보다 꿀떡·머니 자산 동결 후 계정 정지 권고`,
                         status: 'CROSS_CHECKED',
                       },
@@ -632,7 +632,7 @@ export default function AiStaffConsolePage() {
                         timestamp: '10:15',
                         sender: '고객행복관',
                         role: 'HAPPINESS',
-                        avatar: '🤝',
+                        avatar: 'H',
                         message: `소명 기회 부여 권고: 이의제기 접수 창구 안내 문구 첨부`,
                         status: 'FEEDBACK',
                       },
@@ -640,7 +640,7 @@ export default function AiStaffConsolePage() {
                         timestamp: '10:15',
                         sender: '제브 AI',
                         role: 'ZEV',
-                        avatar: '⚖️',
+                        avatar: 'Z',
                         message: `법률 대조 완료. 최종 권고: '${item.recommendedAction}' 확정`,
                         status: 'RESOLVED',
                       },
@@ -648,7 +648,7 @@ export default function AiStaffConsolePage() {
                         timestamp: '10:15',
                         sender: '총괄 팀장 AI',
                         role: 'DIRECTOR',
-                        avatar: '👔',
+                        avatar: 'D',
                         message: `최종 권고안 작성 완료 → 대표님 결재 대기열 등록`,
                         status: 'PENDING_APPROVAL',
                       },
@@ -657,7 +657,7 @@ export default function AiStaffConsolePage() {
                 return (
                   <Card
                     key={item.id}
-                    className="border-slate-300 dark:border-slate-700 shadow-md hover:shadow-lg transition-all overflow-hidden border-l-4 border-l-rose-500"
+                    className="border-slate-200 dark:border-slate-800 shadow-xs hover:border-slate-300 transition-all overflow-hidden border-l-4 border-l-rose-500"
                   >
                     <CardHeader className="bg-slate-50/70 dark:bg-slate-900/40 pb-4 border-b border-slate-100 dark:border-slate-800">
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -802,7 +802,7 @@ export default function AiStaffConsolePage() {
                               size="sm"
                               disabled={processingId === item.id}
                               onClick={() => handleApprove(item)}
-                              className="bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-md shadow-rose-600/30"
+                              className="bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-xs"
                             >
                               <Zap className="w-4 h-4 mr-1" />
                               {processingId === item.id ? '집행 중...' : `원클릭 승인 (${item.recommendedAction} 즉시 집행)`}
@@ -878,7 +878,7 @@ export default function AiStaffConsolePage() {
       )}
 
       {/* ============================================================== */}
-      {/* TAB 2: ⚙️ AI 직원 업무 정책 제어 (설정 탭) */}
+      {/* TAB 2: AI 직원 업무 정책 제어 (설정 탭) */}
       {/* ============================================================== */}
       {activeTab === 'policy' && (
         <div className="space-y-6">

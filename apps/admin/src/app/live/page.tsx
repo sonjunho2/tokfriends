@@ -53,7 +53,7 @@ const DEFAULT_SUMMARY: AdminLiveSummary = {
 const FALLBACK_ROOMS: AdminLiveRoom[] = [
   {
     id: 'LIVE-101',
-    title: '불금 소통 방송 놀러오세요 ✨ 하트 환영!',
+    title: '불금 소통 방송 놀러오세요 하트 환영!',
     category: '일상/토크',
     type: 'PUBLIC_1_TO_N',
     status: 'ACTIVE',
@@ -69,12 +69,12 @@ const FALLBACK_ROOMS: AdminLiveRoom[] = [
       name: '이지민',
       avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120',
       region: '서울 강남구',
-      headline: '음악과 일상을 공유하는 지민입니다 🎵',
+      headline: '음악과 일상을 공유하는 지민입니다',
     },
   },
   {
     id: 'LIVE-102',
-    title: '서아와의 1:1 비밀 프라이빗 라이브 💬',
+    title: '서아와의 1:1 비밀 프라이빗 라이브',
     category: '1:1 프라이빗',
     type: 'PRIVATE_1_TO_1',
     status: 'ACTIVE',
@@ -95,7 +95,7 @@ const FALLBACK_ROOMS: AdminLiveRoom[] = [
   },
   {
     id: 'LIVE-103',
-    title: '가을 단풍 여행 준비 같이해요 🍁',
+    title: '가을 단풍 여행 준비 같이해요',
     category: '여행/야외',
     type: 'PUBLIC_1_TO_N',
     status: 'ACTIVE',
@@ -117,7 +117,7 @@ const FALLBACK_ROOMS: AdminLiveRoom[] = [
   },
   {
     id: 'LIVE-104',
-    title: '심야 라디오 & 고민 나눔 🌙',
+    title: '심야 라디오 & 고민 나눔',
     category: '보이스/라디오',
     type: 'PUBLIC_1_TO_N',
     status: 'ENDED',
@@ -279,7 +279,7 @@ export default function LivePage() {
 
   const handleSendWarning = (room: AdminLiveRoom) => {
     toast({
-      title: '⚠️ 경고 팝업 발송 완료',
+      title: '경고 팝업 발송 완료',
       description: `[${room.host.name}] 호스트에게 "라이브 방송 운영 및 안전 가이드라인 준수 주의" 알림을 전송했습니다.`,
     })
   }
@@ -297,7 +297,7 @@ export default function LivePage() {
         )
       )
       toast({
-        title: '🛑 방송 즉시 강제 종료 완료',
+        title: '방송 즉시 강제 종료 완료',
         description: `"${forceEndTarget.title}" 방송이 강제 종료되었으며 채널이 폐쇄되었습니다.`,
         variant: 'destructive',
       })
@@ -372,7 +372,7 @@ export default function LivePage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            💡 신입 운영자를 위한 라이브 방송 관제 3단계 실무 가이드
+            신입 운영자를 위한 라이브 방송 관제 3단계 실무 가이드
           </div>
           <Button
             variant="ghost"
@@ -391,7 +391,7 @@ export default function LivePage() {
                 1단계: 방송 유형 & 이상 징후 확인
               </span>
               <p className="mt-1.5 text-muted-foreground">
-                상단 탭에서 <b>[1:N 다자간 방송]</b>과 <b>[1:1 프라이빗 방송]</b>을 구분하고, <b>[🚨 AI 감지 의심]</b> 뱃지가 달린 방을 우선 확인합니다.
+                상단 탭에서 <b>[1:N 다자간 방송]</b>과 <b>[1:1 프라이빗 방송]</b>을 구분하고, <b>[AI 감지 의심]</b> 뱃지가 달린 방을 우선 확인합니다.
               </p>
             </div>
             <div className="rounded-md border border-amber-200/80 bg-white/60 p-3 shadow-sm dark:border-amber-900/40 dark:bg-black/20">
@@ -399,7 +399,7 @@ export default function LivePage() {
                 2단계: 채팅 및 선물 후원 모니터링
               </span>
               <p className="mt-1.5 text-muted-foreground">
-                방송 카드의 <b>[💬 채팅/선물 로그]</b>를 클릭하여 시청자와 호스트 간 실시간 대화 흐름 및 비정상적인 금전 요구 여부를 확인합니다.
+                방송 카드의 <b>[채팅/선물 로그]</b>를 클릭하여 시청자와 호스트 간 실시간 대화 흐름 및 비정상적인 금전 요구 여부를 확인합니다.
               </p>
             </div>
             <div className="rounded-md border border-amber-200/80 bg-white/60 p-3 shadow-sm dark:border-amber-900/40 dark:bg-black/20">
@@ -407,7 +407,7 @@ export default function LivePage() {
                 3단계: 신속 제재 (경고 / 강제 종료)
               </span>
               <p className="mt-1.5 text-muted-foreground">
-                경미한 위반 시 <b>[⚠️ 경고 발송]</b>을, 음란물/사기 등 중대 위반 시 <b>[🛑 방송 즉시 강제 종료]</b>를 클릭하여 방을 즉시 폐쇄합니다.
+                경미한 위반 시 <b>[경고 발송]</b>을, 음란물/사기 등 중대 위반 시 <b>[방송 즉시 강제 종료]</b>를 클릭하여 방을 즉시 폐쇄합니다.
               </p>
             </div>
           </div>
@@ -447,7 +447,7 @@ export default function LivePage() {
                         : 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300'
                     )}
                   >
-                    {streamConfig?.mode === 'CDN_HLS' ? '⚡ CDN 중계 모드 (HLS/LL-HLS)' : '🎯 Agora RTC 단독 모드 (초저지연)'}
+                    {streamConfig?.mode === 'CDN_HLS' ? 'CDN 중계 모드 (HLS/LL-HLS)' : 'Agora RTC 단독 모드 (초저지연)'}
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-foreground/90 font-medium">
@@ -644,7 +644,7 @@ export default function LivePage() {
               className="h-7 text-xs flex items-center gap-1 border-red-300 text-red-700 dark:border-red-800 dark:text-red-300"
             >
               <AlertTriangle className="h-3 w-3 text-red-600" />
-              🚨 AI 의심 ({rooms.filter((r) => r.flagged).length})
+              AI 의심 ({rooms.filter((r) => r.flagged).length})
             </Button>
             <Button
               variant={filterTab === 'ENDED' ? 'default' : 'outline'}

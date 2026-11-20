@@ -184,7 +184,7 @@ export default function ApiManagerPage() {
           : prev,
       )
       toast({
-        title: `🏓 핑 테스트 결과: ${res.statusCode} OK`,
+        title: `핑 테스트 결과: ${res.statusCode} OK`,
         description: `${ep.path} 응답 속도: ${res.latencyMs}ms (${res.message})`,
       })
     } catch {

@@ -67,12 +67,12 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
 
 const CATEGORY_OPTIONS: { value: string; label: string }[] = [
   { value: 'ALL', label: '전체 신고 유형' },
-  { value: 'PRIVATE_CALL', label: '📞 1:1 통화 비매너' },
-  { value: 'LIVE_STREAM', label: '🎙️ 라이브 방송 위반' },
-  { value: 'MARKET_FRAUD', label: '🛒 마켓·중고거래 사기' },
-  { value: 'SUDA_ROOM', label: '☕ 1:1 수다방 규정 위반' },
-  { value: 'CHAT_MESSAGE', label: '💬 채팅 성희롱/사기' },
-  { value: 'PROFILE', label: '👤 프로필 도용/사칭' },
+  { value: 'PRIVATE_CALL', label: '1:1 통화 비매너' },
+  { value: 'LIVE_STREAM', label: '라이브 방송 위반' },
+  { value: 'MARKET_FRAUD', label: '마켓·중고거래 사기' },
+  { value: 'SUDA_ROOM', label: '1:1 수다방 규정 위반' },
+  { value: 'CHAT_MESSAGE', label: '채팅 성희롱/사기' },
+  { value: 'PROFILE', label: '프로필 도용/사칭' },
 ]
 
 const STATUS_STYLE: Record<ReportStatus, { bg: string; text: string; label: string }> = {
@@ -107,7 +107,7 @@ const FALLBACK_REPORTS: ReportItem[] = [
     ],
     reporter: {
       id: 'usr-301',
-      nickname: '은별_Live 🎙️',
+      nickname: '은별_Live',
       displayName: '이은별',
       avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
       role: 'CREATOR',
@@ -515,8 +515,8 @@ export default function ReportsSafetyPage() {
         <CardHeader className="cursor-pointer py-3.5" onClick={() => setShowGuide((prev) => !prev)}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-600 text-white text-xs font-bold shadow-sm">
-                💡
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-800 text-white text-xs font-bold shadow-xs">
+                <Info className="h-4 w-4" />
               </span>
               <div>
                 <CardTitle className="text-base font-semibold text-rose-950 dark:text-rose-200">
@@ -725,13 +725,13 @@ export default function ReportsSafetyPage() {
 
                       {/* Category Badge */}
                       <Badge variant="outline" className="text-xs font-medium">
-                        {report.category === 'PRIVATE_CALL' && '📞 1:1 통화'}
-                        {report.category === 'LIVE_STREAM' && '🎙️ 라이브 방송'}
-                        {report.category === 'MARKET_FRAUD' && '🛒 마켓/거래 사기'}
-                                {report.category === 'SUDA_ROOM' && '☕ 1:1 수다방'}
-                                {report.category === 'POST' && '🛒 마켓/거래 사기'}
-                        {report.category === 'CHAT_MESSAGE' && '💬 채팅 메시지'}
-                        {report.category === 'PROFILE' && '👤 프로필 사칭'}
+                        {report.category === 'PRIVATE_CALL' && '1:1 통화'}
+                        {report.category === 'LIVE_STREAM' && '라이브 방송'}
+                        {report.category === 'MARKET_FRAUD' && '마켓/거래 사기'}
+                        {report.category === 'SUDA_ROOM' && '1:1 수다방'}
+                        {report.category === 'POST' && '마켓/거래 사기'}
+                        {report.category === 'CHAT_MESSAGE' && '채팅 메시지'}
+                        {report.category === 'PROFILE' && '프로필 사칭'}
                       </Badge>
 
                       {/* Status Badge */}
@@ -834,8 +834,9 @@ export default function ReportsSafetyPage() {
                       </p>
                     )}
                     {report.aiFlag && (
-                      <div className="mt-1 pl-5 text-[11px] text-rose-700 dark:text-rose-400 font-medium">
-                        🚨 AI 감지 패턴: {report.aiFlag}
+                      <div className="mt-1 pl-5 text-[11px] text-rose-700 dark:text-rose-400 font-medium flex items-center gap-1.5">
+                        <AlertTriangle className="h-3 w-3 shrink-0" />
+                        <span>AI 감지 패턴: {report.aiFlag}</span>
                       </div>
                     )}
                   </div>
@@ -967,8 +968,9 @@ export default function ReportsSafetyPage() {
                   {report.post && (
                     <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2 dark:bg-muted/30">
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-foreground flex items-center gap-1">
-                          📋 신고 대상 수다방/마켓 콘텐츠 (ID: {report.post.id})
+                        <span className="font-semibold text-foreground flex items-center gap-1.5">
+                          <FileWarning className="h-3.5 w-3.5 text-slate-500" />
+                          <span>신고 대상 수다방/마켓 콘텐츠 (ID: {report.post.id})</span>
                         </span>
                         <Button
                           size="sm"
@@ -1038,10 +1040,10 @@ export default function ReportsSafetyPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="WARNING">⚠️ 1차 경고 조치 (신뢰도 -10점 차감)</SelectItem>
-                    <SelectItem value="SUSPEND_7D">⏳ 7일간 서비스 이용 정지 및 세션 만료</SelectItem>
-                    <SelectItem value="SUSPEND_30D">🚫 30일간 서비스 이용 정지</SelectItem>
-                    <SelectItem value="PERMANENT_BAN">🔒 영구 계정 차단 및 제명 조치</SelectItem>
+                    <SelectItem value="WARNING">1차 경고 조치 (신뢰도 -10점 차감)</SelectItem>
+                    <SelectItem value="SUSPEND_7D">7일간 서비스 이용 정지 및 세션 만료</SelectItem>
+                    <SelectItem value="SUSPEND_30D">30일간 서비스 이용 정지</SelectItem>
+                    <SelectItem value="PERMANENT_BAN">영구 계정 차단 및 제명 조치</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

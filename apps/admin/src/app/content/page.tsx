@@ -76,7 +76,7 @@ import {
 const FALLBACK_ANNOUNCEMENTS: Announcement[] = [
   {
     id: 'ann-001',
-    title: '🎉 모꼬(MOCCO) 차세대 라이브 스트리밍 & 마켓 그랜드 오픈!',
+    title: '모꼬(MOCCO) 차세대 라이브 스트리밍 & 마켓 그랜드 오픈!',
     content:
       '안녕하세요, 모꼬 운영팀입니다!\n누구나 1초 만에 방송하고 3D 모꼬 선물로 소통하는 라이브 스트리밍과 본사 직영/입점사 특가 마켓이 정식 오픈되었습니다.\n안전한 에스크로 결제와 1:1 수다방을 지금 바로 경험해보세요!',
     category: 'NOTICE',
@@ -90,7 +90,7 @@ const FALLBACK_ANNOUNCEMENTS: Announcement[] = [
   },
   {
     id: 'ann-002',
-    title: '🍯 모꼬 꿀떡 상점 첫 충전 20% 보너스 꿀떡 지급 이벤트',
+    title: '모꼬 꿀떡 상점 첫 충전 20% 보너스 꿀떡 지급 이벤트',
     content:
       '라이브 스트리머 후원 및 1:1 수다방에서 사용하는 모꼬 꿀떡을 첫 충전하시면 20% 추가 보너스 꿀떡을 즉시 지급해 드립니다!\n\n· 기간: 2026년 11월 1일 ~ 11월 30일\n· 대상: 첫 충전 모든 회원\n· 혜택: 충전 수량의 20% 즉시 보너스 적립',
     category: 'EVENT',
@@ -104,7 +104,7 @@ const FALLBACK_ANNOUNCEMENTS: Announcement[] = [
   },
   {
     id: 'ann-003',
-    title: '🛡️ 모꼬 안심 에스크로 결제 및 1:1 프라이빗 통화 운영정책 안내',
+    title: '모꼬 안심 에스크로 결제 및 1:1 프라이빗 통화 운영정책 안내',
     content:
       '모든 마켓 상품 및 C2C 중고거래는 구매확정 전까지 모꼬 머니 에스크로 금고에 안전하게 보관됩니다.\n또한 1:1 프라이빗 안심 통화는 안심번호와 실시간 안전 가이드라인에 따라 철저히 보호됩니다.',
     category: 'NOTICE',
@@ -118,7 +118,7 @@ const FALLBACK_ANNOUNCEMENTS: Announcement[] = [
   },
   {
     id: 'ann-004',
-    title: '⚠️ 시스템 안정화 정기 서버 점검 안내 (11/15 03:00~05:00)',
+    title: '시스템 안정화 정기 서버 점검 안내 (11/15 03:00~05:00)',
     content:
       '더욱 안정적인 라이브 방송과 초고속 채팅 환경을 제공하기 위해 시스템 점검을 실시합니다.\n점검 시간 동안 일시적으로 라이브 접속 및 꿀떡 결제가 제한될 수 있으니 양해 부탁드립니다.',
     category: 'MAINTENANCE',
@@ -355,11 +355,11 @@ export default function ContentAndSupportPage() {
         setAnnouncements((prev) =>
           prev.map((a) => (a.id === editingAnn.id ? { ...a, ...annForm, updatedAt: new Date().toISOString() } : a))
         )
-        toast({ title: '✅ 공지사항 수정 완료', description: `[${annForm.title}] 공지가 수정되었습니다.` })
+        toast({ title: '공지사항 수정 완료', description: `[${annForm.title}] 공지가 수정되었습니다.` })
       } else {
         const created = await createAnnouncement(annForm)
         setAnnouncements((prev) => [created || { ...annForm, id: `ann-${Date.now()}`, viewCount: 0, status: 'PUBLISHED', createdAt: new Date().toISOString() } as any, ...prev])
-        toast({ title: '🎉 공지사항 등록 완료', description: `[${annForm.title}] 공지가 발행되었습니다.` })
+        toast({ title: '공지사항 등록 완료', description: `[${annForm.title}] 공지가 발행되었습니다.` })
       }
       setIsAnnModalOpen(false)
     } catch {
@@ -392,10 +392,10 @@ export default function ContentAndSupportPage() {
     try {
       await updateAnnouncement(ann.id, { isPinned: nextPin })
       setAnnouncements((prev) => prev.map((a) => (a.id === ann.id ? { ...a, isPinned: nextPin } : a)))
-      toast({ title: nextPin ? '📌 상단 고정 등록' : '고정 해제 완료' })
+      toast({ title: nextPin ? '상단 고정 등록' : '고정 해제 완료' })
     } catch {
       setAnnouncements((prev) => prev.map((a) => (a.id === ann.id ? { ...a, isPinned: nextPin } : a)))
-      toast({ title: nextPin ? '📌 상단 고정 등록 (로컬)' : '고정 해제 완료' })
+      toast({ title: nextPin ? '상단 고정 등록 (로컬)' : '고정 해제 완료' })
     }
   }
 
@@ -404,10 +404,10 @@ export default function ContentAndSupportPage() {
     try {
       await updateAnnouncement(ann.id, { isPopup: nextPopup })
       setAnnouncements((prev) => prev.map((a) => (a.id === ann.id ? { ...a, isPopup: nextPopup } : a)))
-      toast({ title: nextPopup ? '🔔 앱 시작 팝업 활성화' : '팝업 비활성화' })
+      toast({ title: nextPopup ? '앱 시작 팝업 활성화' : '팝업 비활성화' })
     } catch {
       setAnnouncements((prev) => prev.map((a) => (a.id === ann.id ? { ...a, isPopup: nextPopup } : a)))
-      toast({ title: nextPopup ? '🔔 앱 시작 팝업 활성화 (로컬)' : '팝업 비활성화' })
+      toast({ title: nextPopup ? '앱 시작 팝업 활성화 (로컬)' : '팝업 비활성화' })
     }
   }
 
@@ -459,7 +459,7 @@ export default function ContentAndSupportPage() {
       if (editingFaq) {
         await updateAdminFaq(editingFaq.id, faqForm)
         setFaqs((prev) => prev.map((f) => (f.id === editingFaq.id ? { ...f, ...faqForm } : f)))
-        toast({ title: '✅ FAQ 수정 완료' })
+        toast({ title: 'FAQ 수정 완료' })
       } else {
         const created = await createAdminFaq(faqForm)
         const newFaq: FaqItem = created || {
@@ -469,7 +469,7 @@ export default function ContentAndSupportPage() {
           updatedAt: new Date().toISOString(),
         }
         setFaqs((prev) => [...prev, newFaq])
-        toast({ title: '🎉 FAQ 등록 완료' })
+        toast({ title: 'FAQ 등록 완료' })
       }
       setIsFaqModalOpen(false)
     } catch {
@@ -508,7 +508,7 @@ export default function ContentAndSupportPage() {
     try {
       await updateAdminSupportTicketStatus(ticketId, '완료')
       setTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, status: '완료' } : t)))
-      toast({ title: '✅ 문의 답변 및 완료 처리' })
+      toast({ title: '문의 답변 및 완료 처리' })
       setSelectedTicket(null)
       setTicketReplyText('')
     } catch {
@@ -572,15 +572,15 @@ export default function ContentAndSupportPage() {
       </div>
 
       {/* 2. Operational Guide Banner */}
-      <Card className="border-indigo-100 bg-gradient-to-r from-indigo-50/50 via-white to-pink-50/40">
+      <Card className="border-slate-200 bg-slate-50/70">
         <CardHeader className="py-3 px-4 flex flex-row items-center justify-between cursor-pointer" onClick={() => setShowGuide(!showGuide)}>
           <div className="flex items-center gap-2">
-            <span className="text-base">💡</span>
-            <CardTitle className="text-xs font-bold text-indigo-950">
+            <Info className="h-4 w-4 text-slate-600" />
+            <CardTitle className="text-xs font-bold text-slate-900">
               신입 운영자를 위한 공지 및 고객센터 3단계 실무 가이드
             </CardTitle>
           </div>
-          <Button variant="ghost" size="sm" className="h-6 px-1.5 text-xs text-indigo-700">
+          <Button variant="ghost" size="sm" className="h-6 px-1.5 text-xs text-slate-700">
             {showGuide ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </Button>
         </CardHeader>
@@ -620,7 +620,7 @@ export default function ContentAndSupportPage() {
           <p className="text-xs text-muted-foreground font-medium">전체 공식 공지사항</p>
           <div className="flex items-baseline justify-between">
             <span className="text-xl font-black text-foreground">{announcements.length}건</span>
-            <span className="text-[11px] font-bold text-amber-600">📌 고정 {pinnedAnnCount}건</span>
+            <span className="text-[11px] font-bold text-amber-600">고정 {pinnedAnnCount}건</span>
           </div>
         </Card>
 
@@ -698,9 +698,9 @@ export default function ContentAndSupportPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">전체 분류</SelectItem>
-                    <SelectItem value="NOTICE">📢 일반 공지</SelectItem>
-                    <SelectItem value="EVENT">🎉 이벤트/혜택</SelectItem>
-                    <SelectItem value="MAINTENANCE">⚠️ 점검 안내</SelectItem>
+                    <SelectItem value="NOTICE">일반 공지</SelectItem>
+                    <SelectItem value="EVENT">이벤트/혜택</SelectItem>
+                    <SelectItem value="MAINTENANCE">점검 안내</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -747,17 +747,17 @@ export default function ContentAndSupportPage() {
                           <td className="p-2.5">
                             {ann.category === 'EVENT' && (
                               <Badge variant="outline" className="text-pink-600 border-pink-200 bg-pink-50 text-[10px]">
-                                🎉 이벤트
+                                이벤트
                               </Badge>
                             )}
                             {ann.category === 'MAINTENANCE' && (
                               <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50 text-[10px]">
-                                ⚠️ 점검 안내
+                                점검 안내
                               </Badge>
                             )}
                             {ann.category === 'NOTICE' && (
                               <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50 text-[10px]">
-                                📢 일반 공지
+                                일반 공지
                               </Badge>
                             )}
                           </td>
@@ -868,11 +868,11 @@ export default function ContentAndSupportPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">전체 카테고리</SelectItem>
-                    <SelectItem value="ON_STORE">🍯 꿀떡 상점/결제</SelectItem>
-                    <SelectItem value="SETTLEMENT">💸 크리에이터 정산 & 환전</SelectItem>
-                    <SelectItem value="SAFETY">🛒 마켓 배송 & 에스크로</SelectItem>
-                    <SelectItem value="CHAT_LIVE">☕ 1:1 수다방 & 통화</SelectItem>
-                    <SelectItem value="ACCOUNT">🛡️ 계정/안전 정책</SelectItem>
+                    <SelectItem value="ON_STORE">꿀떡 상점/결제</SelectItem>
+                    <SelectItem value="SETTLEMENT">크리에이터 정산 & 환전</SelectItem>
+                    <SelectItem value="SAFETY">마켓 배송 & 에스크로</SelectItem>
+                    <SelectItem value="CHAT_LIVE">1:1 수다방 & 통화</SelectItem>
+                    <SelectItem value="ACCOUNT">계정/안전 정책</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -901,11 +901,11 @@ export default function ContentAndSupportPage() {
                             {faq.question}
                           </span>
                           <Badge variant="outline" className="text-[10px] shrink-0 font-normal">
-                            {faq.category === 'ON_STORE' && '🍯 꿀떡 상점'}
-                            {faq.category === 'SETTLEMENT' && '💸 정산 & 환전'}
-                            {faq.category === 'SAFETY' && '🛒 마켓 & 에스크로'}
-                            {faq.category === 'CHAT_LIVE' && '☕ 수다방 & 통화'}
-                            {faq.category === 'ACCOUNT' && '🛡️ 계정/안전'}
+                            {faq.category === 'ON_STORE' && '꿀떡 상점'}
+                            {faq.category === 'SETTLEMENT' && '정산 & 환전'}
+                            {faq.category === 'SAFETY' && '마켓 & 에스크로'}
+                            {faq.category === 'CHAT_LIVE' && '수다방 & 통화'}
+                            {faq.category === 'ACCOUNT' && '계정/안전'}
                           </Badge>
                         </div>
 
@@ -1076,16 +1076,16 @@ export default function ContentAndSupportPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="NOTICE">📢 일반 공지</SelectItem>
-                    <SelectItem value="EVENT">🎉 이벤트/프로모션</SelectItem>
-                    <SelectItem value="MAINTENANCE">⚠️ 긴급 서버점검</SelectItem>
+                    <SelectItem value="NOTICE">일반 공지</SelectItem>
+                    <SelectItem value="EVENT">이벤트/프로모션</SelectItem>
+                    <SelectItem value="MAINTENANCE">긴급 서버점검</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-1.5 flex flex-col justify-end pb-1">
                 <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border">
-                  <span className="font-semibold text-slate-700">📌 상단 고정 (PIN)</span>
+                  <span className="font-semibold text-slate-700">상단 고정 (PIN)</span>
                   <Switch
                     checked={!!annForm.isPinned}
                     onCheckedChange={(checked) => setAnnForm({ ...annForm, isPinned: checked })}
@@ -1094,10 +1094,10 @@ export default function ContentAndSupportPage() {
               </div>
             </div>
 
-            <div className="p-2.5 rounded-xl bg-rose-50/60 border border-rose-100 flex items-center justify-between">
+            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
               <div>
-                <span className="font-extrabold text-rose-950 block">🔔 앱 시작 시 팝업 배너로 노출</span>
-                <span className="text-[10px] text-rose-700">유저가 앱을 켤 때 모달 팝업으로 우선 안내합니다.</span>
+                <span className="font-extrabold text-slate-900 block">앱 시작 시 팝업 배너로 노출</span>
+                <span className="text-[10px] text-slate-500">유저가 앱을 켤 때 모달 팝업으로 우선 안내합니다.</span>
               </div>
               <Switch
                 checked={!!annForm.isPopup}
@@ -1164,11 +1164,11 @@ export default function ContentAndSupportPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ON_STORE">🍯 꿀떡 상점/결제/환불</SelectItem>
-                  <SelectItem value="SETTLEMENT">💸 크리에이터 정산 & 환전</SelectItem>
-                  <SelectItem value="SAFETY">🛒 마켓 주문/배송 & 에스크로</SelectItem>
-                  <SelectItem value="CHAT_LIVE">☕ 1:1 수다방 & 프라이빗 통화</SelectItem>
-                  <SelectItem value="ACCOUNT">🛡️ 계정/본인인증 & 안전 정책</SelectItem>
+                  <SelectItem value="ON_STORE">꿀떡 상점/결제/환불</SelectItem>
+                  <SelectItem value="SETTLEMENT">크리에이터 정산 & 환전</SelectItem>
+                  <SelectItem value="SAFETY">마켓 주문/배송 & 에스크로</SelectItem>
+                  <SelectItem value="CHAT_LIVE">1:1 수다방 & 프라이빗 통화</SelectItem>
+                  <SelectItem value="ACCOUNT">계정/본인인증 & 안전 정책</SelectItem>
                 </SelectContent>
               </Select>
             </div>

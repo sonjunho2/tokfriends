@@ -356,7 +356,7 @@ export default function MarketEscrowAdminPage() {
         )
       )
       toast({
-        title: '⚖️ Maker-Checker 2인 결재 상신',
+        title: 'Maker-Checker 2인 결재 상신',
         description: '100만 원 이상 고액 분쟁 판정으로 2차 운영책임자 승인 요청이 상신되었습니다.',
       })
       setArbitrationModalOrder(null)
@@ -501,7 +501,7 @@ export default function MarketEscrowAdminPage() {
       })
 
       toast({
-        title: '👑 본사 공식 직영 상품 등록 완료',
+        title: '본사 공식 직영 상품 등록 완료',
         description: `'${payload.name}' 상품이 골드 메탈릭 뱃지와 함께 마켓 및 스트리머 제휴 센터에 즉시 노출됩니다.`,
       })
     } catch {
@@ -735,7 +735,7 @@ export default function MarketEscrowAdminPage() {
     document.body.removeChild(link)
 
     toast({
-      title: '📊 정산 CMS 엑셀(CSV) 다운로드 완료',
+      title: '정산 CMS 엑셀(CSV) 다운로드 완료',
       description: `${confirmedOrders.length}건의 판매자 정산 송금 내역이 다운로드되었습니다.`,
     })
   }
@@ -950,7 +950,7 @@ export default function MarketEscrowAdminPage() {
                 className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5 font-bold shadow-sm"
               >
                 <Crown className="w-4 h-4 text-amber-200" />
-                👑 본사 공식 직영 상품 등록
+                본사 공식 직영 상품 등록
               </Button>
             </CardHeader>
             <CardContent>
@@ -973,13 +973,13 @@ export default function MarketEscrowAdminPage() {
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2">
                             {p.isHqDirect && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-black shadow-sm">
-                                👑 본사직영
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
+                                본사직영
                               </span>
                             )}
                             {p.allowAffiliate && (
                               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-500 border border-rose-500/30">
-                                🎙️ 제휴위탁 ({p.affiliateCommissionRate || 10}%)
+                                제휴위탁 ({p.affiliateCommissionRate || 10}%)
                               </span>
                             )}
                             <div className="font-semibold text-foreground">{p.name}</div>
@@ -1164,8 +1164,9 @@ export default function MarketEscrowAdminPage() {
                         <td className="px-5 py-3.5 font-medium">
                           {o.productTitle}
                           {o.disputeReason && (
-                            <div className="text-xs text-rose-500 font-normal mt-0.5">
-                              🚨 분쟁 사유: {o.disputeReason}
+                            <div className="text-xs text-rose-600 font-normal mt-0.5 flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3 shrink-0" />
+                              <span>분쟁 사유: {o.disputeReason}</span>
                             </div>
                           )}
                         </td>
@@ -1216,7 +1217,7 @@ export default function MarketEscrowAdminPage() {
                                 onClick={() => handleOpenArbitration(o)}
                               >
                                 <Scale className="w-3.5 h-3.5" />
-                                ⚖️ 분쟁 중재
+                                분쟁 중재
                               </Button>
                             </div>
                           ) : o.status === 'ESCROW_HOLD' ? (
@@ -1332,7 +1333,7 @@ export default function MarketEscrowAdminPage() {
                     onChange={(e) => setHqForm({ ...hqForm, isHqDirect: e.target.checked })}
                     className="rounded border-amber-500 text-amber-600 focus:ring-amber-500 w-4 h-4"
                   />
-                  <span>👑 본사 공식 직영 상품으로 지정 (골드 메탈릭 뱃지 부착)</span>
+                  <span>본사 공식 직영 상품으로 지정 (골드 뱃지 부착)</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer font-bold text-rose-500 text-xs">
@@ -1342,7 +1343,7 @@ export default function MarketEscrowAdminPage() {
                     onChange={(e) => setHqForm({ ...hqForm, allowAffiliate: e.target.checked })}
                     className="rounded border-rose-500 text-rose-600 focus:ring-rose-500 w-4 h-4"
                   />
-                  <span>🎙️ 스트리머 D LIVE 제휴 위탁 판매 허용 (수익 쉐어)</span>
+                  <span>스트리머 LIVE 제휴 위탁 판매 허용 (수익 쉐어)</span>
                 </label>
 
                 {hqForm.allowAffiliate && (

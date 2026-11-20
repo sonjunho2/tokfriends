@@ -14,6 +14,7 @@ import {
   FileSpreadsheet,
   Filter,
   HelpCircle,
+  Info,
   Layers,
   LineChart,
   Loader2,
@@ -252,7 +253,7 @@ export default function AnalyticsPage() {
     try {
       await triggerAnalyticsReportJob(job.id)
       toast({
-        title: '🚀 리포트 즉시 발송 완료',
+        title: '리포트 즉시 발송 완료',
         description: `${job.name} 리포트가 ${job.destination} 채널로 즉시 전송되었습니다.`,
       })
       // Refresh exports
@@ -686,8 +687,9 @@ export default function AnalyticsPage() {
                     </div>
                   </div>
 
-                  <div className="p-3 rounded-lg bg-indigo-50 border border-indigo-100 text-xs text-indigo-900 mt-2 leading-relaxed">
-                    💡 <strong>인사이트</strong>: 분당 선차감 과금 엔진 도입 이후 1:1 통화 매출 기여도가 42% ➔ 58%로 가파르게 상승했습니다.
+                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-800 mt-2 leading-relaxed flex items-center gap-2">
+                    <Info className="h-4 w-4 text-slate-500 shrink-0" />
+                    <span><strong>인사이트</strong>: 분당 선차감 과금 엔진 도입 이후 1:1 통화 매출 기여도가 42% ➔ 58%로 가파르게 상승했습니다.</span>
                   </div>
                 </CardContent>
               </Card>
@@ -795,8 +797,8 @@ export default function AnalyticsPage() {
                     <Clock className="w-4 h-4 text-cyan-600" />
                     24시간 트래픽 & 피크타임 핫스팟 (Hourly Traffic)
                   </CardTitle>
-                  <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[11px] font-medium">
-                    🔥 21시~01시 야간 피크
+                  <Badge className="bg-amber-50 text-amber-800 border-amber-200 text-[11px] font-medium">
+                    21시~01시 야간 피크
                   </Badge>
                 </div>
                 <CardDescription className="text-xs text-muted-foreground">
@@ -804,8 +806,9 @@ export default function AnalyticsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
-                <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
-                  ⚡ <strong>운영 최적화 안내</strong>: 저녁 21:00부터 익일 01:00까지 트래픽이 4.8만명으로 집중됩니다. 이 시간대 푸시 알림 타겟팅과 AI 안전관 검수 리소스를 2배 집중 배치하십시오.
+                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-800 leading-relaxed flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-slate-500 shrink-0" />
+                  <span><strong>운영 최적화 안내</strong>: 저녁 21:00부터 익일 01:00까지 트래픽이 4.8만명으로 집중됩니다. 이 시간대 푸시 알림 타겟팅과 AI 안전관 검수 리소스를 집중 배치하십시오.</span>
                 </div>
 
                 <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">

@@ -594,7 +594,7 @@ export default function AdminPermissionsPage() {
                         </div>
 
                         <p className="text-xs text-slate-700 leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-                          💬 <strong>상신 사유</strong>: {item.reason}
+                          <strong>상신 사유</strong>: {item.reason}
                         </p>
 
                         {item.decidedAt && (
@@ -869,8 +869,9 @@ export default function AdminPermissionsPage() {
                 />
               </div>
 
-              <div className="p-2.5 rounded bg-purple-50 border border-purple-200 text-purple-900 text-[11px] leading-relaxed">
-                🛡️ <strong>2인 결재 원칙</strong>: 상신자 본인은 결재할 수 없으며 타 관리자의 서명이 필수입니다.
+              <div className="p-2.5 rounded bg-slate-50 border border-slate-200 text-slate-800 text-[11px] leading-relaxed flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-slate-600 shrink-0" />
+                <span><strong>2인 결재 원칙</strong>: 상신자 본인은 결재할 수 없으며 타 관리자의 서명이 필수입니다.</span>
               </div>
             </div>
           )}

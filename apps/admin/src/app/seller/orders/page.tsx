@@ -920,7 +920,7 @@ export default function SellerOrdersPage() {
                   }}
                   className="text-xs text-indigo-600 hover:underline font-semibold"
                 >
-                  ⚡ 미발송 주문 자동 샘플 송장 채우기
+                  미발송 주문 자동 샘플 송장 채우기
                 </button>
               </div>
             </div>

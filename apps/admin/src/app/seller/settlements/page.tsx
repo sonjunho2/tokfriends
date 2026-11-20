@@ -285,7 +285,7 @@ export default function SellerSettlementsPage() {
       {/* Account Info and Summary Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Bank Account Info Card */}
-        <Card className="border-border md:col-span-1 bg-gradient-to-br from-card to-muted/30">
+        <Card className="border-border md:col-span-1 bg-card">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
               <Building2 className="w-4 h-4 text-primary" />

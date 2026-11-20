@@ -204,19 +204,19 @@ export default function DashboardPage() {
         ))}
       </section>
 
-      {/* 👑 본사 직영 상품 기획 & 수익 통제 허브 (HQ Direct Commerce & PB Hub) */}
-      <Card className="border-amber-200/80 bg-gradient-to-br from-white via-amber-50/20 to-yellow-50/30 shadow-sm">
-        <CardHeader className="pb-3 border-b border-amber-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* 본사 직영 상품 기획 & 수익 통제 허브 (HQ Direct Commerce & PB Hub) */}
+      <Card className="border border-slate-200 bg-white shadow-xs">
+        <CardHeader className="pb-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-black shadow-xs">
-              <Crown className="w-5 h-5 font-black" />
+            <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800 shadow-xs">
+              <Crown className="w-5 h-5 text-amber-600" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <CardTitle className="text-base font-bold text-foreground">
                   본사 직영 기획 상품 & 수익 통제 허브
                 </CardTitle>
-                <Badge className="bg-amber-500 text-black font-extrabold text-[10px]">
+                <Badge className="bg-amber-50 text-amber-700 border border-amber-200 font-semibold text-[10px]">
                   직영 PB 매출 68%
                 </Badge>
               </div>
@@ -228,12 +228,12 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2">
             <Button
               asChild
-              className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs h-8 shadow-xs"
+              className="bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs h-8 shadow-xs"
             >
               <Link href="/dashboard/products">
-                <Crown className="w-3.5 h-3.5 text-amber-200" />
+                <Crown className="w-3.5 h-3.5 mr-1 text-amber-400" />
                 <span>직영 상품 관리 & 신규 등록</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3.5 h-3.5 ml-1" />
               </Link>
             </Button>
           </div>
@@ -279,19 +279,19 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* 💼 전국 통합 커머스 손익 분석 & 4대 참여자 정산 관제 (Consolidated Commerce P&L) */}
-      <Card className="border-indigo-200/80 bg-gradient-to-br from-white via-indigo-50/15 to-purple-50/20 shadow-sm">
-        <CardHeader className="pb-3 border-b border-indigo-100/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* 전국 통합 커머스 손익 분석 & 4대 참여자 정산 관제 (Consolidated Commerce P&L) */}
+      <Card className="border border-slate-200 bg-white shadow-xs">
+        <CardHeader className="pb-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-xs">
-              <TrendingUp className="w-5 h-5 font-black" />
+            <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800 shadow-xs">
+              <TrendingUp className="w-5 h-5 text-indigo-600" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <CardTitle className="text-base font-bold text-foreground">
                   전국 통합 커머스 손익 분석 & 4대 참여자 정산 관제
                 </CardTitle>
-                <Badge className="bg-indigo-600 text-white font-extrabold text-[10px]">
+                <Badge className="bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold text-[10px]">
                   실시간 통합 회계
                 </Badge>
               </div>
@@ -305,12 +305,12 @@ export default function DashboardPage() {
               asChild
               variant="outline"
               size="sm"
-              className="text-xs font-bold text-indigo-700 border-indigo-300 bg-indigo-50/50 hover:bg-indigo-100 gap-1 h-8"
+              className="text-xs font-semibold text-slate-700 border-slate-200 bg-white hover:bg-slate-50 gap-1 h-8"
             >
               <Link href="/market-escrow">
-                <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                <ShieldCheck className="w-3.5 h-3.5 text-slate-500" />
                 <span>에스크로 금고 & 분쟁 심사</span>
-                <ArrowRight className="w-3 h-3" />
+                <ArrowRight className="w-3 h-3 ml-0.5" />
               </Link>
             </Button>
             <Button
@@ -503,14 +503,14 @@ export default function DashboardPage() {
         </Card>
 
         {/* 6인 AI 직원 운영 본부 퀵 프리뷰 */}
-        <Card className="border-indigo-100 bg-gradient-to-br from-white to-indigo-50/20 shadow-sm">
-          <CardHeader className="pb-3 border-b">
+        <Card className="border border-slate-200 bg-white shadow-xs">
+          <CardHeader className="pb-3 border-b border-slate-100">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
-                <Bot className="h-5 w-5 text-indigo-600" />
+                <Bot className="h-5 w-5 text-slate-700" />
                 AI 직원 실시간 관제
               </CardTitle>
-              <Badge className="bg-emerald-600 text-white text-[10px]">6인 전원 정상 가동</Badge>
+              <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold">6인 전원 정상 가동</Badge>
             </div>
             <CardDescription className="text-xs">
               제브 AI를 포함한 6인의 AI 직원이 24시간 실시간 협업 중입니다.
