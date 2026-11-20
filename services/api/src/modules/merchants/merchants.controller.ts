@@ -61,6 +61,13 @@ export class MerchantsController {
     });
   }
 
+  @Get('products/:id')
+  @Public()
+  @ApiOperation({ summary: '입점사 일반 상시 상품 단건 상세 조회' })
+  async getProductById(@Param('id') id: string) {
+    return this.merchantsService.getNormalProductById(id);
+  }
+
   @Post('products')
   @Public()
   @ApiOperation({ summary: '입점사 일반 상품 등록 (가격, 재고, 배송비)' })

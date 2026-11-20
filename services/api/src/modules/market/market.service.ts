@@ -116,31 +116,21 @@ export class MarketService {
       cached = cached.filter((p) => (p.title || '').toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q));
     }
 
-    // DB 항목과 캐시 항목 병합 (캐시 우선 최상단 배치, ID 중복 제거)
-    const seenIds = new Set<string>();
-    const mergedItems: any[] = [];
-    for (const p of [...cached, ...dbItems]) {
-      if (p && p.id && !seenIds.has(p.id)) {
-        seenIds.add(p.id);
-        mergedItems.push(p);
-      }
-    }
-
-    const sanitizedItems = mergedItems.map((p) => ({
-      ...p,
-      images: this.sanitizeProductImages(p.images, p.category),
-    }));
-
-    if (sanitizedItems.length > 0) {
-      return {
-        items: sanitizedItems.slice(0, limit),
-        total: Math.max(sanitizedItems.length, dbTotal),
-        page,
-        totalPages: Math.ceil(Math.max(sanitizedItems.length, dbTotal) / limit),
-      };
-    }
-
-    const seedProducts = [
+    const seedCatalog = [
+      {
+        id: 'c2c-iphone-01',
+        type: MarketProductType.C2C_USED,
+        title: '아이폰 15 프로 256GB 내추럴 티타늄 (배터리 99%)',
+        description: '풀박스 상태입니다. 기스나 찍힘 전혀 없고 케이스/강화유리 항상 착용했습니다.',
+        category: 'DIGITAL',
+        price: 980000,
+        originalPrice: 1550000,
+        images: ['https://images.unsplash.com/photo-1511707171634-5f897ff02560?w=600'],
+        status: ProductStatus.ACTIVE,
+        locationName: '역삼1동',
+        seller: { id: 'seller-tech', nickname: '테크러버 (역삼동)', avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200' },
+        createdAt: '10분 전',
+      },
       {
         id: 'c2c-tent-01',
         type: MarketProductType.C2C_USED,
@@ -148,56 +138,125 @@ export class MarketService {
         description: '캠핑 가려고 구매했다가 보관만 한 미개봉 새제품입니다. 2개 일괄로만 판매합니다.',
         category: 'SPORTS',
         price: 135000,
+        originalPrice: 220000,
         images: ['https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600'],
         status: ProductStatus.ACTIVE,
         locationName: '삼성동',
-        seller: { id: 'seller-1', nickname: '캠핑러버', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200' },
-        createdAt: new Date().toISOString(),
+        seller: { id: 'seller-camper', nickname: '캠핑러버 (삼성동)', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200' },
+        createdAt: '35분 전',
       },
       {
-        id: 'mp-iphone-01',
+        id: 'c2c-airpods-01',
         type: MarketProductType.C2C_USED,
-        title: '아이폰 15 프로 256GB 내추럴 티타늄 (배터리 99%)',
-        description: '풀박스 상태입니다. 기스나 찍힘 전혀 없고 케이스/강화유리 항상 착용했습니다.',
+        title: '에어팟 맥스 실버 풀박스 (스마트 케이스 포함)',
+        description: '실사용 3회 미만 거의 새상품입니다. 풀박스 구성품 모두 보유 중입니다.',
         category: 'DIGITAL',
-        price: 980000,
-        images: ['https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=600'],
+        price: 490000,
+        originalPrice: 769000,
+        images: ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600'],
         status: ProductStatus.ACTIVE,
-        locationName: '역삼1동',
-        seller: { id: 'seller-2', nickname: '테크러버', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200' },
-        createdAt: new Date().toISOString(),
+        locationName: '논현동',
+        seller: { id: 'seller-sound', nickname: '사운드마니아 (논현동)', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200' },
+        createdAt: '1시간 전',
       },
       {
-        id: 'b2c-airpods-01',
+        id: 'b2c-group-pork-01',
         type: MarketProductType.B2C_GROUP,
-        title: '[모꼬단독 공구] 제주 산지직송 1등급 흑돼지 오겹살 1kg',
-        description: '당일 도축 신선 포장 배송! 10명 이상 모이면 무료배송 및 특별 할인 적용됩니다.',
+        title: '[입점사특가] 제주 산지직송 프리미엄 흑돼지 오겹살 1kg',
+        description: '당일 도축 신선 포장 배송! 10명 이상 모이면 무료배송 및 41% 파격 할인 적용됩니다.',
         category: 'FOOD_GROUP',
-        price: 28900,
-        originalPrice: 38000,
+        price: 24900,
+        originalPrice: 42000,
         targetQuantity: 10,
         currentQuantity: 8,
         images: ['https://images.unsplash.com/photo-1544025162-d76694265947?w=600'],
         status: ProductStatus.ACTIVE,
         locationName: '제주푸드 본사 직영',
         seller: { id: 'seller-jeju', nickname: '제주푸드 본사 직영', avatarUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=200' },
-        createdAt: new Date().toISOString(),
+        createdAt: '마감 3시간 전',
+      },
+      {
+        id: 'b2c-group-strawberry-01',
+        type: MarketProductType.B2C_GROUP,
+        title: '[핫딜공구] 고당도 논산 설향 딸기 특상 1kg (500g x 2팩)',
+        description: '새벽 수확 당일 출고! 산지 직송 달콤한 특등급 설향 딸기 43% 파격 공구.',
+        category: 'FOOD_GROUP',
+        price: 15900,
+        originalPrice: 28000,
+        targetQuantity: 20,
+        currentQuantity: 16,
+        images: ['https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=600'],
+        status: ProductStatus.ACTIVE,
+        locationName: '논산농협 로컬푸드',
+        seller: { id: 'seller-nonsan', nickname: '논산농협 로컬푸드', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200' },
+        createdAt: '마감 5시간 전',
+      },
+      {
+        id: 'b2c-group-bed-01',
+        type: MarketProductType.B2C_GROUP,
+        title: '[D LIVE 연계공구] 호텔식 60수 고밀도 순면 차렵이불 세트',
+        description: '오늘 밤 라이브 방송 중 구매 시 사은품 베개커버 2장 증정! 부드러운 순면 차렵이불 50% 특가.',
+        category: 'FURNITURE',
+        price: 49000,
+        originalPrice: 98000,
+        targetQuantity: 20,
+        currentQuantity: 18,
+        images: ['https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=600'],
+        status: ProductStatus.ACTIVE,
+        locationName: '메종리빙 공식스토어',
+        seller: { id: 'seller-bed', nickname: '메종리빙 공식스토어', avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200' },
+        createdAt: '마감 8시간 전',
+      },
+      {
+        id: 'b2c-group-abalone-01',
+        type: MarketProductType.B2C_GROUP,
+        title: '[모꼬단독 공구] 완도 활전복 1kg 10~12미 당일 산지직송',
+        description: '청정 완도 바다에서 당일 채취하여 해수 산소포장으로 살아있는 채로 배송되는 명품 활전복 41% 파격 할인.',
+        category: 'FOOD_GROUP',
+        price: 34900,
+        originalPrice: 59000,
+        targetQuantity: 30,
+        currentQuantity: 21,
+        images: ['https://images.unsplash.com/photo-1544025162-d76694265947?w=600'],
+        status: ProductStatus.ACTIVE,
+        locationName: '완도전복 직판장',
+        seller: { id: 'seller-abalone', nickname: '완도전복 직판장', avatarUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=200' },
+        createdAt: '마감 12시간 전',
       },
     ];
 
-    let filtered = seedProducts;
-    if (type) filtered = filtered.filter((p) => p.type === type);
-    if (category && category !== 'ALL') filtered = filtered.filter((p) => p.category === category);
-    if (search && search.trim()) {
-      const q = search.trim().toLowerCase();
-      filtered = filtered.filter((p) => p.title.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));
+    // DB 항목, 캐시 항목, 카탈로그 시드 병합 (캐시/DB 우선 최상단 배치, ID 중복 제거)
+    const seenIds = new Set<string>();
+    const mergedItems: any[] = [];
+    for (const p of [...cached, ...dbItems, ...seedCatalog]) {
+      if (p && p.id && !seenIds.has(p.id)) {
+        seenIds.add(p.id);
+        mergedItems.push(p);
+      }
     }
 
+    let filtered = mergedItems;
+    if (type) filtered = filtered.filter((p) => p.type === type);
+    if (category && category !== 'ALL') {
+      const cat = category.toUpperCase();
+      filtered = filtered.filter((p) => (p.category || '').toUpperCase().includes(cat));
+    }
+    if (sellerId) filtered = filtered.filter((p) => p.sellerId === sellerId || p.seller?.id === sellerId);
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      filtered = filtered.filter((p) => (p.title || '').toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q));
+    }
+
+    const sanitizedItems = filtered.map((p) => ({
+      ...p,
+      images: this.sanitizeProductImages(p.images, p.category),
+    }));
+
     return {
-      items: filtered,
-      total: filtered.length,
+      items: sanitizedItems.slice(skip, skip + limit),
+      total: sanitizedItems.length,
       page,
-      totalPages: 1,
+      totalPages: Math.ceil(sanitizedItems.length / limit) || 1,
     };
   }
 

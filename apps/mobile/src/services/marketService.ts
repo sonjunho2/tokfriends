@@ -289,7 +289,15 @@ export async function fetchMarketProducts(params?: {
       },
       timeout: 4000,
     });
-    const rawList = res?.data?.items || res?.items || res?.data || (Array.isArray(res) ? res : []);
+    const rawList = Array.isArray(res?.data?.data)
+      ? res.data.data
+      : Array.isArray(res?.data?.items)
+      ? res.data.items
+      : Array.isArray(res?.data)
+      ? res.data
+      : Array.isArray(res)
+      ? res
+      : [];
     if (Array.isArray(rawList) && rawList.length > 0) {
       const mapped = rawList.map(normalizeMarketProductItem);
       // inMemoryProducts 동기화 (최신 등록 데이터 보존)
@@ -332,14 +340,15 @@ export async function fetchMarketProducts(params?: {
 export async function fetchMarketProductById(id: string): Promise<MarketProduct | null> {
   try {
     const res = await client.get(`/market/products/${id}`, { timeout: 3000 });
-    if (res?.data?.id) {
-      return res.data;
+    const product = res?.data?.data || res?.data;
+    if (product?.id) {
+      return normalizeMarketProductItem(product);
     }
   } catch (err) {
     // Fallback
   }
   const item = inMemoryProducts.find((p) => p.id === id);
-  return item || null;
+  return item ? normalizeMarketProductItem(item) : null;
 }
 
 export async function createMarketProduct(
@@ -367,7 +376,7 @@ export async function createMarketProduct(
       latitude: 37.4979,
       longitude: 127.0276,
     });
-    const createdItem = res?.data?.id ? res.data : (res?.id ? res : null);
+    const createdItem = res?.data?.data?.id ? res.data.data : (res?.data?.id ? res.data : (res?.id ? res : null));
     if (createdItem) {
       const normalized = normalizeMarketProductItem(createdItem);
       inMemoryProducts = [normalized, ...inMemoryProducts];
@@ -552,16 +561,43 @@ export async function fetchNormalProducts(params?: {
   sort?: 'recent' | 'priceAsc' | 'priceDesc' | 'popular' | string;
 }): Promise<NormalProduct[]> {
   try {
-    const res = await client.get('/market/normal-products', {
+    let res = await client.get('/merchants/products', {
       params: {
         category: params?.category,
         search: params?.search,
         sort: params?.sort || 'recent',
       },
       timeout: 3500,
-    });
-    if (res?.data?.items && Array.isArray(res.data.items) && res.data.items.length > 0) {
-      return res.data.items;
+    }).catch(() => null);
+
+    if (!res || !res.data) {
+      res = await client.get('/market/normal-products', {
+        params: {
+          category: params?.category,
+          search: params?.search,
+          sort: params?.sort || 'recent',
+        },
+        timeout: 3500,
+      }).catch(() => null);
+    }
+
+    const rawList = Array.isArray(res?.data?.data)
+      ? res.data.data
+      : Array.isArray(res?.data?.items)
+      ? res.data.items
+      : Array.isArray(res?.data)
+      ? res.data
+      : Array.isArray(res)
+      ? res
+      : [];
+
+    if (rawList.length > 0) {
+      return rawList.map((p: any) => ({
+        ...p,
+        images: Array.isArray(p.images)
+          ? p.images.map(resolveMobileImageUrl)
+          : [resolveMobileImageUrl(p.images || p.image)],
+      }));
     }
   } catch (err) {
     // Network fallback
@@ -595,10 +631,18 @@ export async function fetchNormalProducts(params?: {
 
 export async function fetchNormalProductById(id: string): Promise<NormalProduct | null> {
   try {
-    const res = await client.get(`/market/normal-products/${id}`, { timeout: 3500 });
-    const product = res?.data?.product || res?.data;
+    let res = await client.get(`/merchants/products/${id}`, { timeout: 3500 }).catch(() => null);
+    if (!res || !res.data) {
+      res = await client.get(`/market/normal-products/${id}`, { timeout: 3500 }).catch(() => null);
+    }
+    const product = res?.data?.data?.product || res?.data?.data || res?.data?.product || res?.data;
     if (product?.id) {
-      return product;
+      return {
+        ...product,
+        images: Array.isArray(product.images)
+          ? product.images.map(resolveMobileImageUrl)
+          : [resolveMobileImageUrl(product.images || product.image)],
+      };
     }
   } catch (err) {
     // Network fallback

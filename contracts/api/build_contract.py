@@ -1234,6 +1234,56 @@ endpoints = [
             "200": {"description": "Denied", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Refund"}}}},
         },
     },
+    {
+        "path": "/market/products",
+        "method": "get",
+        "summary": "마켓 상품 목록 조회 (C2C 중고 & B2C 공동구매)",
+        "tags": ["market"],
+        "public": True,
+        "responses": {
+            "200": {"description": "Market products list"},
+        },
+    },
+    {
+        "path": "/market/products",
+        "method": "post",
+        "summary": "마켓 상품 등록 (C2C 중고 & B2C 공구)",
+        "tags": ["market"],
+        "public": False,
+        "responses": {
+            "201": {"description": "Created"},
+        },
+    },
+    {
+        "path": "/market/products/{id}",
+        "method": "get",
+        "summary": "마켓 상품 상세 조회",
+        "tags": ["market"],
+        "public": True,
+        "responses": {
+            "200": {"description": "Product detail"},
+        },
+    },
+    {
+        "path": "/merchants/products",
+        "method": "get",
+        "summary": "입점사 일반 상시 상품 목록 조회",
+        "tags": ["merchants"],
+        "public": True,
+        "responses": {
+            "200": {"description": "Merchant normal products list"},
+        },
+    },
+    {
+        "path": "/merchants/products/{id}",
+        "method": "get",
+        "summary": "입점사 일반 상시 상품 단건 상세 조회",
+        "tags": ["merchants"],
+        "public": True,
+        "responses": {
+            "200": {"description": "Merchant normal product detail"},
+        },
+    },
 ]
 
 security_schemes = {

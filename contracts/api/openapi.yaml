@@ -2219,3 +2219,48 @@ paths:
       responses:
         200:
           description: "OK"
+
+  /market/products:
+    get:
+      summary: "마켓 상품 목록 조회 (C2C 중고 & B2C 공동구매)"
+      responses:
+        200:
+          description: "OK"
+    post:
+      summary: "마켓 상품 등록"
+      responses:
+        201:
+          description: "Created"
+
+  /market/products/{id}:
+    get:
+      summary: "마켓 상품 상세 조회"
+      parameters:
+        - in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        200:
+          description: "OK"
+
+  /merchants/products:
+    get:
+      summary: "입점사 일반 상시 상품 목록 조회"
+      responses:
+        200:
+          description: "OK"
+
+  /merchants/products/{id}:
+    get:
+      summary: "입점사 일반 상시 상품 상세 조회"
+      parameters:
+        - in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        200:
+          description: "OK"

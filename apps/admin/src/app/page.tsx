@@ -3763,9 +3763,10 @@ export default function CustomerWebStorefrontPage() {
       .catch(() => {})
   }, [])
 
-  // 마켓 상품(중고/일반), 수다글, 채팅방 목록 실시간 API 로딩
+  // 마켓 상품(중고/일반/공동구매), 수다글, 채팅방 목록 실시간 API 로딩
   const refreshMarketData = useCallback(() => {
-    getMarketProducts()
+    // 1) 중고거래 상품 (C2C_USED)
+    getMarketProducts({ type: 'C2C_USED' })
       .then((items) => {
         if (Array.isArray(items) && items.length > 0) {
           const formatted: UsedProductItem[] = items.map((p, idx) => {
@@ -3789,7 +3790,7 @@ export default function CustomerWebStorefrontPage() {
               images: cleanImgs.length > 0 ? cleanImgs : [getCategoryFallbackImage(p.category)],
               likesCount: Number(p.likesCount || p.likes || 0),
               chatsCount: Number(p.chatsCount || p.chats || 0),
-              createdAt: p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '최근',
+              createdAt: p.createdAt ? (p.createdAt.includes('전') ? p.createdAt : new Date(p.createdAt).toLocaleDateString()) : '최근',
               status: p.status || 'ACTIVE',
               allowLiveSale: Boolean(p.allowLiveSale),
             }
@@ -3799,41 +3800,82 @@ export default function CustomerWebStorefrontPage() {
       })
       .catch(() => {})
 
-    getNormalProducts()
-      .then((items) => {
-        if (Array.isArray(items) && items.length > 0) {
-          const formatted: MarketProductItem[] = items.map((p, idx) => {
-            const rawImgs = Array.isArray(p.images) && p.images.length > 0
-              ? p.images
-              : (typeof p.images === 'string' ? (() => { try { return JSON.parse(p.images) } catch { return [p.images] } })() : [p.image])
-            const cleanImgs = (Array.isArray(rawImgs) ? rawImgs : [rawImgs])
-              .map((img: string) => resolveDisplayImageUrl(img, p.category))
-              .filter(Boolean)
+    // 2) 일반 마켓 상품 (B2C_NORMAL) 및 3) 공동구매 상품 (B2C_GROUP) 통합 로드
+    Promise.all([
+      getNormalProducts(),
+      getMarketProducts({ type: 'B2C_GROUP' })
+    ]).then(([normalItems, groupItems]) => {
+      const formattedNormal: MarketProductItem[] = (Array.isArray(normalItems) ? normalItems : []).map((p, idx) => {
+        const rawImgs = Array.isArray(p.images) && p.images.length > 0
+          ? p.images
+          : (typeof p.images === 'string' ? (() => { try { return JSON.parse(p.images) } catch { return [p.images] } })() : [p.image])
+        const cleanImgs = (Array.isArray(rawImgs) ? rawImgs : [rawImgs])
+          .map((img: string) => resolveDisplayImageUrl(img, p.category))
+          .filter(Boolean)
 
-            return {
-              id: p.id || `prod-${idx + 1}`,
-              title: p.title || p.name || '모꼬 마켓 상품',
-              description: p.description || '',
-              price: Number(p.price || 0),
-              originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
-              type: p.type || 'B2C_NORMAL',
-              ownerType: p.ownerType || 'MERCHANT',
-              category: p.category || '라이프스타일',
-              images: cleanImgs.length > 0 ? cleanImgs : [getCategoryFallbackImage(p.category)],
-              sellerName: p.merchantName || p.sellerName || '모꼬 공식 파트너',
-              shippingFee: Number(p.shippingFee || 0),
-              stock: Number(p.stock || 999),
-              status: p.status || 'ACTIVE',
-              salesCount: Number(p.salesCount || 0),
-              orderCount: Number(p.orderCount || 0),
-              rating: Number(p.rating || 5.0),
-              reviewCount: Number(p.reviewCount || 0),
-            }
-          })
-          setMarketProducts(formatted)
+        const finalPrice = Number(p.salePriceKrw ?? p.price ?? p.priceKrw ?? 0)
+        const finalOriginal = p.priceKrw ? Number(p.priceKrw) : (p.originalPrice ? Number(p.originalPrice) : undefined)
+
+        return {
+          id: p.id || `prod-${idx + 1}`,
+          title: p.name || p.title || '모꼬 마켓 상품',
+          description: p.description || '',
+          price: finalPrice,
+          originalPrice: finalOriginal && finalOriginal > finalPrice ? finalOriginal : undefined,
+          type: 'B2C_NORMAL',
+          ownerType: p.ownerType || 'MERCHANT',
+          category: p.category || '식품/신선',
+          images: cleanImgs.length > 0 ? cleanImgs : [getCategoryFallbackImage(p.category)],
+          sellerName: p.merchantName || p.sellerName || '모꼬 공식 파트너',
+          shippingFee: Number(p.shippingFee || 0),
+          stock: Number(p.stock || 999),
+          status: p.status || 'ACTIVE',
+          salesCount: Number(p.salesCount || 120),
+          orderCount: Number(p.orderCount || 800),
+          rating: Number(p.rating || 5.0),
+          reviewCount: Number(p.reviewCount || 30),
         }
       })
-      .catch(() => {})
+
+      const formattedGroup: MarketProductItem[] = (Array.isArray(groupItems) ? groupItems : []).map((p, idx) => {
+        const rawImgs = Array.isArray(p.images) && p.images.length > 0
+          ? p.images
+          : (typeof p.images === 'string' ? (() => { try { return JSON.parse(p.images) } catch { return [p.images] } })() : [p.image])
+        const cleanImgs = (Array.isArray(rawImgs) ? rawImgs : [rawImgs])
+          .map((img: string) => resolveDisplayImageUrl(img, p.category))
+          .filter(Boolean)
+
+        const finalPrice = Number(p.price || p.salePriceKrw || 0)
+        const finalOriginal = p.originalPrice ? Number(p.originalPrice) : (p.priceKrw ? Number(p.priceKrw) : undefined)
+
+        return {
+          id: p.id || `group-${idx + 1}`,
+          title: p.title || p.name || '모꼬 공동구매 상품',
+          description: p.description || '',
+          price: finalPrice,
+          originalPrice: finalOriginal && finalOriginal > finalPrice ? finalOriginal : undefined,
+          type: 'B2C_GROUP',
+          ownerType: p.ownerType || 'GROUP_DEAL',
+          category: p.category || '식품/신선',
+          images: cleanImgs.length > 0 ? cleanImgs : [getCategoryFallbackImage(p.category)],
+          sellerName: p.seller?.nickname || p.sellerName || '모꼬 공동구매',
+          shippingFee: Number(p.shippingFee || 0),
+          stock: Number(p.stock || 50),
+          targetQuantity: Number(p.targetQuantity || 20),
+          currentQuantity: Number(p.currentQuantity || 16),
+          status: p.status || 'ACTIVE',
+          salesCount: Number(p.currentQuantity || 16),
+          orderCount: Number(p.currentQuantity || 16),
+          rating: Number(p.rating || 4.9),
+          reviewCount: Number(p.reviewCount || 10),
+          deadline: p.createdAt && p.createdAt.includes('마감') ? p.createdAt : '마감임박',
+        }
+      })
+
+      setMarketProducts([...formattedNormal, ...formattedGroup])
+    }).catch((err) => {
+      console.warn('Market items load error:', err)
+    })
 
     getSudaPosts()
       .then((items) => {

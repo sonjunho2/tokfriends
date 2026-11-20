@@ -140,6 +140,24 @@ const INITIAL_MERCHANTS: MerchantItem[] = [
 
 const INITIAL_NORMAL_PRODUCTS: NormalProductItem[] = [
   {
+    id: 'np-hq-001',
+    merchantId: 'mer-hq',
+    merchantName: '모꼬(MOCCO) 본사 공식 직영관',
+    name: '[본사직영] 프리미엄 나주 특등급 햇배 5kg 세트 (산지직송)',
+    description: '당도 13브릭스 이상 엄선 나주 특등급 햇배 산지직송 명품 선물세트.',
+    priceKrw: 39000,
+    salePriceKrw: 32900,
+    stock: 200,
+    images: [
+      'https://images.unsplash.com/photo-1514756331096-242fdeb7004a?w=600&auto=format&fit=crop&q=80',
+    ],
+    category: 'FOOD',
+    status: NormalProductStatus.ACTIVE,
+    shippingFee: 0,
+    createdAt: new Date(Date.now() - 3600000 * 200).toISOString(),
+    updatedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+  },
+  {
     id: 'np-001',
     merchantId: 'mer-001',
     merchantName: '제주푸드 본사 직영',

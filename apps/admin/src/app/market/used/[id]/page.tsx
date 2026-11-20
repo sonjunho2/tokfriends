@@ -27,7 +27,7 @@ import { useWebAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/ui/use-toast'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { getMarketProductById } from '@/lib/api'
+import { getMarketProductById, getNormalProductById } from '@/lib/api'
 import { resolveDisplayImageUrl, getCategoryFallbackImage } from '@/lib/normalize'
 
 // Sample Used Products Mock Database
@@ -189,7 +189,7 @@ export default function UsedProductDetailPage() {
     async function loadData() {
       // 1. 실서버 및 백엔드 API에서 최신 등록 상품 상세 조회
       try {
-        const item = await getMarketProductById(productId)
+        const item = (await getMarketProductById(productId)) || (await getNormalProductById(productId))
         if (item && isMounted) {
           const rawImgs = Array.isArray(item.images)
             ? item.images
@@ -202,8 +202,8 @@ export default function UsedProductDetailPage() {
             id: item.id,
             title: item.title || item.name || '중고 거래 상품',
             category: item.category || '기타',
-            price: Number(item.price || 0),
-            originalPrice: item.originalPrice ? Number(item.originalPrice) : undefined,
+            price: Number(item.salePriceKrw ?? item.price ?? item.priceKrw ?? 0),
+            originalPrice: item.originalPrice ? Number(item.originalPrice) : (item.priceKrw ? Number(item.priceKrw) : undefined),
             locationName: item.locationName || item.region || '서울 강남구 역삼동',
             mannerTemp: Number(item.mannerTemp || item.seller?.mannerTemp || 36.5),
             sellerId: item.sellerId || item.seller?.id || 'user-unknown',
