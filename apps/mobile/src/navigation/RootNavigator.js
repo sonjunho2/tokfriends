@@ -350,11 +350,25 @@ export default function RootNavigator() {
   const { user, token, initializing, isOffline } = useAuth();
   useAuthStoreSync();
 
+  const tokenExists = Boolean(token);
+  const userHasIdentifier = Boolean(user) && Boolean(user.id || user._id);
+  const isSignedIn = tokenExists || userHasIdentifier;
+
   const [checkingInitialRoute, setCheckingInitialRoute] = React.useState(true);
   const [initialAuthRoute, setInitialAuthRoute] = React.useState('Onboarding');
+  const [forceReady, setForceReady] = React.useState(false);
 
   React.useEffect(() => {
     let isMounted = true;
+
+    // 1초 안전 타임아웃 (스플래시 영구 멈춤 방지)
+    const safetyTimer = setTimeout(() => {
+      if (isMounted) {
+        setForceReady(true);
+        setCheckingInitialRoute(false);
+      }
+    }, 800);
+
     async function checkFlow() {
       try {
         const onboarded = await AsyncStorage.getItem('@mocco_onboarded');
@@ -377,8 +391,10 @@ export default function RootNavigator() {
       }
     }
     checkFlow();
+
     return () => {
       isMounted = false;
+      clearTimeout(safetyTimer);
     };
   }, []);
 
@@ -391,7 +407,7 @@ export default function RootNavigator() {
   }, [isSignedIn]);
 
   // 초기화 중이거나 온보딩 상태 검사 중: 깔끔한 tokens.colors.background(#F8FAFC) + #FF3B6B 스피너 렌더링
-  if (initializing || checkingInitialRoute) {
+  if (!forceReady && (initializing || checkingInitialRoute)) {
     return (
       <View style={styles.splashContainer}>
         <View style={styles.splashBrandBox}>
@@ -405,10 +421,6 @@ export default function RootNavigator() {
       </View>
     );
   }
-
-  const tokenExists = Boolean(token);
-  const userHasIdentifier = Boolean(user) && Boolean(user.id || user._id);
-  const isSignedIn = tokenExists || userHasIdentifier;
 
   return (
     <View style={{ flex: 1, backgroundColor: tokens.colors.background }}>
