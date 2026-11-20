@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '../../theme/tokens';
 import * as ImagePicker from 'expo-image-picker';
+import apiClient from '../../api/client';
 import {
   MARKET_CATEGORIES,
   createMarketProduct,
@@ -107,13 +108,35 @@ export default function MarketCreateScreen({ navigation }: any) {
 
     setSubmitting(true);
     try {
+      // 갤러리 로컬 사진(file://, content://)이 있을 경우 서버 미디어 저장소로 선제 업로드
+      const uploadedImages: string[] = [];
+      for (const imgUri of images) {
+        if (imgUri && (imgUri.startsWith('file:') || imgUri.startsWith('content:'))) {
+          try {
+            const upRes = await apiClient.uploadChatMedia({ uri: imgUri });
+            if (upRes?.url) {
+              uploadedImages.push(upRes.url);
+            } else {
+              uploadedImages.push(imgUri);
+            }
+          } catch (upErr) {
+            console.warn('[MarketCreate] Media upload failed, keeping original uri:', upErr);
+            uploadedImages.push(imgUri);
+          }
+        } else if (imgUri) {
+          uploadedImages.push(imgUri);
+        }
+      }
+
+      const finalImages = uploadedImages.length > 0 ? uploadedImages : images;
+
       await createMarketProduct({
         type: 'C2C_USED',
         title: title.trim(),
         description: description.trim(),
         category,
         price: numPrice,
-        images,
+        images: finalImages,
         status: 'ACTIVE',
         locationName: locationName.trim() || '전국 (택배/직거래)',
         distanceKm: 0.5,

@@ -2807,6 +2807,28 @@ export async function getMarketProducts(params?: any): Promise<any[]> {
   }
 }
 
+export async function getMarketProductById(id: string): Promise<any> {
+  try {
+    const res = await api.get(`/market/products/${id}`)
+    const data = res?.data ?? res
+    return data?.item || data?.product || data
+  } catch (err) {
+    console.warn(`getMarketProductById(${id}) error:`, err)
+    return null
+  }
+}
+
+export async function getNormalProductById(id: string): Promise<any> {
+  try {
+    const res = await api.get(`/merchants/products/${id}`)
+    const data = res?.data ?? res
+    return data?.item || data?.product || data
+  } catch (err) {
+    console.warn(`getNormalProductById(${id}) error:`, err)
+    return null
+  }
+}
+
 export async function createMarketProduct(payload: any): Promise<any> {
   const res = await api.post('/market/products', payload)
   return res?.data ?? res

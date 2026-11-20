@@ -38,6 +38,8 @@ import { useWebAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/ui/use-toast'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { getMarketProductById, getNormalProductById } from '@/lib/api'
+import { resolveDisplayImageUrl, getCategoryFallbackImage } from '@/lib/normalize'
 
 // Sample product database for mock fallback & real match
 const SAMPLE_MARKET_PRODUCTS: Record<string, any> = {
@@ -356,87 +358,162 @@ export default function MarketProductDetailPage() {
   }
 
   useEffect(() => {
-    // 1. Check local samples
-    let found = SAMPLE_MARKET_PRODUCTS[productId]
+    let isMounted = true
 
-    // 2. Check localStorage for custom products (merchant registered & HQ PB)
-    if (!found && typeof window !== 'undefined') {
+    async function loadData() {
+      // 1. Check API first (normal merchants product or market product)
       try {
-        const customProds = JSON.parse(localStorage.getItem('mocco_custom_products') || '[]')
-        const matchCustom = Array.isArray(customProds)
-          ? customProds.find((p: any) => p.id === productId)
-          : null
-        if (matchCustom) found = matchCustom
+        const item = (await getNormalProductById(productId)) || (await getMarketProductById(productId))
+        if (item && isMounted) {
+          const rawImgs = Array.isArray(item.images)
+            ? item.images
+            : (typeof item.images === 'string' ? (() => { try { return JSON.parse(item.images) } catch { return [item.images] } })() : [item.image || item.thumbnailUrl])
+          const cleanImgs = (Array.isArray(rawImgs) ? rawImgs : [rawImgs])
+            .map((img: string) => resolveDisplayImageUrl(img, item.category))
+            .filter(Boolean)
 
-        if (!found) {
-          const hqProds = JSON.parse(localStorage.getItem('mocco_hq_direct_products') || '[]')
-          const matchHq = Array.isArray(hqProds)
-            ? hqProds.find((p: any) => p.id === productId)
-            : null
-          if (matchHq) found = matchHq
+          setProduct({
+            id: item.id,
+            name: item.name || item.title || '모꼬 마켓 상품',
+            category: item.category || '일반/생활',
+            type: item.type || (productId.startsWith('gp') ? 'B2C_GROUP' : 'B2C_NORMAL'),
+            price: Number(item.price || item.salePriceKrw || 0),
+            originalPrice: item.originalPrice ? Number(item.originalPrice) : undefined,
+            stock: Number(item.stock || 100),
+            targetQuantity: item.targetQuantity || (item.type === 'B2C_GROUP' ? 30 : undefined),
+            currentQuantity: item.currentQuantity || (item.type === 'B2C_GROUP' ? 22 : undefined),
+            shippingFee: Number(item.shippingFee || 0),
+            images: cleanImgs.length > 0 ? cleanImgs : [getCategoryFallbackImage(item.category)],
+            description: item.description || '대한민국 전자상거래법 및 모꼬 안심 에스크로 100% 안전결제로 보호되는 공식 등록 상품입니다.',
+            merchantInfo: {
+              businessName: item.sellerName || item.merchantName || item.merchantInfo?.businessName || '(주)모꼬 파트너스 공식인증사',
+              representative: item.merchantInfo?.representative || '정진우',
+              businessNumber: item.merchantInfo?.businessNumber || '123-86-12345',
+              onlineOrderNumber: item.merchantInfo?.onlineOrderNumber || '제2026-서울강남-0123호',
+              address: item.merchantInfo?.address || '서울시 강남구 테헤란로 152 강남파이낸스센터 12층',
+              contactPhone: item.csPhone || item.merchantInfo?.contactPhone || '1588-0000',
+              customerServiceHours: item.merchantInfo?.customerServiceHours || '평일 09:30 ~ 18:00',
+            },
+            noticeInfo: {
+              itemModelName: item.title || item.name || `모꼬 프리미엄 상품 (${productId})`,
+              certification: 'KC안전인증 또는 식품위생법 안전검사 적합',
+              origin: item.origin || '대한민국 (국산 100%)',
+              manufacturer: item.manufacturer || '모꼬 제휴 공식 제조라인',
+              expirationDate: '제조일로부터 12개월 (포장별도표기)',
+              asContact: item.csPhone || '1588-0000 고객센터',
+            },
+            shippingInfo: {
+              courierName: 'CJ대한통운 안심택배',
+              deliveryDays: item.type === 'B2C_GROUP' ? '목표 달성 시 당일 일괄 출고' : '오후 2시 이전 주문 시 당일 발송',
+              returnFee: 3000,
+              exchangeFee: 6000,
+              returnAddress: '경기도 이천시 모꼬안심물류센터',
+              nonReturnableReasons: [
+                '소비자의 책임 있는 사유로 상품 등이 멸실 또는 훼손된 경우',
+                '포장을 훼손하여 상품 가치가 현저히 상실된 경우',
+              ],
+            },
+            orderCount: Number(item.orderCount || item.salesCount || 10),
+            rating: Number(item.rating || 4.9),
+            reviewCount: Number(item.reviewCount || 5),
+          })
+          setLoading(false)
+          return
         }
-      } catch (e) {
-        console.warn('Failed to parse custom products', e)
+      } catch (err) {
+        console.warn('API fetch error in MarketProductDetailPage:', err)
+      }
+
+      // 2. Check local samples
+      let found = SAMPLE_MARKET_PRODUCTS[productId]
+
+      // 3. Check localStorage for custom products (merchant registered & HQ PB)
+      if (!found && typeof window !== 'undefined') {
+        try {
+          const customProds = JSON.parse(localStorage.getItem('mocco_custom_products') || '[]')
+          const matchCustom = Array.isArray(customProds)
+            ? customProds.find((p: any) => p.id === productId)
+            : null
+          if (matchCustom) found = matchCustom
+
+          if (!found) {
+            const hqProds = JSON.parse(localStorage.getItem('mocco_hq_direct_products') || '[]')
+            const matchHq = Array.isArray(hqProds)
+              ? hqProds.find((p: any) => p.id === productId)
+              : null
+            if (matchHq) found = matchHq
+          }
+        } catch (e) {
+          console.warn('Failed to parse custom products', e)
+        }
+      }
+
+      if (found && isMounted) {
+        setProduct(found)
+        if (found.hasOptions && Array.isArray(found.options) && found.options.length > 0) {
+          setSelectedOptionId(found.options[0].id)
+        }
+        setLoading(false)
+        return
+      }
+
+      // 4. Fallback default item
+      if (isMounted) {
+        const isGroupFallback = productId.startsWith('gp') || productId.includes('group')
+        setProduct({
+          id: productId,
+          name: isGroupFallback ? `[특가공구] 모꼬 한정 수량 공동구매 특가 (${productId})` : `[모꼬 엄선] 마켓 프리미엄 상품 (${productId})`,
+          category: isGroupFallback ? '특가/공구' : '일반/생활',
+          type: isGroupFallback ? 'B2C_GROUP' : 'B2C_NORMAL',
+          price: isGroupFallback ? 29000 : 49000,
+          originalPrice: isGroupFallback ? 49000 : 65000,
+          stock: 50,
+          targetQuantity: isGroupFallback ? 50 : undefined,
+          currentQuantity: isGroupFallback ? 38 : undefined,
+          shippingFee: isGroupFallback ? 0 : 3000,
+          images: [getCategoryFallbackImage(isGroupFallback ? '식품/공구' : '일반/생활')],
+          description: isGroupFallback
+            ? '한정 수량 목표 인원 달성 시 파격 특가로 일괄 배송되는 모꼬 단독 공동구매 상품입니다. 미달성 시 100% 자동 전액 환불됩니다.'
+            : '대한민국 전자상거래법 및 모꼬 안심 에스크로 100% 안전결제로 보호되는 공식 등록 상품입니다.',
+          merchantInfo: {
+            businessName: '(주)모꼬 파트너스 공식인증사',
+            representative: '정진우',
+            businessNumber: '123-86-12345',
+            onlineOrderNumber: '제2026-서울강남-0123호',
+            address: '서울시 강남구 테헤란로 152 강남파이낸스센터 12층',
+            contactPhone: '1588-0000',
+            customerServiceHours: '평일 09:30 ~ 18:00',
+          },
+          noticeInfo: {
+            itemModelName: `모꼬 프리미엄 상품 (${productId})`,
+            certification: 'KC안전인증 또는 식품위생법 안전검사 적합',
+            origin: '대한민국 (국산 100%)',
+            manufacturer: '모꼬 제휴 공식 제조라인',
+            expirationDate: '제조일로부터 12개월 (포장별도표기)',
+            asContact: '1588-0000 고객센터',
+          },
+          shippingInfo: {
+            courierName: 'CJ대한통운 안심택배',
+            deliveryDays: isGroupFallback ? '목표 달성 시 당일 일괄 출고' : '오후 2시 이전 주문 시 당일 발송',
+            returnFee: 3000,
+            exchangeFee: 6000,
+            returnAddress: '경기도 이천시 모꼬안심물류센터',
+            nonReturnableReasons: [
+              '소비자의 책임 있는 사유로 상품 등이 멸실 또는 훼손된 경우',
+              '포장을 훼손하여 상품 가치가 현저히 상실된 경우',
+            ],
+          },
+          orderCount: 120,
+          rating: 4.8,
+          reviewCount: 35,
+        })
+        setLoading(false)
       }
     }
 
-    if (found) {
-      setProduct(found)
-      if (found.hasOptions && Array.isArray(found.options) && found.options.length > 0) {
-        setSelectedOptionId(found.options[0].id)
-      }
-      setLoading(false)
-    } else {
-      // Fallback default item
-      const isGroupFallback = productId.startsWith('gp') || productId.includes('group');
-      setProduct({
-        id: productId,
-        name: isGroupFallback ? `[특가공구] 모꼬 한정 수량 공동구매 특가 (${productId})` : `[모꼬 엄선] 마켓 프리미엄 상품 (${productId})`,
-        category: isGroupFallback ? '특가/공구' : '일반/생활',
-        type: isGroupFallback ? 'B2C_GROUP' : 'B2C_NORMAL',
-        price: isGroupFallback ? 29000 : 49000,
-        originalPrice: isGroupFallback ? 49000 : 65000,
-        stock: 50,
-        targetQuantity: isGroupFallback ? 50 : undefined,
-        currentQuantity: isGroupFallback ? 38 : undefined,
-        shippingFee: isGroupFallback ? 0 : 3000,
-        images: ['https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1000'],
-        description: isGroupFallback
-          ? '한정 수량 목표 인원 달성 시 파격 특가로 일괄 배송되는 모꼬 단독 공동구매 상품입니다. 미달성 시 100% 자동 전액 환불됩니다.'
-          : '대한민국 전자상거래법 및 모꼬 안심 에스크로 100% 안전결제로 보호되는 공식 등록 상품입니다.',
-        merchantInfo: {
-          businessName: '(주)모꼬 파트너스 공식인증사',
-          representative: '정진우',
-          businessNumber: '123-86-12345',
-          onlineOrderNumber: '제2026-서울강남-0123호',
-          address: '서울시 강남구 테헤란로 152 강남파이낸스센터 12층',
-          contactPhone: '1588-0000',
-          customerServiceHours: '평일 09:30 ~ 18:00',
-        },
-        noticeInfo: {
-          itemModelName: `모꼬 프리미엄 상품 (${productId})`,
-          certification: 'KC안전인증 또는 식품위생법 안전검사 적합',
-          origin: '대한민국 (국산 100%)',
-          manufacturer: '모꼬 제휴 공식 제조라인',
-          expirationDate: '제조일로부터 12개월 (포장별도표기)',
-          asContact: '1588-0000 고객센터',
-        },
-        shippingInfo: {
-          courierName: 'CJ대한통운 안심택배',
-          deliveryDays: isGroupFallback ? '목표 달성 시 당일 일괄 출고' : '오후 2시 이전 주문 시 당일 발송',
-          returnFee: 3000,
-          exchangeFee: 6000,
-          returnAddress: '경기도 이천시 모꼬안심물류센터',
-          nonReturnableReasons: [
-            '소비자의 책임 있는 사유로 상품 등이 멸실 또는 훼손된 경우',
-            '포장을 훼손하여 상품 가치가 현저히 상실된 경우',
-          ],
-        },
-        orderCount: 120,
-        rating: 4.8,
-        reviewCount: 35,
-      })
-      setLoading(false)
+    loadData()
+    return () => {
+      isMounted = false
     }
   }, [productId])
 

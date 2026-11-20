@@ -27,6 +27,8 @@ import { useWebAuth } from '@/lib/auth-context'
 import { useToast } from '@/components/ui/use-toast'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { getMarketProductById } from '@/lib/api'
+import { resolveDisplayImageUrl, getCategoryFallbackImage } from '@/lib/normalize'
 
 // Sample Used Products Mock Database
 const SAMPLE_USED_ITEMS: Record<string, any> = {
@@ -180,39 +182,105 @@ export default function UsedProductDetailPage() {
   const [isSafeBuyModalOpen, setIsSafeBuyModalOpen] = useState(false)
   const [safeBuyStep, setSafeBuyStep] = useState<'CONFIRM' | 'SUCCESS'>('CONFIRM')
 
-  // Load product data
+  // Load product data (실시간 백엔드 API 우선 조회 + 캐시/샘플 fallback)
   useEffect(() => {
-    const found = SAMPLE_USED_ITEMS[productId]
-    if (found) {
-      setProduct(found)
-    } else {
-      // Fallback
-      setProduct({
-        id: productId,
-        title: `[중고매물] 직거래 안심 중고물품 (${productId})`,
-        category: '디지털/생활',
-        price: 350000,
-        originalPrice: 500000,
-        locationName: '서울 강남구 역삼동',
-        mannerTemp: 36.5,
-        sellerId: 'user-unknown',
-        sellerNickname: '모꼬이웃',
-        sellerAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500',
-        verifiedNeighborhood: '서울 강남구 역삼1동 (인증 완료)',
-        responseRate: '15분 이내 응답',
-        usedCondition: 'A급 (정상 작동)',
-        canProposePrice: false,
-        tradeType: '직거래 / 안전택배',
-        tradeLocationDetail: '역삼역 부근 협의',
-        images: ['https://images.unsplash.com/photo-1511707171634-5f897ff02560?w=800'],
-        description: `상태 양호하며 직거래 또는 모꼬 에스크로 안전결제로 거래 가능합니다.
-궁금하신 점은 거래톡으로 편하게 문의주세요!`,
-        likesCount: 12,
-        chatsCount: 3,
-        viewsCount: 154,
-        createdAt: '방금 전',
-        otherItems: [],
-      })
+    let isMounted = true
+
+    async function loadData() {
+      // 1. 실서버 및 백엔드 API에서 최신 등록 상품 상세 조회
+      try {
+        const item = await getMarketProductById(productId)
+        if (item && isMounted) {
+          const rawImgs = Array.isArray(item.images)
+            ? item.images
+            : (typeof item.images === 'string' ? (() => { try { return JSON.parse(item.images) } catch { return [item.images] } })() : [item.image])
+          const cleanImgs = (Array.isArray(rawImgs) ? rawImgs : [rawImgs])
+            .map((img: string) => resolveDisplayImageUrl(img, item.category))
+            .filter(Boolean)
+
+          setProduct({
+            id: item.id,
+            title: item.title || item.name || '중고 거래 상품',
+            category: item.category || '기타',
+            price: Number(item.price || 0),
+            originalPrice: item.originalPrice ? Number(item.originalPrice) : undefined,
+            locationName: item.locationName || item.region || '서울 강남구 역삼동',
+            mannerTemp: Number(item.mannerTemp || item.seller?.mannerTemp || 36.5),
+            sellerId: item.sellerId || item.seller?.id || 'user-unknown',
+            sellerNickname: item.seller?.nickname || item.sellerNickname || '모꼬이웃',
+            sellerAvatar: resolveDisplayImageUrl(item.seller?.avatarUrl || item.seller?.avatar || item.sellerAvatar) || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500',
+            verifiedNeighborhood: item.verifiedNeighborhood || `${item.locationName || '서울 강남구'} (인증 완료)`,
+            responseRate: item.responseRate || '10분 이내 응답 (98%)',
+            usedCondition: item.usedCondition || 'A급 (정상 작동)',
+            canProposePrice: Boolean(item.canProposePrice),
+            tradeType: item.tradeType || '직거래 / 안전택배',
+            tradeLocationDetail: item.tradeLocationDetail || '역삼역 부근 협의',
+            images: cleanImgs.length > 0 ? cleanImgs : [getCategoryFallbackImage(item.category)],
+            description: item.description || '상태 양호하며 직거래 또는 모꼬 에스크로 안전결제로 거래 가능합니다.',
+            likesCount: Number(item.likesCount || 0),
+            chatsCount: Number(item.chatsCount || 0),
+            viewsCount: Number(item.viewsCount || 10),
+            createdAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '방금 전',
+            otherItems: item.otherItems || [],
+          })
+          return
+        }
+      } catch (err) {
+        console.warn('getMarketProductById error:', err)
+      }
+
+      // 2. Mock 샘플 매물 확인
+      const found = SAMPLE_USED_ITEMS[productId]
+      if (found && isMounted) {
+        setProduct(found)
+        return
+      }
+
+      // 3. 브라우저 localStorage 확인
+      if (typeof window !== 'undefined') {
+        try {
+          const storedUsed = JSON.parse(localStorage.getItem('mocco_custom_used') || '[]')
+          const custom = storedUsed.find((u: any) => u.id === productId)
+          if (custom && isMounted) {
+            setProduct(custom)
+            return
+          }
+        } catch {}
+      }
+
+      // 4. Fallback (ID 유지)
+      if (isMounted) {
+        setProduct({
+          id: productId,
+          title: `[중고매물] 직거래 안심 중고물품 (${productId})`,
+          category: '디지털/생활',
+          price: 350000,
+          originalPrice: 500000,
+          locationName: '서울 강남구 역삼동',
+          mannerTemp: 36.5,
+          sellerId: 'user-unknown',
+          sellerNickname: '모꼬이웃',
+          sellerAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500',
+          verifiedNeighborhood: '서울 강남구 역삼1동 (인증 완료)',
+          responseRate: '15분 이내 응답',
+          usedCondition: 'A급 (정상 작동)',
+          canProposePrice: false,
+          tradeType: '직거래 / 안전택배',
+          tradeLocationDetail: '역삼역 부근 협의',
+          images: [getCategoryFallbackImage('디지털/생활')],
+          description: `상태 양호하며 직거래 또는 모꼬 에스크로 안전결제로 거래 가능합니다.\n궁금하신 점은 거래톡으로 편하게 문의주세요!`,
+          likesCount: 12,
+          chatsCount: 3,
+          viewsCount: 154,
+          createdAt: '방금 전',
+          otherItems: [],
+        })
+      }
+    }
+
+    loadData()
+    return () => {
+      isMounted = false
     }
   }, [productId])
 
@@ -380,16 +448,22 @@ export default function UsedProductDetailPage() {
         >
           {/* 배경 은은한 블러 레이어 (여백이 생겨도 미려하고 어색하지 않음) */}
           <img
-            src={product.images[activeImageIdx]}
+            src={product.images[activeImageIdx] || getCategoryFallbackImage(product.category)}
             alt=""
             aria-hidden="true"
+            onError={(e) => {
+              ;(e.target as HTMLImageElement).src = getCategoryFallbackImage(product.category)
+            }}
             className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-20 scale-110 pointer-events-none"
           />
 
           {/* 메인 실물 사진 (고정 프레임 안에서 왜곡/비율 깨짐 없이 항상 정비율 핏) */}
           <img
-            src={product.images[activeImageIdx]}
+            src={product.images[activeImageIdx] || getCategoryFallbackImage(product.category)}
             alt={product.title}
+            onError={(e) => {
+              ;(e.target as HTMLImageElement).src = getCategoryFallbackImage(product.category)
+            }}
             className="relative z-10 max-w-full max-h-full object-contain transition-transform duration-300"
           />
 

@@ -188,15 +188,63 @@ export function normalizeAdminUserDetail(payload: unknown, fallbackId: string): 
 /**
  * 미디어 파일 URL을 브라우저 보안(CORS/CORP) 제약 없이 로드할 수 있도록 프록시 또는 원본으로 변환
  */
-export function resolveDisplayImageUrl(url: string | null | undefined): string {
-  if (!url || typeof url !== 'string') return ''
+export function getCategoryFallbackImage(category?: string): string {
+  const cat = (category || '').toUpperCase()
+  if (cat.includes('BEAUTY') || cat.includes('화장') || cat.includes('뷰티') || cat.includes('감성')) {
+    return 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800'
+  }
+  if (cat.includes('FURNITURE') || cat.includes('가구') || cat.includes('인테리어')) {
+    return 'https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=800'
+  }
+  if (cat.includes('DIGITAL') || cat.includes('가전') || cat.includes('스마트') || cat.includes('폰')) {
+    return 'https://images.unsplash.com/photo-1511707171634-5f897ff02560?w=800'
+  }
+  if (cat.includes('FASHION') || cat.includes('패션') || cat.includes('의류') || cat.includes('잡화')) {
+    return 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800'
+  }
+  if (cat.includes('SPORTS') || cat.includes('캠핑') || cat.includes('스포츠') || cat.includes('레저')) {
+    return 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800'
+  }
+  if (cat.includes('FOOD') || cat.includes('식품') || cat.includes('신선') || cat.includes('공구')) {
+    return 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800'
+  }
+  return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'
+}
+
+/**
+ * 이미지 URL 정규화 헬퍼 (웹 브라우저 및 관리자 화면용)
+ * 모바일 로컬 file:/// 경로는 브라우저 보안상 로드가 불가하므로 카테고리별 고화질 대체 이미지로 변환합니다.
+ */
+export function resolveDisplayImageUrl(url: string | null | undefined, category?: string): string {
+  if (!url || typeof url !== 'string') return getCategoryFallbackImage(category)
   const trimmed = url.trim()
   if (trimmed.startsWith('data:image/') || trimmed.startsWith('blob:')) return trimmed
+
+  // 모바일 로컬 기기 전용 file:// 및 content:// 경로는 웹 브라우저 로딩 불가
+  if (trimmed.startsWith('file:') || trimmed.startsWith('content:')) {
+    return getCategoryFallbackImage(category)
+  }
+
+  // 실서버 및 백엔드 미디어 정규화
   if (trimmed.includes('/v1/media/files/')) {
     const filename = trimmed.split('/v1/media/files/')[1]
     if (filename) {
-      return `/api/backend/media/files/${filename}`
+      return `https://tok-friends-api.onrender.com/v1/media/files/${filename}`
     }
   }
+  if (trimmed.startsWith('/media/files/')) {
+    return `https://tok-friends-api.onrender.com/v1${trimmed}`
+  }
+  if (trimmed.startsWith('/api/backend/media/files/')) {
+    const filename = trimmed.split('/api/backend/media/files/')[1]
+    if (filename) {
+      return `https://tok-friends-api.onrender.com/v1/media/files/${filename}`
+    }
+  }
+  if (trimmed.startsWith('http://localhost:4000/v1/media/files/')) {
+    const filename = trimmed.split('http://localhost:4000/v1/media/files/')[1]
+    return `https://tok-friends-api.onrender.com/v1/media/files/${filename}`
+  }
+
   return trimmed
 }

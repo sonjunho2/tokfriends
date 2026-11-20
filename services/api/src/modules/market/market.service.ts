@@ -126,12 +126,17 @@ export class MarketService {
       }
     }
 
-    if (mergedItems.length > 0) {
+    const sanitizedItems = mergedItems.map((p) => ({
+      ...p,
+      images: this.sanitizeProductImages(p.images, p.category),
+    }));
+
+    if (sanitizedItems.length > 0) {
       return {
-        items: mergedItems.slice(0, limit),
-        total: Math.max(mergedItems.length, dbTotal),
+        items: sanitizedItems.slice(0, limit),
+        total: Math.max(sanitizedItems.length, dbTotal),
         page,
-        totalPages: Math.ceil(Math.max(mergedItems.length, dbTotal) / limit),
+        totalPages: Math.ceil(Math.max(sanitizedItems.length, dbTotal) / limit),
       };
     }
 
@@ -196,6 +201,51 @@ export class MarketService {
     };
   }
 
+  private sanitizeProductImages(images: any, category?: string): string[] {
+    let arr = images;
+    if (typeof arr === 'string') {
+      try {
+        arr = JSON.parse(arr);
+      } catch {
+        arr = [arr];
+      }
+    }
+    if (!Array.isArray(arr) || arr.length === 0) {
+      return [this.getFallbackCategoryImg(category)];
+    }
+    return arr.map((u: any) => {
+      if (!u || typeof u !== 'string') return this.getFallbackCategoryImg(category);
+      const trimmed = u.trim();
+      if (trimmed.startsWith('file:') || trimmed.startsWith('content:')) {
+        return this.getFallbackCategoryImg(category);
+      }
+      return trimmed;
+    });
+  }
+
+  private getFallbackCategoryImg(category?: string): string {
+    const cat = (category || '').toUpperCase();
+    if (cat.includes('BEAUTY') || cat.includes('화장') || cat.includes('뷰티') || cat.includes('감성')) {
+      return 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800';
+    }
+    if (cat.includes('FURNITURE') || cat.includes('가구') || cat.includes('인테리어')) {
+      return 'https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=800';
+    }
+    if (cat.includes('DIGITAL') || cat.includes('가전') || cat.includes('스마트')) {
+      return 'https://images.unsplash.com/photo-1511707171634-5f897ff02560?w=800';
+    }
+    if (cat.includes('FASHION') || cat.includes('패션') || cat.includes('의류')) {
+      return 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800';
+    }
+    if (cat.includes('SPORTS') || cat.includes('캠핑') || cat.includes('스포츠')) {
+      return 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800';
+    }
+    if (cat.includes('FOOD') || cat.includes('식품') || cat.includes('신선')) {
+      return 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800';
+    }
+    return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800';
+  }
+
   /**
    * 상품 상세 조회
    */
@@ -217,13 +267,21 @@ export class MarketService {
       });
 
       if (product) {
-        return product;
+        return {
+          ...product,
+          images: this.sanitizeProductImages(product.images, product.category),
+        };
       }
     } catch {}
 
     const listRes = await this.listProducts({ page: 1, limit: 50 });
     const fallback = listRes.items.find((p: any) => p.id === id);
-    if (fallback) return fallback;
+    if (fallback) {
+      return {
+        ...fallback,
+        images: this.sanitizeProductImages(fallback.images, fallback.category),
+      };
+    }
 
     throw new NotFoundException('상품을 찾을 수 없습니다.');
   }

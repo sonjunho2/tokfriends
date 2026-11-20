@@ -123,7 +123,7 @@ import {
   getChatMessages,
   uploadChatMedia,
 } from '@/lib/api'
-import { resolveDisplayImageUrl } from '@/lib/normalize'
+import { resolveDisplayImageUrl, getCategoryFallbackImage } from '@/lib/normalize'
 import { io } from 'socket.io-client'
 import { ToastAction } from '@/components/ui/toast'
 import {
@@ -3768,23 +3768,32 @@ export default function CustomerWebStorefrontPage() {
     getMarketProducts()
       .then((items) => {
         if (Array.isArray(items) && items.length > 0) {
-          const formatted: UsedProductItem[] = items.map((p, idx) => ({
-            id: p.id || `used-${idx + 1}`,
-            title: p.title || p.name || '중고 매물',
-            description: p.description || '',
-            price: Number(p.price || 0),
-            category: p.category || '기타',
-            locationName: p.region || p.locationName || '서울 강남구',
-            sellerNickname: p.seller?.nickname || p.sellerNickname || '모꼬 이웃',
-            sellerAvatar: p.seller?.avatar || p.sellerAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
-            mannerTemp: Number(p.mannerTemp || 36.5),
-            images: Array.isArray(p.images) && p.images.length > 0 ? p.images : [p.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500'],
-            likesCount: Number(p.likesCount || p.likes || 0),
-            chatsCount: Number(p.chatsCount || p.chats || 0),
-            createdAt: p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '최근',
-            status: p.status || 'ACTIVE',
-            allowLiveSale: Boolean(p.allowLiveSale),
-          }))
+          const formatted: UsedProductItem[] = items.map((p, idx) => {
+            const rawImgs = Array.isArray(p.images) && p.images.length > 0
+              ? p.images
+              : (typeof p.images === 'string' ? (() => { try { return JSON.parse(p.images) } catch { return [p.images] } })() : [p.image])
+            const cleanImgs = (Array.isArray(rawImgs) ? rawImgs : [rawImgs])
+              .map((img: string) => resolveDisplayImageUrl(img, p.category))
+              .filter(Boolean)
+
+            return {
+              id: p.id || `used-${idx + 1}`,
+              title: p.title || p.name || '중고 매물',
+              description: p.description || '',
+              price: Number(p.price || 0),
+              category: p.category || '기타',
+              locationName: p.region || p.locationName || '서울 강남구',
+              sellerNickname: p.seller?.nickname || p.sellerNickname || '모꼬 이웃',
+              sellerAvatar: resolveDisplayImageUrl(p.seller?.avatarUrl || p.seller?.avatar || p.sellerAvatar) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+              mannerTemp: Number(p.mannerTemp || 36.5),
+              images: cleanImgs.length > 0 ? cleanImgs : [getCategoryFallbackImage(p.category)],
+              likesCount: Number(p.likesCount || p.likes || 0),
+              chatsCount: Number(p.chatsCount || p.chats || 0),
+              createdAt: p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '최근',
+              status: p.status || 'ACTIVE',
+              allowLiveSale: Boolean(p.allowLiveSale),
+            }
+          })
           setUsedProducts(formatted)
         }
       })
@@ -3793,25 +3802,34 @@ export default function CustomerWebStorefrontPage() {
     getNormalProducts()
       .then((items) => {
         if (Array.isArray(items) && items.length > 0) {
-          const formatted: MarketProductItem[] = items.map((p, idx) => ({
-            id: p.id || `prod-${idx + 1}`,
-            title: p.title || p.name || '모꼬 마켓 상품',
-            description: p.description || '',
-            price: Number(p.price || 0),
-            originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
-            type: p.type || 'B2C_NORMAL',
-            ownerType: p.ownerType || 'MERCHANT',
-            category: p.category || '라이프스타일',
-            images: Array.isArray(p.images) && p.images.length > 0 ? p.images : [p.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500'],
-            sellerName: p.merchantName || p.sellerName || '모꼬 공식 파트너',
-            shippingFee: Number(p.shippingFee || 0),
-            stock: Number(p.stock || 999),
-            status: p.status || 'ACTIVE',
-            salesCount: Number(p.salesCount || 0),
-            orderCount: Number(p.orderCount || 0),
-            rating: Number(p.rating || 5.0),
-            reviewCount: Number(p.reviewCount || 0),
-          }))
+          const formatted: MarketProductItem[] = items.map((p, idx) => {
+            const rawImgs = Array.isArray(p.images) && p.images.length > 0
+              ? p.images
+              : (typeof p.images === 'string' ? (() => { try { return JSON.parse(p.images) } catch { return [p.images] } })() : [p.image])
+            const cleanImgs = (Array.isArray(rawImgs) ? rawImgs : [rawImgs])
+              .map((img: string) => resolveDisplayImageUrl(img, p.category))
+              .filter(Boolean)
+
+            return {
+              id: p.id || `prod-${idx + 1}`,
+              title: p.title || p.name || '모꼬 마켓 상품',
+              description: p.description || '',
+              price: Number(p.price || 0),
+              originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
+              type: p.type || 'B2C_NORMAL',
+              ownerType: p.ownerType || 'MERCHANT',
+              category: p.category || '라이프스타일',
+              images: cleanImgs.length > 0 ? cleanImgs : [getCategoryFallbackImage(p.category)],
+              sellerName: p.merchantName || p.sellerName || '모꼬 공식 파트너',
+              shippingFee: Number(p.shippingFee || 0),
+              stock: Number(p.stock || 999),
+              status: p.status || 'ACTIVE',
+              salesCount: Number(p.salesCount || 0),
+              orderCount: Number(p.orderCount || 0),
+              rating: Number(p.rating || 5.0),
+              reviewCount: Number(p.reviewCount || 0),
+            }
+          })
           setMarketProducts(formatted)
         }
       })
@@ -5637,8 +5655,11 @@ export default function CustomerWebStorefrontPage() {
                           <div>
                             <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
                               <img
-                                src={item.images[0]}
+                                src={resolveDisplayImageUrl(item.images[0], item.category)}
                                 alt={item.title}
+                                onError={(e) => {
+                                  ;(e.target as HTMLImageElement).src = getCategoryFallbackImage(item.category)
+                                }}
                                 className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                               <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
@@ -6090,8 +6111,11 @@ export default function CustomerWebStorefrontPage() {
                     >
                       <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
                         <img
-                          src={item.images[0]}
+                          src={resolveDisplayImageUrl(item.images[0], item.category)}
                           alt={item.title}
+                          onError={(e) => {
+                            ;(e.target as HTMLImageElement).src = getCategoryFallbackImage(item.category)
+                          }}
                           className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                         <Badge className="absolute bottom-2 left-2 bg-black/60 text-white text-[9px] font-semibold border-none">
@@ -6582,8 +6606,11 @@ export default function CustomerWebStorefrontPage() {
                           >
                             <div className="aspect-square w-full bg-slate-100 overflow-hidden relative">
                               <img
-                                src={item.images[0]}
+                                src={resolveDisplayImageUrl(item.images[0], item.category)}
                                 alt={item.title}
+                                onError={(e) => {
+                                  ;(e.target as HTMLImageElement).src = getCategoryFallbackImage(item.category)
+                                }}
                                 className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                               <Badge className="absolute top-2 left-2 bg-orange-600 text-white text-[10px] font-bold border-none">
