@@ -210,25 +210,28 @@ export default function LiveRoomScreen({ navigation, route }) {
 
     // 2. 백엔드 방 상세 또는 핀 상품 ID 조회
     if (roomId) {
-      apiClient.getLiveRoomById(roomId)
-        .then((res) => {
-          if (!mounted) return;
-          const liveData = res?.room || res?.data || res;
-          if (liveData?.pinnedProduct) {
-            setPinnedProduct(liveData.pinnedProduct);
-            setIsPinVisible(true);
-          } else if (liveData?.pinnedProductId) {
-            fetchMarketProductById(liveData.pinnedProductId)
-              .then((p) => {
-                if (mounted && p) {
-                  setPinnedProduct(p);
-                  setIsPinVisible(true);
-                }
-              })
-              .catch(() => {});
-          }
-        })
-        .catch(() => {});
+      const getRoomFn = apiClient.getLiveRoom?.bind(apiClient) || apiClient.getLiveRoomById?.bind(apiClient);
+      if (typeof getRoomFn === 'function') {
+        getRoomFn(roomId)
+          .then((res) => {
+            if (!mounted) return;
+            const liveData = res?.room || res?.data || res;
+            if (liveData?.pinnedProduct) {
+              setPinnedProduct(liveData.pinnedProduct);
+              setIsPinVisible(true);
+            } else if (liveData?.pinnedProductId && typeof fetchMarketProductById === 'function') {
+              fetchMarketProductById(liveData.pinnedProductId)
+                .then((p) => {
+                  if (mounted && p) {
+                    setPinnedProduct(p);
+                    setIsPinVisible(true);
+                  }
+                })
+                .catch(() => {});
+            }
+          })
+          .catch(() => {});
+      }
     }
 
     return () => {

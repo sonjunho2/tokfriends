@@ -1889,6 +1889,10 @@ export const apiClient = {
     }
   },
 
+  async getLiveRoomById(roomId) {
+    return this.getLiveRoom(roomId);
+  },
+
   async getLiveRoom(roomId) {
     if (!roomId) throw normalizeError(new Error('라이브 룸 ID가 필요합니다.'));
     const dummyRoom = DUMMY_LIVE_ROOMS.find((r) => r.id === roomId);
@@ -3187,6 +3191,10 @@ export const apiClient = {
 
   async getActiveLiveRooms() {
     return this.getLiveRooms();
+  },
+
+  async getLiveRoomById(roomId) {
+    return this.getLiveRoom(roomId);
   },
 
   async getLiveRoom(roomId) {
