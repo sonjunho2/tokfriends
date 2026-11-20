@@ -406,8 +406,8 @@ enum SellerSettlementStatus {
 // ==========================================
 model SudaPost {
   id              String             @id @default(uuid())
-  authorId        String
-  author          User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId        String?
+  author          User?              @relation(fields: [authorId], references: [id], onDelete: SetNull)
   content         String             @db.VarChar(200) // 1줄 수다 본문
   neighborhood    String             // 작성자 동네 (예: 역삼동)
   latitude        Float?

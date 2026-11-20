@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Inject,
   forwardRef,
+  OnModuleInit,
 } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { CreateSudaPostDto } from './dto/suda.dto';
@@ -12,10 +13,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 @Injectable()
-export class SudaService {
+export class SudaService implements OnModuleInit {
   private readonly dataDir = path.resolve(process.cwd(), 'data');
   private readonly sudaFilePath = path.join(this.dataDir, 'suda-posts.json');
   private inMemoryPosts: any[] = [];
+  private hasWarnedDbQuery = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -23,6 +25,20 @@ export class SudaService {
     private readonly chatGateway: ChatGateway,
   ) {
     this.loadFromDisk();
+  }
+
+  async onModuleInit() {
+    try {
+      // DB에 남아있는 작성자 없는 고아 수다글 정리 (Prisma Inconsistent query result 방지)
+      const count = await this.prisma.$executeRawUnsafe(
+        `DELETE FROM "SudaPost" WHERE "authorId" IS NOT NULL AND "authorId" NOT IN (SELECT "id" FROM "User")`
+      );
+      if (count > 0) {
+        console.log(`[SudaService] Cleaned up ${count} orphaned SudaPost records.`);
+      }
+    } catch {
+      // DB 테이블 미생성 또는 연결 실패 시 조용히 무시
+    }
   }
 
   private loadFromDisk() {
@@ -83,7 +99,11 @@ export class SudaService {
     let dbItems: any[] = [];
     let dbTotal = 0;
 
-    const where: any = {};
+    const where: any = {
+      author: {
+        isNot: null,
+      },
+    };
     if (neighborhood && neighborhood.trim()) {
       where.neighborhood = { contains: neighborhood.trim(), mode: 'insensitive' };
     }
@@ -125,13 +145,16 @@ export class SudaService {
           id: p.author?.id || (p as any).authorId || 'author',
           nickname: p.author?.nickname || p.author?.displayName || '이웃',
           avatarUrl:
-            p.author.avatarUrl ||
+            p.author?.avatarUrl ||
             'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
           trustScore: 99.0,
         },
       }));
     } catch (err) {
-      console.warn('[SudaService] DB query notice, using seed posts:', (err as any)?.message);
+      if (!this.hasWarnedDbQuery) {
+        this.hasWarnedDbQuery = true;
+        console.warn('[SudaService] DB query notice, using seed posts:', (err as any)?.message);
+      }
     }
 
     // Merge in-memory/disk posts (newest first) with robust deduplication
@@ -295,10 +318,10 @@ export class SudaService {
           repliesCount: post.repliesCount,
           createdAt: post.createdAt,
           author: {
-            id: post.author.id,
-            nickname: post.author.nickname || post.author.displayName || '이웃',
+            id: post.author?.id || post.authorId || 'author',
+            nickname: post.author?.nickname || post.author?.displayName || '이웃',
             avatarUrl:
-              post.author.avatarUrl ||
+              post.author?.avatarUrl ||
               'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
             trustScore: 99.0,
           },
