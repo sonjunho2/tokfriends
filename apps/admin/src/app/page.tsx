@@ -4018,6 +4018,28 @@ export default function CustomerWebStorefrontPage() {
       socket.on('live:message', handleLiveMessageSocket)
       socket.on('live:viewer_count', handleViewerCountSocket)
       socket.on('live:user_joined', handleViewerCountSocket)
+
+      const handleLivePinProductSocket = (data: any) => {
+        if (!data) return
+        const isPinned = data.isPinned !== false && Boolean(data.product)
+        const newProduct = isPinned ? {
+          id: String(data.product.id || ''),
+          title: String(data.product.title || data.product.name || '핀 상품'),
+          price: Number(data.product.price || data.product.salePriceKrw || 0),
+          originalPrice: data.product.originalPrice ? Number(data.product.originalPrice) : undefined,
+          image: String(data.product.image || data.product.images?.[0] || 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=300'),
+          type: (data.product.type === 'C2C_USED' || data.product.type === 'USED') ? ('USED' as const) : ('NORMAL' as const),
+        } : undefined
+
+        setActiveLiveModal((prev) => prev ? {
+          ...prev,
+          pinnedProduct: newProduct,
+          hasCommerce: Boolean(newProduct),
+        } : null)
+      }
+
+      socket.on('live:pin_product', handleLivePinProductSocket)
+      socket.on('LIVE_PINNED_PRODUCT_UPDATE', handleLivePinProductSocket)
     }
 
     if (modalVideoRef.current) {
@@ -4319,6 +4341,8 @@ export default function CustomerWebStorefrontPage() {
           socketRef.current.off('live:viewer_count', handleViewerCountSocket)
           socketRef.current.off('live:user_joined', handleViewerCountSocket)
         }
+        socketRef.current.off('live:pin_product')
+        socketRef.current.off('LIVE_PINNED_PRODUCT_UPDATE')
         socketRef.current.emit('live:leave', { roomId: activeLiveModal.id })
       }
       if (modalAgoraClientRef.current) {

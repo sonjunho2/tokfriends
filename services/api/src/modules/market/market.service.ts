@@ -19,15 +19,20 @@ export class MarketService {
     type?: MarketProductType;
     category?: string;
     search?: string;
+    sellerId?: string;
     page?: number;
     limit?: number;
   }) {
-    const { type, category, search, page = 1, limit = 20 } = params;
+    const { type, category, search, sellerId, page = 1, limit = 20 } = params;
     const skip = (page - 1) * limit;
 
     const where: any = {
       status: { in: [ProductStatus.ACTIVE, ProductStatus.RESERVED] },
     };
+
+    if (sellerId) {
+      where.sellerId = sellerId;
+    }
 
     if (type) {
       where.type = type;

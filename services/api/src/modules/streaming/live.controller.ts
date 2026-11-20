@@ -387,14 +387,16 @@ export class LiveController {
   async pinProduct(@Param('id') roomId: string, @Body() body: any) {
     const isPinned = body.isPinned !== undefined ? body.isPinned : true;
     const room: any = MOCK_LIVE_ROOMS.find((r) => r.id === roomId);
+    const resolvedProduct = isPinned ? (body.product || (body.productId ? { id: body.productId } : null)) : null;
     if (room) {
-      room.hasCommerce = true;
+      room.hasCommerce = isPinned && Boolean(resolvedProduct);
       room.pinnedProductId = isPinned ? body.productId : null;
+      room.pinnedProduct = resolvedProduct;
     }
     try {
-      this.chatGateway.emitLivePinProduct(roomId, body.product || { id: body.productId }, isPinned);
+      this.chatGateway.emitLivePinProduct(roomId, resolvedProduct, isPinned);
     } catch {}
-    return { ok: true, roomId, productId: body.productId, isPinned, product: body.product };
+    return { ok: true, roomId, productId: body.productId, isPinned, product: resolvedProduct };
   }
 
   /**
@@ -494,11 +496,14 @@ export class LiveController {
 
     const linkedProductIds = Array.isArray(body.linkedProductIds) ? body.linkedProductIds : [];
     const hasCommerce = Boolean(body.hasCommerce || linkedProductIds.length > 0 || body.category === 'shopping' || body.category === '공구');
+    const pinnedProductId = body.pinnedProductId || (linkedProductIds.length > 0 ? linkedProductIds[0] : null);
+    const pinnedProduct = body.pinnedProduct || null;
     const newRoom: any = {
       id: `LIVE-${Date.now()}`,
       hasCommerce,
       linkedProductIds,
-      pinnedProductId: body.pinnedProductId || (linkedProductIds.length > 0 ? linkedProductIds[0] : null),
+      pinnedProductId,
+      pinnedProduct,
       title: body.title || '즐거운 소통 방송',
       category: body.category || '일상/토크',
       type: body.type || 'PUBLIC_1_TO_N',

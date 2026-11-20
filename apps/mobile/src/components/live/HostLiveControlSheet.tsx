@@ -18,6 +18,7 @@ import {
   INITIAL_MARKET_PRODUCTS,
 } from '../../services/marketService';
 import client from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -38,9 +39,24 @@ export default function HostLiveControlSheet({
   pinnedProduct,
   onTogglePin,
 }: HostLiveControlSheetProps) {
+  const { user } = useAuth();
+  const isMerchant = Boolean(user?.merchant || (user as any)?.isMerchant || user?.role === 'merchant' || user?.role === 'seller');
+  const isStreamer = Boolean((user as any)?.isStreamer || user?.role === 'streamer' || user?.displayName?.includes('스트리머') || user?.bio?.includes('스트리머'));
+  const isRegularUser = !isMerchant && !isStreamer;
+
   const [products, setProducts] = useState<MarketProduct[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<HostLiveTabType>('ALL');
+  const [activeTab, setActiveTab] = useState<HostLiveTabType>(isRegularUser ? 'C2C' : isMerchant ? 'MERCHANT' : 'ALL');
+
+  useEffect(() => {
+    if (visible) {
+      if (isRegularUser) {
+        setActiveTab('C2C');
+      } else if (isMerchant) {
+        setActiveTab('MERCHANT');
+      }
+    }
+  }, [visible, isRegularUser, isMerchant]);
 
   useEffect(() => {
     if (!visible) return;
@@ -137,7 +153,25 @@ export default function HostLiveControlSheet({
     };
   }, [visible]);
 
+  const availableTabs = isRegularUser
+    ? [{ id: 'C2C' as HostLiveTabType, label: '🏷️ 내 중고물품' }]
+    : isMerchant
+    ? [
+        { id: 'MERCHANT' as HostLiveTabType, label: '🛍️ 내 입점사 상품' },
+        { id: 'C2C' as HostLiveTabType, label: '🏷️ 내 중고' },
+      ]
+    : [
+        { id: 'ALL' as HostLiveTabType, label: '전체' },
+        { id: 'C2C' as HostLiveTabType, label: '🏷️ 내 중고' },
+        { id: 'AFFILIATE' as HostLiveTabType, label: '🎙️ 제휴위탁' },
+        { id: 'HQ' as HostLiveTabType, label: '👑 본사직영' },
+        { id: 'B2C' as HostLiveTabType, label: '🔥 특가공구' },
+      ];
+
   const filtered = products.filter((p) => {
+    if (isRegularUser) {
+      return p.type === 'C2C_USED';
+    }
     if (activeTab === 'HQ') return p.isHqDirect || p.ownerType === 'HEADQUARTERS';
     if (activeTab === 'AFFILIATE') return (p.type as string) === 'AFFILIATE';
     if (activeTab === 'MERCHANT') return (p.type as string) === 'B2C_NORMAL' && !p.isHqDirect;
@@ -171,16 +205,9 @@ export default function HostLiveControlSheet({
             </TouchableOpacity>
           </View>
 
-          {/* Segment Filter (6대 탭) */}
+          {/* Segment Filter (역할별 허용 탭) */}
           <View style={styles.tabRow}>
-            {[
-              { id: 'ALL', label: '전체' },
-              { id: 'HQ', label: '👑 본사직영' },
-              { id: 'AFFILIATE', label: '🎙️ 제휴위탁' },
-              { id: 'MERCHANT', label: '🛍️ 입점사' },
-              { id: 'B2C', label: '🔥 특가공구' },
-              { id: 'C2C', label: '🏷️ 내 중고' },
-            ].map((tab) => {
+            {availableTabs.map((tab) => {
               const isSelected = activeTab === tab.id;
               return (
                 <TouchableOpacity

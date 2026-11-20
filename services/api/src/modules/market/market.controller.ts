@@ -30,12 +30,14 @@ export class MarketController {
   @ApiQuery({ name: 'type', enum: MarketProductType, required: false })
   @ApiQuery({ name: 'category', required: false })
   @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'sellerId', required: false })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   async listProducts(
     @Query('type') type?: MarketProductType,
     @Query('category') category?: string,
     @Query('search') search?: string,
+    @Query('sellerId') sellerId?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
@@ -43,6 +45,7 @@ export class MarketController {
       type,
       category,
       search,
+      sellerId,
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 20,
     });

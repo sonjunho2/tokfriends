@@ -41,6 +41,11 @@ const CATEGORIES = [
 
 export default function LiveScreen({ navigation }) {
   const { user, refreshMe } = useAuth();
+
+  // 사용자 권한 분기: 일반 유저(내 중고만 핀 가능) / 스트리머(내 중고 + 제휴/본사 승인 물품) / 입점사(내 입점사 상품 + 중고)
+  const isMerchant = Boolean(user?.merchant || user?.isMerchant || user?.role === 'merchant' || user?.role === 'seller');
+  const isStreamer = Boolean(user?.isStreamer || user?.role === 'streamer' || user?.displayName?.includes('스트리머') || user?.bio?.includes('스트리머'));
+  const isRegularUser = !isMerchant && !isStreamer;
   const insets = useSafeAreaInsets();
   const { isExtended, handleScroll, setIsExtended } = useExtendedFabScroll(15);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -264,6 +269,30 @@ export default function LiveScreen({ navigation }) {
         try {
           const hostName = user?.nickname || user?.displayName || '나의 라이브';
           const hostAvatar = user?.avatarUrl || user?.avatarUri || null;
+
+          // 선택된 상품 객체 탐색 (핀 상품으로 초기 세팅)
+          const allSelectable = [
+            ...marketProducts,
+            ...myMerchantProducts.map((p) => ({
+              id: p.id,
+              type: 'B2C_NORMAL',
+              title: p.name,
+              name: p.name,
+              price: p.salePriceKrw || p.priceKrw,
+              originalPrice: p.priceKrw,
+              images: p.images || [],
+            })),
+            ...myAffiliateProducts.map((p) => ({
+              id: p.id,
+              type: 'AFFILIATE',
+              title: p.title || p.name,
+              name: p.title || p.name,
+              price: p.salePriceKrw || p.priceKrw || p.price,
+              images: p.images || [],
+            })),
+          ];
+          const firstSelectedProd = allSelectable.find((p) => selectedProductIds.includes(p.id)) || null;
+
           const res = await apiClient.createLiveRoom({
             title: trimmedTitle,
             category,
@@ -273,8 +302,14 @@ export default function LiveScreen({ navigation }) {
             hostName,
             hostAvatar,
             linkedProductIds: selectedProductIds,
+            pinnedProductId: firstSelectedProd?.id || (selectedProductIds.length > 0 ? selectedProductIds[0] : null),
+            pinnedProduct: firstSelectedProd,
           });
           const room = res?.room || res?.data || res;
+          if (firstSelectedProd && !room.pinnedProduct) {
+            room.pinnedProduct = firstSelectedProd;
+            room.pinnedProductId = firstSelectedProd.id;
+          }
           setModalVisible(false);
           setTitle('');
           setEntryFee(0);
@@ -907,7 +942,7 @@ export default function LiveScreen({ navigation }) {
             {/* 상품 선택 서브 리스트 */}
             {productPickerVisible && (
               <View style={styles.productPickerBox}>
-                {/* 3-Way 서브 탭: [🏷️ 나의 중고] vs [🛍️ 입점사 일반] vs [🎙️ 제휴 위탁 (내 바구니)] */}
+                {/* 역할별 서브 탭: 일반(내 중고만) / 입점사(입점사+중고) / 스트리머(제휴+중고) */}
                 <View style={styles.livePickerTabBar}>
                   <TouchableOpacity
                     style={[styles.livePickerTabBtn, liveProductTab === 'C2C' && styles.livePickerTabBtnActive]}
@@ -915,27 +950,33 @@ export default function LiveScreen({ navigation }) {
                     activeOpacity={0.8}
                   >
                     <Text style={[styles.livePickerTabText, liveProductTab === 'C2C' && styles.livePickerTabTextActive]}>
-                      🏷️ 중고 ({marketProducts.length})
+                      🏷️ {isRegularUser ? '내 중고물품' : '중고'} ({marketProducts.length})
                     </Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.livePickerTabBtn, liveProductTab === 'MERCHANT' && styles.livePickerTabBtnActive]}
-                    onPress={() => setLiveProductTab('MERCHANT')}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.livePickerTabText, liveProductTab === 'MERCHANT' && styles.livePickerTabTextActive]}>
-                      🛍️ 입점사 ({myMerchantProducts.length})
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.livePickerTabBtn, liveProductTab === 'AFFILIATE' && styles.livePickerTabBtnActive]}
-                    onPress={() => setLiveProductTab('AFFILIATE')}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.livePickerTabText, liveProductTab === 'AFFILIATE' && styles.livePickerTabTextActive]}>
-                      🎙️ 제휴 위탁 ({myAffiliateProducts.length})
-                    </Text>
-                  </TouchableOpacity>
+
+                  {(isMerchant || !isRegularUser) && (
+                    <TouchableOpacity
+                      style={[styles.livePickerTabBtn, liveProductTab === 'MERCHANT' && styles.livePickerTabBtnActive]}
+                      onPress={() => setLiveProductTab('MERCHANT')}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.livePickerTabText, liveProductTab === 'MERCHANT' && styles.livePickerTabTextActive]}>
+                        🛍️ 입점사 ({myMerchantProducts.length})
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {(isStreamer || !isRegularUser) && (
+                    <TouchableOpacity
+                      style={[styles.livePickerTabBtn, liveProductTab === 'AFFILIATE' && styles.livePickerTabBtnActive]}
+                      onPress={() => setLiveProductTab('AFFILIATE')}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.livePickerTabText, liveProductTab === 'AFFILIATE' && styles.livePickerTabTextActive]}>
+                        🎙️ 제휴 위탁 ({myAffiliateProducts.length})
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
 
                 {liveProductTab === 'C2C' ? (

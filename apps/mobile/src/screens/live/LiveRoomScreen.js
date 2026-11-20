@@ -41,7 +41,7 @@ import LiveEscrowBuyModal from '../../components/live/LiveEscrowBuyModal';
 import HostLiveControlSheet from '../../components/live/HostLiveControlSheet';
 import PgPaymentBottomSheet from '../../components/live/PgPaymentBottomSheet';
 import AgoraLivePlayer from '../../components/streaming/AgoraLivePlayer';
-import { fetchMarketProducts } from '../../services/marketService';
+import { fetchMarketProducts, fetchMarketProductById } from '../../services/marketService';
 
 const LIVE_ACCENT = '#FF3B6B';
 
@@ -200,17 +200,41 @@ export default function LiveRoomScreen({ navigation, route }) {
 
   useEffect(() => {
     let mounted = true;
-    fetchMarketProducts({ type: 'B2C_GROUP' })
-      .then((items) => {
-        if (mounted && items && items.length > 0) {
-          setPinnedProduct(items[0]);
-        }
-      })
-      .catch(() => {});
+
+    // 1. 네비게이션 시 전달된 방 정보에 이미 핀 상품 객체가 있는 경우 즉시 반영
+    if (room?.pinnedProduct) {
+      setPinnedProduct(room.pinnedProduct);
+      setIsPinVisible(true);
+      return;
+    }
+
+    // 2. 백엔드 방 상세 또는 핀 상품 ID 조회
+    if (roomId) {
+      apiClient.getLiveRoomById(roomId)
+        .then((res) => {
+          if (!mounted) return;
+          const liveData = res?.room || res?.data || res;
+          if (liveData?.pinnedProduct) {
+            setPinnedProduct(liveData.pinnedProduct);
+            setIsPinVisible(true);
+          } else if (liveData?.pinnedProductId) {
+            fetchMarketProductById(liveData.pinnedProductId)
+              .then((p) => {
+                if (mounted && p) {
+                  setPinnedProduct(p);
+                  setIsPinVisible(true);
+                }
+              })
+              .catch(() => {});
+          }
+        })
+        .catch(() => {});
+    }
+
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [roomId, room?.pinnedProduct, room?.pinnedProductId]);
 
   // 호스트가 상품을 화면에 핀 고정 / 해제
   const handleTogglePinProduct = async (productToPin) => {
@@ -1918,26 +1942,39 @@ export default function LiveRoomScreen({ navigation, route }) {
               >
                 <Ionicons name="share-social-outline" size={20} color="#FFFFFF" />
               </TouchableOpacity>
-              {/* Gift Picker Button - 시청자(게스트)만 방장/호스트에게 선물 전송 가능 */}
-              {!isHost && (
+
+              {/* 방장(호스트)인 경우 하트 대신 방송 중 핀 상품 변경 관리 버튼 제공 */}
+              {isHost ? (
                 <TouchableOpacity
-                  style={styles.giftIconBtn}
-                  onPress={handleOpenGiftPicker}
+                  style={styles.pinManageIconBtn}
+                  onPress={() => setHostControlVisible(true)}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="gift" size={20} color="#FBBF24" />
+                  <Ionicons name="pricetag" size={17} color="#FFFFFF" />
+                  <Text style={styles.pinManageBtnText}>핀 변경</Text>
                 </TouchableOpacity>
-              )}
+              ) : (
+                <>
+                  {/* Gift Picker Button - 시청자(게스트)만 방장/호스트에게 선물 전송 가능 */}
+                  <TouchableOpacity
+                    style={styles.giftIconBtn}
+                    onPress={handleOpenGiftPicker}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="gift" size={20} color="#FBBF24" />
+                  </TouchableOpacity>
 
-              {/* Heart reaction button */}
-              <TouchableOpacity
-                style={styles.heartIconBtn}
-                onPress={handleSendHeart}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="heart" size={22} color={LIVE_ACCENT} />
-                <Text style={styles.heartCountText}>{likeCount}</Text>
-              </TouchableOpacity>
+                  {/* Heart reaction button - 시청자만 방장에게 좋아요 전송 */}
+                  <TouchableOpacity
+                    style={styles.heartIconBtn}
+                    onPress={handleSendHeart}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="heart" size={22} color={LIVE_ACCENT} />
+                    <Text style={styles.heartCountText}>{likeCount}</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           )}
         </View>
@@ -2740,6 +2777,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(251, 191, 36, 0.4)',
+  },
+  pinManageIconBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 40,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: '#FF3B6B',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  pinManageBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   heartIconBtn: {
     flexDirection: 'row',
