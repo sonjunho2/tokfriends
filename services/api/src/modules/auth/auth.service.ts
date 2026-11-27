@@ -43,22 +43,16 @@ export class AuthService implements OnModuleInit {
    */
   async ensureDefaultAdminAccount() {
     try {
+      await this.prisma.$executeRawUnsafe(
+        `ALTER TABLE "AdminProfile" ADD COLUMN IF NOT EXISTS "username" TEXT`,
+      ).catch(() => {});
+
       const existingAdmin = await this.prisma.adminProfile.findFirst({
-        where: {
-          OR: [{ username: 'admin' }, { role: 'SUPER_ADMIN' }],
-        },
+        where: { username: 'admin' },
         select: { userId: true, username: true },
       });
 
       if (existingAdmin) {
-        if (!existingAdmin.username) {
-          await this.prisma.adminProfile
-            .update({
-              where: { userId: existingAdmin.userId },
-              data: { username: 'admin' },
-            })
-            .catch(() => {});
-        }
         return;
       }
 
@@ -127,7 +121,17 @@ export class AuthService implements OnModuleInit {
         ],
       },
       include: {
-        user: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            nickname: true,
+            displayName: true,
+            passwordHash: true,
+            role: true,
+            status: true,
+          },
+        },
       },
     });
 
