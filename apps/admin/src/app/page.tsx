@@ -3231,6 +3231,7 @@ export default function CustomerWebStorefrontPage() {
   const [isRateSettingOpen, setIsRateSettingOpen] = useState(false)
   const [isNotifySettingOpen, setIsNotifySettingOpen] = useState(false)
   const [isBlockedUsersOpen, setIsBlockedUsersOpen] = useState(false)
+  const [isWithdrawAccountOpen, setIsWithdrawAccountOpen] = useState(false)
   const [isSafetyCenterOpen, setIsSafetyCenterOpen] = useState(false)
   const [isCustomerInquiryOpen, setIsCustomerInquiryOpen] = useState(false)
   const [isRewardAdOpen, setIsRewardAdOpen] = useState(false)
@@ -9794,6 +9795,20 @@ export default function CustomerWebStorefrontPage() {
                     청소년보호정책
                   </button>
                 </div>
+
+                {/* 회원 탈퇴 영역 */}
+                {isAuthenticated && (
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400">더 이상 모꼬 서비스를 이용하지 않으시나요?</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsWithdrawAccountOpen(true)}
+                      className="text-[11px] font-bold text-slate-400 hover:text-rose-600 underline transition-colors"
+                    >
+                      회원 탈퇴하기
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* [웹 전용 비즈니스 파트너스 & 크리에이터 센터 - 일반 회원을 방해하지 않도록 맨 하단 배치] */}
@@ -10093,22 +10108,6 @@ export default function CustomerWebStorefrontPage() {
         {/* 2. 마켓 */}
         <button
           onClick={() => setActiveTab('MARKET')}
-          className={`flex flex-col items-center gap-0.5 py-1 px-2 ${
-            activeTab === 'MARKET' ? 'text-[#FF3B6B] font-bold' : 'text-slate-500'
-          }`}
-        >
-          <Store className="h-5 w-5" />
-          <span className="text-[10px]">모꼬마켓</span>
-        </button>
-
-        {/* 3. 라이브 (중앙 돌출 라운드 그라디언트 FAB) */}
-        <button
-          onClick={() => setActiveTab('LIVE')}
-          className="relative -top-3 flex flex-col items-center group"
-        >
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-[#FF3B6B] to-[#8B5CF6] text-white shadow-lg shadow-[#FF3B6B]/30 group-active:scale-95 transition-transform">
-            <Radio className="h-6 w-6 animate-pulse" />
-          </div>
           <span className="text-[10px] font-extrabold text-[#FF3B6B] mt-0.5">
             모꼬 LIVE
           </span>
@@ -11823,14 +11822,77 @@ export default function CustomerWebStorefrontPage() {
               </div>
             </div>
             <Button
-              onClick={() => {
+              onClick={async () => {
                 setIsNotifySettingOpen(false)
+                try {
+                  if (user?.id) {
+                    await api.patch('/users/me/notifications', {
+                      notifyChat,
+                      notifyLive,
+                      notifyNightLimit,
+                    })
+                  }
+                } catch (e) {
+                  console.warn('Failed to save notification settings:', e)
+                }
                 toast({ title: '알림 설정 저장', description: '알림 수신 환경이 맞춤 설정되었습니다.' })
               }}
               className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs h-9 rounded-xl shadow-md"
             >
               완료
             </Button>
+          </div>
+        </div>
+      )}
+
+      {/* 회원 탈퇴 확인 모달 */}
+      {isWithdrawAccountOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 border border-slate-200">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h4 className="font-extrabold text-sm text-rose-600">회원 탈퇴 안내</h4>
+              <button onClick={() => setIsWithdrawAccountOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
+              <p className="font-bold text-slate-900">
+                정말로 모꼬 서비스를 탈퇴하시겠습니까?
+              </p>
+              <p>
+                탈퇴 즉시 보유 중인 모꼬 포인트(꿀떡)와 프로필·관심목록 정보가 영구 파기/익명화되며, 동일한 계정 정보로 복구할 수 없습니다.
+              </p>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsWithdrawAccountOpen(false)}
+                className="flex-1 h-9 text-xs font-bold rounded-xl"
+              >
+                취소
+              </Button>
+              <Button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await api.delete('/users/me')
+                    setIsWithdrawAccountOpen(false)
+                    toast({ title: '회원 탈퇴 완료', description: '그동안 모꼬를 이용해 주셔서 감사합니다.' })
+                    await logout()
+                  } catch (e: any) {
+                    toast({
+                      title: '탈퇴 오류',
+                      description: e?.message || '회원 탈퇴 처리 중 문제가 발생했습니다.',
+                      variant: 'destructive',
+                    })
+                  }
+                }}
+                className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs h-9 rounded-xl"
+              >
+                탈퇴 진행
+              </Button>
+            </div>
           </div>
         </div>
       )}

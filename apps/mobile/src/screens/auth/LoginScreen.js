@@ -365,10 +365,12 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.emailButtonText}>이메일로 로그인 및 회원가입</Text>
         </TouchableOpacity>
 
-        {/* 🧪 [개발/테스트 전용] 테스트 간편 로그인 버튼 정상 유지 */}
-        <View style={styles.testSection}>
-          <TestLoginButton onLoginSuccess={onLoginSuccess} />
-        </View>
+        {/* 개발 환경(__DEV__) 전용 테스트 로그인 버튼 (릴리즈 빌드에서는 자동 숨김) */}
+        {typeof __DEV__ !== 'undefined' && __DEV__ ? (
+          <View style={styles.testSection}>
+            <TestLoginButton onLoginSuccess={onLoginSuccess} />
+          </View>
+        ) : null}
 
         {/* 하단 약관 고지 */}
         <View style={styles.footerNote}>

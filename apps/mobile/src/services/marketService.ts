@@ -677,13 +677,24 @@ export async function fetchMyMerchantProducts(): Promise<{ merchant: any; produc
   };
 }
 
-/** 상품 찜하기 / 추천 토글 */
-export async function toggleProductLike(productId: string): Promise<{ isLiked: boolean; likesCount: number }> {
+/** 상품 찜하기 / 추천 토글 (DB MarketWishlist 동기화) */
+export async function toggleProductLike(productId: string, productType = 'MARKET_PRODUCT'): Promise<{ isLiked: boolean; likesCount: number }> {
   try {
-    const res = await client.post(`/market/products/${productId}/like`, {}, { timeout: 3000 });
-    if (res?.data) {
-      return res.data;
-    }
+    const [likeRes, wishRes] = await Promise.allSettled([
+      client.post(`/market/products/${productId}/like`, {}, { timeout: 3000 }),
+      client.post('/market/wishlist/toggle', { productId, productType }, { timeout: 3000 }),
+    ]);
+    const isLiked =
+      wishRes.status === 'fulfilled' && typeof wishRes.value?.data?.isLiked === 'boolean'
+        ? wishRes.value.data.isLiked
+        : likeRes.status === 'fulfilled' && typeof likeRes.value?.data?.isLiked === 'boolean'
+        ? likeRes.value.data.isLiked
+        : true;
+    const likesCount =
+      likeRes.status === 'fulfilled' && typeof likeRes.value?.data?.likesCount === 'number'
+        ? likeRes.value.data.likesCount
+        : 1;
+    return { isLiked, likesCount };
   } catch (err) {
     // Network fallback
   }
@@ -697,4 +708,71 @@ export async function toggleProductLike(productId: string): Promise<{ isLiked: b
   }
 
   return { isLiked: true, likesCount: 1 };
+}
+
+/** 내 관심목록(찜한 상품) 실제 조회 */
+export async function fetchWishlist(): Promise<any[]> {
+  try {
+    const res = await client.get('/market/wishlist', { timeout: 4000 });
+    const items = res?.data?.items || res?.data?.data || [];
+    if (Array.isArray(items)) {
+      return items.map((item: any) => ({
+        ...item,
+        images: Array.isArray(item.images) ? item.images.map(resolveMobileImageUrl) : item.images,
+      }));
+    }
+  } catch (err) {
+    console.warn('[marketService] fetchWishlist error:', err);
+  }
+  return [];
+}
+
+/** 관심목록 토글 */
+export async function toggleWishlistServer(productId: string, productType = 'MARKET_PRODUCT'): Promise<{ isLiked: boolean }> {
+  const res = await client.post('/market/wishlist/toggle', { productId, productType }, { timeout: 4000 });
+  return { isLiked: Boolean(res?.data?.isLiked) };
+}
+
+/** 내 판매 물품 목록 실제 조회 */
+export async function fetchMyProducts(): Promise<any[]> {
+  try {
+    const res = await client.get('/market/my-products', { timeout: 4000 });
+    const items = res?.data?.items || res?.data?.data || [];
+    if (Array.isArray(items)) {
+      return items.map(normalizeMarketProductItem);
+    }
+  } catch (err) {
+    console.warn('[marketService] fetchMyProducts error:', err);
+  }
+  return [];
+}
+
+/** 내 판매 물품 상태 변경 */
+export async function updateMyProductStatus(productId: string, status: 'ACTIVE' | 'RESERVED' | 'COMPLETED' | 'CANCELLED') {
+  const res = await client.patch(`/market/products/${productId}/status`, { status }, { timeout: 4000 });
+  return res?.data?.data || res?.data;
+}
+
+/** 내 판매 물품 삭제 */
+export async function deleteMyProduct(productId: string) {
+  const res = await client.delete(`/market/products/${productId}`, { timeout: 4000 });
+  return res?.data;
+}
+
+/** 내 에스크로 구매/판매 주문 내역 실제 조회 */
+export async function fetchMyOrders(role: 'buyer' | 'seller' = 'buyer'): Promise<any[]> {
+  try {
+    const res = await client.get('/market/my-orders', { params: { role }, timeout: 4000 });
+    const list = Array.isArray(res?.data) ? res.data : res?.data?.items || res?.data?.data || [];
+    return list;
+  } catch (err) {
+    console.warn('[marketService] fetchMyOrders error:', err);
+  }
+  return [];
+}
+
+/** 에스크로 구매 확정 */
+export async function confirmEscrowOrder(orderId: string) {
+  const res = await client.post(`/market/orders/${orderId}/confirm`, {}, { timeout: 5000 });
+  return res?.data;
 }

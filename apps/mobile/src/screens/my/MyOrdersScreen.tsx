@@ -1,5 +1,5 @@
-﻿// apps/mobile/src/screens/my/MyOrdersScreen.tsx
-import React, { useState } from 'react';
+// apps/mobile/src/screens/my/MyOrdersScreen.tsx
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,17 @@ import {
   Image,
   Alert,
   StatusBar,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '../../theme/tokens';
-import { resolveMobileImageUrl } from '../../services/marketService';
+import {
+  fetchMyOrders,
+  confirmEscrowOrder,
+  resolveMobileImageUrl,
+} from '../../services/marketService';
 
 interface OrderItem {
   id: string;
@@ -33,62 +39,63 @@ interface OrderItem {
   autoConfirmDays: number;
 }
 
+const mapServerOrder = (raw: any): OrderItem => {
+  const statusStr = String(raw.status || '').toUpperCase();
+  let status: 'SHIPPED' | 'DELIVERED' | 'COMPLETED' = 'SHIPPED';
+  let statusText = '에스크로 안전결제 완료 (배송준비중)';
+  if (statusStr === 'COMPLETED') {
+    status = 'COMPLETED';
+    statusText = '구매확정 완료 (정산지급)';
+  } else if (statusStr === 'DELIVERED') {
+    status = 'DELIVERED';
+    statusText = '배송완료 (구매확정 대기)';
+  } else if (statusStr === 'PAID_ESCROW' || statusStr === 'SHIPPED') {
+    status = 'SHIPPED';
+    statusText = raw.trackingNumber ? '배송중' : '안전결제 예치중';
+  }
+
+  const product = raw.product || {};
+  const imgs = Array.isArray(product.images) ? product.images : [];
+  return {
+    id: raw.id,
+    orderNumber: raw.orderNumber || raw.id,
+    title: product.title || raw.title || '모꼬 안전거래 상품',
+    sellerName: raw.seller?.nickname || raw.sellerName || '모꼬 판매자',
+    price: Number(raw.amount || product.price || 0),
+    status,
+    statusText,
+    paymentType: '에스크로 안전결제',
+    image: imgs[0] || '',
+    date: raw.createdAt ? String(raw.createdAt).slice(0, 10) : '',
+    location: raw.trackingNumber ? '택배 배송' : '안전결제 거래',
+    courier: raw.pgProvider || '안전택배',
+    trackingNumber: raw.trackingNumber || '',
+    selectedOption: '',
+    autoConfirmDays: status === 'COMPLETED' ? 0 : 7,
+  };
+};
+
 export default function MyOrdersScreen({ navigation }: any) {
   const [filterTab, setFilterTab] = useState<'ALL' | 'ACTIVE' | 'COMPLETED'>('ALL');
+  const [ordersList, setOrdersList] = useState<OrderItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const [ordersList, setOrdersList] = useState<OrderItem[]>([
-    {
-      id: 'ord-safe-01',
-      orderNumber: 'ORD-20261104-5892',
-      title: '소니 WH-1000XM5 노이즈캔슬링 무선 헤드폰',
-      sellerName: '(주)사운드코리아 공식수입원',
-      price: 320000,
-      status: 'SHIPPED',
-      statusText: '배송중 (내일 도착 예정)',
-      paymentType: '에스크로 안전결제',
-      image: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=400',
-      date: '2026.11.04',
-      location: '택배 이동중',
-      courier: 'CJ대한통운',
-      trackingNumber: '5892-0192-4411',
-      selectedOption: '실버 / 무상보증 1년',
-      autoConfirmDays: 5,
-    },
-    {
-      id: 'ord-safe-02',
-      orderNumber: 'ORD-20261103-1024',
-      title: '[입점사특가] 제주 산지직송 프리미엄 1등급 흑돼지 오겹살 1kg',
-      sellerName: '제주푸드 본사 직영',
-      price: 32900,
-      status: 'DELIVERED',
-      statusText: '배송완료 (구매확정 대기)',
-      paymentType: '안전결제 택배배송',
-      image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=400',
-      date: '2026.11.03',
-      location: '문 앞 배송완료',
-      courier: '우체국택배',
-      trackingNumber: '6891-2200-9182',
-      selectedOption: '오겹살 1kg (+14,000원)',
-      autoConfirmDays: 3,
-    },
-    {
-      id: 'ord-safe-03',
-      orderNumber: 'ORD-20261028-7712',
-      title: '아이폰 15 프로 256GB 내추럴 티타늄',
-      sellerName: '테크러버',
-      price: 980000,
-      status: 'COMPLETED',
-      statusText: '구매확정 완료 (정산지급)',
-      paymentType: '에스크로 안전직거래',
-      image: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400',
-      date: '2026.10.28',
-      location: '직거래 완료',
-      courier: '',
-      trackingNumber: '',
-      selectedOption: '단말기 본체 풀박스',
-      autoConfirmDays: 0,
-    },
-  ]);
+  const loadOrders = useCallback(async () => {
+    try {
+      const list = await fetchMyOrders('buyer');
+      setOrdersList(list.map(mapServerOrder));
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadOrders();
+  }, [loadOrders]);
 
   const filteredList = ordersList.filter((item) => {
     if (filterTab === 'ALL') return true;
@@ -98,12 +105,12 @@ export default function MyOrdersScreen({ navigation }: any) {
 
   const handleTracking = (order: OrderItem) => {
     if (!order.trackingNumber) {
-      Alert.alert('배송조회 안내', '직거래 거래건으로 택배 송장 정보가 없습니다.');
+      Alert.alert('배송조회 안내', '직거래 또는 송장 등록 대기 중인 거래건입니다.');
       return;
     }
     Alert.alert(
       '실시간 배송조회',
-      `택배사: ${order.courier}\n송장번호: ${order.trackingNumber}\n현재위치: ${order.location}`
+      `택배사: ${order.courier}\n송장번호: ${order.trackingNumber}\n현재상태: ${order.location}`
     );
   };
 
@@ -115,15 +122,20 @@ export default function MyOrdersScreen({ navigation }: any) {
         { text: '취소', style: 'cancel' },
         {
           text: '구매확정 완료',
-          onPress: () => {
-            setOrdersList((prev) =>
-              prev.map((o) =>
-                o.id === orderId
-                  ? { ...o, status: 'COMPLETED', statusText: '구매확정 완료 (정산지급)', autoConfirmDays: 0 }
-                  : o
-              )
-            );
-            Alert.alert('확정 완료', '구매확정이 완료되었습니다. 이용해 주셔서 감사합니다!');
+          onPress: async () => {
+            try {
+              await confirmEscrowOrder(orderId);
+              setOrdersList((prev) =>
+                prev.map((o) =>
+                  o.id === orderId
+                    ? { ...o, status: 'COMPLETED', statusText: '구매확정 완료 (정산지급)', autoConfirmDays: 0 }
+                    : o
+                )
+              );
+              Alert.alert('확정 완료', '구매확정이 완료되었습니다. 이용해 주셔서 감사합니다.');
+            } catch (e: any) {
+              Alert.alert('구매확정 실패', e?.message || '잠시 후 다시 시도해주세요.');
+            }
           },
         },
       ]
@@ -282,13 +294,28 @@ export default function MyOrdersScreen({ navigation }: any) {
       </View>
 
       {/* 목록 */}
-      <FlatList
-        data={filteredList}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={tokens.colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={filteredList}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                loadOrders();
+              }}
+              tintColor={tokens.colors.primary}
+            />
+          }
+          ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconCircle}>
               <Ionicons name="receipt-outline" size={36} color={tokens.colors.textTertiary} />
@@ -304,7 +331,8 @@ export default function MyOrdersScreen({ navigation }: any) {
             </TouchableOpacity>
           </View>
         }
-      />
+        />
+      )}
     </SafeAreaView>
   );
 }

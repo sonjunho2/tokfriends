@@ -1,4 +1,4 @@
-﻿// apps/mobile/src/screens/my/WishlistScreen.tsx
+// apps/mobile/src/screens/my/WishlistScreen.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -9,27 +9,46 @@ import {
   Image,
   Alert,
   StatusBar,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '../../theme/tokens';
-import { INITIAL_MARKET_PRODUCTS, resolveMobileImageUrl } from '../../services/marketService';
+import { fetchWishlist, toggleWishlistServer, resolveMobileImageUrl } from '../../services/marketService';
 
 export default function WishlistScreen({ navigation }: any) {
-  const [wishlist, setWishlist] = useState<any[]>([
-    INITIAL_MARKET_PRODUCTS[0], // 아이폰 15 프로
-    INITIAL_MARKET_PRODUCTS[1], // 캠핑 체어
-    INITIAL_MARKET_PRODUCTS[3], // 제주 흑돼지
-  ]);
+  const [wishlist, setWishlist] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const handleRemoveItem = (id: string) => {
+  const loadWishlist = useCallback(async () => {
+    try {
+      const items = await fetchWishlist();
+      setWishlist(items);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadWishlist();
+  }, [loadWishlist]);
+
+  const handleRemoveItem = (item: any) => {
     Alert.alert('관심 상품 해제', '관심목록에서 제거하시겠습니까?', [
       { text: '취소', style: 'cancel' },
       {
         text: '제거',
         style: 'destructive',
-        onPress: () => {
-          setWishlist((prev) => prev.filter((item) => item.id !== id));
+        onPress: async () => {
+          setWishlist((prev) => prev.filter((p) => p.id !== item.id));
+          try {
+            await toggleWishlistServer(item.id, item.productType || 'MARKET_PRODUCT');
+          } catch {}
         },
       },
     ]);
@@ -42,6 +61,7 @@ export default function WishlistScreen({ navigation }: any) {
       ? (item.images.startsWith('[') ? (JSON.parse(item.images)?.[0] || item.images) : item.images)
       : item.image;
     const thumbUri = resolveMobileImageUrl(rawImg);
+    const isNormal = item.productType === 'NORMAL_PRODUCT';
 
     return (
       <TouchableOpacity
@@ -50,7 +70,7 @@ export default function WishlistScreen({ navigation }: any) {
         onPress={() =>
           navigation.navigate('Market', {
             screen: 'ProductDetail',
-            params: { productId: item.id, isNormalProduct: false },
+            params: { productId: item.id, isNormalProduct: isNormal },
           })
         }
       >
@@ -67,7 +87,7 @@ export default function WishlistScreen({ navigation }: any) {
         </View>
         <TouchableOpacity
           style={styles.deleteBtn}
-          onPress={() => handleRemoveItem(item.id)}
+          onPress={() => handleRemoveItem(item)}
           hitSlop={8}
           activeOpacity={0.7}
         >
@@ -98,13 +118,28 @@ export default function WishlistScreen({ navigation }: any) {
       </View>
 
       {/* 목록 */}
-      <FlatList
-        data={wishlist}
-        keyExtractor={(item) => String(item.id)}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={tokens.colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={wishlist}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                loadWishlist();
+              }}
+              tintColor={tokens.colors.primary}
+            />
+          }
+          ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconCircle}>
               <Ionicons name="heart-dislike-outline" size={36} color={tokens.colors.textTertiary} />
@@ -121,7 +156,8 @@ export default function WishlistScreen({ navigation }: any) {
             </TouchableOpacity>
           </View>
         }
-      />
+        />
+      )}
     </SafeAreaView>
   );
 }

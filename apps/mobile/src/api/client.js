@@ -1050,6 +1050,18 @@ export const apiClient = {
     }
   },
 
+  async updateNotificationSettings(payload = {}) {
+    if (USE_DUMMY_AUTH) {
+      return { ok: true, ...payload };
+    }
+    try {
+      const { data } = await client.patch('/users/me/notifications', payload);
+      return data?.data ?? data;
+    } catch (e) {
+      throw normalizeError(e);
+    }
+  },
+
   async addUserPhoto(url, isPrimary = false) {
     if (!url) throw normalizeError(new Error('사진 URL이 필요합니다.'));
     if (USE_DUMMY_AUTH) {

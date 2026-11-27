@@ -26,7 +26,12 @@ import { UserAvatar } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
 import { apiClient } from '../../api/client';
 import { claimAdReward } from '../../services/adsService';
-import { INITIAL_MARKET_PRODUCTS } from '../../services/marketService';
+import {
+  INITIAL_MARKET_PRODUCTS,
+  fetchWishlist,
+  fetchMyProducts,
+  fetchMyOrders,
+} from '../../services/marketService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -297,6 +302,24 @@ export default function MyPageScreen({ navigation }) {
         refreshMe().catch(() => {});
       }
 
+      // 찜목록/판매관리/구매내역 최신 수치 동기화
+      Promise.allSettled([
+        fetchWishlist(),
+        fetchMyProducts(),
+        fetchMyOrders('buyer'),
+      ]).then(([wRes, sRes, oRes]) => {
+        if (!isMounted) return;
+        if (wRes.status === 'fulfilled' && Array.isArray(wRes.value)) {
+          setWishlist(wRes.value);
+        }
+        if (sRes.status === 'fulfilled' && Array.isArray(sRes.value)) {
+          setMySalesList(sRes.value);
+        }
+        if (oRes.status === 'fulfilled' && Array.isArray(oRes.value)) {
+          setMyOrdersList(oRes.value);
+        }
+      });
+
       // 팔로워/팔로잉 최신 수치 로드
       if (user?.id) {
         Promise.allSettled([
@@ -483,6 +506,30 @@ export default function MyPageScreen({ navigation }) {
         onPress: doLogout,
       },
     ]);
+  }, [logout]);
+
+  // 회원 탈퇴 (실제 DB 계정 탈퇴/익명화)
+  const handleDeleteAccount = useCallback(() => {
+    Alert.alert(
+      '회원 탈퇴 안내',
+      '탈퇴 시 보유 중인 모꼬 포인트(꿀떡) 및 모든 프로필·관심목록 정보가 파기되며 복구할 수 없습니다.\n정말로 탈퇴하시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '탈퇴 진행',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiClient.deleteAccount();
+              Alert.alert('탈퇴 완료', '회원 탈퇴가 안전하게 처리되었습니다.');
+              if (logout) await logout();
+            } catch (e) {
+              Alert.alert('탈퇴 실패', e?.message || '회원 탈퇴 처리 중 문제가 발생했습니다.');
+            }
+          },
+        },
+      ]
+    );
   }, [logout]);
 
   // 무료 MC 충전소 광고 시청 타이머 및 보상 수령 핸들러
@@ -949,7 +996,7 @@ export default function MyPageScreen({ navigation }) {
           </View>
         </View>
 
-        {/* 8. 하단 로그아웃 (시원하고 명확하게 누를 수 있는 카드형 버튼) */}
+        {/* 8. 하단 로그아웃 & 회원 탈퇴 */}
         <View style={styles.footerSection}>
           <TouchableOpacity
             style={styles.logoutBtn}
@@ -959,6 +1006,16 @@ export default function MyPageScreen({ navigation }) {
           >
             <Ionicons name="log-out-outline" size={17} color="#EF4444" />
             <Text style={styles.logoutText}>로그아웃</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{ marginTop: 14, paddingVertical: 6, paddingHorizontal: 14 }}
+            onPress={handleDeleteAccount}
+            activeOpacity={0.7}
+            hitSlop={8}
+          >
+            <Text style={{ fontSize: 12, color: '#94A3B8', textDecorationLine: 'underline', fontWeight: '600' }}>
+              회원 탈퇴하기
+            </Text>
           </TouchableOpacity>
           <Text style={styles.versionText}>MOCCO v1.3.0 • Expo SDK 57</Text>
         </View>
@@ -1963,6 +2020,7 @@ export default function MyPageScreen({ navigation }) {
                 onValueChange={(val) => {
                   setChatPush(val);
                   AsyncStorage.setItem('mocco_chat_push', String(val));
+                  apiClient.updateNotificationSettings({ notifyChat: val }).catch(() => {});
                 }}
                 trackColor={{ false: '#CBD5E1', true: tokens.colors.primary }}
               />

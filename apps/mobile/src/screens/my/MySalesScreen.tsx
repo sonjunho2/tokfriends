@@ -1,5 +1,5 @@
-﻿// apps/mobile/src/screens/my/MySalesScreen.tsx
-import React, { useState } from 'react';
+// apps/mobile/src/screens/my/MySalesScreen.tsx
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,18 @@ import {
   Image,
   Alert,
   StatusBar,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from '../../theme/tokens';
-import { resolveMobileImageUrl } from '../../services/marketService';
+import {
+  fetchMyProducts,
+  updateMyProductStatus,
+  deleteMyProduct,
+  resolveMobileImageUrl,
+} from '../../services/marketService';
 
 type SaleStatus = 'SELLING' | 'RESERVED' | 'COMPLETED';
 
@@ -30,63 +37,72 @@ interface SaleItem {
   region: string;
 }
 
+const mapServerStatus = (raw?: string): SaleStatus => {
+  if (raw === 'RESERVED') return 'RESERVED';
+  if (raw === 'COMPLETED') return 'COMPLETED';
+  return 'SELLING';
+};
+
+const toServerStatus = (status: SaleStatus): 'ACTIVE' | 'RESERVED' | 'COMPLETED' => {
+  if (status === 'RESERVED') return 'RESERVED';
+  if (status === 'COMPLETED') return 'COMPLETED';
+  return 'ACTIVE';
+};
+
 export default function MySalesScreen({ navigation }: any) {
   const [filterTab, setFilterTab] = useState<'ALL' | SaleStatus>('ALL');
+  const [salesList, setSalesList] = useState<SaleItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const [salesList, setSalesList] = useState<SaleItem[]>([
-    {
-      id: 'my-sale-01',
-      title: '소니 WH-1000XM5 노이즈캔슬링 헤드폰 실버 풀박스',
-      price: 320000,
-      status: 'SELLING',
-      statusLabel: '판매중',
-      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400',
-      likes: 19,
-      chats: 7,
-      createdAt: '2시간 전',
-      region: '역삼1동',
-    },
-    {
-      id: 'my-sale-02',
-      title: 'M2 맥북 에어 15인치 16GB 512GB 스페이스그레이',
-      price: 1480000,
-      status: 'RESERVED',
-      statusLabel: '예약중',
-      image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400',
-      likes: 35,
-      chats: 12,
-      createdAt: '어제',
-      region: '역삼1동',
-    },
-    {
-      id: 'my-sale-03',
-      title: '닌텐도 스위치 OLED 화이트 본체 풀박스',
-      price: 290000,
-      status: 'COMPLETED',
-      statusLabel: '판매완료',
-      image: 'https://images.unsplash.com/photo-1578303512597-81e6cc155b3e?w=400',
-      likes: 27,
-      chats: 14,
-      createdAt: '3일 전',
-      region: '역삼1동',
-    },
-  ]);
+  const loadMySales = useCallback(async () => {
+    try {
+      const items = await fetchMyProducts();
+      const mapped: SaleItem[] = items.map((p: any) => {
+        const st = mapServerStatus(p.status);
+        const label = st === 'SELLING' ? '판매중' : st === 'RESERVED' ? '예약중' : '판매완료';
+        return {
+          id: p.id,
+          title: p.title,
+          price: Number(p.price || 0),
+          status: st,
+          statusLabel: label,
+          image: Array.isArray(p.images) ? p.images[0] : p.image || '',
+          likes: p.likesCount || 0,
+          chats: p.chatsCount || 0,
+          createdAt: p.createdAt || '방금 전',
+          region: p.locationName || '전국',
+        };
+      });
+      setSalesList(mapped);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadMySales();
+  }, [loadMySales]);
 
   const filteredList = salesList.filter((item) => {
     if (filterTab === 'ALL') return true;
     return item.status === filterTab;
   });
 
-  const handleChangeStatus = (itemId: string, nextStatus: SaleStatus) => {
+  const handleChangeStatus = async (itemId: string, nextStatus: SaleStatus) => {
+    const label = nextStatus === 'SELLING' ? '판매중' : nextStatus === 'RESERVED' ? '예약중' : '판매완료';
     setSalesList((prev) =>
-      prev.map((item) => {
-        if (item.id === itemId) {
-          const label = nextStatus === 'SELLING' ? '판매중' : nextStatus === 'RESERVED' ? '예약중' : '판매완료';
-          return { ...item, status: nextStatus, statusLabel: label };
-        }
-        return item;
-      })
+      prev.map((item) => (item.id === itemId ? { ...item, status: nextStatus, statusLabel: label } : item))
     );
+    try {
+      await updateMyProductStatus(itemId, toServerStatus(nextStatus));
+    } catch (e: any) {
+      Alert.alert('상태 변경 오류', e?.message || '상태 변경에 실패했습니다.');
+      loadMySales();
+    }
   };
 
   const handleDeleteItem = (itemId: string) => {
@@ -95,8 +111,14 @@ export default function MySalesScreen({ navigation }: any) {
       {
         text: '삭제',
         style: 'destructive',
-        onPress: () => {
+        onPress: async () => {
           setSalesList((prev) => prev.filter((i) => i.id !== itemId));
+          try {
+            await deleteMyProduct(itemId);
+          } catch (e: any) {
+            Alert.alert('삭제 오류', e?.message || '상품 삭제에 실패했습니다.');
+            loadMySales();
+          }
         },
       },
     ]);
@@ -243,13 +265,28 @@ export default function MySalesScreen({ navigation }: any) {
       </View>
 
       {/* 리스트 */}
-      <FlatList
-        data={filteredList}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={tokens.colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={filteredList}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                loadMySales();
+              }}
+              tintColor={tokens.colors.primary}
+            />
+          }
+          ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconCircle}>
               <Ionicons name="pricetag-outline" size={36} color={tokens.colors.textTertiary} />
@@ -266,7 +303,8 @@ export default function MySalesScreen({ navigation }: any) {
             </TouchableOpacity>
           </View>
         }
-      />
+        />
+      )}
     </SafeAreaView>
   );
 }
