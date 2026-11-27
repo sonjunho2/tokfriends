@@ -49,10 +49,25 @@ export class AuthService implements OnModuleInit {
 
       const existingAdmin = await this.prisma.adminProfile.findFirst({
         where: { username: 'admin' },
-        select: { userId: true, username: true },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              passwordHash: true,
+            },
+          },
+        },
       });
 
       if (existingAdmin) {
+        if (!existingAdmin.user?.passwordHash || (existingAdmin.lastLoginAt === null && existingAdmin.user?.email !== 'admin@mocco.local')) {
+          const passwordHash = await argon2.hash('admin123!!');
+          await this.prisma.user.update({
+            where: { id: existingAdmin.userId },
+            data: { passwordHash, status: 'active' },
+          });
+        }
         return;
       }
 
@@ -62,8 +77,23 @@ export class AuthService implements OnModuleInit {
       });
 
       if (existingUser) {
-        await this.prisma.adminProfile.create({
+        await this.prisma.user.update({
+          where: { id: existingUser.id },
           data: {
+            passwordHash: existingUser.passwordHash || passwordHash,
+            role: 'admin',
+            status: 'active',
+          },
+        });
+        await this.prisma.adminProfile.upsert({
+          where: { userId: existingUser.id },
+          update: {
+            username: 'admin',
+            role: 'SUPER_ADMIN',
+            status: 'ACTIVE',
+            permissions: DEFAULT_SUPER_ADMIN_PERMISSIONS,
+          },
+          create: {
             userId: existingUser.id,
             username: 'admin',
             role: 'SUPER_ADMIN',
@@ -74,10 +104,16 @@ export class AuthService implements OnModuleInit {
         return;
       }
 
+      const nickTaken = await this.prisma.user.findUnique({
+        where: { nickname: 'admin' },
+        select: { id: true },
+      });
+      const safeNickname = nickTaken ? `mocco_admin_${Date.now().toString().slice(-4)}` : 'admin';
+
       await this.prisma.user.create({
         data: {
           email: 'admin@mocco.local',
-          nickname: 'admin',
+          nickname: safeNickname,
           displayName: '최고관리자',
           passwordHash,
           provider: 'admin',
