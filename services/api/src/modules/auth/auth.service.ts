@@ -49,15 +49,26 @@ export class AuthService implements OnModuleInit {
 
       const existingMoccoAdmin = await this.prisma.user.findFirst({
         where: { email: 'admin@mocco.local' },
-        include: { adminProfile: true },
+        select: {
+          id: true,
+          passwordHash: true,
+          adminProfile: {
+            select: {
+              userId: true,
+              username: true,
+              lastLoginAt: true,
+            },
+          },
+        },
       });
 
       if (existingMoccoAdmin) {
-        if (!existingMoccoAdmin.passwordHash) {
+        if (!existingMoccoAdmin.passwordHash || existingMoccoAdmin.adminProfile?.lastLoginAt === null) {
           const passwordHash = await argon2.hash('admin123!!');
           await this.prisma.user.update({
             where: { id: existingMoccoAdmin.id },
             data: { passwordHash, role: 'admin', status: 'active' },
+            select: { id: true },
           });
         }
         if (!existingMoccoAdmin.adminProfile) {
@@ -74,7 +85,7 @@ export class AuthService implements OnModuleInit {
               permissions: DEFAULT_SUPER_ADMIN_PERMISSIONS,
             },
           });
-        } else if (!existingMoccoAdmin.adminProfile.username) {
+        } else if (existingMoccoAdmin.adminProfile.username !== 'admin') {
           await this.prisma.adminProfile.updateMany({
             where: { username: 'admin', NOT: { userId: existingMoccoAdmin.id } },
             data: { username: null },
@@ -87,10 +98,11 @@ export class AuthService implements OnModuleInit {
         return;
       }
 
-      // If another legacy AdminProfile got tagged 'admin' before admin@mocco.local existed, free 'admin'
-      await this.prisma.adminProfile.updateMany({
-        where: { username: 'admin' },
-        data: { username: null },
+      // Clean up legacy AdminProfile entries without username or holding 'admin'
+      await this.prisma.adminProfile.deleteMany({
+        where: {
+          OR: [{ username: null }, { username: 'admin' }],
+        },
       });
 
       const passwordHash = await argon2.hash('admin123!!');
@@ -119,6 +131,7 @@ export class AuthService implements OnModuleInit {
             },
           },
         },
+        select: { id: true },
       });
       this.logger.log('Default super admin account seeded (username: admin)');
     } catch (err: any) {
