@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { SellerNav } from './SellerNav'
 import { api } from '@/lib/api'
+import { resolveSellerMerchant } from './sellerContext'
 
 interface OrderItem {
   id: string
@@ -59,8 +60,11 @@ export default function SellerDashboardPage() {
   const fetchData = async () => {
     setLoading(true)
     try {
+      const { merchant } = await resolveSellerMerchant()
+      const merchantQuery = merchant?.id ? `?merchantId=${encodeURIComponent(merchant.id)}` : ''
+
       // 1. Fetch Orders
-      const orderRes = await api.get('/api/merchants/orders?merchantId=mer-001')
+      const orderRes = await api.get(`/api/merchants/orders${merchantQuery}`)
       if (orderRes.data?.items) {
         setOrders(orderRes.data.items)
       } else {
@@ -114,7 +118,7 @@ export default function SellerDashboardPage() {
       }
 
       // 2. Fetch Settlement Summary
-      const summaryRes = await api.get('/api/merchants/settlement-summary?merchantId=mer-001')
+      const summaryRes = await api.get(`/api/merchants/settlement-summary${merchantQuery}`)
       if (summaryRes.data?.summary) {
         setSummary(summaryRes.data.summary)
       } else {

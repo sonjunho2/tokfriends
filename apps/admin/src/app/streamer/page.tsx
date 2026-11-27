@@ -40,6 +40,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { useWebAuth } from '@/lib/auth-context'
+import { api } from '@/lib/api'
 
 interface AffiliateProductItem {
   id: string
@@ -167,87 +168,41 @@ export default function StreamerStudioPage() {
   const [withdrawAmount, setWithdrawAmount] = useState('300000')
 
   // Commission Ledger History
-  const [commissionHistory, setCommissionHistory] = useState([
-    {
-      id: 'comm-101',
-      date: '2026-11-04 20:30',
-      liveTitle: '제주 특산물 초특가 먹방 & 라이브 특가',
-      orderNumber: 'ORD-20261104-5892',
-      productName: '[본사직영] 제주 프리미엄 1등급 흑돼지 오겹살 1kg',
-      quantity: 3,
-      saleTotalKrw: 98700,
-      commissionRate: 10.0,
-      commissionKrw: 9870,
-      status: 'SETTLED',
-      statusText: '정산 입금완료',
-    },
-    {
-      id: 'comm-102',
-      date: '2026-11-03 21:15',
-      liveTitle: '음향기기 덕후의 소니 헤드폰 실사용 리뷰',
-      orderNumber: 'ORD-20261103-1024',
-      productName: '소니 WH-1000XM5 프리미엄 무선 노이즈캔슬링 헤드폰',
-      quantity: 1,
-      saleTotalKrw: 369000,
-      commissionRate: 15.0,
-      commissionKrw: 55350,
-      status: 'PENDING',
-      statusText: '구매확정 대기',
-    },
-    {
-      id: 'comm-103',
-      date: '2026-10-30 19:00',
-      liveTitle: '제철 과일 산지직송 달콤 과일 라이브',
-      orderNumber: 'ORD-20261030-8812',
-      productName: '[본사공구] 프리미엄 나주 특등급 햇배 5kg',
-      quantity: 5,
-      saleTotalKrw: 99500,
-      commissionRate: 10.0,
-      commissionKrw: 9950,
-      status: 'SETTLED',
-      statusText: '정산 입금완료',
-    },
-  ])
+  const [commissionHistory, setCommissionHistory] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [ownerFilter, setOwnerFilter] = useState<'ALL' | 'HEADQUARTERS' | 'MERCHANT'>('ALL')
-  const [availableProducts, setAvailableProducts] = useState<AffiliateProductItem[]>(INITIAL_AFFILIATE_PRODUCTS)
-  const [myPicks, setMyPicks] = useState<AffiliateProductItem[]>([INITIAL_AFFILIATE_PRODUCTS[0], INITIAL_AFFILIATE_PRODUCTS[1]])
+  const [availableProducts, setAvailableProducts] = useState<AffiliateProductItem[]>([])
+  const [myPicks, setMyPicks] = useState<AffiliateProductItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [settledCommission, setSettledCommission] = useState(458000)
-  const [completedOrdersCount, setCompletedOrdersCount] = useState(14)
+  const [settledCommission, setSettledCommission] = useState(0)
+  const [completedOrdersCount, setCompletedOrdersCount] = useState(0)
 
-  // Fetch real affiliate products from backend API if available
+  // Fetch real affiliate products from backend API via @/lib/api proxy
   const fetchAffiliateData = async () => {
     setIsLoading(true)
     try {
-      const res = await fetch('/api/affiliate/products?limit=50', { cache: 'no-store' })
-      if (res.ok) {
-        const json = await res.json()
-        if (json.data && Array.isArray(json.data) && json.data.length > 0) {
-          setAvailableProducts(json.data)
-        }
+      const res = await api.get('/api/affiliate/products?limit=50')
+      if (res.data?.data && Array.isArray(res.data.data)) {
+        setAvailableProducts(res.data.data)
       }
-      const myRes = await fetch('/api/affiliate/my-products', { cache: 'no-store' })
-      if (myRes.ok) {
-        const json = await myRes.json()
-        if (json.data && Array.isArray(json.data)) {
-          const mapped = json.data.map((item: any) => ({
-            ...item.product,
-            commissionRate: item.commissionRate,
-            estimatedCommissionKrw: item.estimatedCommissionKrw,
-          }))
-          if (mapped.length > 0) setMyPicks(mapped)
-        }
+      const myRes = await api.get('/api/affiliate/my-products')
+      if (myRes.data?.data && Array.isArray(myRes.data.data)) {
+        const mapped = myRes.data.data.map((item: any) => ({
+          ...item.product,
+          commissionRate: item.commissionRate,
+          estimatedCommissionKrw: item.estimatedCommissionKrw,
+        }))
+        setMyPicks(mapped)
       }
-      const statsRes = await fetch('/api/affiliate/stats', { cache: 'no-store' })
-      if (statsRes.ok) {
-        const json = await statsRes.json()
-        if (json.totalSettledCommission !== undefined) {
-          setSettledCommission(json.totalSettledCommission)
-        }
-        if (json.completedOrdersCount !== undefined) {
-          setCompletedOrdersCount(json.completedOrdersCount)
-        }
+      const statsRes = await api.get('/api/affiliate/stats')
+      if (statsRes.data?.totalSettledCommission !== undefined) {
+        setSettledCommission(statsRes.data.totalSettledCommission)
+      }
+      if (statsRes.data?.completedOrdersCount !== undefined) {
+        setCompletedOrdersCount(statsRes.data.completedOrdersCount)
+      }
+      if (Array.isArray(statsRes.data?.commissionHistory)) {
+        setCommissionHistory(statsRes.data.commissionHistory)
       }
 
       // Sync newly planned HQ Direct & Merchant custom products if affiliate is allowed
@@ -345,7 +300,9 @@ export default function StreamerStudioPage() {
           })
         }
       }
-    } catch {}
+    } catch {
+      setAvailableProducts((prev) => (prev.length > 0 ? prev : INITIAL_AFFILIATE_PRODUCTS))
+    }
     setIsLoading(false)
   }
 
@@ -356,11 +313,10 @@ export default function StreamerStudioPage() {
   // Handle Pick Product
   const handlePickProduct = async (product: AffiliateProductItem) => {
     try {
-      await fetch('/api/affiliate/products/pick', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: product.id, commissionRate: product.commissionRate }),
-      }).catch(() => {})
+      await api.post('/api/affiliate/products/pick', {
+        productId: product.id,
+        commissionRate: product.commissionRate,
+      })
 
       if (!myPicks.some((p) => p.id === product.id)) {
         const next = [product, ...myPicks]
@@ -385,9 +341,7 @@ export default function StreamerStudioPage() {
   // Handle Unpick Product
   const handleUnpickProduct = async (productId: string) => {
     try {
-      await fetch(`/api/affiliate/my-products/${productId}`, {
-        method: 'DELETE',
-      }).catch(() => {})
+      await api.delete(`/api/affiliate/my-products/${productId}`)
 
       const next = myPicks.filter((p) => p.id !== productId)
       setMyPicks(next)

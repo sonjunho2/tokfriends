@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { SellerNav } from '../SellerNav'
 import { api } from '@/lib/api'
+import { resolveSellerMerchant } from '../sellerContext'
 
 interface ProductItem {
   id: string
@@ -66,6 +67,7 @@ export default function SellerProductsPage() {
   const [submitting, setSubmitting] = useState(false)
 
   // Edit stock inline
+  const [merchantId, setMerchantId] = useState('')
   const [editingStockId, setEditingStockId] = useState<string | null>(null)
   const [stockInput, setStockInput] = useState<number>(0)
 
@@ -73,9 +75,12 @@ export default function SellerProductsPage() {
     setLoading(true)
     try {
       let baseList: ProductItem[] = []
-      const res = await api.get('/api/merchants/my?userId=u-merchant-1')
-      if (res.data?.products && res.data.products.length > 0) {
-        baseList = res.data.products
+      const { merchant, products: myProducts } = await resolveSellerMerchant()
+      if (merchant?.id) {
+        setMerchantId(merchant.id)
+      }
+      if (myProducts.length > 0) {
+        baseList = myProducts
       } else {
         // Fallback default merchant products
         baseList = [
@@ -178,7 +183,7 @@ export default function SellerProductsPage() {
     try {
       await api.put(`/api/merchants/products/${productId}`, {
         status: nextStatus,
-        merchantId: 'mer-001',
+        ...(merchantId ? { merchantId } : {}),
       })
       setProducts((prev) =>
         prev.map((p) => (p.id === productId ? { ...p, status: nextStatus } : p))
@@ -204,7 +209,7 @@ export default function SellerProductsPage() {
     try {
       await api.put(`/api/merchants/products/${productId}`, {
         stock: stockInput,
-        merchantId: 'mer-001',
+        ...(merchantId ? { merchantId } : {}),
       })
       setProducts((prev) =>
         prev.map((p) => (p.id === productId ? { ...p, stock: stockInput } : p))
@@ -249,6 +254,7 @@ export default function SellerProductsPage() {
         images: [formData.imageUrl.trim() || 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600'],
         category: formData.category,
         shippingFee: Number(formData.shippingFee) || 0,
+        ...(merchantId ? { merchantId } : {}),
       }
 
       const res = await api.post('/api/merchants/products', payload)
@@ -258,7 +264,7 @@ export default function SellerProductsPage() {
         // Fallback create
         const newP: ProductItem = {
           id: `np-${Date.now()}`,
-          merchantId: 'mer-001',
+          merchantId: merchantId || 'unknown',
           name: payload.name,
           description: payload.description,
           priceKrw: payload.priceKrw,

@@ -32,6 +32,7 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { SellerNav } from '../SellerNav'
 import { api } from '@/lib/api'
+import { resolveSellerMerchant } from '../sellerContext'
 
 interface MerchantOrder {
   id: string
@@ -72,6 +73,7 @@ export default function SellerOrdersPage() {
   const [orders, setOrders] = useState<MerchantOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const [merchantId, setMerchantId] = useState('')
   const [search, setSearch] = useState('')
 
   // Single Shipping Modal State
@@ -92,7 +94,11 @@ export default function SellerOrdersPage() {
   const fetchOrders = async () => {
     setLoading(true)
     try {
-      const res = await api.get('/api/merchants/orders?merchantId=mer-001')
+      const { merchant } = await resolveSellerMerchant()
+      const resolvedMerchantId = merchant?.id || ''
+      if (resolvedMerchantId) setMerchantId(resolvedMerchantId)
+      const merchantQuery = resolvedMerchantId ? `?merchantId=${encodeURIComponent(resolvedMerchantId)}` : ''
+      const res = await api.get(`/api/merchants/orders${merchantQuery}`)
       if (res.data?.items) {
         setOrders(res.data.items)
       } else {
@@ -222,6 +228,7 @@ export default function SellerOrdersPage() {
       const payload = {
         courier,
         trackingNumber: trackingNumber.trim(),
+        ...(merchantId ? { merchantId } : {}),
       }
 
       await api.post(`/api/merchants/orders/${shippingModalOrder.id}/ship`, payload).catch(() => null)

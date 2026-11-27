@@ -260,10 +260,17 @@ export class AffiliateService {
       },
       select: {
         id: true,
+        orderNumber: true,
         amount: true,
         streamerCommissionAmount: true,
         confirmedAt: true,
+        createdAt: true,
+        product: {
+          select: { title: true },
+        },
       },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
     });
 
     const pendingOrders = await this.prisma.escrowOrder.findMany({
@@ -273,9 +280,17 @@ export class AffiliateService {
       },
       select: {
         id: true,
+        orderNumber: true,
         amount: true,
         streamerCommissionAmount: true,
+        status: true,
+        createdAt: true,
+        product: {
+          select: { title: true },
+        },
       },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
     });
 
     const totalSettledCommission = completedOrders.reduce(
@@ -288,12 +303,42 @@ export class AffiliateService {
       0
     );
 
+    const commissionHistory = [
+      ...pendingOrders.map((o) => ({
+        id: o.id,
+        date: o.createdAt.toISOString().slice(0, 16).replace('T', ' '),
+        liveTitle: '모꼬 LIVE 제휴 판매',
+        orderNumber: o.orderNumber,
+        productName: o.product?.title || '제휴 상품',
+        quantity: 1,
+        saleTotalKrw: o.amount,
+        commissionRate: o.amount > 0 ? Number((((o.streamerCommissionAmount || 0) / o.amount) * 100).toFixed(1)) : 0,
+        commissionKrw: o.streamerCommissionAmount || 0,
+        status: 'PENDING',
+        statusText: '구매확정 대기',
+      })),
+      ...completedOrders.map((o) => ({
+        id: o.id,
+        date: (o.confirmedAt || o.createdAt).toISOString().slice(0, 16).replace('T', ' '),
+        liveTitle: '모꼬 LIVE 제휴 판매',
+        orderNumber: o.orderNumber,
+        productName: o.product?.title || '제휴 상품',
+        quantity: 1,
+        saleTotalKrw: o.amount,
+        commissionRate: o.amount > 0 ? Number((((o.streamerCommissionAmount || 0) / o.amount) * 100).toFixed(1)) : 0,
+        commissionKrw: o.streamerCommissionAmount || 0,
+        status: 'SETTLED',
+        statusText: '정산 입금완료',
+      })),
+    ];
+
     return {
       success: true,
-      totalSettledCommission: totalSettledCommission > 0 ? totalSettledCommission : 458000,
-      completedOrdersCount: completedOrders.length > 0 ? completedOrders.length : 14,
+      totalSettledCommission,
+      completedOrdersCount: completedOrders.length,
       pendingCommission,
       pendingOrdersCount: pendingOrders.length,
+      commissionHistory,
     };
   }
 }

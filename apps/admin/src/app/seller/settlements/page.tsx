@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/use-toast'
 import { SellerNav } from '../SellerNav'
 import { api } from '@/lib/api'
+import { resolveSellerMerchant } from '../sellerContext'
 
 interface SettlementItem {
   orderId: string
@@ -76,7 +77,9 @@ export default function SellerSettlementsPage() {
   const fetchSettlements = async () => {
     setLoading(true)
     try {
-      const res = await api.get('/api/merchants/settlement-summary?merchantId=mer-001')
+      const { merchant } = await resolveSellerMerchant()
+      const merchantQuery = merchant?.id ? `?merchantId=${encodeURIComponent(merchant.id)}` : ''
+      const res = await api.get(`/api/merchants/settlement-summary${merchantQuery}`)
       if (res.data?.summary) {
         setSummary(res.data.summary)
         setHistory(res.data.history || [])
