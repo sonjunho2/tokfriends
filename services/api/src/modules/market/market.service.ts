@@ -682,4 +682,140 @@ export class MarketService {
     });
     return { ok: true, items, total: items.length };
   }
+
+  /**
+   * 내 판매 물품 목록 조회
+   */
+  async listMyProducts(userId: string) {
+    if (!userId) return { ok: true, items: [] };
+    const items = await this.prisma.marketProduct.findMany({
+      where: {
+        sellerId: userId,
+        status: { not: ProductStatus.CANCELLED },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return { ok: true, items };
+  }
+
+  /**
+   * 판매자 본인의 판매 물품 상태 변경
+   */
+  async updateMyProductStatus(userId: string, productId: string, status: ProductStatus) {
+    const product = await this.prisma.marketProduct.findUnique({ where: { id: productId } });
+    if (!product) throw new NotFoundException('상품을 찾을 수 없습니다.');
+    if (product.sellerId !== userId) {
+      throw new ForbiddenException('본인이 등록한 상품만 상태를 변경할 수 있습니다.');
+    }
+    const updated = await this.prisma.marketProduct.update({
+      where: { id: productId },
+      data: { status },
+    });
+    return { ok: true, data: updated };
+  }
+
+  /**
+   * 판매자 본인의 판매 물품 삭제 (에스크로 주문 이력이 있으면 CANCELLED 처리)
+   */
+  async deleteMyProduct(userId: string, productId: string) {
+    const product = await this.prisma.marketProduct.findUnique({
+      where: { id: productId },
+      include: { _count: { select: { escrowOrders: true } } },
+    });
+    if (!product) throw new NotFoundException('상품을 찾을 수 없습니다.');
+    if (product.sellerId !== userId) {
+      throw new ForbiddenException('본인이 등록한 상품만 삭제할 수 있습니다.');
+    }
+    if (product._count.escrowOrders > 0) {
+      await this.prisma.marketProduct.update({
+        where: { id: productId },
+        data: { status: ProductStatus.CANCELLED },
+      });
+    } else {
+      await this.prisma.marketProduct.delete({ where: { id: productId } });
+    }
+    return { ok: true, message: '판매 상품이 삭제되었습니다.' };
+  }
+
+  /**
+   * 내 관심목록(찜한 상품) 조회
+   */
+  async getWishlist(userId: string) {
+    if (!userId) return { ok: true, items: [] };
+    const wishRows = await this.prisma.marketWishlist.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const marketIds = wishRows
+      .filter((w) => w.productType !== 'NORMAL_PRODUCT')
+      .map((w) => w.productId);
+    const normalIds = wishRows
+      .filter((w) => w.productType === 'NORMAL_PRODUCT')
+      .map((w) => w.productId);
+
+    const [marketProducts, normalProducts] = await Promise.all([
+      marketIds.length > 0
+        ? this.prisma.marketProduct.findMany({ where: { id: { in: marketIds } } })
+        : Promise.resolve([]),
+      normalIds.length > 0
+        ? this.prisma.normalProduct.findMany({
+            where: { id: { in: normalIds } },
+            include: { merchant: { select: { businessName: true } } },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const marketMap = new Map(marketProducts.map((p) => [p.id, p]));
+    const normalMap = new Map(normalProducts.map((p) => [p.id, p]));
+
+    const items = wishRows
+      .map((w) => {
+        if (w.productType === 'NORMAL_PRODUCT') {
+          const np = normalMap.get(w.productId);
+          if (!np) return null;
+          return {
+            id: np.id,
+            productType: 'NORMAL_PRODUCT',
+            title: np.name,
+            price: np.salePriceKrw || np.priceKrw,
+            images: np.images,
+            locationName: np.merchant?.businessName || '모꼬 공식몰',
+            createdAt: w.createdAt,
+          };
+        }
+        const mp = marketMap.get(w.productId);
+        if (!mp) return null;
+        return {
+          id: mp.id,
+          productType: 'MARKET_PRODUCT',
+          title: mp.title,
+          price: mp.price,
+          images: mp.images,
+          locationName: mp.locationName || '전국 직거래·택배',
+          createdAt: w.createdAt,
+        };
+      })
+      .filter(Boolean);
+
+    return { ok: true, items };
+  }
+
+  /**
+   * 관심상품 찜하기 / 해제 토글
+   */
+  async toggleWishlist(userId: string, productId: string, productType = 'MARKET_PRODUCT') {
+    if (!userId) throw new ForbiddenException('로그인이 필요합니다.');
+    const existing = await this.prisma.marketWishlist.findUnique({
+      where: { userId_productId: { userId, productId } },
+    });
+    if (existing) {
+      await this.prisma.marketWishlist.delete({ where: { id: existing.id } });
+      return { ok: true, isLiked: false };
+    }
+    await this.prisma.marketWishlist.create({
+      data: { userId, productId, productType },
+    });
+    return { ok: true, isLiked: true };
+  }
 }

@@ -17,12 +17,24 @@ model User {
   tokenVersion       Int                  @default(0)
   provider           String?              @default("email")
   avatarUrl          String?              // 대표 원형 아이콘 URL
-  bio                String?              @db.VarChar(200)
+  bio                String?              @db.VarChar(300)
+  headline           String?              @db.VarChar(100)
+  age                Int?
+  gender             String?
+  region1            String?
+  region2            String?
+  interests          String[]             @default([])
   pointBalance       Int                  @default(0) // 실제 충전/보유 온(ON) 포인트
   callRatePerMinute  Int?                 // 호스트 자율 단가 (null 시 시스템 기본값)
+  chatEntryFee       Int                  @default(30) // 1:1 대화 입장 단가
+  liveEntryFee       Int                  @default(0)  // 라이브 방송 기본 입장료
+  notifyChat         Boolean              @default(true)
+  notifyLive         Boolean              @default(true)
+  notifyNightLimit   Boolean              @default(false)
   status             String               @default("active")
   role               String               @default("user")
   photos             UserPhoto[]
+  wishlists          MarketWishlist[]
   hostedCalls        PrivateCallSession[] @relation("HostSessions")
   guestCalls         PrivateCallSession[] @relation("GuestSessions")
   giftTransactions   GiftTransaction[]
@@ -312,6 +324,18 @@ model MarketProduct {
 
   @@index([type, status, createdAt])
   @@index([sellerId])
+}
+
+model MarketWishlist {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId   String
+  productType String   @default("MARKET_PRODUCT") // MARKET_PRODUCT | NORMAL_PRODUCT
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId, createdAt])
 }
 
 enum MarketProductType {

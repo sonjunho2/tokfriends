@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
+import { UpdateNotificationSettingsDto, UpdateUserDto } from './update-user.dto';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { Public } from '../auth/public.decorator';
@@ -69,7 +70,7 @@ export class UsersController {
   async updateMyProfile(
     @CurrentUser() user: any,
     @Param('id') idParam: string,
-    @Body() body: { nickname?: string; bio?: string; avatarUrl?: string; avatarUri?: string; callRatePerMinute?: number },
+    @Body() body: UpdateUserDto,
   ) {
     const userId = idParam && idParam !== 'me' ? idParam : (user?.id || user?.sub);
     const avatar = body.avatarUrl || body.avatarUri;
@@ -80,12 +81,22 @@ export class UsersController {
     return { ok: true, data };
   }
 
+  @Patch('users/me/notifications')
+  @UseGuards(JwtAuthGuard)
+  async updateNotifications(
+    @CurrentUser() user: any,
+    @Body() body: UpdateNotificationSettingsDto,
+  ) {
+    const userId = user?.id || user?.sub;
+    const data = await this.usersService.updateProfile(userId, body);
+    return { ok: true, data };
+  }
+
   @Delete('users/me')
   @UseGuards(JwtAuthGuard)
   async deleteAccount(@CurrentUser() user: any) {
     const userId = user?.id || user?.sub;
-    // update status to BANNED or delete
-    return { ok: true, message: '회원 탈퇴 완료' };
+    return this.usersService.deleteAccount(userId);
   }
 
   // ==========================================

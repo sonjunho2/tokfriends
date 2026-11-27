@@ -386,15 +386,33 @@ export class UsersService implements OnModuleInit {
     const nickname = user.nickname || ext.nickname || user.displayName || '회원';
     const displayName = user.displayName || user.nickname || ext.nickname || '회원';
     const avatarUrl = user.avatarUrl || ext.avatarUrl || ext.avatarUri || user.photos?.[0]?.url || null;
-    const headline = ext.headline || user.bio || '새로운 인연을 기다려요 ✨';
-    const bio = user.bio !== undefined ? user.bio : (ext.bio || '');
-    const region1 = ext.region1 || '서울특별시';
-    const region2 = ext.region2 || '강남구 역삼동';
-    const interests = Array.isArray(ext.interests) ? ext.interests : ['소통', '일상', '친구'];
-    const age = user.age !== undefined ? user.age : (ext.age !== undefined ? ext.age : 26);
+    const headline = user.headline ?? ext.headline ?? user.bio ?? '새로운 인연을 기다려요';
+    const bio = user.bio ?? ext.bio ?? '';
+    const region1 = user.region1 || ext.region1 || '서울특별시';
+    const region2 = user.region2 || ext.region2 || '강남구 역삼동';
+    const interests =
+      Array.isArray(user.interests) && user.interests.length > 0
+        ? user.interests
+        : Array.isArray(ext.interests)
+        ? ext.interests
+        : ['소통', '일상', '친구'];
+    const age = user.age ?? ext.age ?? 26;
     const gender = user.gender || ext.gender || '여';
-    const chatEntryFee = ext.chatEntryFee !== undefined ? Number(ext.chatEntryFee) : 30;
-    const liveEntryFee = ext.liveEntryFee !== undefined ? Number(ext.liveEntryFee) : 0;
+    const chatEntryFee =
+      user.chatEntryFee !== undefined && user.chatEntryFee !== null
+        ? Number(user.chatEntryFee)
+        : ext.chatEntryFee !== undefined
+        ? Number(ext.chatEntryFee)
+        : 30;
+    const liveEntryFee =
+      user.liveEntryFee !== undefined && user.liveEntryFee !== null
+        ? Number(user.liveEntryFee)
+        : ext.liveEntryFee !== undefined
+        ? Number(ext.liveEntryFee)
+        : 0;
+    const notifyChat = user.notifyChat ?? true;
+    const notifyLive = user.notifyLive ?? true;
+    const notifyNightLimit = user.notifyNightLimit ?? false;
 
     const pointBal = user.pointBalance ?? 0;
 
@@ -407,6 +425,9 @@ export class UsersService implements OnModuleInit {
       spendableBalance: pointBal,
       chatEntryFee,
       liveEntryFee,
+      notifyChat,
+      notifyLive,
+      notifyNightLimit,
       nickname,
       displayName,
       avatarUrl,
@@ -466,7 +487,15 @@ export class UsersService implements OnModuleInit {
         displayName: true,
         avatarUrl: true,
         bio: true,
+        headline: true,
+        age: true,
+        gender: true,
+        region1: true,
+        region2: true,
+        interests: true,
         callRatePerMinute: true,
+        chatEntryFee: true,
+        liveEntryFee: true,
         role: true,
         photos: {
           orderBy: { sortOrder: 'asc' },
@@ -520,14 +549,32 @@ export class UsersService implements OnModuleInit {
     this.saveExtendedProfiles();
 
     const avatar = data.avatarUrl || data.avatarUri;
+    const callRate =
+      data.callRatePerMinute !== undefined
+        ? Number(data.callRatePerMinute)
+        : data.liveRatePerMinute !== undefined
+        ? Number(data.liveRatePerMinute)
+        : undefined;
 
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
-        ...(data.nickname ? { nickname: data.nickname, displayName: data.nickname } : {}),
+        ...(data.nickname ? { nickname: data.nickname, displayName: data.displayName || data.nickname } : {}),
+        ...(!data.nickname && data.displayName ? { displayName: data.displayName } : {}),
         ...(data.bio !== undefined ? { bio: data.bio } : {}),
+        ...(data.headline !== undefined ? { headline: data.headline } : {}),
+        ...(data.age !== undefined ? { age: Number(data.age) } : {}),
+        ...(data.gender !== undefined ? { gender: data.gender } : {}),
+        ...(data.region1 !== undefined ? { region1: data.region1 } : {}),
+        ...(data.region2 !== undefined ? { region2: data.region2 } : {}),
+        ...(Array.isArray(data.interests) ? { interests: data.interests } : {}),
         ...(avatar !== undefined ? { avatarUrl: avatar } : {}),
-        ...(data.callRatePerMinute !== undefined ? { callRatePerMinute: data.callRatePerMinute } : {}),
+        ...(callRate !== undefined ? { callRatePerMinute: Math.max(0, callRate) } : {}),
+        ...(data.chatEntryFee !== undefined ? { chatEntryFee: Math.max(0, Number(data.chatEntryFee)) } : {}),
+        ...(data.liveEntryFee !== undefined ? { liveEntryFee: Math.max(0, Number(data.liveEntryFee)) } : {}),
+        ...(data.notifyChat !== undefined ? { notifyChat: Boolean(data.notifyChat) } : {}),
+        ...(data.notifyLive !== undefined ? { notifyLive: Boolean(data.notifyLive) } : {}),
+        ...(data.notifyNightLimit !== undefined ? { notifyNightLimit: Boolean(data.notifyNightLimit) } : {}),
       },
       include: {
         photos: {
@@ -537,6 +584,46 @@ export class UsersService implements OnModuleInit {
     });
 
     return this.normalizeUser(updated);
+  }
+
+  async deleteAccount(userId: string) {
+    if (!userId) {
+      throw new BadRequestException('사용자 정보가 올바르지 않습니다.');
+    }
+
+    const existing = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!existing) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.userPhoto.deleteMany({ where: { userId } });
+      await tx.marketWishlist.deleteMany({ where: { userId } });
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          status: 'WITHDRAWN',
+          nickname: null,
+          email: null,
+          displayName: '탈퇴한 회원',
+          passwordHash: null,
+          avatarUrl: null,
+          bio: null,
+          headline: null,
+          region1: null,
+          region2: null,
+          interests: [],
+          tokenVersion: { increment: 1 },
+        },
+      });
+    });
+
+    if (this.extendedProfiles[userId]) {
+      delete this.extendedProfiles[userId];
+      this.saveExtendedProfiles();
+    }
+
+    return { ok: true, message: '회원 탈퇴가 안전하게 처리되었습니다.' };
   }
 
   async checkNickname(nickname: string) {

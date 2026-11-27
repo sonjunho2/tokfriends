@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -11,7 +12,13 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { MarketService } from './market.service';
-import { CreateMarketProductDto, CreateEscrowOrderDto, DisputeOrderDto } from './dto/market.dto';
+import {
+  CreateMarketProductDto,
+  CreateEscrowOrderDto,
+  DisputeOrderDto,
+  ToggleWishlistDto,
+  UpdateMyProductStatusDto,
+} from './dto/market.dto';
 import { Public } from '../auth/public.decorator';
 import { MarketProductType, ProductStatus } from '@prisma/client';
 import { MerchantsService } from '../merchants/merchants.service';
@@ -102,6 +109,50 @@ export class MarketController {
   async listMyOrders(@Req() req: any, @Query('role') role?: 'buyer' | 'seller') {
     const userId = req.user?.id || req.user?.sub;
     return this.marketService.listUserOrders(userId, role || 'buyer');
+  }
+
+  @Get('my-products')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '내 판매 물품 목록 조회' })
+  async listMyProducts(@Req() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.marketService.listMyProducts(userId);
+  }
+
+  @Patch('products/:id/status')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '내 판매 물품 상태 변경 (ACTIVE / RESERVED / COMPLETED)' })
+  async updateMyProductStatus(
+    @Req() req: any,
+    @Param('id') productId: string,
+    @Body() dto: UpdateMyProductStatusDto,
+  ) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.marketService.updateMyProductStatus(userId, productId, dto.status);
+  }
+
+  @Delete('products/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '내 판매 물품 삭제' })
+  async deleteMyProduct(@Req() req: any, @Param('id') productId: string) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.marketService.deleteMyProduct(userId, productId);
+  }
+
+  @Get('wishlist')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '내 관심목록(찜한 상품) 조회' })
+  async getWishlist(@Req() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.marketService.getWishlist(userId);
+  }
+
+  @Post('wishlist/toggle')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '관심상품 찜하기 / 해제 토글' })
+  async toggleWishlist(@Req() req: any, @Body() dto: ToggleWishlistDto) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.marketService.toggleWishlist(userId, dto.productId, dto.productType);
   }
 
   // ==========================================

@@ -1,6 +1,6 @@
 import { IsString, IsNotEmpty, IsEnum, IsNumber, IsOptional, Min, IsArray } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { MarketProductType } from '@prisma/client';
+import { MarketProductType, ProductStatus } from '@prisma/client';
 
 export class CreateMarketProductDto {
   @ApiProperty({ enum: ['C2C_USED', 'B2C_GROUP'], default: 'C2C_USED' })
@@ -119,4 +119,22 @@ export class DisputeOrderDto {
   @IsString()
   @IsNotEmpty()
   reason: string;
+}
+
+export class UpdateMyProductStatusDto {
+  @ApiProperty({ enum: ['ACTIVE', 'RESERVED', 'COMPLETED', 'CANCELLED'] })
+  @IsEnum(ProductStatus)
+  status: ProductStatus;
+}
+
+export class ToggleWishlistDto {
+  @ApiProperty({ description: '찜할 상품 ID' })
+  @IsString()
+  @IsNotEmpty()
+  productId: string;
+
+  @ApiPropertyOptional({ description: '상품 유형 (MARKET_PRODUCT | NORMAL_PRODUCT)', default: 'MARKET_PRODUCT' })
+  @IsOptional()
+  @IsString()
+  productType?: string;
 }

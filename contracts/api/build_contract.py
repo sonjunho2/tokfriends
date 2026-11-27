@@ -1284,6 +1284,76 @@ endpoints = [
             "200": {"description": "Merchant normal product detail"},
         },
     },
+    {
+        "path": "/users/me/notifications",
+        "method": "patch",
+        "summary": "Update notification settings",
+        "tags": ["users"],
+        "public": False,
+        "responses": {
+            "200": {"description": "Notification settings updated"},
+        },
+    },
+    {
+        "path": "/market/my-orders",
+        "method": "get",
+        "summary": "내 에스크로 구매/판매 내역 조회",
+        "tags": ["market"],
+        "public": False,
+        "responses": {
+            "200": {"description": "User orders"},
+        },
+    },
+    {
+        "path": "/market/my-products",
+        "method": "get",
+        "summary": "내 판매 물품 목록 조회",
+        "tags": ["market"],
+        "public": False,
+        "responses": {
+            "200": {"description": "My market products"},
+        },
+    },
+    {
+        "path": "/market/products/{id}/status",
+        "method": "patch",
+        "summary": "내 판매 물품 상태 변경",
+        "tags": ["market"],
+        "public": False,
+        "responses": {
+            "200": {"description": "Updated product status"},
+        },
+    },
+    {
+        "path": "/market/products/{id}",
+        "method": "delete",
+        "summary": "내 판매 물품 삭제",
+        "tags": ["market"],
+        "public": False,
+        "responses": {
+            "200": {"description": "Deleted product"},
+        },
+    },
+    {
+        "path": "/market/wishlist",
+        "method": "get",
+        "summary": "내 관심목록(찜한 상품) 조회",
+        "tags": ["market"],
+        "public": False,
+        "responses": {
+            "200": {"description": "Wishlist items"},
+        },
+    },
+    {
+        "path": "/market/wishlist/toggle",
+        "method": "post",
+        "summary": "관심상품 찜하기/해제 토글",
+        "tags": ["market"],
+        "public": False,
+        "responses": {
+            "200": {"description": "Toggled wishlist state"},
+        },
+    },
 ]
 
 security_schemes = {
