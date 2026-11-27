@@ -574,13 +574,10 @@ export default function AdminGiftsPage() {
             <span>&gt;</span>
             <span className="text-foreground font-medium">선물 마스터 관리</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Gift className="h-6 w-6 text-primary" />
-            선물 마스터 &amp; 3D 이펙트 관리
+          <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
+            <Gift className="h-5 w-5 text-primary" />
+            선물 마스터
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            1:1 채팅방 및 라이브 방송(1:N 및 1:1 라이브)에서 유저들이 후원하는 선물 아이템, 모꼬 꿀떡 소비 가격, 노출 채널 및 3D 투명 알파 비디오 이펙트를 관리합니다.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => void loadData()} disabled={loading}>

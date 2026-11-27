@@ -413,22 +413,15 @@ export default function MerchantsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <ShieldCheck className="w-6 h-6 text-indigo-600" />
-            전국 모꼬 파트너 승인 & 수수료 심사 센터
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            전자상거래법 제10조에 의거하여 사업자등록증, 통신판매업신고증 및 크리에이터 방송 자격을 공정하게 심사하고 제휴 요율을 확정합니다.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={loadMerchants} disabled={loading} className="gap-2">
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            새로고침
-          </Button>
-        </div>
+      <div className="flex items-center justify-between border-b pb-3">
+        <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-indigo-600" />
+          입점사 · 크리에이터 심사
+        </h1>
+        <Button variant="outline" size="sm" onClick={loadMerchants} disabled={loading} className="gap-1.5">
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          새로고침
+        </Button>
       </div>
 
       {/* Main Mode Switcher Tabs */}

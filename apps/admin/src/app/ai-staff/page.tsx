@@ -437,24 +437,17 @@ export default function AiStaffConsolePage() {
       {/* Top Console Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-6">
         <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-rose-600/10 text-rose-600 rounded-xl">
-              <Bot className="w-7 h-7" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-3">
-                AI 운영 본부 & 거버넌스 제어 센터
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                  wsConnected ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-amber-100 text-amber-700'
-                }`}>
-                  <span className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                  {wsConnected ? '실시간 연동 가동 중' : '연결 중...'}
-                </span>
-              </h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                100% AI 독단을 방지하고, 6인 AI 직원의 협업 대화를 투명하게 열람하여 사람이 최종 판단 및 정책을 통제하는 시스템
-              </p>
-            </div>
+          <div className="flex items-center gap-2.5">
+            <Bot className="w-5 h-5 text-rose-600" />
+            <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+              AI 운영 본부
+              <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                wsConnected ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-amber-100 text-amber-700'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${wsConnected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                {wsConnected ? '연동 중' : '연결 중'}
+              </span>
+            </h1>
           </div>
         </div>
         <div className="flex items-center gap-3">

@@ -251,20 +251,12 @@ export default function ApiManagerPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-xl bg-cyan-50 text-cyan-600 border border-cyan-100 shadow-2xs">
-              <Server className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                API 모니터링 & 트래픽 제어 센터
-                <Badge variant="outline" className="bg-cyan-50 text-cyan-700 border-cyan-200 text-xs">
-                  Gateway Sentinel
-                </Badge>
-              </h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                핵심 마이크로서비스 API 엔드포인트 헬스체크, 분당 Rate Limit 조절 및 실시간 킬스위치를 관리합니다.
-              </p>
-            </div>
+          <div className="flex items-center gap-2">
+            <Server className="w-5 h-5 text-cyan-600" />
+            <h1 className="text-lg font-bold tracking-tight text-foreground">
+              API 모니터링
+            </h1>
+          </div>
           </div>
         </div>
 

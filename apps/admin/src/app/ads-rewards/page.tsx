@@ -386,18 +386,13 @@ export default function AdsRewardsPage() {
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <BadgeDollarSign className="h-6 w-6 text-amber-500" />
-            광고 캠페인 및 리워드 운영 센터
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            보상형 광고(AdMob) 네트워크 연동, 일일 시청 한도 및 서비스 자체 배너 광고를 설정합니다.
-          </p>
-        </div>
+      <div className="flex items-center justify-between border-b pb-3">
+        <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
+          <BadgeDollarSign className="h-5 w-5 text-amber-500" />
+          광고 & 리워드
+        </h1>
         <Button size="sm" variant="outline" onClick={() => void loadData()} disabled={loading}>
-          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
+          {loading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCcw className="mr-1.5 h-3.5 w-3.5" />}
           새로고침
         </Button>
       </div>

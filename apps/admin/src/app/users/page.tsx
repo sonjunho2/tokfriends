@@ -350,22 +350,11 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       {/* 1. 상단 타이틀 & 새로고침 */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b pb-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <Users className="h-6 w-6 text-primary" />
-              회원 관리 및 안전 모니터링
-            </h1>
-            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-              전체 회원 관제
-            </span>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            서비스 전체 가입 회원의 프로필, 본인인증 상태, 활동 이력, 보유 자산(모꼬 꿀떡 / 모꼬 머니)을 조회하고 규정 위반 회원을 신속히
-            심사·제재합니다.
-          </p>
-        </div>
+      <div className="flex items-center justify-between border-b pb-3">
+        <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
+          <Users className="h-5 w-5 text-primary" />
+          회원 목록
+        </h1>
         <Button
           size="sm"
           variant="outline"
@@ -373,7 +362,7 @@ export default function UsersPage() {
           disabled={isSearching}
           className="flex items-center gap-1.5"
         >
-          <RefreshCcw className={cn('h-4 w-4', isSearching && 'animate-spin')} />
+          <RefreshCcw className={cn('h-3.5 w-3.5', isSearching && 'animate-spin')} />
           새로고침
         </Button>
       </div>

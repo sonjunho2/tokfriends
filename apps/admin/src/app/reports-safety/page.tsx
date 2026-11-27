@@ -486,28 +486,21 @@ export default function ReportsSafetyPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <ShieldAlert className="h-7 w-7 text-rose-500" />
-            MOCCO 신뢰 & 안전 모니터링 센터 (Trust & Safety)
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            1:1 안심 통화, 라이브 방송, 1:1 수다방, 마켓 에스크로 거래 신고를 24시간 실시간 심사하고 비매너 악성 회원을 단계별 제재합니다.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => void loadReports(page, statusFilter, categoryFilter, search)}
-            disabled={isLoading}
-            className="flex items-center gap-1.5"
-          >
-            <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            신고 목록 동기화
-          </Button>
-        </div>
+      <div className="flex items-center justify-between border-b pb-3">
+        <h1 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
+          <ShieldAlert className="h-5 w-5 text-rose-500" />
+          신고 & 안전
+        </h1>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => void loadReports(page, statusFilter, categoryFilter, search)}
+          disabled={isLoading}
+          className="flex items-center gap-1.5"
+        >
+          <RefreshCcw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          새로고침
+        </Button>
       </div>
 
       {/* 3단계 실무 가이드 배너 (접이식 아코디언) */}

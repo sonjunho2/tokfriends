@@ -207,36 +207,22 @@ export default function DashboardPage() {
       {/* 본사 직영 상품 기획 & 수익 통제 허브 (HQ Direct Commerce & PB Hub) */}
       <Card className="border border-slate-200 bg-white shadow-xs">
         <CardHeader className="pb-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800 shadow-xs">
-              <Crown className="w-5 h-5 text-amber-600" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-base font-bold text-foreground">
-                  본사 직영 기획 상품 & 수익 통제 허브
-                </CardTitle>
-                <Badge className="bg-amber-50 text-amber-700 border border-amber-200 font-semibold text-[10px]">
-                  직영 PB 매출 68%
-                </Badge>
-              </div>
-              <CardDescription className="text-xs">
-                본사 공식 PB 브랜드, 단독 기획 특가 및 공식 공동구매 상품을 총괄 운영하고 스트리머 라이브 제휴를 통제합니다.
-              </CardDescription>
-            </div>
-          </div>
           <div className="flex items-center gap-2">
-            <Button
-              asChild
-              className="bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs h-8 shadow-xs"
-            >
-              <Link href="/dashboard/products">
-                <Crown className="w-3.5 h-3.5 mr-1 text-amber-400" />
-                <span>직영 상품 관리 & 신규 등록</span>
-                <ArrowRight className="w-3.5 h-3.5 ml-1" />
-              </Link>
-            </Button>
+            <Crown className="w-4 h-4 text-amber-600" />
+            <CardTitle className="text-base font-bold text-foreground">
+              본사 직영 상품 현황
+            </CardTitle>
           </div>
+          <Button
+            asChild
+            size="sm"
+            className="bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs h-8"
+          >
+            <Link href="/dashboard/products">
+              <span>직영 상품 관리</span>
+              <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            </Link>
+          </Button>
         </CardHeader>
         <CardContent className="pt-4 space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
@@ -282,23 +268,11 @@ export default function DashboardPage() {
       {/* 전국 통합 커머스 손익 분석 & 4대 참여자 정산 관제 (Consolidated Commerce P&L) */}
       <Card className="border border-slate-200 bg-white shadow-xs">
         <CardHeader className="pb-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800 shadow-xs">
-              <TrendingUp className="w-5 h-5 text-indigo-600" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-base font-bold text-foreground">
-                  전국 통합 커머스 손익 분석 & 4대 참여자 정산 관제
-                </CardTitle>
-                <Badge className="bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold text-[10px]">
-                  실시간 통합 회계
-                </Badge>
-              </div>
-              <CardDescription className="text-xs">
-                본사 직영 PB 순익, 입점사 10% 중개 수수료, 크리에이터 라이브 커미션 및 에스크로 안전 금고 잔액을 통합 집계합니다.
-              </CardDescription>
-            </div>
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-indigo-600" />
+            <CardTitle className="text-base font-bold text-foreground">
+              커머스 손익 및 정산 요약
+            </CardTitle>
           </div>
           <div className="flex items-center gap-2">
             <Button

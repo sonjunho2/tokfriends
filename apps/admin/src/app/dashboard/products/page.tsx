@@ -567,21 +567,11 @@ export default function HqProductsPage() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-border">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800 shadow-xs">
+            <div className="flex items-center gap-2">
               <Crown className="w-5 h-5 text-amber-600" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight text-foreground">
-                  본사 직영 상품 기획 및 관리 (HQ Direct PB & Deals)
-                </h1>
-                <Badge className="bg-amber-50 text-amber-700 border border-amber-200 font-semibold text-[11px]">
-                  플랫폼 핵심 수익원
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                본사 공식 PB 브랜드, 기획 특가 및 공식 공동구매 상품을 직접 등록하고 실시간 마진율과 라이브 커머스 제휴를 총괄합니다.
-              </p>
+              <h1 className="text-lg font-bold tracking-tight text-foreground">
+                본사 직영 상품
+              </h1>
             </div>
           </div>
         </div>

@@ -277,20 +277,12 @@ export default function AdminPermissionsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600 border border-purple-100 shadow-2xs">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                관리자 권한 & 2인 결재 센터
-                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
-                  RBAC & Governance
-                </Badge>
-              </h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                역할 기반 권한 분립(RBAC), 고위험 안건 2인 교차 결재, 2FA 보안 및 감사 추적 로그를 총괄합니다.
-              </p>
-            </div>
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-purple-600" />
+            <h1 className="text-lg font-bold tracking-tight text-foreground">
+              관리자 권한 & 2인 결재
+            </h1>
+          </div>
           </div>
         </div>
 

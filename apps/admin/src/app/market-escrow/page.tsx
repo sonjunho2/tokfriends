@@ -752,22 +752,17 @@ export default function MarketEscrowAdminPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <ShieldCheck className="w-6 h-6 text-primary" />
-            마켓 상품 통합 검수 & 에스크로 안전결제
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            C2C 개인 중고 물품, B2C 입점사 상시 일반 상품, 공동구매 상품 3대 영역을 통합 검수하고 에스크로 펀드를 관리합니다.
-          </p>
-        </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b pb-3">
+        <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-primary" />
+          마켓 검수 & 에스크로
+        </h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleExportCmsCsv} className="gap-1.5">
-            <Download className="w-4 h-4" /> 은행 이체 CMS 다운로드
+            <Download className="w-3.5 h-3.5" /> CMS 다운로드
           </Button>
           <Button variant="outline" size="sm" onClick={loadBackendData} className="gap-1.5">
-            <RefreshCw className="w-4 h-4" /> 새로고침
+            <RefreshCw className="w-3.5 h-3.5" /> 새로고침
           </Button>
         </div>
       </div>

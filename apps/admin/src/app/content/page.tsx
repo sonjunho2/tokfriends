@@ -527,21 +527,11 @@ export default function ContentAndSupportPage() {
   return (
     <div className="space-y-6">
       {/* 1. Page Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b pb-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <Megaphone className="h-6 w-6 text-primary" />
-              공지사항 & 고객센터 관리
-            </h1>
-            <Badge variant="outline" className="text-xs">
-              MOCCO Content & CS Hub
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            모꼬(MOCCO) 공식 공지사항, 앱 시작 팝업 배너, 자주 묻는 질문(FAQ) 및 1:1 고객 문의를 통합 관리합니다.
-          </p>
-        </div>
+      <div className="flex items-center justify-between border-b pb-3">
+        <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
+          <Megaphone className="h-5 w-5 text-primary" />
+          공지 & 고객센터
+        </h1>
 
         <div className="flex items-center gap-2">
           {activeTab === 'announcements' && (

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { ChevronRight, LogOut, Search, Smartphone, ShoppingBag, Crown, Truck, Radio } from 'lucide-react'
@@ -29,6 +29,7 @@ interface AppShellProps {
 export function AppShell({ items, adminName = '관리자', children }: AppShellProps) {
   const router = useRouter()
   const pathname = usePathname()
+  const [menuQuery, setMenuQuery] = useState('')
   const checkIsActive = (itemHref: string) => {
     if (pathname === itemHref) return true
     if (pathname.startsWith(`${itemHref}/`)) {
@@ -49,43 +50,47 @@ export function AppShell({ items, adminName = '관리자', children }: AppShellP
     [items, pathname]
   )
   const groupedItems = useMemo(() => {
+    const q = menuQuery.trim().toLowerCase()
+    const filtered = q
+      ? items.filter(
+          (item) =>
+            item.label.toLowerCase().includes(q) ||
+            (item.group ?? '').toLowerCase().includes(q)
+        )
+      : items
     const groups = new Map<string, AppShellNavItem[]>()
-    items.forEach((item) => {
-      const key = item.group ?? 'Navigation'
+    filtered.forEach((item) => {
+      const key = item.group ?? '메뉴'
       groups.set(key, [...(groups.get(key) ?? []), item])
     })
     return Array.from(groups.entries())
-  }, [items])
+  }, [items, menuQuery])
 
   return (
     <div className="min-h-screen bg-muted/20">
       <div className="flex min-h-screen">
-        <aside className="hidden border-r bg-background px-4 py-6 md:flex md:w-72 md:flex-col">
-          <div className="mb-6 space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+        <aside className="hidden border-r bg-background px-4 py-5 md:flex md:w-64 md:flex-col">
+          <div className="mb-5 px-1">
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
               MOCCO
             </span>
-            <h1 className="text-lg font-semibold">Operations Console</h1>
-            <p className="text-xs text-muted-foreground">
-              모꼬(MOCCO) 플랫폼 총괄 통합 관리 콘솔
-            </p>
+            <h1 className="text-base font-bold text-foreground">통합 관리자</h1>
           </div>
-          <div className="mb-5">
+          <div className="mb-4">
             <label className="sr-only" htmlFor="global-search">
               관리자 메뉴 검색
             </label>
             <div className="relative">
-              <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="global-search"
+                value={menuQuery}
+                onChange={(e) => setMenuQuery(e.target.value)}
                 placeholder="메뉴 검색"
-                className="pl-8 text-sm"
+                className="h-8 pl-8 text-xs"
                 autoComplete="off"
               />
             </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              통합 검색은 추후 제공될 예정입니다.
-            </p>
           </div>
           <nav className="flex-1 space-y-4" aria-label="Admin navigation">
             {groupedItems.map(([group, groupItems]) => (
@@ -135,24 +140,17 @@ export function AppShell({ items, adminName = '관리자', children }: AppShellP
           </nav>
         </aside>
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
+          <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
             <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3 md:px-8">
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
-                    MOCCO Admin
-                  </p>
-                  <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
-                    <Crown className="w-3 h-3 mr-1 text-amber-600" />
-                    본사 총괄
-                  </span>
-                </div>
-                <h2 className="truncate text-base font-semibold">
-                  {activeItem?.label ?? 'Dashboard'}
+                <h2 className="truncate text-base font-bold text-foreground">
+                  {activeItem?.label ?? '통합 대시보드'}
                 </h2>
-                <p className="truncate text-xs text-muted-foreground">
-                  {activeItem?.description}
-                </p>
+                {activeItem?.description ? (
+                  <p className="truncate text-xs text-muted-foreground">
+                    {activeItem.description}
+                  </p>
+                ) : null}
               </div>
 
               {/* 3-Tier Admin Switcher + Actions */}
@@ -202,11 +200,11 @@ export function AppShell({ items, adminName = '관리자', children }: AppShellP
                   size="sm"
                   onClick={() => router.push('/settings')}
                 >
-                  Settings
+                  설정
                 </Button>
                 <Button variant="secondary" size="sm" onClick={logoutToLogin}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Log out
+                  <LogOut className="mr-1.5 h-3.5 w-3.5" />
+                  로그아웃
                 </Button>
               </div>
             </div>

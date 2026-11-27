@@ -323,21 +323,11 @@ export default function AnalyticsPage() {
       {/* 1. Header Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-2xs">
-              <TrendingUp className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                지표 & 성장 분석 센터
-                <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-xs">
-                  Analytics Hub
-                </Badge>
-              </h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                DAU/MAU 성장세, 주차별 코호트 잔존율, 1:1 통화/충전 퍼널, 자동화 리포트 원장을 실시간 집계합니다.
-              </p>
-            </div>
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-indigo-600" />
+            <h1 className="text-lg font-bold tracking-tight text-foreground">
+              지표 분석
+            </h1>
           </div>
         </div>
 

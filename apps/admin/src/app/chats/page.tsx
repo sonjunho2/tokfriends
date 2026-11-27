@@ -728,23 +728,12 @@ export default function ChatsPage() {
 
   return (
     <div className="space-y-6">
-      {/* 1. 상단 안내 헤더 & 탭 바 */}
-      <div className="flex flex-col gap-4 border-b pb-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              <MessageSquare className="h-6 w-6 text-primary" />
-              1:1 대화 & 안전 모니터링
-            </h1>
-            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-              실시간 쪽지 관제
-            </span>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            회원 간 1:1 쪽지/메시지 내역을 실시간으로 확인하고, 이상 대화(외부 연락처 유도, 금전 요구, 성희롱 등) 및 신고를
-            신속히 심사·제재하는 공간입니다.
-          </p>
-        </div>
+      {/* 1. 상단 헤더 & 탭 바 */}
+      <div className="flex flex-col gap-3 border-b pb-3 lg:flex-row lg:items-center lg:justify-between">
+        <h1 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
+          <MessageSquare className="h-5 w-5 text-primary" />
+          1:1 대화 모니터링
+        </h1>
 
         <div className="flex flex-wrap items-center gap-2">
           <Button

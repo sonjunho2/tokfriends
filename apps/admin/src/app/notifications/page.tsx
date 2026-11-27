@@ -273,16 +273,11 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Bell className="h-7 w-7 text-indigo-500" />
-            푸시 알림 센터 (FCM Broadcast Hub)
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            전체 또는 타깃 세그먼트 회원에게 실시간 긴급 공지, 라이브 방송 부스트, 리워드 프로모션 푸시를 발송합니다.
-          </p>
-        </div>
+      <div className="flex items-center justify-between border-b pb-3">
+        <h1 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
+          <Bell className="h-5 w-5 text-indigo-500" />
+          푸시 알림 발송
+        </h1>
         <div className="flex items-center gap-2">
           <Button
             size="sm"
@@ -291,8 +286,8 @@ export default function NotificationsPage() {
             disabled={statsLoading}
             className="flex items-center gap-1.5"
           >
-            <RefreshCcw className={`h-4 w-4 ${statsLoading ? 'animate-spin' : ''}`} />
-            기기 통계 새로고침
+            <RefreshCcw className={`h-3.5 w-3.5 ${statsLoading ? 'animate-spin' : ''}`} />
+            새로고침
           </Button>
         </div>
       </div>

@@ -693,16 +693,11 @@ export default function SettlementPage() {
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Landmark className="h-6 w-6 text-primary" />
-            정산 및 환불 관리
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            인앱 결제 내역, 지갑 원장 로그, 환불 요청 승인/거절을 통합 관리합니다.
-          </p>
-        </div>
+      <div className="flex items-center justify-between border-b pb-3">
+        <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
+          <Landmark className="h-5 w-5 text-primary" />
+          정산 & 환불
+        </h1>
         <Button
           size="sm"
           variant="outline"
@@ -715,8 +710,8 @@ export default function SettlementPage() {
           }}
           disabled={summaryLoading}
         >
-          {summaryLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
-          전체 새로고침
+          {summaryLoading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCcw className="mr-1.5 h-3.5 w-3.5" />}
+          새로고침
         </Button>
       </div>
 

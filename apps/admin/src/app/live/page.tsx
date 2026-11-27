@@ -337,21 +337,11 @@ export default function LivePage() {
   return (
     <div className="space-y-6">
       {/* 1. 상단 타이틀 & 새로고침 */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b pb-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <Radio className="h-6 w-6 text-rose-500 animate-pulse" />
-              라이브 방송 관리 및 모니터링
-            </h1>
-            <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700 dark:bg-rose-950 dark:text-rose-300">
-              실시간 스트리밍 관제
-            </span>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            실시간 1:N 다자간 라이브와 1:1 프라이빗 라이브 방송을 모니터링하고, 유해 방송 즉시 제재 및 후원/채팅을 관리합니다.
-          </p>
-        </div>
+      <div className="flex items-center justify-between border-b pb-3">
+        <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
+          <Radio className="h-5 w-5 text-rose-500" />
+          라이브 방송 현황
+        </h1>
         <Button
           size="sm"
           variant="outline"
@@ -362,7 +352,7 @@ export default function LivePage() {
           disabled={summaryLoading || roomsLoading}
           className="flex items-center gap-1.5"
         >
-          <RefreshCcw className={cn('h-4 w-4', (summaryLoading || roomsLoading) && 'animate-spin')} />
+          <RefreshCcw className={cn('h-3.5 w-3.5', (summaryLoading || roomsLoading) && 'animate-spin')} />
           새로고침
         </Button>
       </div>

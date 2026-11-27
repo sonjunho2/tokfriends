@@ -420,13 +420,10 @@ export default function StoreProductsPage() {
             <span>&gt;</span>
             <span className="text-foreground font-medium">모꼬 꿀떡 상점</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <ShoppingBag className="h-6 w-6 text-primary" />
-            모꼬 꿀떡(후원 재화) 충전 상품 관리
+          <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
+            <ShoppingBag className="h-5 w-5 text-primary" />
+            꿀떡 충전 상품
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            유저가 실제 현금(KRW)을 결제하여 라이브 방송 후원 및 1:1 대화에 사용하는 모꼬 꿀떡을 충전하는 인앱 결제 패키지 상품(Google Play / Apple App Store)을 관리합니다.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
