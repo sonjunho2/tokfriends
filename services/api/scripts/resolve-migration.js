@@ -143,6 +143,47 @@ async function main() {
     console.log('[resolve-migration] Market/Suda schema check note:', err.message);
   }
 
+  try {
+    // 6. Ensure User extended profile/terms columns, AdminProfile.username, and MarketWishlist table
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "gender" TEXT;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "age" INTEGER;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "region1" TEXT;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "region2" TEXT;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "bio" TEXT;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "mbti" TEXT;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "interests" JSONB;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "height" INTEGER;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "job" TEXT;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "hobbies" JSONB;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "chatNotify" BOOLEAN NOT NULL DEFAULT true;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "liveNotify" BOOLEAN NOT NULL DEFAULT true;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "nightNotify" BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "termsAgreedAt" TIMESTAMP(3);
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "privacyAgreedAt" TIMESTAMP(3);
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "locationAgreedAt" TIMESTAMP(3);
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "marketingAgreed" BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "marketingAgreedAt" TIMESTAMP(3);
+
+        ALTER TABLE "AdminProfile" ADD COLUMN IF NOT EXISTS "username" TEXT;
+        CREATE UNIQUE INDEX IF NOT EXISTS "AdminProfile_username_key" ON "AdminProfile"("username");
+
+        CREATE TABLE IF NOT EXISTS "MarketWishlist" (
+          "id" TEXT PRIMARY KEY,
+          "userId" TEXT NOT NULL,
+          "productId" TEXT NOT NULL,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS "MarketWishlist_userId_productId_key" ON "MarketWishlist"("userId", "productId");
+      EXCEPTION WHEN others THEN null;
+      END $$;
+    `);
+    console.log('[resolve-migration] Ensured User extended/terms columns, AdminProfile.username, and MarketWishlist.');
+  } catch (err) {
+    console.log('[resolve-migration] Extended schema check note:', err.message);
+  }
+
   await prisma.$disconnect();
 }
 
