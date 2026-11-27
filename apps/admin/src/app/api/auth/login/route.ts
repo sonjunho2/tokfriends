@@ -4,9 +4,13 @@ import { z } from 'zod'
 const SESSION_COOKIE = 'tokfriends_admin_session'
 const UPSTREAM_TIMEOUT_MS = 10_000
 const adminLoginSchema = z.object({
-  email: z.string().email(),
+  username: z.string().min(2).optional(),
+  email: z.string().min(2).optional(),
+  identifier: z.string().min(2).optional(),
   password: z.string().min(4),
-}).strict()
+}).refine((v) => Boolean(v.username || v.identifier || v.email), {
+  message: '관리자 아이디를 입력해주세요.',
+})
 
 export async function POST(request: NextRequest) {
   const origin = request.headers.get('origin')
@@ -30,12 +34,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Invalid login request.' }, { status: 400, headers: { 'Cache-Control': 'no-store' } })
   }
 
+  const loginIdentifier = (parsedBody.data.username || parsedBody.data.identifier || parsedBody.data.email || '').trim()
+
   let loginResponse: Response
   try {
-    loginResponse = await fetch(`${apiBase}/v1/auth/login/email`, {
+    loginResponse = await fetch(`${apiBase}/v1/auth/admin/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(parsedBody.data),
+      body: JSON.stringify({
+        username: loginIdentifier,
+        password: parsedBody.data.password,
+      }),
       cache: 'no-store',
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     })

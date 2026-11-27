@@ -54,12 +54,12 @@ export default function LoginPage() {
     const passwordInput = document.getElementById('password') as HTMLInputElement | null
 
     const data = {
-      email: identifierInput?.value?.trim() || '',
+      username: identifierInput?.value?.trim() || '',
       password: passwordInput?.value || '',
     }
 
-    if (!data.email || !data.password) {
-      toast({ title: '입력 오류', description: '운영진 관리자 아이디(이메일)와 비밀번호를 입력해주세요.', variant: 'destructive' })
+    if (!data.username || !data.password) {
+      toast({ title: '입력 확인', description: '관리자 아이디와 비밀번호를 입력해주세요.', variant: 'destructive' })
       return
     }
 
@@ -97,28 +97,27 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-4">
-      <Card className="w-full max-w-[420px] shadow-lg border-slate-200">
+      <Card className="w-full max-w-[400px] shadow-lg border-slate-200">
         <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white font-bold">
-            👑
+          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
+            <ShieldAlert className="h-5 w-5" />
           </div>
-          <CardTitle className="text-xl font-bold">회사 총괄 관리자 콘솔</CardTitle>
+          <CardTitle className="text-lg font-bold">MOCCO 관리자 로그인</CardTitle>
           <CardDescription className="text-xs">
-            본사 공인 운영진만 접속할 수 있는 보안 영역입니다.
-            {health === 'ok' && <span className="block text-emerald-600 text-xs mt-1">● API 서버 통신 정상</span>}
-            {health === 'bad' && <span className="block text-rose-600 text-xs mt-1">● API 서버 점검 중</span>}
+            운영자 전용 계정으로 로그인하세요.
+            {health === 'ok' && <span className="block text-emerald-600 text-xs mt-1">● 서버 연결 정상</span>}
+            {health === 'bad' && <span className="block text-rose-600 text-xs mt-1">● 서버 점검 중</span>}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="identifier" className="text-xs font-semibold">운영진 이메일</Label>
+              <Label htmlFor="identifier" className="text-xs font-semibold">관리자 아이디</Label>
               <Input
                 id="identifier"
-                type="email"
-                inputMode="email"
+                type="text"
                 autoComplete="username"
-                placeholder="admin@tokfriends.com"
+                placeholder="admin"
                 className="text-xs"
               />
             </div>

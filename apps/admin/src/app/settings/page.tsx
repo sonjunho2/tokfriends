@@ -453,17 +453,18 @@ export default function SettingsPage() {
 
 
   const createMember = async () => {
-    const email = newAdmin.email.trim()
+    const username = newAdmin.email.trim()
     const password = newAdmin.password.trim()
-    if (!email || !password) {
-      toast({ title: '아이디와 비밀번호 필요', description: '부관리자 아이디(이메일)와 초기 비밀번호를 입력하세요.', variant: 'destructive' })
+    if (!username || !password) {
+      toast({ title: '아이디와 비밀번호 필요', description: '관리자 아이디와 초기 비밀번호를 입력하세요.', variant: 'destructive' })
       return
     }
     setSavingMemberId('create')
     try {
       const created = await createAdminTeamMember({
-        email,
-        name: newAdmin.name.trim() || email,
+        username,
+        email: username,
+        name: newAdmin.name.trim() || username,
         role: newAdmin.role,
         status: newAdmin.status,
         password,
@@ -473,7 +474,7 @@ export default function SettingsPage() {
       setMembers((prev) => [created, ...prev])
       toast({
         title: '부관리자 생성',
-        description: `${created.name ?? created.email ?? email} 계정을 추가했습니다.`,
+        description: `${created.name ?? created.username ?? created.email ?? username} 계정을 추가했습니다.`,
       })
       resetNewAdmin()
       setIsCreateDialogOpen(false)
@@ -970,13 +971,13 @@ export default function SettingsPage() {
                       />
                     </div>
                     <div className="grid gap-1.5">
-                      <Label htmlFor="new-admin-email">아이디 (이메일)</Label>
+                      <Label htmlFor="new-admin-email">관리자 아이디</Label>
                       <Input
                         id="new-admin-email"
-                        type="email"
+                        type="text"
                         value={newAdmin.email}
                         onChange={(event) => setNewAdmin((prev) => ({ ...prev, email: event.target.value }))}
-                        placeholder="manager@example.com"
+                        placeholder="cs01"
                         autoComplete="off"
                       />
                     </div>

@@ -60,6 +60,7 @@ model User {
 model AdminProfile {
   userId           String          @id
   user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  username         String?         @unique
   role             AdminTeamRole   @default(MANAGER)
   status           AdminTeamStatus @default(ACTIVE)
   permissions      String[]

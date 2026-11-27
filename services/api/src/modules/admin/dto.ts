@@ -54,9 +54,15 @@ const ADMIN_TEAM_ROLES = [
 const ADMIN_TEAM_STATUSES = ['ACTIVE', 'SUSPENDED'] as const;
 
 export class CreateAdminTeamMemberDto {
-  @IsEmail()
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  username?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(254)
-  email: string;
+  email?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -89,7 +95,12 @@ export class CreateAdminTeamMemberDto {
 
 export class UpdateAdminTeamMemberDto {
   @IsOptional()
-  @IsEmail()
+  @IsString()
+  @MaxLength(100)
+  username?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(254)
   email?: string;
 

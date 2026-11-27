@@ -152,7 +152,8 @@ export async function getDashboardMetrics() {
 // ---------------------------------------------------------------------------
 
 export interface LoginWithEmailRequest {
-  email: string
+  username?: string
+  email?: string
   password: string
 }
 

@@ -3,20 +3,179 @@ import {
   BadRequestException,
   UnauthorizedException,
   ConflictException,
+  ForbiddenException,
+  Logger,
+  OnModuleInit,
 } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { sign as jwtSign } from 'jsonwebtoken';
 import * as argon2 from 'argon2';
 import { UserRole, UserStatus } from '../../common/user-types';
 
+const DEFAULT_SUPER_ADMIN_PERMISSIONS = [
+  'users.manage',
+  'reports.view',
+  'content.manage',
+  'refunds.view',
+  'refunds.manage',
+  'approvals.view',
+  'approvals.manage',
+  'settings.manage',
+];
+
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit {
+  private readonly logger = new Logger(AuthService.name);
   private readonly jwtSecret: string;
   private readonly jwtExpiresIn: string;
 
   constructor(private readonly prisma: PrismaService) {
     this.jwtSecret = process.env.JWT_SECRET || 'tokfriends_secret_key_2026';
     this.jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
+  }
+
+  async onModuleInit() {
+    await this.ensureDefaultAdminAccount();
+  }
+
+  /**
+   * 최초 기본 최고관리자(admin / admin123!!) 자동 시드
+   */
+  async ensureDefaultAdminAccount() {
+    try {
+      const existingAdmin = await this.prisma.adminProfile.findFirst({
+        where: {
+          OR: [{ username: 'admin' }, { role: 'SUPER_ADMIN' }],
+        },
+        select: { userId: true, username: true },
+      });
+
+      if (existingAdmin) {
+        if (!existingAdmin.username) {
+          await this.prisma.adminProfile
+            .update({
+              where: { userId: existingAdmin.userId },
+              data: { username: 'admin' },
+            })
+            .catch(() => {});
+        }
+        return;
+      }
+
+      const passwordHash = await argon2.hash('admin123!!');
+      const existingUser = await this.prisma.user.findFirst({
+        where: { email: 'admin@mocco.local' },
+      });
+
+      if (existingUser) {
+        await this.prisma.adminProfile.create({
+          data: {
+            userId: existingUser.id,
+            username: 'admin',
+            role: 'SUPER_ADMIN',
+            status: 'ACTIVE',
+            permissions: DEFAULT_SUPER_ADMIN_PERMISSIONS,
+          },
+        });
+        return;
+      }
+
+      await this.prisma.user.create({
+        data: {
+          email: 'admin@mocco.local',
+          nickname: 'admin',
+          displayName: '최고관리자',
+          passwordHash,
+          provider: 'admin',
+          role: 'admin',
+          status: 'active',
+          pointBalance: 0,
+          adminProfile: {
+            create: {
+              username: 'admin',
+              role: 'SUPER_ADMIN',
+              status: 'ACTIVE',
+              permissions: DEFAULT_SUPER_ADMIN_PERMISSIONS,
+            },
+          },
+        },
+      });
+      this.logger.log('Default super admin account seeded (username: admin)');
+    } catch (err: any) {
+      this.logger.warn(`ensureDefaultAdminAccount skipped: ${err?.message || err}`);
+    }
+  }
+
+  /**
+   * 관리자 전용 아이디/비밀번호 로그인 (일반 회원 로그인과 완전 분리)
+   */
+  async adminLogin(identifierRaw: string, passwordRaw: string) {
+    const cleanId = (identifierRaw || '').trim().toLowerCase();
+    const password = (passwordRaw || '').trim();
+
+    if (!cleanId || !password) {
+      throw new BadRequestException('관리자 아이디와 비밀번호를 모두 입력해주세요.');
+    }
+
+    await this.ensureDefaultAdminAccount();
+
+    const profile = await this.prisma.adminProfile.findFirst({
+      where: {
+        OR: [
+          { username: cleanId },
+          { user: { email: cleanId } },
+        ],
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!profile || !profile.user || !profile.user.passwordHash) {
+      throw new UnauthorizedException('관리자 아이디 또는 비밀번호가 올바르지 않습니다.');
+    }
+
+    if (profile.status !== 'ACTIVE' || profile.user.status === 'suspended' || profile.user.status === 'banned') {
+      throw new ForbiddenException('비활성화되거나 정지된 관리자 계정입니다.');
+    }
+
+    const valid = await argon2.verify(profile.user.passwordHash, password).catch(() => false);
+    if (!valid) {
+      throw new UnauthorizedException('관리자 아이디 또는 비밀번호가 올바르지 않습니다.');
+    }
+
+    await this.prisma.adminProfile.update({
+      where: { userId: profile.userId },
+      data: { lastLoginAt: new Date() },
+    });
+
+    const token = this.generateToken({
+      id: profile.user.id,
+      nickname: profile.username || profile.user.nickname || 'admin',
+      role: profile.role || 'ADMIN',
+    });
+
+    return {
+      ok: true,
+      token,
+      accessToken: token,
+      access_token: token,
+      user: {
+        id: profile.user.id,
+        username: profile.username || profile.user.email,
+        email: profile.user.email,
+        nickname: profile.user.displayName || profile.username || profile.user.nickname,
+        displayName: profile.user.displayName || profile.username,
+        role: profile.role,
+        status: profile.status,
+        adminProfile: {
+          username: profile.username,
+          role: profile.role,
+          status: profile.status,
+          permissions: profile.permissions,
+        },
+      },
+    };
   }
 
   /**
@@ -126,7 +285,6 @@ export class AuthService {
     const isTest01 = email === 'test01@te.te';
     const isTest02 = email === 'test02@te.te';
     const isTestUser = isTest01 || isTest02;
-    const isAdminEmail = !isTestUser && (email.includes('admin') || email.includes('super'));
 
     let user = await this.prisma.user.findFirst({
       where: { email },
@@ -138,14 +296,14 @@ export class AuthService {
 
     if (!user) {
       const passwordHash = await argon2.hash(password);
-      const defaultRole = isTestUser ? 'user' : (isAdminEmail ? 'admin' : 'user');
+      const defaultRole = 'user';
       const defaultNickname = isTest01
         ? '테스터01'
-        : (isTest02 ? '테스터02' : (email.split('@')[0] || (isAdminEmail ? '어드민' : '사용자')));
+        : (isTest02 ? '테스터02' : (email.split('@')[0] || '사용자'));
       const defaultDisplayName = isTest01
         ? '테스터01(스트리머)'
         : (isTest02 ? '테스터02(시청자)' : defaultNickname);
-      const defaultPoints = isTest01 ? 100000 : (isTest02 ? 500000 : (isAdminEmail ? 999999 : 50000));
+      const defaultPoints = isTest01 ? 100000 : (isTest02 ? 500000 : 50000);
       const defaultBio = isTest01
         ? '모꼬 공식 라이브 스트리머 테스트 계정'
         : (isTest02 ? '모꼬 라이브 시청 및 꿀떡 선물 테스트 계정' : '안녕하세요! 모꼬에서 소통해요.');
@@ -164,26 +322,6 @@ export class AuthService {
           avatarUrl: defaultAvatar,
           bio: defaultBio,
           pointBalance: defaultPoints,
-          ...(isAdminEmail
-            ? {
-                adminProfile: {
-                  create: {
-                    role: 'SUPER_ADMIN',
-                    status: 'ACTIVE',
-                    permissions: [
-                      'users.manage',
-                      'reports.view',
-                      'content.manage',
-                      'refunds.view',
-                      'refunds.manage',
-                      'approvals.view',
-                      'approvals.manage',
-                      'settings.manage',
-                    ],
-                  },
-                },
-              }
-            : {}),
         },
         include: {
           adminProfile: true,
@@ -226,26 +364,6 @@ export class AuthService {
             where: { id: user.id },
             data: { passwordHash },
           });
-        }
-
-        if (isAdminEmail && !user.adminProfile) {
-          await this.prisma.adminProfile.create({
-            data: {
-              userId: user.id,
-              role: 'SUPER_ADMIN',
-              status: 'ACTIVE',
-              permissions: [
-                'users.manage',
-                'reports.view',
-                'content.manage',
-                'refunds.view',
-                'refunds.manage',
-                'approvals.view',
-                'approvals.manage',
-                'settings.manage',
-              ],
-            },
-          }).catch(() => null);
         }
       }
     }

@@ -77,6 +77,24 @@ export class SocialLoginDto {
   marketingAgreed?: boolean;
 }
 
+export class AdminLoginDto {
+  @IsOptional()
+  @IsString()
+  username?: string;
+
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  identifier?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  password: string;
+}
+
 export class EmailSignupRequestDto {
   @IsEmail()
   @IsNotEmpty()
@@ -142,10 +160,18 @@ export class AuthController {
 
   @Public()
   @Post('login/email')
-  @ApiOperation({ summary: '관리자 및 이메일/비밀번호 로그인' })
+  @ApiOperation({ summary: '일반 이메일/비밀번호 로그인' })
   async emailLogin(@Body() dto: EmailLoginDto) {
     const data = await this.auth.loginWithEmail(dto.email, dto.password);
     return data;
+  }
+
+  @Public()
+  @Post('admin/login')
+  @ApiOperation({ summary: '관리자 전용 아이디/비밀번호 로그인' })
+  async adminLogin(@Body() dto: AdminLoginDto) {
+    const identifier = (dto.username || dto.identifier || dto.email || '').trim();
+    return this.auth.adminLogin(identifier, dto.password);
   }
 
   @Public()

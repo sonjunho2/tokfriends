@@ -130,7 +130,7 @@ export class AdminSettingsService implements OnModuleInit {
     return {
       id: profile.userId,
       email: profile.user.email ?? undefined,
-      username: profile.user.email ?? undefined,
+      username: profile.username ?? profile.user.email ?? undefined,
       name: profile.user.displayName ?? undefined,
       role: profile.role,
       status: profile.status,
@@ -269,15 +269,26 @@ export class AdminSettingsService implements OnModuleInit {
       throw new ForbiddenException('Only a super admin can create another super admin');
     }
 
-    const email = dto.email.trim().toLowerCase();
+    const rawLoginId = (dto.username || dto.email || '').trim().toLowerCase();
+    if (!rawLoginId) {
+      throw new BadRequestException('관리자 아이디를 입력해주세요.');
+    }
 
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email },
-      select: { id: true },
-    });
+    const email = rawLoginId.includes('@') ? rawLoginId : `${rawLoginId}@mocco.local`;
 
-    if (existingUser) {
-      throw new ConflictException('An account with this email already exists');
+    const [existingUser, existingProfile] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+      }),
+      this.prisma.adminProfile.findUnique({
+        where: { username: rawLoginId },
+        select: { userId: true },
+      }),
+    ]);
+
+    if (existingUser || existingProfile) {
+      throw new ConflictException('이미 사용 중인 관리자 아이디입니다.');
     }
 
     const passwordHash = await argon2.hash(dto.password);
@@ -287,9 +298,9 @@ export class AdminSettingsService implements OnModuleInit {
       const user = await tx.user.create({
         data: {
           email,
-          nickname: dto.name.trim() || email.split('@')[0],
+          nickname: rawLoginId,
           passwordHash,
-          provider: 'email',
+          provider: 'admin',
           role: 'admin',
           status: userStatus,
           displayName: dto.name.trim(),
@@ -299,6 +310,7 @@ export class AdminSettingsService implements OnModuleInit {
       const createdProfile = await tx.adminProfile.create({
         data: {
           userId: user.id,
+          username: rawLoginId,
           role: dto.role ?? 'MANAGER',
           status: dto.status ?? 'ACTIVE',
           permissions: dto.permissions ?? [],
