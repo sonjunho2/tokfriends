@@ -2554,9 +2554,15 @@ export default function CustomerWebStorefrontPage() {
   // 마이모꼬 (MY) 모바일 완전 동기화 상태들
   // ==========================================
   const [sellerRevenue, setSellerRevenue] = useState(185000)
+  const [userNickname, setUserNickname] = useState(user?.nickname || '모꼬이웃')
   const [userAge, setUserAge] = useState(26)
   const [userGender, setUserGender] = useState<'여' | '남'>('여')
-  const [userHeadline, setUserHeadline] = useState('이웃들과 따뜻하고 즐거운 소통 나누고 싶어요 ✨')
+  const [userHeadline, setUserHeadline] = useState('이웃들과 따뜻하고 즐거운 소통 나누고 싶어요')
+  const [userBio, setUserBio] = useState('')
+  const [userRegion1, setUserRegion1] = useState('서울특별시')
+  const [userRegion2, setUserRegion2] = useState('강남구')
+  const [userInterests, setUserInterests] = useState<string[]>(['맛집탐방', '카페투어', '영화감상'])
+  const [profileInterestInput, setProfileInterestInput] = useState('')
   const [chatRoomRate, setChatRoomRate] = useState(300)
   const [videoCallRate, setVideoCallRate] = useState(1000)
   const [notifyChat, setNotifyChat] = useState(true)
@@ -8890,7 +8896,7 @@ export default function CustomerWebStorefrontPage() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-black text-slate-900">
-                          {user?.nickname || '모꼬이웃'}
+                          {userNickname || user?.nickname || '모꼬이웃'}
                         </h3>
                         <Badge className="bg-pink-100 text-pink-700 border-pink-200 font-extrabold text-[10px] px-2 py-0">
                           {userAge}세 · {userGender === '여' ? '여성' : '남성'}
@@ -9614,7 +9620,7 @@ export default function CustomerWebStorefrontPage() {
                 )}
               </div>
 
-              {/* [모바일 앱 100% 동일] (6) 소셜 & 크리에이터 설정 (3대 메뉴) */}
+              {/* [모바일 앱 100% 동일] (6) 소셜 & 크리에이터 설정 (단가 & 알림 일원화) */}
               <div className="rounded-3xl bg-white p-6 border border-slate-200/80 shadow-xs space-y-4">
                 <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5 border-b pb-3">
                   <Sliders className="h-4 w-4 text-purple-600" />
@@ -9622,52 +9628,12 @@ export default function CustomerWebStorefrontPage() {
                 </h4>
 
                 <div className="divide-y divide-slate-100">
-                  {/* 대표 갤러리 관리 */}
-                  <div className="py-3.5 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h5 className="font-bold text-xs text-slate-900">대표 갤러리 관리 (최대 9장)</h5>
-                        <p className="text-[11px] text-muted-foreground">매칭 및 바텀시트에 노출될 대표 프로필 사진</p>
-                      </div>
-                      <span className="text-xs font-bold text-pink-600">{galleryPhotos.length} / 9장</span>
-                    </div>
-
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                      {galleryPhotos.map((url, i) => (
-                        <div key={i} className="relative h-16 w-16 rounded-xl overflow-hidden border shrink-0 group">
-                          <img src={url} alt="gal" className="h-full w-full object-cover" />
-                          <button
-                            onClick={() => setGalleryPhotos((p) => p.filter((_, idx) => idx !== i))}
-                            className="absolute top-1 right-1 h-4 w-4 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="h-2.5 w-2.5" />
-                          </button>
-                        </div>
-                      ))}
-                      {galleryPhotos.length < 9 && (
-                        <button
-                          onClick={() => {
-                            setGalleryPhotos((p) => [
-                              ...p,
-                              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
-                            ])
-                            toast({ title: '사진 추가 완료', description: '대표 갤러리에 새 사진이 추가되었습니다.' })
-                          }}
-                          className="h-16 w-16 rounded-xl border-2 border-dashed border-slate-200 hover:border-pink-300 flex flex-col items-center justify-center text-slate-400 hover:text-pink-600 shrink-0 transition-colors"
-                        >
-                          <PlusCircle className="h-5 w-5" />
-                          <span className="text-[9px] font-bold mt-0.5">추가</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
                   {/* 1:1 대화 및 영상 단가설정 */}
                   <div className="py-3.5 flex items-center justify-between">
                     <div>
                       <h5 className="font-bold text-xs text-slate-900">1:1 대화 및 영상 단가설정</h5>
                       <p className="text-[11px] text-muted-foreground">
-                        현재 설정: 채팅 건당 {chatRoomRate} P / 영상 분당 {videoCallRate} P
+                        현재 설정: 채팅 건당 {chatRoomRate > 0 ? `${chatRoomRate} P` : '무료'} / 영상 분당 {videoCallRate.toLocaleString()} P
                       </p>
                     </div>
                     <Button
@@ -11322,97 +11288,281 @@ export default function CustomerWebStorefrontPage() {
 
       {isProfileEditOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 border border-slate-200">
-            <div className="flex items-center justify-between border-b pb-2">
-              <h4 className="font-extrabold text-sm text-slate-900">프로필 정보 수정</h4>
+          <div className="bg-white rounded-3xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl space-y-5 border border-slate-200">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h4 className="font-extrabold text-sm text-slate-900">프로필 수정</h4>
               <button onClick={() => setIsProfileEditOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="space-y-3 text-xs">
+
+            <div className="space-y-4 text-xs">
+              {/* 1. 프로필 사진 갤러리 (최대 9장, 첫 사진이 대표 사진) */}
+              <div className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200/80 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h5 className="font-bold text-xs text-slate-900">프로필 사진 갤러리</h5>
+                    <p className="text-[11px] text-slate-500">최대 9장 · 첫 번째 사진이 대표 프로필 사진으로 노출됩니다</p>
+                  </div>
+                  <span className="text-[11px] font-bold text-[#FF3B6B]">{galleryPhotos.length} / 9</span>
+                </div>
+                <div className="grid grid-cols-5 gap-2">
+                  {galleryPhotos.map((url, i) => (
+                    <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 group bg-white">
+                      <img src={url} alt={`profile-${i}`} className="h-full w-full object-cover" />
+                      {i === 0 && (
+                        <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-[#FF3B6B] text-white text-[9px] font-bold">
+                          대표
+                        </span>
+                      )}
+                      {i > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGalleryPhotos((prev) => {
+                              const picked = prev[i]
+                              const rest = prev.filter((_, idx) => idx !== i)
+                              return [picked, ...rest]
+                            })
+                          }}
+                          className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/65 text-white text-[9px] font-bold opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          대표지정
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setGalleryPhotos((p) => p.filter((_, idx) => idx !== i))}
+                        className="absolute top-1 right-1 h-4 w-4 rounded-full bg-black/65 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </div>
+                  ))}
+                  {galleryPhotos.length < 9 && (
+                    <label className="aspect-square rounded-xl border-2 border-dashed border-slate-300 hover:border-[#FF3B6B] flex flex-col items-center justify-center text-slate-400 hover:text-[#FF3B6B] cursor-pointer bg-white transition-colors">
+                      <PlusCircle className="h-5 w-5" />
+                      <span className="text-[10px] font-bold mt-0.5">추가</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          const reader = new FileReader()
+                          reader.onload = () => {
+                            if (typeof reader.result === 'string') {
+                              setGalleryPhotos((p) => [...p, reader.result as string].slice(0, 9))
+                            }
+                          }
+                          reader.readAsDataURL(file)
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {/* 2. 닉네임 */}
               <div>
-                <label className="font-bold text-slate-700 block mb-1">나이</label>
+                <label className="font-bold text-slate-700 block mb-1">닉네임</label>
                 <Input
-                  type="number"
-                  value={userAge}
-                  onChange={(e) => setUserAge(Number(e.target.value) || 20)}
+                  value={userNickname}
+                  onChange={(e) => setUserNickname(e.target.value)}
+                  maxLength={12}
+                  placeholder="2~12자 닉네임"
                   className="h-9 text-xs"
                 />
               </div>
+
+              {/* 3. 활동 지역 */}
               <div>
-                <label className="font-bold text-slate-700 block mb-1">성별</label>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setUserGender('여')}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${
-                      userGender === '여' ? 'bg-pink-600 text-white border-pink-600' : 'bg-slate-50 text-slate-700'
-                    }`}
+                <label className="font-bold text-slate-700 block mb-1">활동 지역</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={userRegion1}
+                    onChange={(e) => setUserRegion1(e.target.value)}
+                    className="h-9 rounded-md border border-input bg-background px-2.5 text-xs font-medium"
                   >
-                    여성
-                  </button>
-                  <button
-                    onClick={() => setUserGender('남')}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${
-                      userGender === '남' ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    남성
-                  </button>
+                    {['서울특별시', '경기도', '인천광역시', '부산광역시', '대구광역시', '대전광역시', '광주광역시', '울산광역시', '세종특별자치시', '강원특별자치도', '충청북도', '충청남도', '전북특별자치도', '전라남도', '경상북도', '경상남도', '제주특별자치도'].map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                  <Input
+                    value={userRegion2}
+                    onChange={(e) => setUserRegion2(e.target.value)}
+                    placeholder="시/군/구 (예: 강남구)"
+                    maxLength={20}
+                    className="h-9 text-xs"
+                  />
                 </div>
               </div>
+
+              {/* 4. 나이 및 성별 */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">나이</label>
+                  <Input
+                    type="number"
+                    value={userAge}
+                    onChange={(e) => setUserAge(Math.max(1, Math.min(120, Number(e.target.value) || 20)))}
+                    className="h-9 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">성별</label>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setUserGender('여')}
+                      className={`flex-1 h-9 rounded-xl text-xs font-bold border transition-colors ${
+                        userGender === '여' ? 'bg-[#FF3B6B] text-white border-[#FF3B6B]' : 'bg-slate-50 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      여성
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUserGender('남')}
+                      className={`flex-1 h-9 rounded-xl text-xs font-bold border transition-colors ${
+                        userGender === '남' ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      남성
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. 한줄 소개 */}
               <div>
-                <label className="font-bold text-slate-700 block mb-1">자기소개 한마디</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-slate-700">한줄 소개</label>
+                  <span className="text-[10px] text-slate-400">{userHeadline.length}/40</span>
+                </div>
                 <Input
                   value={userHeadline}
                   onChange={(e) => setUserHeadline(e.target.value)}
+                  maxLength={40}
+                  placeholder="나를 나타내는 한 줄을 적어보세요"
                   className="h-9 text-xs"
                 />
               </div>
-              <div className="pt-2 border-t space-y-2">
-                <label className="font-bold text-slate-800 block text-[11px]">💰 소통 및 라이브 방송 입장료(단가) 설정</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <span className="text-[10px] text-muted-foreground block mb-1">💬 1:1 수다 입장료 (꿀떡)</span>
-                    <Input
-                      type="number"
-                      value={chatRoomRate}
-                      onChange={(e) => setChatRoomRate(Number(e.target.value) || 0)}
-                      className="h-8 text-xs font-bold"
-                      placeholder="예: 300"
-                    />
+
+              {/* 6. 자기소개 */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-slate-700">자기 소개</label>
+                  <span className="text-[10px] text-slate-400">{userBio.length}/300</span>
+                </div>
+                <textarea
+                  value={userBio}
+                  onChange={(e) => setUserBio(e.target.value)}
+                  maxLength={300}
+                  rows={3}
+                  placeholder="취향, 취미, 관심사에 대해 자유롭게 작성해보세요."
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs resize-none focus:outline-none focus:ring-1 focus:ring-[#FF3B6B]"
+                />
+              </div>
+
+              {/* 7. 관심사 태그 */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="font-bold text-slate-700">내 관심사 ({userInterests.length}/10)</label>
+                </div>
+                {userInterests.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {userInterests.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 border border-rose-200 text-[#FF3B6B] text-[11px] font-bold"
+                      >
+                        #{tag}
+                        <button
+                          type="button"
+                          onClick={() => setUserInterests((prev) => prev.filter((t) => t !== tag))}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
                   </div>
-                  <div>
-                    <span className="text-[10px] text-muted-foreground block mb-1">🎥 라이브 방송 단가 (꿀떡)</span>
-                    <Input
-                      type="number"
-                      value={videoCallRate}
-                      onChange={(e) => setVideoCallRate(Number(e.target.value) || 0)}
-                      className="h-8 text-xs font-bold"
-                      placeholder="예: 1000"
-                    />
-                  </div>
+                )}
+                <div className="flex gap-1.5">
+                  <Input
+                    value={profileInterestInput}
+                    onChange={(e) => setProfileInterestInput(e.target.value)}
+                    placeholder="관심사 직접 입력 (최대 12자)"
+                    maxLength={12}
+                    className="h-8 text-xs flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        const trimmed = profileInterestInput.trim()
+                        if (trimmed && !userInterests.includes(trimmed) && userInterests.length < 10) {
+                          setUserInterests((prev) => [...prev, trimmed])
+                          setProfileInterestInput('')
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs px-3"
+                    onClick={() => {
+                      const trimmed = profileInterestInput.trim()
+                      if (trimmed && !userInterests.includes(trimmed) && userInterests.length < 10) {
+                        setUserInterests((prev) => [...prev, trimmed])
+                        setProfileInterestInput('')
+                      }
+                    }}
+                  >
+                    추가
+                  </Button>
                 </div>
               </div>
             </div>
-            <Button
-              onClick={async () => {
-                setIsProfileEditOpen(false)
-                try {
-                  if (user?.id) {
-                    await api.patch(`/users/${user.id}`, {
-                      chatEntryFee: chatRoomRate,
-                      liveEntryFee: videoCallRate,
-                    })
+
+            <div className="flex gap-2 pt-2 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsProfileEditOpen(false)}
+                className="flex-1 h-10 text-xs font-bold rounded-xl"
+              >
+                취소
+              </Button>
+              <Button
+                onClick={async () => {
+                  setIsProfileEditOpen(false)
+                  try {
+                    if (user?.id) {
+                      await api.patch(`/users/${user.id}`, {
+                        displayName: userNickname.trim(),
+                        nickname: userNickname.trim(),
+                        region1: userRegion1,
+                        region2: userRegion2.trim(),
+                        age: userAge,
+                        gender: userGender,
+                        headline: userHeadline.trim(),
+                        bio: userBio.trim(),
+                        interests: userInterests,
+                        avatarUrl: galleryPhotos[0] || undefined,
+                      })
+                    }
+                  } catch (e) {
+                    console.warn('Failed to update profile:', e)
                   }
-                } catch (e) {
-                  console.warn('Failed to update profile rates:', e)
-                }
-                toast({ title: '프로필 수정 완료', description: '프로필 및 소통 단가 정보가 성공적으로 반영되었습니다.' })
-              }}
-              className="w-full bg-[#FF3B6B] hover:bg-[#e0345e] text-white font-bold text-xs h-9 rounded-xl shadow-md"
-            >
-              저장하기
-            </Button>
+                  toast({ title: '프로필 수정 완료', description: '프로필과 사진 정보가 성공적으로 저장되었습니다.' })
+                }}
+                className="flex-[2] bg-[#FF3B6B] hover:bg-[#e0345e] text-white font-bold text-xs h-10 rounded-xl shadow-sm"
+              >
+                저장하기
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -11497,72 +11647,129 @@ export default function CustomerWebStorefrontPage() {
         </div>
       )}
 
-      {/* (C) 1:1 대화 및 영상 단가설정 모달 */}
+      {/* (C) 1:1 대화 및 영상 단가설정 모달 (모바일과 동일한 컴팩트 일괄 설정 UI) */}
       {isRateSettingOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 border border-slate-200">
-            <div className="flex items-center justify-between border-b pb-2">
+            <div className="flex items-center justify-between border-b pb-3">
               <h4 className="font-extrabold text-sm text-slate-900">1:1 대화 및 영상 단가설정</h4>
               <button onClick={() => setIsRateSettingOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="space-y-4 text-xs">
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-800 block">💬 1:1 대화방 입장 단가 (건당 P)</label>
-                <p className="text-[11px] text-muted-foreground">이웃이 나와 1:1 대화를 시작할 때 소모되는 꿀떡입니다.</p>
-                <div className="grid grid-cols-4 gap-1.5 pt-1">
-                  {[100, 300, 500, 1000].map((rate) => (
+            <div className="space-y-3 text-xs">
+              <div className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200/80 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                    <MessageCircle className="h-3.5 w-3.5 text-[#FF3B6B]" />
+                    1:1 대화 입장 단가
+                  </span>
+                  <span className="font-extrabold text-[#FF3B6B]">
+                    {chatRoomRate > 0 ? `${chatRoomRate.toLocaleString()} P` : '무료'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500">이웃이 1:1 대화를 신청할 때 건당 지불하는 포인트입니다.</p>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {[0, 10, 30, 50, 100].map((rate) => (
                     <button
                       key={rate}
+                      type="button"
                       onClick={() => setChatRoomRate(rate)}
-                      className={`py-2 rounded-xl text-xs font-bold border transition-colors ${
-                        chatRoomRate === rate ? 'bg-pink-600 text-white border-pink-600' : 'bg-slate-50 text-slate-700'
+                      className={`h-8 rounded-lg text-[11px] font-bold border transition-colors ${
+                        chatRoomRate === rate
+                          ? 'bg-[#FFF1F2] text-[#FF3B6B] border-[#FF3B6B]'
+                          : 'bg-white text-slate-600 border-slate-200'
                       }`}
                     >
-                      {rate} P
+                      {rate === 0 ? '무료' : `${rate}P`}
                     </button>
                   ))}
                 </div>
+                <Input
+                  type="number"
+                  min={0}
+                  value={chatRoomRate}
+                  onChange={(e) => setChatRoomRate(Math.max(0, Number(e.target.value) || 0))}
+                  placeholder="직접 입력 (P)"
+                  className="h-8 text-xs bg-white text-right font-bold"
+                />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-800 block">🎥 1:1 영상/LIVE 단가 (분당 P)</label>
-                <p className="text-[11px] text-muted-foreground">1:1 영상 통화 진행 시 분당 차감되는 꿀떡입니다.</p>
-                <div className="grid grid-cols-4 gap-1.5 pt-1">
-                  {[500, 1000, 2000, 3000].map((rate) => (
+              <div className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200/80 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                    <Video className="h-3.5 w-3.5 text-purple-600" />
+                    1:1 영상/LIVE 단가
+                  </span>
+                  <span className="font-extrabold text-purple-600">
+                    분당 {videoCallRate.toLocaleString()} P
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500">1:1 영상 통화 시 분당 차감되어 내 수익으로 적립됩니다.</p>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[1000, 1500, 2000, 3000].map((rate) => (
                     <button
                       key={rate}
+                      type="button"
                       onClick={() => setVideoCallRate(rate)}
-                      className={`py-2 rounded-xl text-xs font-bold border transition-colors ${
-                        videoCallRate === rate ? 'bg-purple-600 text-white border-purple-600' : 'bg-slate-50 text-slate-700'
+                      className={`h-8 rounded-lg text-[11px] font-bold border transition-colors ${
+                        videoCallRate === rate
+                          ? 'bg-purple-50 text-purple-600 border-purple-500'
+                          : 'bg-white text-slate-600 border-slate-200'
                       }`}
                     >
-                      {rate} P
+                      {rate.toLocaleString()}P
                     </button>
                   ))}
                 </div>
+                <Input
+                  type="number"
+                  min={100}
+                  max={100000}
+                  value={videoCallRate}
+                  onChange={(e) => setVideoCallRate(Math.max(0, Number(e.target.value) || 0))}
+                  placeholder="직접 입력 (100 ~ 100,000 P)"
+                  className="h-8 text-xs bg-white text-right font-bold"
+                />
               </div>
             </div>
-            <Button
-              onClick={async () => {
-                setIsRateSettingOpen(false)
-                try {
-                  if (user?.id) {
-                    await api.patch(`/users/${user.id}`, {
-                      chatEntryFee: chatRoomRate,
-                      liveEntryFee: videoCallRate,
-                    })
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsRateSettingOpen(false)}
+                className="flex-1 h-9 text-xs font-bold rounded-xl"
+              >
+                취소
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (videoCallRate < 100 || videoCallRate > 100000) {
+                    toast({ title: '단가 오류', description: '영상 단가는 분당 100 ~ 100,000 P 사이로 입력해주세요.', variant: 'destructive' })
+                    return
                   }
-                } catch (e) {
-                  console.warn('Failed to save user rates:', e)
-                }
-                toast({ title: '단가 설정 저장 완료', description: `1:1 대화: ${chatRoomRate}P / 영상: ${videoCallRate}P 단가가 안전하게 저장되었습니다.` })
-              }}
-              className="w-full bg-[#FF3B6B] hover:bg-[#e0345e] text-white font-bold text-xs h-9 rounded-xl shadow-md"
-            >
-              설정 완료
-            </Button>
+                  setIsRateSettingOpen(false)
+                  try {
+                    if (user?.id) {
+                      await api.patch(`/users/${user.id}`, {
+                        chatEntryFee: chatRoomRate,
+                        liveRatePerMinute: videoCallRate,
+                        callRatePerMinute: videoCallRate,
+                      })
+                    }
+                  } catch (e) {
+                    console.warn('Failed to save user rates:', e)
+                  }
+                  toast({
+                    title: '단가 설정 저장 완료',
+                    description: `1:1 대화: ${chatRoomRate > 0 ? `${chatRoomRate}P` : '무료'} / 영상: 분당 ${videoCallRate.toLocaleString()}P 저장되었습니다.`,
+                  })
+                }}
+                className="flex-[2] bg-[#FF3B6B] hover:bg-[#e0345e] text-white font-bold text-xs h-9 rounded-xl shadow-sm"
+              >
+                저장하기
+              </Button>
+            </div>
           </div>
         </div>
       )}

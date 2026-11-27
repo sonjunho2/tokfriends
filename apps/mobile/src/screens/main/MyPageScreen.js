@@ -243,9 +243,10 @@ export default function MyPageScreen({ navigation }) {
   const [chatEntryFee, setChatEntryFee] = useState(
     Number(user?.chatEntryFee ?? userProfile?.chatEntryFee ?? 30)
   );
-  const [customChatFeeInput, setCustomChatFeeInput] = useState('');
   const [currentLiveRate, setCurrentLiveRate] = useState(1500);
-  const [customRateInput, setCustomRateInput] = useState('');
+  const [draftChatFee, setDraftChatFee] = useState('30');
+  const [draftLiveRate, setDraftLiveRate] = useState('1500');
+  const [savingRates, setSavingRates] = useState(false);
 
   // 알림 설정 모달 상태
   const [notifModalVisible, setNotifModalVisible] = useState(false);
@@ -340,48 +341,43 @@ export default function MyPageScreen({ navigation }) {
     }, [refreshMe, user?.id])
   );
 
-  // 1:1 대화 입장료 저장 (모꼬 포인트 P)
-  const handleSaveChatFee = useCallback(
-    async (fee) => {
-      const numericFee = Math.max(0, parseInt(String(fee).replace(/\D/g, ''), 10) || 0);
-      setChatEntryFee(numericFee);
-      await AsyncStorage.setItem('mocco_chat_entry_fee', String(numericFee));
-      try {
-        if (user?.id) {
-          await apiClient.updateUser(user.id, { chatEntryFee: numericFee });
-        }
-        if (refreshMe) refreshMe().catch(() => {});
-      } catch {}
-      setCustomChatFeeInput('');
-      Alert.alert('설정 완료', `1:1 대화방 입장 단가가 ${numericFee} P로 성공적으로 저장되었습니다! ✨`);
-    },
-    [user?.id, refreshMe]
-  );
+  // 1:1 대화 & 영상 단가 일괄 저장 (모꼬 포인트 P)
+  const handleSaveAllRates = useCallback(async () => {
+    const numericChatFee = Math.max(0, parseInt(String(draftChatFee).replace(/\D/g, ''), 10) || 0);
+    const numericLiveRate = parseInt(String(draftLiveRate).replace(/\D/g, ''), 10) || 0;
 
-  // 1:1 영상/LIVE 단가 저장 (모꼬 포인트 P)
-  const handleSaveLiveRate = useCallback(
-    async (rate) => {
-      const numericRate = Number(rate);
-      if (!numericRate || numericRate < 100 || numericRate > 100000) {
-        Alert.alert('단가 오류', '영상/통화 단가는 분당 100 ~ 100,000 P 사이의 숫자로 입력해주세요.');
-        return;
+    if (numericLiveRate < 100 || numericLiveRate > 100000) {
+      Alert.alert('단가 오류', '영상/통화 단가는 분당 100 ~ 100,000 P 사이로 입력해주세요.');
+      return;
+    }
+
+    setSavingRates(true);
+    setChatEntryFee(numericChatFee);
+    setCurrentLiveRate(numericLiveRate);
+    try {
+      await AsyncStorage.multiSet([
+        ['mocco_chat_entry_fee', String(numericChatFee)],
+        ['mocco_live_rate', String(numericLiveRate)],
+      ]);
+      if (user?.id) {
+        await apiClient.updateUser(user.id, {
+          chatEntryFee: numericChatFee,
+          liveRatePerMinute: numericLiveRate,
+          callRatePerMinute: numericLiveRate,
+        });
       }
-      setCurrentLiveRate(numericRate);
-      await AsyncStorage.setItem('mocco_live_rate', String(numericRate));
-      try {
-        if (user?.id) {
-          await apiClient.updateUser(user.id, {
-            liveRatePerMinute: numericRate,
-            callRatePerMinute: numericRate,
-          });
-        }
-        if (refreshMe) refreshMe().catch(() => {});
-      } catch {}
-      setCustomRateInput('');
-      Alert.alert('설정 완료', `1:1 영상 단가가 분당 ${numericRate.toLocaleString()} P로 성공적으로 변경되었습니다! ✨`);
-    },
-    [user?.id, refreshMe]
-  );
+      if (refreshMe) refreshMe().catch(() => {});
+      setRateModalVisible(false);
+      Alert.alert(
+        '단가 설정 저장 완료',
+        `1:1 대화: ${numericChatFee > 0 ? `${numericChatFee.toLocaleString()} P` : '무료'}\n1:1 영상: 분당 ${numericLiveRate.toLocaleString()} P`
+      );
+    } catch {
+      setRateModalVisible(false);
+    } finally {
+      setSavingRates(false);
+    }
+  }, [draftChatFee, draftLiveRate, user?.id, refreshMe]);
 
   // 내 판매 물품 상태 변경 (판매중 / 예약중 / 판매완료)
   const handleChangeSaleStatus = (itemId, nextStatus) => {
@@ -832,34 +828,15 @@ export default function MyPageScreen({ navigation }) {
         </View>
 
         {/* 6. 그룹형 메뉴 리스트 1: 소셜 & 크리에이터 설정 */}
-        {/* 📌 "마켓상품 등록하기" 삭제 완료 */}
         <View style={styles.menuGroup}>
           <Text style={styles.groupHeader}>소셜 & 크리에이터 설정</Text>
           <View style={styles.menuContainer}>
-            {/* 📸 갤러리 관리 */}
-            <TouchableOpacity
-              style={styles.menuRow}
-              onPress={() => navigation.navigate('ProfileEdit', { profile: { ...user, ...userProfile } })}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.menuIconBox, { backgroundColor: '#FFE4E6' }]}>
-                <Ionicons name="images" size={18} color="#FF3B6B" />
-              </View>
-              <View style={styles.menuTextBox}>
-                <Text style={styles.menuTitle}>갤러리 관리 (최대 9장)</Text>
-                <Text style={styles.menuDesc}>매칭 및 바텀시트에 노출될 대표 사진</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-            </TouchableOpacity>
-
-            <View style={styles.menuDivider} />
-
-            {/* 💬/🎥 1:1 대화 및 영상 단가설정 (모꼬 포인트 P 기준) */}
+            {/* 1:1 대화 및 영상 단가설정 (모꼬 포인트 P 기준) */}
             <TouchableOpacity
               style={styles.menuRow}
               onPress={() => {
-                setCustomRateInput(String(currentLiveRate));
-                setCustomChatFeeInput(String(chatEntryFee));
+                setDraftChatFee(String(chatEntryFee));
+                setDraftLiveRate(String(currentLiveRate));
                 setRateModalVisible(true);
               }}
               activeOpacity={0.8}
@@ -870,7 +847,7 @@ export default function MyPageScreen({ navigation }) {
               <View style={styles.menuTextBox}>
                 <Text style={styles.menuTitle}>1:1 대화 및 영상 단가설정</Text>
                 <Text style={styles.menuDesc}>
-                  채팅 입장 {chatEntryFee} P · 영상 분당 {currentLiveRate.toLocaleString()} P
+                  채팅 입장 {chatEntryFee > 0 ? `${chatEntryFee} P` : '무료'} · 영상 분당 {currentLiveRate.toLocaleString()} P
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
@@ -878,7 +855,7 @@ export default function MyPageScreen({ navigation }) {
 
             <View style={styles.menuDivider} />
 
-            {/* 🔔 알림 설정 */}
+            {/* 알림 설정 */}
             <TouchableOpacity
               style={styles.menuRow}
               onPress={() => setNotifModalVisible(true)}
@@ -1758,7 +1735,7 @@ export default function MyPageScreen({ navigation }) {
       </Modal>
 
       {/* =================================================================== */}
-      {/* 모달 1: 1:1 대화/영상 단가설정 (모꼬 포인트 P 기준) */}
+      {/* 모달 1: 1:1 대화/영상 단가설정 (모꼬 포인트 P 기준 - 컴팩트 정돈 UI) */}
       {/* =================================================================== */}
       <Modal
         visible={rateModalVisible}
@@ -1767,161 +1744,192 @@ export default function MyPageScreen({ navigation }) {
         onRequestClose={() => setRateModalVisible(false)}
       >
         <View style={styles.modalBackdrop}>
-          <View style={[styles.dialogCard, { maxHeight: '85%' }]}>
-            <View style={styles.dialogHeader}>
-              <View style={[styles.dialogIconBox, { backgroundColor: '#FDF2F8' }]}>
-                <Ionicons name="chatbubbles" size={20} color="#DB2777" />
+          <View style={[styles.dialogCard, { padding: 20, maxHeight: '86%' }]}>
+            {/* 상단 타이틀 헤더 */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#FFF1F2', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="options" size={17} color="#FF3B6B" />
+                </View>
+                <Text style={{ fontSize: 16, fontWeight: '800', color: '#0F172A' }}>
+                  1:1 대화 및 영상 단가설정
+                </Text>
               </View>
-              <Text style={styles.dialogTitle}>1:1 대화 및 영상 단가설정</Text>
-              <Text style={styles.dialogSub}>
-                상대방이 1:1 대화를 신청하거나 영상 통화를 요청할 때 지불할 모꼬 포인트(P)를 설정하세요.
-              </Text>
+              <TouchableOpacity
+                onPress={() => setRateModalVisible(false)}
+                hitSlop={8}
+                style={{ padding: 4 }}
+              >
+                <Ionicons name="close" size={20} color="#64748B" />
+              </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {/* 섹션 A: 1:1 대화방 입장 단가 (P) */}
-              <View style={{ marginBottom: 20 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <Text style={styles.rateSectionLabel}>💬 1:1 대화방 입장 단가 (건당 P)</Text>
+              <View style={{ backgroundColor: '#F8FAFC', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 12 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="chatbubble-ellipses-outline" size={16} color="#0F172A" />
+                    <Text style={{ fontSize: 13.5, fontWeight: '700', color: '#0F172A' }}>
+                      1:1 대화 입장 단가
+                    </Text>
+                  </View>
                   <Text style={{ fontSize: 13, fontWeight: '800', color: '#FF3B6B' }}>
-                    {chatEntryFee > 0 ? `${chatEntryFee} P` : '무료'}
+                    {(parseInt(draftChatFee, 10) || 0) > 0
+                      ? `${(parseInt(draftChatFee, 10) || 0).toLocaleString()} P`
+                      : '무료'}
                   </Text>
                 </View>
-                <Text style={{ fontSize: 12, color: tokens.colors.textSecondary, marginBottom: 8, lineHeight: 16 }}>
-                  상대방이 1:1 대화를 신청할 때 지불하며, 나에게 모꼬 포인트로 적립됩니다.
+                <Text style={{ fontSize: 11.5, color: '#64748B', marginBottom: 10 }}>
+                  상대방이 1:1 대화를 신청할 때 건당 지불하는 포인트입니다.
                 </Text>
 
-                {/* 채팅 프리셋 칩 */}
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                {/* 균일 5열 칩 (겹침 방지) */}
+                <View style={{ flexDirection: 'row', gap: 6, marginBottom: 10 }}>
                   {[0, 10, 30, 50, 100].map((fee) => {
-                    const isSelected = chatEntryFee === fee && !customChatFeeInput;
+                    const isSelected = (parseInt(draftChatFee, 10) || 0) === fee;
                     return (
                       <TouchableOpacity
                         key={fee}
-                        style={[
-                          styles.rateOptionBtn,
-                          { flex: 1, minWidth: '28%', paddingVertical: 8, paddingHorizontal: 6, justifyContent: 'center' },
-                          isSelected ? styles.rateOptionActive : styles.rateOptionInactive,
-                        ]}
-                        onPress={() => {
-                          setCustomChatFeeInput('');
-                          handleSaveChatFee(fee);
+                        activeOpacity={0.8}
+                        style={{
+                          flex: 1,
+                          height: 34,
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: isSelected ? '#FF3B6B' : '#E2E8F0',
+                          backgroundColor: isSelected ? '#FFF1F2' : '#FFFFFF',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                         }}
+                        onPress={() => setDraftChatFee(String(fee))}
                       >
                         <Text
-                          style={[
-                            styles.rateOptionText,
-                            isSelected ? styles.rateOptionTextActive : styles.rateOptionTextInactive,
-                            { fontSize: 12, textAlign: 'center' },
-                          ]}
+                          style={{
+                            fontSize: 11.5,
+                            fontWeight: '700',
+                            color: isSelected ? '#FF3B6B' : '#475569',
+                          }}
                         >
-                          {fee === 0 ? '무료' : `${fee} P`}
+                          {fee === 0 ? '무료' : `${fee}P`}
                         </Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
 
-                {/* 채팅 직접 입력 */}
-                <View style={styles.customRateInputRow}>
+                {/* 직접 입력 */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingHorizontal: 12, height: 40 }}>
+                  <Text style={{ fontSize: 11.5, color: '#94A3B8', marginRight: 8 }}>직접입력</Text>
                   <TextInput
-                    style={[styles.customRateInput, { flex: 1 }]}
+                    style={{ flex: 1, fontSize: 13, fontWeight: '700', color: '#0F172A', textAlign: 'right', paddingVertical: 0 }}
                     keyboardType="numeric"
-                    placeholder="채팅 단가 직접 입력 (P)"
-                    placeholderTextColor="#94A3B8"
-                    value={customChatFeeInput}
-                    onChangeText={setCustomChatFeeInput}
+                    placeholder="0"
+                    placeholderTextColor="#CBD5E1"
+                    value={draftChatFee}
+                    onChangeText={(t) => setDraftChatFee(t.replace(/\D/g, ''))}
                     maxLength={5}
                   />
-                  <TouchableOpacity
-                    style={[
-                      styles.customRateSaveBtn,
-                      !customChatFeeInput ? styles.customRateSaveBtnDisabled : null,
-                    ]}
-                    disabled={!customChatFeeInput}
-                    onPress={() => handleSaveChatFee(customChatFeeInput)}
-                  >
-                    <Text style={styles.customRateSaveBtnText}>적용</Text>
-                  </TouchableOpacity>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748B', marginLeft: 6 }}>P / 건</Text>
                 </View>
               </View>
 
-              <View style={{ height: 1, backgroundColor: '#E2E8F0', marginBottom: 18 }} />
-
               {/* 섹션 B: 1:1 영상/LIVE 단가 (분당 P) */}
-              <View style={{ marginBottom: 10 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <Text style={styles.rateSectionLabel}>🎥 1:1 영상/LIVE 단가 (분당 P)</Text>
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#DB2777' }}>
-                    분당 {currentLiveRate.toLocaleString()} P
+              <View style={{ backgroundColor: '#F8FAFC', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 4 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="videocam-outline" size={16} color="#0F172A" />
+                    <Text style={{ fontSize: 13.5, fontWeight: '700', color: '#0F172A' }}>
+                      1:1 영상/LIVE 단가
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#8B5CF6' }}>
+                    분당 {(parseInt(draftLiveRate, 10) || 0).toLocaleString()} P
                   </Text>
                 </View>
-                <Text style={{ fontSize: 12, color: tokens.colors.textSecondary, marginBottom: 8, lineHeight: 16 }}>
-                  1:1 영상 라이브 시 분당 차감되어 나에게 모꼬 포인트로 적립됩니다.
+                <Text style={{ fontSize: 11.5, color: '#64748B', marginBottom: 10 }}>
+                  1:1 영상 통화 시 분당 차감되어 내 수익으로 적립됩니다.
                 </Text>
 
-                {/* 영상 프리셋 */}
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                {/* 균일 4열 칩 */}
+                <View style={{ flexDirection: 'row', gap: 6, marginBottom: 10 }}>
                   {[1000, 1500, 2000, 3000].map((rate) => {
-                    const isSelected = currentLiveRate === rate && !customRateInput;
+                    const isSelected = (parseInt(draftLiveRate, 10) || 0) === rate;
                     return (
                       <TouchableOpacity
                         key={rate}
-                        style={[
-                          styles.rateOptionBtn,
-                          { flex: 1, minWidth: '45%', paddingVertical: 8, paddingHorizontal: 8, justifyContent: 'center' },
-                          isSelected ? styles.rateOptionActive : styles.rateOptionInactive,
-                        ]}
-                        onPress={() => {
-                          setCustomRateInput('');
-                          handleSaveLiveRate(rate);
+                        activeOpacity={0.8}
+                        style={{
+                          flex: 1,
+                          height: 34,
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: isSelected ? '#8B5CF6' : '#E2E8F0',
+                          backgroundColor: isSelected ? '#F5F3FF' : '#FFFFFF',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                         }}
+                        onPress={() => setDraftLiveRate(String(rate))}
                       >
                         <Text
-                          style={[
-                            styles.rateOptionText,
-                            isSelected ? styles.rateOptionTextActive : styles.rateOptionTextInactive,
-                            { fontSize: 12, textAlign: 'center' },
-                          ]}
+                          style={{
+                            fontSize: 11.5,
+                            fontWeight: '700',
+                            color: isSelected ? '#8B5CF6' : '#475569',
+                          }}
                         >
-                          분당 {rate.toLocaleString()} P
+                          {rate.toLocaleString()}P
                         </Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
 
-                {/* 영상 직접 입력 */}
-                <View style={styles.customRateInputRow}>
+                {/* 직접 입력 */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingHorizontal: 12, height: 40 }}>
+                  <Text style={{ fontSize: 11.5, color: '#94A3B8', marginRight: 8 }}>직접입력</Text>
                   <TextInput
-                    style={[styles.customRateInput, { flex: 1 }]}
+                    style={{ flex: 1, fontSize: 13, fontWeight: '700', color: '#0F172A', textAlign: 'right', paddingVertical: 0 }}
                     keyboardType="numeric"
-                    placeholder="영상 단가 직접 입력 (100~100,000)"
-                    placeholderTextColor="#94A3B8"
-                    value={customRateInput}
-                    onChangeText={setCustomRateInput}
+                    placeholder="100 ~ 100,000"
+                    placeholderTextColor="#CBD5E1"
+                    value={draftLiveRate}
+                    onChangeText={(t) => setDraftLiveRate(t.replace(/\D/g, ''))}
                     maxLength={6}
                   />
-                  <TouchableOpacity
-                    style={[
-                      styles.customRateSaveBtn,
-                      !customRateInput ? styles.customRateSaveBtnDisabled : null,
-                    ]}
-                    disabled={!customRateInput}
-                    onPress={() => handleSaveLiveRate(customRateInput)}
-                  >
-                    <Text style={styles.customRateSaveBtnText}>적용</Text>
-                  </TouchableOpacity>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748B', marginLeft: 6 }}>P / 분</Text>
                 </View>
               </View>
             </ScrollView>
 
-            <TouchableOpacity
-              style={[styles.dialogCancelBtn, { marginTop: 14 }]}
-              onPress={() => setRateModalVisible(false)}
-            >
-              <Text style={styles.dialogCancelText}>닫기</Text>
-            </TouchableOpacity>
+            {/* 하단 통합 액션 버튼 */}
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
+              <TouchableOpacity
+                style={[styles.dialogCancelBtn, { flex: 1, marginTop: 0 }]}
+                onPress={() => setRateModalVisible(false)}
+                disabled={savingRates}
+              >
+                <Text style={styles.dialogCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 2,
+                  height: 46,
+                  borderRadius: 12,
+                  backgroundColor: '#FF3B6B',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={handleSaveAllRates}
+                disabled={savingRates}
+              >
+                {savingRates ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#FFFFFF' }}>저장하기</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
