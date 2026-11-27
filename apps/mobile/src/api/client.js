@@ -539,37 +539,37 @@ export const apiClient = {
     }
   },
 
-  async loginKakao(accessToken) {
+  async loginKakao(accessToken, consents) {
     try {
-      const { data } = await client.post('/auth/kakao', { accessToken }, unauthJsonConfig());
+      const { data } = await client.post('/auth/kakao', { accessToken, ...(consents || {}) }, unauthJsonConfig());
       return data;
     } catch (err) {
       throw normalizeError(err);
     }
   },
 
-  async loginNaver(accessToken) {
+  async loginNaver(accessToken, consents) {
     try {
-      const { data } = await client.post('/auth/naver', { accessToken }, unauthJsonConfig());
+      const { data } = await client.post('/auth/naver', { accessToken, ...(consents || {}) }, unauthJsonConfig());
       return data;
     } catch (err) {
       throw normalizeError(err);
     }
   },
 
-  async loginGoogle(idToken, accessToken) {
+  async loginGoogle(idToken, accessToken, consents) {
     try {
-      const { data } = await client.post('/auth/google', { idToken, accessToken }, unauthJsonConfig());
+      const { data } = await client.post('/auth/google', { idToken, accessToken, ...(consents || {}) }, unauthJsonConfig());
       return data;
     } catch (err) {
       throw normalizeError(err);
     }
   },
 
-  async loginApple(tokenPayload) {
+  async loginApple(tokenPayload, consents) {
     try {
       const payload = typeof tokenPayload === 'string' ? { token: tokenPayload } : tokenPayload;
-      const { data } = await client.post('/auth/apple', payload, unauthJsonConfig());
+      const { data } = await client.post('/auth/apple', { ...payload, ...(consents || {}) }, unauthJsonConfig());
       return data;
     } catch (err) {
       throw normalizeError(err);
@@ -609,6 +609,10 @@ export const apiClient = {
       dob: userData?.dob || '2000-01-01',
       region: userData?.region ?? undefined,
       bio: userData?.bio ?? undefined,
+      ...(userData?.termsAgreed !== undefined ? { termsAgreed: Boolean(userData.termsAgreed) } : {}),
+      ...(userData?.privacyAgreed !== undefined ? { privacyAgreed: Boolean(userData.privacyAgreed) } : {}),
+      ...(userData?.locationAgreed !== undefined ? { locationAgreed: Boolean(userData.locationAgreed) } : {}),
+      ...(userData?.marketingAgreed !== undefined ? { marketingAgreed: Boolean(userData.marketingAgreed) } : {}),
     };
 
     try {

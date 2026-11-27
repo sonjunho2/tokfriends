@@ -26,7 +26,7 @@ import { apiClient } from '../../api/client';
 import TestLoginButton from '../../components/TestLoginButton';
 
 export default function LoginScreen({ navigation }) {
-  const { login, signup, socialLogin } = useAuth();
+  const { login, signup, socialLogin, enterGuestMode } = useAuth();
   const [emailModalVisible, setEmailModalVisible] = useState(false);
   const [isSignupMode, setIsSignupMode] = useState(false);
   const [email, setEmail] = useState('');
@@ -34,12 +34,14 @@ export default function LoginScreen({ navigation }) {
   const [displayName, setDisplayName] = useState('');
   const [emailLoading, setEmailLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(null);
+  const [pendingSocialPlatform, setPendingSocialPlatform] = useState(null);
+  const [socialConsentModalVisible, setSocialConsentModalVisible] = useState(false);
 
-  // 📝 회원가입 표준 약관 동의 상태
+  // 📝 회원가입 표준 약관 동의 상태 (명시적 동의 원칙에 따라 초기값 미체크)
   const [agreements, setAgreements] = useState({
-    age14: true,
-    tos: true,
-    privacy: true,
+    age14: false,
+    tos: false,
+    privacy: false,
     location: false,
     marketing: false,
   });
@@ -144,22 +146,38 @@ export default function LoginScreen({ navigation }) {
   };
 
   // 소셜 로그인 핸들러 (카카오, 네이버, 애플, 구글)
-  const handleSocialLogin = async (platform) => {
-    const platformKey = platform.toLowerCase();
+  const executeSocialLogin = async (platformKey) => {
     setSocialLoading(platformKey);
     try {
       const mockToken = `token_${platformKey}_${Date.now()}`;
-      const res = await socialLogin(platformKey, mockToken);
+      const res = await socialLogin(platformKey, mockToken, {
+        termsAgreed: agreements.tos,
+        privacyAgreed: agreements.privacy,
+        locationAgreed: agreements.location,
+        marketingAgreed: agreements.marketing,
+      });
       if (res.success) {
+        setSocialConsentModalVisible(false);
+        setPendingSocialPlatform(null);
         await onLoginSuccess();
       } else {
-        Alert.alert('로그인 실패', res.error || `${platform} 로그인에 실패했습니다.`);
+        Alert.alert('로그인 실패', res.error || `${platformKey} 로그인에 실패했습니다.`);
       }
     } catch (e) {
       Alert.alert('로그인 오류', e?.message || '처리 중 오류가 발생했습니다.');
     } finally {
       setSocialLoading(null);
     }
+  };
+
+  const handleSocialLogin = async (platform) => {
+    const platformKey = platform.toLowerCase();
+    if (!agreements.age14 || !agreements.tos || !agreements.privacy) {
+      setPendingSocialPlatform(platformKey);
+      setSocialConsentModalVisible(true);
+      return;
+    }
+    await executeSocialLogin(platformKey);
   };
 
   // 이메일 로그인 / 회원가입 핸들러
@@ -192,6 +210,10 @@ export default function LoginScreen({ navigation }) {
           email: trimmedEmail,
           password: trimmedPassword,
           displayName: displayName.trim(),
+          termsAgreed: agreements.tos,
+          privacyAgreed: agreements.privacy,
+          locationAgreed: agreements.location,
+          marketingAgreed: agreements.marketing,
         });
         if (!res.success) {
           Alert.alert('회원가입 실패', res.error || '회원가입을 완료하지 못했습니다.');
@@ -262,7 +284,7 @@ export default function LoginScreen({ navigation }) {
           {/* 1. 카카오 로그인 */}
           <TouchableOpacity
             style={[styles.socialButton, styles.kakaoButton]}
-            onPress={() => handleSocialLogin('카카오')}
+            onPress={() => handleSocialLogin('kakao')}
             disabled={socialLoading !== null}
             activeOpacity={0.88}
           >
@@ -271,7 +293,7 @@ export default function LoginScreen({ navigation }) {
             </View>
             <Text style={styles.kakaoButtonText}>카카오로 시작하기</Text>
             <View style={{ width: 24 }}>
-              {socialLoading === '카카오' && (
+              {socialLoading === 'kakao' && (
                 <ActivityIndicator size="small" color="#191919" />
               )}
             </View>
@@ -280,7 +302,7 @@ export default function LoginScreen({ navigation }) {
           {/* 2. 네이버 로그인 */}
           <TouchableOpacity
             style={[styles.socialButton, styles.naverButton]}
-            onPress={() => handleSocialLogin('네이버')}
+            onPress={() => handleSocialLogin('naver')}
             disabled={socialLoading !== null}
             activeOpacity={0.88}
           >
@@ -289,7 +311,7 @@ export default function LoginScreen({ navigation }) {
             </View>
             <Text style={styles.naverButtonText}>네이버로 시작하기</Text>
             <View style={{ width: 24 }}>
-              {socialLoading === '네이버' && (
+              {socialLoading === 'naver' && (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               )}
             </View>
@@ -365,6 +387,25 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.emailButtonText}>이메일로 로그인 및 회원가입</Text>
         </TouchableOpacity>
 
+        {/* 게스트 둘러보기 (앱 심사 가이드라인 5.1.1 대응) */}
+        <TouchableOpacity
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            paddingVertical: 12,
+            marginTop: 8,
+          }}
+          onPress={() => enterGuestMode()}
+          activeOpacity={0.75}
+        >
+          <Ionicons name="eye-outline" size={16} color={tokens.colors.textTertiary} />
+          <Text style={{ fontSize: 13, fontWeight: '600', color: tokens.colors.textSecondary }}>
+            로그인 없이 먼저 둘러보기
+          </Text>
+        </TouchableOpacity>
+
         {/* 개발 환경(__DEV__) 전용 테스트 로그인 버튼 (릴리즈 빌드에서는 자동 숨김) */}
         {typeof __DEV__ !== 'undefined' && __DEV__ ? (
           <View style={styles.testSection}>
@@ -410,8 +451,9 @@ export default function LoginScreen({ navigation }) {
                   keyboardHeight > 0 && { paddingBottom: keyboardHeight + 16 },
                 ]}
               >
-                {/* 상단 닫기 바 */}
-                <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 }}>
+                {/* 개발(__DEV__) 전용 테스트 계정 빠른 입력 바 */}
+                {typeof __DEV__ !== 'undefined' && __DEV__ ? (
+                  <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 }}>
                   <TouchableOpacity
                     style={{
                       flex: 1,
@@ -452,7 +494,8 @@ export default function LoginScreen({ navigation }) {
                     <Text style={{ fontSize: 11, fontWeight: '700', color: '#0284C7' }}>🎁 테스터02 (시청용)</Text>
                     <Text style={{ fontSize: 9, color: '#888', marginTop: 2 }}>test02 / 12345678</Text>
                   </TouchableOpacity>
-                </View>
+                  </View>
+                ) : null}
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>
                     {isSignupMode ? '이메일 간편 회원가입' : '이메일 로그인'}
@@ -689,6 +732,107 @@ export default function LoginScreen({ navigation }) {
             </ScrollView>
           )}
         </SafeAreaView>
+      </Modal>
+
+      {/* 소셜 간편 가입 약관 동의 모달 */}
+      <Modal
+        visible={socialConsentModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSocialConsentModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalSheet, { paddingHorizontal: 20, paddingBottom: 28 }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>서비스 약관 동의</Text>
+              <TouchableOpacity
+                onPress={() => setSocialConsentModalVisible(false)}
+                hitSlop={8}
+                style={styles.modalCloseBtn}
+              >
+                <Ionicons name="close" size={22} color={tokens.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ fontSize: 13, color: tokens.colors.textSecondary, marginBottom: 12 }}>
+              안전한 모꼬 서비스 이용을 위해 필수 약관에 동의해 주세요.
+            </Text>
+            <View style={styles.termsAgreementBox}>
+              <TouchableOpacity
+                style={styles.allAgreeRow}
+                onPress={toggleAllAgreements}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.checkboxCircle, isAllAgreed && styles.checkboxCircleActive]}>
+                  {isAllAgreed && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
+                </View>
+                <Text style={styles.allAgreeText}>모꼬 약관 전체 동의하기</Text>
+              </TouchableOpacity>
+              <View style={styles.termsDivider} />
+              <TouchableOpacity style={styles.termRow} onPress={() => toggleAgreement('age14')} activeOpacity={0.8}>
+                <View style={[styles.termCheckbox, agreements.age14 && styles.termCheckboxActive]}>
+                  {agreements.age14 && <Ionicons name="checkmark" size={11} color="#FFFFFF" />}
+                </View>
+                <Text style={styles.termText}><Text style={styles.requiredTag}>[필수]</Text> 만 14세 이상입니다</Text>
+              </TouchableOpacity>
+              <View style={styles.termRowWithLink}>
+                <TouchableOpacity style={styles.termRowLeft} onPress={() => toggleAgreement('tos')} activeOpacity={0.8}>
+                  <View style={[styles.termCheckbox, agreements.tos && styles.termCheckboxActive]}>
+                    {agreements.tos && <Ionicons name="checkmark" size={11} color="#FFFFFF" />}
+                  </View>
+                  <Text style={styles.termText}><Text style={styles.requiredTag}>[필수]</Text> 모꼬 서비스 이용약관 동의</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => viewTermDetail('terms-of-service', '모꼬 서비스 이용약관')}>
+                  <Text style={styles.termDetailLink}>보기</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.termRowWithLink}>
+                <TouchableOpacity style={styles.termRowLeft} onPress={() => toggleAgreement('privacy')} activeOpacity={0.8}>
+                  <View style={[styles.termCheckbox, agreements.privacy && styles.termCheckboxActive]}>
+                    {agreements.privacy && <Ionicons name="checkmark" size={11} color="#FFFFFF" />}
+                  </View>
+                  <Text style={styles.termText}><Text style={styles.requiredTag}>[필수]</Text> 개인정보 수집 및 이용 동의</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => viewTermDetail('privacy-policy', '개인정보 수집 및 이용 동의')}>
+                  <Text style={styles.termDetailLink}>보기</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.termRowWithLink}>
+                <TouchableOpacity style={styles.termRowLeft} onPress={() => toggleAgreement('location')} activeOpacity={0.8}>
+                  <View style={[styles.termCheckbox, agreements.location && styles.termCheckboxActive]}>
+                    {agreements.location && <Ionicons name="checkmark" size={11} color="#FFFFFF" />}
+                  </View>
+                  <Text style={styles.termText}><Text style={styles.optionalTag}>[선택]</Text> 위치기반 서비스 이용약관 동의</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => viewTermDetail('location-based-service', '위치기반 서비스 이용약관')}>
+                  <Text style={styles.termDetailLink}>보기</Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity style={styles.termRow} onPress={() => toggleAgreement('marketing')} activeOpacity={0.8}>
+                <View style={[styles.termCheckbox, agreements.marketing && styles.termCheckboxActive]}>
+                  {agreements.marketing && <Ionicons name="checkmark" size={11} color="#FFFFFF" />}
+                </View>
+                <Text style={styles.termText}><Text style={styles.optionalTag}>[선택]</Text> 마케팅 정보 및 혜택 알림 동의</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.submitButton,
+                (!agreements.age14 || !agreements.tos || !agreements.privacy) && { opacity: 0.45 },
+              ]}
+              disabled={!agreements.age14 || !agreements.tos || !agreements.privacy || socialLoading !== null}
+              onPress={() => {
+                if (pendingSocialPlatform) {
+                  executeSocialLogin(pendingSocialPlatform);
+                }
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.submitButtonText}>
+                {socialLoading ? '로그인 중...' : '동의하고 계속하기'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );

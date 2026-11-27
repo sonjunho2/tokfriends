@@ -41,6 +41,13 @@ export interface WebUser {
   creatorInfo?: CreatorApplication
 }
 
+export interface ConsentPayload {
+  termsAgreed: boolean
+  privacyAgreed: boolean
+  locationAgreed?: boolean
+  marketingAgreed?: boolean
+}
+
 interface AuthContextType {
   user: WebUser | null
   role: UserRole
@@ -56,9 +63,16 @@ interface AuthContextType {
   closeCreatorModal: () => void
   quickLogin: (nickname: string) => Promise<boolean>
   emailLogin: (email: string, pass: string) => Promise<{ success: boolean; message?: string }>
+  emailSignup: (
+    email: string,
+    pass: string,
+    nickname: string,
+    consents: ConsentPayload
+  ) => Promise<{ success: boolean; message?: string }>
   socialLogin: (
     provider: 'kakao' | 'naver' | 'google' | 'apple',
-    customProfile?: { email?: string; nickname?: string; avatarUrl?: string }
+    customProfile?: { email?: string; nickname?: string; avatarUrl?: string },
+    consents?: ConsentPayload
   ) => Promise<boolean>
   switchRole: (newRole: UserRole) => void
   applyMerchant: (data: MerchantApplication) => Promise<boolean>
@@ -462,6 +476,60 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
     [pendingAction, saveUserState]
   )
 
+  const emailSignup = useCallback(
+    async (email: string, pass: string, nickname: string, consents: ConsentPayload) => {
+      const cleanEmail = email.trim().toLowerCase()
+      try {
+        const response = await fetch('/api/backend/auth/signup/email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: cleanEmail,
+            password: pass,
+            displayName: nickname.trim(),
+            nickname: nickname.trim(),
+            termsAgreed: consents.termsAgreed,
+            privacyAgreed: consents.privacyAgreed,
+            locationAgreed: Boolean(consents.locationAgreed),
+            marketingAgreed: Boolean(consents.marketingAgreed),
+          }),
+        })
+        const resData = await response.json().catch(() => ({}))
+        if (!response.ok) {
+          return {
+            success: false,
+            message: resData?.message || '회원가입에 실패했습니다.',
+          }
+        }
+        const token = resData.token || resData.access_token || resData.accessToken
+        const userData = resData.user || resData.data?.user
+        if (token && typeof window !== 'undefined') {
+          localStorage.setItem('tokfriends_admin_token', token)
+          localStorage.setItem('access_token', token)
+        }
+        const webUser: WebUser = {
+          id: userData?.id || `u-${Date.now()}`,
+          nickname: userData?.nickname || nickname.trim(),
+          email: userData?.email || cleanEmail,
+          role: (userData?.role?.toUpperCase() as UserRole) || 'USER',
+          avatarUrl: userData?.avatarUrl,
+          pointBalance: Number(userData?.pointBalance ?? 10000),
+          cashBalance: 0,
+        }
+        saveUserState(webUser)
+        setIsLoginModalOpen(false)
+        if (pendingAction) {
+          pendingAction()
+          setPendingAction(null)
+        }
+        return { success: true }
+      } catch (err: any) {
+        return { success: false, message: err?.message || '회원가입 요청 중 오류가 발생했습니다.' }
+      }
+    },
+    [pendingAction, saveUserState]
+  )
+
   const switchRole = useCallback(
     (newRole: UserRole) => {
       if (newRole === 'GUEST') {
@@ -508,7 +576,8 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
   const socialLogin = useCallback(
     async (
       provider: 'kakao' | 'naver' | 'google' | 'apple',
-      customProfile?: { email?: string; nickname?: string; avatarUrl?: string }
+      customProfile?: { email?: string; nickname?: string; avatarUrl?: string },
+      consents?: ConsentPayload
     ) => {
       try {
         const defaultProfiles: Record<string, { email: string; nickname: string; avatarUrl: string }> = {
@@ -547,6 +616,14 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
               email: profile.email,
               nickname: profile.nickname,
               avatarUrl: profile.avatarUrl,
+              ...(consents
+                ? {
+                    termsAgreed: consents.termsAgreed,
+                    privacyAgreed: consents.privacyAgreed,
+                    locationAgreed: Boolean(consents.locationAgreed),
+                    marketingAgreed: Boolean(consents.marketingAgreed),
+                  }
+                : {}),
             }),
           })
           if (res.ok) {
@@ -650,6 +727,7 @@ export function WebAuthProvider({ children }: { children: React.ReactNode }) {
         quickLogin,
         socialLogin,
         emailLogin,
+        emailSignup,
         switchRole,
         applyMerchant,
         applyCreator,

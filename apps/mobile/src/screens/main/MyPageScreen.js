@@ -36,7 +36,7 @@ import {
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function MyPageScreen({ navigation }) {
-  const { user, logout, refreshMe } = useAuth();
+  const { user, isGuest, exitGuestToLogin, logout, refreshMe } = useAuth();
   const userProfile = user?.profile ?? {};
 
   // 프로필 기본 정보 (나이 및 성별 포함)
@@ -615,6 +615,47 @@ export default function MyPageScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {isGuest && !user?.id ? (
+          <View
+            style={{
+              marginHorizontal: 16,
+              marginBottom: 14,
+              padding: 16,
+              borderRadius: 18,
+              backgroundColor: '#FFF1F4',
+              borderWidth: 1,
+              borderColor: '#FECDD3',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '800', color: '#0F172A' }}>
+                게스트로 둘러보는 중이에요
+              </Text>
+              <Text style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+                로그인하면 찜하기, 채팅, 안전결제를 이용할 수 있어요.
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => exitGuestToLogin()}
+              activeOpacity={0.85}
+              style={{
+                backgroundColor: tokens.colors.primary,
+                paddingHorizontal: 14,
+                paddingVertical: 9,
+                borderRadius: 12,
+              }}
+            >
+              <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>
+                로그인
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         {/* 2. 상단 프로필 헤더 카드 (나이 및 성별 반영) */}
         <View style={styles.profileCard}>
           <View style={styles.profileTopRow}>

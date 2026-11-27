@@ -3,7 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from './public.decorator';
 import { AuthService } from './auth.service';
 
-import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class QuickLoginDto {
   @IsString()
@@ -59,6 +59,72 @@ export class SocialLoginDto {
   @IsOptional()
   @IsString()
   socialId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  termsAgreed?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  privacyAgreed?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  locationAgreed?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  marketingAgreed?: boolean;
+}
+
+export class EmailSignupRequestDto {
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+
+  @IsString()
+  @IsNotEmpty()
+  password: string;
+
+  @IsOptional()
+  @IsString()
+  displayName?: string;
+
+  @IsOptional()
+  @IsString()
+  nickname?: string;
+
+  @IsOptional()
+  @IsString()
+  gender?: string;
+
+  @IsOptional()
+  @IsString()
+  dob?: string;
+
+  @IsOptional()
+  @IsString()
+  region?: string;
+
+  @IsOptional()
+  @IsString()
+  bio?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  termsAgreed?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  privacyAgreed?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  locationAgreed?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  marketingAgreed?: boolean;
 }
 
 @ApiTags('auth')
@@ -80,6 +146,13 @@ export class AuthController {
   async emailLogin(@Body() dto: EmailLoginDto) {
     const data = await this.auth.loginWithEmail(dto.email, dto.password);
     return data;
+  }
+
+  @Public()
+  @Post(['signup', 'signup/email', 'register'])
+  @ApiOperation({ summary: '이메일 회원가입 및 약관 동의 저장' })
+  async emailSignup(@Body() dto: EmailSignupRequestDto) {
+    return this.auth.signupWithEmail(dto);
   }
 
   @Public()

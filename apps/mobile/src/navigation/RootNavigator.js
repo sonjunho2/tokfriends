@@ -347,12 +347,13 @@ function AppFlow() {
 
 /** ===== 루트 ===== */
 export default function RootNavigator() {
-  const { user, token, initializing, isOffline } = useAuth();
+  const { user, token, initializing, isOffline, isGuest } = useAuth();
   useAuthStoreSync();
 
   const tokenExists = Boolean(token);
   const userHasIdentifier = Boolean(user) && Boolean(user.id || user._id);
   const isSignedIn = tokenExists || userHasIdentifier;
+  const canEnterApp = isSignedIn || isGuest;
 
   const [checkingInitialRoute, setCheckingInitialRoute] = React.useState(true);
   const [initialAuthRoute, setInitialAuthRoute] = React.useState('Onboarding');
@@ -424,7 +425,7 @@ export default function RootNavigator() {
 
   return (
     <View style={{ flex: 1, backgroundColor: tokens.colors.background }}>
-      {isSignedIn ? (
+      {canEnterApp ? (
         <AppFlow />
       ) : (
         <AuthFlow initialRoute={initialAuthRoute} />

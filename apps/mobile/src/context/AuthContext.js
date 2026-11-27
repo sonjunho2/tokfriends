@@ -20,12 +20,15 @@ const AuthContext = createContext({
   token: null,
   initializing: true,
   isOffline: false,
+  isGuest: false,
   setUser: () => {},
   login: async () => ({ success: false }),
   signup: async () => ({ success: false }),
   testLogin: async () => ({ success: false }),
   socialLogin: async () => ({ success: false }),
   authenticateWithToken: async () => ({ success: false }),
+  enterGuestMode: async () => {},
+  exitGuestToLogin: () => {},
   logout: async () => {},
   refreshMe: async () => {},
 });
@@ -52,6 +55,7 @@ export const AuthProvider = ({ children }) => {
     token: null,
     initializing: true,
     isOffline: false,
+    isGuest: false,
   });
 
   useEffect(() => {
@@ -284,6 +288,10 @@ export const AuthProvider = ({ children }) => {
         displayName: data.displayName,
         gender: data.gender || 'other',
         dob: data.dob || '2000-01-01',
+        termsAgreed: data.termsAgreed !== false,
+        privacyAgreed: data.privacyAgreed !== false,
+        locationAgreed: Boolean(data.locationAgreed),
+        marketingAgreed: Boolean(data.marketingAgreed),
       };
       await apiClient.signup(payload);
       const r = await login(payload.email, payload.password);
@@ -294,6 +302,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const enterGuestMode = async () => {
+    try {
+      await AsyncStorage.multiSet([
+        ['@mocco_onboarded', 'true'],
+        ['@mocco_permission_guided', 'true'],
+      ]);
+    } catch {}
+    setState((s) => ({ ...s, isGuest: true, initializing: false }));
+  };
+
+  const exitGuestToLogin = () => {
+    setState((s) => ({ ...s, isGuest: false }));
+  };
+
   const logout = async () => {
     // 1. 푸시 알림 등록 해제는 비동기로 넘겨 타임아웃 지연(10초) 방지
     unregisterPushNotifications().catch(() => {});
@@ -301,7 +323,7 @@ export const AuthProvider = ({ children }) => {
     try { await clearToken(); } catch {}
     try { await clearStoredUser(); } catch {}
     // 3. 인증 상태 즉시 리셋 -> 0.01초 만에 로그인 화면 전환
-    setState({ user: null, token: null, initializing: false, isOffline: false });
+    setState({ user: null, token: null, initializing: false, isOffline: false, isGuest: false });
   };
 
   const refreshMe = async () => {
@@ -337,17 +359,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const socialLogin = async (platform, tokenPayload) => {
+  const socialLogin = async (platform, tokenPayload, consents = null) => {
     try {
       let res;
-      if (platform === 'kakao') res = await apiClient.loginKakao(tokenPayload);
-      else if (platform === 'naver') res = await apiClient.loginNaver(tokenPayload);
-      else if (platform === 'google') res = await apiClient.loginGoogle(tokenPayload);
-      else if (platform === 'apple') res = await apiClient.loginApple(tokenPayload);
+      if (platform === 'kakao') res = await apiClient.loginKakao(tokenPayload, consents);
+      else if (platform === 'naver') res = await apiClient.loginNaver(tokenPayload, consents);
+      else if (platform === 'google') res = await apiClient.loginGoogle(tokenPayload, tokenPayload, consents);
+      else if (platform === 'apple') res = await apiClient.loginApple(tokenPayload, consents);
       else throw new Error(`지원하지 않는 로그인 방식입니다: ${platform}`);
 
       const token = res?.access_token || res?.token;
       if (!token) throw new Error('토큰 발급에 실패했습니다.');
+      setState((s) => ({ ...s, isGuest: false }));
       return await authenticateWithToken(token, res?.user);
     } catch (e) {
       return { success: false, error: e?.message || `${platform} 로그인에 실패했습니다.` };
@@ -361,12 +384,15 @@ export const AuthProvider = ({ children }) => {
         token: state.token,
         initializing: state.initializing,
         isOffline: state.isOffline,
+        isGuest: state.isGuest,
         setUser,
         login,
         signup,
         testLogin,
         socialLogin,
         authenticateWithToken,
+        enterGuestMode,
+        exitGuestToLogin,
         logout,
         refreshMe,
       }}

@@ -17,15 +17,18 @@ import ButtonPrimary from '../../components/ButtonPrimary';
 import { apiClient } from '../../api/client';
 
 const TERMS = [
-  { key: 'privacy', label: '(필수) 개인정보 처리 방침', slug: 'privacy-policy' },
-  { key: 'tos', label: '(필수) 이용약관', slug: 'terms-of-service' },
-  { key: 'location', label: '(필수) 위치기반서비스', slug: 'location-based-service' },
+  { key: 'age14', label: '(필수) 만 14세 이상입니다', required: true },
+  { key: 'privacy', label: '(필수) 개인정보 처리 방침', slug: 'privacy-policy', required: true },
+  { key: 'tos', label: '(필수) 이용약관', slug: 'terms-of-service', required: true },
+  { key: 'location', label: '(선택) 위치기반서비스 이용약관', slug: 'location-based-service', required: false },
+  { key: 'marketing', label: '(선택) 이벤트·혜택 마케팅 정보 수신 동의', required: false },
 ];
 
 export default function AgreementScreen({ navigation, route }) {
-  const initialState = useMemo(() => ({ privacy: false, tos: false, location: false }), []);
+  const initialState = useMemo(() => ({ age14: false, privacy: false, tos: false, location: false, marketing: false }), []);
   const [checked, setChecked] = useState(initialState);
-  const all = checked.privacy && checked.tos && checked.location;
+  const all = checked.age14 && checked.privacy && checked.tos && checked.location && checked.marketing;
+  const requiredAll = checked.age14 && checked.privacy && checked.tos;
 
   const [modalVisible, setModalVisible] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
@@ -39,7 +42,7 @@ export default function AgreementScreen({ navigation, route }) {
 
   const toggleAll = () => {
     const next = !all;
-    setChecked({ privacy: next, tos: next, location: next });
+    setChecked({ age14: next, privacy: next, tos: next, location: next, marketing: next });
   };
   const toggleOne = (k) => setChecked((s) => ({ ...s, [k]: !s[k] }));
 
@@ -71,7 +74,7 @@ export default function AgreementScreen({ navigation, route }) {
   };
 
   const handleAgree = () => {
-    if (!all) {
+    if (!requiredAll) {
       Alert.alert('안내', '필수 항목에 모두 동의해 주세요.');
       return;
     }
@@ -115,9 +118,11 @@ export default function AgreementScreen({ navigation, route }) {
                 {on ? <Ionicons name="checkmark" size={16} color="#FFFFFF" /> : null}
               </View>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.linkBtn} onPress={() => openTerm(t)}>
-              <Text style={styles.linkText}>내용 보기</Text>
-            </TouchableOpacity>
+            {t.slug ? (
+              <TouchableOpacity style={styles.linkBtn} onPress={() => openTerm(t)}>
+                <Text style={styles.linkText}>내용 보기</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         );
       })}

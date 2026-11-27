@@ -20,6 +20,99 @@ export class AuthService {
   }
 
   /**
+   * 이메일 회원가입 및 약관 동의 내역 저장
+   */
+  async signupWithEmail(dto: {
+    email: string;
+    password: string;
+    displayName?: string;
+    nickname?: string;
+    gender?: string;
+    dob?: string;
+    region?: string;
+    bio?: string;
+    termsAgreed?: boolean;
+    privacyAgreed?: boolean;
+    locationAgreed?: boolean;
+    marketingAgreed?: boolean;
+  }) {
+    const email = (dto.email || '').trim().toLowerCase();
+    const password = (dto.password || '').trim();
+    if (!email || !password) {
+      throw new BadRequestException('이메일과 비밀번호를 모두 입력해주세요.');
+    }
+    if (password.length < 6) {
+      throw new BadRequestException('비밀번호는 최소 6자 이상이어야 합니다.');
+    }
+    if (dto.termsAgreed === false || dto.privacyAgreed === false) {
+      throw new BadRequestException('필수 이용약관 및 개인정보 수집·이용에 동의해야 합니다.');
+    }
+
+    const existing = await this.prisma.user.findFirst({ where: { email } });
+    if (existing) {
+      throw new ConflictException('이미 가입된 이메일 주소입니다.');
+    }
+
+    const rawNick = (dto.nickname || dto.displayName || email.split('@')[0] || '모꼬회원').trim();
+    let finalNick = rawNick;
+    const nickTaken = await this.prisma.user.findUnique({ where: { nickname: finalNick } });
+    if (nickTaken) {
+      finalNick = `${rawNick}_${Math.random().toString(36).slice(2, 6)}`;
+    }
+
+    const now = new Date();
+    const passwordHash = await argon2.hash(password);
+    const user = await this.prisma.user.create({
+      data: {
+        email,
+        nickname: finalNick,
+        displayName: (dto.displayName || finalNick).trim(),
+        passwordHash,
+        provider: 'email',
+        role: 'user',
+        status: 'active',
+        region1: dto.region?.trim() || null,
+        bio: dto.bio?.trim() || '안녕하세요! 모꼬에서 소통해요.',
+        avatarUrl: `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(email)}`,
+        pointBalance: 10000,
+        termsAgreedAt: now,
+        privacyAgreedAt: now,
+        locationAgreedAt: dto.locationAgreed ? now : null,
+        marketingAgreed: Boolean(dto.marketingAgreed),
+        marketingAgreedAt: dto.marketingAgreed ? now : null,
+      },
+      include: {
+        adminProfile: true,
+        photos: { orderBy: { sortOrder: 'asc' } },
+      },
+    });
+
+    const token = this.generateToken({
+      id: user.id,
+      nickname: user.nickname,
+      role: user.role,
+    });
+
+    return {
+      ok: true,
+      token,
+      accessToken: token,
+      access_token: token,
+      user: {
+        id: user.id,
+        email: user.email,
+        nickname: user.nickname,
+        displayName: user.displayName,
+        role: user.role,
+        avatarUrl: user.avatarUrl,
+        bio: user.bio,
+        pointBalance: user.pointBalance,
+        marketingAgreed: user.marketingAgreed,
+      },
+    };
+  }
+
+  /**
    * 관리자 및 이메일 기반 로그인
    */
   async loginWithEmail(emailRaw: string, passwordRaw: string) {
@@ -294,6 +387,10 @@ export class AuthService {
       socialId?: string;
       accessToken?: string;
       idToken?: string;
+      termsAgreed?: boolean;
+      privacyAgreed?: boolean;
+      locationAgreed?: boolean;
+      marketingAgreed?: boolean;
     },
   ) {
     const rawEmail = dto.email ? dto.email.trim().toLowerCase() : null;
@@ -330,6 +427,7 @@ export class AuthService {
       const generatedAvatar =
         dto.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/png?seed=' + encodeURIComponent(defaultNick);
 
+      const now = new Date();
       user = await this.prisma.user.create({
         data: {
           email: rawEmail || (provider + '_' + Date.now() + '@tokfriends.com'),
@@ -340,6 +438,11 @@ export class AuthService {
           callRatePerMinute: 1200,
           role: 'user',
           status: 'active',
+          termsAgreedAt: dto.termsAgreed !== false ? now : null,
+          privacyAgreedAt: dto.privacyAgreed !== false ? now : null,
+          locationAgreedAt: dto.locationAgreed ? now : null,
+          marketingAgreed: Boolean(dto.marketingAgreed),
+          marketingAgreedAt: dto.marketingAgreed ? now : null,
         },
         include: {
           photos: { orderBy: { sortOrder: 'asc' } },
