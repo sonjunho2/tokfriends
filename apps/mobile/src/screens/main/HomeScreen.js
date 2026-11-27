@@ -22,7 +22,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { tokens } from '../../theme/tokens';
 import { UserAvatar } from '../../components/common';
 import { apiClient } from '../../api/client';
-import { fetchMarketProducts, fetchNormalProducts, resolveMobileImageUrl, INITIAL_MARKET_PRODUCTS } from '../../services/marketService';
+import {
+  fetchMarketProducts,
+  fetchNormalProducts,
+  resolveMobileImageUrl,
+  INITIAL_MARKET_PRODUCTS,
+  INITIAL_NORMAL_PRODUCTS,
+} from '../../services/marketService';
 import { fetchSudaPosts, INITIAL_SUDA_POSTS } from '../../services/sudaService';
 import {
   fetchAdsByPlacement,
@@ -167,10 +173,10 @@ export default function HomeScreen({ navigation }) {
     INITIAL_MARKET_PRODUCTS.filter((p) => p.type === 'B2C_GROUP')
   );
   const [sudaListAll, setSudaListAll] = useState(INITIAL_SUDA_POSTS);
-  const [usedProducts, setUsedProducts] = useState(DEFAULT_USED_PRODUCTS);
-  const [b2cProducts, setB2cProducts] = useState(
-    INITIAL_MARKET_PRODUCTS.filter((p) => p.type !== 'C2C_USED')
+  const [usedProducts, setUsedProducts] = useState(
+    INITIAL_MARKET_PRODUCTS.filter((p) => p.type === 'C2C_USED')
   );
+  const [b2cProducts, setB2cProducts] = useState(INITIAL_NORMAL_PRODUCTS);
   const [refreshing, setRefreshing] = useState(false);
 
   // 자동 슬라이드/롤링 인덱스 상태
@@ -178,6 +184,7 @@ export default function HomeScreen({ navigation }) {
   const [dealPairIndex, setDealPairIndex] = useState(0);
   const [sudaRollingIndex, setSudaRollingIndex] = useState(0);
   const [usedPairIndex, setUsedPairIndex] = useState(0);
+  const [moccoMarketPairIndex, setMoccoMarketPairIndex] = useState(0);
 
   // 상단 히어로 광고 배너 상태
   const [homeAds, setHomeAds] = useState([]);
@@ -227,8 +234,8 @@ export default function HomeScreen({ navigation }) {
       try {
         const [marketDeals, marketUsed, normalItems, sudaData] = await Promise.allSettled([
           fetchMarketProducts({ type: 'B2C_GROUP' }),
-          fetchMarketProducts({ type: 'C2C' }),
-          fetchNormalProducts({ limit: 6 }),
+          fetchMarketProducts({ type: 'C2C_USED' }),
+          fetchNormalProducts({ sort: 'recent' }),
           fetchSudaPosts(),
         ]);
         if (marketDeals.status === 'fulfilled' && Array.isArray(marketDeals.value) && marketDeals.value.length > 0) {
@@ -317,6 +324,15 @@ export default function HomeScreen({ navigation }) {
     }, 3800);
     return () => clearInterval(timer);
   }, [usedProducts.length]);
+
+  // 6) 모꼬마켓(공식 입점사) 2개 박스 4.2초 슬라이드 순환 타이머
+  useEffect(() => {
+    if (b2cProducts.length <= 2) return;
+    const timer = setInterval(() => {
+      setMoccoMarketPairIndex((prev) => (prev + 2) % b2cProducts.length);
+    }, 4200);
+    return () => clearInterval(timer);
+  }, [b2cProducts.length]);
 
   // 라이브 룸 진입
   const handleOpenLiveRoom = (room) => {
@@ -1077,6 +1093,7 @@ export default function HomeScreen({ navigation }) {
                   style={[
                     styles.dualUsedCard,
                     {
+                      height: 218,
                       backgroundColor: '#FFF7ED',
                       borderWidth: 1,
                       borderColor: '#FDBA74',
@@ -1153,21 +1170,25 @@ export default function HomeScreen({ navigation }) {
 
                 <View style={styles.dualUsedInfo}>
                   <View style={styles.dualUsedMetaRow}>
-                    <Text style={styles.dualUsedRegion}>{item.region || '지역 인증'}</Text>
+                    <Text style={styles.dualUsedRegion} numberOfLines={1}>
+                      {item.locationName || item.region || '전국'}
+                    </Text>
                   </View>
                   <Text style={styles.dualUsedTitle} numberOfLines={1}>
                     {item.title}
                   </Text>
-                  <Text style={styles.dualUsedPrice}>{item.price?.toLocaleString()}원</Text>
+                  <Text style={styles.dualUsedPrice}>
+                    {Number(item.price || 0).toLocaleString()}원
+                  </Text>
 
                   <View style={styles.dualUsedFooterRow}>
                     <View style={styles.dualUsedStat}>
                       <Ionicons name="heart-outline" size={11} color="#94A3B8" />
-                      <Text style={styles.dualUsedStatText}>{item.likes || 12}</Text>
+                      <Text style={styles.dualUsedStatText}>{item.likesCount ?? item.likes ?? 0}</Text>
                     </View>
                     <View style={styles.dualUsedStat}>
                       <Ionicons name="chatbubble-outline" size={11} color="#94A3B8" />
-                      <Text style={styles.dualUsedStatText}>{item.chats || 5}</Text>
+                      <Text style={styles.dualUsedStatText}>{item.chatsCount ?? item.chats ?? 0}</Text>
                     </View>
                   </View>
                 </View>
@@ -1180,11 +1201,13 @@ export default function HomeScreen({ navigation }) {
   };
 
   // =================================================================
-  // 8. [모꼬마켓] (웹과 동일한 공식 입점사/B2C 상품 2열 그리드 섹션)
+  // 8. [모꼬마켓] (공식 입점사/B2C 상품 2개 박스 & 자동 슬라이드 순환)
   // =================================================================
   const renderMoccoMarketSection = () => {
-    const displayProducts = b2cProducts.slice(0, 4);
-    if (displayProducts.length === 0) return null;
+    if (b2cProducts.length === 0) return null;
+    const item1 = b2cProducts[moccoMarketPairIndex % b2cProducts.length];
+    const item2 = b2cProducts.length > 1 ? b2cProducts[(moccoMarketPairIndex + 1) % b2cProducts.length] : null;
+    const pairItems = [item1, item2].filter(Boolean);
 
     return (
       <View style={styles.sectionWrap}>
@@ -1206,9 +1229,9 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* 2열 그리드 배치 */}
-        <View style={styles.moccoMarketGrid}>
-          {displayProducts.map((item) => {
+        {/* 좌/우 2개 박스 슬라이드 배치 */}
+        <View style={styles.dualBoxRow}>
+          {pairItems.map((item, idx) => {
             const rawImg = Array.isArray(item.images) && item.images.length > 0
               ? item.images[0]
               : typeof item.images === 'string'
@@ -1216,37 +1239,56 @@ export default function HomeScreen({ navigation }) {
               : item.image;
             const thumbUri = resolveMobileImageUrl(rawImg);
 
+            const displayTitle = item.name || item.title || '모꼬마켓 상품';
+            const displaySeller = item.merchantName || item.merchant?.businessName || item.sellerName || '모꼬 공식몰';
+            const originalPrice = Number(item.priceKrw || 0);
+            const finalPrice = Number(item.salePriceKrw || item.priceKrw || item.price || 0);
+            const discountRate =
+              originalPrice > finalPrice && finalPrice > 0
+                ? Math.round(((originalPrice - finalPrice) / originalPrice) * 100)
+                : 0;
+            const isFreeShipping = item.shippingFee === 0 || item.shippingFee === undefined;
+
             return (
               <TouchableOpacity
-                key={item.id}
+                key={`${item.id}-${idx}`}
                 style={styles.moccoMarketCard}
                 activeOpacity={0.9}
                 onPress={() =>
                   navigation.navigate('Market', {
                     screen: 'ProductDetail',
-                    params: { productId: item.id, isNormalProduct: true },
+                    params: { productId: item.id, isNormalProduct: true, normalProduct: item },
                   })
                 }
               >
                 <View style={styles.moccoMarketThumbWrap}>
                   <Image source={{ uri: thumbUri }} style={styles.moccoMarketThumb} resizeMode="cover" />
                   <View style={styles.moccoMarketBadge}>
-                    <Text style={styles.moccoMarketBadgeText}>안심배송</Text>
+                    <Ionicons name="shield-checkmark" size={10} color="#FFFFFF" />
+                    <Text style={styles.moccoMarketBadgeText}>안심결제</Text>
                   </View>
+                  {discountRate > 0 ? (
+                    <View style={styles.moccoMarketDiscountChip}>
+                      <Text style={styles.moccoMarketDiscountText}>{discountRate}%</Text>
+                    </View>
+                  ) : null}
                 </View>
+
                 <View style={styles.moccoMarketInfo}>
                   <Text style={styles.moccoMarketSellerName} numberOfLines={1}>
-                    {item.sellerName || item.brand || '모꼬 공식몰'}
+                    {displaySeller}
                   </Text>
-                  <Text style={styles.moccoMarketTitle} numberOfLines={2}>
-                    {item.title}
+                  <Text style={styles.moccoMarketTitle} numberOfLines={1}>
+                    {displayTitle}
                   </Text>
-                  <Text style={styles.moccoMarketPrice}>
-                    {Number(item.price || 0).toLocaleString()}원
-                  </Text>
-                  <View style={styles.moccoMarketTagRow}>
+                  <View style={styles.moccoMarketPriceRow}>
+                    <Text style={styles.moccoMarketPrice}>
+                      {finalPrice.toLocaleString()}원
+                    </Text>
                     <View style={styles.freeShipTag}>
-                      <Text style={styles.freeShipTagText}>무료배송</Text>
+                      <Text style={styles.freeShipTagText}>
+                        {isFreeShipping ? '무료배송' : '안전배송'}
+                      </Text>
                     </View>
                   </View>
                 </View>
@@ -1875,16 +1917,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: '#E2E8F0',
+    ...tokens.shadows.soft,
   },
   dualDealThumbWrap: {
     width: '100%',
-    height: 118,
+    height: 124,
     position: 'relative',
     backgroundColor: '#F8FAFC',
   },
@@ -1910,7 +1948,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   dualDealInfo: {
-    padding: 9,
+    padding: 10,
+    height: 92,
+    justifyContent: 'space-between',
   },
   dualDealTitle: {
     fontSize: 12,
@@ -2083,16 +2123,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: '#E2E8F0',
+    ...tokens.shadows.soft,
   },
   dualUsedThumbWrap: {
     width: '100%',
-    height: 118,
+    height: 124,
     position: 'relative',
     backgroundColor: '#F8FAFC',
   },
@@ -2115,7 +2151,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   dualUsedInfo: {
-    padding: 9,
+    padding: 10,
+    height: 92,
+    justifyContent: 'space-between',
   },
   dualUsedMetaRow: {
     flexDirection: 'row',
@@ -2154,29 +2192,19 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontWeight: '600',
   },
-  // 모꼬마켓 2열 그리드 섹션 스타일
-  moccoMarketGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
+  // 모꼬마켓 2개 박스 슬라이드 섹션 스타일 (다른 2열 커머스 섹션과 규격 통일)
   moccoMarketCard: {
-    width: (Dimensions.get('window').width - 32 - 10) / 2,
+    width: DUAL_BOX_WIDTH,
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 5,
-    elevation: 2,
+    ...tokens.shadows.soft,
   },
   moccoMarketThumbWrap: {
     width: '100%',
-    height: ((Dimensions.get('window').width - 32 - 10) / 2) * 0.95,
+    height: 124,
     position: 'relative',
     backgroundColor: '#F8FAFC',
   },
@@ -2186,55 +2214,70 @@ const styles = StyleSheet.create({
   },
   moccoMarketBadge: {
     position: 'absolute',
-    top: 8,
-    left: 8,
+    top: 6,
+    left: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     backgroundColor: 'rgba(15, 23, 42, 0.75)',
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
     paddingVertical: 2,
     borderRadius: 4,
   },
   moccoMarketBadgeText: {
     color: '#FFFFFF',
-    fontSize: 9.5,
+    fontSize: 8.5,
     fontWeight: '700',
+  },
+  moccoMarketDiscountChip: {
+    position: 'absolute',
+    bottom: 6,
+    right: 6,
+    backgroundColor: '#FF3B6B',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  moccoMarketDiscountText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
   },
   moccoMarketInfo: {
     padding: 10,
+    height: 92,
+    justifyContent: 'space-between',
   },
   moccoMarketSellerName: {
-    fontSize: 10.5,
+    fontSize: 10,
     color: '#94A3B8',
-    marginBottom: 2,
     fontWeight: '600',
   },
   moccoMarketTitle: {
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#0F172A',
-    lineHeight: 17,
-    minHeight: 34,
-    marginBottom: 4,
+    color: '#1E293B',
   },
-  moccoMarketPrice: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 4,
-  },
-  moccoMarketTagRow: {
+  moccoMarketPriceRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 4,
   },
+  moccoMarketPrice: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
   freeShipTag: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#ECFDF5',
     paddingHorizontal: 5,
-    paddingVertical: 1.5,
-    borderRadius: 3,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   freeShipTagText: {
-    fontSize: 9,
-    color: '#64748B',
+    fontSize: 8.5,
+    color: '#059669',
     fontWeight: '700',
   },
 });
