@@ -40,100 +40,91 @@ export class AuthService implements OnModuleInit {
 
   /**
    * 최초 기본 최고관리자(admin / admin123!!) 자동 시드
+   * - Prisma 클라이언트가 username 컬럼을 모를 수 있으므로 Raw SQL로만 처리
+   * - 모든 단계가 멱등(idempotent)하게 동작
    */
   async ensureDefaultAdminAccount() {
     try {
+      // 1. username 컬럼 보장 (없으면 추가)
       await this.prisma.$executeRawUnsafe(
         `ALTER TABLE "AdminProfile" ADD COLUMN IF NOT EXISTS "username" TEXT`,
       ).catch(() => {});
+      await this.prisma.$executeRawUnsafe(
+        `CREATE UNIQUE INDEX IF NOT EXISTS "AdminProfile_username_key" ON "AdminProfile"("username")`,
+      ).catch(() => {});
 
-      const existingMoccoAdmin = await this.prisma.user.findFirst({
-        where: { email: 'admin@mocco.local' },
-        select: {
-          id: true,
-          passwordHash: true,
-          adminProfile: {
-            select: {
-              userId: true,
-              username: true,
-              lastLoginAt: true,
-            },
-          },
-        },
-      });
+      // 2. 이미 admin 계정이 존재하면 비밀번호/상태만 보장하고 종료
+      const rows: Array<{ user_id: string; has_hash: boolean }> = await this.prisma.$queryRawUnsafe(`
+        SELECT u.id AS user_id,
+               (u."passwordHash" IS NOT NULL) AS has_hash
+        FROM "AdminProfile" ap
+        JOIN "User" u ON u.id = ap."userId"
+        WHERE ap.username = 'admin'
+        LIMIT 1
+      `);
 
-      if (existingMoccoAdmin) {
-        if (!existingMoccoAdmin.passwordHash || existingMoccoAdmin.adminProfile?.lastLoginAt === null) {
+      if (rows.length > 0) {
+        const { user_id, has_hash } = rows[0];
+        if (!has_hash) {
           const passwordHash = await argon2.hash('admin123!!');
-          await this.prisma.user.update({
-            where: { id: existingMoccoAdmin.id },
-            data: { passwordHash, role: 'admin', status: 'active' },
-            select: { id: true },
-          });
+          await this.prisma.$executeRawUnsafe(
+            `UPDATE "User" SET "passwordHash" = $1, role = 'admin', status = 'active' WHERE id = $2`,
+            passwordHash, user_id,
+          );
         }
-        if (!existingMoccoAdmin.adminProfile) {
-          await this.prisma.adminProfile.updateMany({
-            where: { username: 'admin' },
-            data: { username: null },
-          });
-          await this.prisma.adminProfile.create({
-            data: {
-              userId: existingMoccoAdmin.id,
-              username: 'admin',
-              role: 'SUPER_ADMIN',
-              status: 'ACTIVE',
-              permissions: DEFAULT_SUPER_ADMIN_PERMISSIONS,
-            },
-          });
-        } else if (existingMoccoAdmin.adminProfile.username !== 'admin') {
-          await this.prisma.adminProfile.updateMany({
-            where: { username: 'admin', NOT: { userId: existingMoccoAdmin.id } },
-            data: { username: null },
-          });
-          await this.prisma.adminProfile.update({
-            where: { userId: existingMoccoAdmin.id },
-            data: { username: 'admin', status: 'ACTIVE' },
-          });
-        }
+        // 항상 ACTIVE 상태 보장
+        await this.prisma.$executeRawUnsafe(
+          `UPDATE "AdminProfile" SET status = 'ACTIVE' WHERE username = 'admin'`,
+        );
         return;
       }
 
-      // Clean up legacy AdminProfile entries without username or holding 'admin'
-      await this.prisma.adminProfile.deleteMany({
-        where: {
-          OR: [{ username: null }, { username: 'admin' }],
-        },
-      });
+      // 3. admin 계정 없음 → 레거시 정리 후 새로 생성
+      // username 없는 AdminProfile 행 삭제 (컬럼이 이미 있으므로 안전)
+      await this.prisma.$executeRawUnsafe(
+        `DELETE FROM "AdminProfile" WHERE "username" IS NULL`,
+      ).catch(() => {});
+
+      // admin@mocco.local User가 있는지 확인
+      const existingRows: Array<{ id: string }> = await this.prisma.$queryRawUnsafe(
+        `SELECT id FROM "User" WHERE email = 'admin@mocco.local' LIMIT 1`,
+      );
 
       const passwordHash = await argon2.hash('admin123!!');
-      const nickTaken = await this.prisma.user.findUnique({
-        where: { nickname: 'admin' },
-        select: { id: true },
-      });
-      const safeNickname = nickTaken ? `mocco_admin_${Date.now().toString().slice(-4)}` : 'admin';
 
-      await this.prisma.user.create({
-        data: {
-          email: 'admin@mocco.local',
-          nickname: safeNickname,
-          displayName: '최고관리자',
-          passwordHash,
-          provider: 'admin',
-          role: 'admin',
-          status: 'active',
-          pointBalance: 0,
-          adminProfile: {
-            create: {
-              username: 'admin',
-              role: 'SUPER_ADMIN',
-              status: 'ACTIVE',
-              permissions: DEFAULT_SUPER_ADMIN_PERMISSIONS,
-            },
-          },
-        },
-        select: { id: true },
-      });
-      this.logger.log('Default super admin account seeded (username: admin)');
+      if (existingRows.length > 0) {
+        const userId = existingRows[0].id;
+        // User 업데이트
+        await this.prisma.$executeRawUnsafe(
+          `UPDATE "User" SET "passwordHash" = $1, role = 'admin', status = 'active' WHERE id = $2`,
+          passwordHash, userId,
+        );
+        // AdminProfile 생성 (없을 경우)
+        await this.prisma.$executeRawUnsafe(`
+          INSERT INTO "AdminProfile" ("userId", "username", "role", "status", "permissions", "twoFactorEnabled", "createdAt", "updatedAt")
+          VALUES ($1, 'admin', 'SUPER_ADMIN', 'ACTIVE', $2, false, NOW(), NOW())
+          ON CONFLICT ("userId") DO UPDATE SET username = 'admin', status = 'ACTIVE', "updatedAt" = NOW()
+        `, userId, JSON.stringify(DEFAULT_SUPER_ADMIN_PERMISSIONS));
+      } else {
+        // 닉네임 충돌 체크
+        const nickRows: Array<{ id: string }> = await this.prisma.$queryRawUnsafe(
+          `SELECT id FROM "User" WHERE nickname = 'admin' LIMIT 1`,
+        );
+        const safeNickname = nickRows.length > 0 ? `mocco_admin_${Date.now().toString().slice(-4)}` : 'admin';
+
+        const newId = require('crypto').randomUUID();
+        await this.prisma.$executeRawUnsafe(`
+          INSERT INTO "User" (id, email, nickname, "displayName", "passwordHash", provider, role, status, "pointBalance", "createdAt", "updatedAt")
+          VALUES ($1, 'admin@mocco.local', $2, '최고관리자', $3, 'admin', 'admin', 'active', 0, NOW(), NOW())
+        `, newId, safeNickname, passwordHash);
+
+        await this.prisma.$executeRawUnsafe(`
+          INSERT INTO "AdminProfile" ("userId", "username", "role", "status", "permissions", "twoFactorEnabled", "createdAt", "updatedAt")
+          VALUES ($1, 'admin', 'SUPER_ADMIN', 'ACTIVE', $2, false, NOW(), NOW())
+        `, newId, JSON.stringify(DEFAULT_SUPER_ADMIN_PERMISSIONS));
+      }
+
+      this.logger.log('Default super admin account seeded successfully (username: admin)');
     } catch (err: any) {
       this.logger.warn(`ensureDefaultAdminAccount notice: ${err?.message || err}`);
     }

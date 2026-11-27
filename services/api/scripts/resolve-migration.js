@@ -144,6 +144,7 @@ async function main() {
   }
 
   // 6. Ensure each User extended/terms column, AdminProfile.username, and MarketWishlist independently
+  // NOTE: AdminProfile.username column MUST be added BEFORE the DELETE that references it
   const statements = [
     `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "gender" TEXT`,
     `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "age" INTEGER`,
@@ -161,14 +162,15 @@ async function main() {
     `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "chatNotify" BOOLEAN NOT NULL DEFAULT true`,
     `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "liveNotify" BOOLEAN NOT NULL DEFAULT true`,
     `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "nightNotify" BOOLEAN NOT NULL DEFAULT false`,
-    `DELETE FROM "AdminProfile" WHERE "username" IS NULL`,
     `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "termsAgreedAt" TIMESTAMP(3)`,
     `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "privacyAgreedAt" TIMESTAMP(3)`,
     `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "locationAgreedAt" TIMESTAMP(3)`,
     `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "marketingAgreed" BOOLEAN NOT NULL DEFAULT false`,
     `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "marketingAgreedAt" TIMESTAMP(3)`,
+    // username 컬럼 먼저 추가 → 그 다음에 NULL 행 삭제 (순서 중요)
     `ALTER TABLE "AdminProfile" ADD COLUMN IF NOT EXISTS "username" TEXT`,
     `CREATE UNIQUE INDEX IF NOT EXISTS "AdminProfile_username_key" ON "AdminProfile"("username")`,
+    `DELETE FROM "AdminProfile" WHERE "username" IS NULL`,
     `CREATE TABLE IF NOT EXISTS "MarketWishlist" ("id" TEXT PRIMARY KEY, "userId" TEXT NOT NULL, "productId" TEXT NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
     `CREATE UNIQUE INDEX IF NOT EXISTS "MarketWishlist_userId_productId_key" ON "MarketWishlist"("userId", "productId")`,
   ];
