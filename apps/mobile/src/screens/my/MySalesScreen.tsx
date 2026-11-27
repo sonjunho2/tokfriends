@@ -1,4 +1,4 @@
-// apps/mobile/src/screens/my/MySalesScreen.tsx
+﻿// apps/mobile/src/screens/my/MySalesScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -293,8 +293,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   headerTitle: {
-    fontSize: tokens.typography.fontSize.lg,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 17,
+    fontWeight: '700',
     color: tokens.colors.textPrimary,
   },
   headerAddBtn: {
@@ -304,8 +304,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   headerAddText: {
-    fontSize: tokens.typography.fontSize.sm,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 13,
+    fontWeight: '700',
     color: tokens.colors.primary,
   },
   tabBar: {
@@ -326,12 +326,12 @@ const styles = StyleSheet.create({
     borderBottomColor: tokens.colors.primary,
   },
   tabItemText: {
-    fontSize: tokens.typography.fontSize.sm,
-    fontWeight: tokens.typography.fontWeight.medium,
+    fontSize: 13,
+    fontWeight: '500',
     color: tokens.colors.textSecondary,
   },
   tabItemTextActive: {
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontWeight: '700',
     color: tokens.colors.primary,
   },
   listContent: {
@@ -341,11 +341,11 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: tokens.colors.surface,
-    borderRadius: tokens.borderRadius.lg,
+    borderRadius: tokens.radius.lg,
     borderWidth: 1,
     borderColor: tokens.colors.border,
     padding: tokens.spacing.md,
-    ...tokens.shadows.sm,
+    ...tokens.shadows.soft,
   },
   cardTopRow: {
     flexDirection: 'row',
@@ -354,8 +354,8 @@ const styles = StyleSheet.create({
   cardThumb: {
     width: 80,
     height: 80,
-    borderRadius: tokens.borderRadius.md,
-    backgroundColor: tokens.colors.surfaceAlt,
+    borderRadius: tokens.radius.md,
+    backgroundColor: tokens.colors.surfaceSecondary,
   },
   cardInfo: {
     flex: 1,
@@ -371,8 +371,8 @@ const styles = StyleSheet.create({
   statusBadge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: tokens.borderRadius.xs,
-    backgroundColor: tokens.colors.surfaceAlt,
+    borderRadius: tokens.radius.xs,
+    backgroundColor: tokens.colors.surfaceSecondary,
   },
   statusBadgeSelling: {
     backgroundColor: '#ECFDF5',
@@ -384,8 +384,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
   },
   statusBadgeText: {
-    fontSize: tokens.typography.fontSize.xs,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 11,
+    fontWeight: '700',
   },
   statusTextSelling: {
     color: '#059669',
@@ -397,19 +397,19 @@ const styles = StyleSheet.create({
     color: tokens.colors.textTertiary,
   },
   createdText: {
-    fontSize: tokens.typography.fontSize.xs,
+    fontSize: 11,
     color: tokens.colors.textTertiary,
   },
   cardTitle: {
-    fontSize: tokens.typography.fontSize.sm,
-    fontWeight: tokens.typography.fontWeight.semibold,
+    fontSize: 13,
+    fontWeight: '600',
     color: tokens.colors.textPrimary,
     lineHeight: 18,
     marginBottom: 4,
   },
   cardPrice: {
-    fontSize: tokens.typography.fontSize.base,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 15,
+    fontWeight: '700',
     color: tokens.colors.textPrimary,
     marginBottom: 4,
   },
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   metaText: {
-    fontSize: tokens.typography.fontSize.xs,
+    fontSize: 11,
     color: tokens.colors.textTertiary,
   },
   actionRow: {
@@ -438,8 +438,8 @@ const styles = StyleSheet.create({
   statusBtn: {
     flex: 1,
     paddingVertical: 7,
-    borderRadius: tokens.borderRadius.sm,
-    backgroundColor: tokens.colors.surfaceAlt,
+    borderRadius: tokens.radius.sm,
+    backgroundColor: tokens.colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -447,18 +447,18 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.textPrimary,
   },
   statusBtnText: {
-    fontSize: tokens.typography.fontSize.xs,
-    fontWeight: tokens.typography.fontWeight.semibold,
+    fontSize: 11,
+    fontWeight: '600',
     color: tokens.colors.textSecondary,
   },
   statusBtnTextActive: {
     color: '#FFFFFF',
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontWeight: '700',
   },
   deleteBtn: {
     width: 34,
     height: 32,
-    borderRadius: tokens.borderRadius.sm,
+    borderRadius: tokens.radius.sm,
     backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: tokens.colors.surfaceAlt,
+    backgroundColor: tokens.colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: tokens.spacing.md,
@@ -480,13 +480,13 @@ const styles = StyleSheet.create({
     borderColor: tokens.colors.border,
   },
   emptyTitle: {
-    fontSize: tokens.typography.fontSize.base,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 15,
+    fontWeight: '700',
     color: tokens.colors.textPrimary,
     marginBottom: tokens.spacing.xs,
   },
   emptyDesc: {
-    fontSize: tokens.typography.fontSize.sm,
+    fontSize: 13,
     color: tokens.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
@@ -498,12 +498,12 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.primary,
     paddingHorizontal: tokens.spacing.lg,
     paddingVertical: 12,
-    borderRadius: tokens.borderRadius.full,
-    ...tokens.shadows.sm,
+    borderRadius: tokens.radius.full,
+    ...tokens.shadows.soft,
   },
   createBtnText: {
-    fontSize: tokens.typography.fontSize.sm,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 13,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
 });

@@ -1,4 +1,4 @@
-// apps/mobile/src/screens/my/WishlistScreen.tsx
+﻿// apps/mobile/src/screens/my/WishlistScreen.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -148,21 +148,21 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   headerTitle: {
-    fontSize: tokens.typography.fontSize.lg,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 17,
+    fontWeight: '700',
     color: tokens.colors.textPrimary,
   },
   headerRightBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
-    backgroundColor: tokens.colors.surfaceAlt,
-    borderRadius: tokens.borderRadius.full,
+    backgroundColor: tokens.colors.surfaceSecondary,
+    borderRadius: tokens.radius.full,
     borderWidth: 1,
     borderColor: tokens.colors.border,
   },
   headerRightText: {
-    fontSize: tokens.typography.fontSize.xs,
-    fontWeight: tokens.typography.fontWeight.semibold,
+    fontSize: 11,
+    fontWeight: '600',
     color: tokens.colors.textSecondary,
   },
   listContent: {
@@ -174,17 +174,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: tokens.colors.surface,
-    borderRadius: tokens.borderRadius.lg,
+    borderRadius: tokens.radius.lg,
     borderWidth: 1,
     borderColor: tokens.colors.border,
     padding: tokens.spacing.sm,
-    ...tokens.shadows.sm,
+    ...tokens.shadows.soft,
   },
   cardThumb: {
     width: 76,
     height: 76,
-    borderRadius: tokens.borderRadius.md,
-    backgroundColor: tokens.colors.surfaceAlt,
+    borderRadius: tokens.radius.md,
+    backgroundColor: tokens.colors.surfaceSecondary,
   },
   cardBody: {
     flex: 1,
@@ -192,15 +192,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardTitle: {
-    fontSize: tokens.typography.fontSize.sm,
-    fontWeight: tokens.typography.fontWeight.semibold,
+    fontSize: 13,
+    fontWeight: '600',
     color: tokens.colors.textPrimary,
     lineHeight: 18,
     marginBottom: 4,
   },
   cardPrice: {
-    fontSize: tokens.typography.fontSize.base,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 15,
+    fontWeight: '700',
     color: tokens.colors.textPrimary,
     marginBottom: 4,
   },
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   cardLocation: {
-    fontSize: tokens.typography.fontSize.xs,
+    fontSize: 11,
     color: tokens.colors.textTertiary,
   },
   deleteBtn: {
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: tokens.colors.surfaceAlt,
+    backgroundColor: tokens.colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: tokens.spacing.md,
@@ -235,13 +235,13 @@ const styles = StyleSheet.create({
     borderColor: tokens.colors.border,
   },
   emptyTitle: {
-    fontSize: tokens.typography.fontSize.base,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 15,
+    fontWeight: '700',
     color: tokens.colors.textPrimary,
     marginBottom: tokens.spacing.xs,
   },
   emptyDesc: {
-    fontSize: tokens.typography.fontSize.sm,
+    fontSize: 13,
     color: tokens.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
@@ -253,12 +253,12 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.primary,
     paddingHorizontal: tokens.spacing.lg,
     paddingVertical: 12,
-    borderRadius: tokens.borderRadius.full,
-    ...tokens.shadows.sm,
+    borderRadius: tokens.radius.full,
+    ...tokens.shadows.soft,
   },
   exploreBtnText: {
-    fontSize: tokens.typography.fontSize.sm,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 13,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
 });

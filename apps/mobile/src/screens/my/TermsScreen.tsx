@@ -1,4 +1,4 @@
-// apps/mobile/src/screens/my/TermsScreen.tsx
+﻿// apps/mobile/src/screens/my/TermsScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -160,8 +160,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   headerTitle: {
-    fontSize: tokens.typography.fontSize.lg,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 17,
+    fontWeight: '700',
     color: tokens.colors.textPrimary,
   },
   tabScrollWrap: {
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   tabChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: tokens.borderRadius.full,
+    borderRadius: tokens.radius.full,
     borderWidth: 1,
     borderColor: tokens.colors.border,
     backgroundColor: tokens.colors.surface,
@@ -188,13 +188,13 @@ const styles = StyleSheet.create({
     borderColor: tokens.colors.primary,
   },
   tabChipText: {
-    fontSize: tokens.typography.fontSize.xs,
+    fontSize: 11,
     color: tokens.colors.textSecondary,
-    fontWeight: tokens.typography.fontWeight.medium,
+    fontWeight: '500',
   },
   tabChipTextActive: {
     color: '#FFFFFF',
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontWeight: '700',
   },
   contentWrap: {
     padding: tokens.spacing.md,
@@ -202,20 +202,20 @@ const styles = StyleSheet.create({
   },
   termCard: {
     backgroundColor: tokens.colors.surface,
-    borderRadius: tokens.borderRadius.lg,
+    borderRadius: tokens.radius.lg,
     borderWidth: 1,
     borderColor: tokens.colors.border,
     padding: tokens.spacing.lg,
-    ...tokens.shadows.sm,
+    ...tokens.shadows.soft,
   },
   termTitle: {
-    fontSize: tokens.typography.fontSize.lg,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 17,
+    fontWeight: '700',
     color: tokens.colors.textPrimary,
     marginBottom: 4,
   },
   termVersion: {
-    fontSize: tokens.typography.fontSize.xs,
+    fontSize: 11,
     color: tokens.colors.textTertiary,
     marginBottom: tokens.spacing.md,
   },
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     marginBottom: tokens.spacing.md,
   },
   paragraphText: {
-    fontSize: tokens.typography.fontSize.sm,
+    fontSize: 13,
     color: tokens.colors.textSecondary,
     lineHeight: 22,
   },

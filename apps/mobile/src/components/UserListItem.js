@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   title: {
-    fontSize: tokens.typography.fontSize.base,
+    fontSize: 15,
     fontWeight: '700',
     color: tokens.colors.text,
   },
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     marginTop: 3,
-    fontSize: tokens.typography.fontSize.sm,
+    fontSize: 13,
     color: tokens.colors.textSecondary,
   },
   metaRow: {
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: tokens.radius.xs,
-    backgroundColor: tokens.colors.neutralSurface,
+    backgroundColor: tokens.colors.surfaceSecondary,
     gap: 4,
   },
   badgeTimeOnline: {
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   metaText: {
-    fontSize: tokens.typography.fontSize.xs,
+    fontSize: 11,
     color: tokens.colors.textTertiary,
   },
   chatActionBtn: {
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     borderTopColor: tokens.colors.borderLight,
   },
   interestChip: {
-    backgroundColor: tokens.colors.neutralSurface,
+    backgroundColor: tokens.colors.surfaceSecondary,
     paddingHorizontal: 7,
     paddingVertical: 2.5,
     borderRadius: tokens.radius.xs,

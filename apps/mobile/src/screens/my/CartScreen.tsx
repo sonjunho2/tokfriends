@@ -1,4 +1,4 @@
-// apps/mobile/src/screens/my/CartScreen.tsx
+﻿// apps/mobile/src/screens/my/CartScreen.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -241,8 +241,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   headerTitle: {
-    fontSize: tokens.typography.fontSize.lg,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 17,
+    fontWeight: '700',
     color: tokens.colors.textPrimary,
   },
   listContent: {
@@ -253,17 +253,17 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     backgroundColor: tokens.colors.surface,
-    borderRadius: tokens.borderRadius.lg,
+    borderRadius: tokens.radius.lg,
     borderWidth: 1,
     borderColor: tokens.colors.border,
     padding: tokens.spacing.md,
-    ...tokens.shadows.sm,
+    ...tokens.shadows.soft,
   },
   cardThumb: {
     width: 76,
     height: 76,
-    borderRadius: tokens.borderRadius.md,
-    backgroundColor: tokens.colors.surfaceAlt,
+    borderRadius: tokens.radius.md,
+    backgroundColor: tokens.colors.surfaceSecondary,
   },
   cardInfo: {
     flex: 1,
@@ -271,20 +271,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardTitle: {
-    fontSize: tokens.typography.fontSize.sm,
-    fontWeight: tokens.typography.fontWeight.semibold,
+    fontSize: 13,
+    fontWeight: '600',
     color: tokens.colors.textPrimary,
     lineHeight: 18,
     marginBottom: 2,
   },
   cardOption: {
-    fontSize: tokens.typography.fontSize.xs,
+    fontSize: 11,
     color: tokens.colors.textTertiary,
     marginBottom: 4,
   },
   cardPrice: {
-    fontSize: tokens.typography.fontSize.base,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 15,
+    fontWeight: '700',
     color: tokens.colors.textPrimary,
     marginBottom: 6,
   },
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: tokens.colors.border,
-    borderRadius: tokens.borderRadius.sm,
+    borderRadius: tokens.radius.sm,
     alignSelf: 'flex-start',
   },
   qtyBtn: {
@@ -301,8 +301,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   qtyText: {
-    fontSize: tokens.typography.fontSize.xs,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 11,
+    fontWeight: '700',
     color: tokens.colors.textPrimary,
     paddingHorizontal: 8,
   },
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: tokens.colors.surfaceAlt,
+    backgroundColor: tokens.colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: tokens.spacing.md,
@@ -327,13 +327,13 @@ const styles = StyleSheet.create({
     borderColor: tokens.colors.border,
   },
   emptyTitle: {
-    fontSize: tokens.typography.fontSize.base,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 15,
+    fontWeight: '700',
     color: tokens.colors.textPrimary,
     marginBottom: tokens.spacing.xs,
   },
   emptyDesc: {
-    fontSize: tokens.typography.fontSize.sm,
+    fontSize: 13,
     color: tokens.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
@@ -343,12 +343,12 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.colors.primary,
     paddingHorizontal: tokens.spacing.lg,
     paddingVertical: 12,
-    borderRadius: tokens.borderRadius.full,
-    ...tokens.shadows.sm,
+    borderRadius: tokens.radius.full,
+    ...tokens.shadows.soft,
   },
   exploreBtnText: {
-    fontSize: tokens.typography.fontSize.sm,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 13,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   footer: {
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.md,
     paddingTop: tokens.spacing.md,
     paddingBottom: 24,
-    ...tokens.shadows.md,
+    ...tokens.shadows.card,
   },
   totalRow: {
     flexDirection: 'row',
@@ -371,12 +371,12 @@ const styles = StyleSheet.create({
     marginBottom: tokens.spacing.sm,
   },
   totalLabel: {
-    fontSize: tokens.typography.fontSize.sm,
+    fontSize: 13,
     color: tokens.colors.textSecondary,
   },
   totalPrice: {
-    fontSize: tokens.typography.fontSize.lg,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 17,
+    fontWeight: '700',
     color: tokens.colors.textPrimary,
   },
   checkoutBtn: {
@@ -385,12 +385,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: tokens.colors.primary,
     paddingVertical: 14,
-    borderRadius: tokens.borderRadius.md,
-    ...tokens.shadows.sm,
+    borderRadius: tokens.radius.md,
+    ...tokens.shadows.soft,
   },
   checkoutBtnText: {
-    fontSize: tokens.typography.fontSize.base,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 15,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
 });

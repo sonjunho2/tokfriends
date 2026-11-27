@@ -19,7 +19,7 @@ import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 
 export default function CustomerCenterScreen({ navigation }: any) {
-  const { user } = useAuth();
+  const { user }: any = useAuth();
   const nickname = user?.nickname || user?.displayName || '모꼬이웃';
 
   // FAQ 목록 상태
@@ -300,8 +300,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   headerTitle: {
-    fontSize: tokens.typography.fontSize.lg,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 17,
+    fontWeight: '700',
     color: tokens.colors.textPrimary,
   },
   scrollContent: {
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFF1F2',
-    borderRadius: tokens.borderRadius.lg,
+    borderRadius: tokens.radius.lg,
     borderWidth: 1,
     borderColor: '#FFE4E6',
     padding: tokens.spacing.md,
@@ -331,30 +331,30 @@ const styles = StyleSheet.create({
     marginLeft: tokens.spacing.md,
   },
   inquiryCardTitle: {
-    fontSize: tokens.typography.fontSize.base,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 15,
+    fontWeight: '700',
     color: tokens.colors.primary,
     marginBottom: 2,
   },
   inquiryCardDesc: {
-    fontSize: tokens.typography.fontSize.xs,
+    fontSize: 11,
     color: tokens.colors.textSecondary,
   },
   operatingBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: tokens.colors.surfaceAlt,
-    borderRadius: tokens.borderRadius.md,
+    backgroundColor: tokens.colors.surfaceSecondary,
+    borderRadius: tokens.radius.md,
     padding: tokens.spacing.sm,
     marginBottom: tokens.spacing.lg,
   },
   operatingTitle: {
-    fontSize: tokens.typography.fontSize.xs,
-    fontWeight: tokens.typography.fontWeight.semibold,
+    fontSize: 11,
+    fontWeight: '600',
     color: tokens.colors.textPrimary,
   },
   operatingDesc: {
-    fontSize: tokens.typography.fontSize.xs,
+    fontSize: 11,
     color: tokens.colors.textTertiary,
     marginTop: 1,
   },
@@ -365,17 +365,17 @@ const styles = StyleSheet.create({
     marginBottom: tokens.spacing.sm,
   },
   faqSectionTitle: {
-    fontSize: tokens.typography.fontSize.base,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 15,
+    fontWeight: '700',
     color: tokens.colors.textPrimary,
   },
   faqSectionCount: {
-    fontSize: tokens.typography.fontSize.xs,
+    fontSize: 11,
     color: tokens.colors.textTertiary,
   },
   faqList: {
     backgroundColor: tokens.colors.surface,
-    borderRadius: tokens.borderRadius.lg,
+    borderRadius: tokens.radius.lg,
     borderWidth: 1,
     borderColor: tokens.colors.border,
     overflow: 'hidden',
@@ -392,31 +392,31 @@ const styles = StyleSheet.create({
   faqCategoryBadge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: tokens.borderRadius.xs,
-    backgroundColor: tokens.colors.surfaceAlt,
+    borderRadius: tokens.radius.xs,
+    backgroundColor: tokens.colors.surfaceSecondary,
     marginRight: 8,
   },
   faqCategoryText: {
     fontSize: 10,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontWeight: '700',
     color: tokens.colors.textSecondary,
   },
   faqQuestionText: {
     flex: 1,
-    fontSize: tokens.typography.fontSize.sm,
-    fontWeight: tokens.typography.fontWeight.semibold,
+    fontSize: 13,
+    fontWeight: '600',
     color: tokens.colors.textPrimary,
     lineHeight: 18,
     marginRight: 8,
   },
   faqAnswerBox: {
-    backgroundColor: tokens.colors.surfaceAlt,
+    backgroundColor: tokens.colors.surfaceSecondary,
     padding: tokens.spacing.md,
     borderTopWidth: 1,
     borderTopColor: tokens.colors.border,
   },
   faqAnswerText: {
-    fontSize: tokens.typography.fontSize.sm,
+    fontSize: 13,
     color: tokens.colors.textSecondary,
     lineHeight: 20,
   },
@@ -427,8 +427,8 @@ const styles = StyleSheet.create({
   },
   modalSheet: {
     backgroundColor: tokens.colors.surface,
-    borderTopLeftRadius: tokens.borderRadius.xl,
-    borderTopRightRadius: tokens.borderRadius.xl,
+    borderTopLeftRadius: tokens.radius.xl,
+    borderTopRightRadius: tokens.radius.xl,
     padding: tokens.spacing.lg,
     maxHeight: '85%',
   },
@@ -439,13 +439,13 @@ const styles = StyleSheet.create({
     marginBottom: tokens.spacing.md,
   },
   modalTitle: {
-    fontSize: tokens.typography.fontSize.lg,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 17,
+    fontWeight: '700',
     color: tokens.colors.textPrimary,
   },
   inputLabel: {
-    fontSize: tokens.typography.fontSize.xs,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 11,
+    fontWeight: '700',
     color: tokens.colors.textSecondary,
     marginBottom: 6,
     marginTop: tokens.spacing.sm,
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
   categoryChip: {
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: tokens.borderRadius.full,
+    borderRadius: tokens.radius.full,
     borderWidth: 1,
     borderColor: tokens.colors.border,
     backgroundColor: tokens.colors.surface,
@@ -468,20 +468,20 @@ const styles = StyleSheet.create({
     borderColor: tokens.colors.primary,
   },
   categoryChipText: {
-    fontSize: tokens.typography.fontSize.xs,
+    fontSize: 11,
     color: tokens.colors.textSecondary,
   },
   categoryChipTextActive: {
     color: '#FFFFFF',
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontWeight: '700',
   },
   input: {
     borderWidth: 1,
     borderColor: tokens.colors.border,
-    borderRadius: tokens.borderRadius.md,
+    borderRadius: tokens.radius.md,
     paddingHorizontal: tokens.spacing.md,
     paddingVertical: 10,
-    fontSize: tokens.typography.fontSize.sm,
+    fontSize: 13,
     color: tokens.colors.textPrimary,
     backgroundColor: tokens.colors.surface,
   },
@@ -492,15 +492,15 @@ const styles = StyleSheet.create({
   submitBtn: {
     backgroundColor: tokens.colors.primary,
     paddingVertical: 14,
-    borderRadius: tokens.borderRadius.md,
+    borderRadius: tokens.radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: tokens.spacing.lg,
     marginBottom: 20,
   },
   submitBtnText: {
-    fontSize: tokens.typography.fontSize.base,
-    fontWeight: tokens.typography.fontWeight.bold,
+    fontSize: 15,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
 });
