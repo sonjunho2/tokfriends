@@ -47,63 +47,53 @@ export class AuthService implements OnModuleInit {
         `ALTER TABLE "AdminProfile" ADD COLUMN IF NOT EXISTS "username" TEXT`,
       ).catch(() => {});
 
-      const existingAdmin = await this.prisma.adminProfile.findFirst({
-        where: { username: 'admin' },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              passwordHash: true,
-            },
-          },
-        },
+      const existingMoccoAdmin = await this.prisma.user.findFirst({
+        where: { email: 'admin@mocco.local' },
+        include: { adminProfile: true },
       });
 
-      if (existingAdmin) {
-        if (!existingAdmin.user?.passwordHash || (existingAdmin.lastLoginAt === null && existingAdmin.user?.email !== 'admin@mocco.local')) {
+      if (existingMoccoAdmin) {
+        if (!existingMoccoAdmin.passwordHash) {
           const passwordHash = await argon2.hash('admin123!!');
           await this.prisma.user.update({
-            where: { id: existingAdmin.userId },
-            data: { passwordHash, status: 'active' },
+            where: { id: existingMoccoAdmin.id },
+            data: { passwordHash, role: 'admin', status: 'active' },
+          });
+        }
+        if (!existingMoccoAdmin.adminProfile) {
+          await this.prisma.adminProfile.updateMany({
+            where: { username: 'admin' },
+            data: { username: null },
+          });
+          await this.prisma.adminProfile.create({
+            data: {
+              userId: existingMoccoAdmin.id,
+              username: 'admin',
+              role: 'SUPER_ADMIN',
+              status: 'ACTIVE',
+              permissions: DEFAULT_SUPER_ADMIN_PERMISSIONS,
+            },
+          });
+        } else if (!existingMoccoAdmin.adminProfile.username) {
+          await this.prisma.adminProfile.updateMany({
+            where: { username: 'admin', NOT: { userId: existingMoccoAdmin.id } },
+            data: { username: null },
+          });
+          await this.prisma.adminProfile.update({
+            where: { userId: existingMoccoAdmin.id },
+            data: { username: 'admin', status: 'ACTIVE' },
           });
         }
         return;
       }
 
-      const passwordHash = await argon2.hash('admin123!!');
-      const existingUser = await this.prisma.user.findFirst({
-        where: { email: 'admin@mocco.local' },
+      // If another legacy AdminProfile got tagged 'admin' before admin@mocco.local existed, free 'admin'
+      await this.prisma.adminProfile.updateMany({
+        where: { username: 'admin' },
+        data: { username: null },
       });
 
-      if (existingUser) {
-        await this.prisma.user.update({
-          where: { id: existingUser.id },
-          data: {
-            passwordHash: existingUser.passwordHash || passwordHash,
-            role: 'admin',
-            status: 'active',
-          },
-        });
-        await this.prisma.adminProfile.upsert({
-          where: { userId: existingUser.id },
-          update: {
-            username: 'admin',
-            role: 'SUPER_ADMIN',
-            status: 'ACTIVE',
-            permissions: DEFAULT_SUPER_ADMIN_PERMISSIONS,
-          },
-          create: {
-            userId: existingUser.id,
-            username: 'admin',
-            role: 'SUPER_ADMIN',
-            status: 'ACTIVE',
-            permissions: DEFAULT_SUPER_ADMIN_PERMISSIONS,
-          },
-        });
-        return;
-      }
-
+      const passwordHash = await argon2.hash('admin123!!');
       const nickTaken = await this.prisma.user.findUnique({
         where: { nickname: 'admin' },
         select: { id: true },
@@ -132,7 +122,7 @@ export class AuthService implements OnModuleInit {
       });
       this.logger.log('Default super admin account seeded (username: admin)');
     } catch (err: any) {
-      this.logger.warn(`ensureDefaultAdminAccount skipped: ${err?.message || err}`);
+      this.logger.warn(`ensureDefaultAdminAccount notice: ${err?.message || err}`);
     }
   }
 
